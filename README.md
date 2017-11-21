@@ -9,10 +9,10 @@ Econometrics [CORE](https://uclouvain.be/fr/node/4474) of the Université cathol
 
 ## Introduction
 
-Nodus ([Screenshots](http://htmlpreview.github.com/?https://github.com/jourquin/Nodus/blob/master/doc/images/screenshots.html)) implements the "Virtual networks" methodology 
-developed at UCL, an alternative to the classical "four steps" technique to model multimodal and 
-intermodal transport flows over networks, as it combines the "modal-choice" and "assignment" phases 
-of the latter in a single step.
+Nodus ([Screenshots](http://htmlpreview.github.com/?https://github.com/jourquin/Nodus/blob/master/doc/images/screenshots.html)) 
+implements the "Virtual networks" methodology developed at UCL, an alternative to the classical "four steps" 
+technique to model multimodal and intermodal transport flows over networks, as it combines the "modal-choice" 
+and "assignment" phases of the latter in a single step.
 
 This methodology has already lead to numerous policy-oriented studies on large scale multi-modal 
 freight transport networks, such as:
@@ -86,6 +86,8 @@ You can also import Nodus as an [Eclipse](http://www.eclipse.org/) project.
 ## Uninstall
 
 The software doesn't modify the "registry" of any supported OS (Mac OS, Linux or Windows). Just
-delete the installation directory to remove the software from your system. You can
-also delete the small ".nodus7.properties" file that is located at the root of your "home" dir.   
+run the uninstaller provided in the distribution or simply delete the installation directory to 
+remove the software from your system. 
+
+You can also delete the small ".nodus7.properties" file that is located at the root of your "home" dir.   
 
