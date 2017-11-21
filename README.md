@@ -42,8 +42,9 @@ See also the [documentation](doc/help.html).
 
 ## Install and use
 
-Download the Nodus installer. As the software is written in the [Java](https://java.com/en/download/)
-programming language, the latest must be installed on your computer. Nodus needs Java 7 or later.
+Download the [Nodus installer](https://github.com/jourquin/Nodus/releases).
+As the software is written in the [Java](https://java.com/en/download/) programming language, the 
+latest must be installed on your computer. Nodus needs Java 7 or later.
 
 The software has a modern and integrated user friendly GUI. Complete reference and user guides
 are not available, but the API is fully documented. A  sample Nodus project can

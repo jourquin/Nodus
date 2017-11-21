@@ -81,7 +81,7 @@
             <file src="installer/nodus7.png" os="unix" targetdir="$INSTALL_PATH"/>
             <file src="installer/nodus7.ico" os="windows" targetdir="$INSTALL_PATH"/>
             <file src="installer/nodus7.icns" os="mac" targetdir="$INSTALL_PATH"/>
-            <file src="nodus7.jar" targetdir="$INSTALL_PATH"/>
+            <file src="BinaryDistribution/nodus7.jar" targetdir="$INSTALL_PATH"/>
             <file src="plafs.groovy" targetdir="$INSTALL_PATH"/>
             
             <file src="installer/AppifyNodus.sh" os="mac" targetdir="$INSTALL_PATH"/>

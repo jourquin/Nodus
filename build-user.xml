@@ -41,7 +41,7 @@
 		<antcall target="Jar" />
 		<antcall target="ApiDoc"/>
 		<java classname="com.izforge.izpack.compiler.Compiler" classpath="${basedir}/devtools/standalone-compiler.jar" failonerror="true" fork="yes">
-			<arg line="${basedir}/installer/installer.xml -b ${basedir} -o ${basedir}/Nodus7-install.jar -k standard" />
+			<arg line="${basedir}/installer/installer.xml -b ${basedir} -o ${basedir}/BinaryDistribution/Nodus7-install.jar -k standard" />
 		</java>
 	</target>
 
@@ -50,7 +50,7 @@
 		<echo message="Creating Nodus jar file" />
 		<antcall target="BuildId" />
 		<antcall target="build" />
-		<jar destfile="${basedir}/nodus7.jar" basedir="${basedir}/classes" manifest="${basedir}/src/MANIFEST.MF" index="true" />
+		<jar destfile="${basedir}/BinaryDistribution/nodus7.jar" basedir="${basedir}/classes" manifest="${basedir}/src/MANIFEST.MF" index="true" />
 		<delete file="./classes/edu/uclouvain/core/nodus/utils/buildid.properties" />
 	</target>
 </project>
