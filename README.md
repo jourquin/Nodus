@@ -39,7 +39,7 @@ along with contributions to congresses and seminars can be found on
 [H2](http://h2database.com/) and [Apache Derby](https://db.apache.org/derby/).  
 - Flexible: user defined database fields, variables, cost functions, mode choice models…
 
-See also the [documentation](doc/help.html).
+See also the [documentation](http://htmlpreview.github.com/?https://github.com/jourquin/Nodus/blob/master/doc/help.html).
 
 ## Install and use
 
