@@ -78,6 +78,8 @@ ant Jar
 ```
 This can be useful for instance when some bugs have been fixed in the source tree or some new
 enhancements have been introduced without any change in the used external libraries.
+
+You can also import Nodus as an [Eclipse](http://www.eclipse.org/) project.
    
 ## Uninstall
 
