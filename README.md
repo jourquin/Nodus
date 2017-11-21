@@ -86,7 +86,7 @@ You can also import Nodus as an [Eclipse](http://www.eclipse.org/) project.
 ## Uninstall
 
 The software doesn't modify the "registry" of any supported OS (Mac OS, Linux or Windows). Just
-run the uninstaller provided in the distribution or simply delete the installation directory to 
+run the uninstaller provided with the distribution or simply delete the installation directory to 
 remove the software from your system. 
 
 You can also delete the small ".nodus7.properties" file that is located at the root of your "home" dir.   
