@@ -9,7 +9,7 @@ Econometrics [CORE](https://uclouvain.be/fr/node/4474) of the Université cathol
 
 ## Introduction
 
-Nodus ([Screenshots](https://github.com/jourquin/Nodus/blob/master/doc/images/screenshots.html)) implements the "Virtual networks" methodology 
+Nodus ([Screenshots](http://htmlpreview.github.com/?https://github.com/jourquin/Nodus/blob/master/doc/images/screenshots.html)) implements the "Virtual networks" methodology 
 developed at UCL, an alternative to the classical "four steps" technique to model multimodal and 
 intermodal transport flows over networks, as it combines the "modal-choice" and "assignment" phases 
 of the latter in a single step.
