@@ -1,0 +1,29 @@
+
+#-----------------------------------------------------   
+# Cost functions 
+#-----------------------------------------------------   
+
+# Means defined for IWW (mode 2)
+# Means 2 = CEMT 2 barges
+# Means 4 = CEMT 4 barges
+
+# Example of user defined vaiable
+# Consider that a small barge (means 2) costs twice
+# as much as a large barge per transported ton.
+SmallBargeRatio= 2.0
+
+# Load.Mode,Means       
+ld.2,2 = 0
+ld.2,4 = 0
+
+# Unload.Mode,Means  
+ul.2,2 = 0
+ul.2,4 = 0
+
+# Transit.Mode,Means    
+tr.2,2 = 0
+tr.2,4 = 0
+
+# Move.Mode,Means
+mv.2,2 = SmallBargeRatio*LENGTH/SPEED
+mv.2,4 = LENGTH/SPEED

@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="iso-8859-1" standalone="yes" ?>
+
+<!-- 
+    Nodus installation file for IzPack installer
+    
+    To compile it use makeInstall.sh or makeInstall.bat
+-->
+
+<installation version="1.0">
+    <!-- 
+        The info section.        
+    -->
+    <info>
+        <appname>Nodus</appname>
+        <appversion>7.0</appversion>
+		<appsubpath>Nodus7</appsubpath>
+    </info>
+    
+    <!-- 
+        The gui preferences indication.
+    -->
+    <guiprefs height="400" resizable="yes" width="600">
+    	
+	</guiprefs>
+    
+    <!-- 
+        The locale section.
+        Asks here to include the English and French langpacks.
+    -->
+    <locale>
+        <langpack iso3="eng"/>
+        <langpack iso3="fra"/>        
+    </locale>
+    
+    <!-- 
+        The resources section.
+        The ids must be these ones if you want to use the LicencePanel and/or the InfoPanel.
+    -->
+    <resources>
+        <res id="HTMLLicencePanel.licence_eng" src="installer/license_eng.html"/>
+        <res id="HTMLLicencePanel.licence_fra" src="installer/license_fra.html"/>
+        <res id="HTMLInfoPanel.info_eng" src="installer/info_eng.html"/>
+        <res id="HTMLInfoPanel.info_fra" src="installer/info_fra.html"/>        
+        <res id="installer.langsel.img" src="src/edu/uclouvain/core/nodus/gui/NodusSplash7_0.png"/>
+        <res id="Installer.image" src="installer/ucl.png" />
+        <res id="packsLang.xml_fra" src="installer/packsLang_fra.xml" />
+        <res id="packsLang.xml_eng" src="installer/packsLang_eng.xml" />
+     id="/>
+    </resources>
+     
+    <!-- 
+        The panels section.
+        We indicate here which panels we want to use. The order will be respected.
+    -->
+    <panels>
+        <panel classname="HelloPanel"/>
+        <panel classname="HTMLLicencePanel"/>
+        <panel classname="TargetPanel"/> 
+        <panel classname="PacksPanel"/> 
+        <panel classname="InstallPanel"/>         
+        <panel classname="HTMLInfoPanel"/>    
+        <panel classname="SimpleFinishPanel"/>
+        
+    </panels>
+    
+    <!-- 
+        The packs section.        
+    -->
+    <packs>
+        <pack name="Core" id="core.package" required="yes">        
+            <description>The base files required to run Nodus.</description>
+            <file src="README.md" targetdir="$INSTALL_PATH"/>
+            <file src="COPYING" targetdir="$INSTALL_PATH"/>
+            <file src="LICENSE" targetdir="$INSTALL_PATH"/>
+            <file src="gpl-french.pdf" targetdir="$INSTALL_PATH"/>            
+            <file src="installer/nodus7.bat" os="windows" targetdir="$INSTALL_PATH"/>
+            <parsable targetfile="$INSTALL_PATH/nodus7.bat" os="windows" type="plain"/> <!-- set $NODUS7_HOME -->
+            <file src="installer/nodus7.sh" os="unix" targetdir="$INSTALL_PATH"/>
+            <parsable targetfile="$INSTALL_PATH/nodus7.sh" os="unix" type="shell"/> <!-- set $NODUS7_HOME -->            
+            <executable targetfile="$INSTALL_PATH/nodus7.sh" os="unix" stage="never"/> <!-- make script executable -->   
+            <file src="installer/nodus7.png" os="unix" targetdir="$INSTALL_PATH"/>
+            <file src="installer/nodus7.ico" os="windows" targetdir="$INSTALL_PATH"/>
+            <file src="installer/nodus7.icns" os="mac" targetdir="$INSTALL_PATH"/>
+            <file src="nodus7.jar" targetdir="$INSTALL_PATH"/>
+            <file src="plafs.groovy" targetdir="$INSTALL_PATH"/>
+            
+            <file src="installer/AppifyNodus.sh" os="mac" targetdir="$INSTALL_PATH"/>
+            <parsable targetfile="$INSTALL_PATH/AppifyNodus.sh" os="mac" type="plain"/>
+            <executable targetfile="$INSTALL_PATH/AppifyNodus.sh" os="mac" stage="postinstall"/> <!-- execute after install -->
+             
+            <fileset dir="lib" targetdir="${INSTALL_PATH}/lib"/> 
+            <fileset dir="plafs" targetdir="${INSTALL_PATH}/plafs"/>
+            <fileset dir="licenses" targetdir="${INSTALL_PATH}/licenses"/>
+            <fileset dir="plugins" targetdir="${INSTALL_PATH}/plugins"/>
+        </pack>
+        <pack name="Help" id="help.package" required="no">
+            <description>Browsable HTML help files.</description>
+            <fileset dir="doc" targetdir="${INSTALL_PATH}/doc"/> 
+        </pack>
+        <pack name="Demo" id="demo.package" required="no">
+            <description>Some Nodus demo projects.</description>
+            <fileset dir="demo" targetdir="${INSTALL_PATH}/demo"/> 
+        </pack>
+        <pack name="Scripts" id="gvy.package" required="no">
+            <description>A set of sample Groovy scripts for Nodus.</description>
+            <fileset dir="scripts" targetdir="${INSTALL_PATH}/scripts"/> 
+        </pack>
+        <pack name="Javadoc" id="javadoc.package" required="no">
+            <description>Javadoc documentation for the Nodus API.</description>
+            <fileset dir="api" targetdir="${INSTALL_PATH}/api"/>
+        </pack>
+        <pack name="JDBC drivers" id="jdbc.package" required="no">
+            <description>Several embedded databases and JDBC drivers.</description>
+            <fileset dir="jdbcDrivers" targetdir="${INSTALL_PATH}/jdbcDrivers"/> 
+        </pack>
+        <pack name="JFlowMap" id="jflowmap.package" required="no">
+            <description>JFlowMap flow map visualization tool. </description>
+            <fileset dir="JFlowMap" targetdir="${INSTALL_PATH}/JFlowMap"/> 
+        </pack>        
+    </packs>
+    
+</installation>

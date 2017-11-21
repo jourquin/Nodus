@@ -1,0 +1,36 @@
+# By default, Nodus uses an embedded DBMS, but other can be used, such as MySQL/MariaDB.
+# Some JDBC drivers are provided in the Nodus distribution. It is the case for MySQL/MariaDB.
+#jdbc.driver=org.mariadb.jdbc.Driver
+#jdbc.user=nodus
+#jdbc.password=nodus
+#jdbc.url=jdbc:mysql://localhost/demo?sessionVariables=default_storage_engine=MYISAM
+
+# These two properties are mandatory. They contain a list of node and link layers
+network.nodes= centroids road_points iww_points rail_points terminals
+network.links= road_polylines iww_polylines rail_polylines road_con iww_con rail_con
+
+# This property specifies a list of additional DBF tables to import in the DBMS,
+# such as orifin-destination tables for instance. This is not mandatory.
+importTables= od_road od_iww od_rail
+
+# A pretty name can be given to each layer. Not mandatory.
+centroids.prettyName = Centroids
+terminals.prettyName = Terminals
+
+road_points.prettyName = Road (points)
+road_polylines.prettyName = Roads
+road_con.prettyName = Road connectors
+
+iww_points.prettyName = IWW (points)
+iww_polylines.prettyName = IWW
+iww_con.prettyName = IWW connectors
+
+rail_points.prettyName = Rail (points)
+rail_polylines.prettyName = Railways
+rail_con.prettyName = Rail connectors
+
+
+# This property can be used to specify a set of background layer.
+# These are handled by OpenMap. Please refer to its documentation.
+# This is not mandatory
+openmap.layers=demo

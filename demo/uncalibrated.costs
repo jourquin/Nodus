@@ -1,0 +1,131 @@
+
+#-----------------------------------------------------   
+# Cost functions 
+#-----------------------------------------------------   
+
+# Means defined for IWW
+# Means 2 = CEMT 2 barges
+# Means 4 = CEMT 4 barges
+
+
+# Average load barges, in tons
+# AVGLOAD is a reserved name by Nodus. It is used to
+# estimate the number of vehicles needed to transport
+# a given total quantity (tons) of goods.
+# If not defined for a given mode, means and group
+# combination, the corresponding value is set to 1. 
+AVGLOAD.2,2.0 = 277.05 
+AVGLOAD.2,4.0 = 952.17
+AVGLOAD.2,2.1 = 291.27
+AVGLOAD.2,4.1 = 1009.30
+
+# Average load train
+AVGLOAD.3,1.0 = 568.41
+AVGLOAD.3,1.1 = 966.12
+
+# Average load trucks
+AVGLOAD.1,1.0 = 14.88
+AVGLOAD.1,1.1 = 14.88
+
+# All the following variables are user defined
+
+# Average speed per mode
+AVGSPEED1 = 66
+AVGSPEED2 = 8
+AVGSPEED3 = 80
+
+# Loading costs road (euro/ton)              
+Loading_M01m01 = 0.00
+# Overwrite the value for groups 0 and 1
+Loading_M01m01.0 = 2.7964
+Loading_M01m01.1 = 2.7971
+
+# Loading costs barges (euro/ton)
+#  CEMT 2 barges = mode 2, means 2
+Loading_M02m02 = 0.00
+#  CEMT 4 barges = mode 2, means 4 
+Loading_M02m04 = 0.00 
+Loading_M02m02.0 = 1.6636
+Loading_M02m04.0 = 1.2159
+Loading_M02m02.1 = 1.5465
+Loading_M02m04.1 = 1.1301
+
+# Loading costs rail (euro/ton)
+Loading_M03m01 = 0.00
+Loading_M03m01.0 = 9.66
+Loading_M03m01.1 = 2.36
+
+# Unloading costs road (euro/ton)                
+Unloading_M01m01 = 0
+Unloading_M01m01.0 = 2.6488
+Unloading_M01m01.1 = 2.6487          
+
+# Unloading costs IWT (euro/ton)           
+Unloading_M02m02 = 0.00
+Unloading_M02m04 = 0.00
+Unloading_M02m02.0 = 1.8772
+Unloading_M02m04.0 = 1.5007
+Unloading_M02m02.1 = 1.7319
+Unloading_M02m04.1 = 1.3719
+
+# Unloading costs rail (euro/ton)
+Unloading_M03m01 = 0.00
+Unloading_M03m01.0 = 9.66
+Unloading_M03m01.1 = 2.36
+
+# Moving costs (euro/t.km) road
+Moving_M01m01 = 0
+Moving_M01m01.0 = 0.0634
+Moving_M01m01.1 = 0.0634
+
+# Moving costs (euro/t.km) IWT              
+Moving_M02m02 = 0.00
+Moving_M02m04 = 0.00
+Moving_M02m02.0 = 0.0240
+Moving_M02m04.0 = 0.0122
+Moving_M02m02.1 = 0.0228
+Moving_M02m04.1 = 0.0114
+
+# Moving costs (euro/t.km) rail                
+Moving_M03m01 = 0
+Moving_M03m01.0 = 0.0234
+Moving_M03m01.1 = 0.0152
+
+# No transhipment "tp" functions are defined in this
+# demo. Intermodal transport is thus not allowed
+
+#- Functions -----------------------------------------               
+
+# The variables used in the cost functions must be 
+# defined (see above). Note that the variables are 
+# here not specific to a group of commodities for 
+# instance. Therefore, the generic variables must also
+# be defined. For instance, "Loading_M01m01" is defined
+# earlier, but with a value = 0. However, 
+# "Loading_M01m01.0" and "Loading_M01m01.1" are also 
+# defined and overwrite the value of "Loading_M01m01" 
+# for groups 0 and 1.
+
+# Load.Mode,Means       
+ld.1,1 = Loading_M01m01
+ld.2,2 = Loading_M02m02
+ld.2,4 = Loading_M02m04
+ld.3,1 = Loading_M03m01
+
+# Unload.Mode,Means  
+ul.1,1 = Unloading_M01m01
+ul.2,2 = Unloading_M02m02
+ul.2,4 = Unloading_M02m04
+ul.3,1 = Unloading_M03m01
+
+# Transit.Mode,Means    
+tr.1,1 = 0
+tr.2,2 = 0
+tr.2,4 = 0
+tr.3,1 = 0
+
+# Move.Mode,Means  
+mv.1,1 = (AVGSPEED1/SPEED)*LENGTH*Moving_M01m01
+mv.2,2 = (AVGSPEED2/SPEED)*LENGTH*Moving_M02m02
+mv.2,4 = (AVGSPEED2/SPEED)*LENGTH*Moving_M02m04
+mv.3,1 = (AVGSPEED3/SPEED)*LENGTH*Moving_M03m01

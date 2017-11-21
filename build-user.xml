@@ -1,0 +1,57 @@
+<?eclipse.ant.import?>
+<project>
+	
+	<!-- Launches the i18n tool -->
+	<target name="I18Nedit" description="Runs the i18n translation tool.">
+		<java classname="i18nedit" classpath="${basedir}/devtools/i18nedit.jar:${basedir}/devtools/qjcc.jar:${basedir}/devtools/jhall.jar" failonerror="true" fork="yes">
+		</java>
+
+	</target>
+
+	<!-- Launches the JFlex lexer -->
+	<target name="JFlex" description="Runs the JFlex lexer.">
+		<java jar="${basedir}/devtools/JFlex.jar" fork="yes" failonerror="true" />
+	</target>
+
+	<!-- Launches the Build ID generator -->
+	    <target name="BuildId" description="Compiles and run the Build ID generator">
+	        <echo message="Generating a build ID" />
+	        <mkdir dir="classes"/>
+	        <javac includeantruntime="false" srcdir="src" destdir="classes">
+	            <include name="edu/uclouvain/core/nodus/utils/BuildIdGenerator.java"/>
+	        </javac>
+	        <java classname="edu.uclouvain.core.nodus.utils.BuildIdGenerator" classpath="${basedir}/classes" failonerror="true" fork="yes">
+	        </java>
+	    </target>
+
+	<!-- Build the API documentation -->
+	<target name="ApiDoc" description="Makes the javadoc API html documents.">
+		<echo message="Generating the Nodus API documentation" />
+		<delete dir="${basedir}/api" />
+		<javadoc sourcepath="${basedir}/src" destdir="${basedir}/api" maxmemory="256m" excludepackagenames="com.bbn.openmap.layer.shape.displayindex,
+							com.bbn.openmap.layer.image.capabilities,
+							com.websina.license,
+		                    org.knowm.xchart.internal*.*" encoding="utf8" docencoding="utf8" charset="utf8" packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" author="true" version="true" use="true" windowtitle="Nodus 7.0 API" doctitle="Nodus" bottom="Copyright 1991-2018, Université catholique de Louvain (UCL), Center for Operations Research and Econometrics (CORE)" doclet="ExcludeDoclet" docletpath="${basedir}/devtools/ExcludeDoclet.jar" classpathref="Nodus7.0.classpath" failonerror="false" />
+	</target>
+
+
+	<!-- Launches IzPack installer -->
+	<target name="Installer" description="Runs the Nodus installer generation tool.">
+		<echo message="Creating a Nodus installer" />
+		<antcall target="Jar" />
+		<antcall target="ApiDoc"/>
+		<java classname="com.izforge.izpack.compiler.Compiler" classpath="${basedir}/devtools/standalone-compiler.jar" failonerror="true" fork="yes">
+			<arg line="${basedir}/installer/installer.xml -b ${basedir} -o ${basedir}/Nodus7-install.jar -k standard" />
+		</java>
+	</target>
+
+	<!-- Create jar -->
+	<target name="Jar" description="Builds the Nodus jar file.">
+		<echo message="Creating Nodus jar file" />
+		<antcall target="BuildId" />
+		<antcall target="build" />
+		<jar destfile="${basedir}/nodus7.jar" basedir="${basedir}/classes" manifest="${basedir}/src/MANIFEST.MF" index="true" />
+		<delete file="./classes/edu/uclouvain/core/nodus/utils/buildid.properties" />
+	</target>
+</project>
+

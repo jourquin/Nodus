@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="iso-8859-1" standalone="yes" ?>
+
+<!-- The French langpack -->
+
+<langpack>
+    <str id="core.package" txt="Fichiers de base"/>
+    <str id="core.package.description" txt="Fichiers dont l'installation est obligatoire pour faire fonctionner Nodus."/>
+    <str id="help.package" txt="Aide"/>
+    <str id="help.package.description" txt="Aide contextuelle, fichiers d'aide sous forme HTML et LaTeX."/>
+    <str id="demo.package" txt="Démo"/>
+    <str id="demo.package.description" txt="Exemples de projets."/>
+    <str id="javadoc.package" txt="Javadoc"/>
+    <str id="javadoc.package.description" txt="Documentation de l'API Nodus au format javadoc."/>
+    <str id="jdbc.package" txt="Pilotes JDBC"/>
+    <str id="jdbc.package.description" txt="Quelques SGDB et pilotes JDBC qui peuvent être utilisés avec Nodus."/>
+    <str id="gvy.package" txt="Scripts"/>
+    <str id="gvy.package.description" txt="Exemples de scripts Groovy à utiliser avec Nodus."/> 
+    <str id="jflowmap.package" txt="JFlowMap"/>
+    <str id="jflowmap.package.description" txt="Outil de visualisation de flux JFlowMap."/>
+</langpack>

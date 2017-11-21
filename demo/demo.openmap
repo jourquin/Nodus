@@ -1,0 +1,29 @@
+openmap.layers= Belgium OsmTiles
+openmap.startUpLayers= Belgium
+
+# A simple shapefile containin the borders of two German regions
+Belgium.class=com.bbn.openmap.layer.shape.FastEsriLayer
+Belgium.prettyName=Belgian NUTS2
+Belgium.lineColor=ff606060
+Belgium.fillColor=fff2f2f2
+Belgium.shp=bel_nuts2.shp
+
+# Map Tile Layer, using OpenStreetMap tiles
+# The NodusMapTileLayer is an extension of OpenMap's MapTileLayer. See API doc for more info.
+OsmTiles.class=com.bbn.openmap.layer.imageTile.NodusMapTileLayer
+OsmTiles.prettyName=OpenStreetMap Tiles
+OsmTiles.rootDir=https://tile.openstreetmap.be/osmbe/{z}/{x}/{y}.png
+OsmTiles.tileFactory=com.bbn.openmap.dataAccess.mapTile.StandardMapTileFactory
+OsmTiles.mapTileTransform=com.bbn.openmap.dataAccess.mapTile.OSMMapTileCoordinateTransform
+OsmTiles.emptyTileHandler=com.bbn.openmap.dataAccess.mapTile.ShpFileEmptyTileHandler
+# Define ocean/background colors for tiles
+OsmTiles.background.fillColor=FFFFFF
+OsmTiles.background.lineColor=FFFFFF
+# Define land color for tiles (empty tiles on land, too)
+OsmTiles.land.fillColor=DECD8B
+OsmTiles.land.lineColor=DECD8B
+# Define zoom level to limit handler response - zoom in past this provides empty coverage (clear)
+OsmTiles.noCoverageZoom=13
+
+
+
