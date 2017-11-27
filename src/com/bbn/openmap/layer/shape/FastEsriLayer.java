@@ -74,34 +74,37 @@ public class FastEsriLayer extends EsriLayer {
    */
   @Override
   public String getDescription(int index) {
+
     StringBuffer v = new StringBuffer();
 
-    v.append("<HTML><BODY>");
-    for (int i = 0; i < getTable().getColumnCount(); i++) {
-      try {
-        String column = getTable().getColumnName(i);
-        String value = getTable().getValueAt(index, i) + "";
+    if (getModel() != null) {
+      v.append("<HTML><BODY>");
+      for (int i = 0; i < getTable().getColumnCount(); i++) {
+        try {
+          String column = getTable().getColumnName(i);
+          String value = getTable().getValueAt(index, i) + "";
 
-        // Properly display integer values
-        if (getModel().getType(i) == DbfTableModel.TYPE_NUMERIC) {
-          if (getModel().getDecimalCount(i) == 0) {
-            try {
-              value = "" + (long) Double.parseDouble(value);
-            } catch (NumberFormatException e1) {
-              e1.printStackTrace();
+          // Properly display integer values
+          if (getModel().getType(i) == DbfTableModel.TYPE_NUMERIC) {
+            if (getModel().getDecimalCount(i) == 0) {
+              try {
+                value = "" + (long) Double.parseDouble(value);
+              } catch (NumberFormatException e1) {
+                e1.printStackTrace();
+              }
             }
           }
+
+          v.append(i == 0 ? "<b>" : "<BR><b>").append(column).append(":</b> ").append(value);
+        } catch (NullPointerException npe) {
+          npe.printStackTrace();
+        } catch (IndexOutOfBoundsException obe) {
+          obe.printStackTrace();
         }
-
-        v.append(i == 0 ? "<b>" : "<BR><b>").append(column).append(":</b> ").append(value);
-      } catch (NullPointerException npe) {
-        npe.printStackTrace();
-      } catch (IndexOutOfBoundsException obe) {
-        obe.printStackTrace();
       }
-    }
 
-    v.append("</BODY></HTML>");
+      v.append("</BODY></HTML>");
+    }
     return v.toString();
   }
 

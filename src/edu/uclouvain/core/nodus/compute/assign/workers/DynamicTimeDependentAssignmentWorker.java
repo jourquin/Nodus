@@ -307,7 +307,9 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
                 pathCosts.mvCosts += vl.getWeight(groupIndex);
                 pathLength += vl.getLength();
                 pathDuration += vl.getDuration();
-                pathWriter.savePathLink(vl, currentPathIndex);
+                if (pathWriter.isSavePaths()) {
+                  pathWriter.savePathLink(vl, currentPathIndex);
+                }
                 break;
               default:
                 break;

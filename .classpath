@@ -37,6 +37,6 @@
 	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-2.1.2.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.1.4.jre7.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/sqlite-jdbc-3.20.0.jar"/>
-	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/openmap6.0b/src"/>
+	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/home/jourquinb/git/openmap/src"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

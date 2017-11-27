@@ -568,14 +568,14 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
             case VirtualLink.TYPE_MOVE:
               pathCosts.mvCosts += vl.getWeight(groupIndex);
 
+              // Save detailed path info if needed
+              if (pathWriter.isSavePaths()) {
+                pathWriter.savePathLink(vl, currentPathIndex);
+              }
+
               break;
             default:
               break;
-          }
-
-          // Save detailed path info if needed
-          if (pathWriter.isSavePaths()) {
-            pathWriter.savePathLink(vl, currentPathIndex);
           }
 
           // Build the key that represents this path
