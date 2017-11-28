@@ -152,7 +152,7 @@ public class DBFField {
   public String format(Object object) throws DBFException {
     if (type == 'N' || type == 'F') {
       if (object == null) {
-        object = new Double(0.0D);
+        object = new Double(Double.NaN);
       }
 
       if (object instanceof Number) {
