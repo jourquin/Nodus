@@ -382,21 +382,32 @@ public class NodusProject implements ShapeConstants {
             jdbcConnection.commit();
           }
 
+          // Ask if a "shutdown compact" must be performed as this can take a while
           if (JDBCUtils.getDbEngine(jdbcConnection) == JDBCUtils.DB_HSQLDB
               || JDBCUtils.getDbEngine(jdbcConnection) == JDBCUtils.DB_H2) {
 
-            if (Boolean.parseBoolean(getLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT))) {
-              nodusMapPanel.setText(
-                  i18n.get(NodusProject.class, "Compacting", "Compacting database..."));
+            if (Boolean.parseBoolean(getLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, "true"))) {
 
-              Worker.post(
-                  new Job() {
-                    @Override
-                    public Object run() {
-                      JDBCUtils.shutdownCompact(jdbcConnection);
-                      return null;
-                    }
-                  });
+              int answer =
+                  JOptionPane.showConfirmDialog(
+                      null,
+                      i18n.get(NodusProject.class, "AskForCompact", "Compact database?"),
+                      NodusC.APPNAME,
+                      JOptionPane.YES_NO_OPTION);
+
+              if (answer == JOptionPane.YES_OPTION) {
+                nodusMapPanel.setText(
+                    i18n.get(NodusProject.class, "Compacting", "Compacting database..."));
+
+                Worker.post(
+                    new Job() {
+                      @Override
+                      public Object run() {
+                        JDBCUtils.shutdownCompact(jdbcConnection);
+                        return null;
+                      }
+                    });
+              }
             }
           }
 
