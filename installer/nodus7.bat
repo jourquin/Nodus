@@ -8,7 +8,10 @@ set JAVABIN=javaw.exe
 set LIBDIR=%NODUS7_HOME%/lib/*
 set PLAFSDIR=%NODUS7_HOME%/plafs/*
 set JDBCDIR=%NODUS7_HOME%/jdbcDrivers/*
-set JVMARGS=-Xms2000m -Xmx6000m
+
+rem Set default values for the JVM heap sizes
+start %JAVABIN% -cp %NODUS7_HOME%/nodus7.jar -DNODUS_HOME=%NODUS7_HOME% edu.uclouvain.core.nodus.utils.SetDefaultHeapSizes
+call jvmargs.bat
 
 set NODUSCP="%NODUS7_HOME%/nodus7.jar;%LIBDIR%;%PLAFSDIR%;%JDBCDIR%;%NODUS7_HOME%;"
 

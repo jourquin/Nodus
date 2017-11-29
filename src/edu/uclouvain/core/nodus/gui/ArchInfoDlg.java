@@ -108,7 +108,7 @@ public class ArchInfoDlg extends EscapeDialog {
       versionInfoConstraints.gridy = 0;
 
       /* Build a html page with the version info of the JVM and the OS. */
-      long maxHeap = Runtime.getRuntime().maxMemory() / (1024 * 1000);
+      long maxHeap = Runtime.getRuntime().maxMemory() / (1024 * 1024);
       String s =
           "<html><body><div style=\"text-align: center;\">"
               + System.getProperty("java.vm.name")

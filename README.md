@@ -47,11 +47,32 @@ Download the [Nodus installer](https://github.com/jourquin/Nodus/releases).
 As the software is written in the [Java](https://java.com/en/download/) programming language, the 
 latest must be installed on your computer. Nodus needs Java 7 or later.
 
+Nodus can be launched using
+- "nodus7.sh" on Linux
+- "Nodus7.app" on MacOS
+- "nodus7.bat" on Windows
+
 The software has a modern and integrated user friendly GUI. Complete reference and user guides
 are not available, but the API is fully documented. A  sample Nodus project can
 be found in the "demo" directory. 
-   
 
+## Memory allocation
+
+Nodus is written in Java. Therefore, it uses the memory allocation system provided by the Java Virtual Machine (JVM). 
+In particular, the maximum memory allocated to the software must be defined by the user if the default
+values are not appropriate. This can be set using the -Xms and -Xmx command line parameters 
+passed to the JVM. Please refer to the JVM documentation for a detailed information on theses switches. 
+
+By default, Nodus uses the following strategy:
+- If the physical memory of the computer it runs on is at most 4Go large, no -Xms (minimum heap) value is set. 
+Otherwise it is set to 2Go.
+- The maximum heap that can be claimed for (-Xmx) is set to 50% of the physical memory, with a maximum 
+of 6Go.
+
+These values are stored in "jvmargs.sh" or "jvmargs.bat", a file created in the installation directory by
+Nodus at launch time if it doesn't exist yet. This file can be edited if other values (or even other JVM parameters)
+are desired.
+   
 ## License
 
 You can redistribute it and/or modify Nodus 7.x under the terms of the GNU General Public License 
