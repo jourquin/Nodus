@@ -1243,7 +1243,7 @@ public class NodusProject implements ShapeConstants {
    *
    * @return The path to the project or null if canceled or on error.
    */
-  public String openProject() {
+  public String getProject() {
     // Find a project file (is a properties file with a .nodus extension)
     JFileChooser fileChooser =
         new JFileChooser(
@@ -1279,7 +1279,7 @@ public class NodusProject implements ShapeConstants {
    *
    * @param projectName The canonical path to the Nodus project file.
    */
-  public void openProject(String projectName) {
+  public void openProject(String projectName) throws OutOfMemoryError {
 
     projectResourceFileNameAndPath = projectName;
 

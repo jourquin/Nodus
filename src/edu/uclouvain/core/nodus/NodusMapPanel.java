@@ -24,6 +24,7 @@ package edu.uclouvain.core.nodus;
 import com.bbn.openmap.BufferedLayerMapBean;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.InformationDelegator;
+import com.bbn.openmap.Layer;
 import com.bbn.openmap.LayerHandler;
 import com.bbn.openmap.MapBean;
 import com.bbn.openmap.MapHandler;
@@ -2113,7 +2114,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @param e ActionEvent
    */
   private void menuItemFileOpenActionPerformed(ActionEvent e) {
-    String projectName = nodusProject.openProject();
+    String projectName = nodusProject.getProject();
     openProject(projectName);
   }
 
@@ -2127,7 +2128,28 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       nodusProject.close(); // In case a project was already loaded
 
       displayScenarioCombo(true);
-      nodusProject.openProject(projectName);
+      try {
+        nodusProject.openProject(projectName);
+      } catch (OutOfMemoryError e) {
+        // Free memory and force garbage collection
+        Layer[] layer = getLayerHandler().getLayers();
+        for (int i = 0; i < layer.length; i++) {
+          layer[i] = null;
+        }
+        System.gc();
+
+        JOptionPane.showMessageDialog(
+            nodusProject.getNodusMapPanel(),
+            i18n.get(
+                NodusMapPanel.class,
+                "Out_of_memory",
+                "Out of memory. Increase JVM Heap size in launcher script"),
+            NodusC.APPNAME,
+            JOptionPane.ERROR_MESSAGE);
+
+        nodusProject.getNodusMapPanel().closeAndSaveState();
+        System.exit(0);
+      }
 
       // Reset mouse mode
       String mouseModeId = nodusProject.getLocalProperty(NodusC.PROP_ACTIVE_MOUSE_MODE, null);

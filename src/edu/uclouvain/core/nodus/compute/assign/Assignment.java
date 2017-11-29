@@ -117,7 +117,7 @@ public abstract class Assignment implements Runnable {
    *
    * @return True on success.
    */
-  public abstract boolean assign();
+  public abstract boolean assign() throws OutOfMemoryError;
 
   void displayConsoleIfNeeded() {
     if (isFirstLostPath) {
@@ -169,7 +169,7 @@ public abstract class Assignment implements Runnable {
   /** Main routine that calls the actual assignment algorithm in the derived classes. */
   @Override
   public void run() {
-    boolean success;
+    boolean success = false;
 
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
     nodusMapPanel.getAssignmentMenuItem().setEnabled(false);
@@ -177,7 +177,25 @@ public abstract class Assignment implements Runnable {
     // Update the scenario combo of the main window
     nodusMapPanel.updateScenarioComboBox();
 
-    success = assign();
+    try {
+      success = assign();
+    } catch (OutOfMemoryError e) {
+      // Free memory and force garbage collection
+      virtualNet = null;
+      System.gc();
+
+      JOptionPane.showMessageDialog(
+          nodusProject.getNodusMapPanel(),
+          i18n.get(
+              Assignment.class,
+              "Out_of_memory",
+              "Out of memory. Increase JVM Heap size in launcher script"),
+          NodusC.APPNAME,
+          JOptionPane.ERROR_MESSAGE);
+
+      nodusProject.getNodusMapPanel().closeAndSaveState();
+      System.exit(0);
+    }
 
     // Run the post assignment script, if any
     if (success) {
@@ -269,7 +287,7 @@ public abstract class Assignment implements Runnable {
       }
     }
 
-    System.err.println("Modal split method not found. This should not be possiblm!");
+    System.err.println("Modal split method not found. This should not be possible!");
     return null;
   }
 }
