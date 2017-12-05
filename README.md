@@ -53,8 +53,8 @@ Nodus can be launched using
 - "Nodus7.exe" on Windows (a "compiled" version of "nodus7.bat", also provided)
 
 The software has a modern and integrated user friendly GUI. Complete reference and user guides
-are not available, but the API is fully documented. A  sample Nodus project can
-be found in the "demo" directory. 
+are not available, but the API is fully documented. 
+A documented sample Nodus project can be found in the "[demo](https://github.com/jourquin/Nodus/blob/master/demo)" directory. 
 
 ## Memory allocation
 
