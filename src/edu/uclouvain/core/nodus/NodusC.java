@@ -436,6 +436,9 @@ public class NodusC {
   /** Extension used for Nodus project properties files. */
   public static final String TYPE_NODUS = ".nodus";
 
+  /** Extension used for lock files. */
+  public static final String TYPE_LOCK = ".lck";
+  
   /** Extension used for Nodus local properties files. */
   public static final String TYPE_LOCAL = ".local";
 

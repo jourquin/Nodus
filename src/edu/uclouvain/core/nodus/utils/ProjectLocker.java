@@ -44,6 +44,8 @@ public class ProjectLocker {
 
   private static FileLock lock = null;
 
+  private static String lockerFileName;
+
   /**
    * Creates a lock in the project'directory if possible.
    *
@@ -53,16 +55,16 @@ public class ProjectLocker {
   public static boolean createLock(NodusProject project) {
 
     // Is there a lock file?
-    String projectPathAndName =
+    lockerFileName =
         project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
             + project.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME)
-            + NodusC.TYPE_NODUS;
-    File f = new File(projectPathAndName);
+            + NodusC.TYPE_LOCK;
+    File f = new File(lockerFileName);
     if (f.exists()) {
       // Is project locked?
       try {
 
-        RandomAccessFile rf = new RandomAccessFile(projectPathAndName, "rw");
+        RandomAccessFile rf = new RandomAccessFile(lockerFileName, "rw");
         FileChannel channel = rf.getChannel();
         if (channel.tryLock() == null) {
           if (debug) {
@@ -80,7 +82,6 @@ public class ProjectLocker {
         if (debug) {
           System.out.println("Permission denied");
         }
-        System.err.println(e.toString());
         return false;
       } catch (IOException e) {
         e.printStackTrace();
@@ -90,7 +91,7 @@ public class ProjectLocker {
 
     // Try to create a new lock
     try {
-      channel = new RandomAccessFile(projectPathAndName, "rw").getChannel();
+      channel = new RandomAccessFile(lockerFileName, "rw").getChannel();
       lock = channel.lock();
       if (debug) {
         System.out.println("Project locked");
@@ -110,6 +111,9 @@ public class ProjectLocker {
         lock.release();
         lock = null;
         channel.close();
+        
+        File f = new File(lockerFileName);
+        f.delete();
 
         if (debug) {
           System.out.println("Project lock released");

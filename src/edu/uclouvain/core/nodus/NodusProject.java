@@ -1310,7 +1310,7 @@ public class NodusProject implements ShapeConstants {
               nodusMapPanel,
               i18n.get(
                   NodusProject.class, "Create_new_empty_project?", "Create new empty project?"),
-              i18n.get(NodusProject.class, "Project_doesn't_exist", "Project doesn't exist"),
+              i18n.get(NodusProject.class, "Project_doesnt_exist", "Project doesn't exist"),
               JOptionPane.YES_NO_OPTION);
 
       if (answer == JOptionPane.YES_OPTION) {
@@ -1362,19 +1362,21 @@ public class NodusProject implements ShapeConstants {
         NodusC.PROP_PROJECT_DOTNAME, name.substring(0, name.indexOf(NodusC.TYPE_NODUS)));
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_LAST_PATH, projectPath);
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_LAST_PROJECT, name);
+    
+    // Try to lock this project
+    if (!ProjectLocker.createLock(this)) {
+      JOptionPane.showMessageDialog(
+          null, 
+          i18n.get(NodusProject.class, "Project_already_open", "This project is already open"),
+          NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+      nodusMapPanel.setBusy(false);
+      return;
+    }
 
     // Test the validity of the dbf files in the project
     if (!ProjectFilesTools.isValidProject(localProperties)) {
       nodusMapPanel.setBusy(false);
       nodusMapPanel.getMenuFile().setEnabled(true);
-      return;
-    }
-
-    // Try to lock this project
-    if (!ProjectLocker.createLock(this)) {
-      JOptionPane.showMessageDialog(
-          null, "Project already open", NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-      nodusMapPanel.setBusy(false);
       return;
     }
 

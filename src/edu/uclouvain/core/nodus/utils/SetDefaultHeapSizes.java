@@ -26,7 +26,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.util.LinkedList;
 
 /**
  * This utility is called in order to set reasonable values for the -Xmx and -Xms JVM parameters in
@@ -50,9 +49,6 @@ public class SetDefaultHeapSizes {
   public static void main(String[] args) {
     new SetDefaultHeapSizes();
   }
-
-  // The content of the launcher script
-  private LinkedList<String> content = new LinkedList<>();
 
   /** Sets the default heap values in the launcher script. */
   public SetDefaultHeapSizes() {
