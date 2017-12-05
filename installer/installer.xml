@@ -54,7 +54,6 @@
 		<pack name="Core" id="core.package" required="yes">
 			<description>The base files required to run Nodus.</description>
 			<file src="README.md" targetdir="$INSTALL_PATH" />
-			<file src="COPYING" targetdir="$INSTALL_PATH" />
 			<file src="LICENSE" targetdir="$INSTALL_PATH" />
 			<file src="gpl-french.pdf" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus7.bat" os="windows" targetdir="$INSTALL_PATH" />
