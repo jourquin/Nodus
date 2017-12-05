@@ -50,7 +50,7 @@ latest must be installed on your computer. Nodus needs Java 7 or later.
 Nodus can be launched using
 - "nodus7.sh" on Linux
 - "Nodus7.app" on MacOS
-- "nodus7.bat" on Windows
+- "Nodus7.exe" on Windows (a "compiled" version of "nodus7.bat", also provided)
 
 The software has a modern and integrated user friendly GUI. Complete reference and user guides
 are not available, but the API is fully documented. A  sample Nodus project can
