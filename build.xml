@@ -5,9 +5,7 @@
               directory with the processing instruction <?eclipse.ant.import?>
               as the first entry and export the buildfile again. --><project basedir="." default="build" name="Nodus7.0">
     <property environment="env"/>
-    <property name="MLogit.location" value="../MLogit"/>
-    <property name="NodusSandbox.location" value="../NodusSandbox"/>
-    <property name="NodusScripts.location" value="../NodusScripts"/>
+    <property name="MLogit.location" value="../../workspace/MLogit"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.7"/>
     <property name="source" value="1.7"/>
@@ -71,14 +69,10 @@
     <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects">
         <ant antfile="build.xml" dir="${MLogit.location}" inheritAll="false" target="clean"/>
         <ant antfile="build.xml" dir="${MLogit.location}" inheritAll="false" target="build"/>
-        <ant antfile="build.xml" dir="${NodusSandbox.location}" inheritAll="false" target="clean"/>
-        <ant antfile="build.xml" dir="${NodusSandbox.location}" inheritAll="false" target="build"/>
-        <ant antfile="build.xml" dir="${NodusScripts.location}" inheritAll="false" target="clean"/>
-        <ant antfile="build.xml" dir="${NodusScripts.location}" inheritAll="false" target="build"/>
     </target>
     <target name="Nodus7">
         <java classname="edu.uclouvain.core.nodus.Nodus7" failonerror="true" fork="yes">
-            <jvmarg line="-Xmx4000m"/>
+            <jvmarg line="-Xmx6G -Xms4G"/>
             <classpath refid="Nodus7.0.classpath"/>
         </java>
     </target>

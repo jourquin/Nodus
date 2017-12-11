@@ -1,5 +1,4 @@
 #!/bin/bash
-
 #-------------------------------------------------------------------------------
 # Copyright (c) 1991-2018 Université catholique de Louvain, 
 # Center for Operations Research and Econometrics (CORE)
@@ -25,14 +24,13 @@
 # and executed after installation. It is then deleted by the installer.
 # At the end, Nodus.app is created, with an icon.  
 
-NODUS7_HOME=$INSTALL_PATH
-
+NODUS7_HOME="$INSTALL_PATH"
 
 SCRIPT="nodus7.sh"
 APPNAME="Nodus7"
 ICON="nodus7.icns"
 
-cd $NODUS7_HOME
+cd "$NODUS7_HOME"
 
 DIR="$APPNAME.app/Contents"
  
@@ -43,14 +41,14 @@ fi
 mkdir -p $DIR/{MacOS,Resources}
 
 cd "$NODUS7_HOME/$DIR/Resources"
-ln -s "$NODUS7_HOME/$ICON" $APPNAME.icns
+ln -s "../../../$ICON" $APPNAME.icns
 
 cd "$NODUS7_HOME/$DIR/MacOS"
-ln -s "$NODUS7_HOME/$SCRIPT" $APPNAME
+ln -s "../../../$SCRIPT" $APPNAME
 chmod +x "$NODUS7_HOME/$SCRIPT"
  
 
-cat <<EOF > $NODUS7_HOME/$DIR/Info.plist
+cat <<EOF > "$NODUS7_HOME"/$DIR/Info.plist
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">

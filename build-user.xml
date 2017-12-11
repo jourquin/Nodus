@@ -1,6 +1,6 @@
 <?eclipse.ant.import?>
 <project>
-	
+
 	<!-- Launches the i18n tool -->
 	<target name="I18Nedit" description="Runs the i18n translation tool.">
 		<java classname="i18nedit" classpath="${basedir}/devtools/i18nedit.jar:${basedir}/devtools/qjcc.jar:${basedir}/devtools/jhall.jar" failonerror="true" fork="yes">
@@ -14,15 +14,15 @@
 	</target>
 
 	<!-- Launches the Build ID generator -->
-	    <target name="BuildId" description="Compiles and run the Build ID generator">
-	        <echo message="Generating a build ID" />
-	        <mkdir dir="classes"/>
-	        <javac includeantruntime="false" srcdir="src" destdir="classes">
-	            <include name="edu/uclouvain/core/nodus/utils/BuildIdGenerator.java"/>
-	        </javac>
-	        <java classname="edu.uclouvain.core.nodus.utils.BuildIdGenerator" classpath="${basedir}/classes" failonerror="true" fork="yes">
-	        </java>
-	    </target>
+	<target name="BuildId" description="Compiles and run the Build ID generator">
+		<echo message="Generating a build ID" />
+		<mkdir dir="classes" />
+		<javac includeantruntime="false" srcdir="src" destdir="classes">
+			<include name="edu/uclouvain/core/nodus/utils/BuildIdGenerator.java" />
+		</javac>
+		<java classname="edu.uclouvain.core.nodus.utils.BuildIdGenerator" classpath="${basedir}/classes" failonerror="true" fork="yes">
+		</java>
+	</target>
 
 	<!-- Build the API documentation -->
 	<target name="ApiDoc" description="Makes the javadoc API html documents.">
@@ -36,13 +36,17 @@
 
 
 	<!-- Launches IzPack installer -->
-	<target name="Installer" description="Runs the Nodus installer generation tool.">
+	<path id="lib.path">
+		<fileset dir="${basedir}/devtools/IzPack" includes="*.jar" />
+	</path>
+
+	<taskdef name="izpack" classname="com.izforge.izpack.ant.IzPackTask" classpathref="lib.path" />
+
+	<target name="Installer">
 		<echo message="Creating a Nodus installer" />
 		<antcall target="Jar" />
-		<antcall target="ApiDoc"/>
-		<java classname="com.izforge.izpack.compiler.Compiler" classpath="${basedir}/devtools/standalone-compiler.jar" failonerror="true" fork="yes">
-			<arg line="${basedir}/installer/installer.xml -b ${basedir} -o ${basedir}/BinaryDistribution/Nodus7-install.jar -k standard" />
-		</java>
+		<antcall target="ApiDoc" />
+		<izpack input="${basedir}/installer/installer.xml" output="${basedir}/BinaryDistribution/Nodus7-install.jar" installerType="standard" basedir="${basedir}" izPackDir="${basedir}" />
 	</target>
 
 	<!-- Create jar -->
