@@ -122,5 +122,4 @@
 			<fileset dir="JFlowMap" targetdir="${INSTALL_PATH}/JFlowMap" />
 		</pack>
 	</packs>
-
 </installation>
