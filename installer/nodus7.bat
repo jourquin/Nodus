@@ -1,7 +1,7 @@
 @echo off
 rem This script launches the Nodus application
 
-rem Get the path to this cript
+rem Get the path to this script
 set HERE=%~dp0
 set NODUS7_HOME=%HERE:~0,-1%
 
