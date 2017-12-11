@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="iso-8859-1" standalone="yes" ?>
 
-<!-- The Englisg langpack -->
+<!-- The English langpack -->
 
 <langpack>
     <str id="core.package" txt="Core package"/>

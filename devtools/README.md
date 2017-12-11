@@ -34,9 +34,9 @@ compared to the Google style: More that one successive uppercase characters are 
 or method names without throwing a warning and uppercases in package names are marked as
 info instead of warnings (to avoid warnings for classes developed in OpenMap packages).    
 
-## [standalone-compiler.jar](http://izpack.org/):
+## [IzPack dir](http://izpack.org/):
 
-IzPack application installer. Used by "Installer" ant task.
+Some IzPack (v5) application installer libraries. Used by "Installer" ant task.
 
 ## [Bat_To_Exe_Converter.exe](http://www.f2ko.de/en/b2e.php):
 
