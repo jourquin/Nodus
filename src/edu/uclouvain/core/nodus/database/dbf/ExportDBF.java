@@ -340,15 +340,15 @@ public class ExportDBF implements ShapeConstants {
             + tmp
             + " WHERE "
             + table
-            + '.'
+            + "."
             + jdbcUtils.getCompliantIdentifier(NodusC.DBF_NUM)
             + " = "
             + tmp
-            + '.'
+            + "."
             + jdbcUtils.getCompliantIdentifier(NodusC.DBF_NUM)
             + " ORDER BY "
             + tmp
-            + '.'
+            + "."
             + jdbcUtils.getCompliantIdentifier("recno");
 
     // OK, now fill the table

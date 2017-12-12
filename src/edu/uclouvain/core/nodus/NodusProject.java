@@ -93,28 +93,55 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.log4j.Logger;
 import org.codehaus.groovy.control.CompilationFailedException;
 
-// TODO Give a more complex example
 /**
- * A Nodus project file is a properties file with a .nodus extension A basic project file must
- * contain the following entries <br>
+ * A Nodus project file is a properties file with a .nodus extension. <br>
  * <br>
  * <br>
  * #--------------------------------------------------------------------- <br>
- * # Basic project file for Nodus 7.0 <br>
+ * # Demo project file for Nodus 7.0 <br>
  * #--------------------------------------------------------------------- <br>
  * <br>
- * # shape file names for the nodes and links. Index and DBF files must <br>
- * # have the same name <br>
- * network.nodes= basemapN00 basemapN01 <br>
- * network.links= basemapL01 basemapL04 <br>
- * basemapN01.prettyName=Cities <br>
- * basemapN00.prettyName=Other nodes <br>
- * basemapL01.prettyName=Waterways <br>
- * basemapL04.prettyName=Roads <br>
+ * # By default, Nodus uses an embedded DBMS, but other can be used, such as MySQL/MariaDB. <br>
+ * # Some JDBC drivers are provided in the Nodus distribution. It is the case for MySQL/MariaDB.<br>
+ * # In this example, the MYISAM engine is used, which is faster that INNODB, but less secure.<br>
+ * <br>
+ * #jdbc.driver=org.mariadb.jdbc.Driver <br>
+ * #jdbc.user=nodus <br>
+ * #jdbc.password=nodus <br>
+ * #jdbc.url=jdbc:mysql://localhost/demo?sessionVariables=default_storage_engine=MYISAM <br>
+ * <br>
+ * # These two properties are mandatory. They contain a list of node and link layers <br>
+ * network.nodes= centroids road_points iww_points rail_points terminals <br>
+ * network.links= road_polylines iww_polylines rail_polylines road_con iww_con rail_con <br>
+ * <br>
+ * # This property specifies a list of additional DBF tables to import in the DBMS, <br>
+ * # such as orifin-destination tables for instance. This is not mandatory. <br>
+ * importTables= od_road od_iww od_rail <br>
+ * <br>
+ * # A pretty name can be given to each layer. Not mandatory. <br>
+ * centroids.prettyName = Centroids <br>
+ * terminals.prettyName = Terminals <br>
+ * <br>
+ * road_points.prettyName = Road (points) <br>
+ * road_polylines.prettyName = Roads <br>
+ * road_con.prettyName = Road connectors <br>
+ * <br>
+ * iww_points.prettyName = IWW (points) <br>
+ * iww_polylines.prettyName = IWW <br>
+ * iww_con.prettyName = IWW connectors <br>
+ * <br>
+ * rail_points.prettyName = Rail (points) <br>
+ * rail_polylines.prettyName = Railways <br>
+ * rail_con.prettyName = Rail connectors <br>
+ * <br>
+ * # This property can be used to specify a set of background layer. <br>
+ * # These are handled by OpenMap. Please refer to its documentation. <br>
+ * # This is not mandatory <br>
+ * openmap.layers=demo <br>
  * <br>
  * <br>
  * #---------------------------------------------------------------------- <br>
- * # End of basic project file <br>
+ * # End of demo project file <br>
  * #---------------------------------------------------------------------- <br>
  */
 public class NodusProject implements ShapeConstants {
@@ -1362,13 +1389,14 @@ public class NodusProject implements ShapeConstants {
         NodusC.PROP_PROJECT_DOTNAME, name.substring(0, name.indexOf(NodusC.TYPE_NODUS)));
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_LAST_PATH, projectPath);
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_LAST_PROJECT, name);
-    
+
     // Try to lock this project
     if (!ProjectLocker.createLock(this)) {
       JOptionPane.showMessageDialog(
-          null, 
+          null,
           i18n.get(NodusProject.class, "Project_already_open", "This project is already open"),
-          NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+          NodusC.APPNAME,
+          JOptionPane.ERROR_MESSAGE);
       nodusMapPanel.setBusy(false);
       return;
     }

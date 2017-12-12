@@ -36,8 +36,6 @@ import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.utils.StringUtils;
 
-// TODO Verify if the example cost file is ok. Add other possibilities.
-
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -68,13 +66,13 @@ import parsii.tokenizer.ParseException;
  * # Capacities of the vehicles <br>
  * AVGLOAD.2,1 = 100 <br>
  * AVGLOAD.4,1 = 20 <br>
- * # Can be overriden for a given group <br>
+ * # Can be overridden for a given group <br>
  * AVGLOAD.4,1.2 = 18 <br>
- * # Can be overidden of a scenario and a group <br>
+ * # Can be overridden of a scenario and a group <br>
  * 1.AVGLOAD.4,1.2 = 15 <br>
  * 1.AVGLOAD.4,1 = 25 <br>
  * <br>
- * # Equivalents to standard vehicles ratios (av alos be overridden for scenarios/groups <br>
+ * # Equivalents to standard vehicles ratios (can also be overridden for scenarios/groups <br>
  * ESV.2,1 = 1 <br>
  * ESV.4,1 = 2 <br>
  * <br>
@@ -109,8 +107,8 @@ import parsii.tokenizer.ParseException;
  * tp.4,1-2,1 = 10 <br>
  * <br>
  * # moving.modeMeans <br>
- * mv.2,1 = speedlength <br>
- * mv.4,1 = speedlength+5 <br>
+ * mv.2,1 = speed*length <br>
+ * mv.4,1 = speed*length+5 <br>
  * <br>
  * # Group overridden functions <br>
  * <br>
@@ -593,30 +591,30 @@ public class CostParser {
     String costFunctionFormula = null;
 
     // A scenario, group and od class specific function?
-    specificCostFunctionName = scenario + '.' + costFunctionName + '.' + groupNum + '-' + classNum;
+    specificCostFunctionName = scenario + "." + costFunctionName + "." + groupNum + '-' + classNum;
     costFunctionFormula = (String) costFunctions.get(specificCostFunctionName);
 
     // A scenario and od class specific function?
     if (costFunctionFormula == null) {
-      specificCostFunctionName = scenario + '.' + costFunctionName + '-' + classNum;
+      specificCostFunctionName = scenario + "." + costFunctionName + '-' + classNum;
       costFunctionFormula = (String) costFunctions.get(specificCostFunctionName);
     }
 
     // A scenario and group specific function?
     if (costFunctionFormula == null) {
-      specificCostFunctionName = scenario + '.' + costFunctionName + '.' + groupNum;
+      specificCostFunctionName = scenario + "." + costFunctionName + "." + groupNum;
       costFunctionFormula = (String) costFunctions.get(specificCostFunctionName);
     }
 
     // A scenario specific function?
     if (costFunctionFormula == null) {
-      specificCostFunctionName = scenario + '.' + costFunctionName;
+      specificCostFunctionName = scenario + "." + costFunctionName;
       costFunctionFormula = (String) costFunctions.get(specificCostFunctionName);
     }
 
     // A group and od class specific function?
     if (costFunctionFormula == null) {
-      specificCostFunctionName = costFunctionName + '.' + groupNum + '-' + classNum;
+      specificCostFunctionName = costFunctionName + "." + groupNum + '-' + classNum;
       costFunctionFormula = (String) costFunctions.get(specificCostFunctionName);
     }
 
@@ -628,7 +626,7 @@ public class CostParser {
 
     // A group specific function?
     if (costFunctionFormula == null) {
-      specificCostFunctionName = costFunctionName + '.' + groupNum;
+      specificCostFunctionName = costFunctionName + "." + groupNum;
       costFunctionFormula = (String) costFunctions.get(specificCostFunctionName);
     }
 
@@ -701,7 +699,7 @@ public class CostParser {
       String propName = (String) enumerator.nextElement();
 
       // Must be a variable
-      if (propName.indexOf('.') < 0 && propName.indexOf('-') < 0) {
+      if (propName.indexOf(".") < 0 && propName.indexOf('-') < 0) {
         // Get property value
         String propValue = costFunctions.getProperty(propName);
 
@@ -749,31 +747,31 @@ public class CostParser {
 
       // Is there a scenario, group and od class specific variable?
       if (classNum != -1) {
-        propName = scenario + '.' + varName + '.' + groupNum + "-" + classNum;
+        propName = scenario + "." + varName + "." + groupNum + "-" + classNum;
         propValue = costFunctions.getProperty(propName);
       }
 
       // Is there a scenario and od class specific variable?
       if (propValue == null && classNum != -1) {
-        propName = scenario + '.' + varName + "-" + classNum;
+        propName = scenario + "." + varName + "-" + classNum;
         propValue = costFunctions.getProperty(propName);
       }
 
       // Is there a scenario and group specific variable?
       if (propValue == null) {
-        propName = scenario + '.' + varName + "." + groupNum;
+        propName = scenario + "." + varName + "." + groupNum;
         propValue = costFunctions.getProperty(propName);
       }
 
       // Is there a scenario specific variable?
       if (propValue == null) {
-        propName = scenario + '.' + varName;
+        propName = scenario + "." + varName;
         propValue = costFunctions.getProperty(propName);
       }
 
       // Is there a group and od class specific variable?
       if (propValue == null && classNum != -1) {
-        propName = varName + '.' + groupNum + "-" + classNum;
+        propName = varName + "." + groupNum + "-" + classNum;
         propValue = costFunctions.getProperty(propName);
       }
 
@@ -786,7 +784,7 @@ public class CostParser {
       // Is there a group specific variable?
       if (propValue == null) {
 
-        propName = varName + '.' + groupNum;
+        propName = varName + "." + groupNum;
         propValue = costFunctions.getProperty(propName);
       }
 

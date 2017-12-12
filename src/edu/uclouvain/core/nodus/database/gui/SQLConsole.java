@@ -873,7 +873,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
               return null;
             }
           });
-    } catch (Exception e) { // TODO Auto-generated catch block
+    } catch (Exception e) {
       e.printStackTrace();
     }
 
