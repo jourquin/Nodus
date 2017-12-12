@@ -42,7 +42,7 @@
 
 	<taskdef name="izpack" classname="com.izforge.izpack.ant.IzPackTask" classpathref="lib.path" />
 
-	<target name="Installer">
+	<target name="Installer" description="Builds the Nodus installer jar file.">
 		<echo message="Creating a Nodus installer" />
 		<antcall target="Jar" />
 		<antcall target="ApiDoc" />
