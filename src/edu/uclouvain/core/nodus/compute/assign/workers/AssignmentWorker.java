@@ -171,8 +171,6 @@ public abstract class AssignmentWorker extends Thread {
 
         currentGroup = virtualNet.getGroups()[groupIndex];
 
-        nodusMapPanel.getMapBean().requestFocus();
-
         // Start the real work
         if (!doAssignment()) {
           // Cancel all workers

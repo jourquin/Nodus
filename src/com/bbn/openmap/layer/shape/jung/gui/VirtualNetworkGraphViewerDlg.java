@@ -99,7 +99,7 @@ import org.apache.commons.collections15.functors.ConstantTransformer;
  * @author Bart Jourquin
  */
 // TODO The "node view" should also be time dependent
-// TODO : strange display of means in TML project. To check
+// TODO Strange display of means in TML project. To check
 public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
 
   private static I18n i18n = Environment.getI18n();

@@ -1672,7 +1672,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
       ResultSetMetaData rsmd = rs.getMetaData();
       int nbColumns = rsmd.getColumnCount();
 
-      // TODO : Add more tests to UpdateDbfTableModel.
+      // TODO Add more tests to UpdateDbfTableModel.
       // Or, better, allow for structure change (but not the mandatory fields)
 
       // - nb rows

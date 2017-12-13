@@ -699,6 +699,7 @@ public class CostParser {
       String propName = (String) enumerator.nextElement();
 
       // Must be a variable
+      // TODO Allow scenario/group/class specific variables without a need to define the generic one
       if (propName.indexOf(".") < 0 && propName.indexOf('-') < 0) {
         // Get property value
         String propValue = costFunctions.getProperty(propName);
