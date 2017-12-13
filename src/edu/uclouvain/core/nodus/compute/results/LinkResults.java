@@ -196,7 +196,6 @@ public class LinkResults implements ShapeConstants {
   boolean displayFlows(String sqlStmt, int time) {
 
     nodusMapPanel.setBusy(true);
-    // resetResults();
 
     Connection jdbcConnection = nodusProject.getMainJDBCConnection();
     final NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
@@ -380,9 +379,9 @@ public class LinkResults implements ShapeConstants {
                 }
 
                 int index = 0;
-                Iterator<?> it = egl.iterator();
+                Iterator<OMGraphic> it = egl.iterator();
                 while (it.hasNext()) {
-                  OMGraphic omg = (OMGraphic) it.next();
+                  OMGraphic omg = it.next();
 
                   RealLink rl = (RealLink) omg.getAttribute(0);
                   if (export) {
@@ -392,7 +391,7 @@ public class LinkResults implements ShapeConstants {
 
                   // if (omg.isVisible()) {
                   if (rl.getResult() != 0) {
-                    double size = rl.getResult() / ((maxResult - minResult) / maxWidth);
+                    double size = rl.getResult() / ((maxResult - minResult) / (double) maxWidth);
 
                     if (size > 0) {
                       size++;
@@ -400,7 +399,7 @@ public class LinkResults implements ShapeConstants {
                       size--;
                     }
 
-                    rl.setSize((int) size);
+                    rl.setSize(java.lang.Math.round(size));
 
                   } else {
                     rl.setSize(0);
@@ -696,25 +695,22 @@ public class LinkResults implements ShapeConstants {
       return false;
     }
 
-    // Compute min and max values, taking time slices into account
+    // Compute min and max values
     Connection jdbcConnection = nodusProject.getMainJDBCConnection();
-    final NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
-
     try {
       // connect to database and execute query
       Statement stmt = jdbcConnection.createStatement();
       ResultSet rs = stmt.executeQuery(sqlStmt);
 
-      // Retrieve result of query
+      // Retrieve min and max values
       while (rs.next()) {
-        int n = JDBCUtils.getInt(rs.getObject(1));
-        RealLink rl = getRealLink(linkLayers, n);
+        double result = JDBCUtils.getDouble(rs.getObject(2));
+        if (maxResult < result) {
+          maxResult = result;
+        }
 
-        if (rl != null) {
-          double tmp = JDBCUtils.getDouble(rs.getObject(2));
-          if (rl.getResult() < tmp) {
-            rl.setResult(tmp);
-          }
+        if (minResult > result) {
+          minResult = result;
         }
       }
 
@@ -726,31 +722,6 @@ public class LinkResults implements ShapeConstants {
       JOptionPane.showMessageDialog(null, ex.getMessage(), "SQL error", JOptionPane.ERROR_MESSAGE);
 
       return false;
-    }
-
-    // Retain extreme values
-    for (NodusEsriLayer element : linkLayers) {
-
-      // Only look into displayed layers
-      if (element.isVisible()) {
-        EsriGraphicList egl = element.getEsriGraphicList();
-        Iterator<?> it = egl.iterator();
-
-        while (it.hasNext()) {
-          OMGraphic omg = (OMGraphic) it.next();
-
-          RealLink rl = (RealLink) omg.getAttribute(0);
-          double result = rl.getResult();
-
-          if (maxResult < result) {
-            maxResult = result;
-          }
-
-          if (minResult > result) {
-            minResult = result;
-          }
-        }
-      }
     }
 
     cancelDisplay = false;
@@ -775,11 +746,13 @@ public class LinkResults implements ShapeConstants {
     nodusMapPanel.getMapBean().addKeyListener(ka);
     nodusMapPanel.getMapBean().requestFocus();
 
-    int currentTime = assignmentStartTime;
-    while (currentTime <= assignmentEndTime) {
-      final LabelLayer lbl = labelLayer;
-      final int t = currentTime;
+    //resetResults();
 
+    int currentTime = assignmentStartTime;
+    final LabelLayer lbl = labelLayer;
+
+    while (currentTime <= assignmentEndTime) {
+      final int t = currentTime;
       displayNextTimeSlice = false;
 
       Worker.post(
@@ -804,7 +777,7 @@ public class LinkResults implements ShapeConstants {
             }
           });
 
-      resetResults();
+      //resetResults();
       displayFlows(sqlStmt, t);
 
       currentTime += timeSliceDuration;
@@ -862,7 +835,7 @@ public class LinkResults implements ShapeConstants {
   }
 
   /** Resets the link layers in order to reset the result field of each graphic. */
-  void resetResults() {
+  /* void resetResults() {
 
     Worker.post(
         new Job() {
@@ -881,7 +854,7 @@ public class LinkResults implements ShapeConstants {
             return null;
           }
         });
-  }
+  }*/
 
   /** Rounds the results obtained on the different links. */
   private void roundResults() {

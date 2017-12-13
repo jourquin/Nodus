@@ -789,6 +789,7 @@ public class ResultsDlg extends EscapeDialog {
 
   /** Resets the "display results" state of the layers. */
   public void resetLayers() {
+
     NodusEsriLayer[] layers;
 
     if (nodeRadioButton.isSelected()) {
@@ -801,9 +802,9 @@ public class ResultsDlg extends EscapeDialog {
 
       // Reset the user defined attribute of each graphic
       EsriGraphicList egl = element.getEsriGraphicList();
-      Iterator<?> it = egl.iterator();
+      Iterator<OMGraphic> it = egl.iterator();
       while (it.hasNext()) {
-        OMGraphic omg = (OMGraphic) it.next();
+        OMGraphic omg = it.next();
         RealNetworkObject rn = (RealNetworkObject) omg.getAttribute(0);
         if (rn != null) {
           rn.setResult(0.0);

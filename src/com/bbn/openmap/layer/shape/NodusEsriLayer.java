@@ -576,6 +576,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
        *  stored as result.
        */
       if (displayResults) {
+
         RealLink rl = (RealLink) omGraphic.getAttribute(0);
 
         if (rl.getSize() != 0) {
