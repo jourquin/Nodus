@@ -216,7 +216,7 @@ public class LinkResults implements ShapeConstants {
       // connect to database and execute query
       Statement stmt = jdbcConnection.createStatement();
       ResultSet rs = stmt.executeQuery(sqlStmt);
-
+      
       // Retrieve result of query
       while (rs.next()) {
         int n = JDBCUtils.getInt(rs.getObject(1));
@@ -237,15 +237,12 @@ public class LinkResults implements ShapeConstants {
       return false;
     }
 
-    // Project.setUnit(SHAPE_TYPE_POLYLINE, "t");
-
     if (isTimeDependent) {
       export = false;
     }
 
-    // Retain extreme values if not yet set
+    // Retain extreme values if not yet set and delete old export files
     if (!isTimeDependent) {
-
       for (NodusEsriLayer element : linkLayers) {
 
         // Delete old _gis file
@@ -296,8 +293,6 @@ public class LinkResults implements ShapeConstants {
           while (it.hasNext()) {
             OMGraphic omg = (OMGraphic) it.next();
 
-            // if (omg.isVisible()) { // Take only visible graphics into account
-
             RealLink rl = (RealLink) omg.getAttribute(0);
             double result = rl.getResult();
 
@@ -308,7 +303,6 @@ public class LinkResults implements ShapeConstants {
             if (minResult > result) {
               minResult = result;
             }
-            // }
           }
         }
       }
@@ -317,119 +311,110 @@ public class LinkResults implements ShapeConstants {
     // Round results
     roundResults();
 
-    /** Set the width of the strokes and update map */
-    Worker.post(
-        new Job() {
-          @Override
-          public Object run() {
+    /** Set the width of the strokes and update map. */
+    int maxWidth = nodusProject.getLocalProperty(NodusC.PROP_MAX_WIDTH, NodusC.MAX_WIDTH);
+    DbfTableModel resultModel = null;
 
-            int maxWidth = nodusProject.getLocalProperty(NodusC.PROP_MAX_WIDTH, NodusC.MAX_WIDTH);
-            DbfTableModel resultModel = null;
+    for (NodusEsriLayer linkLayer : linkLayers) {
+      if (linkLayer.isVisible()) {
+        EsriGraphicList egl = linkLayer.getEsriGraphicList();
+        DbfTableModel tableModel = linkLayer.getModel();
+        if (export) {
+          // Copy the .shp and .shx files
+          String fromFile =
+              nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
+                  + linkLayer.getTableName()
+                  + NodusC.TYPE_SHP;
+          String toFile =
+              nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
+                  + linkLayer.getTableName()
+                  + NodusC.SUFFIX_RESULTS
+                  + NodusC.TYPE_SHP;
+          FileUtils.copyFile(fromFile, toFile);
 
-            for (NodusEsriLayer linkLayer : linkLayers) {
-              if (linkLayer.isVisible()) {
-                EsriGraphicList egl = linkLayer.getEsriGraphicList();
-                DbfTableModel tableModel = linkLayer.getModel();
-                if (export) {
-                  // Copy the .shp and .shx files
-                  String fromFile =
-                      nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
-                          + linkLayer.getTableName()
-                          + NodusC.TYPE_SHP;
-                  String toFile =
-                      nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
-                          + linkLayer.getTableName()
-                          + NodusC.SUFFIX_RESULTS
-                          + NodusC.TYPE_SHP;
-                  FileUtils.copyFile(fromFile, toFile);
+          fromFile =
+              nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
+                  + linkLayer.getTableName()
+                  + NodusC.TYPE_SHX;
+          toFile =
+              nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
+                  + linkLayer.getTableName()
+                  + NodusC.SUFFIX_RESULTS
+                  + NodusC.TYPE_SHX;
+          FileUtils.copyFile(fromFile, toFile);
 
-                  fromFile =
-                      nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
-                          + linkLayer.getTableName()
-                          + NodusC.TYPE_SHX;
-                  toFile =
-                      nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
-                          + linkLayer.getTableName()
-                          + NodusC.SUFFIX_RESULTS
-                          + NodusC.TYPE_SHX;
-                  FileUtils.copyFile(fromFile, toFile);
+          // Clone dbfTable
+          resultModel = new DbfTableModel(tableModel.getColumnCount() + 1);
+          for (int j = 0; j < tableModel.getColumnCount(); j++) {
+            resultModel.setColumnName(j, tableModel.getColumnName(j));
+            resultModel.setType(j, tableModel.getType(j));
+            resultModel.setLength(j, tableModel.getLength(j));
+            resultModel.setDecimalCount(j, tableModel.getDecimalCount(j));
+          }
 
-                  // Clone dbfTable
-                  resultModel = new DbfTableModel(tableModel.getColumnCount() + 1);
-                  for (int j = 0; j < tableModel.getColumnCount(); j++) {
-                    resultModel.setColumnName(j, tableModel.getColumnName(j));
-                    resultModel.setType(j, tableModel.getType(j));
-                    resultModel.setLength(j, tableModel.getLength(j));
-                    resultModel.setDecimalCount(j, tableModel.getDecimalCount(j));
-                  }
+          // Add new column
+          resultModel.setColumnName(tableModel.getColumnCount(), NodusC.DBF_RESULT);
+          resultModel.setType(tableModel.getColumnCount(), DBF_TYPE_NUMERIC);
+          resultModel.setLength(tableModel.getColumnCount(), 12);
+          resultModel.setDecimalCount(tableModel.getColumnCount(), (byte) 2);
 
-                  // Add new column
-                  resultModel.setColumnName(tableModel.getColumnCount(), NodusC.DBF_RESULT);
-                  resultModel.setType(tableModel.getColumnCount(), DBF_TYPE_NUMERIC);
-                  resultModel.setLength(tableModel.getColumnCount(), 12);
-                  resultModel.setDecimalCount(tableModel.getColumnCount(), (byte) 2);
+          // Copy the values
+          for (int j = 0; j < tableModel.getRowCount(); j++) {
+            resultModel.addBlankRecord();
+            for (int k = 0; k < tableModel.getColumnCount(); k++) {
+              resultModel.setValueAt(tableModel.getValueAt(j, k), j, k);
+            }
+          }
+        }
 
-                  // Copy the values
-                  for (int j = 0; j < tableModel.getRowCount(); j++) {
-                    resultModel.addBlankRecord();
-                    for (int k = 0; k < tableModel.getColumnCount(); k++) {
-                      resultModel.setValueAt(tableModel.getValueAt(j, k), j, k);
-                    }
-                  }
-                }
+        int index = 0;
+        Iterator<OMGraphic> it = egl.iterator();
+        while (it.hasNext()) {
+          OMGraphic omg = it.next();
 
-                int index = 0;
-                Iterator<OMGraphic> it = egl.iterator();
-                while (it.hasNext()) {
-                  OMGraphic omg = it.next();
+          RealLink rl = (RealLink) omg.getAttribute(0);
+          if (export) {
+            // Set Result in last column
+            resultModel.setValueAt(rl.getResult(), index, tableModel.getColumnCount());
+          }
 
-                  RealLink rl = (RealLink) omg.getAttribute(0);
-                  if (export) {
-                    // Set Result in last column
-                    resultModel.setValueAt(rl.getResult(), index, tableModel.getColumnCount());
-                  }
+          // if (omg.isVisible()) {
+          if (rl.getResult() != 0) {
+            double size = rl.getResult() / ((maxResult - minResult) / (double) maxWidth);
 
-                  // if (omg.isVisible()) {
-                  if (rl.getResult() != 0) {
-                    double size = rl.getResult() / ((maxResult - minResult) / (double) maxWidth);
-
-                    if (size > 0) {
-                      size++;
-                    } else {
-                      size--;
-                    }
-
-                    rl.setSize(java.lang.Math.round(size));
-
-                  } else {
-                    rl.setSize(0);
-                  }
-
-                  // }
-                  index++;
-                }
-
-                if (export) {
-                  ExportDBF.exportTable(
-                      nodusProject,
-                      linkLayer.getTableName() + NodusC.SUFFIX_RESULTS + NodusC.TYPE_DBF,
-                      resultModel);
-                }
-
-                linkLayer.setDisplayResults(true);
-                linkLayer.getLocationHandler().setDisplayResults(true);
-                linkLayer.attachStyles();
-                linkLayer.doPrepare();
-              }
+            if (size > 0) {
+              size++;
+            } else {
+              size--;
             }
 
-            nodusProject.getLocationLayer().reloadData();
-            nodusProject.getLocationLayer().doPrepare();
-            nodusMapPanel.setBusy(false);
+            rl.setSize(java.lang.Math.round(size));
 
-            return null;
+          } else {
+            rl.setSize(0);
           }
-        });
+
+          // }
+          index++;
+        }
+
+        if (export) {
+          ExportDBF.exportTable(
+              nodusProject,
+              linkLayer.getTableName() + NodusC.SUFFIX_RESULTS + NodusC.TYPE_DBF,
+              resultModel);
+        }
+
+        linkLayer.setDisplayResults(true);
+        linkLayer.getLocationHandler().setDisplayResults(true);
+        linkLayer.attachStyles();
+        linkLayer.doPrepare();
+      }
+    }
+
+    nodusProject.getLocationLayer().reloadData();
+    nodusProject.getLocationLayer().doPrepare();
+    nodusMapPanel.setBusy(false);
 
     return true;
   }
@@ -746,8 +731,6 @@ public class LinkResults implements ShapeConstants {
     nodusMapPanel.getMapBean().addKeyListener(ka);
     nodusMapPanel.getMapBean().requestFocus();
 
-    //resetResults();
-
     int currentTime = assignmentStartTime;
     final LabelLayer lbl = labelLayer;
 
@@ -755,29 +738,21 @@ public class LinkResults implements ShapeConstants {
       final int t = currentTime;
       displayNextTimeSlice = false;
 
-      Worker.post(
-          new Job() {
-            @Override
-            public Object run() {
+      if (lbl != null) {
+        int hour = t / 60 % 24;
+        int min = t % 60;
+        DecimalFormat hourFormatter = new DecimalFormat("00");
 
-              if (lbl != null) {
-                int hour = t / 60 % 24;
-                int min = t % 60;
-                DecimalFormat hourFormatter = new DecimalFormat("00");
+        lbl.setLabelText(
+            i18n.get(LinkResults.class, "Flow_at", "Flow at")
+                + " "
+                + hourFormatter.format(hour)
+                + ":"
+                + hourFormatter.format(min));
+        lbl.doPrepare();
+      }
 
-                lbl.setLabelText(
-                    i18n.get(LinkResults.class, "Flow_at", "Flow at")
-                        + " "
-                        + hourFormatter.format(hour)
-                        + ":"
-                        + hourFormatter.format(min));
-                lbl.doPrepare();
-              }
-              return null;
-            }
-          });
-
-      //resetResults();
+      resetResults();
       displayFlows(sqlStmt, t);
 
       currentTime += timeSliceDuration;
@@ -835,7 +810,7 @@ public class LinkResults implements ShapeConstants {
   }
 
   /** Resets the link layers in order to reset the result field of each graphic. */
-  /* void resetResults() {
+  void resetResults() {
 
     Worker.post(
         new Job() {
@@ -854,7 +829,7 @@ public class LinkResults implements ShapeConstants {
             return null;
           }
         });
-  }*/
+  }
 
   /** Rounds the results obtained on the different links. */
   private void roundResults() {

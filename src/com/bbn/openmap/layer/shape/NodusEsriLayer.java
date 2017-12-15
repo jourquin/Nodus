@@ -519,7 +519,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     while (lit.hasNext()) {
       OMGraphic omGraphic = lit.next();
-      if (omGraphic.isVisible()) {
+      if (omGraphic.isVisible() || displayResults) {
         omGraphic.setSelected(false);
         attachStyle(omGraphic, index);
       }
