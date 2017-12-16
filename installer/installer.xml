@@ -12,10 +12,6 @@
 
 	<!-- The gui preferences -->
 	<guiprefs width="800" height="600" resizable="yes">
-		<laf name="substance">
-			<os family="unix" />
-			<param name="variant" value="mist-silver" />
-		</laf>
 		<modifier key="useHeadingPanel" value="yes" />
 	</guiprefs>
 
