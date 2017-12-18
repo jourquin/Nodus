@@ -98,7 +98,7 @@
 		</pack>
 		<pack name="Demo" id="demo.package" required="no">
 			<description>Some Nodus demo projects.</description>
-			<fileset dir="demo" targetdir="${INSTALL_PATH}/demo" />
+			<fileset dir="demo" targetdir="${INSTALL_PATH}/demo" excludes="*.odt"/>
 		</pack>
 		<pack name="Scripts" id="gvy.package" required="no">
 			<description>A set of sample Groovy scripts for Nodus.</description>
