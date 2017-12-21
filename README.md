@@ -11,14 +11,14 @@ Econometrics ([CORE](https://uclouvain.be/fr/node/4474)) of the Université cath
 
 Nodus ([Screenshots](http://htmlpreview.github.com/?https://github.com/jourquin/Nodus/blob/master/doc/images/screenshots.html)) 
 implements the "Virtual networks" methodology developed at UCL, an alternative to the classical "four steps" 
-technique to model multimodal and intermodal transport flows over networks, as it combines the "modal-choice" 
+technique to model multimodal and intermodal transport flows over networks, as it combines the "modal choice" 
 and "assignment" phases of the latter in a single step.
 
-This methodology has already lead to numerous policy-oriented studies on large scale multi-modal 
+This methodology has already led to numerous policy-oriented studies on large scale multimodal 
 freight transport networks, such as:
 
 - Regional freight transport planning
-- Cost benefit analysis for transport infrastructures
+- Cost benefit analysis for transport infrastructure
 - Optimal locations for intermodal terminals
 - Impact of climate change on inland waterways transport
 - Internalization of external costs and its potential impact on modal choice
@@ -52,7 +52,7 @@ Nodus can be launched using
 - "Nodus7.app" on MacOS
 - "Nodus7.exe" on Windows (a "compiled" version of "nodus7.bat", also provided)
 
-The software has a modern and integrated user friendly GUI. Complete reference and user guides
+The software has a modern and integrated user-friendly GUI. Complete reference and user guides
 are not available, but the API is fully documented. 
 A documented sample Nodus project can be found in the "[demo](https://github.com/jourquin/Nodus/blob/master/demo)" directory. 
 
@@ -81,7 +81,7 @@ of the License, or (at your option) any later version.
 
 ## Build from sources
 
-The Nodus distribution can be build from the sources. Therefore, you need a Java Development Kit 
+The Nodus distribution can be built from the sources. Therefore, you need a Java Development Kit 
 ([JDK version 7](http://www.oracle.com/technetwork/java/javase/downloads/index.html)) or above. 
 You also need Apache [Ant](http://ant.apache.org/). Be sure JAVA_HOME points to your JDK and 
 that ant is in your OS path.
