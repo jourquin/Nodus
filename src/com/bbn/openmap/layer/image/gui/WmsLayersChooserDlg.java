@@ -639,7 +639,7 @@ public class WmsLayersChooserDlg extends EscapeDialog implements MouseListener {
 
         if (bbF != null) {
           for (float element : bbF) {
-            bb.add(new Float(element));
+            bb.add(Float.valueOf(element));
           }
         }
 

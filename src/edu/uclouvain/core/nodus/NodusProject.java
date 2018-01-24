@@ -1501,7 +1501,8 @@ public class NodusProject implements ShapeConstants {
     localProperties.setProperty(NodusC.PROP_JDBC_DRIVER, jdbcDriver);
     localProperties.setProperty(NodusC.PROP_JDBC_URL, jdbcURL);
     try {
-      Class.forName(jdbcDriver).newInstance();
+      Class.forName(jdbcDriver).getDeclaredConstructor().newInstance();
+      System.out.println(Class.forName(jdbcDriver).getDeclaredConstructor().newInstance());
       jdbcConnection = getMainJDBCConnection();
       if (jdbcConnection == null) {
         nodusMapPanel.setBusy(false);

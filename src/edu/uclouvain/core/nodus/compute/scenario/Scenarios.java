@@ -197,7 +197,7 @@ public class Scenarios {
           String num = c.substring(NodusC.DBF_QUANTITY.length(), c.length());
 
           if (num.length() > 0) {
-            groupList1.add(new Byte(num));
+            groupList1.add(Byte.valueOf(num));
           }
         }
       }
@@ -216,7 +216,7 @@ public class Scenarios {
           String num = c.substring(NodusC.DBF_QUANTITY.length(), c.length());
 
           if (num.length() > 0) {
-            groupList2.add(new Byte(num));
+            groupList2.add(Byte.valueOf(num));
           }
         }
       }

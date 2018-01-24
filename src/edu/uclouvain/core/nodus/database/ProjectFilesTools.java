@@ -118,7 +118,7 @@ public class ProjectFilesTools implements ShapeConstants {
                 j = 0;
                 for (int i = 0; i < newRecord.length; i++) {
                   if (i == NodusC.DBF_IDX_ENABLED) {
-                    newRecord[i] = new Integer(1);
+                    newRecord[i] = Integer.valueOf(1);
                   } else {
                     newRecord[i] = record[j];
                     j++;

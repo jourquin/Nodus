@@ -21,8 +21,7 @@
 
 package edu.uclouvain.core.nodus.database;
 
-import edu.uclouvain.core.nodus.NodusC;
-
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Connection;
@@ -36,6 +35,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JOptionPane;
+
+import edu.uclouvain.core.nodus.NodusC;
 
 /**
  * Some handy JDBC utilities.
@@ -414,7 +415,18 @@ public class JDBCUtils {
   public static boolean isSQliteInstalled() {
 
     try {
-      Class.forName("org.sqlite.JDBC").newInstance();
+      try {
+        Class.forName("org.sqlite.JDBC").getDeclaredConstructor().newInstance();
+      } catch (IllegalArgumentException e) {
+        e.printStackTrace();
+      } catch (InvocationTargetException e) {
+        e.printStackTrace();
+      } catch (NoSuchMethodException e) {
+        e.printStackTrace();
+      } catch (SecurityException e) {
+        e.printStackTrace();
+      }
+
       Connection jdbcConnection = DriverManager.getConnection("jdbc:sqlite::memory:");
       if (jdbcConnection == null) {
         return false;

@@ -244,7 +244,7 @@ public class LanguageChooser extends EscapeDialog {
         Integer[] intArray = new Integer[l];
 
         for (int i = 0; i < l; i++) {
-          intArray[i] = new Integer(i);
+          intArray[i] = Integer.valueOf(i);
 
           images[i] =
               new ImageIcon(getClass().getResource("flags/" + availableLocales[i] + ".png"));

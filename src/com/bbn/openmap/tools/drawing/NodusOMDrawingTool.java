@@ -1148,8 +1148,8 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
         node = (OMPoint) node2.omg;
         pts[pts.length - 2] = node.getLat();
         pts[pts.length - 1] = node.getLon();
-        d1 = new Double(numNode1);
-        d2 = new Double(numNode2);
+        d1 = Double.valueOf(numNode1);
+        d2 = Double.valueOf(numNode2);
 
       } else {
 

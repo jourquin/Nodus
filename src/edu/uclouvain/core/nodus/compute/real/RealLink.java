@@ -79,7 +79,7 @@ public class RealLink extends RealNetworkObject {
     if (services == null) {
       services = new LinkedList<>();
     }
-    services.add(new Integer(serviceId));
+    services.add(Integer.valueOf(serviceId));
   }
 
   /**

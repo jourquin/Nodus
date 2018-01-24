@@ -152,7 +152,7 @@ public class DBFField {
   public String format(Object object) throws DBFException {
     if (type == 'N' || type == 'F') {
       if (object == null) {
-        object = new Double(Double.NaN);
+        object = Double.valueOf(Double.NaN);
       }
 
       if (object instanceof Number) {
@@ -317,17 +317,17 @@ public class DBFField {
 
       try {
         if (getDecimalCount() == 0) {
-          return new Long(formattedValue);
+          return Long.valueOf(formattedValue);
         } else {
-          return new Double(formattedValue);
+          return Double.valueOf(formattedValue);
         }
       } catch (NumberFormatException numberformatexception) {
         // Found in an ETIS dbf file. Ad hoc fix :-(
         if (!standardDouble && formattedValue.contains("1.#INF")) {
           if (decimalCount == 0) {
-            return new Long(0);
+            return Long.valueOf(0);
           } else {
-            return new Double(0);
+            return Double.valueOf(0);
           }
         } else {
           throw new DBFException(numberformatexception);

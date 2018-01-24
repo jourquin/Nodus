@@ -286,7 +286,7 @@ public class ShapeIntegrityTester {
             // must also be different
 
             Integer node1 =
-                new Integer(JDBCUtils.getInt(model.getValueAt(j, NodusC.DBF_IDX_NODE1)));
+                Integer.valueOf(JDBCUtils.getInt(model.getValueAt(j, NodusC.DBF_IDX_NODE1)));
             Integer node2 = null;
 
             if (nodes.get(node1) == null) {
@@ -302,7 +302,7 @@ public class ShapeIntegrityTester {
 
               error = true;
             } else {
-              node2 = new Integer(JDBCUtils.getInt(model.getValueAt(j, NodusC.DBF_IDX_NODE2)));
+              node2 = Integer.valueOf(JDBCUtils.getInt(model.getValueAt(j, NodusC.DBF_IDX_NODE2)));
 
               if (nodes.get(node2) == null) {
                 errorMessage =

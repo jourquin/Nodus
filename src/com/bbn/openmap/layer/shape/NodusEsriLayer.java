@@ -217,7 +217,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   private void addNumIndexForLastRecord() {
     int index = getModel().getRowCount() - 1;
     int num = JDBCUtils.getInt(getModel().getValueAt(index, NodusC.DBF_IDX_NUM));
-    numIndex.put(new Integer(num), new Integer(index));
+    numIndex.put(Integer.valueOf(num), Integer.valueOf(index));
   }
 
   /**
@@ -251,15 +251,17 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         updateNumIndex();
 
         // Set new number at the right place in the new record
-        Double num = new Double(newNum);
+        Double num = Double.valueOf(newNum);
         getModel().setValueAt(num, getModel().getRowCount() - 1, NodusC.DBF_IDX_NUM);
         addNumIndexForLastRecord();
 
         // Set style (default = 0)
-        getModel().setValueAt(new Double(0), getModel().getRowCount() - 1, NodusC.DBF_IDX_STYLE);
+        getModel()
+            .setValueAt(Double.valueOf(0), getModel().getRowCount() - 1, NodusC.DBF_IDX_STYLE);
 
         // Set transhipment state (default = 0)
-        getModel().setValueAt(new Double(0), getModel().getRowCount() - 1, NodusC.DBF_IDX_TRANSHIP);
+        getModel()
+            .setValueAt(Double.valueOf(0), getModel().getRowCount() - 1, NodusC.DBF_IDX_TRANSHIP);
 
         // Create sql stmt
         String sqlStmt =
@@ -332,19 +334,21 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         updateNumIndex();
 
         // Set new number at the right place in the new record
-        Double num = new Double(newNumber);
+        Double num = Double.valueOf(newNumber);
         getModel().setValueAt(num, getModel().getRowCount() - 1, NodusC.DBF_IDX_NUM);
 
         // Set style (default = 0)
-        getModel().setValueAt(new Double(0), getModel().getRowCount() - 1, NodusC.DBF_IDX_STYLE);
+        getModel()
+            .setValueAt(Double.valueOf(0), getModel().getRowCount() - 1, NodusC.DBF_IDX_STYLE);
 
         // Set "enabled" (default = 1)
-        getModel().setValueAt(new Double(1), getModel().getRowCount() - 1, NodusC.DBF_IDX_ENABLED);
+        getModel()
+            .setValueAt(Double.valueOf(1), getModel().getRowCount() - 1, NodusC.DBF_IDX_ENABLED);
 
         // We also have to set the end nodes,
-        Double node = new Double(numNode1);
+        Double node = Double.valueOf(numNode1);
         getModel().setValueAt(node, getModel().getRowCount() - 1, NodusC.DBF_IDX_NODE1);
-        node = new Double(numNode2);
+        node = Double.valueOf(numNode2);
         getModel().setValueAt(node, getModel().getRowCount() - 1, NodusC.DBF_IDX_NODE2);
         addNumIndexForLastRecord();
 
@@ -976,7 +980,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
       updateNumIndex();
     }
 
-    Object o = numIndex.get(new Integer(num));
+    Object o = numIndex.get(Integer.valueOf(num));
 
     if (o == null) {
       return -1;
@@ -1191,7 +1195,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
       updateNumIndex();
     }
 
-    Integer n = new Integer(num);
+    Integer n = Integer.valueOf(num);
 
     if (numIndex != null && numIndex.get(n) == null) {
       return false;
@@ -1744,7 +1748,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     for (int i = 0; i < model.getRowCount(); i++) {
       int num = JDBCUtils.getInt(getModel().getValueAt(i, NodusC.DBF_IDX_NUM));
-      numIndex.put(new Integer(num), new Integer(i));
+      numIndex.put(Integer.valueOf(num), Integer.valueOf(i));
     }
   }
 }

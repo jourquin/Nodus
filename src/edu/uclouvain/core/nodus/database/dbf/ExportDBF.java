@@ -139,7 +139,7 @@ public class ExportDBF implements ShapeConstants {
 
     try {
       for (int i = 0; i < model.getColumnCount(); i++) {
-        Byte byteType = new Byte(model.getType(i));
+        Byte byteType = Byte.valueOf(model.getType(i));
         char charType = 'N';
 
         if (byteType.equals(DBF_TYPE_CHARACTER)) {
@@ -426,7 +426,7 @@ public class ExportDBF implements ShapeConstants {
            */
           if (o[j].equals("")) {
             if (model.getType(j) == DBF_TYPE_NUMERIC.byteValue()) {
-              o[j] = new Double(0);
+              o[j] = Double.valueOf(0);
             }
 
             /** @todo : also test for dates and booleans */

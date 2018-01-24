@@ -583,16 +583,16 @@ public class VirtualNetwork {
         List<Object> values = linksDbf[i].getRecord(j);
 
         // Ignore not enabled links
-        int enabled = new Integer(JDBCUtils.getInt(values.get(NodusC.DBF_IDX_ENABLED)));
+        int enabled = Integer.valueOf(JDBCUtils.getInt(values.get(NodusC.DBF_IDX_ENABLED)));
         if (enabled == 0) {
           continue;
         }
 
         int link = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NUM));
 
-        Integer node1 = new Integer(JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NODE1)));
+        Integer node1 = Integer.valueOf(JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NODE1)));
 
-        Integer node2 = new Integer(JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NODE2)));
+        Integer node2 = Integer.valueOf(JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NODE2)));
 
         byte mode = JDBCUtils.getByte(values.get(NodusC.DBF_IDX_MODE));
 
@@ -782,7 +782,7 @@ public class VirtualNetwork {
                     && element.isChangingServiceNode()
                     && n1
                     && n2) {
-              NodeLayerAndRowIndex idx = nodeIndex.get(new Integer(element.getRealNodeId()));
+              NodeLayerAndRowIndex idx = nodeIndex.get(Integer.valueOf(element.getRealNodeId()));
 
               // Find out which type of virtual link it is
               byte type;
@@ -879,7 +879,7 @@ public class VirtualNetwork {
 
         while (lit.hasNext()) {
           VirtualNode currentNode = lit.next();
-          NodeLayerAndRowIndex idx = nodeIndex.get(new Integer(element.getRealNodeId()));
+          NodeLayerAndRowIndex idx = nodeIndex.get(Integer.valueOf(element.getRealNodeId()));
           boolean n =
               nodusMapPanel
                   .getNodusProject()
@@ -1211,7 +1211,7 @@ public class VirtualNetwork {
         List<Object> values = nodesDbf[i].getRecord(j);
 
         int num = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NUM));
-        nodeIndex.put(new Integer(num), new NodeLayerAndRowIndex(i, j, index));
+        nodeIndex.put(Integer.valueOf(num), new NodeLayerAndRowIndex(i, j, index));
 
         // Initialize VN entry with new virtual node list
         int tranship = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_TRANSHIP));

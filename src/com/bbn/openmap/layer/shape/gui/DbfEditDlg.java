@@ -1185,7 +1185,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
         String value = dbfTable.getValueAt(i, 1).toString();
 
         if (nodusEsriLayer.getModel().getType(i) == DbfTableModel.TYPE_NUMERIC) {
-          Double d = new Double(value);
+          Double d = Double.valueOf(value);
           nodusEsriLayer.getModel().setValueAt(d, nodusEsriLayer.getSelectedGraphicIndex(), i);
         } else {
           nodusEsriLayer.getModel().setValueAt(value, nodusEsriLayer.getSelectedGraphicIndex(), i);

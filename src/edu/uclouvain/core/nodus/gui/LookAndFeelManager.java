@@ -84,7 +84,7 @@ public class LookAndFeelManager extends EscapeDialog {
         Object supported = null;
         try {
           Class<?> c = ClassLoader.getSystemClassLoader().loadClass(element.getClassName());
-          Object laf = c.newInstance();
+          Object laf = c.getDeclaredConstructor().newInstance();
 
           Method m = c.getMethod("isSupportedLookAndFeel", (Class[]) null);
           supported = m.invoke(laf, (Object[]) null);

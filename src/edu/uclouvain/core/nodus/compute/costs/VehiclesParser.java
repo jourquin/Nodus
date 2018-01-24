@@ -104,7 +104,7 @@ public class VehiclesParser {
 
         if (value != -1) {
           key = mode + "-" + means;
-          averageLoad.put(key, new Double(value));
+          averageLoad.put(key, Double.valueOf(value));
           continue;
         }
 
@@ -113,7 +113,7 @@ public class VehiclesParser {
 
         if (value != -1) {
           key = mode + "-" + means;
-          averageLoad.put(key, new Double(value));
+          averageLoad.put(key, Double.valueOf(value));
 
           continue;
         }
@@ -123,7 +123,7 @@ public class VehiclesParser {
 
         if (value != -1) {
           key = mode + "-" + means;
-          averageLoad.put(key, new Double(value));
+          averageLoad.put(key, Double.valueOf(value));
 
           continue;
         }
@@ -132,7 +132,7 @@ public class VehiclesParser {
         value = PropUtils.doubleFromProperties(costFunctions, core, -1);
         if (value != -1) {
           key = mode + "-" + means;
-          averageLoad.put(key, new Double(value));
+          averageLoad.put(key, Double.valueOf(value));
         }
       }
     }
@@ -150,7 +150,7 @@ public class VehiclesParser {
 
         if (value != -1) {
           key = mode + "-" + means;
-          equivalentStandardVehicleRatio.put(key, new Double(value));
+          equivalentStandardVehicleRatio.put(key, Double.valueOf(value));
 
           continue;
         }
@@ -160,7 +160,7 @@ public class VehiclesParser {
 
         if (value != -1) {
           key = mode + "-" + means;
-          equivalentStandardVehicleRatio.put(key, new Double(value));
+          equivalentStandardVehicleRatio.put(key, Double.valueOf(value));
 
           continue;
         }
@@ -170,7 +170,7 @@ public class VehiclesParser {
 
         if (value != -1) {
           key = mode + "-" + means;
-          equivalentStandardVehicleRatio.put(key, new Double(value));
+          equivalentStandardVehicleRatio.put(key, Double.valueOf(value));
 
           continue;
         }
@@ -180,7 +180,7 @@ public class VehiclesParser {
 
         if (value != -1) {
           key = mode + "-" + means;
-          equivalentStandardVehicleRatio.put(key, new Double(value));
+          equivalentStandardVehicleRatio.put(key, Double.valueOf(value));
         }
       }
     }

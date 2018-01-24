@@ -311,7 +311,7 @@ public class StatPieDlg extends EscapeDialog {
           labels[index].add(
               MessageFormat.format(
                   i18n.get(StatPieDlg.class, "Mode", "Mode {0}"), rs.getString(1)));
-          values[index].add(new Float(rs.getFloat(2)));
+          values[index].add(Float.valueOf(rs.getFloat(2)));
         } else {
           // Mode-Means stat
           labels[index].add(
@@ -319,7 +319,7 @@ public class StatPieDlg extends EscapeDialog {
                   i18n.get(StatPieDlg.class, "ModeMeans", "Mode {0}, Means {1}"),
                   rs.getString(1),
                   rs.getString(2)));
-          values[index].add(new Float(rs.getFloat(3)));
+          values[index].add(Float.valueOf(rs.getFloat(3)));
         }
       }
 
@@ -360,7 +360,7 @@ public class StatPieDlg extends EscapeDialog {
       Long l = values[index].get(i).longValue();
 
       // Market share
-      String s = formatter.format(new Float(100 * values[index].get(i) / sum));
+      String s = formatter.format(Float.valueOf(100 * values[index].get(i) / sum));
 
       // Add row
       tableModel.addRow(new Object[] {labels[index].get(i), l, s});
