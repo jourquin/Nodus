@@ -2,7 +2,7 @@
 rem Compile the sample plugin and generate the jar file
 
 rem Add the Nodus main jar and libs to the classpath
-set CLASSPATH=../nodus7.jar;../lib/*
+set CLASSPATH=../BinaryDistribution/nodus7.jar;../lib/*
 
 rem Compile the source code of the plugin
 javac NodusSamplePlugin.java 
