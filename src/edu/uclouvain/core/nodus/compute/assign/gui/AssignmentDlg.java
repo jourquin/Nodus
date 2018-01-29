@@ -496,7 +496,7 @@ public class AssignmentDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes lostPathsCheckBox
+   * This method initializes lostPathsCheckBox.
    *
    * @return javax.swing.JCheckBox
    */
@@ -510,7 +510,7 @@ public class AssignmentDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes costMarkupSpinner1
+   * This method initializes costMarkupSpinner1.
    *
    * @return javax.swing.JSpinner
    */
@@ -522,7 +522,7 @@ public class AssignmentDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes ModalSplitMethodComboBox
+   * This method initializes ModalSplitMethodComboBox.
    *
    * @return javax.swing.JComboBox
    */
@@ -577,7 +577,7 @@ public class AssignmentDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes jButton
+   * This method initializes jButton.
    *
    * @return javax.swing.JButton
    */
@@ -650,7 +650,7 @@ public class AssignmentDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes Static AON time dependent
+   * This method initializes Static AON time dependent.
    *
    * @return javax.swing.JRadioButton
    */

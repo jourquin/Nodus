@@ -28,10 +28,15 @@
 	<target name="ApiDoc" description="Makes the javadoc API html documents.">
 		<echo message="Generating the Nodus API documentation" />
 		<delete dir="${basedir}/api" />
-		<javadoc sourcepath="${basedir}/src" destdir="${basedir}/api" maxmemory="256m" excludepackagenames="com.bbn.openmap.layer.shape.displayindex,
-							com.bbn.openmap.layer.image.capabilities,
-							com.websina.license,
-		                    org.knowm.xchart.internal*.*" encoding="utf8" docencoding="utf8" charset="utf8" packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" author="true" version="true" use="true" windowtitle="Nodus 7.0 API" doctitle="Nodus" bottom="Copyright 1991-2018, Université catholique de Louvain (UCL), Center for Operations Research and Econometrics (CORE)" doclet="ExcludeDoclet" docletpath="${basedir}/devtools/ExcludeDoclet.jar" classpathref="Nodus7.0.classpath" failonerror="false" />
+		<javadoc sourcepath="${basedir}/src" destdir="${basedir}/api" maxmemory="256m" 
+			excludepackagenames="com.bbn.openmap.layer.shape.displayindex,com.bbn.openmap.layer.image.capabilities,org.knowm.xchart.internal*.*" 
+			encoding="utf8" docencoding="utf8" charset="utf8" 
+			packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
+			author="true" version="true" use="true" 
+			windowtitle="Nodus 7.0 API" 
+			doctitle="Nodus" bottom="Copyright 1991-2018, Université catholique de Louvain (UCL), Center for Operations Research and Econometrics (CORE)" 
+			doclet="ExcludeDoclet" docletpath="${basedir}/devtools/ExcludeDoclet.jar" 
+			classpathref="Nodus7.0.classpath" failonerror="false" />
 	</target>
 
 

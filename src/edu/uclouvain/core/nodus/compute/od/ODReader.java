@@ -142,7 +142,7 @@ public class ODReader {
   }
 
   /**
-   * Tests if a given table is a valid basic OD table
+   * Tests if a given table is a valid basic OD table.
    *
    * @param jdbcConnection A JDBC connection.
    * @param odTableName A Table name.

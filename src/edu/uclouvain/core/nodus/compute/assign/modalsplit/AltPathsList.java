@@ -71,7 +71,7 @@ public class AltPathsList {
   public double cheapestMeans1TotalCost = Double.MAX_VALUE;
 
   /**
-   * Initializes a valid paths list
+   * Initializes a valid paths list.
    *
    * @param path The first path of the set of alternative paths.
    */

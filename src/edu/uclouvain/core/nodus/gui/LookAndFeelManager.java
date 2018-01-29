@@ -137,7 +137,7 @@ public class LookAndFeelManager extends EscapeDialog {
   private JCheckBox soundCheckBox = null;
 
   /**
-   * Creates a dialog with the available look&feels
+   * Creates a dialog with the available look&feels.
    *
    * @param nodusMapPanel The Nodus map panel.
    */

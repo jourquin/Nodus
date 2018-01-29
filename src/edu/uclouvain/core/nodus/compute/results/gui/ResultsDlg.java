@@ -257,7 +257,7 @@ public class ResultsDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes jButton
+   * This method initializes jButton.
    *
    * @return javax.swing.JButton
    */
@@ -278,7 +278,7 @@ public class ResultsDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes jCheckBox
+   * This method initializes jCheckBox.
    *
    * @return javax.swing.JCheckBox
    */

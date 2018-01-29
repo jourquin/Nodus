@@ -87,6 +87,7 @@ import edu.uclouvain.core.nodus.gui.ProjectPreferencesDlg;
 import edu.uclouvain.core.nodus.gui.SplashDlg;
 import edu.uclouvain.core.nodus.helpbrowser.HelpBrowser;
 import edu.uclouvain.core.nodus.swing.OSXAdapter;
+import edu.uclouvain.core.nodus.swing.OSXAdapterForJava9;
 import edu.uclouvain.core.nodus.swing.OnTopKeeper;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NodusGroovyConsole;
@@ -147,8 +148,10 @@ import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
 import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
+import javax.swing.UIManager;
 import javax.swing.border.BevelBorder;
 
+import org.apache.commons.lang.SystemUtils;
 import org.uclouvain.gtm.util.gui.JResourcesMonitor;
 
 /**
@@ -1145,16 +1148,29 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @param state boolean
    */
   public void enableMenus(boolean state) {
+
+    // Ugly trick to avoid the Mac OS menu items to remain grayed :-(
+    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
+        && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
+      menuProject.setVisible(false);
+      menuControl.setVisible(false);
+      menuProjection.setVisible(false);
+      menuProject.setVisible(true);
+      menuControl.setVisible(true);
+      menuProjection.setVisible(true);
+    }
+
     // Enable some menu items
     menuItemFileSave.setEnabled(state);
     menuItemFileClose.setEnabled(state);
     menuItemFileSaveAs.setEnabled(state);
     menuItemFilePrint.setEnabled(state);
+
     menuProject.setEnabled(state);
     menuControl.setEnabled(state);
     menuProjection.setEnabled(state);
 
-    // Enable/disable use defined menus (plugins)
+    // Enable/disable user defined menus (plugins)
     Iterator<JMenuItem> it = userDefinedMenus.iterator();
 
     while (it.hasNext()) {
@@ -1170,7 +1186,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
 
     it = projectPluginsMenuItems.iterator();
-
     while (it.hasNext()) {
       JMenuItem m = it.next();
       m.setEnabled(state);
@@ -1442,7 +1457,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /**
-   * Accessor for the sound player
+   * Accessor for the sound player.
    *
    * @return The sound player.
    */
@@ -1472,8 +1487,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Initializes the default XY projection. */
   private void initDefaultProjection() {
     /*
-     * Add a set of possible projections. <br>
-     * See OpenMap documentation for more details on the ProjectionLoader mechanism.
+     * Add a set of possible projections. <br> See OpenMap documentation for more details on the
+     * ProjectionLoader mechanism.
      */
 
     LLXYLoader llxyl = new LLXYLoader();
@@ -1692,13 +1707,24 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     menuFile.add(menuItemFileOpen);
 
-    if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
+    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
+        && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
       // Use the standard Mac preferences
       try {
-        OSXAdapter.setPreferencesHandler(
-            this,
-            getClass()
-                .getDeclaredMethod("menuItemFileGlobalPreferencesActionPerformed", (Class[]) null));
+        if (SystemUtils.isJavaVersionAtLeast(9.0f)) {
+          OSXAdapterForJava9.setPreferencesHandler(
+              this,
+              getClass()
+                  .getDeclaredMethod(
+                      "menuItemFileGlobalPreferencesActionPerformed9",
+                      new Class[] {EventObject.class}));
+        } else {
+          OSXAdapter.setPreferencesHandler(
+              this,
+              getClass()
+                  .getDeclaredMethod(
+                      "menuItemFileGlobalPreferencesActionPerformed", (Class[]) null));
+        }
       } catch (NoSuchMethodException | SecurityException e) {
         e.printStackTrace();
       }
@@ -1711,11 +1737,21 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     menuFile.add(menuItemFileSaveAs);
     menuFile.add(menuItemFilePrint);
 
-    if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
+    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
+        && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
       // Use the standard Mac exit
       try {
-        OSXAdapter.setQuitHandler(
-            this, getClass().getDeclaredMethod("menuItemFileExitActionPerformed", (Class[]) null));
+        if (SystemUtils.isJavaVersionAtLeast(9.0f)) {
+          OSXAdapterForJava9.setAboutHandler(
+              this,
+              getClass()
+                  .getDeclaredMethod(
+                      "menuItemFileExitActionPerformed9", new Class[] {EventObject.class}));
+        } else {
+          OSXAdapter.setQuitHandler(
+              this,
+              getClass().getDeclaredMethod("menuItemFileExitActionPerformed", (Class[]) null));
+        }
       } catch (NoSuchMethodException | SecurityException e) {
         e.printStackTrace();
       }
@@ -1743,11 +1779,21 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     menuTools.add(menuItemToolGroovyScripts);
     menuTools.add(menuItemToolRessourcesMonitor);
 
-    if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
+    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
+        && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
+
       // Use the standard Mac About
       try {
-        OSXAdapter.setAboutHandler(
-            this, getClass().getDeclaredMethod("menuItemAboutActionPerformed", (Class[]) null));
+        if (SystemUtils.isJavaVersionAtLeast(9.0f)) {
+          OSXAdapterForJava9.setAboutHandler(
+              this,
+              getClass()
+                  .getDeclaredMethod(
+                      "menuItemAboutActionPerformed9", new Class[] {EventObject.class}));
+        } else {
+          OSXAdapter.setAboutHandler(
+              this, getClass().getDeclaredMethod("menuItemAboutActionPerformed", (Class[]) null));
+        }
       } catch (NoSuchMethodException | SecurityException e) {
         e.printStackTrace();
       }
@@ -2002,6 +2048,15 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /**
+   * Used by the reflection mechanism by OSXAdapter9.
+   *
+   * @param event Event
+   */
+  public void menuItemAboutActionPerformed9(EventObject event) {
+    menuItemAboutActionPerformed();
+  }
+
+  /**
    * Change the MapBean's background color...
    *
    * @param e ActionEvent
@@ -2109,6 +2164,15 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /**
+   * Used by the reflection mechanism by OSXAdapter9.
+   *
+   * @param event Event
+   */
+  public void menuItemFileExitActionPerformed9(EventObject event) {
+    menuItemFileExitActionPerformed();
+  }
+
+  /**
    * Open a new project.
    *
    * @param e ActionEvent
@@ -2125,7 +2189,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   public void openProject(String projectName) {
     if (projectName != null) {
-      nodusProject.close(); // In case a project was already loaded
+      if (nodusProject.isOpen()) {
+        nodusProject.close(); // In case a project was already loaded
+      }
 
       displayScenarioCombo(true);
       try {
@@ -2159,6 +2225,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         }
         resetText();
         updateScenarioComboBox();
+        enableMenus(true);
       }
     }
   }
@@ -2188,6 +2255,15 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /**
+   * Used by the reflection mechanism by OSXAdapter9.
+   *
+   * @param event Event
+   */
+  public void menuItemFileGlobalPreferencesActionPerformed9(EventObject event) {
+    menuItemFileGlobalPreferencesActionPerformed();
+  }
+
+  /**
    * Launch Groovy console.
    *
    * @param e ActionEvent
@@ -2201,6 +2277,13 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     boolean useGroovyConsole =
         Boolean.parseBoolean(nodusProperties.getProperty(NodusC.PROP_USE_GROOVY_CONSOLE, "false"));
+
+    // Groovy 2.x console doesn't work with Java 9. Disable it for now
+    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
+        && SystemUtils.isJavaVersionAtLeast(9.0f)) {
+      useGroovyConsole = false;
+    }
+
     if (!useGroovyConsole) {
       new NodusGroovyConsole(this, path, "");
     } else {
@@ -2464,7 +2547,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /**
-   * Sets the active mouse mode (see OpenMap API for more information)
+   * Sets the active mouse mode (see OpenMap API for more information).
    *
    * @param modeId The ID of the mode mouse.
    */

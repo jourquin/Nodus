@@ -205,7 +205,7 @@ public class WindowsShortcut {
   }
 
   /**
-   * Gobbles up link data by parsing it and storing info in member fields
+   * Gobbles up link data by parsing it and storing info in member fields.
    *
    * @param link All the bytes from the .lnk file
    */

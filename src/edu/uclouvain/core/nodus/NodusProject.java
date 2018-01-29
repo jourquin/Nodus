@@ -18,7 +18,7 @@
  * <p>You should have received a copy of the GNU General Public License along with this program. If
  * not, see <http://www.gnu.org/licenses/>.
  */
-
+  
 package edu.uclouvain.core.nodus;
 
 import com.bbn.openmap.Environment;
@@ -49,7 +49,6 @@ import edu.uclouvain.core.nodus.database.dbf.DBFReader;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
 import edu.uclouvain.core.nodus.services.ServiceEditor;
 import edu.uclouvain.core.nodus.utils.CheckForOM5;
-import edu.uclouvain.core.nodus.utils.ClassPathHacker;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.NodusFileFilter;
 import edu.uclouvain.core.nodus.utils.ProjectLocker;
@@ -207,7 +206,7 @@ public class NodusProject implements ShapeConstants {
   private NodusMapPanel nodusMapPanel;
 
   /** Used to save the original classpath. */
-  private ClassLoader oldClasspath;
+  //private ClassLoader oldClassPath;
 
   /**
    * Used to store the ID's of the links that are present in layers that are found in the project
@@ -260,7 +259,7 @@ public class NodusProject implements ShapeConstants {
    *
    * @param props Properties that contains the description of the layers.
    */
-  // TODO : Test Internet connection for layers needing it (WMS, Tiles,...) 
+  // TODO : Test Internet connection for layers needing it (WMS, Tiles,...)
   public void addOpenMapLayers(Properties props) {
     // Test if valid openmap file
     String s = props.getProperty(NodusC.PROP_OPENMAP_LAYERS);
@@ -268,6 +267,9 @@ public class NodusProject implements ShapeConstants {
     if (s == null) {
       return;
     }
+
+    // Fet the path to the project
+    String projectPath = localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH);
 
     // Upgrade layer class names
     props = CheckForOM5.upgradeApiNames(props);
@@ -278,6 +280,11 @@ public class NodusProject implements ShapeConstants {
     for (; enumerator.hasMoreElements(); ) {
       String propName = (String) enumerator.nextElement();
       String propValue = (String) props.get(propName);
+      
+      // Add project path to resource file name that starts with "./" (project's directory)
+      if (propValue.startsWith("./")) {
+        propValue = propValue.replaceFirst("./", projectPath);
+      }
       localProperties.setProperty(propName, propValue);
     }
 
@@ -549,7 +556,7 @@ public class NodusProject implements ShapeConstants {
       otherObjectsLoaded = false;
 
       // Reset Classpath
-      ClassPathHacker.setClassPath(oldClasspath);
+      //ClassPathHacker.setClassPath(oldClasspath);
 
       ProjectLocker.releaseLock();
 
@@ -741,7 +748,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Returns the JDBC connection to the database associated to this project
+   * Returns the JDBC connection to the database associated to this project.
    *
    * @return The JDBC connection used by the project.
    */
@@ -776,7 +783,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Returns the number of styles of a given OMGraphic type (node or link)
+   * Returns the number of styles of a given OMGraphic type (node or link).
    *
    * @param omg An OMGraphic.
    * @return The ID of its style.
@@ -869,7 +876,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Returns the Nodus map panel
+   * Returns the Nodus map panel.
    *
    * @return The MapPanel of the main frame.
    */
@@ -1082,7 +1089,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Returns true if the name corresponds to a layer of the project
+   * Returns true if the name corresponds to a layer of the project.
    *
    * @param layerName The name of the shapefile containing the layer.
    * @param type SHAPE_TYPE_POINT or SHAPE_TYPE_ARC.
@@ -1117,7 +1124,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Verifies that the existing virtual network tables are compatible with this version of Nodus
+   * Verifies that the existing virtual network tables are compatible with this version of Nodus.
    *
    * @return True if the tables are compatible.
    */
@@ -1176,7 +1183,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Loads the numbers of the objects of a layer in the given HashMap
+   * Loads the numbers of the objects of a layer in the given HashMap.
    *
    * @param layerName The name of the shapefile containing the layer.
    * @param The HashMap used to store the ID's
@@ -1502,7 +1509,6 @@ public class NodusProject implements ShapeConstants {
     localProperties.setProperty(NodusC.PROP_JDBC_URL, jdbcURL);
     try {
       Class.forName(jdbcDriver).getDeclaredConstructor().newInstance();
-      System.out.println(Class.forName(jdbcDriver).getDeclaredConstructor().newInstance());
       jdbcConnection = getMainJDBCConnection();
       if (jdbcConnection == null) {
         nodusMapPanel.setBusy(false);
@@ -1554,18 +1560,8 @@ public class NodusProject implements ShapeConstants {
     }
 
     // Add the project's directory to classpath
-    oldClasspath = ClassPathHacker.getClassPath();
-
-    try {
-      ClassPathHacker.addFile(projectPath);
-    } catch (IOException e) {
-      e.printStackTrace();
-      nodusMapPanel.setBusy(false);
-      ProjectLocker.releaseLock();
-      nodusMapPanel.getMenuFile().setEnabled(true);
-      return;
-    }
-
+    //oldClasspath = ClassPathHacker.getClassPath();
+     
     // Initialize the user defined modal split methods for this project
     new ModalSplitMethodsLoader(projectPath);
 
@@ -1918,7 +1914,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Removes all the output tables (vnet and path_xxx) for a given scenario
+   * Removes all the output tables (vnet and path_xxx) for a given scenario.
    *
    * @param scenario ID of the scenario to delete from database.
    */
@@ -1969,7 +1965,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Renames a property in the project's properties
+   * Renames a property in the project's properties.
    *
    * @param oldKey The key string to rename.
    * @param newKey The new name of the key.
@@ -1981,7 +1977,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Renames all the output tables (vnet and path_xxx) for a given scenario
+   * Renames all the output tables (vnet and path_xxx) for a given scenario.
    *
    * @param oldNum ID of the scenario to rename.
    * @param newNum New ID of the scenario.
@@ -2241,7 +2237,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Insert or update an entry in the project's properties
+   * Insert or update an entry in the project's properties.
    *
    * @param key The key string of the property.
    * @param value The value to store.

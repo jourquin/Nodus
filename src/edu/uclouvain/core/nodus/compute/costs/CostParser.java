@@ -826,7 +826,7 @@ public class CostParser {
   }
 
   /**
-   * Tests if the parser is initialized
+   * Tests if the parser is initialized.
    *
    * @return True if the parser is initialized.
    */

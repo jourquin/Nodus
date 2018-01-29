@@ -142,7 +142,7 @@ public class RealLink extends RealNetworkObject {
   }
 
   /**
-   * Returns the length of this real link (km)
+   * Returns the length of this real link (km).
    *
    * @return The length of this real link (km).
    */

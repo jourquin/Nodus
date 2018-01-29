@@ -85,7 +85,12 @@ public class NodusClassLoader extends ClassLoader {
       return null;
     }
 
-    Class<?> c = super.defineClass(null, buf, 0, buf.length);
+    Class<?> c = null;
+    try {
+      c = super.defineClass(null, buf, 0, buf.length);
+    } catch (Error e) { 
+      System.err.println(name);
+    }
 
     if (c != null && resolve) {
       resolveClass(c);

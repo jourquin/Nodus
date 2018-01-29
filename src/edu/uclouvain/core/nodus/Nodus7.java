@@ -131,12 +131,13 @@ public class Nodus7 {
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
       // Set icon in Mac OS Dock
       GUIUtils.setMacOSDockImage(icn);
+      if (UIManager.getLookAndFeel().isNativeLookAndFeel()) {
+        // use the mac system menu bar
+        System.setProperty("apple.laf.useScreenMenuBar", "true");
 
-      // use the mac system menu bar
-      System.setProperty("apple.laf.useScreenMenuBar", "true");
-
-      // set the "About" menu item name
-      System.setProperty("com.apple.mrj.application.apple.menu.about.name", NodusC.APPNAME);
+        // set the "About" menu item name
+        System.setProperty("com.apple.mrj.application.apple.menu.about.name", NodusC.APPNAME);
+      }
 
       // use smoother fonts
       System.setProperty("apple.awt.textantialiasing", "true");
@@ -146,17 +147,20 @@ public class Nodus7 {
       final String[] componentName = {
         "TextField", "TextArea", "TextPane", "EditorPane", "FormattedTextField"
       };
+
       for (int i = 0; i < componentName.length; i++) {
         im = (InputMap) UIManager.get(componentName[i] + ".focusInputMap");
-        im.put(
-            KeyStroke.getKeyStroke(KeyEvent.VK_C, KeyEvent.META_DOWN_MASK),
-            DefaultEditorKit.copyAction);
-        im.put(
-            KeyStroke.getKeyStroke(KeyEvent.VK_V, KeyEvent.META_DOWN_MASK),
-            DefaultEditorKit.pasteAction);
-        im.put(
-            KeyStroke.getKeyStroke(KeyEvent.VK_X, KeyEvent.META_DOWN_MASK),
-            DefaultEditorKit.cutAction);
+        if (im != null) {
+          im.put(
+              KeyStroke.getKeyStroke(KeyEvent.VK_C, KeyEvent.META_DOWN_MASK),
+              DefaultEditorKit.copyAction);
+          im.put(
+              KeyStroke.getKeyStroke(KeyEvent.VK_V, KeyEvent.META_DOWN_MASK),
+              DefaultEditorKit.pasteAction);
+          im.put(
+              KeyStroke.getKeyStroke(KeyEvent.VK_X, KeyEvent.META_DOWN_MASK),
+              DefaultEditorKit.cutAction);
+        }
       }
 
       // Try to improve hardware acceleration

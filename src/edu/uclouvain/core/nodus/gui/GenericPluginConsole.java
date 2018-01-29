@@ -98,7 +98,7 @@ public class GenericPluginConsole extends JDialog {
   }
 
   /**
-   * This method initializes scrollPane
+   * This method initializes scrollPane.
    *
    * @return javax.swing.JScrollPane
    */
@@ -112,7 +112,7 @@ public class GenericPluginConsole extends JDialog {
   }
 
   /**
-   * This method initializes textArea
+   * This method initializes textArea.
    *
    * @return javax.swing.JTextArea
    */

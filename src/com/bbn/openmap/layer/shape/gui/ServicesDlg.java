@@ -97,7 +97,7 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
   }
 
   /**
-   * This method initializes closeButton
+   * This method initializes closeButton.
    *
    * @return javax.swing.JButton
    */
@@ -156,7 +156,7 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
   }
 
   /**
-   * This method initializes contentPane
+   * This method initializes contentPane.
    *
    * @return javax.swing.JPanel
    */
@@ -180,7 +180,7 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
   }
 
   /**
-   * This method initializes scrollPane
+   * This method initializes scrollPane.
    *
    * @return javax.swing.JScrollPane
    */
@@ -197,7 +197,7 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
   }
 
   /**
-   * This method initializes jList
+   * This method initializes jList.
    *
    * @return javax.swing.JList
    */

@@ -79,7 +79,7 @@ public class CostParserWorker extends Thread {
   }
 
   /**
-   * Cancels the worker
+   * Cancels the worker.
    *
    * @param errorMessage error message to display.
    */

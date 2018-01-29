@@ -215,7 +215,7 @@ public class VirtualLink {
   }
 
   /**
-   * Adds a new flow to the current flow on this virtual link
+   * Adds a new flow to the current flow on this virtual link.
    *
    * @param groupIndex The index of the group of commodities.
    * @param flow The quantity to add.
@@ -462,6 +462,8 @@ public class VirtualLink {
   }
 
   /**
+   * Initializes the average load and ESV for a given group index and time slice.
+   *
    * @param groupIndex The index of the group of commodities.
    * @param timeSlice The time slice corresponding to the flow.
    * @param averageLoad The average load for a vehicle using this virtual link.

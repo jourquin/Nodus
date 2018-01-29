@@ -4,7 +4,7 @@
 export CLASSPATH=../BinaryDistribution/nodus7.jar:../lib/*
 
 # Compile the source code of the plugin
-javac NodusSamplePlugin.java 
+javac -source 1.7 -target 1.7 NodusSamplePlugin.java 
 
 # Create the JAR file
 jar cf NodusSamplePlugin.jar NodusSamplePlugin.class

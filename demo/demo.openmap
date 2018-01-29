@@ -6,7 +6,7 @@ Belgium.class=com.bbn.openmap.layer.shape.FastEsriLayer
 Belgium.prettyName=Belgian NUTS2
 Belgium.lineColor=ff606060
 Belgium.fillColor=fff2f2f2
-Belgium.shp=bel_nuts2.shp
+Belgium.shp=./bel_nuts2.shp
 
 # Map Tile Layer, using OpenStreetMap tiles
 # The NodusMapTileLayer is an extension of OpenMap's MapTileLayer. See API doc for more info.

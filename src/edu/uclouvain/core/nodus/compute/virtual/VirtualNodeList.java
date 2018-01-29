@@ -75,7 +75,7 @@ public class VirtualNodeList {
   private LinkedList<VirtualNode> virtualNodeList;
 
   /**
-   * Creates a new virtual node list for a given real node
+   * Creates a new virtual node list for a given real node.
    *
    * @param realNodeId The ID of the real node this list refers to.
    * @param handling The type of operation(weights) that are possible at this real node. Can be
@@ -403,7 +403,7 @@ public class VirtualNodeList {
   }
 
   /**
-   * Returns true if transit operations are allowed for this node
+   * Returns true if transit operations are allowed for this node.
    *
    * @return True if transit is allowed.
    */

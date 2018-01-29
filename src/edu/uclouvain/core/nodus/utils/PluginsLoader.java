@@ -129,7 +129,7 @@ public class PluginsLoader {
    * @param pathToJar Path to jar file
    */
   @SuppressWarnings("unchecked")
-private void loadPlugins(String pathToJar) {
+  private void loadPlugins(String pathToJar) {
 
     try {
       JarFile jarFile = new JarFile(pathToJar);
@@ -147,25 +147,32 @@ private void loadPlugins(String pathToJar) {
         // -6 because of .class
         String className = je.getName().substring(0, je.getName().length() - 6);
         className = className.replace('/', '.');
-        Class<?> loadedClass = cl.loadClass(className);
-
+        Class<?> loadedClass = null;
         try {
-          Constructor<?> cons = loadedClass.getConstructor();
-          Object o = cons.newInstance();
-          if (o instanceof NodusPlugin) {
-            availablePlugins.add((Class<NodusPlugin>) loadedClass);
+          loadedClass = cl.loadClass(className);
+        } catch (Error e1) {
+          System.err.println(className);
+        } catch (Exception e1) {
+          System.err.println(className);
+        }
+
+        if (loadedClass != null) {
+          try {
+            Constructor<?> cons = loadedClass.getConstructor();
+            Object o = cons.newInstance();
+            if (o instanceof NodusPlugin) {
+              availablePlugins.add((Class<NodusPlugin>) loadedClass);
+            }
+          } catch (Exception ex) {
+            /*
+             * The jar may contain classes that are not plugins. Do nothing.
+             * This exception is thrown by cons.newInstance().
+             */
           }
-        } catch (Exception ex) {
-          /*
-           * The jar may contain classes that are not plugins. Do nothing.
-           * This exception is thrown by cons.newInstance().
-           */
         }
       }
       jarFile.close();
     } catch (MalformedURLException e) {
-      e.printStackTrace();
-    } catch (ClassNotFoundException e) {
       e.printStackTrace();
     } catch (IOException e) {
       e.printStackTrace();

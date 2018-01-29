@@ -114,7 +114,7 @@ public class CostParserWorkerParameters {
   }
 
   /**
-   * Returns the group index
+   * Returns the group index.
    *
    * @return The group index.
    */
@@ -132,7 +132,7 @@ public class CostParserWorkerParameters {
   }
 
   /**
-   * Returns the Nodud project
+   * Returns the Nodud project.
    *
    * @return The Nodus project.
    */

@@ -602,7 +602,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
   }
 
   /**
-   * This method initializes transhipComboBox
+   * This method initializes transhipComboBox.
    *
    * @return javax.swing.JComboBox
    */

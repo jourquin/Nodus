@@ -917,7 +917,7 @@ public class ServiceEditor {
   }
 
   /**
-   * Sets the stops of the service
+   * Sets the stops of the service.
    *
    * @param nodeId The ID of the node.
    * @param serviceNames A TreeMap containing all the services the node belongs to.

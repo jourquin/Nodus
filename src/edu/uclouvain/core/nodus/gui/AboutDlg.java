@@ -84,7 +84,7 @@ public class AboutDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes systemInfoButton
+   * This method initializes systemInfoButton.
    *
    * @return javax.swing.JButton
    */

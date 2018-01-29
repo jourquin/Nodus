@@ -82,7 +82,7 @@ of the License, or (at your option) any later version.
 ## Build from sources
 
 The Nodus distribution can be built from the sources. Therefore, you need a Java Development Kit 
-([JDK version 7](http://www.oracle.com/technetwork/java/javase/downloads/index.html)) or above. 
+([JDK version 8](http://www.oracle.com/technetwork/java/javase/downloads/index.html)) or above. 
 You also need Apache [Ant](http://ant.apache.org/). Be sure JAVA_HOME points to your JDK and 
 that ant is in your OS path.
 

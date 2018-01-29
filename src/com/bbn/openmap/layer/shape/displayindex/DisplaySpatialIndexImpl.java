@@ -543,6 +543,8 @@ public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
   }
 
   /**
+   * Indexes the list of graphics.
+   * 
    * @param bounds if not null, add min/max values to them.
    * @return The size of the list
    * @throws IOException On error

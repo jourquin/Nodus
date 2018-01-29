@@ -414,6 +414,8 @@ public class NodusConsole extends WindowAdapter
   }
 
   /**
+   * Closes the console.
+   * 
    * @param evt WindowEvent.
    * @exclude
    */

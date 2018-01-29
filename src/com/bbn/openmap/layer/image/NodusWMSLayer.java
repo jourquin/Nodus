@@ -36,7 +36,9 @@ import java.awt.Cursor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.MessageFormat;
+import java.util.NoSuchElementException;
 import java.util.Properties;
+import java.util.StringTokenizer;
 import java.util.Vector;
 
 import javax.swing.JButton;
@@ -50,8 +52,8 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 /**
- * The NodusWMSLayer extends the original OpenMap WMSLayer. Its main new feature is to allow
- * the user to interactively select the layers to display in a list obtained from the WMS server by
+ * The NodusWMSLayer extends the original OpenMap WMSLayer. Its main new feature is to allow the
+ * user to interactively select the layers to display in a list obtained from the WMS server by
  * means of a "getcapabilities".
  *
  * <p>See the WMS specifications and the OpenMap documentation for more details.
@@ -134,12 +136,34 @@ public class NodusWMSLayer extends WMSLayer {
     capabilitiesAlreadyFetched = true;
 
     StringBuffer buf = new StringBuffer(queryHeader);
-    buf.append("?" + "&SERVICE=WMS&REQUEST=GetCapabilities" + "&version=" + wmsVersion);
+
+    if (vendorSpecificNames != null) {
+      if (vendorSpecificValues != null) {
+        StringTokenizer nameTokenizer = new StringTokenizer(vendorSpecificNames, ",");
+        StringTokenizer valueTokenizer = new StringTokenizer(vendorSpecificValues, ",");
+        String paramName = null;
+        String paramValue = null;
+        while (nameTokenizer.hasMoreTokens()) {
+          try {
+            paramName = nameTokenizer.nextToken();
+            paramValue = valueTokenizer.nextToken();
+            buf.append("&").append(paramName).append("=").append(paramValue);
+          } catch (NoSuchElementException e) {
+            e.printStackTrace();
+          }
+        }
+      }
+    }
+
+    System.out.println(buf.toString());
+
+    buf.append("?" + "&REQUEST=GetCapabilities" + "&version=" + wmsVersion);
 
     java.net.URL url = null;
 
     try {
       url = new java.net.URL(buf.toString());
+      System.out.println(buf.toString());
       java.net.HttpURLConnection urlc = (java.net.HttpURLConnection) url.openConnection();
       if (urlc == null || urlc.getContentType() == null) {
         Thread thread =

@@ -1156,7 +1156,7 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
   }
 
   /**
-   * Rotate the view with 90°
+   * Rotate the view with 90°.
    *
    * @param The visualization viewer.
    */

@@ -51,7 +51,7 @@ class InsertedPoint {
    * Constructor Store and process the information about the points in the polyline (x1,y1) (x2,y2)
    * and return the intersection point (xi,yi) between the line formed by the points (x1,y1) (x2,y2)
    * and his perpendicular with the point (xc,yc), return if the new point is between (x1,y1) and
-   * (x2,y2) and return the distance between the points (xi,yi) and (xc,yc)
+   * (x2,y2) and return the distance between the points (xi,yi) and (xc,yc).
    *
    * @param x1 Coordinate X of the first point.
    * @param y1 Coordinate Y of the first point.
@@ -93,7 +93,7 @@ class InsertedPoint {
   }
 
   /**
-   * Return the distance between two points (x1,y1) and (x2,y2)
+   * Return the distance between two points (x1,y1) and (x2,y2).
    *
    * @param x1 Coordinate X of the first point.
    * @param y1 Coordinate Y of the first point.

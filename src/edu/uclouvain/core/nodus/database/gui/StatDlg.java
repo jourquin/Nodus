@@ -642,7 +642,7 @@ public class StatDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes pieCheckBox
+   * This method initializes pieCheckBox.
    *
    * @return javax.swing.JCheckBox
    */

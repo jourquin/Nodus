@@ -40,7 +40,7 @@ public class WorkQueue {
   private LinkedList<Object> queue = new LinkedList<Object>();
 
   /**
-   * Adds a work to the queue
+   * Adds a work to the queue.
    *
    * @param work The work to add.
    */

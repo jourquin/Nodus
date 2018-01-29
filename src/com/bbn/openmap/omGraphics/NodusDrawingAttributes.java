@@ -67,7 +67,7 @@ public class NodusDrawingAttributes extends DrawingAttributes {
   Paint defaultLinePaint = Color.black;
 
   /**
-   * Returns the default color used when a graphic is not rendered
+   * Returns the default color used when a graphic is not rendered.
    *
    * @return The default paint.
    */

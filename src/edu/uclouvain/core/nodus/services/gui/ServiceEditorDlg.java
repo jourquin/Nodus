@@ -188,7 +188,7 @@ public class ServiceEditorDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes cancelButton
+   * This method initializes cancelButton.
    *
    * @return javax.swing.JButton cancelButton
    */
@@ -228,7 +228,7 @@ public class ServiceEditorDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes closeButton
+   * This method initializes closeButton.
    *
    * @return javax.swing.JButton
    */
@@ -248,7 +248,7 @@ public class ServiceEditorDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes copyButton
+   * This method initializes copyButton.
    *
    * @return javax.swing.JButton copyButton
    */
@@ -319,7 +319,7 @@ public class ServiceEditorDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes deleteButton
+   * This method initializes deleteButton.
    *
    * @return javax.swing.JButton deleteButton
    */
@@ -358,7 +358,7 @@ public class ServiceEditorDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes the panel which visualizes the services
+   * This method initializes the panel which visualizes the services.
    *
    * @return javax.swing.JPanel
    */
@@ -464,7 +464,7 @@ public class ServiceEditorDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes editButton
+   * This method initializes editButton.
    *
    * @return javax.swing.JButton editButton
    */
@@ -497,7 +497,7 @@ public class ServiceEditorDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes the panel which edit the services
+   * This method initializes the panel which edit the services.
    *
    * @return javax.swing.JPanel
    */
@@ -745,7 +745,7 @@ public class ServiceEditorDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes jContentPane - the main panel of the dialog
+   * This method initializes jContentPane - the main panel of the dialog.
    *
    * @return javax.swing.JPanel
    */
@@ -761,7 +761,7 @@ public class ServiceEditorDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes scrollPane
+   * This method initializes scrollPane.
    *
    * @return javax.swing.JScrollPane
    */
@@ -774,7 +774,7 @@ public class ServiceEditorDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes newButton
+   * This method initializes newButton.
    *
    * @return javax.swing.JButton newButton
    */
@@ -864,7 +864,7 @@ public class ServiceEditorDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes caveButton
+   * This method initializes caveButton.
    *
    * @return javax.swing.JButton caveButton
    */
@@ -953,7 +953,7 @@ public class ServiceEditorDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes ServiceList
+   * This method initializes ServiceList.
    *
    * @return javax.swing.JTable
    */

@@ -67,7 +67,7 @@ public class ArchInfoDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes jButton
+   * This method initializes jButton.
    *
    * @return javax.swing.JButton
    */
@@ -87,7 +87,7 @@ public class ArchInfoDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes jContentPane
+   * This method initializes jContentPane.
    *
    * @return javax.swing.JPanel
    */

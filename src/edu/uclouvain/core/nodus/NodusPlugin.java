@@ -125,7 +125,7 @@ public class NodusPlugin {
   }
 
   /**
-   * Called by Nodus when the plugins are loaded
+   * Called by Nodus when the plugins are loaded.
    *
    * @param nodusMapPanel The Nodus main MapPanel, which gives access to the whole Nodus API.
    */

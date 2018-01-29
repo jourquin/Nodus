@@ -184,7 +184,7 @@ public class VirtualNetworkWriter {
   }
 
   /**
-   * Creates a new empty table in the database
+   * Creates a new empty table in the database.
    *
    * @return True on success.
    */
@@ -203,7 +203,7 @@ public class VirtualNetworkWriter {
   }
 
   /**
-   * Saves the content of the assignment in a database table
+   * Saves the content of the assignment in a database table.
    *
    * @return True on success.
    */

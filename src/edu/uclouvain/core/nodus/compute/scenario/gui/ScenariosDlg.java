@@ -485,7 +485,7 @@ public class ScenariosDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes SumRadioButton
+   * This method initializes SumRadioButton.
    *
    * @return javax.swing.JRadioButton
    */

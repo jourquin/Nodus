@@ -144,7 +144,7 @@ public class VirtualNode {
   }
 
   /**
-   * Returns the "means" element of the virtual node
+   * Returns the "means" element of the virtual node.
    *
    * @return The means ID.
    */

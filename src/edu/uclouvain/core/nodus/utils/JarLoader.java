@@ -51,6 +51,8 @@ public class JarLoader {
   private Vector<String> serList = new Vector<>();
 
   /**
+   * Returns the type of the content.
+   * 
    * @param is InputStream to check.
    * @return The MIME type of the content of the stream.
    * @throws IOException On error
@@ -73,6 +75,8 @@ public class JarLoader {
   }
 
   /**
+   * Creates a new JarLoader from its file name.
+   * 
    * @param jarName The name of the jar file to load.
    * @throws FileNotFoundException On error
    */

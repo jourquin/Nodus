@@ -308,7 +308,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   private boolean withGUI = true;
 
   /**
-   * Displays the SQL console and connects it to the project database
+   * Displays the SQL console and connects it to the project database.
    *
    * @param nodusProject The Nodus project.
    */
@@ -317,7 +317,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   }
 
   /**
-   * Creates the SQL console and connects it to the project database
+   * Creates the SQL console and connects it to the project database.
    *
    * @param nodusProject The Nodus project.
    * @param withGUI If false, the GUI will not be displayed, and the user can call runBatch to
@@ -1252,7 +1252,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   }
 
   /**
-   * Handles the Nodus specific import/export commands
+   * Handles the Nodus specific import/export commands.
    *
    * @param sqlStmt String The command to process
    * @param operation String The operation to process (IMPORTDBF, EXPORTDBF, IMPORTCSV,
@@ -2052,7 +2052,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   }
 
   /**
-   * Runs an SQL batch
+   * Runs an SQL batch.
    *
    * @param sqlCommands A vector containing a batch of SQL commands.
    * @return True on success

@@ -179,7 +179,7 @@ public class NotePadActions {
   }
 
   /**
-   * Loads a file in the NotePad
+   * Loads a file in the NotePad.
    *
    * @param fileName The name of the file to load (in the current directory).
    */

@@ -419,7 +419,7 @@ public class StatPieDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes the Panel
+   * This method initializes the Panel.
    *
    * @return javax.swing.JPanel
    */
@@ -488,7 +488,7 @@ public class StatPieDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes the ScrollPane
+   * This method initializes the ScrollPane.
    *
    * @return javax.swing.JScrollPane
    */
@@ -504,7 +504,7 @@ public class StatPieDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes panes
+   * This method initializes panes.
    *
    * @return javax.swing.JTabbedPane
    */
@@ -566,7 +566,7 @@ public class StatPieDlg extends EscapeDialog {
   }
 
   /**
-   * This method initializes jTable
+   * This method initializes jTable.
    *
    * @return javax.swing.JTable
    */
@@ -598,7 +598,7 @@ public class StatPieDlg extends EscapeDialog {
   }
 
   /**
-   * Set the query string for a given type of statistic
+   * Set the query string for a given type of statistic.
    *
    * @param statId The ID of the statistic
    * @param sqlQuery The SQL query that retrieves the statistic.

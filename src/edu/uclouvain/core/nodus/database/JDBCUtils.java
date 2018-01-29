@@ -21,6 +21,8 @@
 
 package edu.uclouvain.core.nodus.database;
 
+import edu.uclouvain.core.nodus.NodusC;
+
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -35,8 +37,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JOptionPane;
-
-import edu.uclouvain.core.nodus.NodusC;
 
 /**
  * Some handy JDBC utilities.
@@ -502,7 +502,7 @@ public class JDBCUtils {
   }
 
   /**
-   * Create a table with index(es)
+   * Create a table with index(es).
    *
    * @param tableName The name of the table.
    * @param fields An array of fields.
