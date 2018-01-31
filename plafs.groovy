@@ -31,7 +31,6 @@ import javax.swing.JFrame;
 import javax.swing.JDialog;
 import javax.swing.plaf.nimbus.NimbusLookAndFeel;
 import com.pagosoft.plaf.PlafOptions;
-import com.easynth.lookandfeel.EaSynthLookAndFeel;
 
 /*
  * https://pgslookandfeel.dev.java.net/
