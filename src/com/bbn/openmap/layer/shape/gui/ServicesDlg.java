@@ -30,6 +30,8 @@ import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.services.ServiceEditor;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import edu.uclouvain.core.nodus.swing.TableSorter;
+import edu.uclouvain.swing.DefaultCheckListModel;
+import edu.uclouvain.swing.JCheckList;
 
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -39,9 +41,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.TreeMap;
 
-import javax.swing.DefaultCheckListModel;
 import javax.swing.JButton;
-import javax.swing.JCheckList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
