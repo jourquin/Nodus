@@ -33,8 +33,6 @@ import java.util.Vector;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import sun.tools.jar.Manifest;
-
 /**
  * Jar classLoader used for the Nodus plugin mechanism.
  *
@@ -52,7 +50,7 @@ public class JarLoader {
 
   /**
    * Returns the type of the content.
-   * 
+   *
    * @param is InputStream to check.
    * @return The MIME type of the content of the stream.
    * @throws IOException On error
@@ -74,9 +72,24 @@ public class JarLoader {
     return type;
   }
 
+  private boolean isManifestName(String name) {
+
+    // remove leading /
+    if (name.charAt(0) == '/') {
+      name = name.substring(1, name.length());
+    }
+    // case insensitive
+    name = name.toUpperCase();
+
+    if (name.equals("META-INF/MANIFEST.MF")) {
+      return true;
+    }
+    return false;
+  }
+
   /**
    * Creates a new JarLoader from its file name.
-   * 
+   *
    * @param jarName The name of the jar file to load.
    * @throws FileNotFoundException On error
    */
@@ -106,7 +119,7 @@ public class JarLoader {
 
         byte[] buf = baos.toByteArray();
 
-        if (Manifest.isManifestName(name)) {
+        if (isManifestName(name)) {
           type = "manifest/manifest";
         }
 
