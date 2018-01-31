@@ -46,13 +46,6 @@ PlafOptions.setStyle(PlafOptions.MENU_ITEM, PlafOptions.GRADIENT_STYLE);
 PlafOptions.useExtraMargin(true);
 UIManager.installLookAndFeel(pagoPlaf.getName(), pagoPlaf.getClass().getName());
 
-/*
- * http://www.easynth.com/freewares/EaSynthLookAndFeel.html
- */ 
-EaSynthLookAndFeel easynthLAF = new EaSynthLookAndFeel();
-UIManager.installLookAndFeel(easynthLAF.getName(), easynthLAF.getClass().getName());
-
-
 
 // Open the nodus properties file if it exists
 Properties props = new Properties();

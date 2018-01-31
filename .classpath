@@ -12,7 +12,6 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="jdbcDrivers/derby.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/hsqldb.jar"/>
-	<classpathentry kind="lib" path="plafs/EaSynthLookAndFeel.jar"/>
 	<classpathentry kind="lib" path="plafs/pgslookandfeel-1.1.2.jar"/>
 	<classpathentry kind="lib" path="lib/collections-generic-4.01.jar"/>
 	<classpathentry kind="lib" path="lib/commons-collections4-4.1.jar"/>

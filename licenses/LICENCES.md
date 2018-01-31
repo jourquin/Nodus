@@ -46,9 +46,7 @@
 [sqlite-jdbc](https://bitbucket.org/xerial/sqlite-jdbc), Apache v2
 
 ##Pluggable Look&amp;Feels
-
-[EasynthLookAndFeel](http://www.easynth.com/freewares/EaSynthLookAndFeel.html), Apache v2                                
-
+                         
 [PgsLookAndFeel](http://www.pagosoft.com/projects/pgslookandfeel/), Apache v2
 
 
