@@ -28,9 +28,10 @@
 	<target name="ApiDoc" description="Makes the javadoc API html documents.">
 		<echo message="Generating the Nodus API documentation" />
 		<delete dir="${basedir}/api" />
+		<mkdir dir="${basedir}/api" />
 		<javadoc sourcepath="${basedir}/src" destdir="${basedir}/api" maxmemory="256m" 
 			excludepackagenames="com.bbn.openmap.layer.shape.displayindex,com.bbn.openmap.layer.image.capabilities,org.knowm.xchart.internal*.*" 
-			encoding="utf8" docencoding="utf8" charset="utf8" 
+			encoding="UTF-8" docencoding="UTF-8" charset="UTF-8" 
 			packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
 			author="true" version="true" use="true" 
 			windowtitle="Nodus 7.0 API" 

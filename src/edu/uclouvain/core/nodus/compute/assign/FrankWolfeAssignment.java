@@ -41,8 +41,8 @@ import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.util.Iterator;
 
 /**
- * Frank-Wolfe equilibrium assignment algorithm. See <i> Frank M. and Wolfe P.‚”An algorithm for
- * quadratic programming”, 1956, Naval Research Logistics Quarterly, Vol 3 , pp. 95-110.</i> and
+ * Frank-Wolfe equilibrium assignment algorithm. See <i> Frank M. and Wolfe P.‚An algorithm for
+ * quadratic programming, 1956, Naval Research Logistics Quarterly, Vol 3 , pp. 95-110.</i> and
  * <i>Jourquin B. and Limbourg S., Equilibrium Traffic Assignment on Large Virtual Networks,
  * Implementation issues and limits for Multi-Modal Freight Transport, European Journal of Transport
  * and Infrastructure Research, Vol 6, n°3, pp. 205-228, 2006.</i>

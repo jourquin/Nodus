@@ -18,7 +18,7 @@
  * <p>You should have received a copy of the GNU General Public License along with this program. If
  * not, see <http://www.gnu.org/licenses/>.
  */
-  
+
 package edu.uclouvain.core.nodus;
 
 import com.bbn.openmap.Environment;
@@ -280,10 +280,11 @@ public class NodusProject implements ShapeConstants {
     for (; enumerator.hasMoreElements(); ) {
       String propName = (String) enumerator.nextElement();
       String propValue = (String) props.get(propName);
-      
+
       // Add project path to resource file name that starts with "./" (project's directory)
-      if (propValue.startsWith("./")) {
-        propValue = propValue.replaceFirst("./", projectPath);
+
+      if (propValue.startsWith(".")) {
+        propValue = projectPath + propValue.substring(2, propValue.length());
       }
       localProperties.setProperty(propName, propValue);
     }
@@ -1561,7 +1562,7 @@ public class NodusProject implements ShapeConstants {
 
     // Add the project's directory to classpath
     //oldClasspath = ClassPathHacker.getClassPath();
-     
+
     // Initialize the user defined modal split methods for this project
     new ModalSplitMethodsLoader(projectPath);
 
