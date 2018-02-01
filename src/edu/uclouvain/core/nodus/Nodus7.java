@@ -48,7 +48,6 @@ import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
-import javax.swing.plaf.nimbus.NimbusLookAndFeel;
 import javax.swing.text.DefaultEditorKit;
 
 import org.apache.log4j.Level;
@@ -205,7 +204,7 @@ public class Nodus7 {
         // Try to load last project
         projectToLoad =
             nodusProperties.getProperty(NodusC.PROP_LAST_PATH)
-                //+ File.separator
+                // + File.separator
                 + nodusProperties.getProperty(NodusC.PROP_LAST_PROJECT);
 
         // Test if the file exists
@@ -229,8 +228,8 @@ public class Nodus7 {
   public Nodus7(final String projectToLoad) {
 
     /*
-     * Register the NodusSQL language (Nodus specific convenient commands added, that will
-     *  be highlighted as regular SQL commands
+     * Register the NodusSQL language (Nodus specific convenient commands added,
+     * that will be highlighted as regular SQL commands
      */
     AbstractTokenMakerFactory atmf =
         (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
@@ -276,20 +275,14 @@ public class Nodus7 {
         });
   }
 
-  /**
-   * Sets the Look and Feel to the system defaulr, but to Nimbus for Linux.
-   */
+  /** Sets the Look and Feel to the system defaulr, but to Nimbus for Linux. */
   private static void setLookAndFeel() {
-    
+
     // Set Look & Feel (default to system l&f, but Nimbus for Linux)
     String lookAndFeel = null;
     lookAndFeel = nodusProperties.getProperty("look&feel", null);
     if (lookAndFeel == null) {
-      if (!System.getProperty("os.name").toLowerCase().startsWith("linux")) {
-        lookAndFeel = UIManager.getSystemLookAndFeelClassName();
-      } else {
-        lookAndFeel = new NimbusLookAndFeel().getClass().getName();
-      }
+      lookAndFeel = UIManager.getSystemLookAndFeelClassName();
     }
 
     JFrame.setDefaultLookAndFeelDecorated(true);
