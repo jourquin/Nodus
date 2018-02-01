@@ -45,10 +45,6 @@
 
 [sqlite-jdbc](https://bitbucket.org/xerial/sqlite-jdbc), Apache v2
 
-##Pluggable Look&amp;Feels
-                         
-[PgsLookAndFeel](http://www.pagosoft.com/projects/pgslookandfeel/), Apache v2
-
 
 ##Companion app
 

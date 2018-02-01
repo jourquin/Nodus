@@ -24,7 +24,6 @@ NODUS7_HOME=$(dirname "$SCRIPT")
 
 # Set some dirs
 LIBDIR="$NODUS7_HOME"/lib/*
-PLAFSDIR="$NODUS7_HOME"/plafs/*
 JDBCDIR="$NODUS7_HOME"/jdbcDrivers/*
 NODUSJAR="$NODUS7_HOME"/nodus7.jar
 
@@ -33,6 +32,6 @@ java -cp "$NODUS7_HOME"/nodus7.jar -DNODUS_HOME="$NODUS7_HOME" edu.uclouvain.cor
 source "$NODUS7_HOME"/jvmargs.sh
 
 # Launch Nodus
-NODUSCP="$NODUSJAR:$LIBDIR:$PLAFSDIR:$JDBCDIR:"$NODUS7_HOME""
+NODUSCP="$NODUSJAR:$LIBDIR:$JDBCDIR:"$NODUS7_HOME""
 java -cp "$NODUSCP" $JVMARGS -DNODUS_HOME="$NODUS7_HOME" edu.uclouvain.core.nodus.Nodus7 "$@"
 

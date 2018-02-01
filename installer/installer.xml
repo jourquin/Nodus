@@ -63,7 +63,6 @@
 			<file src="installer/nodus7.ico" os="windows" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus7.icns" os="mac" targetdir="$INSTALL_PATH" />
 			<file src="BinaryDistribution/nodus7.jar" targetdir="$INSTALL_PATH" />
-			<file src="plafs.groovy" targetdir="$INSTALL_PATH" />
 
 			<file src="installer/AppifyNodus.sh" os="mac" targetdir="$INSTALL_PATH" />
 			<parsable targetfile="$INSTALL_PATH/AppifyNodus.sh" os="mac"
@@ -88,7 +87,6 @@
 
 
 			<fileset dir="lib" targetdir="${INSTALL_PATH}/lib" />
-			<fileset dir="plafs" targetdir="${INSTALL_PATH}/plafs" />
 			<fileset dir="licenses" targetdir="${INSTALL_PATH}/licenses" />
 			<fileset dir="plugins" targetdir="${INSTALL_PATH}/plugins" />
 		</pack>

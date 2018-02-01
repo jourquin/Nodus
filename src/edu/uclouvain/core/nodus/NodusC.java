@@ -936,13 +936,7 @@ public class NodusC {
    */
   public static final String PROP_USE_GROOVY_CONSOLE = "use.groovyconsole";
 
-  /**
-   * Properties strings used in project and/or project local properties.
-   *
-   * @exclude
-   */
-  public static final String PROP_DECORATED = "decorated";
-
+  
   /**
    * Properties strings used in project and/or project local properties.
    *

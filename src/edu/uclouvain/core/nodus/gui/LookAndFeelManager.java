@@ -28,6 +28,7 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -44,12 +45,9 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.LookAndFeel;
-import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
@@ -118,8 +116,6 @@ public class LookAndFeelManager extends EscapeDialog {
 
   private JButton cancelButton;
 
-  private JCheckBox decoratedCheckBox;
-
   private UIManager.LookAndFeelInfo[] info;
 
   private String[] lfNames;
@@ -130,7 +126,7 @@ public class LookAndFeelManager extends EscapeDialog {
 
   private JButton okButton;
 
-  private boolean oldDecorated = false;
+  private String currentLookAndFeelName;
 
   private Properties properties = null;
 
@@ -146,6 +142,8 @@ public class LookAndFeelManager extends EscapeDialog {
         nodusMapPanel.getMainFrame(),
         i18n.get(LookAndFeelManager.class, "Look_and_Feel", "Look and Feel"),
         true);
+
+    currentLookAndFeelName = UIManager.getLookAndFeel().getClass().getName();
 
     this.nodusMapPanel = nodusMapPanel;
     properties = nodusMapPanel.getNodusProperties();
@@ -218,30 +216,6 @@ public class LookAndFeelManager extends EscapeDialog {
     }
 
     return cancelButton;
-  }
-
-  /**
-   * Initializes the "Decorated" button.
-   *
-   * @return JCheckBox
-   */
-  private JCheckBox getDecoratedCheckBox() {
-    if (decoratedCheckBox == null) {
-      decoratedCheckBox = new JCheckBox();
-      decoratedCheckBox.setText(i18n.get(LookAndFeelManager.class, "Decorated", "Decorated"));
-
-      decoratedCheckBox.setOpaque(false);
-      if (properties != null) {
-        String s = properties.getProperty(NodusC.PROP_DECORATED, "false");
-
-        if (s.equalsIgnoreCase("true")) {
-          decoratedCheckBox.setSelected(true);
-          oldDecorated = true;
-        }
-      }
-    }
-
-    return decoratedCheckBox;
   }
 
   /**
@@ -337,20 +311,7 @@ public class LookAndFeelManager extends EscapeDialog {
             new Insets(10, 5, 5, 5),
             0,
             0));
-    mainPanel.add(
-        getDecoratedCheckBox(),
-        new GridBagConstraints(
-            0,
-            1,
-            2,
-            1,
-            0.0,
-            0.0,
-            GridBagConstraints.WEST,
-            GridBagConstraints.NONE,
-            new Insets(5, 5, 5, 5),
-            0,
-            0));
+
     mainPanel.add(getOkButton(), okButtonConstraints);
     mainPanel.add(getCancelButton(), cancelButtonConstraints);
     mainPanel.add(getSoundCheckBox(), soundButtonConstraints);
@@ -359,65 +320,41 @@ public class LookAndFeelManager extends EscapeDialog {
     // Sound
     boolean sound = Boolean.parseBoolean(properties.getProperty(NodusC.PROP_SOUND, "true"));
     getSoundCheckBox().setSelected(sound);
+    setPreferredSize(new Dimension(300, 150));
     pack();
   }
 
   /** Processes a press on the "Ok" button. */
   private void okButtonActionPerformed(ActionEvent evt) {
-    String selectedValue = (String) availableLookAndFeelsComboBox.getSelectedItem();
 
     // Sound
     boolean sound = getSoundCheckBox().isSelected();
     properties.setProperty(NodusC.PROP_SOUND, Boolean.toString(sound));
     nodusMapPanel.getSoundPlayer().enableSound(sound);
 
-    // Which item is choosen?
-    if (selectedValue != null) {
-      int n = -1;
+    // Which L&F is chosen?
+    int n = availableLookAndFeelsComboBox.getSelectedIndex();
+   
+    setVisible(false);
 
-      for (int i = 0; i < info.length; i++) {
-        if (selectedValue.equals(lfNames[i])) {
-          n = i;
+    // Save look and feel
+    if (n != -1 && !currentLookAndFeelName.equals(info[n].getClassName())) {
+      try {
+        properties.setProperty(NodusC.PROP_LOOK_AND_FEEL, info[n].getClassName());
+        
+        JOptionPane.showMessageDialog(
+            nodusMapPanel,
+            i18n.get(
+                LookAndFeelManager.class,
+                "Decorations_will_be_applied_at_next_restart",
+                "Decorations will be applied at next restart"),
+            NodusC.APPNAME,
+            JOptionPane.INFORMATION_MESSAGE);
 
-          break;
-        }
-      }
-
-      // Set look and feel
-      if (n != -1) {
-        try {
-          UIManager.setLookAndFeel(info[n].getClassName());
-          properties.setProperty(NodusC.PROP_LOOK_AND_FEEL, info[n].getClassName());
-
-          boolean decorated = false;
-
-          if (decoratedCheckBox.isSelected()) {
-            decorated = true;
-          }
-
-          JFrame.setDefaultLookAndFeelDecorated(decorated);
-          JDialog.setDefaultLookAndFeelDecorated(decorated);
-          if (oldDecorated != decorated) {
-            JOptionPane.showMessageDialog(
-                nodusMapPanel,
-                i18n.get(
-                    LookAndFeelManager.class,
-                    "Decorations_will_be_applied_at_next_restart",
-                    "Decorations will be applied at next restart"),
-                NodusC.APPNAME,
-                JOptionPane.INFORMATION_MESSAGE);
-          }
-
-          properties.setProperty(NodusC.PROP_DECORATED, Boolean.toString(decorated));
-          SwingUtilities.updateComponentTreeUI(nodusMapPanel);
-
-        } catch (Exception ex) {
-          JOptionPane.showMessageDialog(
-              nodusMapPanel, ex.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-        }
+      } catch (Exception ex) {
+        JOptionPane.showMessageDialog(
+            nodusMapPanel, ex.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       }
     }
-
-    setVisible(false);
   }
 }

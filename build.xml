@@ -14,8 +14,41 @@
         <pathelement location="classes"/>
         <pathelement location="jdbcDrivers/derby.jar"/>
         <pathelement location="jdbcDrivers/hsqldb.jar"/>
-        <pathelement location="plafs/EaSynthLookAndFeel.jar"/>
-        <pathelement location="plafs/pgslookandfeel-1.1.2.jar"/>
+        <pathelement location="lib/collections-generic-4.01.jar"/>
+        <pathelement location="lib/commons-collections4-4.1.jar"/>
+        <pathelement location="lib/commons-configuration-1.10.jar"/>
+        <pathelement location="lib/commons-csv-1.4.jar"/>
+        <pathelement location="lib/commons-io-2.4.jar"/>
+        <pathelement location="lib/commons-logging-1.2.jar"/>
+        <pathelement location="lib/foxtrot-core-4.0.jar"/>
+        <pathelement location="lib/JCheckList.jar"/>
+        <pathelement location="lib/JResourcesMonitor.jar"/>
+        <pathelement location="lib/jung-algorithms-2.0.1.jar"/>
+        <pathelement location="lib/jung-api-2.0.1.jar"/>
+        <pathelement location="lib/jung-graph-impl-2.0.1.jar"/>
+        <pathelement location="lib/jung-visualization-2.0.1.jar"/>
+        <pathelement location="lib/log4j-1.2.17.jar"/>
+        <pathelement location="lib/parsii-2.3.jar"/>
+        <pathelement location="lib/xmlbeans-2.6.0.jar"/>
+        <pathelement location="lib/poi-3.17.jar"/>
+        <pathelement location="lib/poi-ooxml-3.17.jar"/>
+        <pathelement location="lib/poi-ooxml-schemas-3.17.jar"/>
+        <pathelement location="lib/rsyntaxtextarea-3.0.0-SNAPSHOT.jar"/>
+        <pathelement location="lib/xchart-3.5.0.jar"/>
+        <pathelement location="jdbcDrivers/h2-1.4.196.jar"/>
+        <pathelement location="jdbcDrivers/mariadb-java-client-2.1.2.jar"/>
+        <pathelement location="jdbcDrivers/postgresql-42.1.4.jre7.jar"/>
+        <pathelement location="jdbcDrivers/sqlite-jdbc-3.20.0.jar"/>
+        <pathelement location="lib/commons-lang3-3.7.jar"/>
+        <pathelement location="lib/commons-lang-2.6.jar"/>
+        <pathelement location="lib/groovy-all-2.4.13.jar"/>
+        <pathelement location="lib/openmap-6.0-SNAPSHOT.jar"/>
+    </path>
+    <path id="run.Nodus7.classpath">
+        <path refid="Nodus7.0.classpath"/>
+        <pathelement location="jdbcDrivers/derbyLocale_fr.jar"/>
+        <pathelement location="jdbcDrivers/derby.jar"/>
+        <pathelement location="jdbcDrivers/hsqldb.jar"/>
         <pathelement location="lib/collections-generic-4.01.jar"/>
         <pathelement location="lib/commons-collections4-4.1.jar"/>
         <pathelement location="lib/commons-configuration-1.10.jar"/>
@@ -75,7 +108,7 @@
     <target name="Nodus7">
         <java classname="edu.uclouvain.core.nodus.Nodus7" failonerror="true" fork="yes">
             <jvmarg line="-Xmx6G -Xms4G"/>
-            <classpath refid="Nodus7.0.classpath"/>
+            <classpath refid="run.Nodus7.classpath"/>
         </java>
     </target>
 </project>

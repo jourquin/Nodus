@@ -44,8 +44,11 @@ import java.util.Locale;
 import java.util.Properties;
 
 import javax.swing.InputMap;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
+import javax.swing.plaf.nimbus.NimbusLookAndFeel;
 import javax.swing.text.DefaultEditorKit;
 
 import org.apache.log4j.Level;
@@ -116,21 +119,13 @@ public class Nodus7 {
       Locale.setDefault(Locale.ENGLISH);
     }
 
-    // Plafs can be customized in a Groovy script
-    String homeDir = System.getProperty("NODUS_HOME", ".");
-    GroovyShell shell = new GroovyShell();
-    try {
-      shell.evaluate(new File(homeDir + "/plafs" + NodusC.TYPE_GROOVY));
-    } catch (CompilationFailedException e) {
-      System.err.println(e.getMessage());
-    } catch (IOException e) {
-      // Do nothing as the plafs.groovy script is not mandatory
-    }
+    setLookAndFeel();
 
     // Improve Mac OS experience
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
       // Set icon in Mac OS Dock
       GUIUtils.setMacOSDockImage(icn);
+
       if (UIManager.getLookAndFeel().isNativeLookAndFeel()) {
         // use the mac system menu bar
         System.setProperty("apple.laf.useScreenMenuBar", "true");
@@ -279,6 +274,32 @@ public class Nodus7 {
             }
           }
         });
+  }
+
+  /**
+   * Sets the Look and Feel to the system defaulr, but to Nimbus for Linux.
+   */
+  private static void setLookAndFeel() {
+    
+    // Set Look & Feel (default to system l&f, but Nimbus for Linux)
+    String lookAndFeel = null;
+    lookAndFeel = nodusProperties.getProperty("look&feel", null);
+    if (lookAndFeel == null) {
+      if (!System.getProperty("os.name").toLowerCase().startsWith("linux")) {
+        lookAndFeel = UIManager.getSystemLookAndFeelClassName();
+      } else {
+        lookAndFeel = new NimbusLookAndFeel().getClass().getName();
+      }
+    }
+
+    JFrame.setDefaultLookAndFeelDecorated(true);
+    JDialog.setDefaultLookAndFeelDecorated(true);
+
+    try {
+      UIManager.setLookAndFeel(lookAndFeel);
+    } catch (Exception ex) {
+      System.out.println(ex.toString());
+    }
   }
 
   /**
