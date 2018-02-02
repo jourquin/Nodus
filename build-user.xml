@@ -51,6 +51,7 @@
 		<echo message="Creating a Nodus installer" />
 		<antcall target="Jar" />
 		<antcall target="ApiDoc" />
+		<mkdir dir="${basedir}/BinaryDistribution"/>
 		<izpack input="${basedir}/installer/installer.xml" output="${basedir}/BinaryDistribution/Nodus7-install.jar" installerType="standard" basedir="${basedir}" izPackDir="${basedir}" />
 	</target>
 
