@@ -1,4 +1,4 @@
-###A simple modal split method plugin
+# A simple modal split method plugin
 
 This is an example of how to develop specific modal split methods as plugin's for Nodus. This one is a multinomial logit, which utility function is explained in the documentation of the "demo" project.
 
