@@ -59,7 +59,7 @@
 		<echo message="Creating Nodus jar file" />
 		<antcall target="BuildId" />
 		<antcall target="build" />
-		<jar destfile="${basedir}/BinaryDistribution/nodus7.jar" basedir="${basedir}/classes" manifest="${basedir}/src/MANIFEST.MF" index="true" />
+		<jar destfile="${basedir}/nodus7.jar" basedir="${basedir}/classes" manifest="${basedir}/src/MANIFEST.MF" index="true" />
 		<delete file="./classes/edu/uclouvain/core/nodus/utils/buildid.properties" />
 	</target>
 </project>

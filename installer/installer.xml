@@ -57,12 +57,13 @@
 			<file src="devtools/Bat_To_Exe_Converter.exe" os="windows"
 				targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus7.sh" os="unix" targetdir="$INSTALL_PATH" />
-			<executable targetfile="$INSTALL_PATH/nodus7.sh" os="unix"
-				stage="never" /> <!-- make script executable -->
+			<!-- make script executable -->
+			<executable targetfile="$INSTALL_PATH/nodus7.sh" os="unix" stage="never" />
+			
 			<file src="installer/nodus7.png" os="unix" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus7.ico" os="windows" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus7.icns" os="mac" targetdir="$INSTALL_PATH" />
-			<file src="BinaryDistribution/nodus7.jar" targetdir="$INSTALL_PATH" />
+			<file src="nodus7.jar" targetdir="$INSTALL_PATH" />
 
 			<file src="installer/AppifyNodus.sh" os="mac" targetdir="$INSTALL_PATH" />
 			<parsable targetfile="$INSTALL_PATH/AppifyNodus.sh" os="mac"
@@ -89,6 +90,7 @@
 			<fileset dir="lib" targetdir="${INSTALL_PATH}/lib" />
 			<fileset dir="licenses" targetdir="${INSTALL_PATH}/licenses" />
 			<fileset dir="plugins" targetdir="${INSTALL_PATH}/plugins" />
+			<executable targetfile="$INSTALL_PATH/plugins/compile.sh" os="unix" stage="never" />  
 		</pack>
 		<pack name="Help" id="help.package" required="no">
 			<description>Browsable HTML help files.</description>
@@ -97,6 +99,7 @@
 		<pack name="Demo" id="demo.package" required="no">
 			<description>Some Nodus demo projects.</description>
 			<fileset dir="demo" targetdir="${INSTALL_PATH}/demo" excludes="*.odt"/>
+			<executable targetfile="$INSTALL_PATH/demo/MNLogit/compile.sh" os="unix" stage="never" />  
 		</pack>
 		<pack name="Scripts" id="gvy.package" required="no">
 			<description>A set of sample Groovy scripts for Nodus.</description>
