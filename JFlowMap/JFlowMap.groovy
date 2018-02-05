@@ -42,10 +42,20 @@ import java.util.Set;
  */
 public class JFlowMap_ {
 
+	/*
+	 * The name of the OD table
+	 */
+	String odTableName = "od";
+	
+	/*
+	 * The shapefile that will be used as background  
+	 */
+	String backgroundShapeFileName = "bel_nuts2.shp";
+	
   /*
    * Query string to retrieve the flows in the OD matrix (set the name of the OD matrix if needed)
    */
-  String sqlStmt = "SELECT org, dst, SUM(qty) AS qty FROM od GROUP BY org, dst";
+  String sqlStmt = "SELECT org, dst, SUM(qty) AS qty FROM " + odTableName + " GROUP BY org, dst";
 
   NodusProject nodusProject;
   String pathToProject;
@@ -90,9 +100,9 @@ public class JFlowMap_ {
       out.println("data.attrs.flow.origin=Org");
       out.println("data.attrs.flow.dest=Dst");
       out.println("data.attrs.flow.weight.csvList=Qty");
-      out.println("view.flowmap.colorScheme=Light Blue");
+      out.println("view.flowmap.colorScheme=Gray red-green");
       out.println("map=shapefile");
-      out.println("map.shapefile.src=cntry02.shp"); // Can be any shapefile
+      out.println("map.shapefile.src=" + backgroundShapeFileName); 
       out.println("map.projection=Mercator");
       out.close();
     } catch (FileNotFoundException e) {
