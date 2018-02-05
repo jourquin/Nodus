@@ -1,4 +1,4 @@
-#JFlowMap companion application
+# JFlowMap companion application
 
 [JFlowMap](http://www.visualisingdata.com/resources/jflowmap/) is a research prototype developed
 at the University of Fribourg in which one experiment with  various visualization techniques for spatial
