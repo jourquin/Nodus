@@ -18,7 +18,6 @@
  * <p>You should have received a copy of the GNU General Public License along with this program. If
  * not, see <http://www.gnu.org/licenses/>.
  */
-
 package edu.uclouvain.core.nodus.compute.assign.gui;
 
 import com.bbn.openmap.Environment;
@@ -51,6 +50,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileFilter;
 import java.lang.reflect.Constructor;
@@ -80,6 +80,8 @@ import javax.swing.SwingConstants;
 import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
@@ -450,6 +452,11 @@ public class AssignmentDlg extends EscapeDialog {
     }
 
     preferencesButton.setEnabled(true);
+
+    // Force a redraw of the popup menu
+    int n = odTablesComboBox.getMaximumRowCount();
+    odTablesComboBox.setMaximumRowCount(n - 1);
+    odTablesComboBox.setMaximumRowCount(n);
   }
 
   /**
@@ -1130,57 +1137,64 @@ public class AssignmentDlg extends EscapeDialog {
     mainPanel.add(odTablesComboBox, odTablesComboBoxConstraints);
 
     // Because filling the combo with available valid OD tables
-    // can take a while, fill it on request only
-    /* odTablesComboBox.addMouseListener(
-    new java.awt.event.MouseListener() {
-      @Override
-      public void mouseClicked(MouseEvent e) {}
+    // can take a while, fill it on request only.
+    // Several listeners are needed
+    odTablesComboBox.addMouseListener(
+        new java.awt.event.MouseListener() {
+          @Override
+          public void mouseClicked(MouseEvent e) {}
 
-      @Override
-      public void mouseEntered(MouseEvent e) {}
+          @Override
+          public void mouseEntered(MouseEvent e) {}
 
-      @Override
-      public void mouseExited(MouseEvent e) {}
+          @Override
+          public void mouseExited(MouseEvent e) {}
 
-      @Override
-      public void mousePressed(MouseEvent e) {
-        if (odTables == null) {
-          fillODTablesCombo();
+          @Override
+          public void mousePressed(MouseEvent e) {
+            if (odTables == null) {
+              fillODTablesCombo();
+            }
+          }
 
-          // Force a redraw of the popup menu
-          int n = odTablesComboBox.getMaximumRowCount();
-          odTablesComboBox.setMaximumRowCount(n - 1);
-          odTablesComboBox.setMaximumRowCount(n);
-        }
-      }
+          @Override
+          public void mouseReleased(MouseEvent e) {}
+        });
 
-      @Override
-      public void mouseReleased(MouseEvent e) {}
-    });*/
+    odTablesComboBox.addPopupMenuListener(
+        new PopupMenuListener() {
+
+          @Override
+          public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+            if (odTables == null) {
+              fillODTablesCombo();
+            }
+          }
+
+          @Override
+          public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {}
+
+          @Override
+          public void popupMenuCanceled(PopupMenuEvent e) {}
+        });
 
     odTablesComboBox.addActionListener(
         new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
+
             if (odTables == null) {
               fillODTablesCombo();
-
-              // Force a redraw of the popup menu
-              int n = odTablesComboBox.getMaximumRowCount();
-              odTablesComboBox.setMaximumRowCount(n - 1);
-              odTablesComboBox.setMaximumRowCount(n);
             }
 
-            if (odTables != null) {
-              e.getSource();
-              if (odTablesComboBox.getSelectedItem() != null) {
-                String odTableName =
-                    jdbcUtils.getCompliantIdentifier(odTablesComboBox.getSelectedItem().toString());
-                sqlLabel.setText("SELECT * FROM " + odTableName + " WHERE");
-                if (costFunctionsComboBox.getSelectedIndex() != -1
-                    || odTablesComboBox.getSelectedIndex() != -1) {
-                  assignButton.setEnabled(true);
-                }
+            e.getSource();
+            if (odTablesComboBox.getSelectedItem() != null) {
+              String odTableName =
+                  jdbcUtils.getCompliantIdentifier(odTablesComboBox.getSelectedItem().toString());
+              sqlLabel.setText("SELECT * FROM " + odTableName + " WHERE");
+              if (costFunctionsComboBox.getSelectedIndex() != -1
+                  || odTablesComboBox.getSelectedIndex() != -1) {
+                assignButton.setEnabled(true);
               }
             }
           }
