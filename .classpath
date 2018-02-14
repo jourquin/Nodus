@@ -39,6 +39,6 @@
 	<classpathentry kind="lib" path="jdbcDrivers/sqlite-jdbc-3.20.0.jar"/>
 	<classpathentry kind="lib" path="lib/commons-lang-2.6.jar"/>
 	<classpathentry kind="lib" path="lib/groovy-all-2.4.13.jar"/>
-	<classpathentry kind="lib" path="lib/openmap.jar"/>
+	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/openmap6.0b"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

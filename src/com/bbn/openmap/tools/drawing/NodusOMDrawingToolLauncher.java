@@ -29,15 +29,20 @@ import com.bbn.openmap.util.PaletteHelper;
 import edu.uclouvain.core.nodus.swing.VerticalFlowLayout;
 
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Iterator;
 
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.JToolBar;
+import javax.swing.LookAndFeel;
+import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 
 /**
@@ -126,6 +131,47 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
   public void cancel() {
     ((NodusOMDrawingTool) drawingTool).cancel();
     getWindowSupport().killWindow();
+  }
+
+  /**
+   * Tool interface method. The retrieval tool's interface. This method creates a button that will
+   * bring up the LauncherPanel.
+   *
+   * @return String The key for this tool.
+   */
+  @Override
+  public Container getFace() {
+    JToolBar jtb = null;
+    if (getUseAsTool()) {
+      jtb = new com.bbn.openmap.gui.GridBagToolBar();
+      // "Drawing Tool Launcher";
+      JButton drawingToolButton =
+          new JButton(
+              new ImageIcon(
+                  OMDrawingToolLauncher.class.getResource("Drawing.gif"),
+                  i18n.get(
+                      OMDrawingToolLauncher.class,
+                      "drawingToolButton",
+                      I18n.TOOLTIP,
+                      "Drawing Tool Launcher")));
+      drawingToolButton.setToolTipText(
+          i18n.get(
+              OMDrawingToolLauncher.class,
+              "drawingToolButton",
+              I18n.TOOLTIP,
+              "Drawing Tool Launcher"));
+      drawingToolButton.addActionListener(getActionListener());
+
+      // Ugly trick, because the toggle-buttons for ht mouse modes don't have a border on Mac
+      if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
+        LookAndFeel lf = UIManager.getLookAndFeel();
+        if (lf.isNativeLookAndFeel()) {
+          drawingToolButton.setBorder(null);
+        }
+      }
+      jtb.add(drawingToolButton);
+    }
+    return jtb;
   }
 
   /**

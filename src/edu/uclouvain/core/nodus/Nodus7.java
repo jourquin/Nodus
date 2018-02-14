@@ -291,7 +291,7 @@ public class Nodus7 {
     try {
       UIManager.setLookAndFeel(lookAndFeel);
     } catch (Exception ex) {
-      System.out.println(ex.toString());
+      ex.printStackTrace();
     }
   }
 

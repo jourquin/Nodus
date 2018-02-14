@@ -135,6 +135,7 @@ import java.util.LinkedList;
 import java.util.Properties;
 import java.util.Vector;
 
+import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
@@ -211,7 +212,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         new ProjectionFactory().getDefaultProjectionFromEnvironment(Environment.getInstance());
     MapBean.suppressCopyright = true;
     BufferedLayerMapBean mapBean = new BufferedLayerMapBean();
-    mapBean.setBorder(new BevelBorder(BevelBorder.LOWERED));
+    mapBean.setBorder(BorderFactory.createEtchedBorder(BevelBorder.LOWERED));
     mapBean.setProjection(proj);
     mapBean.setPreferredSize(new Dimension(proj.getWidth(), proj.getHeight()));
     return mapBean;
@@ -1816,7 +1817,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     add(toolPanel, BorderLayout.NORTH);
 
     // Add mouse modes
-    getMapHandler().add(new MouseModeButtonPanel());
+    MouseModeButtonPanel mmbp = new MouseModeButtonPanel();
+    getMapHandler().add(mmbp);
     SelectMouseMode selectMouseMode = new SelectMouseMode();
     getMapHandler().add(selectMouseMode);
     PanMouseMode panMouseMode = new PanMouseMode();

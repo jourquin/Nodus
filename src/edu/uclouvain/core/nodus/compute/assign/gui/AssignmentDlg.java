@@ -51,7 +51,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileFilter;
 import java.lang.reflect.Constructor;
@@ -63,6 +62,7 @@ import java.util.List;
 import java.util.Vector;
 
 import javax.swing.ButtonGroup;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -549,7 +549,8 @@ public class AssignmentDlg extends EscapeDialog {
         }
       }
 
-      modalSplitMethodComboBox = new JComboBox<ModalSplitMethodName>(modalSplitMethodNames);
+      modalSplitMethodComboBox = new JComboBox<ModalSplitMethodName>();
+      modalSplitMethodComboBox.setModel(new DefaultComboBoxModel<>(modalSplitMethodNames));
     }
     return modalSplitMethodComboBox;
   }
@@ -1119,31 +1120,48 @@ public class AssignmentDlg extends EscapeDialog {
     costFunctionsLabelConstraints.gridy = 2;
     mainPanel.add(costFunctionsLabel, costFunctionsLabelConstraints);
     costFunctionsLabel.setText(i18n.get(AssignmentDlg.class, "Cost_functions", "Cost functions :"));
-
     mainPanel.add(costFunctionsComboBox, costFunctionsComboBoxConstraints);
 
-    GridBagConstraints odTableComboBoxConstraints = new GridBagConstraints();
-    odTableComboBoxConstraints.insets = new Insets(0, 10, 5, 10);
-    odTableComboBoxConstraints.fill = GridBagConstraints.HORIZONTAL;
-    odTableComboBoxConstraints.gridx = 1;
-    odTableComboBoxConstraints.gridy = 3;
-    mainPanel.add(odTablesComboBox, odTableComboBoxConstraints);
+    GridBagConstraints odTablesComboBoxConstraints = new GridBagConstraints();
+    odTablesComboBoxConstraints.insets = new Insets(0, 10, 5, 10);
+    odTablesComboBoxConstraints.fill = GridBagConstraints.HORIZONTAL;
+    odTablesComboBoxConstraints.gridx = 1;
+    odTablesComboBoxConstraints.gridy = 3;
+    mainPanel.add(odTablesComboBox, odTablesComboBoxConstraints);
 
     // Because filling the combo with available valid OD tables
     // can take a while, fill it on request only
-    odTablesComboBox.addMouseListener(
-        new java.awt.event.MouseListener() {
-          @Override
-          public void mouseClicked(MouseEvent e) {}
+    /* odTablesComboBox.addMouseListener(
+    new java.awt.event.MouseListener() {
+      @Override
+      public void mouseClicked(MouseEvent e) {}
 
-          @Override
-          public void mouseEntered(MouseEvent e) {}
+      @Override
+      public void mouseEntered(MouseEvent e) {}
 
-          @Override
-          public void mouseExited(MouseEvent e) {}
+      @Override
+      public void mouseExited(MouseEvent e) {}
 
+      @Override
+      public void mousePressed(MouseEvent e) {
+        if (odTables == null) {
+          fillODTablesCombo();
+
+          // Force a redraw of the popup menu
+          int n = odTablesComboBox.getMaximumRowCount();
+          odTablesComboBox.setMaximumRowCount(n - 1);
+          odTablesComboBox.setMaximumRowCount(n);
+        }
+      }
+
+      @Override
+      public void mouseReleased(MouseEvent e) {}
+    });*/
+
+    odTablesComboBox.addActionListener(
+        new ActionListener() {
           @Override
-          public void mousePressed(MouseEvent e) {
+          public void actionPerformed(ActionEvent e) {
             if (odTables == null) {
               fillODTablesCombo();
 
@@ -1152,16 +1170,7 @@ public class AssignmentDlg extends EscapeDialog {
               odTablesComboBox.setMaximumRowCount(n - 1);
               odTablesComboBox.setMaximumRowCount(n);
             }
-          }
 
-          @Override
-          public void mouseReleased(MouseEvent e) {}
-        });
-
-    odTablesComboBox.addActionListener(
-        new ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
             if (odTables != null) {
               e.getSource();
               if (odTablesComboBox.getSelectedItem() != null) {
@@ -1448,9 +1457,9 @@ public class AssignmentDlg extends EscapeDialog {
           // of a previous assignment for it
           @Override
           public void stateChanged(ChangeEvent e) {
-            if (odTables == null) {
+            /*if (odTables == null) {
               fillODTablesCombo();
-            }
+            }*/
             reloadState();
           }
         });
@@ -1596,11 +1605,13 @@ public class AssignmentDlg extends EscapeDialog {
     if (odTableName != null) {
       // The list of OD tables could not already be loaded
       if (odTables != null) {
-        // System.err.println(odTables.indexOf(odTableName));
+        //System.err.println(odTables.indexOf(odTableName));
         odTablesComboBox.setSelectedItem(odTableName);
       } else {
         if (jdbcUtils.tableExists(odTableName)) {
-          odTablesComboBox.removeAll();
+          if (odTablesComboBox.getItemCount() > 0) {
+            odTablesComboBox.removeAll();
+          }
           odTablesComboBox.addItem(odTableName);
           odTablesComboBox.setSelectedItem(odTableName);
         }
