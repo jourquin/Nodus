@@ -113,10 +113,12 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  * <p>List specific (case insensitive) commands understood by Nodus:<br>
  * - CLEARSCENARIO num: Deletes all the tables related to the given scenario id.<br>
  * - CLRSCR : Clears the output console.<br>
+ * - DISABLEECHO : If used, the SQL commands will not be echoed in the result area.<br>
  * - DISABLEHEADERS : If used, the headers of SQL outputs will not be displayed.<br>
  * - DISPLAYGRID : Forces the next SQL output to be displayed in grid format.<br>
  * - DISPLAYTEXT : Forces the next SQL output to be displayed in text format.<br>
- * - ENABLEHEADERS : If used, the headers of SQL outputs will be displayed.<br>
+ * - ENABLEECHO : If used, the SQL commands will be echoed in the result area (default).<br>
+ * - ENABLEHEADERS : If used, the headers of SQL outputs will be displayed (default).<br>
  * - EXPORTCSV tableName : Exports a table in CSV format.<br>
  * - EXPORTCSVH tableName : Exports a table in CSV format, the first line containing the field names
  * (header line).<br>
@@ -147,6 +149,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
   private static String defDirectory;
 
+  private static final String DISABLEECHO = "DISABLEECHO";
+
   private static final String DISABLEHEADERS = "DISABLEHEADERS";
 
   private static final String DISPLAYGRID = "DISPLAYGRID";
@@ -154,6 +158,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   private static boolean displayHeaders = true;
 
   private static final String DISPLAYTEXT = "DISPLAYTEXT";
+
+  private static final String ENABLEECHO = "ENABLEECHO";
 
   private static final String ENABLEHEADERS = "ENABLEHEADERS";
 
@@ -188,6 +194,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   private static int maxRows = 1000;
 
   private static final String NL = System.getProperty("line.separator");
+
+  private static boolean withEcho = true;
 
   /**
    * Reads a SQL batch file.
@@ -578,9 +586,21 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
       String sync = sqlCommand.toUpperCase();
 
+      if (sync.indexOf(ENABLEECHO) != -1) {
+        withEcho = true;
+        continue;
+      }
+
+      if (sync.indexOf(DISABLEECHO) != -1) {
+        withEcho = false;
+        continue;
+      }
+
       // Display the command if text display
       if (withGUI) {
-        addToTxtResultArea(sqlCommand + NL, true);
+        if (withEcho) {
+          addToTxtResultArea(sqlCommand + NL, true);
+        }
       } else {
         System.out.println(sqlCommand);
       }
@@ -1639,17 +1659,19 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
   }
 
-  /** 
+  /**
    * .
-   * @exclude 
-   **/
+   *
+   * @exclude
+   */
   @Override
   public void keyReleased(KeyEvent k) {}
 
   /**
    * .
-   * @exclude 
-   **/
+   *
+   * @exclude
+   */
   @Override
   public void keyTyped(KeyEvent evt) {}
 
@@ -2240,7 +2262,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       b.append(NL);
     }
 
-    return b.toString();
+    return b.toString().trim();
   }
 
   /** Updates the result text area. */
@@ -2249,18 +2271,17 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     String result = "";
     if (typeOfResultFormat == 1) {
       result = getResultAsString();
-
-      if (withGUI) {
-        addToTxtResultArea(result + NL, false);
-      } else {
-        System.out.println(result);
+      if (result.length() > 0) {
+        if (withGUI) {
+          addToTxtResultArea(result + NL, false);
+        } else {
+          System.out.println(result);
+        }
       }
     }
   }
 
-  /**
-   * .@exclude 
-   **/
+  /** .@exclude */
   @Override
   public void windowActivated(WindowEvent e) {}
 
