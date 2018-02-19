@@ -195,7 +195,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
   private static final String NL = System.getProperty("line.separator");
 
-  private static boolean withEcho = true;
 
   /**
    * Reads a SQL batch file.
@@ -313,6 +312,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
   private HashMap<String, String> variables = new HashMap<>();
 
+  private boolean withEcho = true;
+  
   private boolean withGUI = true;
 
   /**

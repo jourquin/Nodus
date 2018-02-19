@@ -23,7 +23,7 @@ import com.bbn.openmap.proj.coords.LatLonPoint;
 
 /**
  * 
- * Sample "autoexec" BeanShell script that presents
+ * Sample "autoexec" Groovy script that presents
  * an European view to the user instead of the World map.
  */
 

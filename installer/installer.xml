@@ -64,6 +64,7 @@
 			<file src="installer/nodus7.ico" os="windows" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus7.icns" os="mac" targetdir="$INSTALL_PATH" />
 			<file src="nodus7.jar" targetdir="$INSTALL_PATH" />
+            <file src="nodus.groovy" targetdir="$INSTALL_PATH" />
 
 			<file src="installer/AppifyNodus.sh" os="mac" targetdir="$INSTALL_PATH" />
 			<parsable targetfile="$INSTALL_PATH/AppifyNodus.sh" os="mac"
@@ -99,7 +100,7 @@
 		<pack name="Demo" id="demo.package" required="no">
 			<description>Some Nodus demo projects.</description>
 			<fileset dir="demo" targetdir="${INSTALL_PATH}/demo" excludes="*.odt"/>
-			<executable targetfile="$INSTALL_PATH/demo/MNLogit/compile.sh" os="unix" stage="never" />  
+			<executable targetfile="$INSTALL_PATH/demo/MLogit/compile.sh" os="unix" stage="never" />  
 		</pack>
 		<pack name="Scripts" id="gvy.package" required="no">
 			<description>A set of sample Groovy scripts for Nodus.</description>
