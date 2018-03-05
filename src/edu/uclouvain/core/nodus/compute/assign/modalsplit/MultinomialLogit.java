@@ -41,7 +41,7 @@ public class MultinomialLogit extends ModalSplitMethod {
 
   private static I18n i18n = Environment.getI18n();
 
-  private boolean warningAlreadyDisplayed = false;
+  private static boolean warningAlreadyDisplayed = false;
 
   @Override
   public String getName() {
@@ -54,7 +54,7 @@ public class MultinomialLogit extends ModalSplitMethod {
   }
 
   @Override
-  public void split(ODCell odCell, HashMap<Integer, AltPathsList> hm) {
+  public boolean split(ODCell odCell, HashMap<Integer, AltPathsList> hm) {
 
     /*
      * Compute the market share for each mode
@@ -101,6 +101,7 @@ public class MultinomialLogit extends ModalSplitMethod {
             JDialog dialog = pane.createDialog(getNodusProject().getMainFrame(), title);
             dialog.setModal(false);
             dialog.setVisible(true);
+            return false;
           }
         }
         denominator += d;
@@ -118,5 +119,6 @@ public class MultinomialLogit extends ModalSplitMethod {
         path.weight = v * altPathsList.marketShare;
       }
     }
+    return true;
   }
 }

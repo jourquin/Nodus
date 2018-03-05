@@ -117,6 +117,8 @@ public abstract class ModalSplitMethod {
    *
    * @param odCell The OD cell for which the modal split has to be performed.
    * @param hm The HashMap that contains the routes over which the flow must be spread.
+   * 
+   * @return True on success.
    */
-  public abstract void split(ODCell odCell, HashMap<Integer, AltPathsList> hm);
+  public abstract boolean split(ODCell odCell, HashMap<Integer, AltPathsList> hm);
 }

@@ -104,7 +104,11 @@ public class Abraham extends ModalSplitMethod {
   }
 
   @Override
-  public void split(ODCell odCell, HashMap<Integer, AltPathsList> hm) {
+  public boolean split(ODCell odCell, HashMap<Integer, AltPathsList> hm) {
+
+    if (exponent >= 0) {
+      return false;
+    }
 
     /*
      * Compute the market share for each mode
@@ -144,5 +148,6 @@ public class Abraham extends ModalSplitMethod {
         path.weight = Math.pow(path.weight, exponent) / denominator * altPathsList.marketShare;
       }
     }
+    return true;
   }
 }

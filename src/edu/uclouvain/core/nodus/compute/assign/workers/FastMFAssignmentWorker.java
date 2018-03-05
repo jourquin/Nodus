@@ -261,7 +261,9 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         while (it.hasNext()) {
           demand = it.next();
 
-          modalSplit(demand, currentPath);
+          if (!modalSplit(demand, currentPath)) {
+            return false;
+          }
 
           // Apply modal share to path headers
           if (assignmentParameters.isSavePaths()) {
@@ -639,13 +641,14 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
    *
    * @param currentPath : the path to handle in the result set
    * @param msp = the parameters used for the modal split model
+   * @return True on success
    */
-  private void modalSplit(ODCell odCell, int currentPath) {
+  private boolean modalSplit(ODCell odCell, int currentPath) {
 
     // Retrieve all the valid routes
     HashMap<Integer, AltPathsList> hm = getPathList(currentPath);
 
-    modalSplitMethod.split(odCell, hm);
+    return modalSplitMethod.split(odCell, hm);
   }
 
   private boolean updateProgressBar(int nodeIndex) {

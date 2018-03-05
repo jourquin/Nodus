@@ -238,7 +238,9 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
           // Compute the fraction of the demand to be assigned to each alternative path
           // for this O-D cell
-          modalSplit(demand);
+          if (!modalSplit(demand)) {
+            return false;
+          }
 
           // Apply modal share to path headers
           if (assignmentParameters.isSavePaths()) {
@@ -603,11 +605,11 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
   }
 
   /** Computes the market share of each mode/path. */
-  private void modalSplit(ODCell odCell) {
+  private boolean modalSplit(ODCell odCell) {
 
     HashMap<Integer, AltPathsList> hm = getPathList();
 
-    modalSplitMethod.split(odCell, hm);
+    return modalSplitMethod.split(odCell, hm);
   }
 
   private boolean updateProgressBar(int nodeIndex) {

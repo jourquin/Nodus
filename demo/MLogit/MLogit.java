@@ -126,8 +126,10 @@ public class MLogit extends ModalSplitMethod {
    *
    * @param odCell The OD cell for which the modal split has to be performed.
    * @param hm The HashMap that contains the routes over which the flow must be spread.
+   * 
+   * @return True on success.
    */
-  public void split(ODCell odCell, HashMap<Integer, AltPathsList> hm) {
+  public boolean split(ODCell odCell, HashMap<Integer, AltPathsList> hm) {
 
     /*
      * Compute the market share for each mode, based on the estimated utilities
@@ -167,6 +169,7 @@ public class MLogit extends ModalSplitMethod {
         path.weight = (Math.pow(path.weight, -1) / denominator) * pathList.marketShare;
       }
     }
+    return true;
   }
 
   /**

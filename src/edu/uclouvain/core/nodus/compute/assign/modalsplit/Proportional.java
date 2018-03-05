@@ -50,7 +50,7 @@ public class Proportional extends ModalSplitMethod {
   }
 
   @Override
-  public void split(ODCell odCell, HashMap<Integer, AltPathsList> hm) {
+  public boolean split(ODCell odCell, HashMap<Integer, AltPathsList> hm) {
 
     /*
      * Compute the market share for each mode
@@ -89,5 +89,6 @@ public class Proportional extends ModalSplitMethod {
         path.weight = Math.pow(path.weight, -1) / denominator * altPathsList.marketShare;
       }
     }
+    return true;
   }
 }
