@@ -56,7 +56,7 @@ public class Abraham extends ModalSplitMethod {
    *
    * @return double The Abraham exponent found in the cost functions, or -10 by default.
    */
-  public double getExponent() {
+  private double getExponent() {
 
     double value =
         PropUtils.doubleFromProperties(
