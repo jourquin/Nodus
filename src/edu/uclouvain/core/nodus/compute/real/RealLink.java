@@ -167,9 +167,9 @@ public class RealLink extends RealNetworkObject {
   }
 
   /**
-   * Sets the time needed to travale along this link at the nominal speed (km/h).
+   * Sets the time needed to travel along this link at the nominal speed (km/h).
    *
-   * @param duration The time needed to travale along this link at the nominal speed (km/h).
+   * @param duration The time needed to travel along this link at the nominal speed (km/h).
    */
   public void setDuration(float duration) {
     this.duration = duration;
