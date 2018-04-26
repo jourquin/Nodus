@@ -6,6 +6,7 @@ Econometrics ([CORE](https://uclouvain.be/fr/node/4474)) of the Université cath
 ([UCL](http://www.uclouvain.be/), Belgium)). The software is developed  and maintained mainly by 
 [Pr Bart Jourquin](https://uclouvain.be/en/directories/bart.jourquin). 
   
+The Nodus installer and sources can be downloaded on [GitHub](https://github.com/jourquin/Nodus/releases).
 
 ## Introduction
 
