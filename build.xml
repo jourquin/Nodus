@@ -5,6 +5,7 @@
               directory with the processing instruction <?eclipse.ant.import?>
               as the first entry and export the buildfile again. --><project basedir="." default="build" name="Nodus7.0">
     <property environment="env"/>
+    <property name="MLogit.location" value="../../workspace/MLogit"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.7"/>
     <property name="source" value="1.7"/>
@@ -35,12 +36,12 @@
         <pathelement location="lib/rsyntaxtextarea-3.0.0-SNAPSHOT.jar"/>
         <pathelement location="lib/xchart-3.5.0.jar"/>
         <pathelement location="jdbcDrivers/h2-1.4.196.jar"/>
-        <pathelement location="../../../jourquinb/git/Nodus/jdbcDrivers/mariadb-java-client-2.2.3.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.1.4.jre7.jar"/>
         <pathelement location="jdbcDrivers/sqlite-jdbc-3.20.0.jar"/>
         <pathelement location="lib/commons-lang-2.6.jar"/>
         <pathelement location="lib/groovy-all-2.4.13.jar"/>
         <pathelement location="lib/openmap.jar"/>
+        <pathelement location="jdbcDrivers/mariadb-java-client-2.2.3.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
@@ -63,10 +64,13 @@
             <classpath refid="Nodus7.0.classpath"/>
         </javac>
     </target>
-    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
+    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects">
+        <ant antfile="build.xml" dir="${MLogit.location}" inheritAll="false" target="clean"/>
+        <ant antfile="build.xml" dir="${MLogit.location}" inheritAll="false" target="build"/>
+    </target>
     <target name="Nodus7">
         <java classname="edu.uclouvain.core.nodus.Nodus7" failonerror="true" fork="yes">
-            <jvmarg line="-Xmx6G -Xms4G"/>
+            <jvmarg line="-Xmx8000m -Xms8000m -Dawt.useSystemAAFontSettings=lcd"/>
             <classpath refid="Nodus7.0.classpath"/>
         </java>
     </target>

@@ -34,11 +34,11 @@
 	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.0.0-SNAPSHOT.jar"/>
 	<classpathentry kind="lib" path="lib/xchart-3.5.0.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/h2-1.4.196.jar"/>
-	<classpathentry kind="lib" path="/Users/jourquinb/git/Nodus/jdbcDrivers/mariadb-java-client-2.2.3.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.1.4.jre7.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/sqlite-jdbc-3.20.0.jar"/>
 	<classpathentry kind="lib" path="lib/commons-lang-2.6.jar"/>
 	<classpathentry kind="lib" path="lib/groovy-all-2.4.13.jar"/>
 	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/openmap6.0b"/>
+	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-2.2.3.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
