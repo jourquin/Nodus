@@ -24,6 +24,7 @@ package edu.uclouvain.core.nodus.compute.assign.workers;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra;
+import edu.uclouvain.core.nodus.compute.costs.TransitTimesParser;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
@@ -60,6 +61,14 @@ public class AllOrNothingAssignmentWorker extends AssignmentWorker {
     // Initialize the adjacency list for current group
     graph = virtualNet.generateAdjacencyList(groupIndex);
     shortestPath = new BinaryHeapDijkstra(graph, virtualNet);
+    
+    // Load the transit times for this group
+    transitTimes =
+        new TransitTimesParser(
+            assignmentParameters.getCostFunctions(),
+            assignmentParameters.getScenario(),
+            currentGroup,
+            virtualNet.getAvailableModeMeans(groupIndex));
 
     // Scan all the nodes
     for (int nodeIndex = 0; nodeIndex < virtualNet.getVirtualNodeLists().length; nodeIndex++) {
@@ -177,11 +186,13 @@ public class AllOrNothingAssignmentWorker extends AssignmentWorker {
                 pathCosts.ldCosts += vl.getWeight(groupIndex);
                 loadingMode = vl.getEndVirtualNode().getMode();
                 loadingMeans = vl.getEndVirtualNode().getMeans();
+                pathDuration += transitTimes.getLoadingDuration(loadingMode, loadingMeans);
                 break;
               case VirtualLink.TYPE_UNLOAD:
                 pathCosts.ulCosts += vl.getWeight(groupIndex);
                 unloadingMode = vl.getBeginVirtualNode().getMode();
                 unloadingMeans = vl.getBeginVirtualNode().getMeans();
+                pathDuration += transitTimes.getUnloadingDuration(unloadingMode, unloadingMeans);
                 break;
               case VirtualLink.TYPE_TRANSIT:
                 pathCosts.trCosts += vl.getWeight(groupIndex);

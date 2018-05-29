@@ -28,6 +28,7 @@ import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapAStar;
+import edu.uclouvain.core.nodus.compute.costs.TransitTimesParser;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.PathODCell;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
@@ -105,6 +106,14 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     shortestPath = new BinaryHeapAStar(graph);
     availableModeMeans = virtualNet.getAvailableModeMeans(groupIndex);
     paths = new Path[assignmentParameters.getNbIterations() * availableModeMeans.length];
+    
+    // Load the transit times for this group
+    transitTimes =
+        new TransitTimesParser(
+            assignmentParameters.getCostFunctions(),
+            assignmentParameters.getScenario(),
+            currentGroup,
+            virtualNet.getAvailableModeMeans(groupIndex));
 
     // Initialize the modal split method from the name found in the assignment parameters
     modalSplitMethod = getModalSplitMethod(assignmentParameters.getModalSplitMethodName());
@@ -526,11 +535,13 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
             pathCosts.ldCosts += vl.getWeight(groupIndex);
             loadingMode = vl.getEndVirtualNode().getMode();
             loadingMeans = vl.getEndVirtualNode().getMeans();
+            pathDuration += transitTimes.getLoadingDuration(loadingMode, loadingMeans);
             break;
           case VirtualLink.TYPE_UNLOAD:
             pathCosts.ulCosts += vl.getWeight(groupIndex);
             unloadingMode = vl.getBeginVirtualNode().getMode();
             unloadingMeans = vl.getBeginVirtualNode().getMeans();
+            pathDuration += transitTimes.getUnloadingDuration(unloadingMode, unloadingMeans);
             break;
           case VirtualLink.TYPE_TRANSIT:
             pathCosts.trCosts += vl.getWeight(groupIndex);

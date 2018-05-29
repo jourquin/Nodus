@@ -28,6 +28,7 @@ import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra;
+import edu.uclouvain.core.nodus.compute.costs.TransitTimesParser;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.PathODCell;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
@@ -55,9 +56,10 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
   private BinaryHeapDijkstra shortestPath;
 
-  int[] availableModeMeans;
+  private int[] availableModeMeans;
 
-  ODCell demand;
+  private ODCell demand;
+
 
   /**
    * Two hash tables. The first will contain the OD pairs between which at least one path was found,
@@ -98,6 +100,14 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     graph = virtualNet.generateAdjacencyList(groupIndex);
     shortestPath = new BinaryHeapDijkstra(graph, virtualNet);
     availableModeMeans = virtualNet.getAvailableModeMeans(groupIndex);
+
+    // Load the transit times for this group
+    transitTimes =
+        new TransitTimesParser(
+            assignmentParameters.getCostFunctions(),
+            assignmentParameters.getScenario(),
+            currentGroup,
+            virtualNet.getAvailableModeMeans(groupIndex));
 
     paths = new Path[assignmentParameters.getNbIterations() * availableModeMeans.length][];
 
@@ -555,11 +565,13 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
               pathCosts.ldCosts += vl.getWeight(groupIndex);
               loadingMode = vl.getEndVirtualNode().getMode();
               loadingMeans = vl.getEndVirtualNode().getMeans();
+              pathDuration += transitTimes.getLoadingDuration(loadingMode, loadingMeans);
               break;
             case VirtualLink.TYPE_UNLOAD:
               pathCosts.ulCosts += vl.getWeight(groupIndex);
               unloadingMode = vl.getBeginVirtualNode().getMode();
               unloadingMeans = vl.getBeginVirtualNode().getMeans();
+              pathDuration += transitTimes.getUnloadingDuration(unloadingMode, unloadingMeans);
               break;
             case VirtualLink.TYPE_TRANSIT:
               pathCosts.trCosts += vl.getWeight(groupIndex);

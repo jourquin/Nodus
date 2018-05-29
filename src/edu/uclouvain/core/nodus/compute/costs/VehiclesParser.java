@@ -82,9 +82,12 @@ public class VehiclesParser {
    * commodities. If a capacity for a mode-means combination is not defined, it is supposed to be
    * equal to 1. The same is true for the equivalent standard vehicles.
    *
+   * @param costFunctions The properties that contain the cost functions.
+   * @param scenario The scenario currently being computed.
    * @param group The group of commodities for which this information must be loaded from the cost
    *     functions file.
    */
+  // TODO Handle class specific values. 
   public static void loadVehicleCharacteristics(
       Properties costFunctions, int scenario, byte group) {
     averageLoad.clear();
