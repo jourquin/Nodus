@@ -87,7 +87,6 @@ public class VehiclesParser {
    * @param group The group of commodities for which this information must be loaded from the cost
    *     functions file.
    */
-  // TODO Handle class specific values. 
   public static void loadVehicleCharacteristics(
       Properties costFunctions, int scenario, byte group) {
     averageLoad.clear();
@@ -103,37 +102,33 @@ public class VehiclesParser {
 
         // Is there a specific value for this scenario and group?
         double value =
-            PropUtils.doubleFromProperties(costFunctions, scenario + "." + core + "." + group, -1);
-
-        if (value != -1) {
+            PropUtils.doubleFromProperties(
+                costFunctions, scenario + "." + core + "." + group, Double.NaN);
+        if (!Double.isNaN(value)) {
           key = mode + "-" + means;
           averageLoad.put(key, Double.valueOf(value));
           continue;
         }
 
         // Is there a specific value for this scenario?
-        value = PropUtils.doubleFromProperties(costFunctions, scenario + "." + core, -1);
-
-        if (value != -1) {
+        value = PropUtils.doubleFromProperties(costFunctions, scenario + "." + core, Double.NaN);
+        if (!Double.isNaN(value)) {
           key = mode + "-" + means;
           averageLoad.put(key, Double.valueOf(value));
-
           continue;
         }
 
         // Is there a specific value for this group?
-        value = PropUtils.doubleFromProperties(costFunctions, core + "." + group, -1);
-
-        if (value != -1) {
+        value = PropUtils.doubleFromProperties(costFunctions, core + "." + group, Double.NaN);
+        if (!Double.isNaN(value)) {
           key = mode + "-" + means;
           averageLoad.put(key, Double.valueOf(value));
-
           continue;
         }
 
         // Is there a generic value ?
-        value = PropUtils.doubleFromProperties(costFunctions, core, -1);
-        if (value != -1) {
+        value = PropUtils.doubleFromProperties(costFunctions, core, Double.NaN);
+        if (!Double.isNaN(value)) {
           key = mode + "-" + means;
           averageLoad.put(key, Double.valueOf(value));
         }
@@ -149,39 +144,33 @@ public class VehiclesParser {
 
         // Is there a specific value for this scenario and group?
         double value =
-            PropUtils.doubleFromProperties(costFunctions, scenario + "." + core + "." + group, -1);
-
-        if (value != -1) {
+            PropUtils.doubleFromProperties(
+                costFunctions, scenario + "." + core + "." + group, Double.NaN);
+        if (!Double.isNaN(value)) {
           key = mode + "-" + means;
           equivalentStandardVehicleRatio.put(key, Double.valueOf(value));
-
           continue;
         }
 
         // Is there a specific value for this scenario?
-        value = PropUtils.doubleFromProperties(costFunctions, scenario + "." + core, -1);
-
-        if (value != -1) {
+        value = PropUtils.doubleFromProperties(costFunctions, scenario + "." + core, Double.NaN);
+        if (!Double.isNaN(value)) {
           key = mode + "-" + means;
           equivalentStandardVehicleRatio.put(key, Double.valueOf(value));
-
           continue;
         }
 
         // Is there a specific value for this group?
-        value = PropUtils.doubleFromProperties(costFunctions, core + "." + group, -1);
-
-        if (value != -1) {
+        value = PropUtils.doubleFromProperties(costFunctions, core + "." + group, Double.NaN);
+        if (!Double.isNaN(value)) {
           key = mode + "-" + means;
           equivalentStandardVehicleRatio.put(key, Double.valueOf(value));
-
           continue;
         }
 
         // Is there a generic value ?
-        value = PropUtils.doubleFromProperties(costFunctions, core, -1);
-
-        if (value != -1) {
+        value = PropUtils.doubleFromProperties(costFunctions, core, Double.NaN);
+        if (!Double.isNaN(value)) {
           key = mode + "-" + means;
           equivalentStandardVehicleRatio.put(key, Double.valueOf(value));
         }

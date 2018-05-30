@@ -25,8 +25,8 @@ import com.bbn.openmap.util.PropUtils;
 
 import edu.uclouvain.core.nodus.NodusC;
 
-import java.util.HashMap;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * Reads the optional loading and unloading durations for the different types of vehicles from the
@@ -38,62 +38,14 @@ import java.util.Properties;
  */
 public class TransitTimesParser {
 
-  /**
-   * Convenient class to store transit durations for transport operations.
-   *
-   * @author Bart Jourquin
-   */
-  private class TransitTimes {
-    private double loadingDuration = 0;
-    private double unloadingDuration = 0;
-
-    /**
-     * Returns the loading duration in seconds.
-     *
-     * @return The loading duration expressed in seconds.
-     */
-    public double getLoadingDuration() {
-      return loadingDuration;
-    }
-
-    /**
-     * Returns the unloading duration in seconds.
-     *
-     * @return The unloading duration expressed in seconds.
-     */
-    public double getUnloadingDuration() {
-      return unloadingDuration;
-    }
-
-    /**
-     * Stores the loading duration converted in seconds.
-     *
-     * @param loadingDuration Loading duration in hours.
-     */
-    public void setLoadingDuration(double loadingDuration) {
-      this.loadingDuration = loadingDuration * 3600;
-    }
-
-    /**
-     * Stores the loading duration convderted in seconds.
-     *
-     * @param loadingDuration Loading duration in hours.
-     */
-    public void setUnloadingDuration(double unloadingDuration) {
-      this.unloadingDuration = unloadingDuration * 3600;
-    }
-  }
-
-  static final byte LOADING_DURATION = 0;
-  static final byte UNLOADING_DURATION = 1;
-
   private Properties costFunctions;
 
   private int group;
   private int scenario;
-  
-  /** Average load per mode/means vehicle combination. */
-  private HashMap<Long, TransitTimes> transitTimes = new HashMap<>();
+
+  private boolean withLoadingDuration = false;
+  private boolean withUnloadingDuration = false;
+  private boolean withTranshipmentDuration = false;
 
   /**
    * Loads the different transit times (loading, unloading, transhipment) for all the vehicles for a
@@ -103,161 +55,116 @@ public class TransitTimesParser {
    * @param scenario The scenario currently being computed.
    * @param group The group of commodities for which this information must be loaded from the cost
    *     functions file.
-   * @param availableModeMeans Array of available mode and means (as defined in VirtualNetwork)
    */
-  public TransitTimesParser(
-      Properties costFunctions, int scenario, int group, int[] availableModeMeans) {
+  public TransitTimesParser(Properties costFunctions, int scenario, int group) {
     this.costFunctions = costFunctions;
     this.scenario = scenario;
     this.group = group;
-    loadTransitTimes(availableModeMeans);
+
+    // Scan the cots function to detect the presence of durations
+    Set<Object> keys = costFunctions.keySet();
+    for (Object key : keys) {
+      if (((String) key).contains(NodusC.VARNAME_LOADING_DURATION)) {
+        withLoadingDuration = true;
+        continue;
+      }
+      if (((String) key).contains(NodusC.VARNAME_UNLOADING_DURATION)) {
+        withUnloadingDuration = true;
+        continue;
+      }
+      if (((String) key).contains(NodusC.VARNAME_TRANSHIP_DURATION)) {
+        withTranshipmentDuration = true;
+        continue;
+      }
+    }
   }
 
   /**
-   * Returns the loading duration (in seconds) for a give vehicle.
+   * Returns the loading duration (in seconds) for a given vehicle.
    *
    * @param mode The transportation mode.
    * @param means The transportation means (type of vehicle).
    * @return The loading duration in seconds.
    */
   public double getLoadingDuration(int mode, int means) {
-    long key = mode * NodusC.MAXMM + means;
-    TransitTimes tt = transitTimes.get(key);
-    if (tt == null) {
+    if (!withLoadingDuration) {
       return 0;
-    } else {
-      return tt.getLoadingDuration();
     }
+
+    String coreKey = NodusC.VARNAME_LOADING_DURATION + "." + mode + "," + means;
+    return parseDuration(coreKey) * 3600;
   }
 
   /**
-   * Returns the unloading duration (in seconds) for a give vehicle.
+   * Returns the unloading duration (in seconds) for a given vehicle.
    *
    * @param mode The transportation mode.
    * @param means The transportation means (type of vehicle).
    * @return The unloading duration in seconds.
    */
   public double getUnloadingDuration(int mode, int means) {
-    long key = mode * NodusC.MAXMM + means;
-    TransitTimes tt = transitTimes.get(key);
-    if (tt == null) {
+    if (!withUnloadingDuration) {
       return 0;
-    } else {
-      return tt.getUnloadingDuration();
     }
+
+    String coreKey = NodusC.VARNAME_UNLOADING_DURATION + "." + mode + "," + means;
+    return parseDuration(coreKey) * 3600;
   }
 
   /**
-   * Loads the different transit times (loading, unloading) for all the possible modes and means. If
-   * a transit time for a mode-means combination is not defined, it is set to 0.
+   * Returns the transhipment duration (in seconds) for a given vehicle combination.
    *
-   * @param availableModeMeans Array of available mode and means (as defined in VirtualNetwork)
+   * @param mode1 The origin transportation mode.
+   * @param means1 The origin transportation means (type of vehicle).
+   * @param mode2 The destination transportation mode.
+   * @param means2 The destination transportation means (type of vehicle).
+   * @return The transhipment duration in seconds.
    */
-  private void loadTransitTimes(int[] availabelModeMeans) {
-    transitTimes.clear();
-
-    for (int availabelModeMean : availabelModeMeans) {
-      int mode = availabelModeMean / NodusC.MAXMM;
-      int means = availabelModeMean - mode * NodusC.MAXMM;
-      parseDuration(NodusC.VARNAME_LOADING_DURATION, mode, means);
-      parseDuration(NodusC.VARNAME_UNLOADING_DURATION, mode, means);
+  public double getTranshipmentDuration(int mode1, int means1, int mode2, int means2) {
+    if (!withTranshipmentDuration) {
+      return 0;
     }
+
+    String coreKey =
+        NodusC.VARNAME_TRANSHIP_DURATION + "." + mode1 + "," + means1 + "-" + mode2 + "," + means2;
+    return parseDuration(coreKey) * 3600;
   }
 
   /**
-   * Find the (un)loading duration for the given mode and means.
+   * Fetch the relevant duration value from the cost functions.
    *
-   * @param varName VARNAME_LOADING_DURATION or VARNAME_UNLOADING_DURATION
-   * @param mode The transportation mode
-   * @param means The transportation means.
+   * @param key The core key to look for (varname + mode/means combination)
+   * @return The duration value or 0 if not found
    */
-  private void parseDuration(String varName, int mode, int means) {
-
-    byte operation = LOADING_DURATION;
-    if (varName.equals(NodusC.VARNAME_UNLOADING_DURATION)) {
-      operation = UNLOADING_DURATION;
-    }
-
-    long key = mode * NodusC.MAXMM + means;
-
-    String core = varName + "." + mode + "," + means;
+  private double parseDuration(String key) {
 
     // Is there a specific value for this scenario and group?
     double value =
-        PropUtils.doubleFromProperties(costFunctions, scenario + "." + core + "." + group, -1);
-
-    if (value != -1) {
-      TransitTimes tt = transitTimes.get(key);
-      if (tt == null) {
-        tt = new TransitTimes();
-        transitTimes.put(key, tt);
-      }
-
-      if (operation == LOADING_DURATION) {
-        tt.setLoadingDuration(value);
-      } else {
-        tt.setUnloadingDuration(value);
-      }
-
-      return;
+        PropUtils.doubleFromProperties(
+            costFunctions, scenario + "." + key + "." + group, Double.NaN);
+    if (!Double.isNaN(value)) {
+      return value;
     }
 
     // Is there a specific value for this scenario?
-    value = PropUtils.doubleFromProperties(costFunctions, scenario + "." + core, -1);
-
-    if (value != -1) {
-      TransitTimes tt = transitTimes.get(key);
-      if (tt == null) {
-        tt = new TransitTimes();
-        transitTimes.put(key, tt);
-      }
-
-      if (operation == LOADING_DURATION) {
-        tt.setLoadingDuration(value);
-      } else {
-        tt.setUnloadingDuration(value);
-      }
-
-      return;
+    value = PropUtils.doubleFromProperties(costFunctions, scenario + "." + key, Double.NaN);
+    if (!Double.isNaN(value)) {
+      return value;
     }
 
     // Is there a specific value for this group?
-    value = PropUtils.doubleFromProperties(costFunctions, core + "." + group, -1);
+    value = PropUtils.doubleFromProperties(costFunctions, key + "." + group, Double.NaN);
 
-    if (value != -1) {
-      TransitTimes tt = transitTimes.get(key);
-      if (tt == null) {
-        tt = new TransitTimes();
-        transitTimes.put(key, tt);
-      }
-
-      if (operation == LOADING_DURATION) {
-        tt.setLoadingDuration(value);
-      } else {
-        tt.setUnloadingDuration(value);
-      }
-
-      return;
+    if (!Double.isNaN(value)) {
+      return value;
     }
 
     // Is there a generic value ?
-    value = PropUtils.doubleFromProperties(costFunctions, core, -1);
-    if (value != -1) {
-      TransitTimes tt = transitTimes.get(key);
-      if (tt == null) {
-        tt = new TransitTimes();
-        transitTimes.put(key, tt);
-      }
-
-      if (operation == LOADING_DURATION) {
-        tt.setLoadingDuration(value);
-      } else {
-        tt.setUnloadingDuration(value);
-      }
+    value = PropUtils.doubleFromProperties(costFunctions, key, Double.NaN);
+    if (!Double.isNaN(value)) {
+      return value;
     }
+
+    return 0;
   }
-
-  // TODO Handle transhipment durations.
-  // TODO Handle class specific values. 
-
 }

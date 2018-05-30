@@ -492,7 +492,7 @@ public class VirtualNetwork {
    * "equivalent standard vehicles" that correspond to the different transportation means used. This
    * information is used to assign standard vehicles on the real links (used to compute flow related
    * cost functions). <br>
-   * This method is only used bu time dependent assignments.
+   * This method is only used by time dependent assignments.
    *
    * @param timeSlice The time slice to consider.
    */
@@ -1151,6 +1151,7 @@ public class VirtualNetwork {
    *
    * @param varName Name of the variable to retrieve.
    * @param group Group of goods for which the variable has to be retrieved.
+   * @param odClass OD class for which the variable has to be retrieved.
    * @return Value of the variable or NaN if not found.
    */
   public double getValue(String varName, byte group, byte odClass) {

@@ -98,8 +98,8 @@ public abstract class AssignmentWorker extends Thread {
   /** Virtual network that will be generated before the assignment. */
   VirtualNetwork virtualNet;
   
-  /** Used to store loading and unloading durations from the cost functions file. */
-  TransitTimesParser transitTimes;
+  /** Used to fetch loading, unloading and transhipment durations from the cost functions file. */
+  TransitTimesParser transitTimesParser;
 
   Assignment assignment;
 
@@ -174,6 +174,13 @@ public abstract class AssignmentWorker extends Thread {
         odClass = awp.getODClass();
 
         currentGroup = virtualNet.getGroups()[groupIndex];
+        
+        // Transit durations parser
+        transitTimesParser =
+            new TransitTimesParser(
+                assignmentParameters.getCostFunctions(),
+                assignmentParameters.getScenario(),
+                currentGroup);
 
         // Start the real work
         if (!doAssignment()) {

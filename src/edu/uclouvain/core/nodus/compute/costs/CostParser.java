@@ -151,66 +151,51 @@ public class CostParser {
     double value = Double.NaN;
 
     // Is there a specific value for this scenario, group and od class?
-    if (odClass != -1) {
-      value =
-          PropUtils.doubleFromProperties(
-              costFunctions, scenario + "." + varName + "." + group + "-" + odClass, Double.NaN);
-
-      if (!Double.isNaN(value)) {
-        return value;
-      }
+    value =
+        PropUtils.doubleFromProperties(
+            costFunctions, scenario + "." + varName + "." + group + "-" + odClass, Double.NaN);
+    if (!Double.isNaN(value)) {
+      return value;
     }
 
     // Is there a specific value for this scenario and group?
     value =
         PropUtils.doubleFromProperties(
             costFunctions, scenario + "." + varName + "." + group, Double.NaN);
-
     if (!Double.isNaN(value)) {
       return value;
     }
 
     // Is there a specific value for this scenario and od class?
-    if (odClass != -1) {
-      value =
-          PropUtils.doubleFromProperties(
-              costFunctions, scenario + "." + varName + "-" + odClass, Double.NaN);
-
-      if (!Double.isNaN(value)) {
-        return value;
-      }
+    value =
+        PropUtils.doubleFromProperties(
+            costFunctions, scenario + "." + varName + "-" + odClass, Double.NaN);
+    if (!Double.isNaN(value)) {
+      return value;
     }
 
     // Is there a specific value for this scenario?
     value = PropUtils.doubleFromProperties(costFunctions, scenario + "." + varName, Double.NaN);
-
     if (!Double.isNaN(value)) {
       return value;
     }
 
     // Is there a specific value for this group and od class?
-    if (odClass != -1) {
-      value =
-          PropUtils.doubleFromProperties(
-              costFunctions, varName + "." + group + "-" + odClass, Double.NaN);
-
-      if (!Double.isNaN(value)) {
-        return value;
-      }
+    value =
+        PropUtils.doubleFromProperties(
+            costFunctions, varName + "." + group + "-" + odClass, Double.NaN);
+    if (!Double.isNaN(value)) {
+      return value;
     }
 
     // Is there a specific value for this od class?
-    if (odClass != -1) {
-      value = PropUtils.doubleFromProperties(costFunctions, varName + "-" + odClass, Double.NaN);
-
-      if (!Double.isNaN(value)) {
-        return value;
-      }
+    value = PropUtils.doubleFromProperties(costFunctions, varName + "-" + odClass, Double.NaN);
+    if (!Double.isNaN(value)) {
+      return value;
     }
 
     // Is there a specific value for this group?
     value = PropUtils.doubleFromProperties(costFunctions, varName + "." + group, Double.NaN);
-
     if (!Double.isNaN(value)) {
       return value;
     }
