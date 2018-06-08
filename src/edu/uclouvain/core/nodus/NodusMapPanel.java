@@ -2289,7 +2289,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     if (!useGroovyConsole) {
       new NodusGroovyConsole(this, path, "");
     } else {
-      groovy.ui.Console console = new groovy.ui.Console();
+      final groovy.ui.Console console = new groovy.ui.Console();
 
       // Set some defaults in UI
       console.askToInterruptScript();
@@ -2307,6 +2307,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       console.setVariable("nodusMapPanel", this);
       console.setVariable("nodusMainFrame", this);
       console.run();
+
+      // Relocate console
+      JFrame consoleFrame = (JFrame) console.getFrame().getRootPane().getParent();
+      consoleFrame.setVisible(false);
+      consoleFrame.setLocationRelativeTo(this);
+      consoleFrame.setVisible(true);
     }
   }
 
