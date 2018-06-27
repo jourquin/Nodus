@@ -42,6 +42,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.InputMap;
 import javax.swing.JDialog;
@@ -50,9 +52,6 @@ import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.text.DefaultEditorKit;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.varia.NullAppender;
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
@@ -69,7 +68,7 @@ public class Nodus7 {
       Toolkit.getDefaultToolkit().createImage(Nodus7.class.getResource("nodus7.png"));
 
   /* Logger */
-  private static final Logger logger = Logger.getLogger(Nodus7.class);
+  private static final Logger logger = Logger.getLogger(Nodus7.class.getName());
 
   /**
    * Properties file used to load/save the "state" of the application when it was closed the last
@@ -97,11 +96,13 @@ public class Nodus7 {
 
     Environment.init();
 
-    // Trick used to avoid "no appender" Log4J warning message from HSQLDB
-    Logger rootLogger = Logger.getRootLogger();
-    rootLogger.addAppender(new NullAppender());
-    logger.setLevel(Level.INFO);
+    logger.setUseParentHandlers(false);
+    logger.setLevel(Level.ALL);
 
+    // Trick used to avoid "no appender" Log4J warning message from HSQLDB
+    //Logger rootLogger = Logger.getRootLogger();
+    //rootLogger.addAppender(new NullAppender());
+    
     // Open the properties file
     try {
       String home = System.getProperty("user.home") + "/";

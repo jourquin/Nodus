@@ -83,12 +83,11 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-
-import org.apache.log4j.Logger;
 
 /**
  * This layer extends the original OpenMap EsriLayer, allowing the edition of the content of the DBF
@@ -1561,7 +1560,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   public void setProject(NodusProject nodusProject, String layerName) {
 
     this.nodusProject = nodusProject;
-    logger = Logger.getLogger(Nodus7.class);
+    logger = Logger.getLogger(Nodus7.class.getName());
 
     String realLayerName = "";
 

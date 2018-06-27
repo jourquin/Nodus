@@ -81,6 +81,10 @@ import java.util.LinkedList;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
@@ -89,7 +93,6 @@ import javax.swing.SwingConstants;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
-import org.apache.log4j.Logger;
 import org.codehaus.groovy.control.CompilationFailedException;
 
 /**
@@ -150,6 +153,9 @@ public class NodusProject implements ShapeConstants {
 
   /** Main state of a project: open or not. */
   private boolean isOpen = false;
+
+  /** Logger handler. */
+  Handler loggerHandler;
 
   /** JDBC connection to the database that holds the tables managed by Nodus. */
   private Connection jdbcConnection = null;
@@ -565,6 +571,12 @@ public class NodusProject implements ShapeConstants {
 
       // Reset rendering scale threshold
       nodusMapPanel.setRenderingScaleThreshold(-1);
+
+      // Close the log file for this project
+      Logger logger = Logger.getLogger(Nodus7.class.getName());
+      loggerHandler.flush();
+      loggerHandler.close();
+      logger.removeHandler(loggerHandler);
 
       nodusMapPanel.setBusy(false);
       nodusMapPanel.getMenuFile().setEnabled(true);
@@ -1375,6 +1387,18 @@ public class NodusProject implements ShapeConstants {
     String name = f.getName();
     projectPath = projectPath.substring(0, projectPath.lastIndexOf(name) - 1) + File.separator;
 
+    // Open the log file for this project
+    Logger logger = Logger.getLogger(Nodus7.class.getName());
+    try {
+      loggerHandler = new FileHandler(projectPath + "nodus.log", true);
+      loggerHandler.setFormatter(new SimpleFormatter());
+      logger.addHandler(loggerHandler);
+    } catch (SecurityException e1) {
+      e1.printStackTrace();
+    } catch (IOException e1) {
+      e1.printStackTrace();
+    }
+
     // Try to add the ".local" properties that contain previous saved values
     localProperties = new Properties();
 
@@ -1866,7 +1890,7 @@ public class NodusProject implements ShapeConstants {
     nodusMapPanel.setBusy(false);
 
     isOpen = true;
-    
+
     // Handle the project's Groovy initial script if exists
     Thread thread =
         new Thread() {
@@ -2081,7 +2105,7 @@ public class NodusProject implements ShapeConstants {
         }
       }
 
-      Logger logger = Logger.getLogger(Nodus7.class);
+      Logger logger = Logger.getLogger(Nodus7.class.getName());
       logger.info("Rollback project");
       nodusMapPanel.setBusy(false);
     }
@@ -2106,7 +2130,7 @@ public class NodusProject implements ShapeConstants {
           element.save();
         }
       }
-      Logger logger = Logger.getLogger(Nodus7.class);
+      Logger logger = Logger.getLogger(Nodus7.class.getName());
       logger.info("Save project");
       nodusMapPanel.setBusy(false);
     }
