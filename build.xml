@@ -40,6 +40,7 @@
         <pathelement location="jdbcDrivers/sqlite-jdbc-3.23.1.jar"/>
         <pathelement location="lib/parsii-3.1.jar"/>
         <pathelement location="lib/xchart-3.5.2.jar"/>
+        <pathelement location="lib/commons-lang-2.6.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>

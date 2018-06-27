@@ -38,5 +38,6 @@
 	<classpathentry kind="lib" path="jdbcDrivers/sqlite-jdbc-3.23.1.jar"/>
 	<classpathentry kind="lib" path="lib/parsii-3.1.jar"/>
 	<classpathentry kind="lib" path="lib/xchart-3.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/commons-lang-2.6.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
