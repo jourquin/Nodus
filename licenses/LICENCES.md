@@ -2,19 +2,19 @@
 
 ## Nodus core code
 
-[collections-generic](http://commons.apache.org), Apache v2
-
 [commons-\*](http://commons.apache.org), Apache v2
 
 [foxtrot-core](http://foxtrot.sourceforge.net), modified BSD                                
 
 [groovy\*](http://groovy-lang.org), Apache v2                                
 
+[guava](https://github.com/google/guava), Apache v2
+
 [JCheckList](https://github.com/jourquin/JCheckList), Apache v2
 
 [JResourcesMonitor](https://github.com/jourquin/JResourcesMonitor), Apache v2
 
-[jung-\*](http://jung.sourceforge.net), modified BSD
+[jung-\*](https://github.com/jrtom/jung), modified BSD
 
 [log4j](https://logging.apache.org/log4j), Apache v2
 

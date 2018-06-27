@@ -25,6 +25,7 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.layer.shape.jung.JungVirtualLink;
 import com.bbn.openmap.layer.shape.jung.JungVirtualNode;
 import com.bbn.openmap.util.I18n;
+import com.google.common.base.Function;
 
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.RadialTreeLayout;
@@ -41,7 +42,6 @@ import edu.uci.ics.jung.visualization.control.LensMagnificationGraphMousePlugin;
 import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
 import edu.uci.ics.jung.visualization.control.ModalLensGraphMouse;
 import edu.uci.ics.jung.visualization.control.ScalingControl;
-import edu.uci.ics.jung.visualization.decorators.EdgeShape;
 import edu.uci.ics.jung.visualization.renderers.Renderer;
 import edu.uci.ics.jung.visualization.transform.AbstractLensSupport;
 import edu.uci.ics.jung.visualization.transform.HyperbolicTransformer;
@@ -86,9 +86,6 @@ import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
-
-import org.apache.commons.collections15.Transformer;
-import org.apache.commons.collections15.functors.ConstantTransformer;
 
 /**
  * This dialog box displays a graphical representation of all the virtual links for a given real
@@ -156,11 +153,10 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
   /** the visual component and renderer for the graph. */
   private VisualizationViewer<String, String> visualizationViewer;
 
-  /** Creates a label. */
-  private Transformer<String, String> edgeLabel =
-      new Transformer<String, String>() {
+  private Function<String, String> edgeLabel =
+      new Function<String, String>() {
         @Override
-        public String transform(String string) {
+        public String apply(String string) {
 
           // Use the right time period
           String s = string += "#" + currentTime.getSeconds();
@@ -202,10 +198,10 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
       };
 
   /** Assigns a color to an edge, based on its type. */
-  private Transformer<String, Paint> edgePaint =
-      new Transformer<String, Paint>() {
+  private Function<String, Paint> edgePaint =
+      new Function<String, Paint>() {
         @Override
-        public Paint transform(String s) {
+        public Paint apply(String s) {
           int type = getVirtualLinkType(s);
           switch (type) {
             case VirtualLink.TYPE_LOAD:
@@ -222,11 +218,20 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
         }
       };
 
-  /** Creates a "popup" label, with more info that the regular label displayed. */
-  private Transformer<String, String> edgePopupLabel =
-      new Transformer<String, String>() {
+  /** Assigns a color to an edge, based on its type. */
+  private Function<String, Paint> arrowFillPaint =
+      new Function<String, Paint>() {
         @Override
-        public String transform(String string) {
+        public Paint apply(String s) {
+          return Color.GRAY;
+        }
+      };
+
+  /** Creates a "popup" label, with more info that the regular label displayed. */
+  private Function<String, String> edgePopupLabel =
+      new Function<String, String>() {
+        @Override
+        public String apply(String string) {
           // Use the right time period
           String s = string += "#" + currentTime.getSeconds();
 
@@ -267,12 +272,12 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
       };
 
   /** Assigns a stroke to an edge, based on its type. */
-  private Transformer<String, Stroke> edgeStroke =
-      new Transformer<String, Stroke>() {
+  private Function<String, Stroke> edgeStroke =
+      new Function<String, Stroke>() {
         float[] dash = {4.0f};
 
         @Override
-        public Stroke transform(String s) {
+        public Stroke apply(String s) {
           int type = getVirtualLinkType(s);
           switch (type) {
             case VirtualLink.TYPE_LOAD:
@@ -291,10 +296,10 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
       };
 
   /** Assigns a label to a vertex, based on its type. */
-  private Transformer<String, String> vertexLabel =
-      new Transformer<String, String>() {
+  private Function<String, String> vertexLabel =
+      new Function<String, String>() {
         @Override
-        public String transform(String s) {
+        public String apply(String s) {
           StringTokenizer stringTokenizer = new StringTokenizer(s, ":");
           int node = Integer.parseInt(stringTokenizer.nextElement().toString());
           int link = Integer.parseInt(stringTokenizer.nextElement().toString());
@@ -325,10 +330,10 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
       };
 
   /** Assigns a color to a vertex, based on its type. */
-  private Transformer<String, Paint> vertexPaint =
-      new Transformer<String, Paint>() {
+  private Function<String, Paint> vertexPaint =
+      new Function<String, Paint>() {
         @Override
-        public Paint transform(String s) {
+        public Paint apply(String s) {
 
           if (isLoadingNode(s)) {
             return Color.BLUE;
@@ -341,10 +346,10 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
   /**
    * Creates a "popup" label for a vertex, with more info than the regular label that is displayed.
    */
-  private Transformer<String, String> vertexPopupLabel =
-      new Transformer<String, String>() {
+  private Function<String, String> vertexPopupLabel =
+      new Function<String, String>() {
         @Override
-        public String transform(String s) {
+        public String apply(String s) {
           StringTokenizer stringTokenizer = new StringTokenizer(s, ":");
           int node = Integer.parseInt(stringTokenizer.nextElement().toString());
           int link = Integer.parseInt(stringTokenizer.nextElement().toString());
@@ -387,10 +392,10 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
       };
 
   /** Assigns a size to a vertex, based on its type. */
-  private Transformer<String, Shape> vertexSize =
-      new Transformer<String, Shape>() {
+  private Function<String, Shape> vertexSize =
+      new Function<String, Shape>() {
         @Override
-        public Shape transform(String s) {
+        public Shape apply(String s) {
           Ellipse2D circle = new Ellipse2D.Double(-10, -10, 20, 20);
 
           // (Un)loading nodes are larger
@@ -679,7 +684,7 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
    *
    * @return JPanel
    */
-  @SuppressWarnings({"rawtypes", "unchecked"})
+  @SuppressWarnings({"unchecked"})
   private JPanel getGraphPanel() {
 
     // create a simple graph for the demo
@@ -1042,12 +1047,7 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
         .setPosition(Renderer.VertexLabel.Position.AUTO);
     visualizationViewer.setVertexToolTipTransformer(vertexPopupLabel);
 
-    visualizationViewer
-        .getRenderContext()
-        .setEdgeShapeTransformer(new EdgeShape.QuadCurve<String, String>());
-    visualizationViewer
-        .getRenderContext()
-        .setArrowFillPaintTransformer(new ConstantTransformer(Color.lightGray));
+    visualizationViewer.getRenderContext().setArrowFillPaintTransformer(arrowFillPaint);
     visualizationViewer.getRenderContext().setEdgeDrawPaintTransformer(edgePaint);
     visualizationViewer.getRenderContext().setEdgeStrokeTransformer(edgeStroke);
     visualizationViewer.getRenderContext().setEdgeLabelTransformer(edgeLabel);

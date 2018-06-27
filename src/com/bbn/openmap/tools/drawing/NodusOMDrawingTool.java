@@ -50,12 +50,11 @@ import java.text.MessageFormat;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
-
-import org.apache.log4j.Logger;
 
 //TODO Interaction with services still buggy
 
@@ -147,7 +146,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
   public NodusOMDrawingTool(NodusMapPanel mapPanel, NodusOMDrawingToolLauncher launcher) {
     nodusOMDrawingToolLauncher = launcher;
     nodusMapPanel = mapPanel;
-    logger = Logger.getLogger(Nodus7.class);
+    logger = Logger.getLogger(Nodus7.class.getName());
   }
 
   /**
