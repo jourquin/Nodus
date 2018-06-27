@@ -48,8 +48,8 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.TitledBorder;
 
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
+import org.apache.commons.lang.SystemUtils;
+
 
 /**
  * Dialog that permits to modify some Nodus system wide preferences.
@@ -395,7 +395,7 @@ public class GlobalPreferencesDlg extends EscapeDialog {
 
     // Groovy 2.x console doesn't work on Mac OS with Java 9
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")
-        && SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_9)) {
+        && SystemUtils.isJavaVersionAtLeast(9.0f)) {
       value = "false";
       useNativeGroovyConsoleCheckBox.setEnabled(false);
     }

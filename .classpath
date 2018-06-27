@@ -30,7 +30,6 @@
 	<classpathentry kind="lib" path="lib/jung-graph-impl-2.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/jung-visualization-2.1.1.jar" sourcepath="/jung"/>
 	<classpathentry kind="lib" path="lib/guava-19.0.jar"/>
-	<classpathentry kind="lib" path="lib/commons-lang3-3.7.jar"/>
 	<classpathentry kind="lib" path="lib/groovy-all-2.4.15.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/h2-1.4.197.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-2.2.5.jar"/>

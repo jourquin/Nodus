@@ -152,8 +152,7 @@ import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.BevelBorder;
 
-import org.apache.commons.lang3.JavaVersion;
-import org.apache.commons.lang3.SystemUtils;
+import org.apache.commons.lang.SystemUtils;
 import org.uclouvain.gtm.util.gui.JResourcesMonitor;
 
 /**
@@ -1713,7 +1712,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
       // Use the standard Mac preferences
       try {
-        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_9)) {
+        if (SystemUtils.isJavaVersionAtLeast(9.0f)) {
           OSXAdapterForJava9.setPreferencesHandler(
               this,
               getClass()
@@ -1743,7 +1742,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
       // Use the standard Mac exit
       try {
-        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_9)) {
+        if (SystemUtils.isJavaVersionAtLeast(9.0f)) {
           OSXAdapterForJava9.setAboutHandler(
               this,
               getClass()
@@ -1786,7 +1785,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
       // Use the standard Mac About
       try {
-        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_9)) {
+        if (SystemUtils.isJavaVersionAtLeast(9.0f)) {
           OSXAdapterForJava9.setAboutHandler(
               this,
               getClass()
@@ -2283,7 +2282,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     // Groovy 2.x console doesn't work with Java 9. Disable it for now
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")
-        && SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_9)) {
+        && SystemUtils.isJavaVersionAtLeast(9.0f)) {
       useGroovyConsole = false;
     }
 

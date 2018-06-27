@@ -32,7 +32,6 @@
         <pathelement location="lib/jung-graph-impl-2.1.1.jar"/>
         <pathelement location="lib/jung-visualization-2.1.1.jar"/>
         <pathelement location="lib/guava-19.0.jar"/>
-        <pathelement location="lib/commons-lang3-3.7.jar"/>
         <pathelement location="lib/groovy-all-2.4.15.jar"/>
         <pathelement location="jdbcDrivers/h2-1.4.197.jar"/>
         <pathelement location="jdbcDrivers/mariadb-java-client-2.2.5.jar"/>
