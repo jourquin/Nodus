@@ -49,6 +49,7 @@ import edu.uclouvain.core.nodus.database.dbf.DBFReader;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
 import edu.uclouvain.core.nodus.services.ServiceEditor;
 import edu.uclouvain.core.nodus.utils.CheckForOM5;
+import edu.uclouvain.core.nodus.utils.CommentedProperties;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.NodusFileFilter;
 import edu.uclouvain.core.nodus.utils.ProjectLocker;
@@ -91,8 +92,6 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingConstants;
 
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
 import org.codehaus.groovy.control.CompilationFailedException;
 
 /**
@@ -235,7 +234,7 @@ public class NodusProject implements ShapeConstants {
    * Project properties. Implemented as a PropertiesConfiguration so that it can be updated without
    * any change to its original structure
    */
-  private PropertiesConfiguration projectProperties = null;
+  private CommentedProperties projectProperties = null;
 
   /** Full path to the projet's resource file. */
   private String projectResourceFileNameAndPath;
@@ -1014,7 +1013,7 @@ public class NodusProject implements ShapeConstants {
   /** Import the DBF tables specified in the project if needed. */
   private void importDBFTables(final JDBCUtils jdbcUtils) {
 
-    final String tablesToImport = projectProperties.getString(NodusC.PROP_IMPORT_TABLES, null);
+    final String tablesToImport = projectProperties.getProperty(NodusC.PROP_IMPORT_TABLES, null);
     final NodusProject _this = this;
 
     if (tablesToImport == null) {
@@ -1345,8 +1344,9 @@ public class NodusProject implements ShapeConstants {
     nodusMapPanel.setBusy(true);
 
     try {
-      projectProperties = new PropertiesConfiguration(projectResourceFileNameAndPath);
-    } catch (ConfigurationException e1) {
+      projectProperties = new CommentedProperties();
+      projectProperties.load(new FileInputStream(projectResourceFileNameAndPath));
+    } catch (IOException e1) {
       projectProperties = null;
     }
 
@@ -1367,11 +1367,11 @@ public class NodusProject implements ShapeConstants {
             projectResourceFileNameAndPath += NodusC.TYPE_NODUS;
           }
 
-          projectProperties = new PropertiesConfiguration();
+          projectProperties = new CommentedProperties();
           projectProperties.setProperty(NodusC.PROP_NETWORK_NODES, "");
           projectProperties.setProperty(NodusC.PROP_NETWORK_LINKS, "");
-          projectProperties.save(projectResourceFileNameAndPath);
-        } catch (ConfigurationException e) {
+          projectProperties.store(new FileOutputStream(projectResourceFileNameAndPath), null);
+        } catch (IOException e) {
           System.err.println("Caught IOException creating " + projectResourceFileNameAndPath);
         }
       } else {
@@ -1409,10 +1409,10 @@ public class NodusProject implements ShapeConstants {
     }
 
     // Merge the properties
-    Iterator<String> it = projectProperties.getKeys();
-    while (it.hasNext()) {
-      String key = it.next();
-      String value = projectProperties.getString(key);
+    Enumeration<Object> keys = projectProperties.keys();
+    while (keys.hasMoreElements()) {
+      String key = (String) keys.nextElement();
+      String value = projectProperties.getProperty(key);
       localProperties.setProperty(key, value);
     }
 
@@ -1518,10 +1518,10 @@ public class NodusProject implements ShapeConstants {
     /*
      * Another DB engine can be specified in the project file
      */
-    String jdbcDriver = projectProperties.getString(NodusC.PROP_JDBC_DRIVER, defaultDriver);
-    final String userName = projectProperties.getString(NodusC.PROP_JDBC_USERNAME, defaultUser);
-    final String password = projectProperties.getString(NodusC.PROP_JDBC_PASSWORD, defaultPassword);
-    final String jdbcURL = projectProperties.getString(NodusC.PROP_JDBC_URL, defaultURL);
+    String jdbcDriver = projectProperties.getProperty(NodusC.PROP_JDBC_DRIVER, defaultDriver);
+    final String userName = projectProperties.getProperty(NodusC.PROP_JDBC_USERNAME, defaultUser);
+    final String password = projectProperties.getProperty(NodusC.PROP_JDBC_PASSWORD, defaultPassword);
+    final String jdbcURL = projectProperties.getProperty(NodusC.PROP_JDBC_URL, defaultURL);
 
     // Change to MariaDB driver
     if (jdbcDriver.equals("com.mysql.jdbc.Driver")) {
@@ -1664,7 +1664,7 @@ public class NodusProject implements ShapeConstants {
     int layerPosition = 0;
 
     // Create new ESRI layer for the nodes
-    name = projectProperties.getString(NodusC.PROP_NETWORK_NODES);
+    name = projectProperties.getProperty(NodusC.PROP_NETWORK_NODES);
 
     // How many layers?
     StringTokenizer st = new StringTokenizer(name);
@@ -1693,7 +1693,7 @@ public class NodusProject implements ShapeConstants {
 
       // Get the pretty name given to the layer. Take shapefile name if none was defined.
       String prettyName =
-          projectProperties.getString(currentName + NodusC.PROP_PRETTY_NAME, currentName);
+          projectProperties.getProperty(currentName + NodusC.PROP_PRETTY_NAME, currentName);
       projectProperties.setProperty(currentName + NodusC.PROP_PRETTY_NAME, prettyName);
 
       nodeLayers[n] = new NodusEsriLayer();
@@ -1727,7 +1727,7 @@ public class NodusProject implements ShapeConstants {
     }
 
     // Create new ESRI layers for the links
-    name = projectProperties.getString(NodusC.PROP_NETWORK_LINKS);
+    name = projectProperties.getProperty(NodusC.PROP_NETWORK_LINKS);
 
     // How many layers?
     st = new StringTokenizer(name);
@@ -1756,7 +1756,7 @@ public class NodusProject implements ShapeConstants {
 
       // Get the pretty name given to the layer. Take shapefile name if none was defined.
       String prettyName =
-          projectProperties.getString(currentLayerName + NodusC.PROP_PRETTY_NAME, currentLayerName);
+          projectProperties.getProperty(currentLayerName + NodusC.PROP_PRETTY_NAME, currentLayerName);
       projectProperties.setProperty(currentLayerName + NodusC.PROP_PRETTY_NAME, prettyName);
 
       linkLayers[n] = new NodusEsriLayer();
@@ -1834,7 +1834,7 @@ public class NodusProject implements ShapeConstants {
     new ShapeIntegrityTester(this);
 
     // Load additional OpenMap layers if any
-    name = projectProperties.getString(NodusC.PROP_OPENMAP_LAYERS, null);
+    name = projectProperties.getProperty(NodusC.PROP_OPENMAP_LAYERS, null);
 
     Properties props = null;
 
@@ -2140,8 +2140,8 @@ public class NodusProject implements ShapeConstants {
   public void saveProperties() {
 
     try {
-      projectProperties.save(projectResourceFileNameAndPath);
-    } catch (ConfigurationException e) {
+      projectProperties.store(new FileOutputStream(projectResourceFileNameAndPath), null);
+    } catch (IOException e) {
       System.err.println("Caught IOException saving resources: " + projectResourceFileNameAndPath);
     }
   }
