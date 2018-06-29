@@ -77,7 +77,6 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Properties;
 import java.util.StringTokenizer;
@@ -1520,7 +1519,8 @@ public class NodusProject implements ShapeConstants {
      */
     String jdbcDriver = projectProperties.getProperty(NodusC.PROP_JDBC_DRIVER, defaultDriver);
     final String userName = projectProperties.getProperty(NodusC.PROP_JDBC_USERNAME, defaultUser);
-    final String password = projectProperties.getProperty(NodusC.PROP_JDBC_PASSWORD, defaultPassword);
+    final String password =
+        projectProperties.getProperty(NodusC.PROP_JDBC_PASSWORD, defaultPassword);
     final String jdbcURL = projectProperties.getProperty(NodusC.PROP_JDBC_URL, defaultURL);
 
     // Change to MariaDB driver
@@ -1756,7 +1756,8 @@ public class NodusProject implements ShapeConstants {
 
       // Get the pretty name given to the layer. Take shapefile name if none was defined.
       String prettyName =
-          projectProperties.getProperty(currentLayerName + NodusC.PROP_PRETTY_NAME, currentLayerName);
+          projectProperties.getProperty(
+              currentLayerName + NodusC.PROP_PRETTY_NAME, currentLayerName);
       projectProperties.setProperty(currentLayerName + NodusC.PROP_PRETTY_NAME, prettyName);
 
       linkLayers[n] = new NodusEsriLayer();

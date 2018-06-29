@@ -1,3 +1,24 @@
+/**
+ * Copyright (c) 1991-2018 Université catholique de Louvain
+ *
+ * <p>Center for Operations Research and Econometrics (CORE)
+ *
+ * <p>http://www.uclouvain.be
+ *
+ * <p>This file is part of Nodus.
+ *
+ * <p>Nodus is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * General Public License as published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * <p>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * <p>You should have received a copy of the GNU General Public License along with this program. If
+ * not, see <http://www.gnu.org/licenses/>.
+ */
+
 package edu.uclouvain.core.nodus.utils;
 
 import java.io.BufferedReader;
@@ -10,18 +31,21 @@ import java.io.PrintWriter;
 import java.util.Vector;
 
 /**
- * The CommentedProperties class is an extension of java.util.Properties to allow retention of
- * comment lines and blank (whitespace only) lines in the properties file.
+ * The CommentedProperties class is an extension of java.util.Properties that conserves comment
+ * lines in the properties file.
  *
- * <p>Written for Java version 1.4
+ * @author
+ *     https://www.dreamincode.net/forums/topic/53734-java-code-to-modify-properties-file-and-preserve-comments/
  */
 public class CommentedProperties extends java.util.Properties {
 
-  /** Use a Vector to keep a copy of lines that are a comment or 'blank' */
-  public Vector lineData = new Vector(0, 1);
+  private static final long serialVersionUID = 4132817967592863730L;
 
-  /** Use a Vector to keep a copy of lines containing a key, i.e. they are a property. */
-  public Vector keyData = new Vector(0, 1);
+  /* Use a Vector to keep a copy of lines that are a comment or 'blank'. */
+  public Vector<String> lineData = new Vector<String>(0, 1);
+
+  /* Use a Vector to keep a copy of lines containing a key, i.e. they are a property. */
+  public Vector<String> keyData = new Vector<String>(0, 1);
 
   /**
    * Load properties from the specified InputStream. Overload the load method in Properties so we
@@ -67,9 +91,13 @@ public class CommentedProperties extends java.util.Properties {
             // is no next line, just treat it as a key with an
             // empty value.
             line = reader.readLine();
-            if (line == null) line = "";
+            if (line == null) {
+              line = "";
+            }
             pos = 0;
-            while (pos < line.length() && Character.isWhitespace(c = line.charAt(pos))) pos++;
+            while (pos < line.length() && Character.isWhitespace(c = line.charAt(pos))) {
+              pos++;
+            }
           } else {
             c = line.charAt(pos++);
             switch (c) {
@@ -94,21 +122,35 @@ public class CommentedProperties extends java.util.Properties {
                 break;
             }
           }
-        } else if (needsEscape) key.append(c);
+        } else {
+          if (needsEscape) {
+            key.append(c);
+          }
+        }
       }
 
       boolean isDelim = (c == ':' || c == '=');
 
       String keyString;
-      if (needsEscape) keyString = key.toString();
-      else if (isDelim || Character.isWhitespace(c)) keyString = line.substring(start, pos - 1);
-      else keyString = line.substring(start, pos);
+      if (needsEscape) {
+        keyString = key.toString();
+      } else {
+        if (isDelim || Character.isWhitespace(c)) {
+          keyString = line.substring(start, pos - 1);
+        } else {
+          keyString = line.substring(start, pos);
+        }
+      }
 
-      while (pos < line.length() && Character.isWhitespace(c = line.charAt(pos))) pos++;
+      while (pos < line.length() && Character.isWhitespace(c = line.charAt(pos))) {
+        pos++;
+      }
 
       if (!isDelim && (c == ':' || c == '=')) {
         pos++;
-        while (pos < line.length() && Character.isWhitespace(c = line.charAt(pos))) pos++;
+        while (pos < line.length() && Character.isWhitespace(c = line.charAt(pos))) {
+          pos++;
+        }
       }
 
       // Short-circuit if no escape chars found.
@@ -133,10 +175,14 @@ public class CommentedProperties extends java.util.Properties {
             // We might have seen a backslash at the end of
             // the file.  The JDK ignores the backslash in
             // this case, so we follow for compatibility.
-            if (line == null) break;
+            if (line == null) {
+              break;
+            }
 
             pos = 0;
-            while (pos < line.length() && Character.isWhitespace(c = line.charAt(pos))) pos++;
+            while (pos < line.length() && Character.isWhitespace(c = line.charAt(pos))) {
+              pos++;
+            }
             element.ensureCapacity(line.length() - pos + element.length());
           } else {
             c = line.charAt(pos++);
@@ -162,7 +208,9 @@ public class CommentedProperties extends java.util.Properties {
                 break;
             }
           }
-        } else element.append(c);
+        } else {
+          element.append(c);
+        }
       }
       put(keyString, element.toString());
       // Save a "" in lineData and save this
@@ -220,7 +268,9 @@ public class CommentedProperties extends java.util.Properties {
     if (key) {
       buffer.setLength(0);
       buffer.ensureCapacity(str.length());
-    } else buffer.ensureCapacity(buffer.length() + str.length());
+    } else {
+      buffer.ensureCapacity(buffer.length() + str.length());
+    }
     boolean head = true;
     int size = str.length();
     for (int i = 0; i < size; i++) {
@@ -250,9 +300,13 @@ public class CommentedProperties extends java.util.Properties {
             String hex = Integer.toHexString(c);
             buffer.append("\\u0000".substring(0, 6 - hex.length()));
             buffer.append(hex);
-          } else buffer.append(c);
+          } else {
+            buffer.append(c);
+          }
       }
-      if (c != ' ') head = key;
+      if (c != ' ') {
+        head = key;
+      }
     }
   }
 

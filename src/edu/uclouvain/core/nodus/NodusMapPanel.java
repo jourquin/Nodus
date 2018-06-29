@@ -92,10 +92,11 @@ import edu.uclouvain.core.nodus.swing.OnTopKeeper;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NodusGroovyConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NotePad;
+import edu.uclouvain.core.nodus.utils.JavaVersionUtil;
 import edu.uclouvain.core.nodus.utils.NodusFileFilter;
 import edu.uclouvain.core.nodus.utils.PluginsLoader;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
-import edu.uclouvain.core.nodus.utils.JavaVersionUtil;
+
 import foxtrot.Job;
 import foxtrot.Worker;
 

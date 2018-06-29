@@ -64,7 +64,7 @@ public class JavaVersionUtil {
       }
     }
 
-    System.out.println(version);
+    //System.out.println(version);
 
     return version >= requiredVersion;
   }
