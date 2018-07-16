@@ -83,7 +83,6 @@ import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
-import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
 import javax.swing.JCheckBox;
@@ -528,11 +527,16 @@ public class NodusProject implements ShapeConstants {
 
       labelsLayer.setRemovable(true);
 
-      for (NodusEsriLayer nodeLayer : nodeLayers) {
-        nodeLayer.setRemovable(true);
+      if (nodeLayers != null) {
+        for (NodusEsriLayer nodeLayer : nodeLayers) {
+          nodeLayer.setRemovable(true);
+        }
       }
-      for (NodusEsriLayer linkLayer : linkLayers) {
-        linkLayer.setRemovable(true);
+
+      if (linkLayers != null) {
+        for (NodusEsriLayer linkLayer : linkLayers) {
+          linkLayer.setRemovable(true);
+        }
       }
 
       nodusMapPanel.getLayerHandler().removeAll();
@@ -571,10 +575,9 @@ public class NodusProject implements ShapeConstants {
       nodusMapPanel.setRenderingScaleThreshold(-1);
 
       // Close the log file for this project
-      Logger logger = Logger.getLogger(Nodus7.class.getName());
       loggerHandler.flush();
       loggerHandler.close();
-      logger.removeHandler(loggerHandler);
+      Nodus7.logger.removeHandler(loggerHandler);
 
       nodusMapPanel.setBusy(false);
       nodusMapPanel.getMenuFile().setEnabled(true);
@@ -1387,11 +1390,10 @@ public class NodusProject implements ShapeConstants {
     projectPath = projectPath.substring(0, projectPath.lastIndexOf(name) - 1) + File.separator;
 
     // Open the log file for this project
-    Logger logger = Logger.getLogger(Nodus7.class.getName());
     try {
       loggerHandler = new FileHandler(projectPath + "nodus.log", true);
       loggerHandler.setFormatter(new SimpleFormatter());
-      logger.addHandler(loggerHandler);
+      Nodus7.logger.addHandler(loggerHandler);
     } catch (SecurityException e1) {
       e1.printStackTrace();
     } catch (IOException e1) {
@@ -2106,8 +2108,7 @@ public class NodusProject implements ShapeConstants {
         }
       }
 
-      Logger logger = Logger.getLogger(Nodus7.class.getName());
-      logger.info("Rollback project");
+      Nodus7.logger.info("Rollback project");
       nodusMapPanel.setBusy(false);
     }
   }
@@ -2131,8 +2132,8 @@ public class NodusProject implements ShapeConstants {
           element.save();
         }
       }
-      Logger logger = Logger.getLogger(Nodus7.class.getName());
-      logger.info("Save project");
+  
+      Nodus7.logger.info("Save project");
       nodusMapPanel.setBusy(false);
     }
   }

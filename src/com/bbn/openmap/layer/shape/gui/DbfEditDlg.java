@@ -635,8 +635,16 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
    * first with the field names, the second with the associated values.
    */
   private void initialize() {
-    List<Object> values =
-        nodusEsriLayer.getModel().getRecord(nodusEsriLayer.getSelectedGraphicIndex());
+
+    if (nodusEsriLayer == null) {
+      return;
+    }
+
+    DbfTableModel model = nodusEsriLayer.getModel();
+    if (model == null) {
+      return;
+    }
+    List<Object> values = model.getRecord(nodusEsriLayer.getSelectedGraphicIndex());
 
     oldValues = values.toArray();
 

@@ -245,6 +245,10 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
             }
           }
 
+          if (jvl == null) {
+            return "";
+          }
+
           String label =
               "<html>"
                   + "From&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: "

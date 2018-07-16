@@ -93,6 +93,10 @@ public class PluginsLoader {
               }
             });
 
+    if (jarFiles == null) {
+      return;
+    }
+
     for (int i = 0; i < jarFiles.length; i++) {
 
       try {

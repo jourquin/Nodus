@@ -554,8 +554,10 @@ public class StatPieDlg extends EscapeDialog {
                   default:
                     break;
                 }
-                chartPanel.setName("" + index);
-                tabbedPanes.setComponentAt(tabbedPanes.getSelectedIndex(), chartPanel);
+                if (chartPanel != null) {
+                  chartPanel.setName("" + index);
+                  tabbedPanes.setComponentAt(tabbedPanes.getSelectedIndex(), chartPanel);
+                }
               }
 
               fillTable();

@@ -55,7 +55,7 @@ public class ODReader {
   /** I18N mechanism. */
   private static I18n i18n = Environment.getI18n();
 
-  private static JDBCUtils jdbcUtils = null;
+  private JDBCUtils jdbcUtils = null;
 
   /**
    * Returns a list containing all the valid OD tables foun in the database.
@@ -68,6 +68,8 @@ public class ODReader {
     Connection jdbcConnection = nodusProject.getMainJDBCConnection();
     DatabaseMetaData metaData;
     Vector<String> tables = new Vector<>();
+
+    JDBCUtils jdbcUtils;
     jdbcUtils = new JDBCUtils(jdbcConnection);
 
     String shema = null;
@@ -150,9 +152,8 @@ public class ODReader {
    */
   private static boolean isValidBasicODTable(Connection jdbcConnection, String odTableName) {
 
-    if (jdbcUtils == null) {
-      jdbcUtils = new JDBCUtils(jdbcConnection);
-    }
+    JDBCUtils jdbcUtils;
+    jdbcUtils = new JDBCUtils(jdbcConnection);
 
     // Test the structure of the table
     try {

@@ -660,7 +660,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     mainPanel.add(getHighlightedAreaCheckBox(), highlightedAreaCheckBoxConstraint);
     mainPanel.add(servicesLabel, servicesLabelConstraints);
     mainPanel.add(servicesTextField, servicesTextFieldConstraints);
-    
+
     int intDefValue = 0;
     int intValue = nodusProject.getLocalProperty(NodusC.PROP_SCENARIO, intDefValue);
     SpinnerNumberModel sp = new SpinnerNumberModel(intValue, 0, NodusC.MAXSCENARIOS - 1, 1);
@@ -750,8 +750,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
         NodusC.PROP_ADD_HIGHLIGHTED_AREA, highlightedAreaCheckBox.isSelected());
     nodusProject.setLocalProperty(
         NodusC.PROP_SAVE_ALL_VN, saveAllVirtualLinksCheckBox.isSelected());
-    nodusProject.setLocalProperty(
-            NodusC.PROP_SHUTDOWN_COMPACT, compactCheckBox.isSelected());
+    nodusProject.setLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, compactCheckBox.isSelected());
     nodusProject.setLocalProperty(NodusC.PROP_SCENARIO, scenarioSpinner.getValue().toString());
     nodusProject.setLocalProperty(NodusC.PROP_MAX_RADIUS, radiusSpinner.getValue().toString());
     nodusProject.setLocalProperty(NodusC.PROP_MAX_WIDTH, widthSpinner.getValue().toString());
@@ -841,6 +840,10 @@ public class ProjectPreferencesDlg extends EscapeDialog {
       File dir = new File(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
       FileFilter fileFilter = new WildcardFileFilter("*.costs");
       File[] costsFilesNames = dir.listFiles(fileFilter);
+      if (costsFilesNames == null) {
+        return;
+      }
+
       List<String> items = new LinkedList<>();
       for (File costsFilesName : costsFilesNames) {
         items.add(costsFilesName.getName());
@@ -868,10 +871,9 @@ public class ProjectPreferencesDlg extends EscapeDialog {
 
     saveAllVirtualLinksCheckBox.setSelected(
         nodusProject.getLocalProperty(NodusC.PROP_SAVE_ALL_VN, false));
-    
-    compactCheckBox.setSelected(
-            nodusProject.getLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, true));
-    
+
+    compactCheckBox.setSelected(nodusProject.getLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, true));
+
     cancelButton.setEnabled(true);
     okButton.setEnabled(true);
   }

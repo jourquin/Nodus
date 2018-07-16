@@ -44,7 +44,6 @@ import com.bbn.openmap.proj.Length;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
 
-import edu.uclouvain.core.nodus.Nodus7;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
@@ -83,7 +82,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
-import java.util.logging.Logger;
 
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
@@ -144,9 +142,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
   /** List of links that have sample origin and destination. */
   private LinkedList<Integer> linksToRemove = null;
-
-  /** Log4J used to log changes in shape files. */
-  private Logger logger;
 
   /** Location handler that is associated withb this layer. */
   private NodusLocationHandler nodusLocationHandler = null;
@@ -441,6 +436,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     }
 
     sqlStmt += ")";
+    
     executeUpdateSqlStmt(sqlStmt);
 
     reloadLabels();
@@ -705,7 +701,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
    *
    * @param sqlStmt The SQL update sentence.
    */
-  public void executeUpdateSqlStmt(String sqlStmt) {
+  public void executeUpdateSqlStmt(final String sqlStmt) {
     try {
       Connection con = nodusProject.getMainJDBCConnection();
       Statement stmt = con.createStatement();
@@ -1560,19 +1556,17 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   public void setProject(NodusProject nodusProject, String layerName) {
 
     this.nodusProject = nodusProject;
-    logger = Logger.getLogger(Nodus7.class.getName());
-
-    String realLayerName = "";
-
-    if (layerName != null) {
-      realLayerName = layerName;
+   
+    if (layerName == null) {
+      System.err.println("NodusEsriLayer.setProject: layer name is null");
+      return;
     }
 
     // Basic settings needed to create a valid EsriLayer
     jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
 
     tablePath = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
-    tableName = nodusProject.getLocalProperty(realLayerName + NodusC.PROP_NAME);
+    tableName = nodusProject.getLocalProperty(layerName + NodusC.PROP_NAME);
 
     /*
      * Fix the shape file if bugged (shape created/ files written by means of
@@ -1584,11 +1578,11 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     String shapeFile = tablePath + tableName + NodusC.TYPE_SHP;
     String indexFile = tablePath + tableName + NodusC.TYPE_SHX;
     String dbfFile = tablePath + tableName + NodusC.TYPE_DBF;
-    p.setProperty(realLayerName + NodusC.TYPE_SHP, shapeFile);
-    p.setProperty(realLayerName + NodusC.TYPE_SHX, indexFile);
-    p.setProperty(realLayerName + NodusC.TYPE_DBF, dbfFile);
+    p.setProperty(layerName + NodusC.TYPE_SHP, shapeFile);
+    p.setProperty(layerName + NodusC.TYPE_SHX, indexFile);
+    p.setProperty(layerName + NodusC.TYPE_DBF, dbfFile);
 
-    setProperties(realLayerName, p);
+    setProperties(layerName, p);
 
     // Restore saved settings
     displayDbfTooltips =

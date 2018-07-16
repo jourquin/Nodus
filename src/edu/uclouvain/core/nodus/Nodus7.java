@@ -68,7 +68,7 @@ public class Nodus7 {
       Toolkit.getDefaultToolkit().createImage(Nodus7.class.getResource("nodus7.png"));
 
   /* Logger */
-  private static final Logger logger = Logger.getLogger(Nodus7.class.getName());
+  public static final Logger logger = Logger.getLogger(Nodus7.class.getName());
 
   /**
    * Properties file used to load/save the "state" of the application when it was closed the last

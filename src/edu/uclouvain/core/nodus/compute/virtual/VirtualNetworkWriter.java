@@ -47,7 +47,7 @@ public class VirtualNetworkWriter {
 
   private static I18n i18n = Environment.getI18n();
 
-  private static NodusMapPanel nodusMapPanel;
+  private NodusMapPanel nodusMapPanel;
 
   private static boolean saveCompleteVirtualNetwork;
 
@@ -83,7 +83,7 @@ public class VirtualNetworkWriter {
     if (confirm) {
       int answer =
           JOptionPane.showConfirmDialog(
-              nodusMapPanel,
+              nodusProject.getNodusMapPanel(),
               i18n.get(VirtualNetworkWriter.class, "Clear_existent_flows", "Clear existent flows?"),
               i18n.get(
                   VirtualNetworkWriter.class, "Scenario_already_exists", "Scenario already exists"),

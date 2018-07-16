@@ -111,8 +111,7 @@ public class SoundPlayer {
   /** Plays the sound. */
   private void playSound() {
 
-    try {
-      // At present, ALAW and ULAW encodings must be converted
+    try { // At present, ALAW and ULAW encodings must be converted
       // to PCM_SIGNED before it can be played
       AudioFormat format = stream.getFormat();
       if (format.getEncoding() != AudioFormat.Encoding.PCM_SIGNED) {
@@ -137,11 +136,8 @@ public class SoundPlayer {
               (int) stream.getFrameLength() * format.getFrameSize());
 
       final Clip clip;
-      try {
-        clip = (Clip) AudioSystem.getLine(info);
-      } catch (Exception e) {
-        return;
-      }
+
+      clip = (Clip) AudioSystem.getLine(info);
 
       // This method does not return until the audio file is completely
       // loaded
@@ -164,10 +160,9 @@ public class SoundPlayer {
             }
           },
           length + 1000);
-
-    } catch (LineUnavailableException e) {
-      // e.printStackTrace();
-    } catch (IOException e) {
+    } catch (LineUnavailableException e) { 
+      //e.printStackTrace();
+    } catch (IOException e) { 
       e.printStackTrace();
     }
   }

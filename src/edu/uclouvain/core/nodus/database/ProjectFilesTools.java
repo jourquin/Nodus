@@ -328,7 +328,7 @@ public class ProjectFilesTools implements ShapeConstants {
    *
    * @param path The directory in which the shapefile must be created.
    * @param layerType The type of layer. Can be SHAPE_TYPE_POINT or SHAPE_TYPE_POLYLINE.
-   * @return An array of valid layer names.
+   * @return An array of valid layer names or null if no layers are available.
    */
   public static String[] getAvailableLayers(String path, int layerType) {
     LinkedList<String> availableLayers = new LinkedList<>();
@@ -343,7 +343,9 @@ public class ProjectFilesTools implements ShapeConstants {
         };
 
     String[] children = dir.list(filter);
-
+    if (children == null) {
+      return null;
+    }
     for (String element : children) {
       String name = element.substring(0, element.lastIndexOf(NodusC.TYPE_SHP));
 
@@ -530,8 +532,8 @@ public class ProjectFilesTools implements ShapeConstants {
   }
 
   /**
-   * Verifies if the different shape files listed in a project property file (nodes and
-   * links) correspond to what is expected by Nodus: <br>
+   * Verifies if the different shape files listed in a project property file (nodes and links)
+   * correspond to what is expected by Nodus: <br>
    * - The shape files must contain points or polylines; <br>
    * - The .dbf files must have some mandatory fields. <br>
    *

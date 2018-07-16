@@ -431,7 +431,7 @@ public class AssignmentParameters {
   public void setPostAssignmentScript(String postAssignmentScript) {
 
     postAssignmentScript = postAssignmentScript.trim();
-    if (postAssignmentScript == "") {
+    if (postAssignmentScript.equals("")) {
       postAssignmentScript = null;
     }
     this.postAssignmentScript = postAssignmentScript;

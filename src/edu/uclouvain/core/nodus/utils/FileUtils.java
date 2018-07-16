@@ -77,18 +77,28 @@ public class FileUtils {
    */
   public static void deleteFile(File file) throws IOException {
 
+    if (file == null) {
+      return;
+    }
+
     if (file.isDirectory()) {
 
       // directory is empty, then delete it
-      if (file.list().length == 0) {
-
+      String[] fileList = file.list();
+      if (fileList == null) {
+        return;
+      }
+      
+      if (fileList.length == 0) {
         file.delete();
-        System.out.println("Directory is deleted : " + file.getAbsolutePath());
 
       } else {
 
         // list all the directory contents
         String[] files = file.list();
+        if (files == null) {
+          return;
+        }
 
         for (String temp : files) {
           // construct the file structure
@@ -99,7 +109,8 @@ public class FileUtils {
         }
 
         // check the directory again, if empty then delete it
-        if (file.list().length == 0) {
+        fileList = file.list();
+        if (fileList != null && fileList.length == 0) {
           file.delete();
         }
       }

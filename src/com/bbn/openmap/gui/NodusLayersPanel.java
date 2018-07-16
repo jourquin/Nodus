@@ -57,12 +57,12 @@ public class NodusLayersPanel extends LayersPanel {
   private static final String LAYER_EDIT_CMD = "LayerEditCmd";
 
   /** Icon to be associated to the "layers edit" command. */
-  private static transient ImageIcon layersgif;
+  private ImageIcon layersgif;
 
   static final long serialVersionUID = -5097425479334326616L;
 
   /** URL of the "edit layers" icon. */
-  private static transient URL urllayers;
+  private URL urllayers;
 
   private JButton editLayersButton;
 

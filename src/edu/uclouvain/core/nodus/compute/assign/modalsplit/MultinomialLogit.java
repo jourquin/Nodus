@@ -41,9 +41,9 @@ import javax.swing.JOptionPane;
  */
 public class MultinomialLogit extends ModalSplitMethod {
 
-  private static I18n i18n = Environment.getI18n();
+  private I18n i18n = Environment.getI18n();
 
-  private static boolean warningAlreadyDisplayed = false;
+  private boolean warningAlreadyDisplayed = false;
 
   @Override
   public String getName() {

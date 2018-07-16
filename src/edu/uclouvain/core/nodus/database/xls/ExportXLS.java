@@ -106,7 +106,6 @@ public class ExportXLS {
       try {
         rs = stmt.executeQuery(sqlStmt);
       } catch (Exception e) {
-        rs.close();
         return false;
       }
 
