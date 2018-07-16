@@ -5,7 +5,6 @@
               directory with the processing instruction <?eclipse.ant.import?>
               as the first entry and export the buildfile again. --><project basedir="." default="build" name="Nodus7.0">
     <property environment="env"/>
-    <property name="MLogit.location" value="../../../jourquinb/workspace/MLogit"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.7"/>
     <property name="source" value="1.7"/>
@@ -15,7 +14,6 @@
         <pathelement location="jdbcDrivers/derby.jar"/>
         <pathelement location="jdbcDrivers/hsqldb.jar"/>
         <pathelement location="lib/commons-collections4-4.1.jar"/>
-        <pathelement location="lib/commons-configuration-1.10.jar"/>
         <pathelement location="lib/foxtrot-core-4.0.jar"/>
         <pathelement location="lib/JCheckList.jar"/>
         <pathelement location="lib/JResourcesMonitor.jar"/>
@@ -39,14 +37,11 @@
         <pathelement location="jdbcDrivers/sqlite-jdbc-3.23.1.jar"/>
         <pathelement location="lib/parsii-3.1.jar"/>
         <pathelement location="lib/xchart-3.5.2.jar"/>
-        <pathelement location="lib/commons-lang-2.6.jar"/>
-        <pathelement location="lib/commons-logging-1.2.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
         <copy includeemptydirs="false" todir="classes">
             <fileset dir="src">
-                <exclude name="**/*.launch"/>
                 <exclude name="**/*.java"/>
             </fileset>
         </copy>
@@ -64,17 +59,14 @@
             <classpath refid="Nodus7.0.classpath"/>
         </javac>
     </target>
-    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects">
-        <ant antfile="build.xml" dir="${MLogit.location}" inheritAll="false" target="clean"/>
-        <ant antfile="build.xml" dir="${MLogit.location}" inheritAll="false" target="build"/>
-    </target>
+    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
     <target name="Nodus7">
         <java classname="edu.uclouvain.core.nodus.Nodus7" failonerror="true" fork="yes">
             <jvmarg line="-Xmx6G -Xms4G"/>
             <classpath refid="Nodus7.0.classpath"/>
         </java>
     </target>
-    <target name="test">
+    <target name="Test">
         <java classname="edu.uclouvain.core.nodus.test" failonerror="true" fork="yes">
             <classpath refid="Nodus7.0.classpath"/>
         </java>
