@@ -6,7 +6,8 @@ Econometrics ([CORE](https://uclouvain.be/fr/node/4474)) of the Université cath
 ([UCL](http://www.uclouvain.be/), Belgium)). The software is developed  and maintained mainly by 
 [Pr Bart Jourquin](https://uclouvain.be/en/directories/bart.jourquin). 
   
-The Nodus installer and sources can be downloaded from [GitHub](https://github.com/jourquin/Nodus/releases).
+Beside the [GitHib Pages website](http://nodus.uclouvain.be), the Nodus binaries and sources can be downloaded 
+from [GitHub](https://github.com/jourquin/Nodus/releases).
 
 ## Introduction
 
@@ -26,7 +27,7 @@ freight transport networks, such as:
 - Estimation of market areas of container hubs
 - ...
 
-Numerous scientific articles has been written in which Nodus was used. Most of these papers,
+Numerous scientific articles have been written in which Nodus was used. Most of these papers,
 along with contributions to congresses and seminars can be found on 
 [Research Gate](https://www.researchgate.net/profile/B_Jourquin).
 
@@ -35,7 +36,7 @@ along with contributions to congresses and seminars can be found on
 - Compatible with GIS standards: shape files and web mapping, using [OpenMap](http://openmap-java.org/).
 - Parallelized algorithms: able to handle very large networks.
 - Portable: Linux-Mac-Windows
-- Open API: available through scripting (using the [Groovy](http://groovy-lang.org/) language) or plugin’s
+- Open API: available through scripting (using the [Groovy](http://groovy-lang.org/) language) or plugins
 - JDBC: compatible with most DBMS’s. Shipped with [HSQLDB](http://hsqldb.org/),
 [H2](http://h2database.com/) and [Apache Derby](https://db.apache.org/derby/).  
 - Flexible: user defined database fields, variables, cost functions, mode choice models…
@@ -105,6 +106,10 @@ This can be useful for instance when some bugs have been fixed in the source tre
 enhancements have been introduced without any change in the used external libraries.
 
 You can also import Nodus as an [Eclipse](http://www.eclipse.org/) project.
+
+## Code robustness
+The [Checkstyle](https://checkstyle.org) and [SpotBugs](https://spotbugs.github.io) plugins are used in Eclipse 
+in order to write code that adheres to the Google Java coding standard and to look for bugs in Java code.
    
 ## Uninstall
 
