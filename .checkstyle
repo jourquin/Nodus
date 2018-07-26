@@ -4,7 +4,7 @@
   <local-check-config name="Nodus" location="devtools/NodusGoogleCheckstyle.xml" type="project" description="Google based, but allows successive uppercase letters in method names">
     <additional-data name="protect-config-file" value="false"/>
   </local-check-config>
-  <fileset name="all" enabled="true" check-config-name="Nodus" local="true">
+  <fileset name="all" enabled="true" check-config-name="Nodus Google" local="false">
     <file-match-pattern match-pattern="." include-pattern="true"/>
   </fileset>
   <filter name="DerivedFiles" enabled="true"/>

@@ -50,7 +50,6 @@ import java.text.MessageFormat;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.logging.Logger;
 
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
@@ -339,7 +338,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
             int num = nodusMapPanel.getNodusProject().getNewLinkId();
             isSuccessfullyAdded = linksLayers[index].addRecord(ompl, num, numNode1, numNode2, true);
             if (isSuccessfullyAdded) {
-            	Nodus7.logger.info("Add link " + num + " to " + linksLayers[index].getName());
+              Nodus7.logger.info("Add link " + num + " to " + linksLayers[index].getName());
             }
             // linksLayers[index].doPrepare();
 
@@ -379,7 +378,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
               isSuccessfullyAdded =
                   linksLayers[index].addRecord(ompl, num, numNode1, numNode2, true);
               if (isSuccessfullyAdded) {
-            	  Nodus7.logger.info("Add link " + num + " to " + linksLayers[index].getName());
+                Nodus7.logger.info("Add link " + num + " to " + linksLayers[index].getName());
               }
             }
         }
@@ -470,7 +469,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
             nodesLayers[index].addRecord(ep, lineSplitter.getInsertedNode(), true);
         // System.out.println(isSuccessfullyAdded);
         if (isSuccessfullyAdded) {
-        	Nodus7.logger.info(
+          Nodus7.logger.info(
               "Add node " + lineSplitter.getInsertedNode() + " to " + nodesLayers[index].getName());
 
           try {
@@ -539,7 +538,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
               nodesLayers[index].addRecord(ep, lineSplitter.getInsertedNode(), true);
 
           if (isSuccessfullyAdded) {
-        	  Nodus7.logger.info(
+            Nodus7.logger.info(
                 "Add node "
                     + lineSplitter.getInsertedNode()
                     + " to "
