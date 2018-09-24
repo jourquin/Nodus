@@ -249,7 +249,8 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
                 lineSplitter.getDestinationNode(),
                 false);
         if (isSuccessfullyAdded) {
-          Nodus7.logger.info("Add link " + newNumber + " to " + linksLayers[layerindex].getName());
+          Nodus7.nodusLogger.info(
+              "Add link " + newNumber + " to " + linksLayers[layerindex].getName());
 
           int index = 0;
           EsriGraphicList list = linksLayers[layerindex].getEsriGraphicList();
@@ -338,7 +339,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
             int num = nodusMapPanel.getNodusProject().getNewLinkId();
             isSuccessfullyAdded = linksLayers[index].addRecord(ompl, num, numNode1, numNode2, true);
             if (isSuccessfullyAdded) {
-              Nodus7.logger.info("Add link " + num + " to " + linksLayers[index].getName());
+              Nodus7.nodusLogger.info("Add link " + num + " to " + linksLayers[index].getName());
             }
             // linksLayers[index].doPrepare();
 
@@ -378,7 +379,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
               isSuccessfullyAdded =
                   linksLayers[index].addRecord(ompl, num, numNode1, numNode2, true);
               if (isSuccessfullyAdded) {
-                Nodus7.logger.info("Add link " + num + " to " + linksLayers[index].getName());
+                Nodus7.nodusLogger.info("Add link " + num + " to " + linksLayers[index].getName());
               }
             }
         }
@@ -469,7 +470,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
             nodesLayers[index].addRecord(ep, lineSplitter.getInsertedNode(), true);
         // System.out.println(isSuccessfullyAdded);
         if (isSuccessfullyAdded) {
-          Nodus7.logger.info(
+          Nodus7.nodusLogger.info(
               "Add node " + lineSplitter.getInsertedNode() + " to " + nodesLayers[index].getName());
 
           try {
@@ -538,7 +539,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
               nodesLayers[index].addRecord(ep, lineSplitter.getInsertedNode(), true);
 
           if (isSuccessfullyAdded) {
-            Nodus7.logger.info(
+            Nodus7.nodusLogger.info(
                 "Add node "
                     + lineSplitter.getInsertedNode()
                     + " to "
@@ -774,7 +775,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
             return;
           }
 
-          Nodus7.logger.info("Delete link " + num + " from " + element.getName());
+          Nodus7.nodusLogger.info("Delete link " + num + " from " + element.getName());
 
           element.removeRecord(index);
           element.doPrepare();
@@ -832,7 +833,8 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
             nodesLayers[gl.indexOfLayer]
                 .getModel()
                 .getValueAt(gl.indexInLayer, NodusC.DBF_IDX_NUM));
-    Nodus7.logger.info("Delete node " + num + " from " + nodesLayers[gl.indexOfLayer].getName());
+    Nodus7.nodusLogger.info(
+        "Delete node " + num + " from " + nodesLayers[gl.indexOfLayer].getName());
 
     nodesLayers[gl.indexOfLayer].removeRecord(gl.indexInLayer);
     nodesLayers[gl.indexOfLayer].doPrepare();
@@ -1274,7 +1276,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
                 linksLayers[layerIndexOfSelectedGraphic]
                     .getModel()
                     .getValueAt(index, NodusC.DBF_IDX_NUM));
-        Nodus7.logger.info(
+        Nodus7.nodusLogger.info(
             "Move link " + num + " in " + linksLayers[layerIndexOfSelectedGraphic].getName());
       }
       // set the end nodes in dbf
@@ -1330,7 +1332,8 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
     List<Object> values = nodesLayers[gil.indexOfLayer].getModel().getRecord(gil.indexInLayer);
 
     int nodeId = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NUM));
-    Nodus7.logger.info("Move node " + nodeId + " in " + nodesLayers[gil.indexOfLayer].getName());
+    Nodus7.nodusLogger.info(
+        "Move node " + nodeId + " in " + nodesLayers[gil.indexOfLayer].getName());
 
     for (NodusEsriLayer element : linksLayers) {
       // boolean isDirty = false;
@@ -1702,7 +1705,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
         if (selectedGraphic instanceof EsriPoint) {
           t = "node";
         }
-        Nodus7.logger.info(
+        Nodus7.nodusLogger.info(
             "Transfer "
                 + t
                 + " "

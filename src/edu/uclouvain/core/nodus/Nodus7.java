@@ -68,7 +68,7 @@ public class Nodus7 {
       Toolkit.getDefaultToolkit().createImage(Nodus7.class.getResource("nodus7.png"));
 
   /* Logger */
-  public static final Logger logger = Logger.getLogger(Nodus7.class.getName());
+  public static final Logger nodusLogger = Logger.getLogger(Nodus7.class.getName());
 
   /**
    * Properties file used to load/save the "state" of the application when it was closed the last
@@ -96,8 +96,8 @@ public class Nodus7 {
 
     Environment.init();
 
-    logger.setUseParentHandlers(false);
-    logger.setLevel(Level.ALL);
+    nodusLogger.setUseParentHandlers(false);
+    nodusLogger.setLevel(Level.ALL);
 
     // Trick used to avoid "no appender" Log4J warning message from HSQLDB
     //Logger rootLogger = Logger.getRootLogger();

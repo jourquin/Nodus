@@ -577,7 +577,7 @@ public class NodusProject implements ShapeConstants {
       // Close the log file for this project
       loggerHandler.flush();
       loggerHandler.close();
-      Nodus7.logger.removeHandler(loggerHandler);
+      Nodus7.nodusLogger.removeHandler(loggerHandler);
 
       nodusMapPanel.setBusy(false);
       nodusMapPanel.getMenuFile().setEnabled(true);
@@ -1393,7 +1393,7 @@ public class NodusProject implements ShapeConstants {
     try {
       loggerHandler = new FileHandler(projectPath + "nodus.log", true);
       loggerHandler.setFormatter(new SimpleFormatter());
-      Nodus7.logger.addHandler(loggerHandler);
+      Nodus7.nodusLogger.addHandler(loggerHandler);
     } catch (SecurityException e1) {
       e1.printStackTrace();
     } catch (IOException e1) {
@@ -2108,7 +2108,7 @@ public class NodusProject implements ShapeConstants {
         }
       }
 
-      Nodus7.logger.info("Rollback project");
+      Nodus7.nodusLogger.info("Rollback project");
       nodusMapPanel.setBusy(false);
     }
   }
@@ -2133,7 +2133,7 @@ public class NodusProject implements ShapeConstants {
         }
       }
   
-      Nodus7.logger.info("Save project");
+      Nodus7.nodusLogger.info("Save project");
       nodusMapPanel.setBusy(false);
     }
   }

@@ -35,6 +35,8 @@ import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -202,6 +204,9 @@ public class NodusMapTileLayer extends MapTileLayer {
   /** Specify the cache dir name. */
   @Override
   public void setProperties(String prefix, Properties props) {
+
+    // Avoid display of tile info in each tile.
+    Logger.getLogger("MAPTILE_DEBUGGING").setLevel(Level.OFF);
 
     this.props = props;
     this.prefix = prefix;

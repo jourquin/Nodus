@@ -21,7 +21,6 @@
 	<classpathentry kind="lib" path="lib/poi-ooxml-3.17.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-schemas-3.17.jar"/>
 	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.0.0-SNAPSHOT.jar"/>
-	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/openmap6.0b"/>
 	<classpathentry kind="lib" path="lib/commons-csv-1.5.jar"/>
 	<classpathentry kind="lib" path="lib/commons-io-2.6.jar"/>
 	<classpathentry kind="lib" path="lib/jung-algorithms-2.1.1.jar"/>
@@ -36,5 +35,6 @@
 	<classpathentry kind="lib" path="jdbcDrivers/sqlite-jdbc-3.23.1.jar"/>
 	<classpathentry kind="lib" path="lib/parsii-3.1.jar"/>
 	<classpathentry kind="lib" path="lib/xchart-3.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/openmap6.0b/src"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
