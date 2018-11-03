@@ -61,6 +61,7 @@ public class ExportDBF implements ShapeConstants {
 
     int fieldNum = 0;
 
+    // TODO Handle "Double" values, and not only "Decimal" types. Check DBF specs
     try {
       // Create a result set
       DatabaseMetaData dbmd = con.getMetaData();
@@ -234,7 +235,7 @@ public class ExportDBF implements ShapeConstants {
    * @return boolean
    */
   private static boolean exportDbf(NodusProject nodusProject, String tableName) {
-    System.out.println("exportDbf...");
+    //System.out.println("exportDbf...");
 
     DBFWriter dbf = createTable(nodusProject, tableName);
 

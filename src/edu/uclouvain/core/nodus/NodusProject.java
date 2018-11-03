@@ -262,7 +262,7 @@ public class NodusProject implements ShapeConstants {
    *
    * @param props Properties that contains the description of the layers.
    */
-  // TODO : Test Internet connection for layers needing it (WMS, Tiles,...)
+  // TODO Test Internet connection for layers needing it (WMS, Tiles,...)
   public void addOpenMapLayers(Properties props) {
     // Test if valid openmap file
     String s = props.getProperty(NodusC.PROP_OPENMAP_LAYERS);
@@ -271,7 +271,7 @@ public class NodusProject implements ShapeConstants {
       return;
     }
 
-    // Fet the path to the project
+    // Fetch the path to the project
     String projectPath = localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH);
 
     // Upgrade layer class names
