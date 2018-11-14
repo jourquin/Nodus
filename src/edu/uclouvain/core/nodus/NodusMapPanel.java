@@ -1708,31 +1708,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     menuFile.add(menuItemFileOpen);
 
-    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
-        && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
-      // Use the standard Mac preferences
-      try {
-        if (JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
-          OSXAdapterForJava9.setPreferencesHandler(
-              this,
-              getClass()
-                  .getDeclaredMethod(
-                      "menuItemFileGlobalPreferencesActionPerformed9",
-                      new Class[] {EventObject.class}));
-        } else {
-          OSXAdapter.setPreferencesHandler(
-              this,
-              getClass()
-                  .getDeclaredMethod(
-                      "menuItemFileGlobalPreferencesActionPerformed", (Class[]) null));
-        }
-      } catch (NoSuchMethodException | SecurityException e) {
-        e.printStackTrace();
-      }
+    setGlobalPreferencesMenu();
 
-    } else {
-      menuFile.add(menuItemSystemProperties);
-    }
     menuFile.add(menuItemFileSave);
     menuFile.add(menuItemFileClose);
     menuFile.add(menuItemFileSaveAs);
@@ -1800,6 +1777,35 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       }
     } else {
       menuHelp.add(menuItemHelpAbout);
+    }
+  }
+
+  /** Set application preferences. Takes OSX specification into account */
+  private void setGlobalPreferencesMenu() {
+    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
+        && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
+      // Use the standard Mac preferences
+      try {
+        if (JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
+          OSXAdapterForJava9.setPreferencesHandler(
+              this,
+              getClass()
+                  .getDeclaredMethod(
+                      "menuItemFileGlobalPreferencesActionPerformed9",
+                      new Class[] {EventObject.class}));
+        } else {
+          OSXAdapter.setPreferencesHandler(
+              this,
+              getClass()
+                  .getDeclaredMethod(
+                      "menuItemFileGlobalPreferencesActionPerformed", (Class[]) null));
+        }
+      } catch (NoSuchMethodException | SecurityException e) {
+        e.printStackTrace();
+      }
+
+    } else {
+      menuFile.add(menuItemSystemProperties);
     }
   }
 
@@ -2281,10 +2287,10 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         Boolean.parseBoolean(nodusProperties.getProperty(NodusC.PROP_USE_GROOVY_CONSOLE, "false"));
 
     // Groovy 2.x console doesn't work with Java 9. Disable it for now
-    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
+    /*if (System.getProperty("os.name").toLowerCase().startsWith("mac")
         && JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
       useGroovyConsole = false;
-    }
+    }*/
 
     if (!useGroovyConsole) {
       new NodusGroovyConsole(this, path, "");
@@ -2313,6 +2319,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       consoleFrame.setVisible(false);
       consoleFrame.setLocationRelativeTo(this);
       consoleFrame.setVisible(true);
+
+      // Reset the preferences menu (overloaded by the Groovy console on OSX with Java 9
+      setGlobalPreferencesMenu();
     }
   }
 

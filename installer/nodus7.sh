@@ -23,7 +23,7 @@ SCRIPT=$PHYS_DIR/$TARGET_FILE
 NODUS7_HOME=$(dirname "$SCRIPT")
 
 # Set some dirs
-LIBDIR="$NODUS7_HOME"/lib/*
+LIBDIR="$NODUS7_HOME"/lib/*:"$NODUS7_HOME"/lib/groovy/*:"$NODUS7_HOME"/lib/groovy/extras-jaxb/*
 JDBCDIR="$NODUS7_HOME"/jdbcDrivers/*
 NODUSJAR="$NODUS7_HOME"/nodus7.jar
 

@@ -33,10 +33,10 @@
 			encoding="UTF-8" docencoding="UTF-8" charset="UTF-8" 
 			packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
 			author="true" version="true" use="true" 
-			windowtitle="Nodus 7.0 API" 
-			doctitle="Nodus" bottom="Copyright 1991-2018, Université catholique de Louvain (UCL), Center for Operations Research and Econometrics (CORE)" 
+			windowtitle="Nodus 7.1 API" 
+			doctitle="Nodus" bottom="Copyright 1991-2018, Université catholique de Louvain (UCLouvain), Center for Operations Research and Econometrics (CORE)" 
 			doclet="ExcludeDoclet" docletpath="${basedir}/devtools/ExcludeDoclet.jar" 
-			classpathref="Nodus7.0.classpath" failonerror="false" />
+			classpathref="Nodus7.1.classpath" failonerror="false" />
 	</target>
 
 

@@ -28,7 +28,6 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
-import edu.uclouvain.core.nodus.utils.JavaVersionUtil;
 
 import java.awt.Color;
 import java.awt.GridBagConstraints;
@@ -393,11 +392,11 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_USE_GROOVY_CONSOLE, FALSE);
 
     // Groovy 2.x console doesn't work on Mac OS with Java 9
-    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
+    /*if (System.getProperty("os.name").toLowerCase().startsWith("mac")
         && JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
       value = "false";
       useNativeGroovyConsoleCheckBox.setEnabled(false);
-    }
+    }*/
 
     useNativeGroovyConsoleCheckBox.setSelected(Boolean.parseBoolean(value));
 

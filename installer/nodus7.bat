@@ -7,7 +7,7 @@ set NODUS7_HOME=%HERE:~0,-1%
 
 set JAVABIN=javaw.exe
 
-set "LIBDIR=%NODUS7_HOME%/lib/*"
+set "LIBDIR=%NODUS7_HOME%/lib/*;%NODUS7_HOME%/lib/groovy/*;%NODUS7_HOME%/lib/groovy/extras-jaxb/*"
 set "JDBCDIR=%NODUS7_HOME%/jdbcDrivers/*"
 set "NODUSJAR=%NODUS7_HOME%/nodus7.jar"
 

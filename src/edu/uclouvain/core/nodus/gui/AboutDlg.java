@@ -152,7 +152,7 @@ public class AboutDlg extends EscapeDialog {
           }
         });
 
-    nodusInfoScrollPane.setPreferredSize(new Dimension(430, 360));
+    nodusInfoScrollPane.setPreferredSize(new Dimension(430, 250));
 
     nodusInfoScrollPane.setViewportView(nodusInfoHTMLPane);
     openMapTextCopyright.setBackground(UIManager.getColor("Button.background"));

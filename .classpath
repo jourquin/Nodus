@@ -28,7 +28,6 @@
 	<classpathentry kind="lib" path="lib/jung-graph-impl-2.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/jung-visualization-2.1.1.jar" sourcepath="/jung"/>
 	<classpathentry kind="lib" path="lib/guava-19.0.jar"/>
-	<classpathentry kind="lib" path="lib/groovy-all-2.4.15.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/h2-1.4.197.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-2.2.5.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.2.2.jre7.jar"/>
@@ -36,5 +35,64 @@
 	<classpathentry kind="lib" path="lib/parsii-3.1.jar"/>
 	<classpathentry kind="lib" path="lib/xchart-3.5.2.jar"/>
 	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/openmap6.0b/src"/>
+	<classpathentry kind="lib" path="lib/groovy/ant-1.9.13.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/ant-antlr-1.9.13.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/ant-junit-1.9.13.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/ant-launcher-1.9.13.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/apiguardian-api-1.0.0.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/bsf-2.4.0.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/commons-cli-1.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/commons-logging-1.2.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/gpars-1.2.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/hamcrest-core-1.3.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/ivy-2.4.0.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/jansi-1.17.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/javax.servlet-api-3.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/jcommander-1.72.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/jline-2.14.6.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/jsp-api-2.0.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/jsr166y-1.7.0.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/junit-4.12.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/junit-jupiter-api-5.3.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/junit-jupiter-engine-5.3.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/junit-platform-commons-1.3.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/junit-platform-engine-1.3.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/junit-platform-launcher-1.3.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/multiverse-core-0.7.0.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/opentest4j-1.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/qdox-1.12.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/testng-6.13.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/xstream-1.4.10.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/extras-jaxb/activation-1.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/extras-jaxb/jaxb-api-2.3.0.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/extras-jaxb/jaxb-core-2.3.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/extras-jaxb/jaxb-impl-2.3.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-ant-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-bsf-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-cli-commons-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-cli-picocli-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-console-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-datetime-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-dateutil-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-docgenerator-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-groovydoc-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-groovysh-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-jaxb-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-jmx-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-json-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-json-direct-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-jsr223-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-macro-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-nio-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-servlet-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-sql-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-swing-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-templates-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-test-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-test-junit5-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-testng-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-xml-2.5.4.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/picocli-3.7.0.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
