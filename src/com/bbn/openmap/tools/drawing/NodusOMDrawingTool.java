@@ -55,7 +55,8 @@ import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 
-//TODO Interaction with services still buggy
+// TODO Seems to be still buggy (sometimes unbalanced output). Needs systematic tests
+//TODO Interaction with services not working
 
 /**
  * This drawing tool makes it possible to modify the graphics stored into a set of nodes and link
