@@ -69,7 +69,6 @@ public class CreateMLogitInput_ {
     int dst;
     int mode;
     double cost;
-    float duration;
 
     /**
      * Constructor.
@@ -78,33 +77,28 @@ public class CreateMLogitInput_ {
      * @param org Origin node
      * @param dst Destination node
      * @param mode Transportation mode
-     * @param cost Total cost on thgus route
-     * @param duration Travel duration on the route
+     * @param cost Total cost on this route
      */
     public Record(
         int grp,
         int org,
         int dst,
         int mode,
-        double cost,
-        float duration) {
+        double cost) {
       this.grp = grp;
       this.org = org;
       this.dst = dst;
       this.mode = mode;
       this.cost = cost;
-      this.duration = duration;
     }
 
     /**
      * Called when a cheaper alternative is found for this grp, org, dst and mode combination.
      *
      * @param cost New total cost
-     * @param duration New travel duration
      */
-    public void update(double cost, float duration) {
+    public void update(double cost) {
       this.cost = cost;
-      this.duration = duration;
     }
   }
 
@@ -124,7 +118,6 @@ public class CreateMLogitInput_ {
         "drop table if exists tmp2",\
         "create table tmp2 as (select grp, org, dst,\n"\
             + "ldcost+ulcost+trcost+tpcost+mvcost as cost,\n"\
-            + "duration, \n"\
             + "ldmode from @@srcTable) with data",\
         "create index if not exists tmp2idx on tmp2 (grp,org,dst,ldmode,cost)"\
       ];
@@ -145,7 +138,7 @@ public class CreateMLogitInput_ {
       try {
         Statement stmt = jdbcConnection.createStatement();
         String sqlStmt =
-            "select grp, org, dst, ldmode, cost, duration from tmp2";
+            "select grp, org, dst, ldmode, cost from tmp2";
         ResultSet rs = stmt.executeQuery(sqlStmt);
         while (rs.next()) {
           int idx = 1;
@@ -154,15 +147,14 @@ public class CreateMLogitInput_ {
           int dst = JDBCUtils.getInt(rs.getObject(idx++));
           int mode = JDBCUtils.getInt(rs.getObject(idx++));
           double cost = JDBCUtils.getFloat(rs.getObject(idx++));
-          float duration = JDBCUtils.getFloat(rs.getObject(idx++));
 
           String key = grp + "-" + org + "-" + dst + "-" + mode;
           Record record = hm.get(key);
           if (record == null) {
-            hm.put(key, new Record(grp, org, dst, mode, cost, duration));
+            hm.put(key, new Record(grp, org, dst, mode, cost));
           } else {
             if (cost < record.cost) {
-              record.update(cost, duration);
+              record.update(cost);
             }
           }
         }
@@ -173,17 +165,16 @@ public class CreateMLogitInput_ {
       }
 
       // Save the content of the hashmap
-      JDBCField[] fields = new JDBCField[6];
+      JDBCField[] fields = new JDBCField[5];
       int idx = 0;
       fields[idx++] = new JDBCField("grp", "NUMERIC(2)");
       fields[idx++] = new JDBCField("org", "NUMERIC(10)");
       fields[idx++] = new JDBCField("dst", "NUMERIC(10)");
       fields[idx++] = new JDBCField("ldmode", "NUMERIC(2)");
       fields[idx++] = new JDBCField("cost", "NUMERIC(10,3)");
-      fields[idx++] = new JDBCField("duration", "NUMERIC(7,0)");
       JDBCUtils jdbcUtils = new JDBCUtils(jdbcConnection);
       jdbcUtils.createTable("tmp", fields);
-      String sqlStmt = "INSERT INTO tmp  VALUES (?,?,?,?,?,?)";
+      String sqlStmt = "INSERT INTO tmp  VALUES (?,?,?,?,?)";
 
       try {
         PreparedStatement prepStmt = jdbcConnection.prepareStatement(sqlStmt);
@@ -197,7 +188,6 @@ public class CreateMLogitInput_ {
           prepStmt.setInt(idx++, record.dst);
           prepStmt.setInt(idx++, record.mode);
           prepStmt.setDouble(idx++, record.cost);
-          prepStmt.setFloat(idx++, record.duration);
 
           prepStmt.executeUpdate();
         }
@@ -224,9 +214,6 @@ public class CreateMLogitInput_ {
         "alter table tmp2 add cost1 DECIMAL(13,3)",\
         "alter table tmp2 add cost2 DECIMAL(13,3)",\
         "alter table tmp2 add cost3 DECIMAL(13,3)",\
-        "alter table tmp2 add duration1 DECIMAL(13,3)",\
-        "alter table tmp2 add duration2 DECIMAL(13,3)",\
-        "alter table tmp2 add duration3 DECIMAL(13,3)",\
         "alter table tmp2 add qty1 DECIMAL(13,3) default 0",\
         "alter table tmp2 add qty2 DECIMAL(13,3) default 0",\
         "alter table tmp2 add qty3 DECIMAL(13,3) default 0",\
@@ -249,10 +236,6 @@ public class CreateMLogitInput_ {
         "update tmp2 set cost1 = (select cost from tmp where tmp2.grp=tmp.grp and tmp2.org=tmp.org and tmp2.dst = tmp.dst and tmp.ldmode=1)",\
         "update tmp2 set cost2 = (select cost from tmp where tmp2.grp=tmp.grp and tmp2.org=tmp.org and tmp2.dst = tmp.dst and tmp.ldmode=2)",\
         "update tmp2 set cost3 = (select cost from tmp where tmp2.grp=tmp.grp and tmp2.org=tmp.org and tmp2.dst = tmp.dst and tmp.ldmode=3)",\
-        "# Update durations",\
-        "update tmp2 set duration1 = (select duration from tmp where tmp2.grp=tmp.grp and tmp2.org=tmp.org and tmp2.dst = tmp.dst and tmp.ldmode=1)",\
-        "update tmp2 set duration2 = (select duration from tmp where tmp2.grp=tmp.grp   and tmp2.org=tmp.org and tmp2.dst = tmp.dst and tmp.ldmode=2)",\
-        "update tmp2 set duration3 = (select duration from tmp where tmp2.grp=tmp.grp   and tmp2.org=tmp.org and tmp2.dst = tmp.dst and tmp.ldmode=3)",\
         "# Clean temporary tables",\
         "drop table if exists od1",\
         "drop table if exists od2",\

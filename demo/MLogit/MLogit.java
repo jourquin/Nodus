@@ -51,7 +51,7 @@ public class MLogit extends ModalSplitMethod {
 
   // Estimated parameters names and values
   String[] paramNames = {
-    "(intercept)", "log(cost)", "log(duration)",
+    "(intercept)", "log(cost)",
   };
 
   double[][] paramValue;
@@ -108,16 +108,12 @@ public class MLogit extends ModalSplitMethod {
     // Compute the total cost of the OD relation
     double cost = c.ldCosts + c.tpCosts + c.trCosts + c.ulCosts + c.mvCosts;
 
-    // Get the travel duration, expressed in  hours
-    double duration = altPathList.cheapestPathDuration / 3600;
-
     // The model was estimated with logs
     double logCost = Math.log(cost);
-    double logDuration = Math.log(duration);
 
-    // Utility = intercept + log(cost) + log(duration)
+    // Utility = intercept + log(cost)
     altPathList.utility =
-        paramValue[mode][0] + paramValue[mode][1] * logCost + paramValue[mode][2] * logDuration;
+        paramValue[mode][0] + paramValue[mode][1] * logCost;
     return altPathList;
   }
 
