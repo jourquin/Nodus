@@ -2337,7 +2337,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     try {
       doc.insertString(doc.getLength(), textToAdd, style);
-      txtResultArea.setCaretPosition(txtResultArea.getText().length());
+      txtResultArea.setCaretPosition(txtResultArea.getDocument().getLength());
     } catch (BadLocationException e) {
       e.printStackTrace();
     }
