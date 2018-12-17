@@ -10,6 +10,7 @@
 		<appsubpath>Nodus7</appsubpath>
 		<uninstaller write="false"/>
         <writeinstallationinformation>false</writeinstallationinformation>
+        <javaversion>1.8</javaversion>
 	</info>
 
 	<!-- The gui preferences -->
