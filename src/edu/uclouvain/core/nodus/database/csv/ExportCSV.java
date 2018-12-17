@@ -75,7 +75,11 @@ public class ExportCSV {
       // Retrieve result of query
       while (rs.next()) {
         for (int i = 0; i < nbColumns; i++) {
-          bw.write(rs.getObject(i + 1).toString());
+          try {
+            bw.write(rs.getObject(i + 1).toString());
+          } catch (Exception e) { // if null
+            bw.write("");
+          }
 
           if (i < nbColumns - 1) {
             bw.write(',');
