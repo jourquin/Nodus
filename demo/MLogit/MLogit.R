@@ -32,7 +32,15 @@ groups = c(0, 1)
 # Input table (created by the Groovy script)
 inputTable <- "mlogit_input"
 
-# Credentials and db name (note that hsqldb.jar must be on the path used by R)
+# Set working directory to this script location
+this.dir <- dirname(parent.frame(2)$ofile)
+setwd(this.dir)
+
+# Set Nodus home directory
+nodus.home <- paste(this.dir,"/../..", sep="")
+
+# JDBC driver, credentials and db name
+drv <- JDBC("org.hsqldb.jdbcDriver", paste(nodus.home, "/jdbcDrivers/hsqldb.jar", sep=""))
 userName = "SA"
 pwd = ""
 db = "../demo_hsqldb"
@@ -56,7 +64,7 @@ for (i in 1:length(groups)) {
   
   
   # Load the data
-  drv <- JDBC("org.hsqldb.jdbcDriver", "hsqldb.jar")
+  # drv <- JDBC("org.hsqldb.jdbcDriver", "hsqldb.jar")
   con <-
     dbConnect(drv,
       paste("jdbc:hsqldb:file:", db, ";shutdown=true", sep = ""),
