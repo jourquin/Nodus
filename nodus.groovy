@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 1991-2018 Université catholique de Louvain, 
+ * Copyright (c) 1991-2019 Université catholique de Louvain, 
  * Center for Operations Research and Econometrics (CORE)
  * http://www.uclouvain.be
  * 

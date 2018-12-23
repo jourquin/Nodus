@@ -16,3 +16,6 @@ from v7.0 to v7.1 was needed because of the use of Groovy 2.5.x that changes the
 - The installer now checks if the installed Java on the target computer version is at least 1.8.
 - The R code in the demo project now automatically adds the path to hsqldb.jar.
 
+## v7.1 - BuildXXXXXXXX
+- Change copyright date
+

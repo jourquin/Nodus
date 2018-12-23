@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2018 Université catholique de Louvain
+ * Copyright (c) 1991-2019 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -41,7 +41,7 @@ public class NodusC {
   public static final String APPNAME = "Nodus " + VERSION;
 
   /** Copyright. */
-  public static final String COPYRIGHT = "(c) Université catholique de Louvain, 1991-2018";
+  public static final String COPYRIGHT = "(c) Université catholique de Louvain, 1991-2019";
 
   /*
    * *********************************************************************************************
