@@ -16,6 +16,12 @@ from v7.0 to v7.1 was needed because of the use of Groovy 2.5.x that changes the
 - The installer now checks if the installed Java on the target computer version is at least 1.8.
 - The R code in the demo project now automatically adds the path to hsqldb.jar.
 
-## v7.1 - BuildXXXXXXXX
-- Change copyright date
+## v7.1 - Build20190205
+- Change copyright date to 2019 
+- Upgrade Poi to version 4.0.1
+- Upgrade Rsyntaxtextarea to version 3.0.3
+- Upgrade Parsii to version 4.0
+- Upgrade Groovy to version 2.5.6
+- Use a prepared statement in exportxls and exportxlsx
+
 

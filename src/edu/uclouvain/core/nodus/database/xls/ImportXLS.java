@@ -33,6 +33,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -42,7 +43,7 @@ import java.util.StringTokenizer;
 
 import javax.swing.JOptionPane;
 
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
@@ -62,6 +63,8 @@ public class ImportXLS {
   private static boolean couldCreateTable = false;
 
   private static I18n i18n = Environment.getI18n();
+
+  private static JDBCUtils jdbcUtils;
 
   /**
    * Creates a database table using the field descriptions found in the first row of the Excel
@@ -88,7 +91,7 @@ public class ImportXLS {
 
     try {
       wb = WorkbookFactory.create(inp);
-    } catch (InvalidFormatException e1) {
+    } catch (EncryptedDocumentException e1) {
       e1.printStackTrace();
       return false;
     } catch (IOException e1) {
@@ -157,7 +160,8 @@ public class ImportXLS {
         }
       }
 
-      sqlStmt += "\"" + fieldName + "\"";
+      //sqlStmt += "\"" + fieldName + "\"";
+      sqlStmt += jdbcUtils.getQuotedCompliantIdentifier(fieldName);
       if (fieldType.equalsIgnoreCase("N")) {
         sqlStmt += " NUMERIC(" + fieldLength + "," + fieldPrecision + ")";
       } else {
@@ -170,7 +174,6 @@ public class ImportXLS {
         sqlStmt += ")";
       }
     }
-
     // Now create the table
     try {
       Connection con = nodusProject.getMainJDBCConnection();
@@ -190,9 +193,9 @@ public class ImportXLS {
 
   /**
    * Imports the table which name is passed as parameter. The XLSor XLSX file must be located in the
-   * project directory. The table must exist unless the first row of the sheet contains the
-   * field descriptions in the DBF format. If the table is already filled, all the existing records
-   * are removed before import. This method returns true if the file was successfully imported.
+   * project directory. The table must exist unless the first row of the sheet contains the field
+   * descriptions in the DBF format. If the table is already filled, all the existing records are
+   * removed before import. This method returns true if the file was successfully imported.
    *
    * @param nodusProject The Nodus project.
    * @param tableName The name of the table. Must be the same as the XLS(X) file name, without its
@@ -202,7 +205,7 @@ public class ImportXLS {
    */
   public static boolean importTable(NodusProject nodusProject, String tableName, boolean isXLSX) {
 
-    JDBCUtils jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
+    jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
 
     // Test if table can be created from the the content of the first row of the .xls file
     if (!createTable(nodusProject, tableName, isXLSX)) {
@@ -223,6 +226,7 @@ public class ImportXLS {
 
     Connection con = nodusProject.getMainJDBCConnection();
     Statement stmt;
+    PreparedStatement pStmt;
 
     // Clean table
     String sqlStmt;
@@ -273,11 +277,20 @@ public class ImportXLS {
       }
 
       int nbCols = metaData.getColumnCount();
+
+      // Use a prepared statement to increase insert speed
+      sqlStmt = "INSERT INTO " + tableName + " VALUES (";
+      for (int i = 0; i < nbCols; i++) {
+        sqlStmt += "?";
+        if (i < nbCols - 1) {
+          sqlStmt += ",";
+        }
+      }
+      sqlStmt += ")";
+      pStmt = con.prepareStatement(sqlStmt);
+
       while (rows.hasNext()) {
         Row row = rows.next();
-
-        // Create the insert statement"
-        sqlStmt = "INSERT INTO " + tableName + " VALUES (";
 
         for (int i = 0; i < nbCols; i++) {
           Cell cell = row.getCell(i, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
@@ -288,34 +301,26 @@ public class ImportXLS {
             if (cell != null) {
               s = cell.getStringCellValue();
             }
-            sqlStmt += "'" + s + "'";
+            pStmt.setString(i + 1, s);
+
           } else {
             double d = 0;
             if (cell != null) {
               d = cell.getNumericCellValue();
             }
-            sqlStmt += d;
-          }
-
-          if (i < nbCols - 1) {
-            sqlStmt += ", ";
-          } else {
-            sqlStmt += ")";
+            pStmt.setDouble(i + 1, d);
           }
         }
-
-        stmt.executeUpdate(sqlStmt);
+        pStmt.execute();
       }
 
       stmt.close();
+      pStmt.close();
       rs.close();
 
       if (!con.getAutoCommit()) {
         con.commit();
       }
-    } catch (InvalidFormatException e) {
-      JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-      return false;
     } catch (IOException e) {
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
