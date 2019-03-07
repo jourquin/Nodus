@@ -24,4 +24,6 @@ from v7.0 to v7.1 was needed because of the use of Groovy 2.5.x that changes the
 - Upgrade Groovy to version 2.5.6
 - Use a prepared statement in exportxls and exportxlsx
 
-
+## v7.1 - Build20190307
+- Upgrade XCharts to version 3.5.4
+- Fix deprecated call to Poi's getCellTypeEnum()in ImportXLS

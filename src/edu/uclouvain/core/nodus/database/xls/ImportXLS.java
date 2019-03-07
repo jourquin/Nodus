@@ -114,7 +114,7 @@ public class ImportXLS {
 
     while (cells.hasNext()) {
       Cell cell = cells.next();
-      if (cell.getCellTypeEnum() != CellType.STRING) {
+      if (cell.getCellType() != CellType.STRING) {
         return false;
       }
 
@@ -226,7 +226,7 @@ public class ImportXLS {
 
     Connection con = nodusProject.getMainJDBCConnection();
     Statement stmt;
-    PreparedStatement pStmt;
+    PreparedStatement prepStmt;
 
     // Clean table
     String sqlStmt;
@@ -287,7 +287,7 @@ public class ImportXLS {
         }
       }
       sqlStmt += ")";
-      pStmt = con.prepareStatement(sqlStmt);
+      prepStmt = con.prepareStatement(sqlStmt);
 
       while (rows.hasNext()) {
         Row row = rows.next();
@@ -301,21 +301,21 @@ public class ImportXLS {
             if (cell != null) {
               s = cell.getStringCellValue();
             }
-            pStmt.setString(i + 1, s);
+            prepStmt.setString(i + 1, s);
 
           } else {
             double d = 0;
             if (cell != null) {
               d = cell.getNumericCellValue();
             }
-            pStmt.setDouble(i + 1, d);
+            prepStmt.setDouble(i + 1, d);
           }
         }
-        pStmt.execute();
+        prepStmt.execute();
       }
 
       stmt.close();
-      pStmt.close();
+      prepStmt.close();
       rs.close();
 
       if (!con.getAutoCommit()) {
