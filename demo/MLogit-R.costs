@@ -11,23 +11,16 @@
 # They are used by a user defined modal-split
 # model embedded in "MLogit.jar"
 
-(intercept).2.0  = 67.534 
-(intercept).3.0  = 190.8368 
-log(cost).1.0  = 29.43894 
-log(cost).2.0  = 1.544696 
-log(cost).3.0  = -43.94209 
-log(duration).1.0  = -17.42039 
-log(duration).2.0  = -2.117115 
-log(duration).3.0  = 11.54166 
-
-(intercept).2.1  = 137.2909 
-(intercept).3.1  = 408.3778 
-log(cost).1.1  = 59.09184 
-log(cost).2.1  = -12.07919 
-log(cost).3.1  = -168.9188 
-log(duration).1.1  = -32.47715 
-log(duration).2.1  = 3.518452 
-log(duration).3.1  = 74.62451 
+log(cost).1.0  =  -3.371365 
+(intercept).2.0  =  -5.254225 
+log(cost).2.0  =  -3.371365 
+(intercept).3.0  =  -2.266454 
+log(cost).3.0  =  -3.371365 
+log(cost).1.1  =  -3.496698 
+(intercept).2.1  =  -6.48136 
+log(cost).2.1  =  -3.496698 
+(intercept).3.1  =  -4.990553 
+log(cost).3.1  =  -3.496698 
 
 
 # Average load barges, in tons
