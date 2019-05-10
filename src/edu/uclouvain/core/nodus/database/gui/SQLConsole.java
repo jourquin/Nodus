@@ -195,7 +195,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
   private static final String NL = System.getProperty("line.separator");
 
-
   /**
    * Reads a SQL batch file.
    *
@@ -313,7 +312,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   private HashMap<String, String> variables = new HashMap<>();
 
   private boolean withEcho = true;
-  
+
   private boolean withGUI = true;
 
   /**
@@ -343,6 +342,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       if (element instanceof JFrame) {
         JFrame f = (JFrame) element;
         if (f.getName().equals(this.getClass().getName()) && f.isVisible()) {
+          f.requestFocus();
           return;
         }
       }
