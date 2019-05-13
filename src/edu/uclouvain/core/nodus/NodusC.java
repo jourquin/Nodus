@@ -79,6 +79,8 @@ public class NodusC {
   /** Quality ratio used for the generated JPEG images from displayed map. */
   public static final float JPEG_QUALITY = 0.8f;
 
+  /** Maximum size of the SQL batch for the path writer. */
+  public static final int MAXBATCHSIZE = 1000;
   /*
    * *********************************************************************************************
    * Indexes and names of database fields
@@ -516,6 +518,9 @@ public class NodusC {
 
   /** Pretty name used to identify a layer in the GUI. */
   public static final String PROP_PRETTY_NAME = ".prettyName";
+  
+  /** Max batch size for SQL batches. */
+  public static final String PROP_MAX_SQL_BATCH_SIZE = "maxSqlBatchSize";
 
   /**
    * List of (space separated) DBF tables that must be imported with the project (OD tables for

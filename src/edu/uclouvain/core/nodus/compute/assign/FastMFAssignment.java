@@ -112,7 +112,7 @@ public class FastMFAssignment extends Assignment {
     int gcInterval = nodusMapPanel.getGarbageCollectorInterval();
     final GarbageCollectionRunner gcr = new GarbageCollectionRunner(gcInterval);
 
-    System.currentTimeMillis();
+    //long start = System.currentTimeMillis();
 
     /**
      * Here, the assignment must be performed line per line in the O-D matrix. For each line,
@@ -207,7 +207,8 @@ public class FastMFAssignment extends Assignment {
     // Create a Virtual Network writer
     VirtualNetworkWriter vnw = new VirtualNetworkWriter(assignmentParameters, virtualNet);
 
-    System.currentTimeMillis();
+    //long end = System.currentTimeMillis();
+    //System.out.println("Duration : " + (end - start) / 1000 + " seconds");
 
     return vnw.save();
   }

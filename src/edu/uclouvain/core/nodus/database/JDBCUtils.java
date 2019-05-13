@@ -468,7 +468,7 @@ public class JDBCUtils {
    * Create an index on a table.
    *
    * @param index A JDBCIndex object.
-   * @return True on succes.
+   * @return True on success.
    */
   public boolean createIndex(JDBCIndex index) {
 

@@ -77,6 +77,12 @@ public class PathWriter {
 
   private static I18n i18n = Environment.getI18n();
 
+  private int headerBatchSize = 0;
+
+  private int detailsBatchSize = 0;
+
+  private int maxBatchSize;
+
   /**
    * Initializes the different tables needed to store the paths.
    *
@@ -89,6 +95,9 @@ public class PathWriter {
     scenario = assignmentParameters.getScenario();
     savePaths = assignmentParameters.isSavePaths();
     saveDetailedPaths = assignmentParameters.isDetailedPaths();
+
+    maxBatchSize =
+        nodusProject.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
 
     // Decimal format used in sql statements
     DecimalFormatSymbols dfs = new DecimalFormatSymbols();
@@ -119,11 +128,36 @@ public class PathWriter {
     SingleInstanceMessagePane.reset();
   }
 
-  /** Closes the connection to the database. */
+  /** Save the SQL batches, create the indexes and close the connection to the database. */
   public void close() {
 
     if (!savePaths) {
       return;
+    }
+
+    nodusProject
+        .getNodusMapPanel()
+        .setText(i18n.get(PathWriter.class, "Creating_indexes", "Creating indexes..."));
+
+    executeHeaderBatch(true);
+
+    // Create index on origin node
+    JDBCIndex index =
+        new JDBCIndex(pathHeaderTableName, NodusC.DBF_ORIGIN + scenario, NodusC.DBF_ORIGIN);
+    jdbcUtils.createIndex(index);
+
+    // Create index on path index
+    index =
+        new JDBCIndex(
+            pathHeaderTableName, NodusC.DBF_PATH_INDEX + "H" + scenario, NodusC.DBF_PATH_INDEX);
+    jdbcUtils.createIndex(index);
+
+    if (saveDetailedPaths) {
+      executeDetailsBatch(true);
+      index =
+          new JDBCIndex(
+              pathDetailTableName, NodusC.DBF_PATH_INDEX + "D" + scenario, NodusC.DBF_PATH_INDEX);
+      jdbcUtils.createIndex(index);
     }
 
     try {
@@ -139,6 +173,59 @@ public class PathWriter {
     } catch (SQLException ex) {
       ex.printStackTrace();
     }
+  }
+
+  /**
+   * Execute batch if max batch size is reached.
+   *
+   * @param force If true, the batch is exectured even if its max size is not reached.
+   * @return True on success
+   */
+  private boolean executeDetailsBatch(boolean force) {
+
+    detailsBatchSize++;
+
+    if (detailsBatchSize < maxBatchSize && !force) {
+      return true;
+    }
+
+    try {
+      prepStmtDetails.executeBatch();
+    } catch (SQLException e) {
+      nodusProject.getNodusMapPanel().stopProgress();
+      SingleInstanceMessagePane.display(
+          nodusProject.getNodusMapPanel(), e.getMessage(), JOptionPane.ERROR_MESSAGE);
+
+      return false;
+    }
+
+    detailsBatchSize = 0;
+    return true;
+  }
+
+  /**
+   * Execute batch if max batch size is reached.
+   *
+   * @param force If true, the batch is exectured even if its max size is not reached.
+   * @return True on success
+   */
+  private boolean executeHeaderBatch(boolean force) {
+
+    headerBatchSize++;
+
+    if (headerBatchSize < maxBatchSize && !force) {
+      return true;
+    }
+
+    try {
+      prepStmtHeaders.executeBatch();
+    } catch (SQLException e) {
+      e.printStackTrace();
+      return false;
+    }
+
+    headerBatchSize = 0;
+    return true;
   }
 
   /**
@@ -175,18 +262,7 @@ public class PathWriter {
     fields[idx++] = new JDBCField(NodusC.DBF_ULMEANS, "NUMERIC(2)");
     fields[idx++] = new JDBCField(NodusC.DBF_NBTRANS, "NUMERIC(3)");
     fields[idx++] = new JDBCField(NodusC.DBF_PATH_INDEX, "NUMERIC(8)");
-
-    JDBCIndex[] indexes = new JDBCIndex[2];
-
-    // Create index on origin node
-    indexes[0] =
-        new JDBCIndex(pathHeaderTableName, NodusC.DBF_ORIGIN + scenario, NodusC.DBF_ORIGIN);
-    // Create index on path index
-    indexes[1] =
-        new JDBCIndex(
-            pathHeaderTableName, NodusC.DBF_PATH_INDEX + "H" + scenario, NodusC.DBF_PATH_INDEX);
-
-    jdbcUtils.createTable(pathHeaderTableName, fields, indexes);
+    jdbcUtils.createTable(pathHeaderTableName, fields);
 
     // Use prepared statements to improve insert performances
     String sqlStmt =
@@ -207,13 +283,7 @@ public class PathWriter {
       fields[idx++] = new JDBCField(NodusC.DBF_LINK, "NUMERIC(10)");
       fields[idx++] = new JDBCField(NodusC.DBF_MODE, "NUMERIC(2)");
       fields[idx++] = new JDBCField(NodusC.DBF_MEANS, "NUMERIC(2)");
-
-      // Create index on path index
-      indexes = new JDBCIndex[1];
-      indexes[0] =
-          new JDBCIndex(
-              pathDetailTableName, NodusC.DBF_PATH_INDEX + "D" + scenario, NodusC.DBF_PATH_INDEX);
-      jdbcUtils.createTable(pathDetailTableName, fields, indexes);
+      jdbcUtils.createTable(pathDetailTableName, fields);
 
       // Use prepared statements to improve insert performances
       sqlStmt =
@@ -232,9 +302,10 @@ public class PathWriter {
    * Save a link and its associated quantity in the detailed path.
    *
    * @param virtualLink The virtual link to save.
+   * @return True on success
    */
-  public synchronized void savePathLink(VirtualLink virtualLink) {
-    savePathLink(virtualLink, currentPathIndex);
+  public synchronized boolean savePathLink(VirtualLink virtualLink) {
+    return savePathLink(virtualLink, currentPathIndex);
   }
 
   /**
@@ -242,10 +313,11 @@ public class PathWriter {
    *
    * @param virtualLink The virtual link to save.
    * @param pathIndex The index of the path.
+   * @return True on success
    */
-  public synchronized void savePathLink(VirtualLink virtualLink, int pathIndex) {
+  public synchronized boolean savePathLink(VirtualLink virtualLink, int pathIndex) {
     if (!saveDetailedPaths) {
-      return;
+      return true;
     }
 
     // Up or down flow?
@@ -262,10 +334,16 @@ public class PathWriter {
       prepStmtDetails.setInt(idx++, up * virtualLink.getBeginVirtualNode().getRealLinkId());
       prepStmtDetails.setInt(idx++, virtualLink.getBeginVirtualNode().getMode());
       prepStmtDetails.setInt(idx++, virtualLink.getBeginVirtualNode().getMeans());
-      prepStmtDetails.executeUpdate();
+      prepStmtDetails.addBatch();
+      if (!executeDetailsBatch(false)) {
+        return false;
+      }
+
     } catch (Exception e) {
       System.err.println(e.toString());
+      return false;
     }
+    return true;
   }
 
   /**
@@ -367,8 +445,9 @@ public class PathWriter {
       prepStmtHeaders.setInt(idx++, ldMeans);
       prepStmtHeaders.setInt(idx++, nbTranshipments);
       prepStmtHeaders.setInt(idx++, pathIndex);
+      prepStmtHeaders.addBatch();
+      executeHeaderBatch(false);
 
-      prepStmtHeaders.executeUpdate();
     } catch (Exception e) {
       nodusProject.getNodusMapPanel().stopProgress();
       SingleInstanceMessagePane.display(
