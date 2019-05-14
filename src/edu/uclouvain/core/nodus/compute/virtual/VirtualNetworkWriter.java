@@ -33,6 +33,7 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.SingleInstanceMessagePane;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.util.Iterator;
 
@@ -218,11 +219,29 @@ public class VirtualNetworkWriter {
     int timeSliceDuration = virtualNet.getTimeSliceDuration();
     int assignmentStarTime = virtualNet.getAssignmentStartTime();
 
-    // long start = System.currentTimeMillis();
+    int maxBatchSize =
+        nodusProject.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
+
+    // Reduce max batch size as a vnet record is much larger that a path header / detail record
+    if (maxBatchSize > NodusC.MAXBATCHSIZE) {
+      maxBatchSize /= 5;
+    }
+
+    //long start = System.currentTimeMillis();
 
     try {
       // Fill it
       Connection jdbcConnection = nodusProject.getMainJDBCConnection();
+
+      boolean oldAutoCommit = jdbcConnection.getAutoCommit();
+
+      DatabaseMetaData dbmd = jdbcConnection.getMetaData();
+      boolean hasBatchSupport = false;
+      if (dbmd != null) {
+        if (dbmd.supportsBatchUpdates()) {
+          hasBatchSupport = true;
+        }
+      }
 
       /* Prepared statement */
       String sqlStmt = "INSERT INTO " + vNetTableName + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,";
@@ -236,10 +255,11 @@ public class VirtualNetworkWriter {
 
       nodusMapPanel.startProgress(virtualNet.getNbVirtualLinks());
 
+      int batchSize = 0;
+
       VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();
       for (VirtualNodeList element : vnl) {
-        // Iterate through all the virtual nodes generated for this real
-        // node
+        // Iterate through all the virtual nodes generated for this real node
         Iterator<VirtualNode> nodeLit = element.getVirtualNodeList().iterator();
 
         while (nodeLit.hasNext()) {
@@ -310,11 +330,32 @@ public class VirtualNetworkWriter {
                 prepStmt.setDouble(idx++, totalQty);
                 prepStmt.setInt(idx++, totalVehicles);
 
-                prepStmt.executeUpdate();
+                // Save into table according to batch policy;
+                if (hasBatchSupport) {
+                  batchSize++;
+                  prepStmt.addBatch();
+                  if (batchSize >= maxBatchSize) {
+                    jdbcConnection.setAutoCommit(false);
+                    prepStmt.executeBatch();
+                    jdbcConnection.commit();
+                    jdbcConnection.setAutoCommit(oldAutoCommit);
+                    batchSize = 0;
+                  }
+                } else {
+                  prepStmt.executeUpdate();
+                }
               }
             }
           }
         }
+      }
+
+      // Flush remaining records in batch
+      if (hasBatchSupport) {
+        jdbcConnection.setAutoCommit(false);
+        prepStmt.executeBatch();
+        jdbcConnection.commit();
+        jdbcConnection.setAutoCommit(oldAutoCommit);
       }
 
       prepStmt.close();
@@ -335,9 +376,9 @@ public class VirtualNetworkWriter {
       return false;
     }
 
-    // long end = System.currentTimeMillis();
-    // System.out.println("Duration : " + ((end - start) / 1000) + " seconds
-    // for " + nbRecords + " records");
+    //long end = System.currentTimeMillis();
+    //System.out.println("Duration : " + (end - start) / 1000);
+
     nodusMapPanel.stopProgress();
 
     return true;

@@ -36,6 +36,7 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.SingleInstanceMessagePane;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -83,6 +84,10 @@ public class PathWriter {
 
   private int maxBatchSize;
 
+  private boolean hasBatchSupport = false;
+
+  boolean oldAutoCommit;
+
   /**
    * Initializes the different tables needed to store the paths.
    *
@@ -105,6 +110,21 @@ public class PathWriter {
     df = new DecimalFormat("0.000", dfs);
 
     con = nodusProject.getMainJDBCConnection();
+
+    // Does the used DB support batch processing ?
+    try {
+      oldAutoCommit = con.getAutoCommit();
+
+      DatabaseMetaData dbmd = con.getMetaData();
+      hasBatchSupport = false;
+      if (dbmd != null) {
+        if (dbmd.supportsBatchUpdates()) {
+          hasBatchSupport = true;
+        }
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
 
     // Prepare tables
     String defValue = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME);
@@ -139,7 +159,9 @@ public class PathWriter {
         .getNodusMapPanel()
         .setText(i18n.get(PathWriter.class, "Creating_indexes", "Creating indexes..."));
 
-    executeHeaderBatch(true);
+    if (hasBatchSupport) {
+      executeHeaderBatch(true);
+    }
 
     // Create index on origin node
     JDBCIndex index =
@@ -153,7 +175,11 @@ public class PathWriter {
     jdbcUtils.createIndex(index);
 
     if (saveDetailedPaths) {
-      executeDetailsBatch(true);
+      if (hasBatchSupport) {
+        executeDetailsBatch(true);
+      }
+
+      // Create index on path index
       index =
           new JDBCIndex(
               pathDetailTableName, NodusC.DBF_PATH_INDEX + "D" + scenario, NodusC.DBF_PATH_INDEX);
@@ -190,7 +216,10 @@ public class PathWriter {
     }
 
     try {
+      con.setAutoCommit(false);
       prepStmtDetails.executeBatch();
+      con.commit();
+      con.setAutoCommit(oldAutoCommit);
     } catch (SQLException e) {
       nodusProject.getNodusMapPanel().stopProgress();
       SingleInstanceMessagePane.display(
@@ -218,7 +247,10 @@ public class PathWriter {
     }
 
     try {
+      con.setAutoCommit(false);
       prepStmtHeaders.executeBatch();
+      con.commit();
+      con.setAutoCommit(oldAutoCommit);
     } catch (SQLException e) {
       e.printStackTrace();
       return false;
@@ -302,10 +334,9 @@ public class PathWriter {
    * Save a link and its associated quantity in the detailed path.
    *
    * @param virtualLink The virtual link to save.
-   * @return True on success
    */
-  public synchronized boolean savePathLink(VirtualLink virtualLink) {
-    return savePathLink(virtualLink, currentPathIndex);
+  public synchronized void savePathLink(VirtualLink virtualLink) {
+    savePathLink(virtualLink, currentPathIndex);
   }
 
   /**
@@ -313,11 +344,10 @@ public class PathWriter {
    *
    * @param virtualLink The virtual link to save.
    * @param pathIndex The index of the path.
-   * @return True on success
    */
-  public synchronized boolean savePathLink(VirtualLink virtualLink, int pathIndex) {
+  public synchronized void savePathLink(VirtualLink virtualLink, int pathIndex) {
     if (!saveDetailedPaths) {
-      return true;
+      return;
     }
 
     // Up or down flow?
@@ -334,16 +364,17 @@ public class PathWriter {
       prepStmtDetails.setInt(idx++, up * virtualLink.getBeginVirtualNode().getRealLinkId());
       prepStmtDetails.setInt(idx++, virtualLink.getBeginVirtualNode().getMode());
       prepStmtDetails.setInt(idx++, virtualLink.getBeginVirtualNode().getMeans());
-      prepStmtDetails.addBatch();
-      if (!executeDetailsBatch(false)) {
-        return false;
+
+      if (hasBatchSupport) {
+        prepStmtDetails.addBatch();
+        executeDetailsBatch(false);
+      } else {
+        prepStmtDetails.executeUpdate();
       }
 
     } catch (Exception e) {
       System.err.println(e.toString());
-      return false;
     }
-    return true;
   }
 
   /**
@@ -445,8 +476,13 @@ public class PathWriter {
       prepStmtHeaders.setInt(idx++, ldMeans);
       prepStmtHeaders.setInt(idx++, nbTranshipments);
       prepStmtHeaders.setInt(idx++, pathIndex);
-      prepStmtHeaders.addBatch();
-      executeHeaderBatch(false);
+
+      if (hasBatchSupport) {
+        prepStmtHeaders.addBatch();
+        executeHeaderBatch(false);
+      } else {
+        prepStmtHeaders.executeUpdate();
+      }
 
     } catch (Exception e) {
       nodusProject.getNodusMapPanel().stopProgress();

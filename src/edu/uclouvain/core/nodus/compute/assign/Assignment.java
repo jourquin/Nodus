@@ -207,6 +207,8 @@ public abstract class Assignment implements Runnable {
       nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_OK);
     } else {
       nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
+      // Clean database
+      nodusProject.removeScenario(assignmentParameters.getScenario());
     }
     nodusMapPanel.getAssignmentMenuItem().setEnabled(true);
 
