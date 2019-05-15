@@ -315,6 +315,10 @@ public class AssignmentDlg extends EscapeDialog {
     ap.setKeepOnlyCheapestIntermodalPath(keepCheapestOnlyCheckBox.isSelected());
     ap.setLogLostPaths(lostPathsCheckBox.isSelected());
     ap.setThreads(Integer.parseInt(threadsSpinner.getValue().toString()));
+    ap.setScenarioDescription(
+        nodusMapPanel
+            .getNodusProject()
+            .getLocalProperty(NodusC.PROP_ASSIGNMENT_DESCRIPTION + ap.getScenario(), ""));
 
     ModalSplitMethodName msmn = (ModalSplitMethodName) modalSplitMethodComboBox.getSelectedItem();
     if (msmn != null) {

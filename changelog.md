@@ -33,10 +33,12 @@ from v7.0 to v7.1 was needed because of the use of Groovy 2.5.x that changes the
 
 ## v7.1 - Buildxxxxxxxx
 - Fix a French translation in the omGraphics GUI
-- Give focus to the SQL console even it is already open. This allows to put it in the foreground if it is hidden beyond 
+- Give focus to the SQL console or the cost editor even if already open. This allows to put them in the foreground if hidden beyond 
 the main frame. 
 - Virtual networks, path headers and path details are now saved using batch prepared statements, if supported by the used DBMS. 
 This reduces drastically the assignment duration when detailed paths are to be saved. The value of the batch size can be set 
 in the project file, using the "maxSqlBatchSize" property. If not set, the default batch size in set to 1000.  
 - Delete all the tables of an assignment if the latest didn't succeed.  
+- Add a "setScenarioDescription" field to the AssignmentParameters.
+- Update build.xml with latest external lib versions. 
 

@@ -243,6 +243,7 @@ public class NotePad extends JFrame {
       if (element instanceof JFrame) {
         JFrame f = (JFrame) element;
         if (f.getName().equals(componentName) && f.isVisible()) {
+          f.requestFocus();
           return;
         }
       }
