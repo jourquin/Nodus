@@ -134,7 +134,7 @@ public class FastMFAssignment extends Assignment {
       int threads = assignmentParameters.getThreads();
 
       // The initial costs must be computed (these are the real costs)
-      if (!virtualNet.computeCosts(0, odClass, assignmentParameters.getCostFunctions(), threads)) {
+      if (!virtualNet.computeCosts(0, odClass, threads)) {
         nodusMapPanel.stopProgress();
 
         return false;

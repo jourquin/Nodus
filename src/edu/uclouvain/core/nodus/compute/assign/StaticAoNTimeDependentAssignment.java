@@ -135,7 +135,7 @@ public class StaticAoNTimeDependentAssignment extends Assignment {
       int threads = assignmentParameters.getThreads();
 
       // Compute costs
-      if (!virtualNet.computeCosts(0, odClass, assignmentParameters.getCostFunctions(), threads)) {
+      if (!virtualNet.computeCosts(0, odClass, threads)) {
         return false;
       }
 

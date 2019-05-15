@@ -128,8 +128,7 @@ public class MSAAssignment extends Assignment {
         int threads = assignmentParameters.getThreads();
 
         // (re)Compute costs
-        if (!virtualNet.computeCosts(
-            iteration, odClass, assignmentParameters.getCostFunctions(), threads)) {
+        if (!virtualNet.computeCosts(iteration, odClass, threads)) {
           nodusMapPanel.stopProgress();
           return false;
         }

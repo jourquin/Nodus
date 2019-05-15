@@ -49,8 +49,6 @@ import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
@@ -197,6 +195,9 @@ public class VirtualNetwork {
 
     scenario = nodusProject.getLocalProperty(NodusC.PROP_SCENARIO, 0);
 
+    // Get the cost functions
+    costFunctions = ap.getCostFunctions();
+
     linksEsriLayer = nodusProject.getLinkLayers();
     nodesEsriLayer = nodusProject.getNodeLayers();
 
@@ -277,40 +278,12 @@ public class VirtualNetwork {
    * @param iteration The iteration for which the costs must be computed.
    * @param odClass The OD class for which the costs must be computed.
    * @param timeSlice The time slice for which the costs must be computed.
-   * @param costFunctionsObject The cost functions. Can be a String (cost functions file name) or a
-   *     Properties object in which the costs are already loaded.
    * @param nbThreads The number of thread to create in the pool.
    * @return True on success.
    */
-  public boolean computeCosts(
-      int iteration, byte odClass, byte timeSlice, Object costFunctionsObject, int nbThreads) {
+  public boolean computeCosts(int iteration, byte odClass, byte timeSlice, int nbThreads) {
 
     if (vnl == null) {
-      return false;
-    }
-
-    // Get the cost functions
-    if (costFunctionsObject instanceof Properties) {
-      costFunctions = (Properties) costFunctionsObject;
-    } else if (costFunctionsObject instanceof String) {
-      String costFunctionsFileName =
-          nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + (String) costFunctionsObject;
-      costFunctions = new Properties();
-
-      try {
-        costFunctions.load(new FileInputStream(costFunctionsFileName.trim()));
-      } catch (IOException ex) {
-        JOptionPane.showMessageDialog(
-            null,
-            MessageFormat.format(
-                i18n.get(VirtualNetwork.class, "not_found", "{0} not found."), costFunctionsObject),
-            NodusC.APPNAME,
-            JOptionPane.ERROR_MESSAGE);
-
-        return false;
-      }
-    } else {
-      System.err.println("The costFunctionsObject must be of type String or Properties");
       return false;
     }
 
@@ -387,14 +360,11 @@ public class VirtualNetwork {
    *
    * @param iteration The iteration for which the costs must be computed.
    * @param odClass The OD class for which the costs must be computed.
-   * @param costFunctionsObject The cost functions. Can be a String (cost functions file name) or a
-   *     Properties object in which the costs are already loaded.
    * @param nbThreads The number of thread to create in the pool.
    * @return True on success.
    */
-  public boolean computeCosts(
-      int iteration, byte odClass, Object costFunctionsObject, int nbThreads) {
-    return computeCosts(iteration, odClass, (byte) -1, costFunctionsObject, nbThreads);
+  public boolean computeCosts(int iteration, byte odClass, int nbThreads) {
+    return computeCosts(iteration, odClass, (byte) -1, nbThreads);
   }
 
   /**
@@ -1152,36 +1122,13 @@ public class VirtualNetwork {
    * @param varName Name of the variable to retrieve.
    * @param group Group of goods for which the variable has to be retrieved.
    * @param odClass OD class for which the variable has to be retrieved.
-   * @return Value of the variable or NaN if not found.
+   * @return Value of the variable.
    */
   public double getValue(String varName, byte group, byte odClass) {
-    if (costFunctions == null) {
-      // Initialize a cost parser with the cost functions associated to
-      // this project
-      String costFunctionsFileName = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
-      String defValue =
-          nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.TYPE_COSTS;
-      costFunctionsFileName += nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS, defValue);
 
-      costFunctions = new Properties();
-
-      try {
-        costFunctions.load(new FileInputStream(costFunctionsFileName.trim()));
-      } catch (IOException ex) {
-        JOptionPane.showMessageDialog(
-            null,
-            MessageFormat.format(
-                i18n.get(VirtualNetwork.class, "not_found", "{0} not found."),
-                costFunctionsFileName),
-            NodusC.APPNAME,
-            JOptionPane.ERROR_MESSAGE);
-        return Double.NaN;
-      }
-    }
-
-    if (vnl == null) {
+    /* if (vnl == null) {
       return Double.NaN;
-    }
+    }*/
 
     return CostParser.getValue(costFunctions, varName, scenario, group, odClass);
   }
@@ -1239,27 +1186,6 @@ public class VirtualNetwork {
    * "SERVICELINE.mode,means" variable exists in the cost functions.
    */
   private void loadLinesForModeMeans() {
-
-    Properties costFunctions;
-
-    String defValue =
-        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.TYPE_COSTS;
-    String costFunctionsFileName =
-        nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS, defValue);
-    costFunctionsFileName =
-        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + costFunctionsFileName;
-    costFunctions = new Properties();
-    try {
-      costFunctions.load(new FileInputStream(costFunctionsFileName.trim()));
-    } catch (IOException ex) {
-      JOptionPane.showMessageDialog(
-          null,
-          MessageFormat.format(
-              i18n.get(VirtualNetwork.class, "not_found", "{0} not found."), costFunctionsFileName),
-          NodusC.APPNAME,
-          JOptionPane.ERROR_MESSAGE);
-      return;
-    }
 
     for (int mode = 0; mode < NodusC.MAXMM; mode++) {
       for (int means = 0; means < NodusC.MAXMM; means++) {

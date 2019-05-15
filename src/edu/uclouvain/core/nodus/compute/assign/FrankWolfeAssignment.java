@@ -138,8 +138,7 @@ public class FrankWolfeAssignment extends Assignment {
           continue;
         }
 
-        if (!virtualNet.computeCosts(
-            iteration - 1, odClass, assignmentParameters.getCostFunctions(), threads)) {
+        if (!virtualNet.computeCosts(iteration - 1, odClass, threads)) {
           nodusMapPanel.stopProgress();
           return false;
         }

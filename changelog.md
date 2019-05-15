@@ -41,4 +41,6 @@ in the project file, using the "maxSqlBatchSize" property. If not set, the defau
 - Delete all the tables of an assignment if the latest didn't succeed.  
 - Add a "setScenarioDescription" field to the AssignmentParameters.
 - Update build.xml with latest external lib versions. 
+- More consistent internal handling of cost functions (Properties vs file name), which was buggy.
+   
 

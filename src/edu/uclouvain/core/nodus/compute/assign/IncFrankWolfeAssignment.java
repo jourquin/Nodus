@@ -137,8 +137,7 @@ public class IncFrankWolfeAssignment extends Assignment {
         int threads = assignmentParameters.getThreads();
 
         // (re)Compute costs
-        if (!virtualNet.computeCosts(
-            iteration, odClass, assignmentParameters.getCostFunctions(), threads)) {
+        if (!virtualNet.computeCosts(iteration, odClass, threads)) {
           nodusMapPanel.stopProgress();
           return false;
         }
@@ -227,8 +226,7 @@ public class IncFrankWolfeAssignment extends Assignment {
           continue;
         }
 
-        if (!virtualNet.computeCosts(
-            start, odClass, assignmentParameters.getCostFunctions(), threads)) {
+        if (!virtualNet.computeCosts(start, odClass, threads)) {
           nodusMapPanel.stopProgress();
           return false;
         }
