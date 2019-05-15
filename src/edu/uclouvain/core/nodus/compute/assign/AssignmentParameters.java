@@ -18,6 +18,7 @@
  * <p>You should have received a copy of the GNU General Public License along with this program. If
  * not, see <http://www.gnu.org/licenses/>.
  */
+
 package edu.uclouvain.core.nodus.compute.assign;
 
 import edu.uclouvain.core.nodus.NodusC;
@@ -99,9 +100,6 @@ public class AssignmentParameters {
 
   /** SQL statement that can be given to filter the O-D matrix. */
   private String whereStmt;
-
-  /** Description of the scenario */
-  private String scenarioDescription;
 
   /**
    * Initializes the assignment parameters.
@@ -212,6 +210,7 @@ public class AssignmentParameters {
 
   /**
    * Returns the description of the scenario, if any.
+   *
    * @return The description string
    */
   public String getScenarioDescription() {
@@ -484,13 +483,14 @@ public class AssignmentParameters {
   public void setScenario(int scenario) {
     this.scenario = scenario;
   }
-  
+
   /**
    * Associate a description string to this scenario.
+   *
    * @param description The description string.
    */
   public void setScenarioDescription(String description) {
-	  nodusProject.setLocalProperty(NodusC.PROP_ASSIGNMENT_DESCRIPTION + scenario, description);
+    nodusProject.setLocalProperty(NodusC.PROP_ASSIGNMENT_DESCRIPTION + scenario, description);
   }
 
   /**

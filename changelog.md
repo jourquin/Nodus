@@ -32,7 +32,7 @@ from v7.0 to v7.1 was needed because of the use of Groovy 2.5.x that changes the
 - Replace R calibrated cost functions file in demo to be in line with R logit model of Build201810213 
 
 ## v7.1 - Build20190515
-- Fix a French translation in the omGraphics GUI
+- Fix a French translation in the omGraphics GUI.
 - Give focus to the SQL console or the cost editor even if already open. This allows to put them in the foreground if hidden beyond 
 the main frame. 
 - Virtual networks, path headers and path details are now saved using batch prepared statements, if supported by the used DBMS. 
