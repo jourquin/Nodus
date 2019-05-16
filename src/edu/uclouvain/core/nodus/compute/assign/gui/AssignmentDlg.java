@@ -238,6 +238,8 @@ public class AssignmentDlg extends EscapeDialog {
 
   private GridBagLayout timeDependentTabGridBagLayout = new GridBagLayout();
 
+  private final JButton saveButton = new JButton();
+
   /**
    * Initializes the dialog box.
    *
@@ -255,7 +257,7 @@ public class AssignmentDlg extends EscapeDialog {
 
     GridBagConstraints closeButtonConstraints =
         new GridBagConstraints(
-            2,
+            3,
             5,
             1,
             1,
@@ -381,7 +383,6 @@ public class AssignmentDlg extends EscapeDialog {
    * @param e ActionEvent
    */
   private void closeButton_actionPerformed(ActionEvent e) {
-    saveState();
     setVisible(false);
   }
 
@@ -829,7 +830,7 @@ public class AssignmentDlg extends EscapeDialog {
 
     GridBagConstraints scenarioPanelConstraints =
         new GridBagConstraints(
-            2,
+            3,
             1,
             1,
             1,
@@ -904,7 +905,7 @@ public class AssignmentDlg extends EscapeDialog {
     keepCheapestOnlyCheckBoxConstraints.gridy = 4;
 
     GridBagConstraints highlightedAreaCheckBoxConstraints = new GridBagConstraints();
-    highlightedAreaCheckBoxConstraints.gridx = 1;
+    highlightedAreaCheckBoxConstraints.gridx = 2;
     highlightedAreaCheckBoxConstraints.insets = new Insets(10, 10, 5, 10);
     highlightedAreaCheckBoxConstraints.anchor = GridBagConstraints.WEST;
     highlightedAreaCheckBoxConstraints.gridy = 6;
@@ -928,7 +929,7 @@ public class AssignmentDlg extends EscapeDialog {
 
     GridBagConstraints detailedCheckBoxConstraints =
         new GridBagConstraints(
-            1,
+            2,
             5,
             1,
             1,
@@ -943,7 +944,7 @@ public class AssignmentDlg extends EscapeDialog {
     detailedCheckBoxConstraints.gridy = 7;
 
     GridBagConstraints postAssignmentScriptTextFieldConstraints = new GridBagConstraints();
-    postAssignmentScriptTextFieldConstraints.gridwidth = 2;
+    postAssignmentScriptTextFieldConstraints.gridwidth = 3;
     postAssignmentScriptTextFieldConstraints.fill = GridBagConstraints.HORIZONTAL;
     postAssignmentScriptTextFieldConstraints.gridy = 9;
     postAssignmentScriptTextFieldConstraints.anchor = GridBagConstraints.NORTHWEST;
@@ -972,7 +973,7 @@ public class AssignmentDlg extends EscapeDialog {
     fastMFRadioButtonBagConstraints.weightx = 0.1;
     mainPanelGridBagLayout.rowWeights =
         new double[] {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    mainPanelGridBagLayout.columnWeights = new double[] {1.0, 1.0, 0.0};
+    mainPanelGridBagLayout.columnWeights = new double[] {1.0, 0.0, 1.0, 0.0};
     mainPanel.setLayout(mainPanelGridBagLayout);
 
     // SwingTweaks.textPaneNimbusTweak(sqlLabel);
@@ -1126,7 +1127,7 @@ public class AssignmentDlg extends EscapeDialog {
     GridBagConstraints odTableLabelConstraint = new GridBagConstraints();
     odTableLabelConstraint.anchor = GridBagConstraints.SOUTHWEST;
     odTableLabelConstraint.insets = new Insets(0, 15, 5, 5);
-    odTableLabelConstraint.gridx = 1;
+    odTableLabelConstraint.gridx = 2;
     odTableLabelConstraint.gridy = 2;
     mainPanel.add(odTablesLabel, odTableLabelConstraint);
 
@@ -1142,7 +1143,7 @@ public class AssignmentDlg extends EscapeDialog {
     GridBagConstraints odTablesComboBoxConstraints = new GridBagConstraints();
     odTablesComboBoxConstraints.insets = new Insets(0, 10, 5, 10);
     odTablesComboBoxConstraints.fill = GridBagConstraints.HORIZONTAL;
-    odTablesComboBoxConstraints.gridx = 1;
+    odTablesComboBoxConstraints.gridx = 2;
     odTablesComboBoxConstraints.gridy = 3;
     mainPanel.add(odTablesComboBox, odTablesComboBoxConstraints);
 
@@ -1215,7 +1216,7 @@ public class AssignmentDlg extends EscapeDialog {
         new GridBagConstraints(
             0,
             4,
-            2,
+            3,
             1,
             0.0,
             0.0,
@@ -1229,7 +1230,7 @@ public class AssignmentDlg extends EscapeDialog {
         new GridBagConstraints(
             0,
             5,
-            3,
+            4,
             1,
             0.0,
             0.0,
@@ -1261,7 +1262,7 @@ public class AssignmentDlg extends EscapeDialog {
         new GridBagConstraints(
             0,
             1,
-            2,
+            3,
             1,
             0.0,
             0.0,
@@ -1390,7 +1391,7 @@ public class AssignmentDlg extends EscapeDialog {
     mainPanel.add(descriptionLabel, descriptionLabelConstraints);
 
     GridBagConstraints descriptionTextAreaConstraints = new GridBagConstraints();
-    descriptionTextAreaConstraints.gridwidth = 3;
+    descriptionTextAreaConstraints.gridwidth = 4;
     descriptionTextAreaConstraints.insets = new Insets(0, 10, 10, 10);
     descriptionTextAreaConstraints.fill = GridBagConstraints.HORIZONTAL;
     descriptionTextAreaConstraints.gridx = 0;
@@ -1403,6 +1404,19 @@ public class AssignmentDlg extends EscapeDialog {
     preferencesButtonConstraints.insets = new Insets(5, 10, 10, 10);
     preferencesButtonConstraints.gridy = 12;
     mainPanel.add(getPreferencesButton(), preferencesButtonConstraints);
+
+    GridBagConstraints saveButtonConstraints = new GridBagConstraints();
+    saveButtonConstraints.insets = new Insets(5, 5, 10, 5);
+    saveButtonConstraints.gridx = 1;
+    saveButtonConstraints.gridy = 12;
+    saveButton.setText(i18n.get(AssignmentDlg.class, "Save", "Save"));
+    saveButton.addActionListener(
+        new ActionListener() {
+          public void actionPerformed(ActionEvent e) {
+            saveState();
+          }
+        });
+    mainPanel.add(saveButton, saveButtonConstraints);
 
     GridBagConstraints assignButtonConstraints =
         new GridBagConstraints(
@@ -1417,7 +1431,7 @@ public class AssignmentDlg extends EscapeDialog {
             new Insets(5, 10, 10, 5),
             0,
             0);
-    assignButtonConstraints.gridx = 1;
+    assignButtonConstraints.gridx = 2;
     assignButtonConstraints.anchor = GridBagConstraints.SOUTHEAST;
     assignButtonConstraints.insets = new Insets(5, 5, 10, 5);
     assignButtonConstraints.gridy = 12;

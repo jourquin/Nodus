@@ -43,4 +43,6 @@ in the project file, using the "maxSqlBatchSize" property. If not set, the defau
 - Update build.xml with latest external lib versions. 
 - More consistent internal handling of cost functions (Properties vs file name), which was buggy.
    
-
+## 7.1 - Buildxxxxxxxx
+- Add a "Save" button in the Assignment dialog. It saves the state of the settings, while "Close" now closes the window 
+without saving these settings.
