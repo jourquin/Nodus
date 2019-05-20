@@ -86,8 +86,6 @@ public class PathWriter {
 
   private boolean hasBatchSupport = false;
 
-  boolean oldAutoCommit;
-
   /**
    * Initializes the different tables needed to store the paths.
    *
@@ -113,8 +111,6 @@ public class PathWriter {
 
     // Does the used DB support batch processing ?
     try {
-      oldAutoCommit = con.getAutoCommit();
-
       DatabaseMetaData dbmd = con.getMetaData();
       hasBatchSupport = false;
       if (dbmd != null) {
@@ -216,6 +212,7 @@ public class PathWriter {
     }
 
     try {
+      final boolean oldAutoCommit = con.getAutoCommit();
       con.setAutoCommit(false);
       prepStmtDetails.executeBatch();
       con.commit();
@@ -247,6 +244,7 @@ public class PathWriter {
     }
 
     try {
+      final boolean oldAutoCommit = con.getAutoCommit();
       con.setAutoCommit(false);
       prepStmtHeaders.executeBatch();
       con.commit();

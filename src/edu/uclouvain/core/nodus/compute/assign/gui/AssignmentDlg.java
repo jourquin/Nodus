@@ -130,7 +130,7 @@ public class AssignmentDlg extends EscapeDialog {
 
   private JTabbedPane assignmentTabbedPane = new JTabbedPane();
 
-  private JButton closeButton = new JButton();
+  private JButton cancelButton = new JButton();
 
   private JComboBox<String> costFunctionsComboBox = new JComboBox<>();
 
@@ -271,7 +271,7 @@ public class AssignmentDlg extends EscapeDialog {
     closeButtonConstraints.anchor = GridBagConstraints.SOUTHEAST;
     closeButtonConstraints.insets = new Insets(0, 5, 10, 10);
     closeButtonConstraints.gridy = 12;
-    mainPanel.add(closeButton, closeButtonConstraints);
+    mainPanel.add(cancelButton, closeButtonConstraints);
 
     setLocationRelativeTo(mapPanel);
 
@@ -438,7 +438,7 @@ public class AssignmentDlg extends EscapeDialog {
 
     final Cursor oldCursor = getCursor();
     setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-    closeButton.setEnabled(false);
+    cancelButton.setEnabled(false);
     assignButton.setEnabled(false);
     preferencesButton.setEnabled(false);
 
@@ -457,7 +457,7 @@ public class AssignmentDlg extends EscapeDialog {
     }
 
     setCursor(oldCursor);
-    closeButton.setEnabled(true);
+    cancelButton.setEnabled(true);
     if (odTablesComboBox.getSelectedIndex() != -1) {
       assignButton.setEnabled(true);
     }
@@ -982,8 +982,8 @@ public class AssignmentDlg extends EscapeDialog {
     sqlLabel.setEditable(false);
     sqlLabel.setBackground(mainPanel.getBackground());
 
-    closeButton.setText(i18n.get(AssignmentDlg.class, "Close", "Close"));
-    closeButton.addActionListener(
+    cancelButton.setText(i18n.get(AssignmentDlg.class, "Cancel", "Cancel"));
+    cancelButton.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {

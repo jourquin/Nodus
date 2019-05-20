@@ -46,3 +46,5 @@ in the project file, using the "maxSqlBatchSize" property. If not set, the defau
 ## 7.1 - Buildxxxxxxxx
 - Add a "Save" button in the Assignment dialog. It saves the state of the settings, while "Close" now closes the window 
 without saving these settings.
+- Upgrade various JDBC drivers to their latest version.
+- Upgrade to latest OpenMap 6.0 beta.

@@ -233,8 +233,6 @@ public class VirtualNetworkWriter {
       // Fill it
       Connection jdbcConnection = nodusProject.getMainJDBCConnection();
 
-      boolean oldAutoCommit = jdbcConnection.getAutoCommit();
-
       DatabaseMetaData dbmd = jdbcConnection.getMetaData();
       boolean hasBatchSupport = false;
       if (dbmd != null) {
@@ -335,6 +333,7 @@ public class VirtualNetworkWriter {
                   batchSize++;
                   prepStmt.addBatch();
                   if (batchSize >= maxBatchSize) {
+                    final boolean oldAutoCommit = jdbcConnection.getAutoCommit();
                     jdbcConnection.setAutoCommit(false);
                     prepStmt.executeBatch();
                     jdbcConnection.commit();
@@ -352,6 +351,7 @@ public class VirtualNetworkWriter {
 
       // Flush remaining records in batch
       if (hasBatchSupport) {
+        final boolean oldAutoCommit = jdbcConnection.getAutoCommit();
         jdbcConnection.setAutoCommit(false);
         prepStmt.executeBatch();
         jdbcConnection.commit();
