@@ -142,6 +142,7 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  *
  * @author Bart Jourquin
  */
+
 public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   private static final String CLEARSCENARIO = "CLEARSCENARIO";
 
@@ -335,15 +336,17 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     this.withGUI = withGUI;
 
-    // Only create a console if none exists
-    Frame[] frames = Frame.getFrames();
+    if (withGUI) {
+      // Only create a console if none exists
+      Frame[] frames = Frame.getFrames();
 
-    for (Frame element : frames) {
-      if (element instanceof JFrame) {
-        JFrame f = (JFrame) element;
-        if (f.getName().equals(this.getClass().getName()) && f.isVisible()) {
-          f.requestFocus();
-          return;
+      for (Frame element : frames) {
+        if (element instanceof JFrame) {
+          JFrame f = (JFrame) element;
+          if (f.getName().equals(this.getClass().getName()) && f.isVisible()) {
+            f.requestFocus();
+            return;
+          }
         }
       }
     }
