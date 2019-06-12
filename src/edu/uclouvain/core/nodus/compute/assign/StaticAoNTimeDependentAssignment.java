@@ -119,6 +119,11 @@ public class StaticAoNTimeDependentAssignment extends Assignment {
     // Create a path writer
     pathWriter = new PathWriter(assignmentParameters);
 
+    // Display console if needed
+    if (assignmentParameters.isLogLostPaths()) {
+      displayConsoleIfNeeded();
+    }
+
     // Force Garbage collector?
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
     int gcInterval = nodusMapPanel.getGarbageCollectorInterval();

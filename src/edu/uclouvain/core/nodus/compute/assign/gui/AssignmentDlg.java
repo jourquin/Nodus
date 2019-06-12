@@ -1479,7 +1479,7 @@ public class AssignmentDlg extends EscapeDialog {
     final SpinnerListModel maxDetourSpinnerModel =
         new SpinnerListModel(
             new String[] {
-              "0.00", "1.10", "1.25", "1.50", "1.75", "2.0", "2.50", "3.00", "5.00", "10.00"
+              "0.00", "1.10", "1.25", "1.50", "1.75", "2.0", "2.50", "3.0", "5.0", "10.0"
             });
 
     int min = 0;

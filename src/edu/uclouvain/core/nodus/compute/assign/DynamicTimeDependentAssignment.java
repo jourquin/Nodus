@@ -31,7 +31,6 @@ import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
-import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 
@@ -127,7 +126,8 @@ public class DynamicTimeDependentAssignment extends Assignment {
 
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {
-      new NodusConsole(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
+      displayConsoleIfNeeded();
+      /*new NodusConsole(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
       System.out.println(i18n.get(Assignment.class, "Lost_paths", "Lost paths:"));
       System.out.println(
           NodusC.DBF_GROUP
@@ -136,7 +136,7 @@ public class DynamicTimeDependentAssignment extends Assignment {
               + ", "
               + NodusC.DBF_DESTINATION
               + ", "
-              + NodusC.DBF_QUANTITY);
+              + NodusC.DBF_QUANTITY);*/
     }
 
     // Force Garbage collector?

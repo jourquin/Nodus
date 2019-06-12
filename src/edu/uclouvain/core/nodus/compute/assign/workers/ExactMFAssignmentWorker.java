@@ -105,7 +105,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     shortestPath = new BinaryHeapAStar(graph);
     availableModeMeans = virtualNet.getAvailableModeMeans(groupIndex);
     paths = new Path[assignmentParameters.getNbIterations() * availableModeMeans.length];
-    
+
     // Initialize the modal split method from the name found in the assignment parameters
     modalSplitMethod = getModalSplitMethod(assignmentParameters.getModalSplitMethodName());
     if (modalSplitMethod == null) {
@@ -407,14 +407,31 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
       if (foundPaths.get(key) == null) {
         ODCell lostPath = potentialLostPaths.get(key);
 
+        /*System.out.println(
+        lostPath.getGroup()
+            + ", "
+            + lostPath.getOriginNodeId()
+            + ", "
+            + lostPath.getDestinationNodeId()
+            + ", "
+            + lostPath.getQuantity());*/
+
         System.out.println(
-            lostPath.getGroup()
-                + ", "
+            "delete from "
+                + assignmentParameters.getODMatrix()
+                + " where "
+                + NodusC.DBF_GROUP
+                + "="
+                + lostPath.getGroup()
+                + " and "
+                + NodusC.DBF_ORIGIN
+                + "="
                 + lostPath.getOriginNodeId()
-                + ", "
+                + " and "
+                + NodusC.DBF_DESTINATION
+                + "="
                 + lostPath.getDestinationNodeId()
-                + ", "
-                + lostPath.getQuantity());
+                + ";");
       }
     }
 
@@ -538,13 +555,13 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
             pathCosts.trCosts += vl.getWeight(groupIndex);
             break;
           case VirtualLink.TYPE_TRANSHIP:
-            pathCosts.tpCosts += vl.getWeight(groupIndex);  
+            pathCosts.tpCosts += vl.getWeight(groupIndex);
             pathDuration +=
-                    transitTimesParser.getTranshipmentDuration(
-                        vl.getBeginVirtualNode().getMode(),
-                        vl.getBeginVirtualNode().getMeans(),
-                        vl.getEndVirtualNode().getMode(),
-                        vl.getEndVirtualNode().getMeans());
+                transitTimesParser.getTranshipmentDuration(
+                    vl.getBeginVirtualNode().getMode(),
+                    vl.getBeginVirtualNode().getMeans(),
+                    vl.getEndVirtualNode().getMode(),
+                    vl.getEndVirtualNode().getMeans());
             break;
           case VirtualLink.TYPE_MOVE:
             pathCosts.mvCosts += vl.getWeight(groupIndex);

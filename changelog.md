@@ -48,3 +48,5 @@ in the project file, using the "maxSqlBatchSize" property. If not set, the defau
 without saving these settings.
 - Upgrade various JDBC drivers to their latest version.
 - Upgrade to latest OpenMap 6.0 beta.
+- Change "max detour" spinner model in order to make all values visible in the spinner.
+- Replace the "lost path" message with an SQL command that allows to later delete the "lost" OD relations in the demand table. 

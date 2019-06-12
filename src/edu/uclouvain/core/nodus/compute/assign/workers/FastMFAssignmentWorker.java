@@ -59,7 +59,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
   private ODCell demand;
 
-
   /**
    * Two hash tables. The first will contain the OD pairs between which at least one path was found,
    * the second the pairs between which, during an iteration, no path was found. All the pairs which
@@ -430,14 +429,31 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
       String key = it.next();
       if (foundPaths.get(key) == null) {
         ODCell lostPath = potentialLostPaths.get(key);
-        System.out.println(
+        /*System.out.println(
             lostPath.getGroup()
                 + ", "
                 + lostPath.getOriginNodeId()
                 + ", "
                 + lostPath.getDestinationNodeId()
                 + ", "
-                + lostPath.getQuantity());
+                + lostPath.getQuantity());*/
+
+        System.out.println(
+            "delete from "
+                + assignmentParameters.getODMatrix()
+                + " where "
+                + NodusC.DBF_GROUP
+                + "="
+                + lostPath.getGroup()
+                + " and "
+                + NodusC.DBF_ORIGIN
+                + "="
+                + lostPath.getOriginNodeId()
+                + " and "
+                + NodusC.DBF_DESTINATION
+                + "="
+                + lostPath.getDestinationNodeId()
+                + ";");
       }
     }
 
@@ -571,11 +587,11 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
             case VirtualLink.TYPE_TRANSHIP:
               pathCosts.tpCosts += vl.getWeight(groupIndex);
               pathDuration +=
-                      transitTimesParser.getTranshipmentDuration(
-                          vl.getBeginVirtualNode().getMode(),
-                          vl.getBeginVirtualNode().getMeans(),
-                          vl.getEndVirtualNode().getMode(),
-                          vl.getEndVirtualNode().getMeans());
+                  transitTimesParser.getTranshipmentDuration(
+                      vl.getBeginVirtualNode().getMode(),
+                      vl.getBeginVirtualNode().getMeans(),
+                      vl.getEndVirtualNode().getMode(),
+                      vl.getEndVirtualNode().getMeans());
               break;
             case VirtualLink.TYPE_MOVE:
               pathCosts.mvCosts += vl.getWeight(groupIndex);

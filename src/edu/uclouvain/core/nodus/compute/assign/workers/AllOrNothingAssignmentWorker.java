@@ -21,6 +21,7 @@
 
 package edu.uclouvain.core.nodus.compute.assign.workers;
 
+import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra;
@@ -147,14 +148,30 @@ public class AllOrNothingAssignmentWorker extends AssignmentWorker {
 
         if (predecessor == 0) {
           if (assignmentParameters.isLogLostPaths()) {
+            /*System.out.println(
+            currentGroup
+                + ", "
+                + virtualNet.getVirtualNodeLists()[nodeIndex].getRealNodeId()
+                + ", "
+                + virtualNet.getVirtualNodeLists()[destinationNodeIndex].getRealNodeId()
+                + ", "
+                + demand.getQuantity());*/
             System.out.println(
-                currentGroup
-                    + ", "
+                "delete from "
+                    + assignmentParameters.getODMatrix()
+                    + " where "
+                    + NodusC.DBF_GROUP
+                    + "="
+                    + currentGroup
+                    + " and "
+                    + NodusC.DBF_ORIGIN
+                    + "="
                     + virtualNet.getVirtualNodeLists()[nodeIndex].getRealNodeId()
-                    + ", "
+                    + " and "
+                    + NodusC.DBF_DESTINATION
+                    + "="
                     + virtualNet.getVirtualNodeLists()[destinationNodeIndex].getRealNodeId()
-                    + ", "
-                    + demand.getQuantity());
+                    + ";");
           }
           isPathFound = false;
 
