@@ -53,3 +53,4 @@ without saving these settings.
 
 ## v7.1 - Buildxxxxxxxx
 - "Iterations" label replaced by "Nb routes" in the assignment GUI for multiflow assignments.
+- Upgrade to Groovy 2.5.7
