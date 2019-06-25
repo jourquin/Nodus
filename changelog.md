@@ -43,10 +43,13 @@ in the project file, using the "maxSqlBatchSize" property. If not set, the defau
 - Update build.xml with latest external lib versions. 
 - More consistent internal handling of cost functions (Properties vs file name), which was buggy.
    
-## 7.1 - Build20190618
+## v7.1 - Build20190618
 - Add a "Save" button in the Assignment dialog. It saves the state of the settings, while "Close" now closes the window 
 without saving these settings.
 - Upgrade various JDBC drivers to their latest version.
 - Upgrade to latest OpenMap 6.0 beta.
 - Change "max detour" spinner model in order to make all values visible in the spinner.
 - Replace the "lost path" message with an SQL command that allows to later delete the "lost" OD relations in the demand table. 
+
+## v7.1 - Buildxxxxxxxx
+- "Iterations" label replaced by "Nb routes" in the assignment GUI for multiflow assignments.

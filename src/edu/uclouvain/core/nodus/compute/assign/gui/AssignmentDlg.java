@@ -2192,6 +2192,7 @@ public class AssignmentDlg extends EscapeDialog {
     }
 
     iterationLabel.setEnabled(enabled);
+    iterationLabel.setText(i18n.get(AssignmentDlg.class, "Iterations", "Iterations"));
     iterationSpinner.setEnabled(enabled);
     precisionLabel.setEnabled(enabled);
     precisionSpinner.setEnabled(enabled);
@@ -2258,6 +2259,7 @@ public class AssignmentDlg extends EscapeDialog {
 
     if (fastMFRadioButton.isSelected()) {
       iterationLabel.setEnabled(true);
+      iterationLabel.setText(i18n.get(AssignmentDlg.class, "NbRoutes", "Nb routes"));
       iterationSpinner.setEnabled(true);
       costMarkUpLabel.setEnabled(true);
       costMarkupSpinner.setEnabled(true);
@@ -2274,6 +2276,7 @@ public class AssignmentDlg extends EscapeDialog {
 
     if (exactMFRadioButton.isSelected()) {
       iterationLabel.setEnabled(true);
+      iterationLabel.setText(i18n.get(AssignmentDlg.class, "NbRoutes", "Nb routes"));
       iterationSpinner.setEnabled(true);
       costMarkUpLabel.setEnabled(true);
       costMarkupSpinner.setEnabled(true);
