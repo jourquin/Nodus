@@ -132,8 +132,8 @@ public class NodeResults implements ShapeConstants {
     NodusEsriLayer[] layers = nodusProject.getNodeLayers();
 
     for (NodusEsriLayer element : layers) {
-
-      // Delete old _gis file
+/*
+      // Delete old _results file
       String fileName =
           nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
               + element.getTableName()
@@ -172,7 +172,7 @@ public class NodeResults implements ShapeConstants {
           System.err.println("Unable to delete " + fileName);
         }
       }
-
+*/
       // Only look into displayed layers
       if (element.isVisible()) {
         EsriGraphicList egl = element.getEsriGraphicList();

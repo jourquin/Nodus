@@ -244,8 +244,8 @@ public class LinkResults implements ShapeConstants {
     // Retain extreme values if not yet set and delete old export files
     if (!isTimeDependent) {
       for (NodusEsriLayer element : linkLayers) {
-
-        // Delete old _gis file
+/*
+        // Delete old _results file
         String fileName =
             nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
                 + element.getTableName()
@@ -284,7 +284,7 @@ public class LinkResults implements ShapeConstants {
             System.err.println("Unable to delete " + fileName);
           }
         }
-
+*/
         // Only look into displayed layers
         if (element.isVisible()) {
           EsriGraphicList egl = element.getEsriGraphicList();
@@ -470,8 +470,8 @@ public class LinkResults implements ShapeConstants {
     DbfTableModel resultModel = null;
 
     for (int i = 0; i < layers.length; i++) {
-
-      // Delete old _gis file
+/*
+      // Delete old _results file
       String fileName =
           nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
               + layers[i].getTableName()
@@ -510,7 +510,7 @@ public class LinkResults implements ShapeConstants {
           System.err.println("Unable to delete " + fileName);
         }
       }
-
+*/
       if (layers[i].isVisible()) {
         EsriGraphicList egl = layers[i].getEsriGraphicList();
         DbfTableModel tableModel = layers[i].getModel();
