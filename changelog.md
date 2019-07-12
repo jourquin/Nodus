@@ -55,4 +55,5 @@ without saving these settings.
 - "Iterations" label replaced by "Nb routes" in the assignment GUI for multiflow assignments.
 - Upgrade to Groovy 2.5.7
 - Don't delete existing "_results" layers when results are displayed.
+- Stats dialog is now also accessible from the results dialog.
  

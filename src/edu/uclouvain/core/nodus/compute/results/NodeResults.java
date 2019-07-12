@@ -35,7 +35,6 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
 import edu.uclouvain.core.nodus.utils.FileUtils;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -132,7 +131,7 @@ public class NodeResults implements ShapeConstants {
     NodusEsriLayer[] layers = nodusProject.getNodeLayers();
 
     for (NodusEsriLayer element : layers) {
-/*
+      /*
       // Delete old _results file
       String fileName =
           nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
@@ -172,7 +171,7 @@ public class NodeResults implements ShapeConstants {
           System.err.println("Unable to delete " + fileName);
         }
       }
-*/
+      */
       // Only look into displayed layers
       if (element.isVisible()) {
         EsriGraphicList egl = element.getEsriGraphicList();

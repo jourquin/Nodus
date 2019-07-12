@@ -31,6 +31,7 @@ import edu.uclouvain.core.nodus.swing.EscapeDialog;
 
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -136,14 +137,15 @@ public class StatDlg extends EscapeDialog {
   /**
    * Creates the dialog.
    *
-   * @param sqlConsole The SQLConsole this dialog is created from.
    * @param nodusProject The Nodus project.
+   * @param sqlConsole The SQLConsole this dialog is called from or null if called from elsewhere.
    */
-  public StatDlg(SQLConsole sqlConsole, NodusProject nodusProject) {
-    super(sqlConsole.getFrame(), i18n.get(StatDlg.class, "Statistics", "Statistics"), false);
+  public StatDlg(NodusProject nodusProject, SQLConsole sqlConsole) {
+    super((Frame) null, i18n.get(StatDlg.class, "Statistics", "Statistics"), true);
 
-    this.sqlConsole = sqlConsole;
     this.nodusProject = nodusProject;
+    this.sqlConsole = sqlConsole;
+
     jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
 
     initialize();
@@ -604,12 +606,15 @@ public class StatDlg extends EscapeDialog {
       batchSqlStmt += header + ";\n" + sqlStmt + ";\n";
     }
 
-    sqlConsole.getSqlCommandArea().setText(batchSqlStmt);
-    sqlConsole.resetScript();
+    if (sqlConsole != null) {
+      sqlConsole.getSqlCommandArea().setText(batchSqlStmt);
+      sqlConsole.resetScript();
+    }
+
     nodusProject.getNodusMapPanel().setBusy(false);
     setCursor(oldCursor);
 
-    if (pieCheckBox.isSelected()) {
+    if (sqlConsole == null || pieCheckBox.isSelected()) {
       statPieDlg.displayGUI();
     }
   }
@@ -621,15 +626,6 @@ public class StatDlg extends EscapeDialog {
    */
   private void generateQueriesButton_actionPerformed(ActionEvent e) {
     generateQueries();
-  }
-
-  /**
-   * Enables or not the "Generate queries" button. Used by the StatPieDlg to avoid reentrance.
-   *
-   * @param enable If true, enable the button.
-   */
-  public void enableGenerateQueriesButton(boolean enable) {
-    generateQueriesButton.setEnabled(enable);
   }
 
   /**
@@ -676,6 +672,7 @@ public class StatDlg extends EscapeDialog {
             0);
     gridBagConstraints1.gridy = 7;
     GridBagConstraints gridBagConstraints = new GridBagConstraints();
+    gridBagConstraints.anchor = GridBagConstraints.WEST;
     gridBagConstraints.gridx = 0;
     gridBagConstraints.gridy = 5;
     GridBagConstraints okButtonConstraints =
@@ -748,7 +745,11 @@ public class StatDlg extends EscapeDialog {
     rightPanel.setLayout(rightPanelGridBagLayout);
     groupLabel.setText(i18n.get(StatDlg.class, "Group", "Group"));
 
-    generateQueriesButton.setText(i18n.get(StatDlg.class, "Generate_queries", "Generate queries"));
+    String s = i18n.get(StatDlg.class, "Generate_queries", "Generate queries");
+    if (sqlConsole == null) {
+      s = i18n.get(StatDlg.class, "Draw_graphics", "Draw graphice");
+    }
+    generateQueriesButton.setText(s);
     generateQueriesButton.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -825,7 +826,7 @@ public class StatDlg extends EscapeDialog {
             1,
             1.0,
             0.0,
-            GridBagConstraints.NORTHWEST,
+            GridBagConstraints.SOUTHWEST,
             GridBagConstraints.HORIZONTAL,
             new Insets(0, 5, 0, 5),
             0,
@@ -876,7 +877,7 @@ public class StatDlg extends EscapeDialog {
         dummyLabel,
         new GridBagConstraints(
             0,
-            4,
+            0,
             1,
             1,
             1.0,
@@ -888,7 +889,11 @@ public class StatDlg extends EscapeDialog {
             0));
     rightPanel.add(generateQueriesButton, okButtonConstraints);
     rightPanel.add(closeButton, gridBagConstraints1);
-    rightPanel.add(getPieCheckBox(), gridBagConstraints);
+
+    if (sqlConsole != null) {
+      rightPanel.add(getPieCheckBox(), gridBagConstraints);
+    }
+
     mainPanel.add(
         deselectAllButton,
         new GridBagConstraints(
@@ -917,34 +922,38 @@ public class StatDlg extends EscapeDialog {
             new Insets(0, 10, 10, 5),
             0,
             0));
-    checkBoxPanel.add(
-        nbODCheckBox,
-        new GridBagConstraints(
-            0,
-            0,
-            1,
-            1,
-            0.0,
-            0.0,
-            GridBagConstraints.WEST,
-            GridBagConstraints.NONE,
-            new Insets(0, 5, 0, 0),
-            0,
-            0));
-    checkBoxPanel.add(
-        totalCostCheckBox,
-        new GridBagConstraints(
-            0,
-            1,
-            1,
-            1,
-            0.0,
-            0.0,
-            GridBagConstraints.WEST,
-            GridBagConstraints.NONE,
-            new Insets(0, 5, 0, 0),
-            0,
-            0));
+
+    // Nb OD entries and total cost can only be queried in the SQL console
+    if (sqlConsole != null) {
+      checkBoxPanel.add(
+          nbODCheckBox,
+          new GridBagConstraints(
+              0,
+              0,
+              1,
+              1,
+              0.0,
+              0.0,
+              GridBagConstraints.WEST,
+              GridBagConstraints.NONE,
+              new Insets(0, 5, 0, 0),
+              0,
+              0));
+      checkBoxPanel.add(
+          totalCostCheckBox,
+          new GridBagConstraints(
+              0,
+              1,
+              1,
+              1,
+              0.0,
+              0.0,
+              GridBagConstraints.WEST,
+              GridBagConstraints.NONE,
+              new Insets(0, 5, 0, 0),
+              0,
+              0));
+    }
     checkBoxPanel.add(
         loadedTonsPerModeCheckBox,
         new GridBagConstraints(

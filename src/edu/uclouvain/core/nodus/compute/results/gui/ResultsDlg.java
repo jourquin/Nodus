@@ -36,6 +36,7 @@ import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.results.LinkResults;
 import edu.uclouvain.core.nodus.compute.results.NodeResults;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.database.gui.StatDlg;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 
 import java.awt.Dimension;
@@ -43,6 +44,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.Iterator;
 
 import javax.swing.ButtonGroup;
@@ -133,6 +135,8 @@ public class ResultsDlg extends EscapeDialog {
 
   private RSyntaxTextArea sqlTextPane = new RSyntaxTextArea();
 
+  private final JButton statsButton = new JButton();
+
   /**
    * Initializes the dialog box.
    *
@@ -149,6 +153,7 @@ public class ResultsDlg extends EscapeDialog {
 
     initialize();
     getRootPane().setDefaultButton(okButton);
+
     setLocationRelativeTo(nodusMapPanel);
   }
 
@@ -464,9 +469,9 @@ public class ResultsDlg extends EscapeDialog {
   private void initialize() {
 
     GridBagConstraints exportGridBagConstraint = new GridBagConstraints();
-    exportGridBagConstraint.gridx = 3;
+    exportGridBagConstraint.gridx = 4;
     exportGridBagConstraint.anchor = GridBagConstraints.EAST;
-    exportGridBagConstraint.insets = new Insets(0, 0, 0, 10);
+    exportGridBagConstraint.insets = new Insets(0, 0, 5, 10);
     exportGridBagConstraint.gridy = 1;
     setContentPane(mainPanel);
 
@@ -474,13 +479,13 @@ public class ResultsDlg extends EscapeDialog {
         new GridBagConstraints(
             2,
             3,
-            2,
+            1,
             1,
             0.0,
             0.0,
             GridBagConstraints.EAST,
             GridBagConstraints.NONE,
-            new Insets(5, 5, 5, 5),
+            new Insets(5, 5, 0, 5),
             0,
             0);
 
@@ -546,6 +551,21 @@ public class ResultsDlg extends EscapeDialog {
           }
         });
 
+    statsButton.setText(i18n.get(ResultsDlg.class, "Statistics", "Statistics"));
+    GridBagConstraints statsButtonConstraints = new GridBagConstraints();
+    statsButtonConstraints.anchor = GridBagConstraints.EAST;
+    statsButtonConstraints.insets = new Insets(5, 5, 5, 5);
+    statsButtonConstraints.gridx = 4;
+    statsButtonConstraints.gridy = 3;
+    statsButton.addActionListener(
+        new ActionListener() {
+          public void actionPerformed(ActionEvent e) {
+            StatDlg statDlg = new StatDlg(nodusProject, null);
+            statDlg.setVisible(true);
+          }
+        });
+    mainPanel.add(statsButton, statsButtonConstraints);
+
     actionsComboBox.setMinimumSize(new Dimension(350, 24));
     actionsComboBox.setPreferredSize(new Dimension(350, 24));
     actionsComboBox.addActionListener(
@@ -567,20 +587,20 @@ public class ResultsDlg extends EscapeDialog {
             0.0,
             GridBagConstraints.WEST,
             GridBagConstraints.NONE,
-            new Insets(0, 10, 0, 0),
+            new Insets(0, 10, 5, 5),
             0,
             0));
     mainPanel.add(
         actionsComboBox,
         new GridBagConstraints(
-            3,
+            2,
             0,
-            1,
+            3,
             1,
             0.0,
             0.0,
             GridBagConstraints.EAST,
-            GridBagConstraints.NONE,
+            GridBagConstraints.HORIZONTAL,
             new Insets(5, 0, 5, 10),
             0,
             0));
@@ -589,7 +609,7 @@ public class ResultsDlg extends EscapeDialog {
         new GridBagConstraints(
             0,
             2,
-            4,
+            5,
             1,
             0.5,
             0.5,
@@ -609,7 +629,7 @@ public class ResultsDlg extends EscapeDialog {
             0.0,
             GridBagConstraints.WEST,
             GridBagConstraints.NONE,
-            new Insets(5, 5, 5, 5),
+            new Insets(5, 5, 0, 5),
             0,
             0));
     mainPanel.add(
@@ -623,7 +643,7 @@ public class ResultsDlg extends EscapeDialog {
             0.0,
             GridBagConstraints.WEST,
             GridBagConstraints.NONE,
-            new Insets(5, 5, 5, 5),
+            new Insets(5, 5, 0, 5),
             0,
             0));
     mainPanel.add(
@@ -637,7 +657,7 @@ public class ResultsDlg extends EscapeDialog {
             0.0,
             GridBagConstraints.CENTER,
             GridBagConstraints.NONE,
-            new Insets(5, 5, 5, 0),
+            new Insets(5, 5, 5, 5),
             0,
             0));
     mainPanel.add(
@@ -669,8 +689,8 @@ public class ResultsDlg extends EscapeDialog {
     // sqlTextArea.setLineWrap(true);
     defaultQueryButtonConstraints.gridx = 3;
     defaultQueryButtonConstraints.gridy = 3;
-    defaultQueryButtonConstraints.insets = new java.awt.Insets(5, 5, 5, 5);
-    defaultQueryButtonConstraints.anchor = java.awt.GridBagConstraints.EAST;
+    defaultQueryButtonConstraints.insets = new Insets(5, 5, 0, 5);
+    defaultQueryButtonConstraints.anchor = GridBagConstraints.WEST;
     resetButtonConstraints.anchor = java.awt.GridBagConstraints.WEST;
     mainPanel.add(resetButton, resetButtonConstraints);
     mainPanel.add(getDefaultQueryButton(), defaultQueryButtonConstraints);

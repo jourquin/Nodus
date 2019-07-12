@@ -117,9 +117,6 @@ public class StatPieDlg extends EscapeDialog {
   /** Array of strings that will contain the SQL queries for the types of results to display. */
   private String[] sqlQuery = new String[8];
 
-  /** Parent dialog. */
-  private StatDlg statDlg;
-
   private JTabbedPane tabbedPanes = null;
 
   private JTable table = null;
@@ -131,7 +128,7 @@ public class StatPieDlg extends EscapeDialog {
   private Vector<Float>[] values = (Vector<Float>[]) new Vector[8];
 
   /**
-   * Creates the dialog tha will contain the pie charts.
+   * Creates the dialog that will contain the pie charts.
    *
    * @param statDlg The parent StatDlg.
    */
@@ -140,15 +137,12 @@ public class StatPieDlg extends EscapeDialog {
         statDlg,
         i18n.get(StatPieDlg.class, "Assignment_statistics", "Assignment statistics"),
         false);
-    this.statDlg = statDlg;
     this.nodusProject = statDlg.getNodusProject();
     tableModel = (DefaultTableModel) sorter.getTableModel();
   }
 
   /** Closes the dialog. */
   private void close() {
-    // Re-enable the generate button of the stat dialog
-    statDlg.enableGenerateQueriesButton(true);
     setVisible(false);
   }
 
@@ -267,14 +261,9 @@ public class StatPieDlg extends EscapeDialog {
     pane.add(getScrollPane(), scrollPaneConstraints);
     pane.add(closeButton, closeButtonConstraints);
 
-    int x = statDlg.getParent().getX() + 100;
-    int y = statDlg.getParent().getY() - 100;
-    setLocation(x, y);
-
-    // Disable the generate queries button of the stat dialog
-    statDlg.enableGenerateQueriesButton(false);
     fillTable();
     pack();
+    setLocationRelativeTo(null);
     setVisible(true);
     getRootPane().setDefaultButton(closeButton);
   }

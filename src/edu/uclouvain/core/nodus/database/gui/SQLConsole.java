@@ -504,7 +504,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent actionevent) {
-            statDlg = new StatDlg(_this, nodusProject);
+            statDlg = new StatDlg(nodusProject, _this);
             statDlg.setVisible(true);
           }
         });
