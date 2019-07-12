@@ -51,7 +51,7 @@ without saving these settings.
 - Change "max detour" spinner model in order to make all values visible in the spinner.
 - Replace the "lost path" message with an SQL command that allows to later delete the "lost" OD relations in the demand table. 
 
-## v7.1 - Buildxxxxxxxx
+## v7.1 - Build20190712
 - "Iterations" label replaced by "Nb routes" in the assignment GUI for multiflow assignments.
 - Upgrade to Groovy 2.5.7
 - Don't delete existing "_results" layers when results are displayed.
