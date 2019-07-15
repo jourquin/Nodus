@@ -36,6 +36,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.text.MessageFormat;
 
 import javax.swing.JButton;
@@ -69,6 +70,8 @@ public class StatDlg extends EscapeDialog {
   private static final String PROP_STAT_UL_T_MM = "stat_UnloadedTonsPerModeMeans";
   private static final String PROP_STAT_VKM_M = "stat_VehKmPerMode";
   private static final String PROP_STAT_VKM_MM = "stat_VehKmPerModeMeans";
+
+  private static boolean visible = false;
 
   private JPanel checkBoxPanel = new JPanel();
 
@@ -141,7 +144,16 @@ public class StatDlg extends EscapeDialog {
    * @param sqlConsole The SQLConsole this dialog is called from or null if called from elsewhere.
    */
   public StatDlg(NodusProject nodusProject, SQLConsole sqlConsole) {
-    super((Frame) null, i18n.get(StatDlg.class, "Statistics", "Statistics"), true);
+    super((Frame) null, i18n.get(StatDlg.class, "Statistics", "Statistics"), false);
+
+    if (sqlConsole == null) {
+      setModal(true);
+    }
+
+    if (visible) {
+      return;
+    }
+    visible = true;
 
     this.nodusProject = nodusProject;
     this.sqlConsole = sqlConsole;
@@ -163,6 +175,7 @@ public class StatDlg extends EscapeDialog {
    */
   private void closeButton_actionPerformed(ActionEvent e) {
     saveState();
+    visible = false;
     setVisible(false);
   }
 
@@ -1105,6 +1118,12 @@ public class StatDlg extends EscapeDialog {
     groupSpinner.setModel(listModel);
 
     pack();
+  }
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+    super.keyPressed(e);
+    visible = false;
   }
 
   /** Set the checkboxes in the state they were saved. */
