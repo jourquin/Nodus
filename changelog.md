@@ -56,4 +56,7 @@ without saving these settings.
 - Upgrade to Groovy 2.5.7
 - Don't delete existing "_results" layers when results are displayed.
 - Stats dialog is now also accessible from the results dialog.
+
+## v7.1 - Buildxxxxxxxx
+- Make StatDlg non modal when called from SQL console.
  
