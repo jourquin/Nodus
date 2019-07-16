@@ -57,6 +57,10 @@ without saving these settings.
 - Don't delete existing "_results" layers when results are displayed.
 - Stats dialog is now also accessible from the results dialog.
 
-## v7.1 - Buildxxxxxxxx
+## v7.1 - Build20190716
 - Make StatDlg non modal when called from SQL console.
+- Upgrade to HSQLDB 2.5
+- Upgrade to mariadb-java-client 2.4.2
+- Upgrade to postrgesql jdbc driver 42.2.6
+- Upgrade to poi 4.1.0
  
