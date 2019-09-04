@@ -474,7 +474,7 @@ public class ResultsDlg extends EscapeDialog {
     final GridBagConstraints resetButtonConstraints =
         new GridBagConstraints(
             2,
-            4,
+            3,
             1,
             1,
             0.0,
@@ -552,7 +552,7 @@ public class ResultsDlg extends EscapeDialog {
     statsButtonConstraints.anchor = GridBagConstraints.EAST;
     statsButtonConstraints.insets = new Insets(5, 5, 0, 0);
     statsButtonConstraints.gridx = 4;
-    statsButtonConstraints.gridy = 4;
+    statsButtonConstraints.gridy = 3;
     statsButton.addActionListener(
         new ActionListener() {
           public void actionPerformed(ActionEvent e) {
@@ -562,8 +562,9 @@ public class ResultsDlg extends EscapeDialog {
         });
 
     GridBagConstraints relativeToViewGridBagConstraint = new GridBagConstraints();
-    relativeToViewGridBagConstraint.insets = new Insets(0, 10, 5, 0);
-    relativeToViewGridBagConstraint.gridx = 0;
+    relativeToViewGridBagConstraint.anchor = GridBagConstraints.EAST;
+    relativeToViewGridBagConstraint.insets = new Insets(0, 0, 5, 5);
+    relativeToViewGridBagConstraint.gridx = 3;
     relativeToViewGridBagConstraint.gridy = 1;
     relativeToViewCheckBox.setText(
         i18n.get(ResultsDlg.class, "Relative_to_view", "Relative to view"));
@@ -591,8 +592,8 @@ public class ResultsDlg extends EscapeDialog {
         sqlLabel,
         new GridBagConstraints(
             0,
-            2,
-            4,
+            1,
+            3,
             1,
             0.0,
             0.0,
@@ -619,7 +620,7 @@ public class ResultsDlg extends EscapeDialog {
         sqlTextPane,
         new GridBagConstraints(
             0,
-            3,
+            2,
             5,
             1,
             0.5,
@@ -633,7 +634,7 @@ public class ResultsDlg extends EscapeDialog {
         cancelButton,
         new GridBagConstraints(
             0,
-            4,
+            3,
             1,
             1,
             0.0,
@@ -647,7 +648,7 @@ public class ResultsDlg extends EscapeDialog {
         okButton,
         new GridBagConstraints(
             1,
-            4,
+            3,
             1,
             1,
             0.0,
@@ -699,7 +700,7 @@ public class ResultsDlg extends EscapeDialog {
 
     // sqlTextArea.setLineWrap(true);
     defaultQueryButtonConstraints.gridx = 3;
-    defaultQueryButtonConstraints.gridy = 4;
+    defaultQueryButtonConstraints.gridy = 3;
     defaultQueryButtonConstraints.insets = new Insets(5, 5, 0, 5);
     defaultQueryButtonConstraints.anchor = GridBagConstraints.WEST;
     resetButtonConstraints.anchor = java.awt.GridBagConstraints.WEST;
