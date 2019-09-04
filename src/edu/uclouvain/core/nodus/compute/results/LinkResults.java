@@ -111,6 +111,8 @@ public class LinkResults implements ShapeConstants {
 
   private NodusProject nodusProject;
   
+  private boolean relativeToView;
+  
   private int sliceDisplayInterval;
   
   private float ulLat;
@@ -121,11 +123,14 @@ public class LinkResults implements ShapeConstants {
    * Initializes the class.
    *
    * @param mapPanel The NodusMapPanel.
+   * @param relativeToView If true, the max width of the links will be computed taking only into
+   *     account the visible links.
    * @param export If true, the results are exported in a shapefile.
    */
-  public LinkResults(NodusMapPanel mapPanel, boolean export) {
+  public LinkResults(NodusMapPanel mapPanel, boolean relativeToView, boolean export) {
     nodusMapPanel = mapPanel;
     nodusProject = nodusMapPanel.getNodusProject();
+    this.relativeToView = relativeToView;
     this.export = export;
 
     /*
@@ -317,7 +322,7 @@ public class LinkResults implements ShapeConstants {
             OMPoly omg = (OMPoly) it.next();
 
             // Is this link in the current view ?
-            if (isLinkInView(omg)) {
+            if (!relativeToView || isLinkInView(omg)) {
               RealLink rl = (RealLink) omg.getAttribute(0);
               double result = rl.getResult();
 

@@ -137,6 +137,8 @@ public class ResultsDlg extends EscapeDialog {
 
   private final JButton statsButton = new JButton();
 
+  private final JCheckBox relativeToViewCheckBox = new JCheckBox();
+
   /**
    * Initializes the dialog box.
    *
@@ -467,18 +469,12 @@ public class ResultsDlg extends EscapeDialog {
 
   /** Initializes the GUI components of the dialog box. */
   private void initialize() {
-
-    GridBagConstraints exportGridBagConstraint = new GridBagConstraints();
-    exportGridBagConstraint.gridx = 4;
-    exportGridBagConstraint.anchor = GridBagConstraints.EAST;
-    exportGridBagConstraint.insets = new Insets(0, 0, 5, 10);
-    exportGridBagConstraint.gridy = 1;
     setContentPane(mainPanel);
 
     final GridBagConstraints resetButtonConstraints =
         new GridBagConstraints(
             2,
-            3,
+            4,
             1,
             1,
             0.0,
@@ -554,9 +550,9 @@ public class ResultsDlg extends EscapeDialog {
     statsButton.setText(i18n.get(ResultsDlg.class, "Statistics", "Statistics"));
     GridBagConstraints statsButtonConstraints = new GridBagConstraints();
     statsButtonConstraints.anchor = GridBagConstraints.EAST;
-    statsButtonConstraints.insets = new Insets(5, 5, 5, 5);
+    statsButtonConstraints.insets = new Insets(5, 5, 0, 0);
     statsButtonConstraints.gridx = 4;
-    statsButtonConstraints.gridy = 3;
+    statsButtonConstraints.gridy = 4;
     statsButton.addActionListener(
         new ActionListener() {
           public void actionPerformed(ActionEvent e) {
@@ -564,6 +560,21 @@ public class ResultsDlg extends EscapeDialog {
             statDlg.setVisible(true);
           }
         });
+
+    GridBagConstraints relativeToViewGridBagConstraint = new GridBagConstraints();
+    relativeToViewGridBagConstraint.insets = new Insets(0, 10, 5, 0);
+    relativeToViewGridBagConstraint.gridx = 0;
+    relativeToViewGridBagConstraint.gridy = 1;
+    relativeToViewCheckBox.setText(
+        i18n.get(ResultsDlg.class, "Relative_to_view", "Relative to view"));
+    mainPanel.add(relativeToViewCheckBox, relativeToViewGridBagConstraint);
+
+    GridBagConstraints exportGridBagConstraint = new GridBagConstraints();
+    exportGridBagConstraint.gridx = 4;
+    exportGridBagConstraint.anchor = GridBagConstraints.EAST;
+    exportGridBagConstraint.insets = new Insets(0, 0, 5, 10);
+    exportGridBagConstraint.gridy = 1;
+    mainPanel.add(getExportCheckBox(), exportGridBagConstraint);
     mainPanel.add(statsButton, statsButtonConstraints);
 
     actionsComboBox.setMinimumSize(new Dimension(350, 24));
@@ -580,7 +591,7 @@ public class ResultsDlg extends EscapeDialog {
         sqlLabel,
         new GridBagConstraints(
             0,
-            1,
+            2,
             4,
             1,
             0.0,
@@ -608,7 +619,7 @@ public class ResultsDlg extends EscapeDialog {
         sqlTextPane,
         new GridBagConstraints(
             0,
-            2,
+            3,
             5,
             1,
             0.5,
@@ -622,7 +633,7 @@ public class ResultsDlg extends EscapeDialog {
         cancelButton,
         new GridBagConstraints(
             0,
-            3,
+            4,
             1,
             1,
             0.0,
@@ -636,7 +647,7 @@ public class ResultsDlg extends EscapeDialog {
         okButton,
         new GridBagConstraints(
             1,
-            3,
+            4,
             1,
             1,
             0.0,
@@ -688,13 +699,12 @@ public class ResultsDlg extends EscapeDialog {
 
     // sqlTextArea.setLineWrap(true);
     defaultQueryButtonConstraints.gridx = 3;
-    defaultQueryButtonConstraints.gridy = 3;
+    defaultQueryButtonConstraints.gridy = 4;
     defaultQueryButtonConstraints.insets = new Insets(5, 5, 0, 5);
     defaultQueryButtonConstraints.anchor = GridBagConstraints.WEST;
     resetButtonConstraints.anchor = java.awt.GridBagConstraints.WEST;
     mainPanel.add(resetButton, resetButtonConstraints);
     mainPanel.add(getDefaultQueryButton(), defaultQueryButtonConstraints);
-    mainPanel.add(getExportCheckBox(), exportGridBagConstraint);
 
     pack();
   }
@@ -726,13 +736,14 @@ public class ResultsDlg extends EscapeDialog {
     boolean success = true;
     int index = actionsComboBox.getSelectedIndex();
     boolean export = exportCheckBox.isSelected();
+    boolean relativeToView = relativeToViewCheckBox.isSelected();
 
     setVisible(false);
     if (index > 0) {
       index--;
 
       if (nodeRadioButton.isSelected()) {
-        NodeResults nr = new NodeResults(nodusMapPanel, export);
+        NodeResults nr = new NodeResults(nodusMapPanel, relativeToView, export);
 
         switch (index) {
           case 0: // Display flows
@@ -747,7 +758,7 @@ public class ResultsDlg extends EscapeDialog {
             break;
         }
       } else {
-        LinkResults lr = new LinkResults(nodusMapPanel, export);
+        LinkResults lr = new LinkResults(nodusMapPanel, relativeToView, export);
 
         switch (index) {
           case 0: // Display assigned quantities

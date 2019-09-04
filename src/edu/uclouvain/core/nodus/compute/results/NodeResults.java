@@ -76,9 +76,12 @@ public class NodeResults implements ShapeConstants {
   private float brLon;
 
   private boolean export;
+  
   private NodusMapPanel nodusMapPanel;
 
   private NodusProject nodusProject;
+
+  private boolean relativeToView;
 
   private float ulLat;
 
@@ -88,11 +91,14 @@ public class NodeResults implements ShapeConstants {
    * Initializes the class.
    *
    * @param mapPanel The NodusMapPanel.
+   * @param relativeToView If true, the max size of the nodes will be computed taking only into
+   *     account the visible nodes.
    * @param export If true, the results are exported in a shapefile.
    */
-  public NodeResults(NodusMapPanel mapPanel, boolean export) {
+  public NodeResults(NodusMapPanel mapPanel, boolean relativeToView, boolean export) {
     nodusMapPanel = mapPanel;
     nodusProject = nodusMapPanel.getNodusProject();
+    this.relativeToView = relativeToView;
     this.export = export;
 
     /*
@@ -215,7 +221,7 @@ public class NodeResults implements ShapeConstants {
         while (it.hasNext()) {
           OMGraphic omg = (OMGraphic) it.next();
 
-          if (isNodeInView((OMPoint) omg)) {
+          if (!relativeToView || isNodeInView((OMPoint) omg)) {
             RealNetworkObject rn = (RealNetworkObject) omg.getAttribute(0);
             double result = rn.getResult();
 
