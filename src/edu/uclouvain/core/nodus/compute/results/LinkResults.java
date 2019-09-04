@@ -29,6 +29,9 @@ import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.layer.LabelLayer;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.omGraphics.OMGraphic;
+import com.bbn.openmap.omGraphics.OMPoly;
+import com.bbn.openmap.proj.ProjMath;
+import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
 
 import edu.uclouvain.core.nodus.NodusC;
@@ -88,6 +91,10 @@ public class LinkResults implements ShapeConstants {
 
   private boolean autoSliceDisplay = false;
 
+  private float brLat;
+
+  private float brLon;
+
   private boolean cancelDisplay = false;
 
   private boolean displayNextTimeSlice = false;
@@ -99,12 +106,16 @@ public class LinkResults implements ShapeConstants {
   private double maxResult = Double.MIN_VALUE;
 
   private double minResult = Double.MAX_VALUE;
-
+  
   private NodusMapPanel nodusMapPanel;
 
   private NodusProject nodusProject;
+  
+  private int sliceDisplayInterval;
+  
+  private float ulLat;
 
-  int sliceDisplayInterval;
+  private float ulLon;
 
   /**
    * Initializes the class.
@@ -116,6 +127,18 @@ public class LinkResults implements ShapeConstants {
     nodusMapPanel = mapPanel;
     nodusProject = nodusMapPanel.getNodusProject();
     this.export = export;
+
+    /*
+     * Get latitude/longitude of upper-left and bottom-right corners of the current view
+     */
+    LatLonPoint.Double llp = mapPanel.getMapBean().getProjection().inverse(0, 0);
+    ulLat = llp.getLatitude();
+    ulLon = llp.getLongitude();
+    int width = nodusMapPanel.getMapBean().getWidth();
+    int height = nodusMapPanel.getMapBean().getHeight();
+    llp = nodusMapPanel.getMapBean().getProjection().inverse(width, height);
+    brLat = llp.getLatitude();
+    brLon = llp.getLongitude();
   }
 
   /**
@@ -215,7 +238,7 @@ public class LinkResults implements ShapeConstants {
       // connect to database and execute query
       Statement stmt = jdbcConnection.createStatement();
       ResultSet rs = stmt.executeQuery(sqlStmt);
-      
+
       // Retrieve result of query
       while (rs.next()) {
         int n = JDBCUtils.getInt(rs.getObject(1));
@@ -291,17 +314,20 @@ public class LinkResults implements ShapeConstants {
           Iterator<?> it = egl.iterator();
 
           while (it.hasNext()) {
-            OMGraphic omg = (OMGraphic) it.next();
+            OMPoly omg = (OMPoly) it.next();
 
-            RealLink rl = (RealLink) omg.getAttribute(0);
-            double result = rl.getResult();
+            // Is this link in the current view ?
+            if (isLinkInView(omg)) {
+              RealLink rl = (RealLink) omg.getAttribute(0);
+              double result = rl.getResult();
 
-            if (maxResult < result) {
-              maxResult = result;
-            }
+              if (maxResult < result) {
+                maxResult = result;
+              }
 
-            if (minResult > result) {
-              minResult = result;
+              if (minResult > result) {
+                minResult = result;
+              }
             }
           }
         }
@@ -808,6 +834,35 @@ public class LinkResults implements ShapeConstants {
     nodusMapPanel.getMainFrame().requestFocus();
 
     return true;
+  }
+
+  
+  private boolean isInScreen(double lat, double lon) {
+    if (lat > ulLat || lat < brLat) {
+      return false;
+    }
+    if (lon < ulLon || lon > brLon) {
+      return false;
+    }
+    return true;
+  }
+
+  private boolean isLinkInView(OMPoly omPoly) {
+    // Get the coordinates of the end points of the current link
+    double[] pts = omPoly.getLatLonArray();
+
+    // Transform from radians to degrees!
+    double orgLat = ProjMath.radToDeg(pts[0]);
+    double orgLon = ProjMath.radToDeg(pts[1]);
+    double dstLat = ProjMath.radToDeg(pts[pts.length - 2]);
+    double dstLon = ProjMath.radToDeg(pts[pts.length - 1]);
+
+    // Keep this link if ate least one of its end-nodes is in view
+    if (isInScreen(orgLat, orgLon) || isInScreen(dstLat, dstLon)) {
+      return true;
+    }
+
+    return false;
   }
 
   /** Resets the link layers in order to reset the result field of each graphic. */

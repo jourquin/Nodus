@@ -63,4 +63,7 @@ without saving these settings.
 - Upgrade to mariadb-java-client 2.4.2
 - Upgrade to postrgesql jdbc driver 42.2.6
 - Upgrade to poi 4.1.0
+
+## v7.1 - Buildxxxxxx
+- Max width of links and size of nodes in the "result" view are now computed using only the visible links and nodes on screen.
  

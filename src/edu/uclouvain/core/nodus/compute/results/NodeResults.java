@@ -26,6 +26,8 @@ import com.bbn.openmap.dataAccess.shape.EsriGraphicList;
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.omGraphics.OMGraphic;
+import com.bbn.openmap.omGraphics.OMPoint;
+import com.bbn.openmap.proj.coords.LatLonPoint;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
@@ -69,11 +71,18 @@ public class NodeResults implements ShapeConstants {
     return null;
   }
 
-  private boolean export;
+  private float brLat;
 
+  private float brLon;
+
+  private boolean export;
   private NodusMapPanel nodusMapPanel;
 
   private NodusProject nodusProject;
+
+  private float ulLat;
+
+  private float ulLon;
 
   /**
    * Initializes the class.
@@ -85,6 +94,32 @@ public class NodeResults implements ShapeConstants {
     nodusMapPanel = mapPanel;
     nodusProject = nodusMapPanel.getNodusProject();
     this.export = export;
+
+    /*
+     * Get latitude/longitude of upper-left and bottom-right corners of the current view
+     */
+    LatLonPoint.Double llp = mapPanel.getMapBean().getProjection().inverse(0, 0);
+    ulLat = llp.getLatitude();
+    ulLon = llp.getLongitude();
+    int width = nodusMapPanel.getMapBean().getWidth();
+    int height = nodusMapPanel.getMapBean().getHeight();
+    llp = nodusMapPanel.getMapBean().getProjection().inverse(width, height);
+    brLat = llp.getLatitude();
+    brLon = llp.getLongitude();
+  }
+
+  private boolean isNodeInView(OMPoint omPoint) {
+
+    double lat = omPoint.getLat();
+    double lon = omPoint.getLon();
+
+    if (lat > ulLat || lat < brLat) {
+      return false;
+    }
+    if (lon < ulLon || lon > brLon) {
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -180,18 +215,18 @@ public class NodeResults implements ShapeConstants {
         while (it.hasNext()) {
           OMGraphic omg = (OMGraphic) it.next();
 
-          // if (omg.isVisible()) {
-          RealNetworkObject rn = (RealNetworkObject) omg.getAttribute(0);
-          double result = rn.getResult();
+          if (isNodeInView((OMPoint) omg)) {
+            RealNetworkObject rn = (RealNetworkObject) omg.getAttribute(0);
+            double result = rn.getResult();
 
-          if (maxResult < result) {
-            maxResult = result;
-          }
+            if (maxResult < result) {
+              maxResult = result;
+            }
 
-          if (minResult > result) {
-            minResult = result;
+            if (minResult > result) {
+              minResult = result;
+            }
           }
-          // }
         }
       }
     }
