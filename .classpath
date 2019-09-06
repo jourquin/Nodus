@@ -95,5 +95,6 @@
 	<classpathentry kind="lib" path="lib/poi-ooxml-schemas-4.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/xmlbeans-3.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.0.3.jar"/>
+	<classpathentry kind="lib" path="lib/jtouchbar-1.0.0.jar" sourcepath="/Users/jourquinb/git/jtouchbar/src/main/java"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

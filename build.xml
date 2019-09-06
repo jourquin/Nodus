@@ -96,6 +96,7 @@
         <pathelement location="lib/poi-ooxml-schemas-4.1.0.jar"/>
         <pathelement location="lib/xmlbeans-3.1.0.jar"/>
         <pathelement location="lib/rsyntaxtextarea-3.0.3.jar"/>
+        <pathelement location="lib/jtouchbar-1.0.0.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>

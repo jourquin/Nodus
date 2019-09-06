@@ -30,6 +30,8 @@ from v7.0 to v7.1 was needed because of the use of Groovy 2.5.x that changes the
 
 ## v7.1 - Build20190312
 - Replace R calibrated cost functions file in demo to be in line with R logit model of Build201810213 
+- Just for fun : add touchbar support for MacBook Pro
+
 
 ## v7.1 - Build20190515
 - Fix a French translation in the omGraphics GUI.

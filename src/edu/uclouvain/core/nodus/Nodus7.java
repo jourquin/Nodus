@@ -102,7 +102,7 @@ public class Nodus7 {
     // Trick used to avoid "no appender" Log4J warning message from HSQLDB
     //Logger rootLogger = Logger.getRootLogger();
     //rootLogger.addAppender(new NullAppender());
-    
+
     // Open the properties file
     try {
       String home = System.getProperty("user.home") + "/";
@@ -267,7 +267,9 @@ public class Nodus7 {
                   }
                 };
             thread.start();
-
+            
+            nodusMapPanel.displayTouchBar(false);
+            
             // Load the project passed as parameter
             if (projectToLoad != null) {
               nodusMapPanel.openProject(projectToLoad);

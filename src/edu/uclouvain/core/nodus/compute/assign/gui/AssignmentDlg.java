@@ -253,30 +253,14 @@ public class AssignmentDlg extends EscapeDialog {
     nodusMapPanel = mapPanel;
 
     initialize();
-    getRootPane().setDefaultButton(assignButton);
-
-    GridBagConstraints closeButtonConstraints =
-        new GridBagConstraints(
-            3,
-            5,
-            1,
-            1,
-            0.0,
-            0.0,
-            GridBagConstraints.WEST,
-            GridBagConstraints.NONE,
-            new Insets(5, 5, 10, 10),
-            0,
-            0);
-    closeButtonConstraints.anchor = GridBagConstraints.SOUTHEAST;
-    closeButtonConstraints.insets = new Insets(0, 5, 10, 10);
-    closeButtonConstraints.gridy = 12;
-    mainPanel.add(cancelButton, closeButtonConstraints);
-
-    setLocationRelativeTo(mapPanel);
 
     reloadState();
     updateOptions();
+    
+    setResizable(true);
+    pack();
+    setLocationRelativeTo(mapPanel);
+    getRootPane().setDefaultButton(assignButton);
   }
 
   /**
@@ -1582,6 +1566,24 @@ public class AssignmentDlg extends EscapeDialog {
 
     assignmentButtonGroup.add(dynamicTimeDependentRadioButton);
 
+    GridBagConstraints closeButtonConstraints =
+        new GridBagConstraints(
+            3,
+            5,
+            1,
+            1,
+            0.0,
+            0.0,
+            GridBagConstraints.WEST,
+            GridBagConstraints.NONE,
+            new Insets(5, 5, 10, 10),
+            0,
+            0);
+    closeButtonConstraints.anchor = GridBagConstraints.SOUTHEAST;
+    closeButtonConstraints.insets = new Insets(0, 5, 10, 10);
+    closeButtonConstraints.gridy = 12;
+    mainPanel.add(cancelButton, closeButtonConstraints);
+
     if (nodusMapPanel.isDemoVersion()) {
       frankWolfeRadioButton.setEnabled(false);
       incFrankWolfeRadioButton.setEnabled(false);
@@ -1598,8 +1600,7 @@ public class AssignmentDlg extends EscapeDialog {
       maxDetourSpinner.setEnabled(false);
     }
 
-    setResizable(true);
-    pack();
+    
   }
 
   /**

@@ -74,6 +74,11 @@ import com.bbn.openmap.tools.drawing.NodusOMPolyLoader;
 import com.bbn.openmap.tools.drawing.OMDrawingToolMouseMode;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
+import com.thizzer.jtouchbar.JTouchBar;
+import com.thizzer.jtouchbar.item.TouchBarItem;
+import com.thizzer.jtouchbar.item.view.TouchBarButton;
+import com.thizzer.jtouchbar.item.view.TouchBarView;
+import com.thizzer.jtouchbar.item.view.action.TouchBarViewAction;
 
 import edu.uclouvain.core.nodus.compute.assign.gui.AssignmentDlg;
 import edu.uclouvain.core.nodus.compute.results.gui.ResultsDlg;
@@ -194,11 +199,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
   }
 
-  /** Serial version UID. */
-  static final long serialVersionUID = -2848516994072912179L;
-
   /** Internationalization mechanism. */
   private static I18n i18n = Environment.getI18n();
+
+  /** Serial version UID. */
+  static final long serialVersionUID = -2848516994072912179L;
 
   /**
    * A static method that creates a MapBean with it's projection set to the values set in the
@@ -241,23 +246,27 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Control variables for the displayed cursor. */
   private Cursor defaultBeanCursor = null;
 
+  /** "Control|Add Openmap layers" menu item. */
+  /** Is set to true if the license of the app is given for a demo. */
+  private boolean demoVersion;
+
   /** Vector of global plugins. */
   private Vector<JMenuItem> globalPluginsMenuItems = new Vector<>();
 
   /** The browser used for the user guide. */
   HelpBrowser helpBrowser = null;
 
-  /** The browser used for the Nodus API. */
-  HelpBrowser javaDocBrowser = null;
-
   /** Internal layer that displays a highlighted area to which the assignment can be limited. */
   private HighlightedAreaLayer highlightedAreaLayer = null;
 
-  /** The home directory of the Nodus application. */
-  private String nodusHomeDir;
-
   /** OpenMap component. See OpenMap documentation for more details. */
   private InformationDelegator infoDelegator = new InformationDelegator();
+
+  /* A MacBook Pro touchbar */
+  private JTouchBar initialTouchBar = null;
+
+  /** The browser used for the Nodus API. */
+  HelpBrowser javaDocBrowser = null;
 
   /** JPEG image formatter : See OpenMap documentation for more details. */
   private SunJPEGFormatter jpegFormatter = new SunJPEGFormatter();
@@ -285,10 +294,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** "Control|Hide/Display Controlpanel" menu item. */
   private JMenuItem menuItemControlControlpanel = new JMenuItem();
-
-  /** "Control|Add Openmap layers" menu item. */
-  /** Is set to true if the license of the app is given for a demo. */
-  private boolean demoVersion;
 
   private JMenuItem menuItemControlLoadLayers = new JMenuItem();
 
@@ -397,6 +402,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** OpenMap component. See OpenMap documentation for more details. */
   private NodusOMDrawingToolLauncher nodusDrawingToolLauncher;
 
+  /** The home directory of the Nodus application. */
+  private String nodusHomeDir;
+
   /** OpenMap component. See OpenMap documentation for more details. */
   private NodusLayersPanel nodusLayersPanel;
 
@@ -430,6 +438,15 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Vector of project specific plugins menu items. */
   private Vector<JMenuItem> projectPluginsMenuItems = new Vector<>();
 
+  /* A MacBook Pro touchbar */
+  private JTouchBar regularTouchBar = null;
+
+  /**
+   * Max scale above which the links and nodes are not anymore rendered with their specific
+   * attributes.
+   */
+  private float renderingScaleThresold = -1;
+
   /** Combo in tool panel that makes it possible to choose the scenario. */
   private JComboBox<String> scenarioComboBox;
 
@@ -447,12 +464,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** "User defined menus (used by plugins). */
   private Vector<JMenuItem> userDefinedMenus = new Vector<>();
-
-  /**
-   * Max scale above which the links and nodes are not anymore rendered with their specific
-   * attributes.
-   */
-  private float renderingScaleThresold = -1;
 
   /**
    * Creates all the GUI components needed by Nodus on the application's panel. The application's
@@ -480,6 +491,35 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     if (mapComponent != null) {
       getMapHandler().add(mapComponent);
     }
+  }
+
+  /** Sets the NavModeMouse, depending on the type selected in the global preferences. */
+  public void addNavMouseMode() {
+
+    int type = 1;
+    try {
+      type = Integer.parseInt(nodusProperties.getProperty(NodusC.PROP_NAV_MOUSE_MODE, "1"));
+    } catch (NumberFormatException e) {
+      type = 1;
+    }
+
+    if (type == 2) {
+      getMapHandler().remove(navMouseMode1);
+      getMapHandler().add(navMouseMode2);
+    } else {
+      getMapHandler().remove(navMouseMode2);
+      getMapHandler().add(navMouseMode1);
+    }
+  }
+
+  /** Undocumented property: class to call when F8 is pressed. */
+  private void callF8() {
+    callFunctionKey("F8");
+  }
+
+  /** Undocumented property: class to call when F9 is pressed. */
+  private void callF9() {
+    callFunctionKey("F9");
   }
 
   /**
@@ -778,7 +818,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
-            menuItemProjectShowResultsActionPerformed(e);
+            menuItemProjectDisplayResultsActionPerformed(e);
           }
         });
 
@@ -1135,6 +1175,134 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     scenarioComboBox.setVisible(visible);
   }
 
+  /**
+   * If Nodus runs on a recent Mac with touchbar, this method displays the initial touchbar or a
+   * more complete one once a project is loaded.
+   *
+   * @param isProjectOpen If true, a touchbar with several actions is displayed. Otherwise, only an
+   *     icon and an "Open project" button is shown.
+   */
+  public void displayTouchBar(boolean isProjectOpen) {
+    if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
+
+      if (initialTouchBar == null) {
+
+        // When no project is loaded
+        initialTouchBar = new JTouchBar();
+        initialTouchBar.setCustomizationIdentifier("NodusTouchBar0");
+
+        // Nodus icon
+        TouchBarButton nodusIcon = new TouchBarButton();
+        com.thizzer.jtouchbar.common.Image img =
+            new com.thizzer.jtouchbar.common.Image(
+                NodusMapPanel.class.getResource("nodus7.png").getPath(), true);
+        nodusIcon.setImage(img);
+        initialTouchBar.addItem(new TouchBarItem("fake_button", nodusIcon, true));
+
+        TouchBarButton openTbB = new TouchBarButton();
+        openTbB.setTitle(i18n.get(NodusMapPanel.class, "Open_project", "Open project"));
+        openTbB.setAction(
+            new TouchBarViewAction() {
+              @Override
+              public void onCall(TouchBarView view) {
+                menuItemFileOpenActionPerformed(null);
+              }
+            });
+        initialTouchBar.addItem(new TouchBarItem("open", openTbB, true));
+
+        // When a project is loaded
+        regularTouchBar = new JTouchBar();
+        regularTouchBar.setCustomizationIdentifier("NodusTouchBar1");
+
+        // F2
+        TouchBarButton f2 = new TouchBarButton();
+        f2.setTitle(i18n.get(NodusMapPanel.class, "Cost_edit", "Cost edit"));
+        f2.setAction(
+            new TouchBarViewAction() {
+              @Override
+              public void onCall(TouchBarView view) {
+                menuItemProjectCostsActionPerformed(null);
+              }
+            });
+        f2.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
+        regularTouchBar.addItem(new TouchBarItem("f2", f2, true));
+
+        // F3
+        TouchBarButton f3 = new TouchBarButton();
+        f3.setTitle(i18n.get(NodusMapPanel.class, "Services", "Services"));
+        f3.setAction(
+            new TouchBarViewAction() {
+              @Override
+              public void onCall(TouchBarView view) {
+                menuItemProjectServicesActionPerformed(null);
+              }
+            });
+        f3.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
+        regularTouchBar.addItem(new TouchBarItem("f3", f3, true));
+
+        // F4
+        TouchBarButton f4 = new TouchBarButton();
+        f4.setTitle(i18n.get(NodusMapPanel.class, "Assignment", "Assignment"));
+        f4.setAction(
+            new TouchBarViewAction() {
+              @Override
+              public void onCall(TouchBarView view) {
+                menuItemProjectAssignmentActionPerformed(null);
+              }
+            });
+        f4.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
+        regularTouchBar.addItem(new TouchBarItem("f4", f4, true));
+
+        // F5
+        TouchBarButton f5 = new TouchBarButton();
+        f5.setTitle(i18n.get(NodusMapPanel.class, "Results", "Results"));
+        f5.setAction(
+            new TouchBarViewAction() {
+              @Override
+              public void onCall(TouchBarView view) {
+                menuItemProjectDisplayResultsActionPerformed(null);
+              }
+            });
+        f5.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
+        regularTouchBar.addItem(new TouchBarItem("f5", f5, true));
+
+        // F6
+        TouchBarButton f6 = new TouchBarButton();
+        f6.setTitle(i18n.get(NodusMapPanel.class, "Scenarios", "Scenarios"));
+        f6.setAction(
+            new TouchBarViewAction() {
+              @Override
+              public void onCall(TouchBarView view) {
+                menuItemProjectScenariosActionPerformed(null);
+              }
+            });
+        f6.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
+        regularTouchBar.addItem(new TouchBarItem("f6", f6, true));
+
+        // F7
+        TouchBarButton f7 = new TouchBarButton();
+        f7.setTitle(i18n.get(NodusMapPanel.class, "SQL_console", "SQL console"));
+        f7.setAction(
+            new TouchBarViewAction() {
+              @Override
+              public void onCall(TouchBarView view) {
+                menuItemProjectSQLConsoleActionPerformed(null);
+              }
+            });
+        f7.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
+        regularTouchBar.addItem(new TouchBarItem("f7", f7, true));
+      }
+
+      if (isProjectOpen) {
+        initialTouchBar.hide(getMainFrame());
+        regularTouchBar.show(getMainFrame());
+      } else {
+        regularTouchBar.hide(getMainFrame());
+        initialTouchBar.show(getMainFrame());
+      }
+    }
+  }
+
   /** Sets the MapBean variable to null and removes all children. */
   @Override
   public void dispose() {
@@ -1193,16 +1361,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
   }
 
-  /** Undocumented property: class to call when F8 is pressed. */
-  private void callF8() {
-    callFunctionKey("F8");
-  }
-
-  /** Undocumented property: class to call when F9 is pressed. */
-  private void callF9() {
-    callFunctionKey("F9");
-  }
-
   /**
    * Returns the active mouse mode ID (See OpenMap API for more information).
    *
@@ -1229,15 +1387,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   public JMenuItem getAssignmentMenuItem() {
     return menuItemProjectAssignment;
-  }
-
-  /**
-   * Returns true if the control key is pressed.
-   *
-   * @return True if pressed.
-   */
-  public boolean isControlPressed() {
-    return controlPressed;
   }
 
   /**
@@ -1458,22 +1607,21 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /**
+   * Returns the scale under which the nodes and link styles are fully rendered.
+   *
+   * @return The scale threshold.
+   */
+  public float getRenderingScaleThreshold() {
+    return renderingScaleThresold;
+  }
+
+  /**
    * Accessor for the sound player.
    *
    * @return The sound player.
    */
   public SoundPlayer getSoundPlayer() {
     return soundPlayer;
-  }
-
-  /**
-   * Returns true if the drawing tool must stay on the left bottom corner of the main window.
-   *
-   * @return True if the drawing tool must remain in the corner.
-   */
-  private boolean isStickyDrawingTool() {
-    String str = nodusProperties.getProperty(NodusC.PROP_STICKY_DRAWING_TOOL, "false");
-    return Boolean.parseBoolean(str);
   }
 
   /**
@@ -1780,35 +1928,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
   }
 
-  /** Set application preferences. Takes OSX specification into account */
-  private void setGlobalPreferencesMenu() {
-    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
-        && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
-      // Use the standard Mac preferences
-      try {
-        if (JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
-          OSXAdapterForJava9.setPreferencesHandler(
-              this,
-              getClass()
-                  .getDeclaredMethod(
-                      "menuItemFileGlobalPreferencesActionPerformed9",
-                      new Class[] {EventObject.class}));
-        } else {
-          OSXAdapter.setPreferencesHandler(
-              this,
-              getClass()
-                  .getDeclaredMethod(
-                      "menuItemFileGlobalPreferencesActionPerformed", (Class[]) null));
-        }
-      } catch (NoSuchMethodException | SecurityException e) {
-        e.printStackTrace();
-      }
-
-    } else {
-      menuFile.add(menuItemSystemProperties);
-    }
-  }
-
   /** Initialize the openMap components used in Nodus. */
   private void initOpenMapComponents() {
 
@@ -1864,6 +1983,15 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     // Background color
     defaultBackgroundColor = getMapBean().getBackground();
+  }
+
+  /**
+   * Returns true if the control key is pressed.
+   *
+   * @return True if pressed.
+   */
+  public boolean isControlPressed() {
+    return controlPressed;
   }
 
   /**
@@ -1923,6 +2051,16 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     } else {
       return politicalBoundariesLayer.isVisible();
     }
+  }
+
+  /**
+   * Returns true if the drawing tool must stay on the left bottom corner of the main window.
+   *
+   * @return True if the drawing tool must remain in the corner.
+   */
+  private boolean isStickyDrawingTool() {
+    String str = nodusProperties.getProperty(NodusC.PROP_STICKY_DRAWING_TOOL, "false");
+    return Boolean.parseBoolean(str);
   }
 
   /**
@@ -2162,6 +2300,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       nodusProject.close();
       displayScenarioCombo(false);
       displayPoliticalBoundaries(true, true);
+      displayTouchBar(false);
     }
   }
 
@@ -2180,62 +2319,35 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     menuItemFileExitActionPerformed();
   }
 
+  /** Opens the global preferences dialog box. */
+  public void menuItemFileGlobalPreferencesActionPerformed() {
+    GlobalPreferencesDlg dlg = new GlobalPreferencesDlg(this);
+    dlg.setVisible(true);
+  }
+
+  /**
+   * Used by the reflection mechanism by OSXAdapter9.
+   *
+   * @param event Event
+   */
+  public void menuItemFileGlobalPreferencesActionPerformed9(EventObject event) {
+    menuItemFileGlobalPreferencesActionPerformed();
+  }
+
   /**
    * Open a new project.
    *
    * @param e ActionEvent
    */
   private void menuItemFileOpenActionPerformed(ActionEvent e) {
-    String projectName = nodusProject.getProject();
-    openProject(projectName);
-  }
-
-  /**
-   * Loads a project.
-   *
-   * @param projectName The project file name (with full path)
-   */
-  public void openProject(String projectName) {
-    if (projectName != null) {
-      if (nodusProject.isOpen()) {
-        nodusProject.close(); // In case a project was already loaded
-      }
-
-      displayScenarioCombo(true);
-      try {
-        nodusProject.openProject(projectName);
-      } catch (OutOfMemoryError e) {
-        // Free memory and force garbage collection
-        Layer[] layer = getLayerHandler().getLayers();
-        for (int i = 0; i < layer.length; i++) {
-          layer[i] = null;
-        }
-        System.gc();
-
-        JOptionPane.showMessageDialog(
-            nodusProject.getNodusMapPanel(),
-            i18n.get(
-                NodusMapPanel.class,
-                "Out_of_memory",
-                "Out of memory. Increase JVM Heap size in launcher script"),
-            NodusC.APPNAME,
-            JOptionPane.ERROR_MESSAGE);
-
-        nodusProject.getNodusMapPanel().closeAndSaveState();
-        System.exit(0);
-      }
-
-      if (nodusProject.isOpen()) {
-        // Reset mouse mode
-        String mouseModeId = nodusProject.getLocalProperty(NodusC.PROP_ACTIVE_MOUSE_MODE, null);
-        if (mouseModeId != null) {
-          setActiveMouseMode(mouseModeId);
-        }
-        resetText();
-        updateScenarioComboBox();
-        enableMenus(true);
-      }
-    }
+    javax.swing.SwingUtilities.invokeLater(
+        new Runnable() {
+          @Override
+          public void run() {
+            String projectName = nodusProject.getProject();
+            openProject(projectName);
+          }
+        });
   }
 
   /**
@@ -2254,21 +2366,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   private void menuItemFileSaveActionPerformed(ActionEvent e) {
     nodusProject.saveEsriLayers();
-  }
-
-  /** Opens the global preferences dialog box. */
-  public void menuItemFileGlobalPreferencesActionPerformed() {
-    GlobalPreferencesDlg dlg = new GlobalPreferencesDlg(this);
-    dlg.setVisible(true);
-  }
-
-  /**
-   * Used by the reflection mechanism by OSXAdapter9.
-   *
-   * @param event Event
-   */
-  public void menuItemFileGlobalPreferencesActionPerformed9(EventObject event) {
-    menuItemFileGlobalPreferencesActionPerformed();
   }
 
   /**
@@ -2326,15 +2423,21 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /**
-   * Opens the assignment dialog that will launch a chooosen assignment procedure.
+   * Opens the assignment dialog that will launch a chosen assignment procedure.
    *
    * @param a ActionEvent
    */
-  private void menuItemProjectAssignmentActionPerformed(ActionEvent a) {
+  public void menuItemProjectAssignmentActionPerformed(ActionEvent a) {
 
     if (nodusProject.isOpen()) {
       JDialog dlg = new AssignmentDlg(this);
-      dlg.setVisible(true);
+      javax.swing.SwingUtilities.invokeLater(
+          new Runnable() {
+            @Override
+            public void run() {
+              dlg.setVisible(true);
+            }
+          });
     }
   }
 
@@ -2365,11 +2468,17 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    *
    * @param e ActionEvent
    */
-  private void menuItemProjectShowResultsActionPerformed(ActionEvent e) {
+  private void menuItemProjectDisplayResultsActionPerformed(ActionEvent e) {
     if (nodusProject.isOpen()) {
 
-      ResultsDlg rl = new ResultsDlg(this);
-      rl.setVisible(true);
+      ResultsDlg dlg = new ResultsDlg(this);
+      javax.swing.SwingUtilities.invokeLater(
+          new Runnable() {
+            @Override
+            public void run() {
+              dlg.setVisible(true);
+            }
+          });
     }
   }
 
@@ -2394,8 +2503,14 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   private void menuItemProjectScenariosActionPerformed(ActionEvent e) {
     if (nodusProject.isOpen()) {
 
-      ScenariosDlg s = new ScenariosDlg(this);
-      s.setVisible(true);
+      ScenariosDlg dlg = new ScenariosDlg(this);
+      javax.swing.SwingUtilities.invokeLater(
+          new Runnable() {
+            @Override
+            public void run() {
+              dlg.setVisible(true);
+            }
+          });
     }
   }
 
@@ -2438,6 +2553,55 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   private void menuItemToolLookAndFeelActionPerformed(ActionEvent e) {
     new LookAndFeelManager(this).setVisible(true);
+  }
+
+  /**
+   * Loads a project.
+   *
+   * @param projectName The project file name (with full path)
+   */
+  public void openProject(String projectName) {
+    if (projectName != null) {
+      if (nodusProject.isOpen()) {
+        nodusProject.close(); // In case a project was already loaded
+      }
+
+      displayScenarioCombo(true);
+      try {
+        nodusProject.openProject(projectName);
+      } catch (OutOfMemoryError e) {
+        // Free memory and force garbage collection
+        Layer[] layer = getLayerHandler().getLayers();
+        for (int i = 0; i < layer.length; i++) {
+          layer[i] = null;
+        }
+        System.gc();
+
+        JOptionPane.showMessageDialog(
+            nodusProject.getNodusMapPanel(),
+            i18n.get(
+                NodusMapPanel.class,
+                "Out_of_memory",
+                "Out of memory. Increase JVM Heap size in launcher script"),
+            NodusC.APPNAME,
+            JOptionPane.ERROR_MESSAGE);
+
+        nodusProject.getNodusMapPanel().closeAndSaveState();
+        System.exit(0);
+      }
+
+      if (nodusProject.isOpen()) {
+        // Reset mouse mode
+        String mouseModeId = nodusProject.getLocalProperty(NodusC.PROP_ACTIVE_MOUSE_MODE, null);
+        if (mouseModeId != null) {
+          setActiveMouseMode(mouseModeId);
+        }
+        resetText();
+        updateScenarioComboBox();
+        enableMenus(true);
+        displayTouchBar(true);
+      }
+    }
   }
 
   /**
@@ -2607,6 +2771,35 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
   }
 
+  /** Set application preferences. Takes OSX specification into account */
+  private void setGlobalPreferencesMenu() {
+    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
+        && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
+      // Use the standard Mac preferences
+      try {
+        if (JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
+          OSXAdapterForJava9.setPreferencesHandler(
+              this,
+              getClass()
+                  .getDeclaredMethod(
+                      "menuItemFileGlobalPreferencesActionPerformed9",
+                      new Class[] {EventObject.class}));
+        } else {
+          OSXAdapter.setPreferencesHandler(
+              this,
+              getClass()
+                  .getDeclaredMethod(
+                      "menuItemFileGlobalPreferencesActionPerformed", (Class[]) null));
+        }
+      } catch (NoSuchMethodException | SecurityException e) {
+        e.printStackTrace();
+      }
+
+    } else {
+      menuFile.add(menuItemSystemProperties);
+    }
+  }
+
   /**
    * Sets the map bean used in this map panel, replace the map bean in the MapHandler if there isn't
    * already one, or if the policy allows replacement. The MapHandler will be created if it doesn't
@@ -2629,22 +2822,30 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
   }
 
-  /** Sets the NavModeMouse, depending on the type selected in the global preferences. */
-  public void addNavMouseMode() {
+  /**
+   * When double-clicking on the "scale" component of the control panel, a scale threshold can be
+   * set. When the zoom level results is a lower scale, the nodes and links styles are rendered.
+   * With a higher level zoom threshold, only the color of the edges of the nodes or links are
+   * rendered.
+   *
+   * @param renderingScaleThresold The scale under which nodes and links are fully rendered.
+   */
+  public void setRenderingScaleThreshold(float renderingScaleThresold) {
+    this.renderingScaleThresold = renderingScaleThresold;
+    controlPanel.refreshScale();
 
-    int type = 1;
-    try {
-      type = Integer.parseInt(nodusProperties.getProperty(NodusC.PROP_NAV_MOUSE_MODE, "1"));
-    } catch (NumberFormatException e) {
-      type = 1;
-    }
+    if (nodusProject.isOpen()) {
+      nodusProject.setLocalProperty(NodusC.PROP_RENDERING_SCALE_THRESHOLD, renderingScaleThresold);
 
-    if (type == 2) {
-      getMapHandler().remove(navMouseMode1);
-      getMapHandler().add(navMouseMode2);
-    } else {
-      getMapHandler().remove(navMouseMode2);
-      getMapHandler().add(navMouseMode1);
+      // Refresh all the Nodus layers
+      NodusEsriLayer[] nel = nodusProject.getNodeLayers();
+      for (int i = 0; i < nel.length; i++) {
+        nel[i].doPrepare();
+      }
+      nel = nodusProject.getLinkLayers();
+      for (int i = 0; i < nel.length; i++) {
+        nel[i].doPrepare();
+      }
     }
   }
 
@@ -2797,41 +2998,5 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     for (ActionListener element : al) {
       scenarioComboBox.addActionListener(element);
     }
-  }
-
-  /**
-   * When double-clicking on the "scale" component of the control panel, a scale threshold can be
-   * set. When the zoom level results is a lower scale, the nodes and links styles are rendered.
-   * With a higher level zoom threshold, only the color of the edges of the nodes or links are
-   * rendered.
-   *
-   * @param renderingScaleThresold The scale under which nodes and links are fully rendered.
-   */
-  public void setRenderingScaleThreshold(float renderingScaleThresold) {
-    this.renderingScaleThresold = renderingScaleThresold;
-    controlPanel.refreshScale();
-
-    if (nodusProject.isOpen()) {
-      nodusProject.setLocalProperty(NodusC.PROP_RENDERING_SCALE_THRESHOLD, renderingScaleThresold);
-
-      // Refresh all the Nodus layers
-      NodusEsriLayer[] nel = nodusProject.getNodeLayers();
-      for (int i = 0; i < nel.length; i++) {
-        nel[i].doPrepare();
-      }
-      nel = nodusProject.getLinkLayers();
-      for (int i = 0; i < nel.length; i++) {
-        nel[i].doPrepare();
-      }
-    }
-  }
-
-  /**
-   * Returns the scale under which the nodes and link styles are fully rendered.
-   *
-   * @return The scale threshold.
-   */
-  public float getRenderingScaleThreshold() {
-    return renderingScaleThresold;
   }
 }
