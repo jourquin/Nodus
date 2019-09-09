@@ -1583,24 +1583,6 @@ public class AssignmentDlg extends EscapeDialog {
     closeButtonConstraints.insets = new Insets(0, 5, 10, 10);
     closeButtonConstraints.gridy = 12;
     mainPanel.add(cancelButton, closeButtonConstraints);
-
-    if (nodusMapPanel.isDemoVersion()) {
-      frankWolfeRadioButton.setEnabled(false);
-      incFrankWolfeRadioButton.setEnabled(false);
-      msaRadioButton.setEnabled(false);
-      incrementalRadioButton.setEnabled(false);
-      exactMFRadioButton.setEnabled(false);
-      fastMFRadioButton.setEnabled(false);
-      costMarkupSpinner.setEnabled(false);
-      costMarkUpLabel.setEnabled(false);
-      iterationLabel.setEnabled(false);
-      iterationSpinner.setEnabled(false);
-      keepCheapestOnlyCheckBox.setEnabled(false);
-      maxDetourLabel.setEnabled(false);
-      maxDetourSpinner.setEnabled(false);
-    }
-
-    
   }
 
   /**

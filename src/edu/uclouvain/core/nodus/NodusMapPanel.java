@@ -246,10 +246,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Control variables for the displayed cursor. */
   private Cursor defaultBeanCursor = null;
 
-  /** "Control|Add Openmap layers" menu item. */
-  /** Is set to true if the license of the app is given for a demo. */
-  private boolean demoVersion;
-
   /** Vector of global plugins. */
   private Vector<JMenuItem> globalPluginsMenuItems = new Vector<>();
 
@@ -1197,6 +1193,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             new com.thizzer.jtouchbar.common.Image(
                 NodusMapPanel.class.getResource("nodus7.png").getPath(), true);
         nodusIcon.setImage(img);
+        nodusIcon.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
         initialTouchBar.addItem(new TouchBarItem("fake_button", nodusIcon, true));
 
         TouchBarButton openTbB = new TouchBarButton();
@@ -1208,6 +1205,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
                 menuItemFileOpenActionPerformed(null);
               }
             });
+        openTbB.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
         initialTouchBar.addItem(new TouchBarItem("open", openTbB, true));
 
         // When a project is loaded
@@ -1992,15 +1990,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   public boolean isControlPressed() {
     return controlPressed;
-  }
-
-  /**
-   * Returns True if the license is for a demo version.
-   *
-   * @return True if the license is for a demo version
-   */
-  public boolean isDemoVersion() {
-    return demoVersion;
   }
 
   /**

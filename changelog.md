@@ -64,7 +64,7 @@ without saving these settings.
 - Upgrade to postrgesql jdbc driver 42.2.6
 - Upgrade to poi 4.1.0
 
-## v7.1 - Buildxxxxxx
+## v7.1 - Build20190909
 - Max width of links and size of nodes in the "result" view are now computed using only the visible links and nodes on screen.
 - Just for fun : add touchbar support for MacBook Pro
 - Move embedded DBMS'S to Nodus core lib directory
