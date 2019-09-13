@@ -1,4 +1,4 @@
-openmap.layers= Belgium OsmTiles
+openmap.layers= Belgium OsmTiles WMS
 openmap.startUpLayers= Belgium
 
 # A simple shapefile containin the borders of two German regions
@@ -8,7 +8,7 @@ Belgium.lineColor=ff606060
 Belgium.fillColor=fff2f2f2
 Belgium.shp=./bel_nuts2.shp
 
-# Map Tile Layer, using OpenStreetMap tiles
+# Map Tile Layer, using OpenStreetMap tiles fetched from a Belgian server
 # The NodusMapTileLayer is an extension of OpenMap's MapTileLayer. See API doc for more info.
 OsmTiles.class=com.bbn.openmap.layer.imageTile.NodusMapTileLayer
 OsmTiles.prettyName=OpenStreetMap Tiles
@@ -25,5 +25,10 @@ OsmTiles.land.lineColor=DECD8B
 # Define zoom level to limit handler response - zoom in past this provides empty coverage (clear)
 OsmTiles.noCoverageZoom=13
 
-
-
+# A WMS server for Belgium
+WMS.class=com.bbn.openmap.plugin.wms.NodusWMSPlugIn
+WMS.prettyName=Belgian WMS
+WMS.wmsserver=https://wms.ngi.be/cartoweb/service
+WMS.wmsversion=1.1.1
+WMS.format=png
+WMS.transparent=true

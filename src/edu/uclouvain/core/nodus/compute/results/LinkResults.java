@@ -106,15 +106,15 @@ public class LinkResults implements ShapeConstants {
   private double maxResult = Double.MIN_VALUE;
 
   private double minResult = Double.MAX_VALUE;
-  
+
   private NodusMapPanel nodusMapPanel;
 
   private NodusProject nodusProject;
-  
+
   private boolean relativeToView;
-  
+
   private int sliceDisplayInterval;
-  
+
   private float ulLat;
 
   private float ulLon;
@@ -647,7 +647,6 @@ public class LinkResults implements ShapeConstants {
    * @param sqlStmt The SQL query used to display this result.
    * @return True on success.
    */
-  // TODO Save sql string in dialog ?
   public boolean displayTimeDependentFlows(String sqlStmt) {
 
     // Automatic or manual display ?
@@ -841,7 +840,6 @@ public class LinkResults implements ShapeConstants {
     return true;
   }
 
-  
   private boolean isInScreen(double lat, double lon) {
     if (lat > ulLat || lat < brLat) {
       return false;

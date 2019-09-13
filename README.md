@@ -58,7 +58,7 @@ on "Nodus7-install.jar" or run "java -jar Nodus7-install.jar" from your shell co
 Once installed, Nodus can be launched using
 - "nodus7.sh" on Linux
 - "Nodus7.app" on MacOS
-- "Nodus7.exe" on Windows (a "compiled" version of "nodus7.bat", also provided)
+- "Nodus7.exe" on Windows
 
 The software has a modern and integrated user-friendly GUI. Complete reference and user guides
 are not available, but the API is fully documented. 

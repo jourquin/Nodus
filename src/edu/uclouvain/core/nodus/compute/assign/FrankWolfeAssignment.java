@@ -47,9 +47,6 @@ import java.util.Iterator;
  *
  * @author Bart Jourquin
  */
-/*
- * TODO Test Frank-Wolfe. Strange results ? Try to find the dataset used for the paper in EJTIR
- */
 public class FrankWolfeAssignment extends Assignment {
 
   /**

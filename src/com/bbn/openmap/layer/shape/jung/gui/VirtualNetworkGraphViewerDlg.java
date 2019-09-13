@@ -95,8 +95,7 @@ import javax.swing.JRadioButton;
  *
  * @author Bart Jourquin
  */
-// TODO The "node view" should also be time dependent
-// TODO Strange display of means in TML project. To check
+// TODO The "node view" should also handle time dependent results
 public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
 
   private static I18n i18n = Environment.getI18n();

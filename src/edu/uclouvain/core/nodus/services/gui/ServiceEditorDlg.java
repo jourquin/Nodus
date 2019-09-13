@@ -1109,8 +1109,7 @@ public class ServiceEditorDlg extends EscapeDialog {
 
     return gridBagConstraints;
   }
-
-  // TODO Strange place to handle this. Check
+  
   /**
    * .
    *

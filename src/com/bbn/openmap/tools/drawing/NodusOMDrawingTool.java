@@ -55,7 +55,6 @@ import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 
-// TODO Seems to be still buggy (sometimes unbalanced output). Needs systematic tests
 //TODO Interaction with services not working
 
 /**
@@ -189,12 +188,12 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
         GraphicLocation gil = indexOfNode(node1.omg);
         List<Object> values = nodesLayers[gil.indexOfLayer].getModel().getRecord(gil.indexInLayer);
 
-        Double d = (Double) values.get(NodusC.DBF_IDX_NUM);
+        Double d = Double.valueOf(values.get(NodusC.DBF_IDX_NUM).toString());
         numNode1 = d.intValue();
         gil = indexOfNode(node2.omg);
 
         values = nodesLayers[gil.indexOfLayer].getModel().getRecord(gil.indexInLayer);
-        d = (Double) values.get(NodusC.DBF_IDX_NUM);
+        d = Double.valueOf(values.get(NodusC.DBF_IDX_NUM).toString());
         numNode2 = d.intValue();
 
         if (numNode1 == numNode2) {
@@ -476,11 +475,12 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
 
           try {
             Double d =
-                (Double)
+                Double.valueOf(
                     nodesLayers[index]
                         .getModel()
                         .getValueAt(
-                            nodesLayers[index].getModel().getRowCount() - 1, NodusC.DBF_IDX_NUM);
+                            nodesLayers[index].getModel().getRowCount() - 1, NodusC.DBF_IDX_NUM)
+                        .toString());
             if (d.intValue() != lineSplitter.getInsertedNode()) {
               lineSplitter.setInsertedNode(0);
             }
@@ -548,11 +548,12 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
 
             try {
               Double d =
-                  (Double)
+                  Double.valueOf(
                       nodesLayers[index]
                           .getModel()
                           .getValueAt(
-                              nodesLayers[index].getModel().getRowCount() - 1, NodusC.DBF_IDX_NUM);
+                              nodesLayers[index].getModel().getRowCount() - 1, NodusC.DBF_IDX_NUM)
+                          .toString());
               if (d.intValue() != lineSplitter.getInsertedNode()) {
                 lineSplitter.setInsertedNode(0);
               }
@@ -1113,12 +1114,12 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
         GraphicLocation gil = indexOfNode(node1.omg);
         List<Object> values = nodesLayers[gil.indexOfLayer].getModel().getRecord(gil.indexInLayer);
 
-        Double d = (Double) values.get(NodusC.DBF_IDX_NUM);
+        Double d = Double.valueOf(values.get(NodusC.DBF_IDX_NUM).toString());
         numNode1 = d.intValue();
         gil = indexOfNode(node2.omg);
 
         values = nodesLayers[gil.indexOfLayer].getModel().getRecord(gil.indexInLayer);
-        d = (Double) values.get(NodusC.DBF_IDX_NUM);
+        d = Double.valueOf(values.get(NodusC.DBF_IDX_NUM).toString());
         numNode2 = d.intValue();
 
         if (numNode1 == numNode2) {
@@ -1186,17 +1187,19 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
 
       if (!lineSplitter.getFlag()) {
         Double d =
-            (Double)
+            Double.valueOf(
                 linksLayers[layerIndexOfSelectedGraphic]
                     .getModel()
-                    .getValueAt(index, NodusC.DBF_IDX_NODE1);
+                    .getValueAt(index, NodusC.DBF_IDX_NODE1)
+                    .toString());
         int oldnode1 = d.intValue();
 
         d =
-            (Double)
+            Double.valueOf(
                 linksLayers[layerIndexOfSelectedGraphic]
                     .getModel()
-                    .getValueAt(index, NodusC.DBF_IDX_NODE2);
+                    .getValueAt(index, NodusC.DBF_IDX_NODE2)
+                    .toString());
         int oldnode2 = d.intValue();
 
         if ((oldnode1 != numNode1 || oldnode2 != numNode2) && !services.isEmpty()) {
@@ -1235,19 +1238,21 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
               i, linksLayers[layerIndexOfSelectedGraphic].getModel().getValueAt(index, i));
         }
 
-        lineSplitter.setOriginNode(
-            ((Double)
-                    linksLayers[layerIndexOfSelectedGraphic]
-                        .getModel()
-                        .getValueAt(index, NodusC.DBF_IDX_NODE1))
-                .intValue());
+        Double d =
+            Double.valueOf(
+                linksLayers[layerIndexOfSelectedGraphic]
+                    .getModel()
+                    .getValueAt(index, NodusC.DBF_IDX_NODE1)
+                    .toString());
+        lineSplitter.setOriginNode(d.intValue());
 
-        lineSplitter.setDestinationNode(
-            ((Double)
-                    linksLayers[layerIndexOfSelectedGraphic]
-                        .getModel()
-                        .getValueAt(index, NodusC.DBF_IDX_NODE2))
-                .intValue());
+        d =
+            Double.valueOf(
+                (linksLayers[layerIndexOfSelectedGraphic]
+                    .getModel()
+                    .getValueAt(index, NodusC.DBF_IDX_NODE2)
+                    .toString()));
+        lineSplitter.setDestinationNode(d.intValue());
 
         linksLayers[layerIndexOfSelectedGraphic]
             .getModel()

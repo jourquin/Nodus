@@ -21,7 +21,6 @@
         <pathelement location="lib/jung-graph-impl-2.1.1.jar"/>
         <pathelement location="lib/jung-visualization-2.1.1.jar"/>
         <pathelement location="lib/guava-19.0.jar"/>
-        <pathelement location="lib/openmap.jar"/>
         <pathelement location="lib/groovy/ant-1.9.13.jar"/>
         <pathelement location="lib/groovy/ant-antlr-1.9.13.jar"/>
         <pathelement location="lib/groovy/ant-junit-1.9.13.jar"/>
@@ -97,11 +96,13 @@
         <pathelement location="lib/derby.jar"/>
         <pathelement location="lib/h2-1.4.199.jar"/>
         <pathelement location="lib/hsqldb.jar"/>
+        <pathelement location="lib/openmap.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
         <copy includeemptydirs="false" todir="classes">
             <fileset dir="src">
+                <exclude name="**/*.launch"/>
                 <exclude name="**/*.java"/>
             </fileset>
         </copy>

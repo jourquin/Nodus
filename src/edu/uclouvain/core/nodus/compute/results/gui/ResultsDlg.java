@@ -113,6 +113,8 @@ public class ResultsDlg extends EscapeDialog {
 
   private String linksFlowQueryString = "";
 
+  private String dynamicFlowQueryString = "";
+
   private String linksVehiclesQueryString = "";
 
   private JPanel mainPanel = new JPanel();
@@ -242,7 +244,7 @@ public class ResultsDlg extends EscapeDialog {
         break;
 
       case actionLinkVehicles:
-        linksFlowQueryString = "";
+        linksVehiclesQueryString = "";
         sqlTextPane.setText(getFlowsQueryString(NodusC.DBF_VEHICLES));
         break;
 
@@ -252,7 +254,7 @@ public class ResultsDlg extends EscapeDialog {
         break;
 
       case actionLinkTimeDependentQuantities:
-        linksFlowQueryString = "";
+        dynamicFlowQueryString = "";
         sqlTextPane.setText(getFlowsQueryString(NodusC.DBF_QUANTITY, true));
         break;
 
@@ -329,6 +331,10 @@ public class ResultsDlg extends EscapeDialog {
         if (!linksVehiclesQueryString.equals("")) {
           return linksVehiclesQueryString;
         }
+      }
+    } else {
+      if (!dynamicFlowQueryString.equals("")) {
+        return dynamicFlowQueryString;
       }
     }
 
@@ -692,6 +698,8 @@ public class ResultsDlg extends EscapeDialog {
         nodusProject.getLocalProperty(NodusC.PROP_NODES_FLOW_QUERY + currentScenario, "");
     linksFlowQueryString =
         nodusProject.getLocalProperty(NodusC.PROP_LINKS_FLOW_QUERY + currentScenario, "");
+    dynamicFlowQueryString =
+        nodusProject.getLocalProperty(NodusC.PROP_DYNAMIC_FLOW_QUERY + currentScenario, "");
     linksVehiclesQueryString =
         nodusProject.getLocalProperty(NodusC.PROP_LINKS_VEHICLES_QUERY + currentScenario, "");
     pathQueryString = nodusProject.getLocalProperty(NodusC.PROP_PATH_QUERY + currentScenario, "");
@@ -791,9 +799,9 @@ public class ResultsDlg extends EscapeDialog {
 
           case 3: // Display time dependent assigned quantities
             resetLayers();
-            linksFlowQueryString = sqlTextPane.getText();
+            dynamicFlowQueryString = sqlTextPane.getText();
             nodusProject.setLocalProperty(
-                NodusC.PROP_LINKS_FLOW_QUERY + currentScenario, linksFlowQueryString);
+                NodusC.PROP_DYNAMIC_FLOW_QUERY + currentScenario, dynamicFlowQueryString);
             success = lr.displayTimeDependentFlows(sqlTextPane.getText());
             resetLayers();
             break;

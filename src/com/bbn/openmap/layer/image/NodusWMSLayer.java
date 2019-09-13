@@ -84,6 +84,9 @@ public class NodusWMSLayer extends WMSLayer {
 
   private boolean capabilitiesAlreadyFetched = false;
 
+  //Is the server reachable ?
+  private boolean isServerReachable;
+
   private String prefix;
 
   private Properties properties;
@@ -122,6 +125,13 @@ public class NodusWMSLayer extends WMSLayer {
     return s;
   }
 
+  @Override
+  public void doPrepare() {
+    if (isServerReachable) {
+      super.doPrepare();
+    }
+  }
+
   /**
    * Asks the WMS server for its capabilities.
    *
@@ -155,15 +165,12 @@ public class NodusWMSLayer extends WMSLayer {
       }
     }
 
-    System.out.println(buf.toString());
-
     buf.append("?" + "&REQUEST=GetCapabilities" + "&version=" + wmsVersion);
 
     java.net.URL url = null;
 
     try {
       url = new java.net.URL(buf.toString());
-      System.out.println(buf.toString());
       java.net.HttpURLConnection urlc = (java.net.HttpURLConnection) url.openConnection();
       if (urlc == null || urlc.getContentType() == null) {
         Thread thread =
@@ -262,6 +269,11 @@ public class NodusWMSLayer extends WMSLayer {
    */
   @Override
   public java.awt.Component getGUI() {
+
+    if (!isServerReachable) {
+      return null;
+    }
+
     final JPanel panel = (JPanel) super.getGUI();
 
     // Add a new button to existent panel
@@ -338,9 +350,16 @@ public class NodusWMSLayer extends WMSLayer {
     // Just to avoid ugly java message during reprojections
     p.setProperty(prefix + "interruptable", "false");
 
-    super.setProperties(prefix, p);
+    // Test if server is reachable
+    String key =
+        p.getProperty(PropUtils.getScopedPropertyPrefix(prefix) + WMSLayer.WMSServerProperty, null);
+    if (key == null) {
+      isServerReachable = false;
+    } else {
+      isServerReachable = NetUtils.pingHost(key);
+    }
 
-    setAddToBeanContext(true);
+    super.setProperties(prefix, p);
   }
 
   /**

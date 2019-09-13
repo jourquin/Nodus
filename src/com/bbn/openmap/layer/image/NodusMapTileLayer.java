@@ -23,8 +23,8 @@ package com.bbn.openmap.layer.image;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.dataAccess.mapTile.ServerMapTileFactory;
-// import sun.awt.VerticalBagLayout;
 import com.bbn.openmap.layer.OMGraphicHandlerLayer;
+import com.bbn.openmap.omGraphics.OMGraphicList;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
 
@@ -63,6 +63,9 @@ public class NodusMapTileLayer extends MapTileLayer {
   private String cacheDirName = "TilesCache";
 
   private JPanel clearCachePanel = null;
+
+  // Is the server reachable ?
+  private boolean isServerReachable;
 
   private String prefix;
 
@@ -120,6 +123,10 @@ public class NodusMapTileLayer extends MapTileLayer {
   @Override
   public java.awt.Component getGUI() {
 
+    if (!isServerReachable) {
+      return null;
+    }
+    
     JPanel panel = new JPanel();
     panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
@@ -182,6 +189,16 @@ public class NodusMapTileLayer extends MapTileLayer {
     return transparencyPanel;
   }
 
+  /** Call prepare only if the server is reachable. */
+  @Override
+  public synchronized OMGraphicList prepare() {
+    if (isServerReachable) {
+      return super.prepare();
+    } else {
+      return null;
+    }
+  }
+
   /**
    * Child layers can choose an alternative subdir name to store tiles. This allows to use several
    * map tile based layers to be displayed at the same time without "mixing" the physical caches.
@@ -224,6 +241,17 @@ public class NodusMapTileLayer extends MapTileLayer {
             + ServerMapTileFactory.LOCAL_CACHE_ROOT_DIR_PROPERTY;
     String path = System.getProperty("java.io.tmpdir") + "/" + cacheDirName;
     props.setProperty(key, path);
+
+    // Test if server is reachable
+    key =
+        props.getProperty(
+            PropUtils.getScopedPropertyPrefix(prefix) + ServerMapTileFactory.ROOT_DIR_PROPERTY,
+            null);
+    if (key == null) {
+      isServerReachable = false;
+    } else {
+      isServerReachable = NetUtils.pingHost(key);
+    }
 
     super.setProperties(prefix, props);
 

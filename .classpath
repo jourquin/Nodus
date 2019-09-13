@@ -20,7 +20,6 @@
 	<classpathentry kind="lib" path="lib/jung-graph-impl-2.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/jung-visualization-2.1.1.jar" sourcepath="/jung"/>
 	<classpathentry kind="lib" path="lib/guava-19.0.jar"/>
-	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/openmap6.0b/src"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-1.9.13.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-antlr-1.9.13.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-junit-1.9.13.jar"/>
@@ -96,5 +95,6 @@
 	<classpathentry kind="lib" path="lib/derby.jar"/>
 	<classpathentry kind="lib" path="lib/h2-1.4.199.jar"/>
 	<classpathentry kind="lib" path="lib/hsqldb.jar"/>
+	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/openmap6.0b/src"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

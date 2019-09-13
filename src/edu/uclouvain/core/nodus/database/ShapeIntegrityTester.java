@@ -92,6 +92,10 @@ public class ShapeIntegrityTester {
    * @return True if all the layers are loaded
    */
   private boolean isProjectLoaded() {
+
+    linkLayers = nodusProject.getLinkLayers();
+    nodeLayers = nodusProject.getNodeLayers();
+
     for (NodusEsriLayer element : nodeLayers) {
       if (element.getModel() == null) {
         return false;
@@ -124,9 +128,6 @@ public class ShapeIntegrityTester {
    * loaded.
    */
   private void runIntegrityTest() {
-
-    linkLayers = nodusProject.getLinkLayers();
-    nodeLayers = nodusProject.getNodeLayers();
 
     if (!isProjectLoaded()) {
       return;
@@ -347,7 +348,7 @@ public class ShapeIntegrityTester {
     }
 
     // testFreeNodes();
-
+   
   }
 
   /** Additional tests, not used in production. */

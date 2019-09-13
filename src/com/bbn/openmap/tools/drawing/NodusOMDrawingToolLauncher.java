@@ -129,8 +129,10 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
 
   /** Cancel edit operation and close window. */
   public void cancel() {
-    ((NodusOMDrawingTool) drawingTool).cancel();
-    getWindowSupport().killWindow();
+    if (drawingTool != null) {
+      ((NodusOMDrawingTool) drawingTool).cancel();
+      getWindowSupport().killWindow();
+    }
   }
 
   /**

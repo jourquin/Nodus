@@ -1085,6 +1085,15 @@ public class NodusC {
    */
   public static final String PROP_LINKS_FLOW_QUERY = "linksflowquery";
 
+  
+  /**
+   * Properties strings used in project and/or project local properties.
+   *
+   * @exclude
+   */
+  public static final String PROP_DYNAMIC_FLOW_QUERY = "dynamicflowquery";
+
+  
   /**
    * Properties strings used in project and/or project local properties.
    *

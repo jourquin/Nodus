@@ -68,4 +68,11 @@ without saving these settings.
 - Max width of links and size of nodes in the "result" view are now computed using only the visible links and nodes on screen.
 - Just for fun : add touchbar support for MacBook Pro
 - Move embedded DBMS'S to Nodus core lib directory
+
+## v7.1 - Build20190913
+- Several bug fixes in map editor
+- Logger now works when Nodus is used with HSQLDB
+- Save SQL query for semi-dynamic assignments in properties
+- Warn if a WMS or a tile server is not reachable
+ 
  

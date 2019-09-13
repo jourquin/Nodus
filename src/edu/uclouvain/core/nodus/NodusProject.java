@@ -262,7 +262,6 @@ public class NodusProject implements ShapeConstants {
    *
    * @param props Properties that contains the description of the layers.
    */
-  // TODO Test Internet connection for layers needing it (WMS, Tiles,...)
   public void addOpenMapLayers(Properties props) {
     // Test if valid openmap file
     String s = props.getProperty(NodusC.PROP_OPENMAP_LAYERS);
@@ -1389,17 +1388,6 @@ public class NodusProject implements ShapeConstants {
     String name = f.getName();
     projectPath = projectPath.substring(0, projectPath.lastIndexOf(name) - 1) + File.separator;
 
-    // Open the log file for this project
-    try {
-      loggerHandler = new FileHandler(projectPath + "nodus.log", true);
-      loggerHandler.setFormatter(new SimpleFormatter());
-      Nodus7.nodusLogger.addHandler(loggerHandler);
-    } catch (SecurityException e1) {
-      e1.printStackTrace();
-    } catch (IOException e1) {
-      e1.printStackTrace();
-    }
-
     // Try to add the ".local" properties that contain previous saved values
     localProperties = new Properties();
 
@@ -1586,6 +1574,16 @@ public class NodusProject implements ShapeConstants {
       }
     }
 
+    // Open the log file for this project
+    try {
+      loggerHandler = new FileHandler(projectPath + "nodus.log", true);
+      loggerHandler.setFormatter(new SimpleFormatter());
+      Nodus7.nodusLogger.addHandler(loggerHandler);
+    } catch (SecurityException e1) {
+      e1.printStackTrace();
+    } catch (IOException e1) {
+      e1.printStackTrace();
+    }
     // Add the project's directory to classpath
     //oldClasspath = ClassPathHacker.getClassPath();
 
@@ -2132,7 +2130,7 @@ public class NodusProject implements ShapeConstants {
           element.save();
         }
       }
-  
+
       Nodus7.nodusLogger.info("Save project");
       nodusMapPanel.setBusy(false);
     }
