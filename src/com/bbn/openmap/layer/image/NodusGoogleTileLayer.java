@@ -152,11 +152,11 @@ public class NodusGoogleTileLayer extends NodusMapTileLayer {
         
     // Set the cache name
     setCacheDirName("GoogleTilesCache");
+ 
+    super.setProperties(prefix, props);
 
     // Google servers are always reachable 
     isServerReachable = true;
-    
-    super.setProperties(prefix, props);
-    
+   
   }
 }
