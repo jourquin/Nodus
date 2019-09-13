@@ -65,7 +65,7 @@ public class NodusMapTileLayer extends MapTileLayer {
   private JPanel clearCachePanel = null;
 
   // Is the server reachable ?
-  private boolean isServerReachable;
+  protected boolean isServerReachable;
 
   private String prefix;
 
@@ -126,7 +126,7 @@ public class NodusMapTileLayer extends MapTileLayer {
     if (!isServerReachable) {
       return null;
     }
-    
+
     JPanel panel = new JPanel();
     panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
@@ -243,14 +243,14 @@ public class NodusMapTileLayer extends MapTileLayer {
     props.setProperty(key, path);
 
     // Test if server is reachable
-    key =
+    String url =
         props.getProperty(
             PropUtils.getScopedPropertyPrefix(prefix) + ServerMapTileFactory.ROOT_DIR_PROPERTY,
             null);
-    if (key == null) {
+    if (url == null) {
       isServerReachable = false;
     } else {
-      isServerReachable = NetUtils.pingHost(key);
+      isServerReachable = NetUtils.pingHost(url);
     }
 
     super.setProperties(prefix, props);
