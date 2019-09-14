@@ -23,6 +23,7 @@ package com.bbn.openmap.layer.image;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.dataAccess.mapTile.GoogleMapTileFactory;
+import com.bbn.openmap.dataAccess.mapTile.ServerMapTileFactory;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
 
@@ -65,6 +66,9 @@ public class NodusGoogleTileLayer extends NodusMapTileLayer {
   /** New GUI with the possibility to choose the map type to display. */
   @Override
   public java.awt.Component getGUI() {
+    if (!isServerReachable) {
+      return null;
+    }
     JPanel panel = (JPanel) super.getGUI();
     panel.add(getMapTypesPanel());
     return panel;
@@ -149,14 +153,14 @@ public class NodusGoogleTileLayer extends NodusMapTileLayer {
     String key =
         PropUtils.getScopedPropertyPrefix(prefix) + MapTileLayer.TILE_FACTORY_CLASS_PROPERTY;
     props.setProperty(key, "com.bbn.openmap.dataAccess.mapTile.GoogleMapTileFactory");
-        
+
+    // Set the server URL to test if reachable
+    String url = PropUtils.getScopedPropertyPrefix(prefix) + ServerMapTileFactory.ROOT_DIR_PROPERTY;
+    props.setProperty(url, "http://maps.googleapis.com/maps/api/staticmap?");
+
     // Set the cache name
     setCacheDirName("GoogleTilesCache");
- 
-    super.setProperties(prefix, props);
 
-    // Google servers are always reachable 
-    isServerReachable = true;
-   
+    super.setProperties(prefix, props);
   }
 }

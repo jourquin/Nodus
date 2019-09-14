@@ -75,4 +75,8 @@ without saving these settings.
 - Save SQL query for semi-dynamic assignments in properties
 - Warn if a WMS or a tile server is not reachable
  
+## v7.1 - Buildxxxxxx
+- Improved server availability detection for GoogleMaps layers
+
+ 
  
