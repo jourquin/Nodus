@@ -2521,7 +2521,14 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   private void menuItemProjectSQLConsoleActionPerformed(ActionEvent a) {
     if (nodusProject.isOpen()) {
-      new SQLConsole(nodusProject);
+      //new SQLConsole(nodusProject);
+      javax.swing.SwingUtilities.invokeLater(
+          new Runnable() {
+            @Override
+            public void run() {
+              new SQLConsole(nodusProject);
+            }
+          });
     }
   }
 
