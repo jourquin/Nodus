@@ -41,7 +41,8 @@ along with contributions to congresses and seminars can be found on
 [H2](http://h2database.com/) and [Apache Derby](https://db.apache.org/derby/).  
 - Flexible: user defined database fields, variables, cost functions, mode choice models…
 
-See also the [documentation](http://htmlpreview.github.com/?https://github.com/jourquin/Nodus/blob/master/doc/help.html).
+See also the [documentation](http://htmlpreview.github.com/?https://github.com/jourquin/Nodus/blob/master/doc/help.html) and
+an example of [user defined modal choice models](https://github.com/jourquin/BoxCoxLogit).
 
 ## History of the 7.x releases
 
