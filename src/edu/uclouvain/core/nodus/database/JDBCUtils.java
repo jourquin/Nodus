@@ -33,6 +33,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,6 +76,10 @@ public class JDBCUtils {
   private static int dbEngine;
 
   private static DatabaseMetaData dmd;
+
+  private Connection jdbcConnection;
+
+  private List<String> tableList = null;
 
   /**
    * H2 and HSQLDB databases can be compacted at shutdown time.
@@ -147,6 +152,60 @@ public class JDBCUtils {
     System.err.println("Unsuported type " + object.toString());
 
     return Byte.MIN_VALUE;
+  }
+
+  /**
+   * There is no reliable way to obtain a useable column width for numerical values in a SQL table.
+   * This method returns a width based on the maximum/minimum values stored in the column. This is
+   * useful when a SQL table must be exported as a DBF file.
+   *
+   * @param tableName The name of the table that contains the column to check.
+   * @param fieldName The field name representing the column.
+   * @param decimalDigits The number of digits to keep after the decimal point.
+   * @return The width of the numerical field.
+   */
+  public int getNumWidth(String tableName, String fieldName, int decimalDigits) {
+
+    int width = -1;
+    try {
+      Statement stmt = jdbcConnection.createStatement();
+
+      DecimalFormat df = new DecimalFormat("#");
+      df.setMaximumFractionDigits(decimalDigits);
+
+      // Get width of max value
+      String sqlStmt =
+          "SELECT MAX("
+              + getQuotedCompliantIdentifier(fieldName)
+              + ") FROM "
+              + getQuotedCompliantIdentifier(tableName);
+      ResultSet rs = stmt.executeQuery(sqlStmt);
+      rs.next();
+      String valueString = df.format(rs.getDouble(1));
+      width = valueString.length();
+
+      // Get width of min value
+      sqlStmt =
+          "SELECT MIN("
+              + getQuotedCompliantIdentifier(fieldName)
+              + ") FROM "
+              + getQuotedCompliantIdentifier(tableName);
+
+      rs = stmt.executeQuery(sqlStmt);
+      rs.next();
+      valueString = df.format(rs.getDouble(1));
+      int w2 = valueString.length();
+      if (w2 > width) {
+        width = w2;
+      }
+
+      rs.close();
+      stmt.close();
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+
+    return width;
   }
 
   /**
@@ -444,10 +503,6 @@ public class JDBCUtils {
       return false;
     }
   }
-
-  Connection jdbcConnection;
-
-  List<String> tableList = null;
 
   /**
    * Constructor.

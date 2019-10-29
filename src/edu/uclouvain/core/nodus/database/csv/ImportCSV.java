@@ -33,6 +33,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -53,9 +54,9 @@ public class ImportCSV {
 
   /**
    * Imports the table which name is passed as parameter. The CSV file must be located in the
-   * project directory. The correspondent table structure (empty table) must exist in the
-   * database. If the table is not empty, all the existing records are removed before importation.
-   * This method returns true if the file was successfully imported.
+   * project directory. The correspondent table structure (empty table) must exist in the database.
+   * If the table is not empty, all the existing records are removed before importation. This method
+   * returns true if the file was successfully imported.
    *
    * @param project The Nodus project.
    * @param tableName The name of the table in xhich the file will be imported. The latest must have
@@ -66,6 +67,9 @@ public class ImportCSV {
   public static boolean importTable(NodusProject project, String tableName, boolean withHeader) {
 
     //long start = System.currentTimeMillis();
+
+    int maxBatchSize =
+        project.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
 
     // Table must exist in order to know which structure it has
     JDBCUtils jdbcUtils = new JDBCUtils(project.getMainJDBCConnection());
@@ -108,14 +112,23 @@ public class ImportCSV {
         records = CSVFormat.RFC4180.parse(in);
       }
 
-      boolean oldAutoCommit = false;
-      oldAutoCommit = con.getAutoCommit();
-      con.setAutoCommit(false);
+      DatabaseMetaData dbmd = con.getMetaData();
+      boolean hasBatchSupport = false;
+      if (dbmd != null) {
+        if (dbmd.supportsBatchUpdates()) {
+          hasBatchSupport = true;
+        }
+      }
+
+      //boolean oldAutoCommit = false;
+      boolean oldAutoCommit = con.getAutoCommit();
+      //con.setAutoCommit(false);
 
       PreparedStatement prepStmt = null;
 
       int nbFields = -1;
 
+      int batchSize = 0;
       for (CSVRecord record : records) {
         // Initialize the prepared statement if not yet done
         if (nbFields == -1) {
@@ -135,11 +148,34 @@ public class ImportCSV {
         for (int i = 0; i < nbFields; i++) {
           prepStmt.setString(i + 1, record.get(i));
         }
-        prepStmt.executeUpdate();
+
+        // Save into table according to batch policy;
+        if (hasBatchSupport) {
+          batchSize++;
+          prepStmt.addBatch();
+          if (batchSize >= maxBatchSize) {
+            con.setAutoCommit(false);
+            prepStmt.executeBatch();
+            con.commit();
+            con.setAutoCommit(oldAutoCommit);
+            batchSize = 0;
+          }
+        } else {
+          prepStmt.executeUpdate();
+        }
+      }
+
+      // Flush remaining records in batch
+      if (hasBatchSupport) {
+        con.setAutoCommit(false);
+        prepStmt.executeBatch();
+        con.commit();
       }
 
       prepStmt.close();
-      con.commit();
+      if (oldAutoCommit == false) {
+        con.commit();
+      }
       con.setAutoCommit(oldAutoCommit);
     } catch (SQLException | IOException e) {
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);

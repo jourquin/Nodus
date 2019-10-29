@@ -72,14 +72,24 @@ public class ExportDBF implements ShapeConstants {
 
       Vector<String> names = new Vector<>();
       Vector<String> types = new Vector<>();
-      Vector<String> sizes = new Vector<>();
-      Vector<String> decimalDigits = new Vector<>();
+      Vector<Integer> sizes = new Vector<>();
+      Vector<Integer> decimalDigits = new Vector<>();
 
       while (col.next()) {
-        names.add(col.getString(4));
-        types.add(col.getString(6).toUpperCase());
-        sizes.add(col.getString(7));
-        decimalDigits.add(col.getString(9));
+        names.add(col.getString("COLUMN_NAME"));
+        String typeName = col.getString("TYPE_NAME").toUpperCase();
+        types.add(typeName);
+        decimalDigits.add(col.getInt("DECIMAL_DIGITS"));
+
+        if (typeName.contains("CHAR")) {
+          sizes.add(col.getInt("COLUMN_SIZE"));
+        } else {
+          // As the metadata doesn't contain a usable width for numerical values, estimate it
+          int w =
+              jdbcUtils.getNumWidth(
+                  tableName, col.getString("COLUMN_NAME"), col.getInt("DECIMAL_DIGITS"));
+          sizes.add(w);
+        }
       }
       col.close();
 
@@ -94,21 +104,19 @@ public class ExportDBF implements ShapeConstants {
         fieldNum = i;
 
         char columnType = 'N';
-
-        if (types.get(i).equals("VARCHAR") || types.get(i).equals("CHAR")) {
+        if (types.get(i).contains("CHAR")) {
           columnType = 'C';
         }
 
         /* TODO Other data types (dates) */
-        int columnSize = Integer.parseInt(sizes.get(i).toString());
 
+        int columnSize = sizes.get(i);
         int decimalDigit = 0;
-
         if (columnType == 'N') {
-          decimalDigit = Integer.parseInt(decimalDigits.get(i).toString());
+          decimalDigit = decimalDigits.get(i);
         }
 
-        field[i] = new DBFField(names.get(i).toString(), columnType, columnSize, decimalDigit);
+        field[i] = new DBFField(names.get(i), columnType, columnSize, decimalDigit);
       }
 
       String path = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
@@ -300,8 +308,7 @@ public class ExportDBF implements ShapeConstants {
    * This method exports the records associated to an Esri shape file into a .dbf file. It ensures
    * that the records are saved in their original order, so that each record will remain associated
    * with its shape. This method is slow and should only be called by exportEsriDbf, because this
-   * method uses another, faster, method for dbf tables that are associated to
-   * NodusEsriLayer.
+   * method uses another, faster, method for dbf tables that are associated to NodusEsriLayer.
    *
    * @param nodusProject NodusProject
    * @param tableName String
@@ -359,8 +366,8 @@ public class ExportDBF implements ShapeConstants {
 
   /**
    * Exports a database table in a .dbf table. The file will have the same name as the table, and
-   * will be located in the project directory. The method returns true if the file was
-   * successfully exported.
+   * will be located in the project directory. The method returns true if the file was successfully
+   * exported.
    *
    * @param nodusProject the Nodus project
    * @param tableName The name of the table to export.

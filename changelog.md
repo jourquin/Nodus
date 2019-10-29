@@ -78,5 +78,8 @@ without saving these settings.
 ## v7.1 - Build20190916
 - Improved server availability detection for GoogleMaps layers
 
+## v7.1 - Build 2019129
+- Improved export and import of CSV and DBF files
+
  
  

@@ -29,6 +29,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import javax.swing.JOptionPane;
@@ -40,6 +41,10 @@ import javax.swing.JOptionPane;
  */
 public class ImportDBF {
   private static Connection jdbcConnection;
+
+  private static int maxBatchSize;
+
+  private static boolean hasBatchSupport = false;
 
   /**
    * Creates a new table, based on the structure of the dbfReader. Returns true on success.
@@ -102,7 +107,10 @@ public class ImportDBF {
     sqlStmt += ")";
 
     try {
-      PreparedStatement ps = jdbcConnection.prepareStatement(sqlStmt);
+      PreparedStatement prepStmt = jdbcConnection.prepareStatement(sqlStmt);
+
+      boolean oldAutoCommit = jdbcConnection.getAutoCommit();
+      int batchSize = 0;
 
       while (dbfReader.hasNextRecord()) {
         Object[] o = dbfReader.nextRecord();
@@ -110,25 +118,48 @@ public class ImportDBF {
         for (int i = 0; i < o.length; i++) {
           if (o[i] instanceof Long) {
             Long v = (Long) o[i];
-            ps.setInt(i + 1, v.intValue());
+            prepStmt.setInt(i + 1, v.intValue());
           } else if (o[i] instanceof Double) {
             Double z = (Double) o[i];
-            ps.setFloat(i + 1, z.floatValue());
+            prepStmt.setFloat(i + 1, z.floatValue());
           } else if (o[i] instanceof String) {
-            ps.setString(i + 1, (String) o[i]);
+            prepStmt.setString(i + 1, (String) o[i]);
           } else if (o[i] instanceof java.util.Date) {
             java.util.Date d = (java.util.Date) o[i];
             Date date = new Date(d.getTime());
-            ps.setDate(i + 1, date);
+            prepStmt.setDate(i + 1, date);
           } else {
             System.err.println("Unsupported data type");
           }
         }
 
-        ps.execute();
+        // Save into table according to batch policy;
+        if (hasBatchSupport) {
+          batchSize++;
+          prepStmt.addBatch();
+          if (batchSize >= maxBatchSize) {
+            jdbcConnection.setAutoCommit(false);
+            prepStmt.executeBatch();
+            jdbcConnection.commit();
+            jdbcConnection.setAutoCommit(oldAutoCommit);
+            batchSize = 0;
+          }
+        } else {
+          prepStmt.executeUpdate();
+        }
+
+        //prepStmt.execute();
       }
 
-      ps.close();
+      // Flush remaining records in batch
+      if (hasBatchSupport) {
+        jdbcConnection.setAutoCommit(false);
+        prepStmt.executeBatch();
+        jdbcConnection.commit();
+        jdbcConnection.setAutoCommit(oldAutoCommit);
+      }
+
+      prepStmt.close();
 
       if (!jdbcConnection.getAutoCommit()) {
         jdbcConnection.commit();
@@ -143,8 +174,8 @@ public class ImportDBF {
   }
 
   /**
-   * Imports tableName.dbf, located in the project directory in the database. The imported
-   * table will have the same name as the .dbf file name (without the ".dbf" extension.
+   * Imports tableName.dbf, located in the project directory in the database. The imported table
+   * will have the same name as the .dbf file name (without the ".dbf" extension.
    *
    * @param project The Nodus project.
    * @param tableName The name of the file to import, without extension.
@@ -155,6 +186,21 @@ public class ImportDBF {
 
     JDBCUtils jdbcUtils = new JDBCUtils(jdbcConnection);
     String path = project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
+
+    maxBatchSize = project.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
+
+    // Test if database engine has batch support
+    try {
+      DatabaseMetaData dbmd = jdbcConnection.getMetaData();
+      hasBatchSupport = false;
+      if (dbmd != null) {
+        if (dbmd.supportsBatchUpdates()) {
+          hasBatchSupport = true;
+        }
+      }
+    } catch (SQLException e1) {
+      e1.printStackTrace();
+    }
 
     // Uppercases? Lowercases?, Mixed? Depends on database capabilities ...
     String jdbcTableName = jdbcUtils.getCompliantIdentifier(tableName);
