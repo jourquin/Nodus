@@ -66,20 +66,20 @@ without saving these settings.
 
 ## v7.1 - Build20190909
 - Max width of links and size of nodes in the "result" view are now computed using only the visible links and nodes on screen.
-- Just for fun : add touchbar support for MacBook Pro
-- Move embedded DBMS'S to Nodus core lib directory
+- Just for fun : add touchbar support for MacBook Pro.
+- Move embedded DBMS'S to Nodus core lib directory.
 
 ## v7.1 - Build20190913
-- Several bug fixes in map editor
-- Logger now works when Nodus is used with HSQLDB
-- Save SQL query for semi-dynamic assignments in properties
-- Warn if a WMS or a tile server is not reachable
+- Several bug fixes in map editor.
+- Logger now works when Nodus is used with HSQLDB.
+- Save SQL query for semi-dynamic assignments in properties.
+- Warn if a WMS or a tile server is not reachable.
  
 ## v7.1 - Build20190916
-- Improved server availability detection for GoogleMaps layers
+- Improved server availability detection for GoogleMaps layers.
 
-## v7.1 - Build 2019129
-- Improved export and import of CSV and DBF files
+## v7.1 - Build2019129
+- Improved export and import of CSV and DBF files.
 
- 
- 
+## v7.1 - BuildXXXXXXXX
+- Upgrade H2 to latest version.

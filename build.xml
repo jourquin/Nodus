@@ -94,15 +94,14 @@
         <pathelement location="lib/rsyntaxtextarea-3.0.3.jar"/>
         <pathelement location="lib/jtouchbar-1.0.0.jar"/>
         <pathelement location="lib/derby.jar"/>
-        <pathelement location="lib/h2-1.4.199.jar"/>
         <pathelement location="lib/hsqldb.jar"/>
         <pathelement location="lib/openmap.jar"/>
+        <pathelement location="lib/h2-1.4.200.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
         <copy includeemptydirs="false" todir="classes">
             <fileset dir="src">
-                <exclude name="**/*.launch"/>
                 <exclude name="**/*.java"/>
             </fileset>
         </copy>
