@@ -81,5 +81,7 @@ without saving these settings.
 ## v7.1 - Build2019129
 - Improved export and import of CSV and DBF files.
 
-## v7.1 - BuildXXXXXXXX
+## v7.1 - Build20191213
 - Upgrade H2 to latest version.
+- Make StatDlg always modal to avoid double display of it.
+

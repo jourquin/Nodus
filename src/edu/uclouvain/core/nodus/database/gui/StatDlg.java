@@ -71,8 +71,6 @@ public class StatDlg extends EscapeDialog {
   private static final String PROP_STAT_VKM_M = "stat_VehKmPerMode";
   private static final String PROP_STAT_VKM_MM = "stat_VehKmPerModeMeans";
 
-  private static boolean visible = false;
-
   private JPanel checkBoxPanel = new JPanel();
 
   private GridBagLayout checkBoxPanelGridBagLayout = new GridBagLayout();
@@ -146,21 +144,13 @@ public class StatDlg extends EscapeDialog {
   public StatDlg(NodusProject nodusProject, SQLConsole sqlConsole) {
     super((Frame) null, i18n.get(StatDlg.class, "Statistics", "Statistics"), false);
 
-    if (sqlConsole == null) {
-      setModal(true);
-    }
-
-    if (visible) {
-      return;
-    }
-    visible = true;
-
     this.nodusProject = nodusProject;
     this.sqlConsole = sqlConsole;
 
     jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
 
     initialize();
+    setModal(true);
     getRootPane().setDefaultButton(closeButton);
 
     int x = nodusProject.getNodusMapPanel().getMainFrame().getX();
@@ -175,7 +165,6 @@ public class StatDlg extends EscapeDialog {
    */
   private void closeButton_actionPerformed(ActionEvent e) {
     saveState();
-    visible = false;
     setVisible(false);
   }
 
@@ -1123,7 +1112,6 @@ public class StatDlg extends EscapeDialog {
   @Override
   public void keyPressed(KeyEvent e) {
     super.keyPressed(e);
-    visible = false;
   }
 
   /** Set the checkboxes in the state they were saved. */
