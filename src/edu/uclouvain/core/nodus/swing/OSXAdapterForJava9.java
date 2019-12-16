@@ -1,4 +1,13 @@
-/**
+package edu.uclouvain.core.nodus.swing;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/*
  * Abstract: Hooks existing preferences/about/quit functionality from an existing Java app into
  * handlers for the Mac OS X application menu.
  *
@@ -30,16 +39,6 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
-package edu.uclouvain.core.nodus.swing;
-
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 public class OSXAdapterForJava9 implements InvocationHandler {
 
   protected Object targetObject;

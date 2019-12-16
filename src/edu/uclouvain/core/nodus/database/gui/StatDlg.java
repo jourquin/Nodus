@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package edu.uclouvain.core.nodus.database.gui;
@@ -203,7 +203,7 @@ public class StatDlg extends EscapeDialog {
 
     StatPieDlg statPieDlg = new StatPieDlg(this);
 
-    /**
+    /*
      * Number of entries in the OD matrix. Samples : <br>
      * - select count() from od<br>
      * select count() from od where grp = 1<br>
@@ -227,7 +227,7 @@ public class StatDlg extends EscapeDialog {
       batchSqlStmt += header + ";\n" + sqlStmt + ";\n";
     }
 
-    /**
+    /*
      * Total cost. Samples : <br>
      * - select sum(cost*qty) from vnet0 <br>
      * - select sum(cost1*qty1) from vnet0 <br>
@@ -258,7 +258,7 @@ public class StatDlg extends EscapeDialog {
     // Unit to be used for flows : t_km r t_mile
     String unit = "T_KM";
 
-    /**
+    /*
      * Tons km/miles per mode. Samples: <br>
      * select mode1, sum(qty*length) as tkm from vnet0 where length > 0 group by mode1 order by
      * mode1<br>
@@ -298,7 +298,7 @@ public class StatDlg extends EscapeDialog {
       batchSqlStmt += header + ";\n" + sqlStmt + ";\n";
     }
 
-    /**
+    /*
      * Tons km/miles per mode/means. Samples: <br>
      * - select mode1, means1, sum(qty*length) as tkm from vnet0 where length > 0 group by mode1,
      * means1 ordr by mode1, means1<br>
@@ -350,7 +350,7 @@ public class StatDlg extends EscapeDialog {
     // Unit to be used for flows : t_km r t_mile
     unit = "VEH_KM";
 
-    /**
+    /*
      * Vehicles km/miles per mode. Samples:<br>
      * - select mode1, sum(veh*length) as tkm from vnet0 where length > 0 group by mode1 order by
      * mode1<br>
@@ -391,7 +391,7 @@ public class StatDlg extends EscapeDialog {
       batchSqlStmt += header + ";\n" + sqlStmt + ";\n";
     }
 
-    /**
+    /*
      * Vehicles km/miles per mode/means. Samples: <br>
      * - select mode1, means1, sum(veh*length) as tkm from vnet0 where length > 0 group by mode1,
      * means1 order by mode1, means1<br>
@@ -440,7 +440,7 @@ public class StatDlg extends EscapeDialog {
       batchSqlStmt += header + ";\n" + sqlStmt + ";\n";
     }
 
-    /**
+    /*
      * Loaded tons per mode. Samples: <br>
      * - select mode2, sum(qty) from vnet0 where mode1=0 and mode2 > 0 group by mode2 order by mode2
      * <br>
@@ -478,7 +478,7 @@ public class StatDlg extends EscapeDialog {
       batchSqlStmt += header + ";\n" + sqlStmt + ";\n";
     }
 
-    /**
+    /*
      * Loaded tons per mode/means. Samples : <br>
      * - select mode2, means2, sum(qty) from vnet0 where mode1=0 and mode2 > 0 group by mode2,means2
      * order by mode2, means2 <br>
@@ -523,7 +523,7 @@ public class StatDlg extends EscapeDialog {
       batchSqlStmt += header + ";\n" + sqlStmt + ";\n";
     }
 
-    /**
+    /*
      * Unloaded tons per mode. Samples : <br>
      * - select mode1, sum(qty) from vnet0 where mode2=0 and mode1 > 0 group by mode1 order by mode1
      * <br>
@@ -561,7 +561,7 @@ public class StatDlg extends EscapeDialog {
       batchSqlStmt += header + ";\n" + sqlStmt + ";\n";
     }
 
-    /**
+    /*
      * Unloaded tons per mode/means. Samples : <br>
      * - select mode1, means1, sum(qty) from vnet0 where mode2=0 and mode1 > 0 group by mode1,means1
      * order by mode1, means1<br>

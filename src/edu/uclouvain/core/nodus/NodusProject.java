@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package edu.uclouvain.core.nodus;
@@ -207,9 +207,6 @@ public class NodusProject implements ShapeConstants {
 
   /** Map panel of the application. */
   private NodusMapPanel nodusMapPanel;
-
-  /** Used to save the original classpath. */
-  //private ClassLoader oldClassPath;
 
   /**
    * Used to store the ID's of the links that are present in layers that are found in the project
@@ -406,7 +403,7 @@ public class NodusProject implements ShapeConstants {
           if (answer == JOptionPane.YES_OPTION) {
             saveEsriLayers();
           } else {
-            /**
+            /*
              * Drop the sql tables as they are changed and that the user don't want to save these
              * changes. They will be reimported when project will be reopened
              */
@@ -1558,7 +1555,7 @@ public class NodusProject implements ShapeConstants {
       }
     }
 
-    /** Derby hasn't a ROUND function. Add it */
+    /* Derby hasn't a ROUND function. Add it */
     if (JDBCUtils.getDbEngine(jdbcConnection) == JDBCUtils.DB_DERBY) {
       try {
         Statement stmt = jdbcConnection.createStatement();

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package com.bbn.openmap.tools.drawing;
@@ -231,7 +231,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
       EsriPolyline ompl = new EsriPolyline(pts, DECIMAL_DEGREES, LINETYPE_STRAIGHT);
 
       // Add the graphic to a visible link layer
-      /**
+      /*
        * In this section we make the new link with the same characteristics of the old link.
        *
        * @author Jorge Pinna
@@ -458,7 +458,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
 
         // Add node to the relevant layer
 
-        /**
+        /*
          * In this section we store the characteristics of the new point (the fusion point), and we
          * put it 0 if the node wasn't created.
          *
@@ -498,7 +498,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
 
         return false;
 
-        /** End of section */
+        /* End of section */
       default:
         Object selectedValue =
             JOptionPane.showInputDialog(
@@ -528,7 +528,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
           }
 
           // Add node to the relevant layer
-          /**
+          /*
            * In this section we store the characteristics of the new point (the fusion point), and
            * we put it 0 if the node wasn't created.
            *
@@ -572,7 +572,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
         } else {
           lineSplitter.setInsertedNode(0);
           return false;
-          /** End of section */
+          /* End of section */
         }
     }
   }
@@ -862,7 +862,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
           continue;
         }
 
-        /** Look only into the displayed objects. */
+        /* Look only into the displayed objects. */
         OMGraphicList list = nodesLayers[i].getVisibleEsriGraphicList();
         // OMGraphicList list = nodesLayers[i].getEsriGraphicList();
 
@@ -1221,7 +1221,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
 
       // Exact coordinates of end nodes
 
-      /**
+      /*
        * In this Section we store all of characteristics of the old link, and we modify the first
        * link.
        *

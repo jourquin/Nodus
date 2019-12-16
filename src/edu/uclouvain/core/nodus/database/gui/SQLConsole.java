@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package edu.uclouvain.core.nodus.database.gui;
@@ -1669,7 +1669,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @exclude
    */
   @Override
-  public void keyReleased(KeyEvent k) {}
+  public void keyReleased(KeyEvent k) {
+
+  }
 
   /**
    * .
@@ -1677,7 +1679,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @exclude
    */
   @Override
-  public void keyTyped(KeyEvent evt) {}
+  public void keyTyped(KeyEvent evt) {
+
+  }
 
   /** Loads history (recent SQL statements) from property file. */
   private void loadHistory() {
@@ -2287,7 +2291,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
   /** .@exclude */
   @Override
-  public void windowActivated(WindowEvent e) {}
+  public void windowActivated(WindowEvent e) {
+
+  }
 
   /**
    * Close all the open children frames (Statistics dialog box could be currently visible).
@@ -2352,7 +2358,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @exclude
    */
   @Override
-  public void windowDeactivated(WindowEvent e) {}
+  public void windowDeactivated(WindowEvent e) {
+
+  }
 
   /**
    * .
@@ -2360,7 +2368,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @exclude
    */
   @Override
-  public void windowDeiconified(WindowEvent e) {}
+  public void windowDeiconified(WindowEvent e) {
+
+  }
 
   /**
    * .
@@ -2368,7 +2378,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @exclude
    */
   @Override
-  public void windowIconified(WindowEvent e) {}
+  public void windowIconified(WindowEvent e) {
+
+  }
 
   /**
    * .
@@ -2376,5 +2388,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @exclude
    */
   @Override
-  public void windowOpened(WindowEvent e) {}
+  public void windowOpened(WindowEvent e) {
+
+  }
 }

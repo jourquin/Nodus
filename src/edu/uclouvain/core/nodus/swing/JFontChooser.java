@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,19 +16,13 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package edu.uclouvain.core.nodus.swing;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-
-/**
- * A simple font chooser.
- *
- * @author Bart Jourquin
- */
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -55,6 +49,11 @@ import javax.swing.border.LineBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+/**
+ * A simple font chooser.
+ *
+ * @author Bart Jourquin
+ */
 public class JFontChooser extends JDialog {
 
   private static final long serialVersionUID = -8712590260466014458L;

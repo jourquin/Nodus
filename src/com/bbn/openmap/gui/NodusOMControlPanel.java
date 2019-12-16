@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package com.bbn.openmap.gui;
@@ -87,16 +87,24 @@ public class NodusOMControlPanel extends OMControlPanel {
                 new MouseListener() {
 
                   @Override
-                  public void mouseReleased(MouseEvent e) {}
+                  public void mouseReleased(MouseEvent e) {
+               
+                  }
 
                   @Override
-                  public void mousePressed(MouseEvent e) {}
+                  public void mousePressed(MouseEvent e) {
+                
+                  }
 
                   @Override
-                  public void mouseExited(MouseEvent e) {}
+                  public void mouseExited(MouseEvent e) {
+                
+                  }
 
                   @Override
-                  public void mouseEntered(MouseEvent e) {}
+                  public void mouseEntered(MouseEvent e) {
+                
+                  }
 
                   @Override
                   public void mouseClicked(MouseEvent e) {

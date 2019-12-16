@@ -1,5 +1,10 @@
 package edu.uclouvain.core.nodus.swing;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+
 /**
  * Abstract: Hooks existing preferences/about/quit functionality from an existing Java app into
  * handlers for the Mac OS X application menu. Uses a Proxy object to dynamically implement the
@@ -42,11 +47,6 @@ package edu.uclouvain.core.nodus.swing;
  *
  * <p>Copyright 2003-2007 Apple, Inc., All Rights Reserved
  */
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-
 public class OSXAdapter implements InvocationHandler {
 
   protected Object targetObject;

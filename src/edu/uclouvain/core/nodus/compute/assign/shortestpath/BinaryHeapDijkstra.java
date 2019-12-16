@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package edu.uclouvain.core.nodus.compute.assign.shortestpath;
@@ -38,7 +38,7 @@ public class BinaryHeapDijkstra {
 
   /**
    * Array of BHNodes containing information on the upper bounds of the cost of a shortest path from
-   * source weights to a node in upperBoundCosts
+   * source weights to a node in upperBoundCosts.
    */
   BinaryHeapNode[] upperBoundCosts;
 
@@ -54,7 +54,7 @@ public class BinaryHeapDijkstra {
   /** Used to stop the search when all the nodes that have to be reached are reached. */
   int nbNodesToReach;
 
-  /** Positions of nodes in the heap -- needed for decreaseKey */
+  /** Positions of nodes in the heap -- needed for decreaseKey. */
   int[] nodePos;
 
   /** Set of predecessors. */

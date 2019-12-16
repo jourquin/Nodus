@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package edu.uclouvain.core.nodus.database.dbf;
@@ -423,7 +423,7 @@ public class ExportDBF implements ShapeConstants {
         for (int j = 0; j < model.getColumnCount(); j++) {
           o[j] = model.getValueAt(i, j);
 
-          /**
+          /*
            * Openmap allows the user to add new fields in the dbf file, but it doesn't fill the
            * existing records with adequate values. The following test ensures that a correct value
            * type is associated with non string types
@@ -433,7 +433,7 @@ public class ExportDBF implements ShapeConstants {
               o[j] = Double.valueOf(0);
             }
 
-            /** @todo : also test for dates and booleans */
+            /* @todo : also test for dates and booleans */
           }
         }
 

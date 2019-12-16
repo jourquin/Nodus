@@ -1,4 +1,4 @@
-# Copyright (c) 1991-2019 Université catholique de Louvain,
+# Copyright (c) 1991-2020 Université catholique de Louvain,
 # Center for Operations Research and Econometrics (CORE)
 # http://www.uclouvain.be
 #
@@ -15,7 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this program.  If not, see http://www.gnu.org/licenses/.
 #-------------------------------------------------------------------------------
 
 

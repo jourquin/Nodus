@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package edu.uclouvain.core.nodus.compute.results.gui;
@@ -433,7 +433,7 @@ public class ResultsDlg extends EscapeDialog {
           " AND " + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_TIME) + " = ???";
     }
 
-    /**
+    /*
      * Example : SELECT ABS(miniproject_path0_detail.link), Sum(qty) FROM miniproject_path0_header
      * INNER JOIN miniproject_path0_detail ON miniproject_path0_header.pathidx =
      * miniproject_path0_detail.pathidx where org=11 and dst=3352 GROUP BY

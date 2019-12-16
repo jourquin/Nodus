@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package com.bbn.openmap.layer.shape.gui;
@@ -418,7 +418,7 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
     sqlTextField.setHighlightCurrentLine(false);
     sqlTextField.setLineWrap(true);
 
-    /**
+    /*
      * Example query for nodes.
      *
      * <p>select link1, link2, mode1, means1, service1, mode2, means2, service2, time, qty, ucost,

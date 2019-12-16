@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package edu.uclouvain.core.nodus.services;
@@ -156,9 +156,9 @@ public class ServiceEditor {
     int n1 = getNbOccurences(node1);
     int n2 = getNbOccurences(node2);
 
-    /** Add or remove chunk */
+    /* Add or remove chunk */
     if (currentService.contains(omg)) {
-      /**
+      /*
        * Remove rules: - one node must have only one occurrence - the other node must have two
        * occurrences, only one element in the line. Thus, only the end chunks can be removed
        */
@@ -166,7 +166,7 @@ public class ServiceEditor {
       currentService.removeChunk(omg);
     } else {
 
-      /**
+      /*
        * Add rules: - a node cannot have more than one occurence, otherwise is an (unallowed) fork -
        * at least one node must have one occurence or this chunk is the first one
        */

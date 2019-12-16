@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package edu.uclouvain.core.nodus.swing;
@@ -86,7 +86,9 @@ public class VerticalFlowLayout implements LayoutManager, java.io.Serializable {
    * @param comp The feature to be added to the LayoutComponent attribute
    */
   @Override
-  public void addLayoutComponent(String name, Component comp) {}
+  public void addLayoutComponent(String name, Component comp) {
+
+  }
 
   /**
    * Gets the Halignment attribute of the VerticalFlowLayout object.
@@ -264,7 +266,9 @@ public class VerticalFlowLayout implements LayoutManager, java.io.Serializable {
    * @param comp Description of Parameter
    */
   @Override
-  public void removeLayoutComponent(Component comp) {}
+  public void removeLayoutComponent(Component comp) {
+
+  }
 
   /**
    * Sets the Alignment attribute of the VerticalFlowLayout object.

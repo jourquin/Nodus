@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package edu.uclouvain.core.nodus.compute.assign.workers;
@@ -396,7 +396,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
   /** Log the OD pairs between which no paths could be found. */
   private void logLostPaths() {
-    /**
+    /*
      * Go through all the potential lost paths and look if they could be reached by another
      * mode/means.
      */
@@ -515,7 +515,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
         an.inCurrentTree = true;
         VirtualLink vl = an.virtualLink;
 
-        /**
+        /*
          * Performance issue: all the used virtual links are put in a list in order not to need a
          * browse through the complete virtual network to find them when needed
          */

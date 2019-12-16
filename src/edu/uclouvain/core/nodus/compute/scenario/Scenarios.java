@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package edu.uclouvain.core.nodus.compute.scenario;
@@ -167,7 +167,7 @@ public class Scenarios {
       String whereString,
       boolean compare) {
 
-    /**
+    /*
      * The tables to compare don't have to have the same structure, as the number of groups and/or
      * group numbers can be different. We have to make a list of groups which merges the two
      * structures
@@ -247,7 +247,7 @@ public class Scenarios {
 
     Arrays.sort(groupsInResults);
 
-    /** Now keep the indexes of the groups in the merged table */
+    /* Now keep the indexes of the groups in the merged table */
     byte[] indexesForTable1 = new byte[groupList1.size()];
     lit = groupList1.iterator();
 
@@ -348,7 +348,7 @@ public class Scenarios {
       System.err.println(ex.toString());
     }
 
-    /** Read the second table and update the hashtable with all the records */
+    /* Read the second table and update the hashtable with all the records */
     tableName = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
     tableName =
         nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenarioToCompare;
@@ -419,7 +419,7 @@ public class Scenarios {
       return;
     }
 
-    /** Now create the result table and save the data into it */
+    /* Now create the result table and save the data into it */
     try {
 
       // Create result table
@@ -427,7 +427,7 @@ public class Scenarios {
         return;
       }
 
-      /** Prepared different statement for the different version of Virtual Network */
+      /* Prepared different statement for the different version of Virtual Network */
       sqlStmt =
           "INSERT INTO "
               + VirtualNetworkWriter.getTableName()

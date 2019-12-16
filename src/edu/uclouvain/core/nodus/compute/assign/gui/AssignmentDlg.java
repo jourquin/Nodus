@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package edu.uclouvain.core.nodus.compute.assign.gui;
@@ -282,7 +282,7 @@ public class AssignmentDlg extends EscapeDialog {
 
     AssignmentParameters ap = new AssignmentParameters(nodusMapPanel.getNodusProject());
 
-    /**
+    /*
      * Retrieve info from the GUI components to fill the "assignment parameters" that will be passed
      * to the assignment methods
      */
@@ -1137,13 +1137,19 @@ public class AssignmentDlg extends EscapeDialog {
     odTablesComboBox.addMouseListener(
         new java.awt.event.MouseListener() {
           @Override
-          public void mouseClicked(MouseEvent e) {}
+          public void mouseClicked(MouseEvent e) {
+        
+          }
 
           @Override
-          public void mouseEntered(MouseEvent e) {}
+          public void mouseEntered(MouseEvent e) {
+        
+          }
 
           @Override
-          public void mouseExited(MouseEvent e) {}
+          public void mouseExited(MouseEvent e) {
+        
+          }
 
           @Override
           public void mousePressed(MouseEvent e) {
@@ -1153,7 +1159,9 @@ public class AssignmentDlg extends EscapeDialog {
           }
 
           @Override
-          public void mouseReleased(MouseEvent e) {}
+          public void mouseReleased(MouseEvent e) {
+        
+          }
         });
 
     odTablesComboBox.addPopupMenuListener(
@@ -1167,10 +1175,14 @@ public class AssignmentDlg extends EscapeDialog {
           }
 
           @Override
-          public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {}
+          public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+        
+          }
 
           @Override
-          public void popupMenuCanceled(PopupMenuEvent e) {}
+          public void popupMenuCanceled(PopupMenuEvent e) {
+        
+          }
         });
 
     odTablesComboBox.addActionListener(

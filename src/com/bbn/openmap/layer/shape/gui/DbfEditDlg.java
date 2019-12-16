@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package com.bbn.openmap.layer.shape.gui;
@@ -216,10 +216,14 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     }
 
     @Override
-    public void firePropertyChange(String propertyName, boolean oldValue, boolean newValue) {}
+    public void firePropertyChange(String propertyName, boolean oldValue, boolean newValue) {
+   
+    }
 
     @Override
-    protected void firePropertyChange(String propertyName, Object oldValue, Object newValue) {}
+    protected void firePropertyChange(String propertyName, Object oldValue, Object newValue) {
+   
+    }
 
     // This method is called each time a cell in a column using this renderer needs to be rendered.
     @Override
@@ -251,7 +255,9 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     }
 
     @Override
-    public void revalidate() {}
+    public void revalidate() {
+   
+    }
 
     public void setLayer(NodusEsriLayer l) {
       layer = l;
@@ -259,7 +265,9 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
     // The following methods override the defaults for performance reasons
     @Override
-    public void validate() {}
+    public void validate() {
+   
+    }
   }
 
   private static I18n i18n = Environment.getI18n();

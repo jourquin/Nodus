@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2019 Université catholique de Louvain
+ * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * <p>You should have received a copy of the GNU General Public License along with this program. If
- * not, see <http://www.gnu.org/licenses/>.
+ * not, see http://www.gnu.org/licenses/.
  */
 
 package edu.uclouvain.core.nodus.swing;
@@ -151,11 +151,15 @@ public class EscapeDialog extends JDialog implements ContainerListener, KeyListe
 
   /** We need the following functions to complete implementation of KeyListener. */
   @Override
-  public void keyReleased(KeyEvent e) {}
+  public void keyReleased(KeyEvent e) {
+
+  }
 
   /** We need the following functions to complete implementation of KeyListener. */
   @Override
-  public void keyTyped(KeyEvent e) {}
+  public void keyTyped(KeyEvent e) {
+
+  }
 
   /**
    * Default response to ENTER key pressed goes here Redefine this function in subclasses to respond
@@ -163,7 +167,9 @@ public class EscapeDialog extends JDialog implements ContainerListener, KeyListe
    *
    * @param e Event to handle
    */
-  void performEnterAction(KeyEvent e) {}
+  void performEnterAction(KeyEvent e) {
+
+  }
 
   /**
    * The following function is the same as the function above with the exception that it does
