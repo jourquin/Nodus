@@ -85,3 +85,10 @@ without saving these settings.
 - Upgrade H2 to latest version.
 - Make StatDlg always modal to avoid double display of it.
 
+## v7.1 - Build20200202
+- Change project date to 2020.
+- Some code formatting (closer to Google Java Style).
+- From now, keep all releases and get a DOI using Zenado
+
+
+
