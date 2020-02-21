@@ -3,6 +3,9 @@
 This file logs the changes introduced in Nodus since the initial release of version 7.1 on November 14, 2018. The switch 
 from v7.0 to v7.1 was needed because of the use of Groovy 2.5.x that changes the directory structure of a Nodus installation.
 
+On February 21, 2020, version 7.2 was released, using Groovy 3.x. The release number was changed because this version
+of Groovy may introduce some incompatibilities with scripts written for older versions.
+
 ## v7.1 - Build20181114
 - Initial v7.1 release.
 
@@ -90,5 +93,19 @@ without saving these settings.
 - Some code formatting (closer to Google Java Style).
 - From now, keep all releases and get a DOI using Zenado
 
-
-
+## v7.2 - Build20200221
+- Upgrade to Groovy 3.01
+- Upgrade to commons-collections 4.4.4
+- Upgrade to commons-compress 1.20
+- Upgrade to commons-csv 1.8
+- Upgrade to commons-io 2.6
+- Upgrade to guava 28.2
+- Upgrade to poi 4.1.2
+- Upgrade to rsyntaxtextarea 3.0.6
+- Upgrade to xchart 3.6.1
+- Upgrade to mariadb-java-client 2.5.4
+- Upgrade to postgresql jdbc driver 42.2.10
+- Upgrade to sqlite-jdbc 3.30.1
+- Disable Nodus specific checkstyle because of a bug in checkstyle for Eclipse. Use Google standard by default, but this generate  
+warnings (for more than 3 successive capital letters in class names and a blank line between import groups).
+- Upgrade to latest google-java-format-eclipse-plugin in devtools

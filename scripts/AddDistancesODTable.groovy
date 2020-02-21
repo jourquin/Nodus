@@ -134,7 +134,7 @@ public class AddDistancesToODTable_ {
 				ap.setSavePaths(true);
 				ap.setDetailedPaths(false);
 				ap.setWhereStmt("");
-				ap.setOdMatrix(tmpOD);
+				ap.setODMatrix(tmpOD);
 				ap.setCostFunctions(costFunctions);
 				ap.setConfirmDelete(false);
 				ap.setThreads(nbThreads);

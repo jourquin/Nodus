@@ -6,7 +6,7 @@
 	<!-- The info section. -->
 	<info>
 		<appname>Nodus</appname>
-		<appversion>7.1</appversion>
+		<appversion>7.2</appversion>
 		<appsubpath>Nodus7</appsubpath>
 		<uninstaller write="false"/>
         <writeinstallationinformation>false</writeinstallationinformation>

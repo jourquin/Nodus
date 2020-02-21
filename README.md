@@ -1,4 +1,4 @@
-# Nodus 7.1
+# Nodus 7.2
 
 Nodus is a transportation network modeling software especially designed for multimodal and
 intermodal freight transport. It is developed at the Center for Operations Research and 
@@ -48,6 +48,9 @@ an example of [user defined modal choice models](https://github.com/jourquin/Box
 
 - 7.0 - November 2017: First open source version of Nodus.
 - 7.1 - November 2018: Upgrade to Groovy 2.5.x.
+- 7.2 - February 2020: Upgrade to Groovy 3.x
+
+See the [change log](changelog.md) for a detailed build history.
 
 ## Install and use
 
