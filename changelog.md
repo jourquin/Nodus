@@ -106,3 +106,7 @@ without saving these settings.
 warnings (for more than 3 successive capital letters in class names and a blank line between import groups).
 - Upgrade to latest google-java-format-eclipse-plugin in devtools
 - Add DOI tag in README.md
+
+## v7.2 - BuildXXXXXXXX
+- Resolve deprecated call to Groovy Console
+
