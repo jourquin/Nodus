@@ -1,4 +1,4 @@
-# Nodus 7.2 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
+# Nodus 7.2
 
 Nodus is a transportation network modeling software especially designed for multimodal and
 intermodal freight transport. It is developed at the Center for Operations Research and 
