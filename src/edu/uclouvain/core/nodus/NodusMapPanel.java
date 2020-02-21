@@ -2381,7 +2381,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     if (!useGroovyConsole) {
       new NodusGroovyConsole(this, path, "");
     } else {
-      final groovy.ui.Console console = new groovy.ui.Console();
+      final groovy.console.ui.Console console = new groovy.console.ui.Console();
 
       // Set some defaults in UI
       console.askToInterruptScript();

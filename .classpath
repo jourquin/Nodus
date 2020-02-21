@@ -40,7 +40,7 @@
 	<classpathentry kind="lib" path="lib/groovy/groovy-bsf-3.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/groovy-cli-commons-3.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/groovy-cli-picocli-3.0.1.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-console-3.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-console-3.0.1.jar" sourcepath="/Users/jourquinb/Downloads/apache-groovy-src-3.0.1.zip"/>
 	<classpathentry kind="lib" path="lib/groovy/groovy-datetime-3.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/groovy-dateutil-3.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/groovy-docgenerator-3.0.1.jar"/>
