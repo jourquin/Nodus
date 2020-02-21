@@ -88,13 +88,9 @@ without saving these settings.
 - Upgrade H2 to latest version.
 - Make StatDlg always modal to avoid double display of it.
 
-## v7.1 - Build20200202
-- Change project date to 2020.
-- Some code formatting (closer to Google Java Style).
-- From now, keep all releases and get a DOI using Zenado
-
 ## v7.2 - Build20200221
 - Upgrade to Groovy 3.01
+- Change project date to 2020.
 - Upgrade to commons-collections 4.4.4
 - Upgrade to commons-compress 1.20
 - Upgrade to commons-csv 1.8
@@ -109,3 +105,4 @@ without saving these settings.
 - Disable Nodus specific checkstyle because of a bug in checkstyle for Eclipse. Use Google standard by default, but this generate  
 warnings (for more than 3 successive capital letters in class names and a blank line between import groups).
 - Upgrade to latest google-java-format-eclipse-plugin in devtools
+- Add DOI tag in README.md
