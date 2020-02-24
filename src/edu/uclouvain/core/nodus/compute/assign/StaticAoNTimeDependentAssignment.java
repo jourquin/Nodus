@@ -33,9 +33,7 @@ import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
-
 import java.util.Properties;
-
 import javax.swing.JOptionPane;
 
 /**

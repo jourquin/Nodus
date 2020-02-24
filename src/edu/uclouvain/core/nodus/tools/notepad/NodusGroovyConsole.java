@@ -23,23 +23,18 @@ package edu.uclouvain.core.nodus.tools.notepad;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
-
 import groovy.lang.GroovyShell;
-
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
-
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
-
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 

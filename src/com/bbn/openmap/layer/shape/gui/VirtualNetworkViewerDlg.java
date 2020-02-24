@@ -28,7 +28,6 @@ import com.bbn.openmap.layer.shape.jung.JungVirtualLink;
 import com.bbn.openmap.layer.shape.jung.JungVirtualNode;
 import com.bbn.openmap.layer.shape.jung.gui.VirtualNetworkGraphViewerDlg;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
@@ -36,7 +35,6 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import edu.uclouvain.core.nodus.swing.GridSwing;
 import edu.uclouvain.core.nodus.swing.TableSorter;
-
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -52,7 +50,6 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -60,7 +57,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 

@@ -22,7 +22,6 @@
 package com.bbn.openmap.omGraphics;
 
 import com.bbn.openmap.proj.Projection;
-
 import java.awt.Color;
 import java.awt.Paint;
 

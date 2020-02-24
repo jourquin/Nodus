@@ -27,9 +27,7 @@ import com.bbn.openmap.LayerHandler;
 import com.bbn.openmap.MapBean;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
-
 import edu.uclouvain.core.nodus.NodusC;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;

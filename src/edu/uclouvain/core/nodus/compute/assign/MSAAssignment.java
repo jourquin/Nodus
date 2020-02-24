@@ -35,7 +35,6 @@ import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
 import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
-
 import java.util.Iterator;
 
 /**

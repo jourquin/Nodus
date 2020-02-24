@@ -22,9 +22,7 @@
 package com.bbn.openmap.layer;
 
 import com.bbn.openmap.util.PropUtils;
-
 import java.util.Properties;
-
 import javax.swing.JOptionPane;
 
 /**

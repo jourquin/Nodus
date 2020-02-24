@@ -30,15 +30,12 @@ import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.proj.ProjMath;
 import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
-
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.TimerTask;
-
 import javax.swing.JOptionPane;
 
 /**

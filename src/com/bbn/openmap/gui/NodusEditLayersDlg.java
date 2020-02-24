@@ -24,14 +24,12 @@ package com.bbn.openmap.gui;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
-
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -42,7 +40,6 @@ import java.text.MessageFormat;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.StringTokenizer;
-
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;

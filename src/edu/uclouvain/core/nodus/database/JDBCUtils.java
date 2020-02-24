@@ -22,7 +22,6 @@
 package edu.uclouvain.core.nodus.database;
 
 import edu.uclouvain.core.nodus.NodusC;
-
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -36,7 +35,6 @@ import java.sql.Statement;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.swing.JOptionPane;
 
 /**

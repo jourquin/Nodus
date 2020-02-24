@@ -25,15 +25,12 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.omGraphics.OMGraphicConstants;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PaletteHelper;
-
 import edu.uclouvain.core.nodus.swing.VerticalFlowLayout;
-
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Iterator;
-
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;

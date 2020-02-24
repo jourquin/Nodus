@@ -23,13 +23,10 @@ package edu.uclouvain.core.nodus.gui;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
-
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;

@@ -23,11 +23,9 @@ package edu.uclouvain.core.nodus.gui;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
-
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -37,7 +35,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Locale;
 import java.util.Properties;
-
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;

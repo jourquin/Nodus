@@ -22,7 +22,6 @@
 package edu.uclouvain.core.nodus.services;
 
 import com.bbn.openmap.omGraphics.OMGraphic;
-
 import java.util.LinkedList;
 
 /**

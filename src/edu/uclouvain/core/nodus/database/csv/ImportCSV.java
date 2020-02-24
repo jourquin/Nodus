@@ -23,11 +23,9 @@ package edu.uclouvain.core.nodus.database.csv;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
-
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -37,9 +35,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import javax.swing.JOptionPane;
-
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 

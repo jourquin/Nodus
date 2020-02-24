@@ -33,7 +33,6 @@ import com.bbn.openmap.omGraphics.OMPoly;
 import com.bbn.openmap.proj.ProjMath;
 import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
@@ -43,10 +42,8 @@ import edu.uclouvain.core.nodus.compute.results.gui.ResultsDlg;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
 import edu.uclouvain.core.nodus.utils.FileUtils;
-
 import foxtrot.Job;
 import foxtrot.Worker;
-
 import java.awt.BasicStroke;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -58,7 +55,6 @@ import java.sql.Statement;
 import java.text.DecimalFormat;
 import java.util.Iterator;
 import java.util.Properties;
-
 import javax.swing.JOptionPane;
 
 /**

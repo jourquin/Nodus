@@ -32,7 +32,6 @@ import com.bbn.openmap.omGraphics.event.NodusMapMouseInterpreter;
 import com.bbn.openmap.proj.Projection;
 import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.MoreMath;
-
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.util.Properties;

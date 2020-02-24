@@ -23,7 +23,6 @@ package edu.uclouvain.core.nodus.services.gui;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
@@ -31,7 +30,6 @@ import edu.uclouvain.core.nodus.services.Service;
 import edu.uclouvain.core.nodus.services.ServiceEditor;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import edu.uclouvain.core.nodus.swing.TableSorter;
-
 import java.awt.CardLayout;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
@@ -41,7 +39,6 @@ import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
 import java.util.Iterator;
-
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;

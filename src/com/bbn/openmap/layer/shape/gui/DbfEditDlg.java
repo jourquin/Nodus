@@ -31,13 +31,11 @@ import com.bbn.openmap.omGraphics.NodusOMGraphic;
 import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.proj.Length;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.exclusions.gui.ExclusionDlg;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
-
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
@@ -61,7 +59,6 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.text.MessageFormat;
 import java.util.List;
-
 import javax.swing.AbstractCellEditor;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;

@@ -37,7 +37,6 @@ import com.bbn.openmap.proj.ProjMath;
 import com.bbn.openmap.proj.Projection;
 import com.bbn.openmap.util.DataBounds;
 import com.bbn.openmap.util.DataBoundsProvider;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;

@@ -34,7 +34,6 @@ import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
-
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Iterator;

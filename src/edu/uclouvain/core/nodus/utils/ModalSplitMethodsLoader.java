@@ -22,7 +22,6 @@
 package edu.uclouvain.core.nodus.utils;
 
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
-
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileNotFoundException;

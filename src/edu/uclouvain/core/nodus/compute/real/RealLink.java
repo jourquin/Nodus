@@ -22,7 +22,6 @@
 package edu.uclouvain.core.nodus.compute.real;
 
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
-
 import java.util.LinkedList;
 
 /**

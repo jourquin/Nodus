@@ -28,14 +28,12 @@ import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.utils.StringUtils;
-
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -43,7 +41,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
-
 import parsii.eval.Expression;
 import parsii.eval.Parser;
 import parsii.eval.Scope;

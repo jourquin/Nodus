@@ -79,7 +79,6 @@ import com.thizzer.jtouchbar.item.TouchBarItem;
 import com.thizzer.jtouchbar.item.view.TouchBarButton;
 import com.thizzer.jtouchbar.item.view.TouchBarView;
 import com.thizzer.jtouchbar.item.view.action.TouchBarViewAction;
-
 import edu.uclouvain.core.nodus.compute.assign.gui.AssignmentDlg;
 import edu.uclouvain.core.nodus.compute.results.gui.ResultsDlg;
 import edu.uclouvain.core.nodus.compute.scenario.gui.ScenariosDlg;
@@ -101,10 +100,8 @@ import edu.uclouvain.core.nodus.utils.JavaVersionUtil;
 import edu.uclouvain.core.nodus.utils.NodusFileFilter;
 import edu.uclouvain.core.nodus.utils.PluginsLoader;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
-
 import foxtrot.Job;
 import foxtrot.Worker;
-
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -140,7 +137,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Properties;
 import java.util.Vector;
-
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -157,7 +153,6 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.BevelBorder;
-
 import org.uclouvain.gtm.util.gui.JResourcesMonitor;
 
 /**

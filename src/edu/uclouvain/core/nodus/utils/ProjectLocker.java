@@ -23,7 +23,6 @@ package edu.uclouvain.core.nodus.utils;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;

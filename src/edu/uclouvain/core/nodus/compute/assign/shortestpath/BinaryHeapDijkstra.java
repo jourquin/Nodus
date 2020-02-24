@@ -23,7 +23,6 @@ package edu.uclouvain.core.nodus.compute.assign.shortestpath;
 
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
-
 import java.util.Iterator;
 import java.util.LinkedList;
 

@@ -22,7 +22,6 @@
 package edu.uclouvain.core.nodus.compute.assign.modalsplit;
 
 import edu.uclouvain.core.nodus.compute.assign.workers.PathDetailedCosts;
-
 import java.util.LinkedList;
 
 /**

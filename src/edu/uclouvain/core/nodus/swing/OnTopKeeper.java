@@ -24,13 +24,10 @@ package edu.uclouvain.core.nodus.swing;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.tools.drawing.NodusOMDrawingToolLauncher;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.NodusMapPanel;
-
 import java.awt.Frame;
 import java.util.Timer;
 import java.util.TimerTask;
-
 import javax.swing.JFrame;
 
 /**

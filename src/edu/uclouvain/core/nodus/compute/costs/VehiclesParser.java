@@ -22,9 +22,7 @@
 package edu.uclouvain.core.nodus.compute.costs;
 
 import com.bbn.openmap.util.PropUtils;
-
 import edu.uclouvain.core.nodus.NodusC;
-
 import java.util.HashMap;
 import java.util.Properties;
 

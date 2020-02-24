@@ -31,17 +31,14 @@ import com.bbn.openmap.dataAccess.shape.input.LittleEndianInputStream;
 import com.bbn.openmap.dataAccess.shape.input.ShpInputStream;
 import com.bbn.openmap.dataAccess.shape.output.ShpOutputStream;
 import com.bbn.openmap.dataAccess.shape.output.ShxOutputStream;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.database.dbf.DBFException;
 import edu.uclouvain.core.nodus.database.dbf.DBFField;
 import edu.uclouvain.core.nodus.database.dbf.DBFReader;
 import edu.uclouvain.core.nodus.database.dbf.DBFWriter;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
-
 import foxtrot.Job;
 import foxtrot.Worker;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -53,7 +50,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Properties;
 import java.util.StringTokenizer;
-
 import javax.swing.JOptionPane;
 
 /**

@@ -22,7 +22,6 @@
 package com.bbn.openmap.layer.image.capabilities;
 
 import java.util.Vector;
-
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;

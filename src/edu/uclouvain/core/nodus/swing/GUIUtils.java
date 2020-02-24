@@ -26,7 +26,6 @@ import java.awt.Image;
 import java.awt.Toolkit;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-
 import javax.swing.JDialog;
 
 /**

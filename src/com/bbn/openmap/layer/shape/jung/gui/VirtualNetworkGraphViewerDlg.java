@@ -26,7 +26,6 @@ import com.bbn.openmap.layer.shape.jung.JungVirtualLink;
 import com.bbn.openmap.layer.shape.jung.JungVirtualNode;
 import com.bbn.openmap.util.I18n;
 import com.google.common.base.Function;
-
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.RadialTreeLayout;
 import edu.uci.ics.jung.algorithms.layout.TreeLayout;
@@ -53,7 +52,6 @@ import edu.uci.ics.jung.visualization.transform.shape.ViewLensSupport;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
-
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -77,7 +75,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.StringTokenizer;
-
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.ButtonGroup;

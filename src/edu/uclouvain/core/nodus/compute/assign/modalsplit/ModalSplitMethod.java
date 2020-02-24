@@ -24,7 +24,6 @@ package edu.uclouvain.core.nodus.compute.assign.modalsplit;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
-
 import java.util.HashMap;
 
 public abstract class ModalSplitMethod {

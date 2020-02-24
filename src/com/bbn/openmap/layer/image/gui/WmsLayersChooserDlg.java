@@ -28,9 +28,7 @@ import com.bbn.openmap.layer.image.capabilities.CapabilitiesTreeNode;
 import com.bbn.openmap.layer.image.capabilities.ICapabilitiesNodeInterface;
 import com.bbn.openmap.layer.image.capabilities.WmsLayerInfo;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
-
 import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.Frame;
@@ -47,7 +45,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Vector;
-
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JLabel;

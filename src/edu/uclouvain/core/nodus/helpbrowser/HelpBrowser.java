@@ -23,7 +23,6 @@ package edu.uclouvain.core.nodus.helpbrowser;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;

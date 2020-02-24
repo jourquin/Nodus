@@ -23,9 +23,7 @@ package edu.uclouvain.core.nodus.utils;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-
 import java.io.File;
-
 import javax.swing.filechooser.FileFilter;
 
 /**

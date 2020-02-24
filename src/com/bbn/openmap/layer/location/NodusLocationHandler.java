@@ -35,13 +35,11 @@ import com.bbn.openmap.proj.ProjMath;
 import com.bbn.openmap.util.ColorFactory;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.real.RealNode;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
-
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
@@ -56,7 +54,6 @@ import java.sql.Statement;
 import java.text.NumberFormat;
 import java.util.Iterator;
 import java.util.Properties;
-
 import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;

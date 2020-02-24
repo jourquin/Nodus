@@ -25,10 +25,8 @@ import static javax.swing.JOptionPane.ERROR_MESSAGE;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.utils.NodusFileFilter;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -37,7 +35,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
-
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 

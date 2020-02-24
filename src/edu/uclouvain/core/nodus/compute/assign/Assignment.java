@@ -23,7 +23,6 @@ package edu.uclouvain.core.nodus.compute.assign;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
@@ -34,17 +33,13 @@ import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
-
 import groovy.lang.GroovyShell;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.Iterator;
 import java.util.LinkedList;
-
 import javax.swing.JOptionPane;
-
 import org.codehaus.groovy.control.CompilationFailedException;
 
 /**

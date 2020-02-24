@@ -109,4 +109,6 @@ warnings (for more than 3 successive capital letters in class names and a blank 
 
 ## v7.2 - BuildXXXXXXXX
 - Resolve deprecated call to Groovy Console
+- Improved compliance with Google coding stnadard
+- Re-enable Nodus specific checkstyle
 

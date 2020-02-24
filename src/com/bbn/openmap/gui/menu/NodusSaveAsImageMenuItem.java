@@ -23,9 +23,7 @@ package com.bbn.openmap.gui.menu;
 
 import com.bbn.openmap.MapBean;
 import com.bbn.openmap.image.AbstractImageFormatter;
-
 import java.awt.event.ActionEvent;
-
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 

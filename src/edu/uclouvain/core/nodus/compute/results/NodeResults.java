@@ -28,7 +28,6 @@ import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.omGraphics.OMPoint;
 import com.bbn.openmap.proj.coords.LatLonPoint;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
@@ -36,12 +35,10 @@ import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
 import edu.uclouvain.core.nodus.utils.FileUtils;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Iterator;
-
 import javax.swing.JOptionPane;
 
 /**

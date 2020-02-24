@@ -23,14 +23,11 @@ package edu.uclouvain.core.nodus.compute.assign.modalsplit;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
-
 import java.util.HashMap;
 import java.util.Iterator;
-
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 

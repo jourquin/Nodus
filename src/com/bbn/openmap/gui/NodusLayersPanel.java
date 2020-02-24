@@ -27,17 +27,14 @@ import com.bbn.openmap.layer.drawing.NodusDrawingToolLayer;
 import com.bbn.openmap.layer.highlightedarea.HighlightedAreaLayer;
 import com.bbn.openmap.layer.shape.PoliticalBoundariesLayer;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
-
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.net.URL;
 import java.util.Iterator;
-
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 

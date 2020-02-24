@@ -23,7 +23,6 @@ package edu.uclouvain.core.nodus.compute.assign;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;

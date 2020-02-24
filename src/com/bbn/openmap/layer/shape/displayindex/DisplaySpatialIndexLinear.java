@@ -24,7 +24,6 @@ package com.bbn.openmap.layer.shape.displayindex;
 import com.bbn.openmap.io.FormatException;
 import com.bbn.openmap.omGraphics.OMGraphicList;
 import com.bbn.openmap.util.DataBounds;
-
 import java.io.IOException;
 
 /**

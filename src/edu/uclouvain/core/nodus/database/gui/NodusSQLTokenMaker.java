@@ -665,7 +665,7 @@ public class NodusSQLTokenMaker extends AbstractJFlexTokenMaker {
   private int zzMarkedPos;
 
   /** the textposition at the last state to be included in yytext */
-  private int zzPushbackPos;
+  //private int zzPushbackPos;
 
   /** the current text position in the buffer */
   private int zzCurrentPos;
@@ -692,7 +692,7 @@ public class NodusSQLTokenMaker extends AbstractJFlexTokenMaker {
   /** 
    * zzAtBOL == true <=> the scanner is currently at the beginning of a line
    */
-  private boolean zzAtBOL = true;
+  //private boolean zzAtBOL = true;
 
   /** zzAtEOF == true <=> the scanner is at the EOF */
   private boolean zzAtEOF;
@@ -850,10 +850,10 @@ public class NodusSQLTokenMaker extends AbstractJFlexTokenMaker {
 		//zzStartRead = zzEndRead = s.offset;
 		zzStartRead = s.offset;
 		zzEndRead = zzStartRead + s.count - 1;
-		zzCurrentPos = zzMarkedPos = zzPushbackPos = s.offset;
+		zzCurrentPos = zzMarkedPos = s.offset;
 		zzLexicalState = YYINITIAL;
 		zzReader = reader;
-		zzAtBOL  = true;
+		//zzAtBOL  = true;
 		zzAtEOF  = false;
 	}
 

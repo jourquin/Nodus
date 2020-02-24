@@ -23,14 +23,12 @@ package com.bbn.openmap.layer.image;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
 import java.text.MessageFormat;
-
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 

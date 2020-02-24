@@ -22,9 +22,7 @@
 package edu.uclouvain.core.nodus.swing;
 
 import edu.uclouvain.core.nodus.NodusC;
-
 import java.awt.Component;
-
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 

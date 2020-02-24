@@ -24,12 +24,9 @@ package edu.uclouvain.core.nodus;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.MapHandler;
 import com.bbn.openmap.gui.OpenMapFrame;
-
 import edu.uclouvain.core.nodus.gui.Splash;
 import edu.uclouvain.core.nodus.swing.GUIUtils;
-
 import groovy.lang.GroovyShell;
-
 import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
@@ -44,14 +41,12 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.swing.InputMap;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.text.DefaultEditorKit;
-
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;

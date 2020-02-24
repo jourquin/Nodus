@@ -32,13 +32,11 @@ import com.bbn.openmap.proj.Projection;
 import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
-
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
 import java.util.Properties;
 import java.util.StringTokenizer;
-
 import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;

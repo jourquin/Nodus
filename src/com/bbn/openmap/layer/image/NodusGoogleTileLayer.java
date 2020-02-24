@@ -26,10 +26,8 @@ import com.bbn.openmap.dataAccess.mapTile.GoogleMapTileFactory;
 import com.bbn.openmap.dataAccess.mapTile.ServerMapTileFactory;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
-
 import java.awt.event.ActionEvent;
 import java.util.Properties;
-
 import javax.swing.ButtonGroup;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;

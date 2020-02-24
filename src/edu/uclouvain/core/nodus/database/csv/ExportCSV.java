@@ -23,7 +23,6 @@ package edu.uclouvain.core.nodus.database.csv;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
-
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.sql.Connection;

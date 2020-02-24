@@ -27,9 +27,7 @@ import com.bbn.openmap.layer.OMGraphicHandlerLayer;
 import com.bbn.openmap.omGraphics.OMGraphicList;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
-
 import edu.uclouvain.core.nodus.utils.FileUtils;
-
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.io.File;
@@ -37,7 +35,6 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JPanel;

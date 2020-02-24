@@ -22,11 +22,9 @@
 package edu.uclouvain.core.nodus.compute.virtual;
 
 import com.bbn.openmap.omGraphics.OMPoint;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.exclusions.Exclusion;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;

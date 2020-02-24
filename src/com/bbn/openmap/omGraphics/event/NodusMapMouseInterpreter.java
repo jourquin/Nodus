@@ -22,9 +22,7 @@
 package com.bbn.openmap.omGraphics.event;
 
 import com.bbn.openmap.layer.OMGraphicHandlerLayer;
-
 import java.awt.event.MouseEvent;
-
 import javax.swing.ToolTipManager;
 
 /**

@@ -27,7 +27,6 @@ import edu.uci.ics.jung.graph.Forest;
 import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
-
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;

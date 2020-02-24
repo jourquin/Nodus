@@ -22,7 +22,6 @@
 package com.bbn.openmap.event;
 
 import com.bbn.openmap.proj.ProjectionStack;
-
 import java.awt.event.KeyEvent;
 
 /**

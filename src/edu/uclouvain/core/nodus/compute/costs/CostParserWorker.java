@@ -23,14 +23,12 @@ package edu.uclouvain.core.nodus.compute.costs;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-
 import edu.uclouvain.core.nodus.compute.exclusions.Exclusion;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
-
 import java.text.MessageFormat;
 import java.util.Iterator;
 import java.util.LinkedList;

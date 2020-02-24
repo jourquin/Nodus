@@ -28,7 +28,6 @@ import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
-
 import java.text.MessageFormat;
 import java.util.Iterator;
 import java.util.LinkedList;

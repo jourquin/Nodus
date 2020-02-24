@@ -26,7 +26,6 @@ import com.bbn.openmap.event.SelectMouseMode;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.omGraphics.OMPoly;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
@@ -34,7 +33,6 @@ import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.database.JDBCField;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.services.gui.ServiceEditorDlg;
-
 import java.awt.Graphics;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -44,7 +42,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeMap;
-
 import javax.swing.JOptionPane;
 
 /**

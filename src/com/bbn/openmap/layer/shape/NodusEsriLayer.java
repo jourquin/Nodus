@@ -43,7 +43,6 @@ import com.bbn.openmap.proj.GreatCircle;
 import com.bbn.openmap.proj.Length;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
@@ -56,7 +55,6 @@ import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
 import edu.uclouvain.core.nodus.services.ServiceEditor;
 import edu.uclouvain.core.nodus.swing.GUIUtils;
-
 import java.awt.BasicStroke;
 import java.awt.Component;
 import java.awt.GridLayout;
@@ -82,7 +80,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
-
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
