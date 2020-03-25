@@ -6,6 +6,8 @@ from v7.0 to v7.1 was needed because of the use of Groovy 2.5.x that changes the
 On February 21, 2020, version 7.2 was released, using Groovy 3.x. The release number was changed because this version
 of Groovy may introduce some incompatibilities with scripts written for older versions.
 
+DOI of latest release : <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
+
 ## v7.1 - Build20181114
 - Initial v7.1 release.
 
@@ -88,7 +90,7 @@ without saving these settings.
 - Upgrade H2 to latest version.
 - Make StatDlg always modal to avoid double display of it.
 
-## v7.2 - Build20200221 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
+## v7.2 - Build20200221
 - Upgrade to Groovy 3.01
 - Change project date to 2020.
 - Upgrade to commons-collections 4.4.4
@@ -107,7 +109,7 @@ warnings (for more than 3 successive capital letters in class names and a blank 
 - Upgrade to latest google-java-format-eclipse-plugin in devtools
 - Add DOI tag in change log
 
-## v7.2 - Buil20200325 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
+## v7.2 - Buil20200325 
 - Resolve deprecated call to Groovy Console
 - Improved compliance with Google coding standard
 - Re-enable Nodus specific checkstyle
