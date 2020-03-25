@@ -351,6 +351,10 @@ public class ExtractView_ {
           }
 
           rs.close();
+          
+          // Export table and delete it from database 
+          ExportDBF.exportTable(nodusProject, extractedOD);
+          jdbcUtils.dropTable(extractedOD)
         }
         stmt.close();
         stmt2.close();
