@@ -33,7 +33,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import java.awt.event.MouseEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileFilter;
 import java.sql.Connection;
@@ -176,6 +176,11 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     while (it.hasNext()) {
       odTablesCombo.addItem(it.next());
     }
+
+    // Force a redraw of the popup menu
+    int n = odTablesCombo.getMaximumRowCount();
+    odTablesCombo.setMaximumRowCount(n - 1);
+    odTablesCombo.setMaximumRowCount(n);
 
     if (currentSelection != null) {
       odTablesCombo.setSelectedItem(currentSelection);
@@ -366,38 +371,12 @@ public class ProjectPreferencesDlg extends EscapeDialog {
 
     /* Because filling the combo with available valid OD tables can take a while,
      * fill it on request only*/
-    odTablesCombo.addMouseListener(
-        new java.awt.event.MouseListener() {
-          @Override
-          public void mouseClicked(MouseEvent e) {
-        
-          }
-
-          @Override
-          public void mouseEntered(MouseEvent e) {
-        
-          }
-
-          @Override
-          public void mouseExited(MouseEvent e) {
-        
-          }
-
-          @Override
-          public void mousePressed(MouseEvent e) {
+    odTablesCombo.addActionListener(
+        new ActionListener() {
+          public void actionPerformed(ActionEvent event) {
             if (odTables == null) {
               fillODTablesCombo();
-
-              // Force a redraw of the popup menu
-              int n = odTablesCombo.getMaximumRowCount();
-              odTablesCombo.setMaximumRowCount(n - 1);
-              odTablesCombo.setMaximumRowCount(n);
             }
-          }
-
-          @Override
-          public void mouseReleased(MouseEvent e) {
-        
           }
         });
 
@@ -832,7 +811,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
         odTablesCombo.setSelectedItem(tableName);
       } else {
         if (jdbcUtils.tableExists(tableName)) {
-          odTablesCombo.removeAll();
+          // odTablesCombo.removeAll();
           odTablesCombo.addItem(tableName);
           odTablesCombo.setSelectedItem(tableName);
         }
