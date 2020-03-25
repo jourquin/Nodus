@@ -107,7 +107,7 @@ warnings (for more than 3 successive capital letters in class names and a blank 
 - Upgrade to latest google-java-format-eclipse-plugin in devtools
 - Add DOI tag in change log
 
-## v7.2 - Buil20200305 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
+## v7.2 - Buil20200325 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
 - Resolve deprecated call to Groovy Console
 - Improved compliance with Google coding standard
 - Re-enable Nodus specific checkstyle
