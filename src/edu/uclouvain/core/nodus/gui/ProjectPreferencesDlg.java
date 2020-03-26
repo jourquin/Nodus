@@ -33,7 +33,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileFilter;
 import java.sql.Connection;
@@ -53,6 +54,8 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 
 /**
@@ -370,13 +373,34 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     odLabel.setText(i18n.get(ProjectPreferencesDlg.class, "OD_matrix_table", "OD matrix table:"));
 
     /* Because filling the combo with available valid OD tables can take a while,
-     * fill it on request only*/
-    odTablesCombo.addActionListener(
-        new ActionListener() {
-          public void actionPerformed(ActionEvent event) {
+     * fill it on request only.
+     * Adding a MouseListener is a little bit tricky... */
+    odTablesCombo.addMouseListener(
+        new MouseAdapter() {
+          public void mousePressed(MouseEvent me) {
             if (odTables == null) {
               fillODTablesCombo();
             }
+          }
+        });
+    odTablesCombo.addPopupMenuListener(
+        new PopupMenuListener() {
+
+          @Override
+          public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+            if (odTables == null) {
+              fillODTablesCombo();
+            }
+          }
+
+          @Override
+          public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+
+          }
+
+          @Override
+          public void popupMenuCanceled(PopupMenuEvent e) {
+
           }
         });
 
@@ -817,7 +841,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
         }
       }
     }
-
+    
     // Fill cost functions combo
     if (costsFilesNames == null) {
       File dir = new File(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
