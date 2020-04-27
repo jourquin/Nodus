@@ -118,4 +118,5 @@ warnings (for more than 3 successive capital letters in class names and a blank 
 
 ## v7.2 - BuildXXXXXXXX
 - Loading list of available OD tables in Preference dialog the same ways as in Assignment dialog. Seems to be OK now.
+- Add the setScenario(int) and setScenario(int, String) methods to NodusProject. Useful to set a scenario from a script.
 

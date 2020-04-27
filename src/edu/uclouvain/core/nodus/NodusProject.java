@@ -555,7 +555,7 @@ public class NodusProject implements ShapeConstants {
       otherObjectsLoaded = false;
 
       // Reset Classpath
-      //ClassPathHacker.setClassPath(oldClasspath);
+      // ClassPathHacker.setClassPath(oldClasspath);
 
       ProjectLocker.releaseLock();
 
@@ -1576,7 +1576,7 @@ public class NodusProject implements ShapeConstants {
       e1.printStackTrace();
     }
     // Add the project's directory to classpath
-    //oldClasspath = ClassPathHacker.getClassPath();
+    // oldClasspath = ClassPathHacker.getClassPath();
 
     // Initialize the user defined modal split methods for this project
     new ModalSplitMethodsLoader(projectPath);
@@ -2260,5 +2260,26 @@ public class NodusProject implements ShapeConstants {
    */
   public void setProperty(String key, String value) {
     projectProperties.setProperty(key, value);
+  }
+
+  /**
+   * Set the current scenario to a given number.
+   *
+   * @param num Scenario number.
+   */
+  public void setScenario(int num) {
+    setScenario(num, null);
+  }
+
+  /**
+   * Set the current scenario to a given number and give it a description.
+   *
+   * @param num Scenario number.
+   * @param description String that describes the scenario.
+   */
+  public void setScenario(int num, String description) {
+    setLocalProperty(NodusC.PROP_SCENARIO, num);
+    setLocalProperty(NodusC.PROP_ASSIGNMENT_DESCRIPTION + num, description);
+    nodusMapPanel.updateScenarioComboBox();
   }
 }
