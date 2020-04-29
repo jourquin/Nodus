@@ -120,3 +120,6 @@ warnings (for more than 3 successive capital letters in class names and a blank 
 - Load list of available OD tables in Preference dialog the same ways as in Assignment dialog. Seems to be OK now.
 - Add the setScenario(int) and setScenario(int, String) methods to NodusProject. Useful to set a scenario from a script.
 
+## v7.2 - BuildXXXXXXXX
+- Bug fix : intercept exception when vnet and path writers are in batch mode and there is nothing to write in the tables.
+

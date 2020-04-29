@@ -211,7 +211,11 @@ public class PathWriter {
     try {
       final boolean oldAutoCommit = con.getAutoCommit();
       con.setAutoCommit(false);
-      prepStmtDetails.executeBatch();
+      try {
+        prepStmtDetails.executeBatch();
+      } catch (Exception e) {
+        // If not in batch mode because there is nothing to write in table
+      }
       con.commit();
       con.setAutoCommit(oldAutoCommit);
     } catch (SQLException e) {
@@ -243,7 +247,11 @@ public class PathWriter {
     try {
       final boolean oldAutoCommit = con.getAutoCommit();
       con.setAutoCommit(false);
-      prepStmtHeaders.executeBatch();
+      try {
+        prepStmtHeaders.executeBatch();
+      } catch (Exception e) {
+        // If not in batch mode because there is nothing to write in table
+      }
       con.commit();
       con.setAutoCommit(oldAutoCommit);
     } catch (SQLException e) {

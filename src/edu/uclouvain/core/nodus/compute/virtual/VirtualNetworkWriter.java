@@ -224,7 +224,7 @@ public class VirtualNetworkWriter {
       maxBatchSize /= 5;
     }
 
-    //long start = System.currentTimeMillis();
+    // long start = System.currentTimeMillis();
 
     try {
       // Fill it
@@ -350,7 +350,11 @@ public class VirtualNetworkWriter {
       if (hasBatchSupport) {
         final boolean oldAutoCommit = jdbcConnection.getAutoCommit();
         jdbcConnection.setAutoCommit(false);
-        prepStmt.executeBatch();
+        try {
+          prepStmt.executeBatch();
+        } catch (Exception e) {
+          // If not in batch mode because there is nothing to write in table
+        }
         jdbcConnection.commit();
         jdbcConnection.setAutoCommit(oldAutoCommit);
       }
@@ -373,8 +377,8 @@ public class VirtualNetworkWriter {
       return false;
     }
 
-    //long end = System.currentTimeMillis();
-    //System.out.println("Duration : " + (end - start) / 1000);
+    // long end = System.currentTimeMillis();
+    // System.out.println("Duration : " + (end - start) / 1000);
 
     nodusMapPanel.stopProgress();
 
