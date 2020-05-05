@@ -10,6 +10,8 @@
 
 [guava](https://github.com/google/guava), Apache v2
 
+[JavaDBF4Nodus](https://github.com/jourquin/javadbf), LGPL v3
+
 [JCheckList](https://github.com/jourquin/JCheckList), Apache v2
 
 [JResourcesMonitor](https://github.com/jourquin/JResourcesMonitor), Apache v2
@@ -41,7 +43,7 @@
 
 [hsqldb](http://hsqldb.org), adapted modified BSD
 
-[mariadb-java-client](https://mariadb.com/kb/en/library/mariadb-connector-j/), Lesser GPLv2.1, (see https://mariadb.com/kb/en/mariadb/licensing-faq/)
+[mariadb-java-client](https://mariadb.com/kb/en/library/mariadb-connector-j/), LGPL v2.1
 
 [postgresql-jdbc](https://jdbc.postgresql.org), modified BSD
 

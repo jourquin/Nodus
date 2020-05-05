@@ -122,4 +122,8 @@ warnings (for more than 3 successive capital letters in class names and a blank 
 
 ## v7.2 - BuildXXXXXXXX
 - Bug fix : intercept exception when vnet and path writers are in batch mode and there is nothing to write in the tables.
+- Replace the DBF related methods with a Nodus specific fork of JavaDBF. This should not break any user script as this
+specific version of JavaDBF has a "Nodus compatible" API. This lib is more flexible and opens the way to handle more DBF
+data types in Nodus.
+
 

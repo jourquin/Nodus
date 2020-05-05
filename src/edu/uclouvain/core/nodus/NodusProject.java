@@ -1206,6 +1206,7 @@ public class NodusProject implements ShapeConstants {
           map.put(num, num);
         }
       }
+      dbfReader.close();
     } catch (DBFException ex) {
       ex.printStackTrace();
     }

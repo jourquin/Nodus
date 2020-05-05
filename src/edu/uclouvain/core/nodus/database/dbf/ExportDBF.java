@@ -113,7 +113,8 @@ public class ExportDBF implements ShapeConstants {
         if (columnType == 'N') {
           decimalDigit = decimalDigits.get(i);
         }
-
+        // System.out.println(names.get(i) + ", " + columnType + ", " + columnSize + ", " +
+        // decimalDigit);
         field[i] = new DBFField(names.get(i), columnType, columnSize, decimalDigit);
       }
 
@@ -140,28 +141,24 @@ public class ExportDBF implements ShapeConstants {
     DBFField[] field = new DBFField[model.getColumnCount()];
     DBFWriter dbf = null;
 
-    try {
-      for (int i = 0; i < model.getColumnCount(); i++) {
-        Byte byteType = Byte.valueOf(model.getType(i));
-        char charType = 'N';
+    for (int i = 0; i < model.getColumnCount(); i++) {
+      Byte byteType = Byte.valueOf(model.getType(i));
+      char charType = 'N';
 
-        if (byteType.equals(DBF_TYPE_CHARACTER)) {
-          charType = 'C';
-        } else if (byteType.equals(DBF_TYPE_DATE)) {
-          charType = 'D';
-        } else if (byteType.equals(DBF_TYPE_LOGICAL)) {
-          charType = 'L';
-        }
-
-        field[i] =
-            new DBFField(
-                model.getColumnName(i), charType, model.getLength(i), model.getDecimalCount(i));
+      if (byteType.equals(DBF_TYPE_CHARACTER)) {
+        charType = 'C';
+      } else if (byteType.equals(DBF_TYPE_DATE)) {
+        charType = 'D';
+      } else if (byteType.equals(DBF_TYPE_LOGICAL)) {
+        charType = 'L';
       }
 
-      dbf = new DBFWriter(path + tableName, field);
-    } catch (DBFException e) {
-      System.out.println(e.toString());
+      field[i] =
+          new DBFField(
+              model.getColumnName(i), charType, model.getLength(i), model.getDecimalCount(i));
     }
+
+    dbf = new DBFWriter(path + tableName, field);
 
     return dbf;
   }
@@ -212,7 +209,7 @@ public class ExportDBF implements ShapeConstants {
         ps.setInt(2, Integer.parseInt(o[NodusC.DBF_IDX_NUM].toString()));
         ps.execute();
       }
-
+      dbfReader.close();
       ps.close();
       if (!jdbcConnection.getAutoCommit()) {
         jdbcConnection.commit();
@@ -237,7 +234,7 @@ public class ExportDBF implements ShapeConstants {
    * @return boolean
    */
   private static boolean exportDbf(NodusProject nodusProject, String tableName) {
-    //System.out.println("exportDbf...");
+    // System.out.println("exportDbf...");
 
     DBFWriter dbf = createTable(nodusProject, tableName);
 
@@ -262,7 +259,7 @@ public class ExportDBF implements ShapeConstants {
    */
   private static boolean exportEsriDbf(NodusProject nodusProject, String tableName) {
 
-    //System.out.println("exportEsriDbf...");
+    // System.out.println("exportEsriDbf...");
 
     // Get the layer that corresponds to this table
     NodusEsriLayer layer = null;
@@ -440,9 +437,9 @@ public class ExportDBF implements ShapeConstants {
 
       dbfWriter.close();
 
-      if (!dbfWriter.isExportedWithSuccess()) {
+      /*if (!dbfWriter.isExportedWithSuccess()) {
         return false;
-      }
+      }*/
     } catch (DBFException e) {
       System.out.println(e);
 
@@ -484,9 +481,9 @@ public class ExportDBF implements ShapeConstants {
 
       dbfWriter.close();
 
-      if (!dbfWriter.isExportedWithSuccess()) {
+      /*if (!dbfWriter.isExportedWithSuccess()) {
         return false;
-      }
+      }*/
     } catch (Exception ex) {
       System.out.println(ex.toString());
 

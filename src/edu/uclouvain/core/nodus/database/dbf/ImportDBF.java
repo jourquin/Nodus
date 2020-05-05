@@ -24,6 +24,7 @@ package edu.uclouvain.core.nodus.database.dbf;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
@@ -104,6 +105,12 @@ public class ImportDBF {
 
     sqlStmt += ")";
 
+    // Get the fields description
+    DBFField[] fields = new DBFField[n];
+    for (int i = 0; i < n; i++) {
+      fields[i] = dbfReader.getField(i);
+    }
+
     try {
       PreparedStatement prepStmt = jdbcConnection.prepareStatement(sqlStmt);
 
@@ -114,12 +121,23 @@ public class ImportDBF {
         Object[] o = dbfReader.nextRecord();
 
         for (int i = 0; i < o.length; i++) {
-          if (o[i] instanceof Long) {
-            Long v = (Long) o[i];
-            prepStmt.setInt(i + 1, v.intValue());
-          } else if (o[i] instanceof Double) {
-            Double z = (Double) o[i];
-            prepStmt.setFloat(i + 1, z.floatValue());
+
+          // QGIS (?) sometimes  stores null values. Replace with 0 or empty String (ugly trick)
+          if (o[i] == null) {
+            if (fields[i].getType() == 'N') {
+              o[i] = new BigDecimal(0);
+            } else if (fields[i].getType() == 'N') {
+              o[i] = new String("");
+            }
+          }
+
+          if (o[i] instanceof BigDecimal) {
+            BigDecimal z = (BigDecimal) o[i];
+            if (fields[i].getDecimalCount() == 0) {
+              prepStmt.setInt(i + 1, z.intValue());
+            } else {
+              prepStmt.setDouble(i + 1, z.doubleValue());
+            }
           } else if (o[i] instanceof String) {
             prepStmt.setString(i + 1, (String) o[i]);
           } else if (o[i] instanceof java.util.Date) {
@@ -146,7 +164,7 @@ public class ImportDBF {
           prepStmt.executeUpdate();
         }
 
-        //prepStmt.execute();
+        // prepStmt.execute();
       }
 
       // Flush remaining records in batch

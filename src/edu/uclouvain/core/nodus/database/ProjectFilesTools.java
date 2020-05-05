@@ -122,6 +122,7 @@ public class ProjectFilesTools implements ShapeConstants {
                 }
                 data.add(newRecord);
               }
+              dbfReader.close();
             } catch (DBFException e) {
               e.printStackTrace();
               result = false;
@@ -242,6 +243,7 @@ public class ProjectFilesTools implements ShapeConstants {
         DBFWriter dbf = new DBFWriter(path + layerName + NodusC.TYPE_DBF, field);
         dbf.close();
       }
+      dbfReader.close();
     } catch (DBFException ex) {
       errorMessage = ex.toString();
 
@@ -502,20 +504,24 @@ public class ProjectFilesTools implements ShapeConstants {
     try {
       DBFReader dbfReader = new DBFReader(path + layerName + NodusC.TYPE_DBF);
 
+      boolean error = true;
       if (dbfReader.isOpen()) {
+        error = false;
         int nbFields = dbfReader.getFieldCount();
         DBFField[] field = new DBFField[nbFields];
 
         for (int i = 0; i < nbFields; i++) {
           field[i] = dbfReader.getField(i);
         }
+        dbfReader.close();
 
         if (!isValidDbfFile(layerName, field, layerType)) {
           return false;
         }
-      } else {
-        errorMessage = "Invalid or inexistant " + layerName + NodusC.TYPE_DBF + "  file";
+      }
 
+      if (error) {
+        errorMessage = "Invalid or inexistant " + layerName + NodusC.TYPE_DBF + "  file";
         return false;
       }
     } catch (DBFException ex) {

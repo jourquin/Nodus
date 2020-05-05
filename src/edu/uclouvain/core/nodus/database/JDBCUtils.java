@@ -153,7 +153,7 @@ public class JDBCUtils {
   }
 
   /**
-   * There is no reliable way to obtain a useable column width for numerical values in a SQL table.
+   * There is no reliable way to obtain a usable column width for numerical values in a SQL table.
    * This method returns a width based on the maximum/minimum values stored in the column. This is
    * useful when a SQL table must be exported as a DBF file.
    *
@@ -168,7 +168,15 @@ public class JDBCUtils {
     try {
       Statement stmt = jdbcConnection.createStatement();
 
-      DecimalFormat df = new DecimalFormat("#");
+      // Force decimal places
+      String dp = "";
+      if (decimalDigits > 0) {
+        dp = ".";
+        for (int i = 0; i < decimalDigits; i++) {
+          dp += "0";
+        }
+      }
+      DecimalFormat df = new DecimalFormat("#" + dp);
       df.setMaximumFractionDigits(decimalDigits);
 
       // Get width of max value
