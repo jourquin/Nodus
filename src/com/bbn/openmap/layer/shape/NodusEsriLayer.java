@@ -433,7 +433,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     }
 
     sqlStmt += ")";
-    
+
     executeUpdateSqlStmt(sqlStmt);
 
     reloadLabels();
@@ -787,6 +787,40 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     return true;
   }
 
+  /**
+   * Some DBF files contain NULL values for numeric fields. This method replaces them with
+   * zero.
+   */
+  private void fixDBFFile() {
+
+    boolean hasErrors = false;
+    DbfTableModel tm = getModel();
+    for (int col = 0; col < tm.getColumnCount(); col++) {
+      char type = (char) tm.getType(col);
+
+      for (int row = 0; row < tm.getRowCount(); row++) {
+        Object o = tm.getValueAt(row, col);
+        if (type == 'N' && !(o instanceof Double)) {
+
+          String value = (String) o;
+          value = value.trim();
+          if (value.length() == 0) {
+            tm.setValueAt(new Double(0), row, col);
+            hasErrors = true;
+          }
+        }
+      }
+    }
+
+    if (hasErrors) {
+      ExportDBF.exportTable(nodusProject, tableName + NodusC.TYPE_DBF, tm);
+      
+      // Force reimport in SQL database
+      jdbcUtils.dropTable(tableName);
+    }
+  }
+  
+  
   /**
    * Fix non standard ShapeFiles, written by OpenMap.
    *
@@ -1544,6 +1578,8 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     this.nodusLocationHandler = nodusLocationHandler;
   }
 
+  
+
   /**
    * Creates the layer and associates it with the Nodus project.
    *
@@ -1553,7 +1589,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   public void setProject(NodusProject nodusProject, String layerName) {
 
     this.nodusProject = nodusProject;
-   
+
     if (layerName == null) {
       System.err.println("NodusEsriLayer.setProject: layer name is null");
       return;
@@ -1591,17 +1627,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
             .booleanValue();
     whereStmt = nodusProject.getLocalProperty(tableName + NodusC.PROP_WHERESTMT, "");
 
-    // Verify if dbf table must be imported in database
-    if (!jdbcUtils.tableExists(layerName)) {
-      nodusProject
-          .getNodusMapPanel()
-          .setText(
-              MessageFormat.format(
-                  i18n.get(NodusEsriLayer.class, "Importing", "Importing \"{0}\" in database"),
-                  layerName));
-      ImportDBF.importTable(nodusProject, layerName);
-    }
-
     /* Attach a RealLink or a RealNode object to the graphic... */
     EsriGraphicList list = getEsriGraphicList();
     Iterator<OMGraphic> lit = list.iterator();
@@ -1612,6 +1637,20 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
       } else {
         omGraphic.putAttribute(0, new RealNode());
       }
+    }
+
+    // Suppress null values in DBF files
+    fixDBFFile();
+    
+    // Verify if dbf table must be imported in database
+    if (!jdbcUtils.tableExists(layerName)) {
+      nodusProject
+          .getNodusMapPanel()
+          .setText(
+              MessageFormat.format(
+                  i18n.get(NodusEsriLayer.class, "Importing", "Importing \"{0}\" in database"),
+                  layerName));
+      ImportDBF.importTable(nodusProject, layerName);
     }
 
     thisNodusEsriLayer = this;

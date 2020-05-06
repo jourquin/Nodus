@@ -24,7 +24,7 @@
 	<classpathentry kind="lib" path="lib/jtouchbar-1.0.0.jar" sourcepath="/Users/jourquinb/git/jtouchbar/src/main/java"/>
 	<classpathentry kind="lib" path="lib/derby.jar"/>
 	<classpathentry kind="lib" path="lib/hsqldb.jar"/>
-	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/openmap6.0b/src"/>
+	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/openmap6.0b/src/core/src/main/java"/>
 	<classpathentry kind="lib" path="lib/h2-1.4.200.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-1.10.7.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-antlr-1.10.7.jar"/>
