@@ -125,5 +125,6 @@ warnings (for more than 3 successive capital letters in class names and a blank 
 - Replace the DBF related methods with a Nodus specific fork of JavaDBF. This should not break any user script as this
 specific version of JavaDBF has a "Nodus compatible" API. This lib is more flexible and opens the way to handle more DBF
 data types in Nodus.
-
+- Get rid of the "RJDBC" stuff in the R script provided with the demo project. Therefore, CreateMLogitInput.groovy saves
+its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed sometimes tricky to install.
 

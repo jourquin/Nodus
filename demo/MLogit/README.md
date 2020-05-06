@@ -1,15 +1,16 @@
 # A simple user defined modal split method, as a plugin for Nodus
 
-This is an example of how to develop specific modal split methods as plugin's for Nodus. This one is a conditionnal logit, 
+This is an example of how to develop specific modal split methods as plugin's for Nodus. This one is a conditional logit, 
 which utility function is explained in the documentation of the "demo" project.
 
 - The explanatory variable is gathered from an uncalibrated multimodal assignment, i.e., the total travel cost for all the modes
  and origin-destination pairs. This information is read from the assignment "header" table, along with the expected quantities for 
- each mode (in the modal OD matrices). The result is written in the "mlogit_input" table created by the "CreateMLogitInput.groovy"
- script.
+ each mode (in the modal OD matrices). The result is written in the "mlogit_input.dbf" file, created in the project directory by 
+ the "CreateMLogitInput.groovy" script.
 
 - The estimators are then computed using by the "MLogit.R" script. To run it, [R](https://www.r-project.org/) must be installed on 
-your computer, along with the "RJDBC" and "mlogit" packages. The script produces the "mlogit.txt" file, containing the output of
+your computer, along with the [foreign](https://cran.r-project.org/package=foreign) and
+[mlogit](https://cran.r-project.org/package=mlogit) packages. The script produces the "mlogit.txt" file, containing the output of
 the estimated models (one for each group of commodities). The estimators are also stored in "mlogit_coefs.txt". 
 The content of this file can be cut & pasted in a Nodus cost file. 
 
