@@ -120,11 +120,11 @@ warnings (for more than 3 successive capital letters in class names and a blank 
 - Load list of available OD tables in Preference dialog the same ways as in Assignment dialog. Seems to be OK now.
 - Add the setScenario(int) and setScenario(int, String) methods to NodusProject. Useful to set a scenario from a script.
 
-## v7.2 - BuildXXXXXXXX
+## v7.2 - Build20200507
 - Bug fix : intercept exception when vnet and path writers are in batch mode and there is nothing to write in the tables.
 - Replace the DBF related methods with a Nodus specific fork of JavaDBF. This should not break any user script as this
 specific version of JavaDBF has a "Nodus compatible" API. This lib is more flexible and opens the way to handle more DBF
 data types in Nodus.
 - Get rid of the "RJDBC" stuff in the R script provided with the demo project. Therefore, CreateMLogitInput.groovy saves
 its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed sometimes tricky to install.
-
+- Back to Guava 19, as the latest version breaks Jung. 
