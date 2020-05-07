@@ -455,7 +455,9 @@ public class NodusLocationHandler extends AbstractLocationHandler
 
           RealNetworkObject rn = (RealNetworkObject) omGraphic.getAttribute(0);
           rn.setLocation(loc);
+          rn.setRowIndex(index);
         }
+
         rs.close();
         stmt.close();
 
@@ -470,7 +472,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
     // Update the labels
     graphicList.clear();
     Iterator<OMGraphic> it = nodusEsriLayer.getEsriGraphicList().iterator();
-    int index = 0;
+    // int index = 0;
     DbfTableModel model = nodusEsriLayer.getModel();
     while (it.hasNext()) {
       OMGraphic omGraphic = it.next();
@@ -493,12 +495,12 @@ public class NodusLocationHandler extends AbstractLocationHandler
 
           if (!displayResults) { // Use the selected field as label
             if (locationFieldIndex != -1) {
-              Object value = model.getValueAt(index, locationFieldIndex);
+              Object value = model.getValueAt(rnbo.getRowIndex(), locationFieldIndex);
               if (value instanceof Double) {
                 BigDecimal bd = new BigDecimal((Double) value);
                 label = bd.toString();
               } else {
-                label = model.getValueAt(index, locationFieldIndex).toString();
+                label = model.getValueAt(rnbo.getRowIndex(), locationFieldIndex).toString();
               }
             }
           } else {
@@ -531,7 +533,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
           }
         }
       }
-      index++;
+      // index++;
     }
 
     return;

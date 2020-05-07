@@ -39,6 +39,17 @@ public abstract class RealNetworkObject {
 
   private float size = 0;
 
+  private int rowIndex;
+
+  /**
+   * Returns the row index in the DBF table for this object.
+   *
+   * @return The row index in the DBF table.
+   */
+  public int getRowIndex() {
+    return rowIndex;
+  }
+
   /**
    * Returns the OpenMap BasicLocation associated to this real network object.
    *
@@ -74,6 +85,15 @@ public abstract class RealNetworkObject {
    */
   public boolean isInHighlightedArea() {
     return inHighlightedArea;
+  }
+
+  /**
+   * Sets the row index in the DBF table for this object.
+   *
+   * @param rowIndex The index of this object in the DBF table.
+   */
+  public void setRowIndex(int rowIndex) {
+    this.rowIndex = rowIndex;
   }
 
   /**

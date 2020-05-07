@@ -127,4 +127,8 @@ specific version of JavaDBF has a "Nodus compatible" API. This lib is more flexi
 data types in Nodus.
 - Get rid of the "RJDBC" stuff in the R script provided with the demo project. Therefore, CreateMLogitInput.groovy saves
 its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed sometimes tricky to install.
-- Back to Guava 19, as the latest version breaks Jung. 
+- Bug fix : Back to Guava 19, as the latest version breaks Jung. 
+- Bug fix : Labels were incorrect if the objects in their layer where filtered with a SQL "where" clause.
+
+
+
