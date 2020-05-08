@@ -130,5 +130,10 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
 - Bug fix : Back to Guava 19, as the latest version breaks Jung. 
 - Bug fix : Labels were incorrect if the objects in their layer where filtered with a SQL "where" clause.
 
+## v7.2 - BuildXXXXXXXX
+- Make exclusions "direction sensitive". This allows excluding loading operations for a mode (and means) at a centroid but
+keeping unloading possible. 
+  
+
 
 

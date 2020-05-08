@@ -122,12 +122,12 @@ public class Exclusion {
       return true;
     }
 
-    if (firstMode == mode2
+    /*if (firstMode == mode2
         && firstMeans == means2
         && secondMode == mode1
         && secondMeans == means1) {
       return true;
-    }
+    }*/
 
     return false;
   }
