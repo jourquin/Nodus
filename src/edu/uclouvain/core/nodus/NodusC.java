@@ -35,7 +35,7 @@ public class NodusC {
    */
 
   /** Application version. */
-  public static final String VERSION = "7.2";
+  public static final String VERSION = "7.3";
 
   /** Application name. */
   public static final String APPNAME = "Nodus " + VERSION;

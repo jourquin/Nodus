@@ -18,7 +18,6 @@
  * <p>You should have received a copy of the GNU General Public License along with this program. If
  * not, see http://www.gnu.org/licenses/.
  */
-
 package edu.uclouvain.core.nodus.database.dbf;
 
 import edu.uclouvain.core.nodus.NodusC;
@@ -144,6 +143,10 @@ public class ImportDBF {
             java.util.Date d = (java.util.Date) o[i];
             Date date = new Date(d.getTime());
             prepStmt.setDate(i + 1, date);
+          } else if (o[i] instanceof Boolean) {
+            System.out.println("boolean");
+            Boolean b = (Boolean) o[i];
+            prepStmt.setBoolean(i + 1, b);
           } else {
             System.err.println("Unsupported data type");
           }
@@ -286,6 +289,8 @@ public class ImportDBF {
       } else {
         sql += "NUMERIC(" + field.getLength() + ")";
       }
+    } else  if (field.getType() == 'L') {
+    	sql += "BOOLEAN";
     } else {
       sql += "VARCHAR(" + field.getLength() + ")";
     }
