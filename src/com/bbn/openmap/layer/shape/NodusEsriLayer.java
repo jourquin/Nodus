@@ -1755,6 +1755,9 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
       rs.close();
       stmt.close();
+      
+      // Reload labels
+      getLocationHandler().reloadData();
 
     } catch (Exception ex) {
       System.out.println(ex.toString());
