@@ -59,7 +59,6 @@ public class ExportDBF implements ShapeConstants {
 
     int fieldNum = 0;
 
-    // TODO Handle "Double" values, and not only "Decimal" types. Check DBF specs ?
     try {
       // Create a result set
       DatabaseMetaData dbmd = con.getMetaData();
@@ -113,8 +112,7 @@ public class ExportDBF implements ShapeConstants {
         if (columnType == 'N') {
           decimalDigit = decimalDigits.get(i);
         }
-        // System.out.println(names.get(i) + ", " + columnType + ", " + columnSize + ", " +
-        // decimalDigit);
+
         field[i] = new DBFField(names.get(i), columnType, columnSize, decimalDigit);
       }
 
