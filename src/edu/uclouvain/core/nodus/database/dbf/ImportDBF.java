@@ -18,12 +18,14 @@
  * <p>You should have received a copy of the GNU General Public License along with this program. If
  * not, see http://www.gnu.org/licenses/.
  */
+
 package edu.uclouvain.core.nodus.database.dbf;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
@@ -143,10 +145,6 @@ public class ImportDBF {
             java.util.Date d = (java.util.Date) o[i];
             Date date = new Date(d.getTime());
             prepStmt.setDate(i + 1, date);
-          } else if (o[i] instanceof Boolean) {
-            System.out.println("boolean");
-            Boolean b = (Boolean) o[i];
-            prepStmt.setBoolean(i + 1, b);
           } else {
             System.err.println("Unsupported data type");
           }
@@ -230,7 +228,8 @@ public class ImportDBF {
       jdbcUtils.dropTable(jdbcTableName);
 
       // Open .dbf file
-      DBFReader dbfReader = new DBFReader(path + tableName + NodusC.TYPE_DBF);
+      DBFReader dbfReader =
+          new DBFReader(path + tableName + NodusC.TYPE_DBF, StandardCharsets.UTF_8);
 
       if (dbfReader.isOpen()) {
         if (!createTable(jdbcTableName, dbfReader)) {
@@ -289,10 +288,10 @@ public class ImportDBF {
       } else {
         sql += "NUMERIC(" + field.getLength() + ")";
       }
-    } else  if (field.getType() == 'L') {
-    	sql += "BOOLEAN";
-    } else {
+    } else if (field.getType() == 'C'){
       sql += "VARCHAR(" + field.getLength() + ")";
+    } if (field.getType() == 'D') {
+    	sql += "DATE";
     }
 
     return sql;
