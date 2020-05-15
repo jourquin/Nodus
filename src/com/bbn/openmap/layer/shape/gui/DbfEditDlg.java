@@ -58,6 +58,8 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.text.MessageFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.List;
 import javax.swing.AbstractCellEditor;
 import javax.swing.ImageIcon;
@@ -101,6 +103,8 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     // This is the component that will handle the editing of the cell value
     private JComponent textField = new JTextField();
 
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+
     // This method is called when editing is completed.
     // It must return the new value to be stored in the cell.
     @Override
@@ -126,6 +130,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
     public void setModel(DbfTableModel m) {
       model = m;
+      dateFormat.setLenient(false);
     }
 
     public void setOkButton(JButton b) {
@@ -152,6 +157,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
         return false;
       }
 
+      // Test validity of numeric values
       if (model.getType(rowIndex) == DbfTableModel.TYPE_NUMERIC) {
         // Test if valid value
         value = value.trim();
@@ -163,7 +169,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
                   null,
                   i18n.get(
                       DbfEditDlg.class, "Numerical_value_expected", "Numerical value expected"),
-                  jdbcUtils.getQuotedCompliantIdentifier(NodusC.APPNAME),
+                  NodusC.APPNAME,
                   JOptionPane.ERROR_MESSAGE);
 
               okButton.setEnabled(false);
@@ -174,7 +180,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
                 JOptionPane.showMessageDialog(
                     null,
                     i18n.get(DbfEditDlg.class, "Integer_value_expected", "Integer value expected"),
-                    jdbcUtils.getQuotedCompliantIdentifier(NodusC.APPNAME),
+                    NodusC.APPNAME,
                     JOptionPane.ERROR_MESSAGE);
 
                 okButton.setEnabled(false);
@@ -183,6 +189,36 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
               }
             }
           }
+        }
+      }
+
+      // Test validity of date (must be in YYYYMMDD format
+      if (model.getType(rowIndex) == DbfTableModel.TYPE_DATE) {
+        boolean error = false;
+
+        value = value.trim();
+        if (value.length() == 8) {
+
+          try {
+            dateFormat.parse(value);
+          } catch (ParseException pe) {
+            error = true;
+          }
+
+        } else {
+          error = true;
+        }
+
+        if (error) {
+          JOptionPane.showMessageDialog(
+              null,
+              i18n.get(DbfEditDlg.class, "Date_expected", "Valid date in the YYYYMMDD format expected"),
+              NodusC.APPNAME,
+              JOptionPane.ERROR_MESSAGE);
+
+          okButton.setEnabled(false);
+
+          return false;
         }
       }
 
@@ -214,12 +250,12 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
     @Override
     public void firePropertyChange(String propertyName, boolean oldValue, boolean newValue) {
-   
+      // Must be overridden
     }
 
     @Override
     protected void firePropertyChange(String propertyName, Object oldValue, Object newValue) {
-   
+      // Must be overridden
     }
 
     // This method is called each time a cell in a column using this renderer needs to be rendered.
@@ -253,7 +289,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
     @Override
     public void revalidate() {
-   
+      // Must be overridden
     }
 
     public void setLayer(NodusEsriLayer l) {
@@ -263,7 +299,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     // The following methods override the defaults for performance reasons
     @Override
     public void validate() {
-   
+      // Must be overridden
     }
   }
 
@@ -1225,10 +1261,11 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
           } else {
             sqlStmt += JDBCUtils.getInt(cell);
           }
-        } else {
+        } else if (type == DbfTableModel.TYPE_CHARACTER) {
           sqlStmt += '\'' + cell.toString() + '\'';
+        } else if (type == DbfTableModel.TYPE_DATE) {
+          sqlStmt += JDBCUtils.getDate(cell.toString());
         }
-
         if (i < nodusEsriLayer.getModel().getColumnCount() - 1) {
           sqlStmt += ", ";
         }
@@ -1294,7 +1331,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     int index = styleComboBox.getSelectedIndex();
     drawSample(index);
     dbfTable.setValueAt(Integer.toString(index), NodusC.DBF_IDX_STYLE, 1);
-    //TableColumn col = dbfTable.getColumnModel().getColumn(1);
+    // TableColumn col = dbfTable.getColumnModel().getColumn(1);
     if (index == oldStyle) {
       isStyleChanged = false;
     } else {

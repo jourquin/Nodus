@@ -75,7 +75,7 @@ public class JDBCUtils {
 
   private static DatabaseMetaData dmd;
 
-  private Connection jdbcConnection;
+  private static Connection jdbcConnection;
 
   private List<String> tableList = null;
 
@@ -280,6 +280,44 @@ public class JDBCUtils {
     }
 
     return "";
+  }
+
+  /**
+   * Returns the SQL expression needed to properly insert a date in a row.
+   *
+   * @param date String in the YYYYMMDD format (8 numeric characters).
+   * @return Someting like "to_date('2025-10-12','YYYY-MM-DD')", but is DBMS dependent.
+   */
+  public static String getDate(String date) {
+
+    // Test length. Must be 8.
+    if (date.length() != 8) {
+      System.err.println("Invalid date format:" + date);
+      return null;
+    }
+
+    // All characters must be digits
+    for (int i = 0; i < date.length(); i++) {
+      if (!Character.isDigit(date.charAt(i))) {
+        System.err.println("Invalid date format:" + date);
+        return null;
+      }
+    }
+
+    // Convert in "YYYY-MM-DD" format
+    String date2 = date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6, 8);
+    
+    // Convert to  SQL date
+    String function = "to_date";
+    String format = "YYYY-MM-DD";
+
+    if (getDbEngine(jdbcConnection) == DB_MYSQL) {
+      function = "str_to_date";
+    }
+
+    String s = function + "('" + date2 + "', '" + format + "')";
+    
+    return s;
   }
 
   /**

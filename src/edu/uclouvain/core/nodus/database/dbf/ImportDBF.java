@@ -25,7 +25,6 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
@@ -228,8 +227,7 @@ public class ImportDBF {
       jdbcUtils.dropTable(jdbcTableName);
 
       // Open .dbf file
-      DBFReader dbfReader =
-          new DBFReader(path + tableName + NodusC.TYPE_DBF, StandardCharsets.UTF_8);
+      DBFReader dbfReader = new DBFReader(path + tableName + NodusC.TYPE_DBF);
 
       if (dbfReader.isOpen()) {
         if (!createTable(jdbcTableName, dbfReader)) {
@@ -288,10 +286,11 @@ public class ImportDBF {
       } else {
         sql += "NUMERIC(" + field.getLength() + ")";
       }
-    } else if (field.getType() == 'C'){
+    } else if (field.getType() == 'C') {
       sql += "VARCHAR(" + field.getLength() + ")";
-    } if (field.getType() == 'D') {
-    	sql += "DATE";
+    }
+    if (field.getType() == 'D') {
+      sql += "DATE";
     }
 
     return sql;

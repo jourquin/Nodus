@@ -18,22 +18,26 @@
  * <p>You should have received a copy of the GNU General Public License along with this program. If
  * not, see http://www.gnu.org/licenses/.
  */
-
 package edu.uclouvain.core.nodus.database.dbf;
 
 import com.bbn.openmap.dataAccess.shape.DbfTableModel;
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
+
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Vector;
 
 /**
@@ -141,14 +145,12 @@ public class ExportDBF implements ShapeConstants {
 
     for (int i = 0; i < model.getColumnCount(); i++) {
       Byte byteType = Byte.valueOf(model.getType(i));
-      char charType = 'N';
 
+      char charType = 'N';
       if (byteType.equals(DBF_TYPE_CHARACTER)) {
         charType = 'C';
       } else if (byteType.equals(DBF_TYPE_DATE)) {
         charType = 'D';
-      } else if (byteType.equals(DBF_TYPE_LOGICAL)) {
-        charType = 'L';
       }
 
       field[i] =
@@ -409,6 +411,9 @@ public class ExportDBF implements ShapeConstants {
    * @return boolean
    */
   private static boolean fillTable(DBFWriter dbfWriter, DbfTableModel model) {
+
+    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+
     Object[] o = new Object[model.getColumnCount()];
 
     try {
@@ -416,17 +421,22 @@ public class ExportDBF implements ShapeConstants {
         for (int j = 0; j < model.getColumnCount(); j++) {
           o[j] = model.getValueAt(i, j);
 
-          /*
-           * Openmap allows the user to add new fields in the dbf file, but it doesn't fill the
-           * existing records with adequate values. The following test ensures that a correct value
-           * type is associated with non string types
-           */
-          if (o[j].equals("")) {
-            if (model.getType(j) == DBF_TYPE_NUMERIC.byteValue()) {
+          // Avoid empty numerical values
+          if (model.getType(j) == DBF_TYPE_NUMERIC.byteValue()) {
+            if (o[j].equals("")) {
               o[j] = Double.valueOf(0);
             }
+          }
 
-            /* @todo : also test for dates and booleans */
+          // Transform date string into Date
+          if (model.getType(j) == DBF_TYPE_DATE.byteValue() && !(o[j] instanceof Date)) {
+            try {
+              Date d = dateFormat.parse((String) o[j]);
+              o[j] = d;
+            } catch (ParseException e) {
+              // Should never happen...
+              e.printStackTrace();
+            }
           }
         }
 

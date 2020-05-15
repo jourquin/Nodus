@@ -72,6 +72,8 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -803,10 +805,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
             mustBeFixed = true;
           }
         }
-        
-        /*if (type == DbfTableModel.TYPE_DATE ) {
-        	System.out.println(o.toString());
-        }*/
       }
     }
 
@@ -1737,6 +1735,8 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
       Statement stmt = con.createStatement();
 
+      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+
       String sqlStmt = "SELECT * FROM " + tableName;
       ResultSet rs = stmt.executeQuery(sqlStmt);
       ResultSetMetaData rsmd = rs.getMetaData();
@@ -1785,6 +1785,17 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
         // Update the record in the dbftableModel
         for (int i = 0; i < model.getColumnCount(); i++) {
+          // Transform Date into String with YYYYMMDD format
+          if (model.getType(i) == DBF_TYPE_DATE.byteValue()) {
+            if (o[i] instanceof Date) {
+              String s = dateFormat.format(o[i]);
+              o[i] = s;
+            } else {
+              System.err.println(
+                  "NodusEsriLayer:updateDbfTableModel - Not a Date ? Should never happen...");
+            }
+          }
+
           model.setValueAt(o[i], index, i);
         }
       }

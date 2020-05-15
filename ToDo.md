@@ -14,11 +14,10 @@
 - Display "-1" as default value in dialog
 
 # DBF
-- Test the possibility to use logical and dates
 
-- editor for true/false
-- export booleans
-- test with H2, mysql, ...
+- Dates in non HSQLDB must be tested.
   
 # Jung and xchart
 - Set user defined color for modes and means
+
+
