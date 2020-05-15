@@ -137,7 +137,8 @@ keeping unloading possible.
 - Remove the possibility to modify the table structure of a layer. This was based on an Openmap GUI that allows column types
 that are not supported by Nodus.
 - Automatically change LOGICAL DBF fields to NUMERIC(1,0) fields, as Booleans are not supported by all DBMS's.
-- Bug fix: Force UTF8 charset when importing DBF file.
+- Use JavaDbf4Nodus 1.12.1, that set UTF-8 encoding by default.
+
   
 
 
