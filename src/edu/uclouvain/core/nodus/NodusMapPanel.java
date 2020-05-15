@@ -2949,7 +2949,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       isAssignmentRunning = false;
     }
 
-    JDBCUtils jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
     int currentScenario = nodusProject.getLocalProperty(NodusC.PROP_SCENARIO, 0);
     scenarioComboBox.removeAllItems();
 
@@ -2958,9 +2957,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
       virtualNetTableName =
           nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, virtualNetTableName) + i;
-      virtualNetTableName = jdbcUtils.getCompliantIdentifier(virtualNetTableName);
+      virtualNetTableName = JDBCUtils.getCompliantIdentifier(virtualNetTableName);
 
-      boolean tableExists = jdbcUtils.tableExists(virtualNetTableName);
+      boolean tableExists = JDBCUtils.tableExists(virtualNetTableName);
 
       if (tableExists || i == currentScenario || isAssignmentRunning) {
         String description = i18n.get(NodusMapPanel.class, "Empty_scenario", "empty scenario");

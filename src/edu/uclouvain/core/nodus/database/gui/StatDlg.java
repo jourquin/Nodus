@@ -86,8 +86,6 @@ public class StatDlg extends EscapeDialog {
 
   private JSpinner groupSpinner = new JSpinner();
 
-  private JDBCUtils jdbcUtils;
-
   private JCheckBox loadedTonsPerModeCheckBox = new JCheckBox();
 
   private JCheckBox loadedTonsPerModeMeansCheckBox = new JCheckBox();
@@ -143,9 +141,7 @@ public class StatDlg extends EscapeDialog {
 
     this.nodusProject = nodusProject;
     this.sqlConsole = sqlConsole;
-
-    jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
-
+    
     initialize();
     setModal(true);
     getRootPane().setDefaultButton(closeButton);
@@ -208,8 +204,8 @@ public class StatDlg extends EscapeDialog {
     if (nbODCheckBox.isSelected()) {
       String defTable = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + " _od";
       String odTableName = nodusProject.getLocalProperty(NodusC.PROP_OD_TABLE, defTable);
-      // JDBCUtils jdbcUtils = new JDBCUtils(jdbcConnection);
-      odTableName = jdbcUtils.getCompliantIdentifier(odTableName);
+      
+      odTableName = JDBCUtils.getCompliantIdentifier(odTableName);
 
       header =
           "#" + i18n.get(StatDlg.class, "O_D_entries_in", "O-D entries in") + " " + odTableName;
@@ -218,7 +214,7 @@ public class StatDlg extends EscapeDialog {
       if (group != -1) {
         header += " " + i18n.get(StatDlg.class, "for_group", "for group") + " " + group;
         sqlStmt +=
-            " WHERE " + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP) + " = " + group;
+            " WHERE " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP) + " = " + group;
       }
 
       batchSqlStmt += header + ";\n" + sqlStmt + ";\n";
@@ -243,9 +239,9 @@ public class StatDlg extends EscapeDialog {
 
       sqlStmt =
           "SELECT ROUND(SUM("
-              + jdbcUtils.getQuotedCompliantIdentifier(cost)
+              + JDBCUtils.getQuotedCompliantIdentifier(cost)
               + "*"
-              + jdbcUtils.getQuotedCompliantIdentifier(qty)
+              + JDBCUtils.getQuotedCompliantIdentifier(qty)
               + "),1) FROM "
               + virtualNetTableName;
 
@@ -274,21 +270,21 @@ public class StatDlg extends EscapeDialog {
 
       sqlStmt =
           "SELECT "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + ", ROUND(SUM("
-              + jdbcUtils.getQuotedCompliantIdentifier(qty)
+              + JDBCUtils.getQuotedCompliantIdentifier(qty)
               + "*"
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
               + "),0) AS "
               + unit
               + " FROM "
               + virtualNetTableName
               + " WHERE "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
               + " > 0 GROUP BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + " ORDER BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1);
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1);
 
       statPieDlg.setQueryString(StatPieDlg.TKM_M, sqlStmt);
 
@@ -317,27 +313,27 @@ public class StatDlg extends EscapeDialog {
 
       sqlStmt =
           "SELECT "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + ", "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
               + ", ROUND(SUM("
-              + jdbcUtils.getQuotedCompliantIdentifier(qty)
+              + JDBCUtils.getQuotedCompliantIdentifier(qty)
               + "*"
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
               + "),0) AS "
               + unit
               + " FROM "
               + virtualNetTableName
               + " WHERE "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
               + " > 0 GROUP BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + ", "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
               + " ORDER BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + ", "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1);
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1);
 
       statPieDlg.setQueryString(StatPieDlg.TKM_Mm, sqlStmt);
 
@@ -367,21 +363,21 @@ public class StatDlg extends EscapeDialog {
 
       sqlStmt =
           "SELECT "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + ", ROUND(SUM("
-              + jdbcUtils.getQuotedCompliantIdentifier(veh)
+              + JDBCUtils.getQuotedCompliantIdentifier(veh)
               + "*"
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
               + "),0) AS "
               + unit
               + " FROM "
               + virtualNetTableName
               + " WHERE "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
               + " > 0 GROUP BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + " ORDER BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1);
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1);
 
       statPieDlg.setQueryString(StatPieDlg.VKM_M, sqlStmt);
 
@@ -410,27 +406,27 @@ public class StatDlg extends EscapeDialog {
 
       sqlStmt =
           "SELECT "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + ", "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
               + ", ROUND(SUM("
-              + jdbcUtils.getQuotedCompliantIdentifier(veh)
+              + JDBCUtils.getQuotedCompliantIdentifier(veh)
               + "*"
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
               + "),0) AS "
               + unit
               + " FROM "
               + virtualNetTableName
               + " WHERE "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH)
               + " > 0 GROUP BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + ", "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
               + " ORDER BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + ", "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1);
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1);
 
       statPieDlg.setQueryString(StatPieDlg.VKM_Mm, sqlStmt);
 
@@ -456,19 +452,19 @@ public class StatDlg extends EscapeDialog {
 
       sqlStmt =
           "SELECT "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
               + ", ROUND(SUM("
-              + jdbcUtils.getQuotedCompliantIdentifier(qty)
+              + JDBCUtils.getQuotedCompliantIdentifier(qty)
               + "),0) FROM "
               + virtualNetTableName
               + " WHERE "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + " = 0 AND "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
               + " > 0 GROUP BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
               + " ORDER BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2);
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2);
 
       statPieDlg.setQueryString(StatPieDlg.LoadedTons_M, sqlStmt);
 
@@ -495,25 +491,25 @@ public class StatDlg extends EscapeDialog {
 
       sqlStmt =
           "SELECT "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
               + ", "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
               + ", ROUND(SUM("
-              + jdbcUtils.getQuotedCompliantIdentifier(qty)
+              + JDBCUtils.getQuotedCompliantIdentifier(qty)
               + "),0) FROM "
               + virtualNetTableName
               + " WHERE "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + " = 0 AND "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
               + " > 0 GROUP BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
               + ", "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
               + " ORDER BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
               + ", "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2);
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2);
 
       statPieDlg.setQueryString(StatPieDlg.LoadedTons_Mm, sqlStmt);
 
@@ -539,19 +535,19 @@ public class StatDlg extends EscapeDialog {
 
       sqlStmt =
           "SELECT "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + ", ROUND(SUM("
-              + jdbcUtils.getQuotedCompliantIdentifier(qty)
+              + JDBCUtils.getQuotedCompliantIdentifier(qty)
               + "),0) FROM "
               + virtualNetTableName
               + " WHERE "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
               + " = 0 AND "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + " > 0 GROUP BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + " ORDER BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1);
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1);
 
       statPieDlg.setQueryString(StatPieDlg.UnloadedTons_M, sqlStmt);
 
@@ -580,25 +576,25 @@ public class StatDlg extends EscapeDialog {
 
       sqlStmt =
           "SELECT "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + ", "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
               + ", ROUND(SUM("
-              + jdbcUtils.getQuotedCompliantIdentifier(qty)
+              + JDBCUtils.getQuotedCompliantIdentifier(qty)
               + "),0) FROM "
               + virtualNetTableName
               + " WHERE "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
               + " = 0 AND "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + " > 0 GROUP BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + ", "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
               + " ORDER BY "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
               + ", "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1);
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1);
 
       statPieDlg.setQueryString(StatPieDlg.UnloadedTons_Mm, sqlStmt);
 
@@ -783,7 +779,7 @@ public class StatDlg extends EscapeDialog {
             deselectAllButton_actionPerformed(e);
           }
         });
-    // JDBCUtils jdbcUtils = new JDBCUtils(jdbcConnection);
+   
     scenarioLabel.setText(i18n.get(StatDlg.class, "Scenario", "Scenario"));
 
     setContentPane(mainPanel);
@@ -1074,9 +1070,9 @@ public class StatDlg extends EscapeDialog {
           nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
       virtualNetTableName =
           nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, virtualNetTableName) + i;
-      virtualNetTableName = jdbcUtils.getCompliantIdentifier(virtualNetTableName);
+      virtualNetTableName = JDBCUtils.getCompliantIdentifier(virtualNetTableName);
 
-      if (jdbcUtils.tableExists(virtualNetTableName)) {
+      if (JDBCUtils.tableExists(virtualNetTableName)) {
         scenarioComboBox.addItem(virtualNetTableName);
 
         if (i == currentScenario) {

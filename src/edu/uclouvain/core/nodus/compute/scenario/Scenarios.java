@@ -121,8 +121,6 @@ public class Scenarios {
     }
   }
 
-  private JDBCUtils jdbcUtils;
-
   private NodusProject nodusProject;
 
   /**
@@ -132,7 +130,6 @@ public class Scenarios {
    */
   public Scenarios(NodusProject nodusProject) {
     this.nodusProject = nodusProject;
-    jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
   }
 
   /**
@@ -184,7 +181,7 @@ public class Scenarios {
           nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
       tableName =
           nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + referenceScenario;
-      tableName = jdbcUtils.getCompliantIdentifier(tableName);
+      tableName = JDBCUtils.getCompliantIdentifier(tableName);
 
       ResultSet col = metaData.getColumns(null, null, tableName, null);
 
@@ -205,7 +202,7 @@ public class Scenarios {
       tableName = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
       tableName =
           nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenarioToCompare;
-      tableName = jdbcUtils.getCompliantIdentifier(tableName);
+      tableName = JDBCUtils.getCompliantIdentifier(tableName);
       col = metaData.getColumns(null, null, tableName, null);
 
       while (col.next()) {
@@ -291,7 +288,7 @@ public class Scenarios {
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
     tableName =
         nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + referenceScenario;
-    tableName = jdbcUtils.getCompliantIdentifier(tableName);
+    tableName = JDBCUtils.getCompliantIdentifier(tableName);
 
     String sqlStmt = "SELECT * from " + tableName;
 
@@ -351,7 +348,7 @@ public class Scenarios {
     tableName = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
     tableName =
         nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenarioToCompare;
-    tableName = jdbcUtils.getCompliantIdentifier(tableName);
+    tableName = JDBCUtils.getCompliantIdentifier(tableName);
 
     sqlStmt = "SELECT * from " + tableName;
 

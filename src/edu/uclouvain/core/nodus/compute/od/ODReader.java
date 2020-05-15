@@ -52,8 +52,6 @@ public class ODReader {
   /** I18N mechanism. */
   private static I18n i18n = Environment.getI18n();
 
-  private JDBCUtils jdbcUtils = null;
-
   /**
    * Returns a list containing all the valid OD tables foun in the database.
    *
@@ -66,13 +64,10 @@ public class ODReader {
     DatabaseMetaData metaData;
     Vector<String> tables = new Vector<>();
 
-    JDBCUtils jdbcUtils;
-    jdbcUtils = new JDBCUtils(jdbcConnection);
-
     String shema = null;
     if (JDBCUtils.getDbEngine(jdbcConnection) == JDBCUtils.DB_ORACLE) {
       shema =
-          jdbcUtils.getCompliantIdentifier(
+          JDBCUtils.getCompliantIdentifier(
               nodusProject.getLocalProperty(NodusC.PROP_JDBC_USERNAME, "null"));
     }
 
@@ -149,9 +144,6 @@ public class ODReader {
    */
   private static boolean isValidBasicODTable(Connection jdbcConnection, String odTableName) {
 
-    JDBCUtils jdbcUtils;
-    jdbcUtils = new JDBCUtils(jdbcConnection);
-
     // Test the structure of the table
     try {
       // Create a result set
@@ -161,7 +153,7 @@ public class ODReader {
       ResultSet rs =
           stmt.executeQuery(
               "SELECT * FROM "
-                  + jdbcUtils.getQuotedCompliantIdentifier(odTableName)
+                  + JDBCUtils.getQuotedCompliantIdentifier(odTableName)
                   + " WHERE 1 = 0");
 
       // Get result set meta data
@@ -234,7 +226,7 @@ public class ODReader {
    */
   public ODReader(AssignmentParameters ap) {
     nodusMapPanel = ap.getNodusProject().getNodusMapPanel();
-    jdbcUtils = new JDBCUtils(nodusMapPanel.getNodusProject().getMainJDBCConnection());
+
     jdbcConnection = nodusMapPanel.getNodusProject().getMainJDBCConnection();
 
     odTableName = ap.getODMatrix();
@@ -246,7 +238,7 @@ public class ODReader {
     isTimeDependent = ap.isTimeDependent();
 
     /* Does table exists? */
-    if (!jdbcUtils.tableExists(odTableName)) {
+    if (!JDBCUtils.tableExists(odTableName)) {
       JOptionPane.showMessageDialog(
           null,
           MessageFormat.format(
@@ -268,7 +260,7 @@ public class ODReader {
       ResultSet rs =
           stmt.executeQuery(
               "SELECT * FROM "
-                  + jdbcUtils.getQuotedCompliantIdentifier(odTableName)
+                  + JDBCUtils.getQuotedCompliantIdentifier(odTableName)
                   + " WHERE 1 = 0");
 
       // Get result set meta data
@@ -388,24 +380,24 @@ public class ODReader {
     // Sample: select grp, org, dst, qty from od
     String sqlStmt =
         "SELECT "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_ORIGIN)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ORIGIN)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_DESTINATION)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_DESTINATION)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY);
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY);
 
     // Time field
     if (isTimeDependent) {
-      sqlStmt += ", " + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_TIME);
+      sqlStmt += ", " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_TIME);
     }
 
     if (hasClasses) {
-      sqlStmt += ", " + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_CLASS);
+      sqlStmt += ", " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_CLASS);
     }
 
-    sqlStmt += " FROM " + jdbcUtils.getQuotedCompliantIdentifier(odTableName);
+    sqlStmt += " FROM " + JDBCUtils.getQuotedCompliantIdentifier(odTableName);
 
     // Add where statement if relevant
     if (whereStmt.length() > 0) {

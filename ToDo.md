@@ -21,3 +21,6 @@
 - Set user defined color for modes and means
 
 
+# Diverse
+UTF8 problem with MySQL...
+No problem with static JDBCUtils ?

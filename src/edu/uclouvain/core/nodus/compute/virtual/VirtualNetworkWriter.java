@@ -65,16 +65,14 @@ public class VirtualNetworkWriter {
     saveCompleteVirtualNetwork =
         Boolean.parseBoolean(nodusProject.getLocalProperty(NodusC.PROP_SAVE_ALL_VN));
 
-    JDBCUtils jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
-
     // Build table name
     String tableName =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
     tableName = nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenario;
-    tableName = jdbcUtils.getCompliantIdentifier(tableName);
+    tableName = JDBCUtils.getCompliantIdentifier(tableName);
 
     // If table doesn't exit, no problem
-    if (!jdbcUtils.tableExists(tableName)) {
+    if (!JDBCUtils.tableExists(tableName)) {
       return true;
     }
 
@@ -105,15 +103,12 @@ public class VirtualNetworkWriter {
    */
   public static boolean initTable(NodusProject nodusProject, int scenario, byte[] groups) {
 
-    Connection jdbcConnection = nodusProject.getMainJDBCConnection();
-    JDBCUtils jdbcUtils = new JDBCUtils(jdbcConnection);
-
     vNetTableName = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
     vNetTableName = nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, vNetTableName) + scenario;
-    vNetTableName = jdbcUtils.getCompliantIdentifier(vNetTableName);
+    vNetTableName = JDBCUtils.getCompliantIdentifier(vNetTableName);
 
     // Virtual network table
-    jdbcUtils.dropTable(vNetTableName);
+    JDBCUtils.dropTable(vNetTableName);
 
     JDBCField[] field = null;
 
@@ -149,7 +144,7 @@ public class VirtualNetworkWriter {
     field[idx++] = new JDBCField(NodusC.DBF_QUANTITY, "NUMERIC(13,3)");
     field[idx++] = new JDBCField(NodusC.DBF_VEHICLES, "NUMERIC(10)");
 
-    if (!jdbcUtils.createTable(vNetTableName, field)) {
+    if (!JDBCUtils.createTable(vNetTableName, field)) {
       return false;
     }
 

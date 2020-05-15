@@ -81,8 +81,6 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
 
   private boolean isNode;
 
-  private JDBCUtils jdbcUtils;
-
   private JPanel mainPanel = new JPanel();
 
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
@@ -120,7 +118,6 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
     objectId = id;
     this.nodusEsriLayer = nodusEsriLayer;
     nodusProject = nodusEsriLayer.getNodusMapPanel().getNodusProject();
-    jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
 
     initialize();
     getRootPane().setDefaultButton(closeButton);
@@ -425,38 +422,38 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
     tableName = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
     tableName = nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenario;
 
-    hasTime = jdbcUtils.hasSeveralValues(tableName, NodusC.DBF_TIME);
-    hasServices = jdbcUtils.hasSeveralValues(tableName, NodusC.DBF_SERVICE1);
+    hasTime = JDBCUtils.hasSeveralValues(tableName, NodusC.DBF_TIME);
+    hasServices = JDBCUtils.hasSeveralValues(tableName, NodusC.DBF_SERVICE1);
 
     String sqlStmt =
         " SELECT "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE1)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE1)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK1)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK1)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_SERVICE1)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SERVICE1)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE2)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE2)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK2)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK2)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_SERVICE2)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SERVICE2)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_TIME)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_TIME)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_UNITCOST)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_UNITCOST)
             + ", "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_VEHICLES)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_VEHICLES)
             + " FROM "
             + tableName
             + " WHERE ";
@@ -465,12 +462,12 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
       isNode = true;
       sqlStmt +=
           "ABS("
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE1)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE1)
               + ") = "
               + objectId
               + " AND "
               + "ABS("
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE2)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE2)
               + ") = "
               + objectId;
       setTitle(
@@ -481,11 +478,11 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
     } else {
       isNode = false;
       sqlStmt +=
-          jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK1)
+          JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK1)
               + " = "
               + objectId
               + " AND "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK2)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK2)
               + " = "
               + objectId;
       setTitle(
@@ -518,10 +515,10 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
     mainPanel.add(closeButton, closeButtonConstraints);
     mainPanel.add(sqlTextField, sqlTextFieldConstraints);
     mainPanel.add(resultsTableScrollPane, resultsTableScrollPaneConstraints);
-    
+
     setIconImage(
-            Toolkit.getDefaultToolkit().createImage(NodusMapPanel.class.getResource("nodus7.png")));
-    
+        Toolkit.getDefaultToolkit().createImage(NodusMapPanel.class.getResource("nodus7.png")));
+
     pack();
   }
 
@@ -547,8 +544,8 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
       int col = m.getColumnCount();
       String[] h = new String[col];
 
-      h[0] = jdbcUtils.getCompliantIdentifier(NodusC.DBF_NODE1);
-      h[1] = jdbcUtils.getCompliantIdentifier(NodusC.DBF_NODE2);
+      h[0] = JDBCUtils.getCompliantIdentifier(NodusC.DBF_NODE1);
+      h[1] = JDBCUtils.getCompliantIdentifier(NodusC.DBF_NODE2);
       for (int i = 1; i <= col; i++) {
         h[i - 1] = m.getColumnName(i);
       }

@@ -78,8 +78,6 @@ public class ScenariosDlg extends EscapeDialog {
 
   private boolean isBusy = false;
 
-  private JDBCUtils jdbcUtils;
-
   private JPanel mainPanel = new JPanel();
 
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
@@ -124,7 +122,7 @@ public class ScenariosDlg extends EscapeDialog {
     setTitle(i18n.get(ScenariosDlg.class, "Scenarios", "Scenarios"));
 
     nodusProject = mapPanel.getNodusProject();
-    jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
+
     scenarios = new Scenarios(nodusProject);
 
     initialize();
@@ -866,7 +864,7 @@ public class ScenariosDlg extends EscapeDialog {
     String tableName =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
     tableName = nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenarioId;
-    if (jdbcUtils.tableExists(tableName, true)) {
+    if (JDBCUtils.tableExists(tableName, true)) {
       return true;
     }
     return false;

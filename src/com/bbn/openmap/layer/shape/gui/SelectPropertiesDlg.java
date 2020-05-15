@@ -55,8 +55,6 @@ public class SelectPropertiesDlg extends EscapeDialog implements ShapeConstants 
 
   private JButton cancelButton = new JButton();
 
-  private JDBCUtils jdbcUtils;
-
   private JPanel mainPanel = new JPanel();
 
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
@@ -85,8 +83,6 @@ public class SelectPropertiesDlg extends EscapeDialog implements ShapeConstants 
     super(layer.getNodusMapPanel().getMainFrame(), "", true);
     nodusEsriLayer = layer;
 
-    jdbcUtils = new JDBCUtils(layer.getNodusMapPanel().getNodusProject().getMainJDBCConnection());
-
     initialize();
 
     getRootPane().setDefaultButton(okButton);
@@ -94,7 +90,7 @@ public class SelectPropertiesDlg extends EscapeDialog implements ShapeConstants 
     // Create the FROM ... WHERE statement
     sqlLabel.setText(
         "SELECT "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
             + " FROM "
             + nodusEsriLayer.getTableName()
             + " WHERE");

@@ -55,8 +55,6 @@ public class PathWriter {
 
   private DecimalFormat df;
 
-  private JDBCUtils jdbcUtils;
-
   private NodusProject nodusProject;
 
   private String pathDetailTableName;
@@ -90,7 +88,6 @@ public class PathWriter {
    */
   public PathWriter(AssignmentParameters assignmentParameters) {
     nodusProject = assignmentParameters.getNodusProject();
-    jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
 
     scenario = assignmentParameters.getScenario();
     savePaths = assignmentParameters.isSavePaths();
@@ -123,16 +120,16 @@ public class PathWriter {
     String defValue = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME);
     String name = nodusProject.getLocalProperty(NodusC.PROP_PATH_TABLE_PREFIX, defValue);
 
-    pathHeaderTableName = jdbcUtils.getCompliantIdentifier(name + scenario + NodusC.SUFFIX_HEADER);
-    pathDetailTableName = jdbcUtils.getCompliantIdentifier(name + scenario + NodusC.SUFFIX_DETAIL);
+    pathHeaderTableName = JDBCUtils.getCompliantIdentifier(name + scenario + NodusC.SUFFIX_HEADER);
+    pathDetailTableName = JDBCUtils.getCompliantIdentifier(name + scenario + NodusC.SUFFIX_DETAIL);
 
     // Create new tables if needed
     if (isSavePaths()) {
       resetPathsTables();
     } else {
       // Drop existing tables if they exist
-      jdbcUtils.dropTable(pathHeaderTableName);
-      jdbcUtils.dropTable(pathDetailTableName);
+      JDBCUtils.dropTable(pathHeaderTableName);
+      JDBCUtils.dropTable(pathDetailTableName);
     }
 
     // Set the static index to 0 (used by multiflow assignments)
@@ -159,13 +156,13 @@ public class PathWriter {
     // Create index on origin node
     JDBCIndex index =
         new JDBCIndex(pathHeaderTableName, NodusC.DBF_ORIGIN + scenario, NodusC.DBF_ORIGIN);
-    jdbcUtils.createIndex(index);
+    JDBCUtils.createIndex(index);
 
     // Create index on path index
     index =
         new JDBCIndex(
             pathHeaderTableName, NodusC.DBF_PATH_INDEX + "H" + scenario, NodusC.DBF_PATH_INDEX);
-    jdbcUtils.createIndex(index);
+    JDBCUtils.createIndex(index);
 
     if (saveDetailedPaths) {
       if (hasBatchSupport) {
@@ -176,7 +173,7 @@ public class PathWriter {
       index =
           new JDBCIndex(
               pathDetailTableName, NodusC.DBF_PATH_INDEX + "D" + scenario, NodusC.DBF_PATH_INDEX);
-      jdbcUtils.createIndex(index);
+      JDBCUtils.createIndex(index);
     }
 
     try {
@@ -297,12 +294,12 @@ public class PathWriter {
     fields[idx++] = new JDBCField(NodusC.DBF_ULMEANS, "NUMERIC(2)");
     fields[idx++] = new JDBCField(NodusC.DBF_NBTRANS, "NUMERIC(3)");
     fields[idx++] = new JDBCField(NodusC.DBF_PATH_INDEX, "NUMERIC(8)");
-    jdbcUtils.createTable(pathHeaderTableName, fields);
+    JDBCUtils.createTable(pathHeaderTableName, fields);
 
     // Use prepared statements to improve insert performances
     String sqlStmt =
         "INSERT INTO "
-            + jdbcUtils.getCompliantIdentifier(pathHeaderTableName)
+            + JDBCUtils.getCompliantIdentifier(pathHeaderTableName)
             + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     try {
@@ -318,12 +315,12 @@ public class PathWriter {
       fields[idx++] = new JDBCField(NodusC.DBF_LINK, "NUMERIC(10)");
       fields[idx++] = new JDBCField(NodusC.DBF_MODE, "NUMERIC(2)");
       fields[idx++] = new JDBCField(NodusC.DBF_MEANS, "NUMERIC(2)");
-      jdbcUtils.createTable(pathDetailTableName, fields);
+      JDBCUtils.createTable(pathDetailTableName, fields);
 
       // Use prepared statements to improve insert performances
       sqlStmt =
           "INSERT INTO "
-              + jdbcUtils.getCompliantIdentifier(pathDetailTableName)
+              + JDBCUtils.getCompliantIdentifier(pathDetailTableName)
               + " VALUES (?,?,?,?)";
       try {
         prepStmtDetails = con.prepareStatement(sqlStmt);
@@ -526,14 +523,14 @@ public class PathWriter {
           "UPDATE "
               + pathHeaderTableName
               + " SET "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
               + " = ROUND("
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
               + "*(1-"
               + lambda
               + "),3)"
               + " WHERE "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_ITERATION)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ITERATION)
               + " < "
               + iteration;
       stmt.execute(sqlStmt);
@@ -546,13 +543,13 @@ public class PathWriter {
           "UPDATE "
               + pathHeaderTableName
               + " SET "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
               + " = ROUND("
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
               + "*"
               + lambda
               + ",3) WHERE "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_ITERATION)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ITERATION)
               + " = "
               + iteration;
       stmt.execute(sqlStmt);

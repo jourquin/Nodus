@@ -40,12 +40,12 @@ public class AddDistancesToODTable_ {
 	/**
 	 * The name of the OD table.
 	 */
-	String odTableName = "odroad";
+	String odTableName = "od";
 
 	/**
 	 * The number of parallel threads (depends on CPU cores
 	 */
-	int nbThreads = 10;
+	int nbThreads = 2;
 
 	public AddDistancesToODTable_(NodusMapPanel nodusMapPanel) {
 		NodusProject nodusProject = nodusMapPanel.getNodusProject();
@@ -59,8 +59,7 @@ public class AddDistancesToODTable_ {
 				Connection jdbcConnection = nodusProject.getMainJDBCConnection();
 
 				// Get a database compliant table name (upper/lower case)
-				JDBCUtils jdbcUtils = new JDBCUtils(jdbcConnection);
-				odTableName = jdbcUtils.getCompliantIdentifier(odTableName);
+				odTableName = JDBCUtils.getCompliantIdentifier(odTableName);
 
 				// Create a temporary table that will contain all the OD pairs
 				System.out.println("Create temporary OD table");
@@ -72,16 +71,16 @@ public class AddDistancesToODTable_ {
 				field[2] = new JDBCField(NodusC.DBF_DESTINATION, "NUMERIC(10,0)");
 				field[3] = new JDBCField(NodusC.DBF_QUANTITY, "NUMERIC(10,0)");
 
-				jdbcUtils.createTable(tmpOD, field);
-				String org = jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_ORIGIN);
-				String dst = jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_DESTINATION);
+				JDBCUtils.createTable(tmpOD, field);
+				String org = JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ORIGIN);
+				String dst = JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_DESTINATION);
 
 				// Query the existing OD table to fill the temporary one
 				String sqlStmt = "SELECT " + org + ", " + dst + " FROM " + odTableName + " GROUP BY " + org + ", " + dst;
 
 				Statement stmt = jdbcConnection.createStatement();
 				PreparedStatement pStmt = jdbcConnection
-				        .prepareStatement("insert into " + jdbcUtils.getQuotedCompliantIdentifier(tmpOD) + " values(?,?,?,?)");
+				        .prepareStatement("insert into " + JDBCUtils.getQuotedCompliantIdentifier(tmpOD) + " values(?,?,?,?)");
 
 				ResultSet rs = stmt.executeQuery(sqlStmt);
 				while (rs.next()) {
@@ -145,8 +144,8 @@ public class AddDistancesToODTable_ {
 				// Retrieve the path header info to create the new od table
 				System.out.println("Create new OD table");
 
-				String odDst = jdbcUtils.getQuotedCompliantIdentifier(odTableName + "_dst");
-				jdbcUtils.dropTable(odTableName + "_dst");
+				String odDst = JDBCUtils.getQuotedCompliantIdentifier(odTableName + "_dst");
+				JDBCUtils.dropTable(odTableName + "_dst");
 				field = new JDBCField[5];
 				field[0] = new JDBCField(NodusC.DBF_GROUP, "NUMERIC(2,0)");
 				field[1] = new JDBCField(NodusC.DBF_ORIGIN, "NUMERIC(10,0)");
@@ -154,7 +153,7 @@ public class AddDistancesToODTable_ {
 				field[3] = new JDBCField(NodusC.DBF_QUANTITY, "NUMERIC(10,0)");
 				field[4] = new JDBCField(NodusC.DBF_LENGTH, "NUMERIC(8,3)");
 
-				jdbcUtils.createTable(odDst, field);
+				JDBCUtils.createTable(odDst, field);
 
 				System.out.println("Fill new OD table");
 
@@ -165,21 +164,21 @@ public class AddDistancesToODTable_ {
 				// inner join path99_header on od.org = path99_header.org
 				// and od.dst = path99_header.dst
 
-				String grp = jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP);
-				String qty = jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY);
-				String length = jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH);
+				String grp = JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP);
+				String qty = JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY);
+				String length = JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LENGTH);
 
 				sqlStmt = "INSERT INTO " + odDst + "(" + grp + ", " + org + ", " + dst + ", " + qty + ", " + length + ")";
 
-				org = jdbcUtils.getCompliantIdentifier(NodusC.DBF_ORIGIN);
-				dst = jdbcUtils.getCompliantIdentifier(NodusC.DBF_DESTINATION);
-				grp = jdbcUtils.getCompliantIdentifier(NodusC.DBF_GROUP);
-				qty = jdbcUtils.getCompliantIdentifier(NodusC.DBF_QUANTITY);
-				length = jdbcUtils.getCompliantIdentifier(NodusC.DBF_LENGTH);
+				org = JDBCUtils.getCompliantIdentifier(NodusC.DBF_ORIGIN);
+				dst = JDBCUtils.getCompliantIdentifier(NodusC.DBF_DESTINATION);
+				grp = JDBCUtils.getCompliantIdentifier(NodusC.DBF_GROUP);
+				qty = JDBCUtils.getCompliantIdentifier(NodusC.DBF_QUANTITY);
+				length = JDBCUtils.getCompliantIdentifier(NodusC.DBF_LENGTH);
 
 				String defValue = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME);
 				String name = nodusProject.getLocalProperty(NodusC.PROP_PATH_TABLE_PREFIX, defValue);
-				String pathHeaderTableName = jdbcUtils.getCompliantIdentifier(name + scenario + NodusC.SUFFIX_HEADER);
+				String pathHeaderTableName = JDBCUtils.getCompliantIdentifier(name + scenario + NodusC.SUFFIX_HEADER);
 
 				sqlStmt += " SELECT " + odTableName + "." + grp + ", " + odTableName + "." + org + ", " + odTableName + "." + dst;
 				sqlStmt += ", ROUND(" + odTableName + "." + qty + ",0) , " + pathHeaderTableName + "." + length + " FROM ";
@@ -195,7 +194,7 @@ public class AddDistancesToODTable_ {
 				nodusProject.removeScenario(scenario);
 
 				// Remove temporary od table
-				jdbcUtils.dropTable(tmpOD);
+				JDBCUtils.dropTable(tmpOD);
 
 				// Done!
 				System.out.println("New table " + odDst + " created.");

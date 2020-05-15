@@ -65,8 +65,6 @@ public class ServiceEditor {
 
   private Connection jdbcConnection;
 
-  private JDBCUtils jdbcUtils;
-
   private NodusEsriLayer[] linkLayer;
 
   private boolean listening = false;
@@ -101,16 +99,14 @@ public class ServiceEditor {
     linkLayer = nodusProject.getLinkLayers();
     nodeLayer = nodusProject.getNodeLayers();
 
-    jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
-
     // Prepare table names
     String defValue =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_SERVICE;
     String name = nodusProject.getLocalProperty(NodusC.PROP_SERVICE_TABLE_PREFIX, defValue);
 
-    serviceHeaderTableName = jdbcUtils.getCompliantIdentifier(name + NodusC.SUFFIX_HEADER);
-    serviceLinkDetailTableName = jdbcUtils.getCompliantIdentifier(name + NodusC.SUFFIX_LINK_DETAIL);
-    serviceStopDetailTableName = jdbcUtils.getCompliantIdentifier(name + NodusC.SUFFIX_STOP_DETAIL);
+    serviceHeaderTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_HEADER);
+    serviceLinkDetailTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_LINK_DETAIL);
+    serviceStopDetailTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_STOP_DETAIL);
 
     // Load the stored services
     loadService();
@@ -688,7 +684,7 @@ public class ServiceEditor {
   private void loadService() {
 
     // Tables must exists
-    if (!jdbcUtils.tableExists(serviceHeaderTableName)) {
+    if (!JDBCUtils.tableExists(serviceHeaderTableName)) {
       return;
     }
 
@@ -871,19 +867,19 @@ public class ServiceEditor {
     fields[3] = new JDBCField(NodusC.DBF_MEANS, "NUMERIC(2,0)");
     fields[4] = new JDBCField(NodusC.DBF_FREQUENCY, "NUMERIC(5,0)");
     fields[5] = new JDBCField(NodusC.DBF_TYPE, "VARCHAR(30)");
-    jdbcUtils.createTable(serviceHeaderTableName, fields);
+    JDBCUtils.createTable(serviceHeaderTableName, fields);
 
     // Create details table
     fields = new JDBCField[2];
     fields[0] = new JDBCField(NodusC.DBF_SERVICE_INDEX, "NUMERIC(4,0)");
     fields[1] = new JDBCField(NodusC.DBF_LINK, "NUMERIC(10,0)");
-    jdbcUtils.createTable(serviceLinkDetailTableName, fields);
+    JDBCUtils.createTable(serviceLinkDetailTableName, fields);
 
     // Create details table
     fields = new JDBCField[2];
     fields[0] = new JDBCField(NodusC.DBF_SERVICE_INDEX, "NUMERIC(4,0)");
     fields[1] = new JDBCField(NodusC.DBF_STOP, "NUMERIC(10,0)");
-    jdbcUtils.createTable(serviceStopDetailTableName, fields);
+    JDBCUtils.createTable(serviceStopDetailTableName, fields);
   }
 
   /**

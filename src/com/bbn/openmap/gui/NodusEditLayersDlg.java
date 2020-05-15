@@ -236,8 +236,7 @@ public class NodusEditLayersDlg extends EscapeDialog implements ShapeConstants {
 
     String tableName = layerName;
     ProjectFilesTools.deleteLayerFiles(path, tableName);
-    JDBCUtils jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
-    jdbcUtils.dropTable(tableName);
+    JDBCUtils.dropTable(tableName);
 
     // Refresh list
     byte layerType = SHAPE_TYPE_POINT;

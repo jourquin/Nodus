@@ -75,9 +75,19 @@ public class JDBCUtils {
 
   private static DatabaseMetaData dmd;
 
-  private static Connection jdbcConnection;
+  private static Connection jdbcConnection = null;
 
-  private List<String> tableList = null;
+  private static List<String> tableList = null;
+
+  /**
+   * This constructor is maintained for backward compatibility (< Nodus 7.3)
+   *
+   * @param jdbcConnection The connection to the database
+   */
+  @Deprecated
+  public JDBCUtils(Connection jdbcConnection) {
+    setConnection(jdbcConnection);
+  }
 
   /**
    * H2 and HSQLDB databases can be compacted at shutdown time.
@@ -96,6 +106,7 @@ public class JDBCUtils {
         e.printStackTrace();
       }
     }
+    jdbcConnection = null;
   }
 
   /**
@@ -162,9 +173,14 @@ public class JDBCUtils {
    * @param decimalDigits The number of digits to keep after the decimal point.
    * @return The width of the numerical field.
    */
-  public int getNumWidth(String tableName, String fieldName, int decimalDigits) {
+  public static int getNumWidth(String tableName, String fieldName, int decimalDigits) {
 
     int width = -1;
+
+    if (jdbcConnection == null) {
+      return width;
+    }
+
     try {
       Statement stmt = jdbcConnection.createStatement();
 
@@ -290,6 +306,10 @@ public class JDBCUtils {
    */
   public static String getDate(String date) {
 
+    if (jdbcConnection == null) {
+      return "19000101";
+    }
+
     // Test length. Must be 8.
     if (date.length() != 8) {
       System.err.println("Invalid date format:" + date);
@@ -306,7 +326,7 @@ public class JDBCUtils {
 
     // Convert in "YYYY-MM-DD" format
     String date2 = date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6, 8);
-    
+
     // Convert to  SQL date
     String function = "to_date";
     String format = "YYYY-MM-DD";
@@ -316,7 +336,7 @@ public class JDBCUtils {
     }
 
     String s = function + "('" + date2 + "', '" + format + "')";
-    
+
     return s;
   }
 
@@ -553,14 +573,17 @@ public class JDBCUtils {
    *
    * @param con JDBC connection
    */
-  public JDBCUtils(Connection con) {
+  // public JDBCUtils(Connection con) {
+  public static boolean setConnection(Connection con) {
     jdbcConnection = con;
     dbEngine = getDbEngine(con);
     try {
       dmd = jdbcConnection.getMetaData();
     } catch (SQLException e) {
       e.printStackTrace();
+      return false;
     }
+    return true;
   }
 
   /**
@@ -569,7 +592,11 @@ public class JDBCUtils {
    * @param index A JDBCIndex object.
    * @return True on success.
    */
-  public boolean createIndex(JDBCIndex index) {
+  public static boolean createIndex(JDBCIndex index) {
+
+    if (jdbcConnection == null) {
+      return false;
+    }
 
     try {
       Statement stmt = jdbcConnection.createStatement();
@@ -596,7 +623,7 @@ public class JDBCUtils {
    * @param fields An array of fields.
    * @return True on success.
    */
-  public boolean createTable(String tableName, JDBCField[] fields) {
+  public static boolean createTable(String tableName, JDBCField[] fields) {
     return createTable(tableName, fields, null);
   }
 
@@ -608,7 +635,12 @@ public class JDBCUtils {
    * @param indexes An array of indexes.
    * @return True on success.
    */
-  public boolean createTable(String tableName, JDBCField[] fields, JDBCIndex[] indexes) {
+  public static boolean createTable(String tableName, JDBCField[] fields, JDBCIndex[] indexes) {
+
+    if (jdbcConnection == null) {
+      return false;
+    }
+
     try {
       final Statement stmt = jdbcConnection.createStatement();
       String sqlStmt = null;
@@ -662,7 +694,11 @@ public class JDBCUtils {
    *
    * @param tableName The name of the table to drop.
    */
-  public void dropTable(String tableName) {
+  public static void dropTable(String tableName) {
+    if (jdbcConnection == null) {
+      return;
+    }
+
     try {
       // Only drop existent tables
       ResultSet rs = dmd.getTables(null, null, getCompliantIdentifier(tableName), null);
@@ -687,12 +723,17 @@ public class JDBCUtils {
    * @param identifier The identifier to test.
    * @return The compliant identifier.
    */
-  public String getCompliantIdentifier(String identifier) {
+  public static String getCompliantIdentifier(String identifier) {
     return getIdentifier(identifier, false);
   }
 
   /** Returns a compliant identifier, with or without quotes. */
-  private String getIdentifier(String identifier, boolean quoted) {
+  private static String getIdentifier(String identifier, boolean quoted) {
+
+    if (jdbcConnection == null) {
+      return identifier;
+    }
+
     String formattedIdentifier = identifier;
     if (jdbcConnection == null) {
       return identifier;
@@ -739,7 +780,7 @@ public class JDBCUtils {
    * @param identifier The identifier to test.
    * @return The compliant identifier.
    */
-  public String getQuotedCompliantIdentifier(String identifier) {
+  public static String getQuotedCompliantIdentifier(String identifier) {
     return getIdentifier(identifier, true);
   }
 
@@ -750,7 +791,11 @@ public class JDBCUtils {
    * @param fieldName The name of the field to check.
    * @return True on success.
    */
-  public boolean hasField(String tableName, String fieldName) {
+  public static boolean hasField(String tableName, String fieldName) {
+
+    if (jdbcConnection == null) {
+      return false;
+    }
 
     try {
       // Create a result set
@@ -785,7 +830,11 @@ public class JDBCUtils {
    * @param fieldName The name of the field to check.
    * @return True on success.
    */
-  public boolean hasSeveralValues(String tableName, String fieldName) {
+  public static boolean hasSeveralValues(String tableName, String fieldName) {
+
+    if (jdbcConnection == null) {
+      return false;
+    }
 
     try {
       // Create a result set
@@ -821,7 +870,11 @@ public class JDBCUtils {
    * @param newTableName The new name of the table.
    * @return True on success.
    */
-  public boolean renameTable(String currentTableName, String newTableName) {
+  public static boolean renameTable(String currentTableName, String newTableName) {
+
+    if (jdbcConnection == null) {
+      return false;
+    }
 
     currentTableName = getCompliantIdentifier(currentTableName);
     newTableName = getCompliantIdentifier(newTableName);
@@ -863,7 +916,7 @@ public class JDBCUtils {
    * @param tableName The name of the table to check.
    * @return True on success.
    */
-  public boolean tableExists(String tableName) {
+  public static boolean tableExists(String tableName) {
     return tableExists(tableName, false);
   }
 
@@ -875,7 +928,7 @@ public class JDBCUtils {
    *     to the list it maintains in memory for performance reasons.
    * @return True on success.
    */
-  public boolean tableExists(String tableName, boolean reloadList) {
+  public static boolean tableExists(String tableName, boolean reloadList) {
     // Create table list if needed
     if (tableList == null || reloadList) {
       tableList = new ArrayList<>();

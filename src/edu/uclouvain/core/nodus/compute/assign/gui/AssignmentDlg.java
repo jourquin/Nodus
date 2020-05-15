@@ -164,8 +164,6 @@ public class AssignmentDlg extends EscapeDialog {
 
   private JSpinner iterationSpinner = new JSpinner();
 
-  private JDBCUtils jdbcUtils;
-
   private JCheckBox keepCheapestOnlyCheckBox = null;
 
   private JCheckBox lostPathsCheckBox = null;
@@ -245,14 +243,13 @@ public class AssignmentDlg extends EscapeDialog {
     super(mapPanel.getMainFrame(), "", true);
     setTitle(i18n.get(AssignmentDlg.class, "Assignment", "Assignment"));
 
-    jdbcUtils = new JDBCUtils(mapPanel.getNodusProject().getMainJDBCConnection());
     nodusMapPanel = mapPanel;
 
     initialize();
 
     reloadState();
     updateOptions();
-    
+
     setResizable(true);
     pack();
     setLocationRelativeTo(mapPanel);
@@ -1134,17 +1131,17 @@ public class AssignmentDlg extends EscapeDialog {
         new java.awt.event.MouseListener() {
           @Override
           public void mouseClicked(MouseEvent e) {
-        
+            // Must be overridden
           }
 
           @Override
           public void mouseEntered(MouseEvent e) {
-        
+            // Must be overridden
           }
 
           @Override
           public void mouseExited(MouseEvent e) {
-        
+            // Must be overridden
           }
 
           @Override
@@ -1156,7 +1153,7 @@ public class AssignmentDlg extends EscapeDialog {
 
           @Override
           public void mouseReleased(MouseEvent e) {
-        
+            // Must be overridden
           }
         });
 
@@ -1172,12 +1169,12 @@ public class AssignmentDlg extends EscapeDialog {
 
           @Override
           public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
-        
+            // Must be overridden
           }
 
           @Override
           public void popupMenuCanceled(PopupMenuEvent e) {
-        
+            // Must be overridden
           }
         });
 
@@ -1193,7 +1190,7 @@ public class AssignmentDlg extends EscapeDialog {
             e.getSource();
             if (odTablesComboBox.getSelectedItem() != null) {
               String odTableName =
-                  jdbcUtils.getCompliantIdentifier(odTablesComboBox.getSelectedItem().toString());
+                  JDBCUtils.getCompliantIdentifier(odTablesComboBox.getSelectedItem().toString());
               sqlLabel.setText("SELECT * FROM " + odTableName + " WHERE");
               if (costFunctionsComboBox.getSelectedIndex() != -1
                   || odTablesComboBox.getSelectedIndex() != -1) {
@@ -1617,7 +1614,7 @@ public class AssignmentDlg extends EscapeDialog {
         nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_VNET_TABLE, defValue)
             + scenarioSuffix;
 
-    if (jdbcUtils.tableExists(vnetTableName)) {
+    if (JDBCUtils.tableExists(vnetTableName)) {
       scenarioLabel.setBackground(Color.orange);
     } else {
       scenarioLabel.setBackground(Color.green);
@@ -1634,10 +1631,10 @@ public class AssignmentDlg extends EscapeDialog {
     if (odTableName != null) {
       // The list of OD tables could not already be loaded
       if (odTables != null) {
-        //System.err.println(odTables.indexOf(odTableName));
+        // System.err.println(odTables.indexOf(odTableName));
         odTablesComboBox.setSelectedItem(odTableName);
       } else {
-        if (jdbcUtils.tableExists(odTableName)) {
+        if (JDBCUtils.tableExists(odTableName)) {
           if (odTablesComboBox.getItemCount() > 0) {
             odTablesComboBox.removeAll();
           }

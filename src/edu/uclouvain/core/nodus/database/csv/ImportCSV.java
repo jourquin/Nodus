@@ -68,8 +68,7 @@ public class ImportCSV {
         project.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
 
     // Table must exist in order to know which structure it has
-    JDBCUtils jdbcUtils = new JDBCUtils(project.getMainJDBCConnection());
-    if (!jdbcUtils.tableExists(tableName)) {
+    if (!JDBCUtils.tableExists(tableName)) {
       JOptionPane.showMessageDialog(
           null,
           i18n.get(
@@ -86,7 +85,7 @@ public class ImportCSV {
 
       // Clean table
       Statement stmt = con.createStatement();
-      String sqlStmt = "delete from " + jdbcUtils.getCompliantIdentifier(tableName);
+      String sqlStmt = "delete from " + JDBCUtils.getCompliantIdentifier(tableName);
       stmt.executeUpdate(sqlStmt);
       stmt.close();
 

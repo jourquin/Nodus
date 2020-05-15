@@ -1003,7 +1003,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /** Import the DBF tables specified in the project if needed. */
-  private void importDBFTables(final JDBCUtils jdbcUtils) {
+  private void importDBFTables() {
 
     final String tablesToImport = projectProperties.getProperty(NodusC.PROP_IMPORT_TABLES, null);
     final NodusProject _this = this;
@@ -1016,7 +1016,7 @@ public class NodusProject implements ShapeConstants {
     while (st.hasMoreTokens()) {
       final String currentTable = st.nextToken();
       // Import only if not exists
-      if (!jdbcUtils.tableExists(currentTable)) {
+      if (!JDBCUtils.tableExists(currentTable)) {
         // Use a FoxTrot worker to displau "importing" message
         Worker.post(
             new Job() {
@@ -1132,7 +1132,7 @@ public class NodusProject implements ShapeConstants {
    *
    * @return True if the tables are compatible.
    */
-  private boolean isValidVirtualNetworkVersion(JDBCUtils jdbcUtils) {
+  private boolean isValidVirtualNetworkVersion() {
 
     /*
      * The test was perhaps already performed
@@ -1147,12 +1147,12 @@ public class NodusProject implements ShapeConstants {
       // Get table name for scenario
       String tableName = getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
       tableName = getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenario;
-      tableName = jdbcUtils.getCompliantIdentifier(tableName);
-      if (!jdbcUtils.tableExists(tableName)) {
+      tableName = JDBCUtils.getCompliantIdentifier(tableName);
+      if (!JDBCUtils.tableExists(tableName)) {
         continue;
       }
 
-      if (!jdbcUtils.hasField(tableName, NodusC.DBF_SERVICE1)) {
+      if (!JDBCUtils.hasField(tableName, NodusC.DBF_SERVICE1)) {
         // This is a version 2 virtual network
         JOptionPane.showMessageDialog(
             null,
@@ -1162,7 +1162,7 @@ public class NodusProject implements ShapeConstants {
         return false;
       }
 
-      if (!jdbcUtils.hasField(tableName, NodusC.DBF_TIME)) {
+      if (!JDBCUtils.hasField(tableName, NodusC.DBF_TIME)) {
         // This is a version 3 virtual network
         JOptionPane.showMessageDialog(
             null,
@@ -1582,10 +1582,10 @@ public class NodusProject implements ShapeConstants {
     // Initialize the user defined modal split methods for this project
     new ModalSplitMethodsLoader(projectPath);
 
-    JDBCUtils jdbcUtils = new JDBCUtils(jdbcConnection);
+    JDBCUtils.setConnection(jdbcConnection);
 
     // Test if this project has valid virtual network tables
-    if (!isValidVirtualNetworkVersion(jdbcUtils)) {
+    if (!isValidVirtualNetworkVersion()) {
       nodusMapPanel.setBusy(false);
       ProjectLocker.releaseLock();
       nodusMapPanel.getMenuFile().setEnabled(true);
@@ -1675,12 +1675,12 @@ public class NodusProject implements ShapeConstants {
 
       // Force re-import?
       if (reImportCheckBox.isSelected()) {
-        jdbcUtils.dropTable(currentName);
+        JDBCUtils.dropTable(currentName);
       }
 
       // Force reimport if dbf file is newer than the last one used in this project
       if (isDbfModified(currentName)) {
-        jdbcUtils.dropTable(currentName);
+        JDBCUtils.dropTable(currentName);
       }
 
       // Get the pretty name given to the layer. Take shapefile name if none was defined.
@@ -1738,12 +1738,12 @@ public class NodusProject implements ShapeConstants {
 
       // Force re-import?
       if (reImportCheckBox.isSelected()) {
-        jdbcUtils.dropTable(currentLayerName);
+        JDBCUtils.dropTable(currentLayerName);
       }
 
       // Force reimport if dbf file is newer than the last one used in this project
       if (isDbfModified(currentLayerName)) {
-        jdbcUtils.dropTable(currentLayerName);
+        JDBCUtils.dropTable(currentLayerName);
       }
 
       // Get the pretty name given to the layer. Take shapefile name if none was defined.
@@ -1784,7 +1784,7 @@ public class NodusProject implements ShapeConstants {
     /*
      * Import the OD tables specified in the project if needed
      */
-    importDBFTables(jdbcUtils);
+    importDBFTables();
 
     /* Load the numbers of the objects that are in shapefiles in this directory,
      * but not in current project */
@@ -1938,25 +1938,24 @@ public class NodusProject implements ShapeConstants {
    */
   public void removeScenario(int scenario) {
     String tableName;
-    JDBCUtils jdbcUtils = new JDBCUtils(getMainJDBCConnection());
 
     // Virtual network
     tableName = getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
     tableName = getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenario;
-    if (jdbcUtils.tableExists(tableName)) {
-      jdbcUtils.dropTable(tableName);
+    if (JDBCUtils.tableExists(tableName)) {
+      JDBCUtils.dropTable(tableName);
     }
 
     // Paths
     tableName = getLocalProperty(NodusC.PROP_PROJECT_DOTNAME);
     tableName = getLocalProperty(NodusC.PROP_PATH_TABLE_PREFIX, tableName);
 
-    if (jdbcUtils.tableExists(tableName + scenario + NodusC.SUFFIX_HEADER)) {
-      jdbcUtils.dropTable(tableName + scenario + NodusC.SUFFIX_HEADER);
+    if (JDBCUtils.tableExists(tableName + scenario + NodusC.SUFFIX_HEADER)) {
+      JDBCUtils.dropTable(tableName + scenario + NodusC.SUFFIX_HEADER);
     }
 
-    if (jdbcUtils.tableExists(tableName + scenario + NodusC.SUFFIX_DETAIL)) {
-      jdbcUtils.dropTable(tableName + scenario + NodusC.SUFFIX_DETAIL);
+    if (JDBCUtils.tableExists(tableName + scenario + NodusC.SUFFIX_DETAIL)) {
+      JDBCUtils.dropTable(tableName + scenario + NodusC.SUFFIX_DETAIL);
     }
 
     removeLocalProperty(NodusC.PROP_COST_FUNCTIONS + scenario);
@@ -2002,14 +2001,13 @@ public class NodusProject implements ShapeConstants {
    */
   public void renameScenario(int oldNum, int newNum) {
     String tableName;
-    JDBCUtils jdbcUtils = new JDBCUtils(getMainJDBCConnection());
 
     // Virtual network
     tableName = getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
     tableName = getLocalProperty(NodusC.PROP_VNET_TABLE, tableName);
-    if (jdbcUtils.tableExists(tableName + oldNum)) {
-      if (!jdbcUtils.tableExists(tableName + newNum)) {
-        jdbcUtils.renameTable(tableName + oldNum, tableName + newNum);
+    if (JDBCUtils.tableExists(tableName + oldNum)) {
+      if (!JDBCUtils.tableExists(tableName + newNum)) {
+        JDBCUtils.renameTable(tableName + oldNum, tableName + newNum);
       }
     }
 
@@ -2017,15 +2015,15 @@ public class NodusProject implements ShapeConstants {
     tableName = getLocalProperty(NodusC.PROP_PROJECT_DOTNAME);
     tableName = getLocalProperty(NodusC.PROP_PATH_TABLE_PREFIX, tableName);
 
-    if (jdbcUtils.tableExists(tableName + oldNum + NodusC.SUFFIX_HEADER)) {
-      if (!jdbcUtils.tableExists(tableName + newNum + NodusC.SUFFIX_HEADER)) {
-        jdbcUtils.renameTable(
+    if (JDBCUtils.tableExists(tableName + oldNum + NodusC.SUFFIX_HEADER)) {
+      if (!JDBCUtils.tableExists(tableName + newNum + NodusC.SUFFIX_HEADER)) {
+        JDBCUtils.renameTable(
             tableName + oldNum + NodusC.SUFFIX_HEADER, tableName + newNum + NodusC.SUFFIX_HEADER);
       }
     }
-    if (jdbcUtils.tableExists(tableName + oldNum + NodusC.SUFFIX_DETAIL)) {
-      if (!jdbcUtils.tableExists(tableName + newNum + NodusC.SUFFIX_DETAIL)) {
-        jdbcUtils.renameTable(
+    if (JDBCUtils.tableExists(tableName + oldNum + NodusC.SUFFIX_DETAIL)) {
+      if (!JDBCUtils.tableExists(tableName + newNum + NodusC.SUFFIX_DETAIL)) {
+        JDBCUtils.renameTable(
             tableName + oldNum + NodusC.SUFFIX_DETAIL, tableName + newNum + NodusC.SUFFIX_DETAIL);
       }
     }

@@ -60,8 +60,6 @@ public class ImportXLS {
 
   private static I18n i18n = Environment.getI18n();
 
-  private static JDBCUtils jdbcUtils;
-
   /**
    * Creates a database table using the field descriptions found in the first row of the Excel
    * sheet.
@@ -157,7 +155,7 @@ public class ImportXLS {
       }
 
       //sqlStmt += "\"" + fieldName + "\"";
-      sqlStmt += jdbcUtils.getQuotedCompliantIdentifier(fieldName);
+      sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(fieldName);
       if (fieldType.equalsIgnoreCase("N")) {
         sqlStmt += " NUMERIC(" + fieldLength + "," + fieldPrecision + ")";
       } else {
@@ -173,8 +171,7 @@ public class ImportXLS {
     // Now create the table
     try {
       Connection con = nodusProject.getMainJDBCConnection();
-      JDBCUtils jdbcUtils = new JDBCUtils(con);
-      jdbcUtils.dropTable(tableName);
+      JDBCUtils.dropTable(tableName);
       Statement stmt = con.createStatement();
       stmt.execute(sqlStmt);
       stmt.close();
@@ -201,12 +198,10 @@ public class ImportXLS {
    */
   public static boolean importTable(NodusProject nodusProject, String tableName, boolean isXLSX) {
 
-    jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
-
     // Test if table can be created from the the content of the first row of the .xls file
     if (!createTable(nodusProject, tableName, isXLSX)) {
       // Table must exist in order to know which structure it has
-      if (!jdbcUtils.tableExists(tableName)) {
+      if (!JDBCUtils.tableExists(tableName)) {
         JOptionPane.showMessageDialog(
             null,
             i18n.get(
@@ -231,11 +226,11 @@ public class ImportXLS {
 
     try {
       stmt = con.createStatement();
-      sqlStmt = "delete from " + jdbcUtils.getCompliantIdentifier(tableName);
+      sqlStmt = "delete from " + JDBCUtils.getCompliantIdentifier(tableName);
       stmt.executeUpdate(sqlStmt);
 
       // Get table structure
-      sqlStmt = "select * from " + jdbcUtils.getCompliantIdentifier(tableName);
+      sqlStmt = "select * from " + JDBCUtils.getCompliantIdentifier(tableName);
       rs = stmt.executeQuery(sqlStmt);
       metaData = rs.getMetaData();
     } catch (SQLException e) {

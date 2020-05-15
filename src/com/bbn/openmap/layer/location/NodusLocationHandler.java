@@ -113,8 +113,6 @@ public class NodusLocationHandler extends AbstractLocationHandler
 
   private OMGraphicList graphicList = new OMGraphicList();
 
-  private JDBCUtils jdbcUtils;
-
   /** By default, no field is displayed. */
   private int locationFieldIndex = -1;
 
@@ -138,7 +136,6 @@ public class NodusLocationHandler extends AbstractLocationHandler
   public NodusLocationHandler(NodusEsriLayer layer) {
     nodusEsriLayer = layer;
     con = nodusEsriLayer.getNodusMapPanel().getNodusProject().getMainJDBCConnection();
-    jdbcUtils = new JDBCUtils(con);
   }
 
   /**
@@ -375,7 +372,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
     }
 
     // Create basic query statement
-    String s = jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM);
+    String s = JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM);
     String locationQueryString = "SELECT  " + s + " FROM " + nodusEsriLayer.getTableName();
 
     // Add the where statement

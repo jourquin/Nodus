@@ -172,8 +172,8 @@ public class CreateMLogitInput_ {
       fields[idx++] = new JDBCField("dst", "NUMERIC(10)");
       fields[idx++] = new JDBCField("ldmode", "NUMERIC(2)");
       fields[idx++] = new JDBCField("cost", "NUMERIC(10,3)");
-      JDBCUtils jdbcUtils = new JDBCUtils(jdbcConnection);
-      jdbcUtils.createTable("tmp", fields);
+      
+      JDBCUtils.createTable("tmp", fields);
       String sqlStmt = "INSERT INTO tmp  VALUES (?,?,?,?,?)";
 
       try {

@@ -18,17 +18,16 @@
  * <p>You should have received a copy of the GNU General Public License along with this program. If
  * not, see http://www.gnu.org/licenses/.
  */
+
 package edu.uclouvain.core.nodus.database.dbf;
 
 import com.bbn.openmap.dataAccess.shape.DbfTableModel;
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
-
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
-
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -57,7 +56,6 @@ public class ExportDBF implements ShapeConstants {
    */
   private static DBFWriter createTable(NodusProject nodusProject, String tableName) {
     Connection con = nodusProject.getMainJDBCConnection();
-    JDBCUtils jdbcUtils = new JDBCUtils(con);
     DBFField[] field = null;
     DBFWriter dbf = null;
 
@@ -69,7 +67,7 @@ public class ExportDBF implements ShapeConstants {
 
       // Specify the type of object; in this case we want tables
       ResultSet col =
-          dbmd.getColumns(null, null, jdbcUtils.getCompliantIdentifier(tableName), null);
+          dbmd.getColumns(null, null, JDBCUtils.getCompliantIdentifier(tableName), null);
 
       Vector<String> names = new Vector<>();
       Vector<String> types = new Vector<>();
@@ -87,7 +85,7 @@ public class ExportDBF implements ShapeConstants {
         } else {
           // As the metadata doesn't contain a usable width for numerical values, estimate it
           int w =
-              jdbcUtils.getNumWidth(
+              JDBCUtils.getNumWidth(
                   tableName, col.getString("COLUMN_NAME"), col.getInt("DECIMAL_DIGITS"));
           sizes.add(w);
         }
@@ -180,17 +178,17 @@ public class ExportDBF implements ShapeConstants {
    */
   private static boolean createTmpTable(
       String path, String tableName, Connection jdbcConnection, String tmpTable) {
-    JDBCUtils jdbcUtils = new JDBCUtils(jdbcConnection);
-    jdbcUtils.dropTable(tmpTable);
+
+    JDBCUtils.dropTable(tmpTable);
 
     try {
       String sqlStmt =
           "CREATE TABLE "
               + tmpTable
               + " ("
-              + jdbcUtils.getQuotedCompliantIdentifier("recno")
+              + JDBCUtils.getQuotedCompliantIdentifier("recno")
               + " INTEGER, "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
               + " NUMERIC(5,0))";
 
       Statement stmt = jdbcConnection.createStatement();
@@ -242,8 +240,7 @@ public class ExportDBF implements ShapeConstants {
       return false;
     }
 
-    JDBCUtils jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
-    String sqlStmt = "SELECT * FROM " + jdbcUtils.getCompliantIdentifier(tableName);
+    String sqlStmt = "SELECT * FROM " + JDBCUtils.getCompliantIdentifier(tableName);
 
     return fillTable(nodusProject, dbf, sqlStmt);
   }
@@ -312,9 +309,8 @@ public class ExportDBF implements ShapeConstants {
   private static boolean exportGenericEsriDbf(NodusProject nodusProject, String tableName) {
     System.out.println("exportGenericEsriDbf ...");
 
-    JDBCUtils jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
-    String table = jdbcUtils.getCompliantIdentifier(tableName);
-    String tmp = jdbcUtils.getCompliantIdentifier("tmp");
+    String table = JDBCUtils.getCompliantIdentifier(tableName);
+    String tmp = JDBCUtils.getCompliantIdentifier("tmp");
 
     // We need to know in which order to store the records. Create a
     // temporary table for that purpose
@@ -340,21 +336,21 @@ public class ExportDBF implements ShapeConstants {
             + " WHERE "
             + table
             + "."
-            + jdbcUtils.getCompliantIdentifier(NodusC.DBF_NUM)
+            + JDBCUtils.getCompliantIdentifier(NodusC.DBF_NUM)
             + " = "
             + tmp
             + "."
-            + jdbcUtils.getCompliantIdentifier(NodusC.DBF_NUM)
+            + JDBCUtils.getCompliantIdentifier(NodusC.DBF_NUM)
             + " ORDER BY "
             + tmp
             + "."
-            + jdbcUtils.getCompliantIdentifier("recno");
+            + JDBCUtils.getCompliantIdentifier("recno");
 
     // OK, now fill the table
     boolean result = fillTable(nodusProject, dbf, sqlStmt);
 
     // Remove tmp table
-    jdbcUtils.dropTable(tmp);
+    JDBCUtils.dropTable(tmp);
 
     return result;
   }

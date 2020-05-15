@@ -53,8 +53,8 @@ public class ImportDBF {
    * @return boolean
    */
   private static boolean createTable(String tableName, DBFReader dbfReader) {
-    JDBCUtils jdbcUtils = new JDBCUtils(jdbcConnection);
-    jdbcUtils.dropTable(tableName);
+
+    JDBCUtils.dropTable(tableName);
 
     String sqlStmt = "CREATE TABLE " + tableName + " (";
     int n = dbfReader.getFieldCount();
@@ -200,7 +200,6 @@ public class ImportDBF {
   public static boolean importTable(NodusProject project, String tableName) {
     jdbcConnection = project.getMainJDBCConnection();
 
-    JDBCUtils jdbcUtils = new JDBCUtils(jdbcConnection);
     String path = project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
 
     maxBatchSize = project.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
@@ -219,12 +218,12 @@ public class ImportDBF {
     }
 
     // Uppercases? Lowercases?, Mixed? Depends on database capabilities ...
-    String jdbcTableName = jdbcUtils.getCompliantIdentifier(tableName);
+    String jdbcTableName = JDBCUtils.getCompliantIdentifier(tableName);
 
     // Create table
     try {
       // Create new table and drop existent one
-      jdbcUtils.dropTable(jdbcTableName);
+      JDBCUtils.dropTable(jdbcTableName);
 
       // Open .dbf file
       DBFReader dbfReader = new DBFReader(path + tableName + NodusC.TYPE_DBF);

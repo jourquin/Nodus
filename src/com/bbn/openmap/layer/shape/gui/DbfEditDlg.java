@@ -212,7 +212,8 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
         if (error) {
           JOptionPane.showMessageDialog(
               null,
-              i18n.get(DbfEditDlg.class, "Date_expected", "Valid date in the YYYYMMDD format expected"),
+              i18n.get(
+                  DbfEditDlg.class, "Date_expected", "Valid date in the YYYYMMDD format expected"),
               NodusC.APPNAME,
               JOptionPane.ERROR_MESSAGE);
 
@@ -327,8 +328,6 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
   private boolean isTableChanged = false;
 
-  private JDBCUtils jdbcUtils;
-
   private JPanel mainPanel = new JPanel();
 
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
@@ -386,9 +385,6 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     super(layer.getNodusMapPanel().getMainFrame(), "", true);
 
     nodusEsriLayer = layer;
-
-    jdbcUtils =
-        new JDBCUtils(nodusEsriLayer.getNodusMapPanel().getNodusProject().getMainJDBCConnection());
 
     // Some of the fields can not be edited in order not to break the integrity of the database
     nbUneditableFields = 5;
@@ -1248,7 +1244,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
       for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
         sqlStmt +=
-            jdbcUtils.getQuotedCompliantIdentifier(nodusEsriLayer.getModel().getColumnName(i))
+            JDBCUtils.getQuotedCompliantIdentifier(nodusEsriLayer.getModel().getColumnName(i))
                 + '=';
         cell = nodusEsriLayer.getModel().getValueAt(nodusEsriLayer.getSelectedGraphicIndex(), i);
 
@@ -1276,7 +1272,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
               nodusEsriLayer
                   .getModel()
                   .getValueAt(nodusEsriLayer.getSelectedGraphicIndex(), NodusC.DBF_IDX_NUM));
-      sqlStmt += " WHERE " + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM) + " = " + num;
+      sqlStmt += " WHERE " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM) + " = " + num;
 
       nodusEsriLayer.executeUpdateSqlStmt(sqlStmt);
       nodusEsriLayer.setDirtyDbf(true);

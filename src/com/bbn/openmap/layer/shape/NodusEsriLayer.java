@@ -126,8 +126,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   /** Set to true when the layers are ready to be painted. */
   private boolean isReady = false;
 
-  private JDBCUtils jdbcUtils;
-
   /**
    * Name of the variable that can be used in the cost functions and that represents this layer. The
    * variable itself is a 0/1 integer value
@@ -256,7 +254,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
             "INSERT INTO "
                 + getTableName()
                 + " ("
-                + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
                 + ") VALUES ("
                 + num.toString()
                 + ")";
@@ -345,7 +343,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
             "INSERT INTO "
                 + getTableName()
                 + " ("
-                + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
                 + ") VALUES ("
                 + num.toString()
                 + ")";
@@ -355,15 +353,15 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
             "UPDATE "
                 + getTableName()
                 + " SET "
-                + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE1)
+                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE1)
                 + " = "
                 + numNode1
                 + ", "
-                + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE2)
+                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE2)
                 + " = "
                 + numNode2
                 + " WHERE "
-                + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
                 + " = "
                 + newNumber;
         executeUpdateSqlStmt(sqlStmt);
@@ -450,7 +448,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     // Create complete query string
     String sqlstmt =
-        "SELECT " + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM) + " FROM " + tableName;
+        "SELECT " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM) + " FROM " + tableName;
 
     // Add a where condition if it exists
     if (this.whereStmt.length() > 0) {
@@ -721,7 +719,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     // Create query string
     String sqlstmt =
         "SELECT "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
             + " FROM "
             + tableName
             + " WHERE "
@@ -833,7 +831,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
       ExportDBF.exportTable(nodusProject, tableName + NodusC.TYPE_DBF, tm);
 
       // Force reimport in SQL database
-      jdbcUtils.dropTable(tableName);
+      JDBCUtils.dropTable(tableName);
     }
   }
 
@@ -1325,7 +1323,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         "DELETE FROM "
             + getTableName()
             + " WHERE "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
             + " = "
             + num;
     executeUpdateSqlStmt(sqlStmt);
@@ -1364,7 +1362,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
           "DELETE FROM "
               + getTableName()
               + " WHERE "
-              + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
               + " = "
               + num;
       executeUpdateSqlStmt(sqlStmt);
@@ -1384,7 +1382,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
    */
   public void rollback() {
     if (dirtyDbf) {
-      jdbcUtils.dropTable(getTableName());
+      JDBCUtils.dropTable(getTableName());
     }
   }
 
@@ -1476,7 +1474,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
       }
     }
 
-    sqlStmt += " WHERE " + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM) + " = " + num;
+    sqlStmt += " WHERE " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM) + " = " + num;
     executeUpdateSqlStmt(sqlStmt);
     dirtyDbf = true;
   }
@@ -1630,8 +1628,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     }
 
     // Basic settings needed to create a valid EsriLayer
-    jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
-
     tablePath = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
     tableName = nodusProject.getLocalProperty(layerName + NodusC.PROP_NAME);
 
@@ -1677,7 +1673,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     fixDBFFile();
 
     // Verify if dbf table must be imported in database
-    if (!jdbcUtils.tableExists(layerName)) {
+    if (!JDBCUtils.tableExists(layerName)) {
       nodusProject
           .getNodusMapPanel()
           .setText(

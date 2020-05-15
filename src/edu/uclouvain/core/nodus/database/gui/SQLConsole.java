@@ -137,7 +137,6 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  *
  * @author Bart Jourquin
  */
-
 public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   private static final String CLEARSCENARIO = "CLEARSCENARIO";
 
@@ -1350,7 +1349,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   private void initGUI() {
     JPanel commandPanel = new JPanel();
 
-    //resultPanel = new JPanel();
+    // resultPanel = new JPanel();
     nsSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, commandPanel, resultPanel);
 
     commandPanel.setLayout(new BorderLayout());
@@ -1665,7 +1664,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    */
   @Override
   public void keyReleased(KeyEvent k) {
-
+    // Must be overridden
   }
 
   /**
@@ -1675,7 +1674,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    */
   @Override
   public void keyTyped(KeyEvent evt) {
-
+    // Must be overridden
   }
 
   /** Loads history (recent SQL statements) from property file. */
@@ -1771,29 +1770,28 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     if (answer == JOptionPane.YES_OPTION) {
 
-      JDBCUtils jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
       // drop node tables
       NodusEsriLayer[] layer = nodusProject.getNodeLayers();
 
       for (NodusEsriLayer element : layer) {
-        jdbcUtils.dropTable(element.getTableName());
+        JDBCUtils.dropTable(element.getTableName());
       }
 
       // drop node link tables
       layer = nodusProject.getLinkLayers();
 
       for (NodusEsriLayer element : layer) {
-        jdbcUtils.dropTable(element.getTableName());
+        JDBCUtils.dropTable(element.getTableName());
       }
 
       // Drop O-D table
       String defValue =
           nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_OD;
-      jdbcUtils.dropTable(nodusProject.getLocalProperty(NodusC.PROP_EXC_TABLE, defValue));
+      JDBCUtils.dropTable(nodusProject.getLocalProperty(NodusC.PROP_EXC_TABLE, defValue));
 
       // Drop exclusions
       defValue = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_EXC;
-      jdbcUtils.dropTable(nodusProject.getLocalProperty(NodusC.PROP_EXC_TABLE, defValue));
+      JDBCUtils.dropTable(nodusProject.getLocalProperty(NodusC.PROP_EXC_TABLE, defValue));
 
       // Drop assignment results
       for (int scenario = 0; scenario < NodusC.MAXSCENARIOS; scenario++) {
@@ -1933,9 +1931,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
               // In Oracle, limit to the schema of the user
               String schema = null;
               if (JDBCUtils.getDbEngine(jdbcConnection) == JDBCUtils.DB_ORACLE) {
-                JDBCUtils jdbcUtils = new JDBCUtils(jdbcConnection);
                 schema =
-                    jdbcUtils.getCompliantIdentifier(
+                    JDBCUtils.getCompliantIdentifier(
                         nodusProject.getLocalProperty(NodusC.PROP_JDBC_USERNAME, "null"));
               }
 
@@ -2287,7 +2284,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   /** .@exclude */
   @Override
   public void windowActivated(WindowEvent e) {
-
+    // Must be overridden
   }
 
   /**
@@ -2354,7 +2351,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    */
   @Override
   public void windowDeactivated(WindowEvent e) {
-
+    // Must be overridden
   }
 
   /**
@@ -2364,7 +2361,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    */
   @Override
   public void windowDeiconified(WindowEvent e) {
-
+    // Must be overridden
   }
 
   /**
@@ -2374,7 +2371,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    */
   @Override
   public void windowIconified(WindowEvent e) {
-
+    // Must be overridden
   }
 
   /**
@@ -2384,6 +2381,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    */
   @Override
   public void windowOpened(WindowEvent e) {
-
+    // Must be overridden
   }
 }

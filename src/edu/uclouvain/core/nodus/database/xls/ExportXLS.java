@@ -57,7 +57,6 @@ public class ExportXLS {
    */
   public static boolean exportTable(NodusProject nodusProject, String tableName, boolean isXLSX) {
 
-    JDBCUtils jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
     Workbook wbs;
     if (isXLSX) {
       wbs = new XSSFWorkbook();
@@ -75,7 +74,7 @@ public class ExportXLS {
       // Insert table structure in first row
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet col =
-          dbmd.getColumns(null, null, jdbcUtils.getCompliantIdentifier(tableName), null);
+          dbmd.getColumns(null, null, JDBCUtils.getCompliantIdentifier(tableName), null);
 
       int nbColumns = 0;
       Vector<Boolean> numerical = new Vector<>();
@@ -98,7 +97,7 @@ public class ExportXLS {
       col.close();
 
       // Loop over the rows to import data in table
-      String sqlStmt = "select * from " + jdbcUtils.getCompliantIdentifier(tableName);
+      String sqlStmt = "select * from " + JDBCUtils.getCompliantIdentifier(tableName);
       ResultSet rs = null;
 
       try {

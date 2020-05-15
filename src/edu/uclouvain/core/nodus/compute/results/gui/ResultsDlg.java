@@ -103,8 +103,6 @@ public class ResultsDlg extends EscapeDialog {
 
   private GridBagLayout gridBagLayout1 = new GridBagLayout();
 
-  private JDBCUtils jdbcUtils;
-
   private JRadioButton linkRadioButton = new JRadioButton();
 
   private String linksFlowQueryString = "";
@@ -148,7 +146,6 @@ public class ResultsDlg extends EscapeDialog {
 
     nodusMapPanel = mapPanel;
     nodusProject = nodusMapPanel.getNodusProject();
-    jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
     currentScenario = nodusProject.getLocalProperty(NodusC.PROP_SCENARIO, 0);
 
     initialize();
@@ -339,25 +336,25 @@ public class ResultsDlg extends EscapeDialog {
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
     String tableName =
         nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, defValue) + currentScenario;
-    tableName = jdbcUtils.getCompliantIdentifier(tableName);
+    tableName = JDBCUtils.getCompliantIdentifier(tableName);
 
     String timeString = "";
     if (isTimeDependent) {
-      timeString = ", " + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_TIME);
+      timeString = ", " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_TIME);
     }
 
     return "SELECT "
-        + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK1)
+        + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK1)
         + ", SUM("
-        + jdbcUtils.getQuotedCompliantIdentifier(typeOfFlow)
+        + JDBCUtils.getQuotedCompliantIdentifier(typeOfFlow)
         + ") FROM "
         + tableName
         + " WHERE "
-        + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK1)
+        + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK1)
         + " = "
-        + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK2)
+        + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK2)
         + " GROUP BY "
-        + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK1)
+        + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK1)
         + timeString;
   }
 
@@ -384,16 +381,16 @@ public class ResultsDlg extends EscapeDialog {
       tableName = nodusProject.getLocalProperty(NodusC.PROP_OD_TABLE, defValue);
     }
 
-    tableName = jdbcUtils.getCompliantIdentifier(tableName);
+    tableName = JDBCUtils.getCompliantIdentifier(tableName);
 
     return "SELECT "
-        + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_ORIGIN)
+        + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ORIGIN)
         + ", SUM("
-        + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
+        + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
         + ") FROM "
         + tableName
         + " GROUP BY "
-        + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_ORIGIN);
+        + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ORIGIN);
   }
 
   /**
@@ -419,14 +416,14 @@ public class ResultsDlg extends EscapeDialog {
             + currentScenario
             + NodusC.SUFFIX_HEADER;
 
-    detailTableName = jdbcUtils.getCompliantIdentifier(detailTableName);
-    headerTableName = jdbcUtils.getCompliantIdentifier(headerTableName);
+    detailTableName = JDBCUtils.getCompliantIdentifier(detailTableName);
+    headerTableName = JDBCUtils.getCompliantIdentifier(headerTableName);
 
     /* Does the header file have "time" values ? */
     String timeWhereClause = "";
-    if (jdbcUtils.hasSeveralValues(headerTableName, NodusC.DBF_TIME)) {
+    if (JDBCUtils.hasSeveralValues(headerTableName, NodusC.DBF_TIME)) {
       timeWhereClause =
-          " AND " + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_TIME) + " = ???";
+          " AND " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_TIME) + " = ???";
     }
 
     /*
@@ -438,9 +435,9 @@ public class ResultsDlg extends EscapeDialog {
     return "SELECT ABS("
         + detailTableName
         + "."
-        + jdbcUtils.getCompliantIdentifier(NodusC.DBF_LINK)
+        + JDBCUtils.getCompliantIdentifier(NodusC.DBF_LINK)
         + "), SUM("
-        + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
+        + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
         + ")"
         + " FROM "
         + headerTableName
@@ -449,24 +446,24 @@ public class ResultsDlg extends EscapeDialog {
         + " ON "
         + headerTableName
         + "."
-        + jdbcUtils.getCompliantIdentifier(NodusC.DBF_PATH_INDEX)
+        + JDBCUtils.getCompliantIdentifier(NodusC.DBF_PATH_INDEX)
         + " = "
         + detailTableName
         + "."
-        + jdbcUtils.getCompliantIdentifier(NodusC.DBF_PATH_INDEX)
+        + JDBCUtils.getCompliantIdentifier(NodusC.DBF_PATH_INDEX)
         + " WHERE "
-        + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
+        + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
         + " = ??"
         + " AND "
-        + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_ORIGIN)
+        + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ORIGIN)
         + " = ??? AND "
-        + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_DESTINATION)
+        + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_DESTINATION)
         + " = ???"
         + timeWhereClause
         + " GROUP BY "
         + detailTableName
         + "."
-        + jdbcUtils.getCompliantIdentifier(NodusC.DBF_LINK);
+        + JDBCUtils.getCompliantIdentifier(NodusC.DBF_LINK);
   }
 
   /** Initializes the GUI components of the dialog box. */

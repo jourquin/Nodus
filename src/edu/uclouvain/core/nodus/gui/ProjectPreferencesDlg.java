@@ -91,8 +91,6 @@ public class ProjectPreferencesDlg extends EscapeDialog {
 
   private JCheckBox highlightedAreaCheckBox = null;
 
-  private JDBCUtils jdbcUtils;
-
   private JPanel mainPanel = new JPanel();
 
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
@@ -149,8 +147,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
 
     this.nodusProject = nodusProject;
     jdbcConnection = nodusProject.getMainJDBCConnection();
-    jdbcUtils = new JDBCUtils(jdbcConnection);
-
+  
     initialize();
     getRootPane().setDefaultButton(okButton);
     setLocationRelativeTo(nodusProject.getNodusMapPanel());
@@ -834,7 +831,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
       if (odTables != null) {
         odTablesCombo.setSelectedItem(tableName);
       } else {
-        if (jdbcUtils.tableExists(tableName)) {
+        if (JDBCUtils.tableExists(tableName)) {
           // odTablesCombo.removeAll();
           odTablesCombo.addItem(tableName);
           odTablesCombo.setSelectedItem(tableName);

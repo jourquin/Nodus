@@ -80,8 +80,6 @@ public class ExclusionDlg extends EscapeDialog {
 
   private JSpinner groupSpinner = new JSpinner(new SpinnerNumberModel(0, -1, 99, 1));
 
-  private JDBCUtils jdbcUtils;
-
   private JScrollPane scrollPane1 = new JScrollPane();
 
   private JPanel mainPanel = new JPanel();
@@ -139,7 +137,6 @@ public class ExclusionDlg extends EscapeDialog {
     super(dialog, "", false);
 
     nodusProject = layer.getNodusMapPanel().getNodusProject();
-    jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
     this.nodeNum = nodeNum;
 
     initialize();
@@ -219,7 +216,7 @@ public class ExclusionDlg extends EscapeDialog {
     field[idx++] = new JDBCField(NodusC.DBF_MEANS1, "NUMERIC(2)");
     field[idx++] = new JDBCField(NodusC.DBF_MODE2, "NUMERIC(2)");
     field[idx++] = new JDBCField(NodusC.DBF_MEANS2, "NUMERIC(2)");
-    if (!jdbcUtils.createTable(tableName, field)) {
+    if (!JDBCUtils.createTable(tableName, field)) {
       return false;
     }
     return true;
@@ -631,29 +628,29 @@ public class ExclusionDlg extends EscapeDialog {
     tableName = nodusProject.getLocalProperty(NodusC.PROP_EXC_TABLE, defValue);
 
     // Exclusions may not exist: create an empty table
-    if (!jdbcUtils.tableExists(tableName)) {
+    if (!JDBCUtils.tableExists(tableName)) {
       createExclusionsTable(tableName);
     }
 
     String sql =
         "SELECT "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
             + ","
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
             + ","
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
             + ","
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
             + ","
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
             + " FROM "
             + tableName
             + " WHERE "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
             + " = "
             + nodeNum
             + " ORDER BY "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP);
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP);
 
     // connect to database and execute query
     try {
@@ -704,23 +701,23 @@ public class ExclusionDlg extends EscapeDialog {
         "DELETE FROM "
             + tableName
             + " WHERE "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
             + " = "
             + group
             + " AND "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
             + " = "
             + mode1
             + " AND "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
             + " = "
             + means1
             + " AND "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
             + " = "
             + mode2
             + " AND "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
             + " = "
             + means2;
     sqlBatch.add(sqlStmt);

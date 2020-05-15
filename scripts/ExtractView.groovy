@@ -201,7 +201,6 @@ public class ExtractView_ {
 
       // Get all the od tables of the project
       Connection jdbcConnection = nodusProject.getMainJDBCConnection();
-      JDBCUtils jdbcUtils = new JDBCUtils(jdbcConnection);
       Vector odTables = ODReader.getValidODTables(nodusMapPanel.getNodusProject());
 
       boolean hasClasses = false;
@@ -214,7 +213,7 @@ public class ExtractView_ {
           String odTableName = it.next();
           System.out.println("Processing OD table : " + odTableName);
 
-          odTableName = jdbcUtils.getCompliantIdentifier(odTableName);
+          odTableName = JDBCUtils.getCompliantIdentifier(odTableName);
           ResultSet rs = stmt.executeQuery("SELECT * FROM " + odTableName);
 
           // Get result set meta data
@@ -241,7 +240,7 @@ public class ExtractView_ {
           }
 
           // Create table for extracted data
-          String extractedOD = jdbcUtils.getCompliantIdentifier(odTableName + "_extract");
+          String extractedOD = JDBCUtils.getCompliantIdentifier(odTableName + "_extract");
           JDBCField[] field;
           if (hasClasses) {
             field = new JDBCField[5];
@@ -255,20 +254,20 @@ public class ExtractView_ {
           if (hasClasses) {
             field[4] = new JDBCField(NodusC.DBF_CLASS, "NUMERIC(8,3)");
           }
-          jdbcUtils.createTable(extractedOD, field);
+          JDBCUtils.createTable(extractedOD, field);
 
           // Fill the table
           String sqlStmt =
-              "SELECT " + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP) + ", ";
-          sqlStmt += jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_ORIGIN) + ", ";
-          sqlStmt += jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_DESTINATION) + ", ";
-          sqlStmt += jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY);
+              "SELECT " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP) + ", ";
+          sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ORIGIN) + ", ";
+          sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_DESTINATION) + ", ";
+          sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY);
 
           if (hasClasses) {
-            sqlStmt += ", " + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_CLASS);
+            sqlStmt += ", " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_CLASS);
           }
 
-          sqlStmt += " FROM " + jdbcUtils.getQuotedCompliantIdentifier(odTableName);
+          sqlStmt += " FROM " + JDBCUtils.getQuotedCompliantIdentifier(odTableName);
 
           rs = stmt.executeQuery(sqlStmt);
 
@@ -354,7 +353,7 @@ public class ExtractView_ {
           
           // Export table and delete it from database 
           ExportDBF.exportTable(nodusProject, extractedOD);
-          jdbcUtils.dropTable(extractedOD)
+          JDBCUtils.dropTable(extractedOD)
         }
         stmt.close();
         stmt2.close();

@@ -45,8 +45,6 @@ public class ExclusionReader {
 
   private boolean isOk = true;
 
-  private JDBCUtils jdbcUtils;
-
   private int nbRecords = 0;
 
   private NodusMapPanel nodusMapPanel;
@@ -65,7 +63,6 @@ public class ExclusionReader {
   public ExclusionReader(VirtualNetwork vnet) {
     nodusProject = vnet.getNodusProject();
     nodusMapPanel = nodusProject.getNodusMapPanel();
-    jdbcUtils = new JDBCUtils(nodusProject.getMainJDBCConnection());
     virtualNet = vnet;
 
     // Create SQL statement
@@ -74,7 +71,7 @@ public class ExclusionReader {
     tableName = nodusProject.getLocalProperty(NodusC.PROP_EXC_TABLE, defValue);
 
     // Exclusions may not exist
-    if (!jdbcUtils.tableExists(tableName)) {
+    if (!JDBCUtils.tableExists(tableName)) {
       return;
     }
 
@@ -124,17 +121,17 @@ public class ExclusionReader {
     // Load all exclusions for current group and for group 0
     String sql =
         "SELECT "
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
             + ","
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
             + ","
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
             + ","
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
             + ","
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
             + ","
-            + jdbcUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
             + " FROM "
             + tableName;
 
