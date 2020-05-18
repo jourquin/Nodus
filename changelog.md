@@ -138,3 +138,6 @@ keeping unloading possible.
 that are not supported by Nodus.
 - Automatically change LOGICAL DBF fields to NUMERIC(1,0) fields, as Booleans are not supported by all DBMS's.
 - Use JavaDbf4Nodus 1.12.1, that uses UTF-8 encoding by default.
+- Upgrade to mariadb-java-client 2.6
+- Accept SQL DATE in the DBF files.
+

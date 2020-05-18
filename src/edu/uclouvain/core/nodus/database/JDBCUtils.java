@@ -112,9 +112,7 @@ public class JDBCUtils {
     jdbcConnection = null;
   }
 
-  /**
-   * H2 and HSQLDB databases can be compacted at shutdown time.
-   */
+  /** H2 and HSQLDB databases can be compacted at shutdown time. */
   public static void shutdownCompact() {
     if (dbEngine == DB_HSQLDB || dbEngine == DB_H2) {
 
@@ -285,6 +283,11 @@ public class JDBCUtils {
         return DB_MYSQL;
       }
 
+      // Consider MariaDB as a MySQL database
+      if (productName.toLowerCase().indexOf("mariadb") != -1) {
+        return DB_MYSQL;
+      }
+
       if (productName.toLowerCase().indexOf("hsql") != -1) {
         return DB_HSQLDB;
       }
@@ -360,15 +363,15 @@ public class JDBCUtils {
    * Returns the SQL expression needed to properly insert a date in a row.
    *
    * @param date String in the YYYYMMDD format (8 numeric characters).
-   * @return Someting like "to_date('2025-10-12','YYYY-MM-DD')", but is DBMS dependent.
+   * @return A string in the YYYY-MM-DD format or null on error.
    */
   public static String getDate(String date) {
 
     if (jdbcConnection == null) {
-      return "19000101";
+      return null;
     }
 
-    // Test length. Must be 8.
+    // Test length must be 8.
     if (date.length() != 8) {
       System.err.println("Invalid date format:" + date);
       return null;
@@ -385,17 +388,7 @@ public class JDBCUtils {
     // Convert in "YYYY-MM-DD" format
     String date2 = date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6, 8);
 
-    // Convert to  SQL date
-    String function = "to_date";
-    String format = "YYYY-MM-DD";
-
-    if (getDbEngine() == DB_MYSQL) {
-      function = "str_to_date";
-    }
-
-    String s = function + "('" + date2 + "', '" + format + "')";
-
-    return s;
+    return "'" + date2 + "'";
   }
 
   /**

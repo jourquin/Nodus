@@ -82,12 +82,14 @@ public class ExportDBF implements ShapeConstants {
 
         if (typeName.contains("CHAR")) {
           sizes.add(col.getInt("COLUMN_SIZE"));
-        } else {
+        } else if (!typeName.contains("DATE")) {
           // As the metadata doesn't contain a usable width for numerical values, estimate it
           int w =
               JDBCUtils.getNumWidth(
                   tableName, col.getString("COLUMN_NAME"), col.getInt("DECIMAL_DIGITS"));
           sizes.add(w);
+        } else if (typeName.contains("DATE")) {
+          sizes.add(8);
         }
       }
       col.close();
@@ -107,7 +109,9 @@ public class ExportDBF implements ShapeConstants {
           columnType = 'C';
         }
 
-        /* TODO Other data types (dates) */
+        if (types.get(i).contains("DATE")) {
+          columnType = 'D';
+        }
 
         int columnSize = sizes.get(i);
         int decimalDigit = 0;

@@ -12,16 +12,7 @@
 - Include scenario
 - Backward compatibility : script to upgrade exclusion table or automatic upgrade
 - Display "-1" as default value in dialog
-
-# DBF
-
-- Dates in non HSQLDB must be tested.
   
 # Jung and xchart
 - Set user defined color for modes and means
 
-
-# Diverse
-UTF8 problem with MySQL...
-No problem with static JDBCUtils ?
-Other Deprecated methods in JDBCUtils (with Connection parameter) ?
