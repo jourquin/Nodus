@@ -37,7 +37,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileFilter;
-import java.sql.Connection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -74,8 +73,6 @@ public class ProjectPreferencesDlg extends EscapeDialog {
   private JButton cancelButton = new JButton();
 
   private JCheckBox compactCheckBox;
-
-  private Connection jdbcConnection;
 
   private JComboBox<String> costFilesCombo = new JComboBox<>();
 
@@ -146,7 +143,6 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     super(nodusProject.getNodusMapPanel().getMainFrame(), "", true);
 
     this.nodusProject = nodusProject;
-    jdbcConnection = nodusProject.getMainJDBCConnection();
   
     initialize();
     getRootPane().setDefaultButton(okButton);
@@ -436,8 +432,8 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     gbcCompactCheckBox.gridx = 0;
     gbcCompactCheckBox.gridy = 13;
     mainPanel.add(compactCheckBox, gbcCompactCheckBox);
-    if (JDBCUtils.getDbEngine(jdbcConnection) != JDBCUtils.DB_HSQLDB
-        && JDBCUtils.getDbEngine(jdbcConnection) != JDBCUtils.DB_H2) {
+    if (JDBCUtils.getDbEngine() != JDBCUtils.DB_HSQLDB
+        && JDBCUtils.getDbEngine() != JDBCUtils.DB_H2) {
       compactCheckBox.setEnabled(false);
     }
 

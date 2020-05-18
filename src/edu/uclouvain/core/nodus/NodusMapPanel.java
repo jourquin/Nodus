@@ -2861,7 +2861,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
 
     // Get database engine name
-    String dbName = JDBCUtils.getDbEngineName(nodusProject.getMainJDBCConnection());
+    String dbName = JDBCUtils.getDbEngineName();
 
     // Set title
     getMainFrame().setTitle(NodusC.APPNAME + " [(" + dbName + ") " + title + "]");

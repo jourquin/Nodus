@@ -412,8 +412,8 @@ public class NodusProject implements ShapeConstants {
           }
 
           // Ask if a "shutdown compact" must be performed as this can take a while
-          if (JDBCUtils.getDbEngine(jdbcConnection) == JDBCUtils.DB_HSQLDB
-              || JDBCUtils.getDbEngine(jdbcConnection) == JDBCUtils.DB_H2) {
+          if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB
+              || JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
 
             if (Boolean.parseBoolean(getLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, "true"))) {
 
@@ -432,7 +432,7 @@ public class NodusProject implements ShapeConstants {
                     new Job() {
                       @Override
                       public Object run() {
-                        JDBCUtils.shutdownCompact(jdbcConnection);
+                        JDBCUtils.shutdownCompact();
                         return null;
                       }
                     });
@@ -1535,7 +1535,7 @@ public class NodusProject implements ShapeConstants {
 
     // Set some defaults for HSQLDB 2.1
 
-    if (JDBCUtils.getDbEngine(jdbcConnection) == JDBCUtils.DB_HSQLDB) {
+    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB) {
       try {
         Statement stmt = jdbcConnection.createStatement();
         stmt.execute("SET DEFAULT TABLE TYPE CACHED");
@@ -1551,7 +1551,7 @@ public class NodusProject implements ShapeConstants {
     }
 
     /* Derby hasn't a ROUND function. Add it */
-    if (JDBCUtils.getDbEngine(jdbcConnection) == JDBCUtils.DB_DERBY) {
+    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_DERBY) {
       try {
         Statement stmt = jdbcConnection.createStatement();
 

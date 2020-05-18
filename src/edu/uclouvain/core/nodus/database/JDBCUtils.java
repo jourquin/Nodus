@@ -82,7 +82,8 @@ public class JDBCUtils {
   /**
    * This constructor is maintained for backward compatibility (< Nodus 7.3)
    *
-   * @param jdbcConnection The connection to the database
+   * @param jdbcConnection The connection to the database @Deprecated Use JDBCUtils in a pure static
+   *     way.
    */
   @Deprecated
   public JDBCUtils(Connection jdbcConnection) {
@@ -92,10 +93,30 @@ public class JDBCUtils {
   /**
    * H2 and HSQLDB databases can be compacted at shutdown time.
    *
-   * @param jdbcConnection An open JDBC connection.
+   * @param jdbcConnection An open JDBC connection. @Deprecated Replaced by {@link
+   *     JDBCUtils#shutdownCompact()}
    */
+  @Deprecated
   public static void shutdownCompact(Connection jdbcConnection) {
     if (getDbEngine(jdbcConnection) == DB_HSQLDB || getDbEngine(jdbcConnection) == DB_H2) {
+
+      // Compact database
+      try {
+        Statement stmt = jdbcConnection.createStatement();
+        stmt.execute("SHUTDOWN COMPACT");
+        stmt.close();
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    }
+    jdbcConnection = null;
+  }
+
+  /**
+   * H2 and HSQLDB databases can be compacted at shutdown time.
+   */
+  public static void shutdownCompact() {
+    if (dbEngine == DB_HSQLDB || dbEngine == DB_H2) {
 
       // Compact database
       try {
@@ -234,9 +255,28 @@ public class JDBCUtils {
    * Returns the ID of the DBMS.
    *
    * @param jdbcConnection A Connection to a database.
+   * @return The ID of the database. @Deprecated Use {@link JDBCUtils#setConnection()} and {@link
+   *     JDBCUtils#getDbEngine()}
+   */
+  @Deprecated
+  public static int getDbEngine(Connection jdbcConnection) {
+
+    setConnection(jdbcConnection);
+    return getDbEngine();
+  }
+
+  /**
+   * Returns the ID of the DBMS.
+   *
    * @return The ID of the database.
    */
-  public static int getDbEngine(Connection jdbcConnection) {
+  public static int getDbEngine() {
+
+    if (jdbcConnection == null) {
+      System.err.println("JDBC Connection not set.");
+      return DB_UNKNOWN;
+    }
+
     try {
       DatabaseMetaData dmd = jdbcConnection.getMetaData();
       String productName = dmd.getDatabaseProductName();
@@ -284,9 +324,27 @@ public class JDBCUtils {
    * Returns the name of the DB engine.
    *
    * @param jdbcConnection A Connection to a database.
+   * @return The product name of the DBMS. @Deprecated Use {@link JDBCUtils#setConnection()} and
+   *     {@link JDBCUtils#getDbEngineName()}
+   */
+  @Deprecated
+  public static String getDbEngineName(Connection jdbcConnection) {
+    setConnection(jdbcConnection);
+    return getDbEngineName();
+  }
+
+  /**
+   * Returns the name of the DB engine.
+   *
    * @return The product name of the DBMS.
    */
-  public static String getDbEngineName(Connection jdbcConnection) {
+  public static String getDbEngineName() {
+
+    if (jdbcConnection == null) {
+      System.err.println("JDBC Connection not set.");
+      return "";
+    }
+
     try {
       DatabaseMetaData dmd = jdbcConnection.getMetaData();
       return dmd.getDatabaseProductName();
@@ -331,7 +389,7 @@ public class JDBCUtils {
     String function = "to_date";
     String format = "YYYY-MM-DD";
 
-    if (getDbEngine(jdbcConnection) == DB_MYSQL) {
+    if (getDbEngine() == DB_MYSQL) {
       function = "str_to_date";
     }
 
@@ -573,10 +631,9 @@ public class JDBCUtils {
    *
    * @param con JDBC connection
    */
-  // public JDBCUtils(Connection con) {
   public static boolean setConnection(Connection con) {
     jdbcConnection = con;
-    dbEngine = getDbEngine(con);
+    dbEngine = getDbEngine();
     try {
       dmd = jdbcConnection.getMetaData();
     } catch (SQLException e) {

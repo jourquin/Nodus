@@ -65,7 +65,7 @@ public class ODReader {
     Vector<String> tables = new Vector<>();
 
     String shema = null;
-    if (JDBCUtils.getDbEngine(jdbcConnection) == JDBCUtils.DB_ORACLE) {
+    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_ORACLE) {
       shema =
           JDBCUtils.getCompliantIdentifier(
               nodusProject.getLocalProperty(NodusC.PROP_JDBC_USERNAME, "null"));

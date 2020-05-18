@@ -24,3 +24,4 @@
 # Diverse
 UTF8 problem with MySQL...
 No problem with static JDBCUtils ?
+Other Deprecated methods in JDBCUtils (with Connection parameter) ?

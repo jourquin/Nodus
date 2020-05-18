@@ -1930,7 +1930,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
               // In Oracle, limit to the schema of the user
               String schema = null;
-              if (JDBCUtils.getDbEngine(jdbcConnection) == JDBCUtils.DB_ORACLE) {
+              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_ORACLE) {
                 schema =
                     JDBCUtils.getCompliantIdentifier(
                         nodusProject.getLocalProperty(NodusC.PROP_JDBC_USERNAME, "null"));
