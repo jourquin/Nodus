@@ -1500,15 +1500,9 @@ public class NodusProject implements ShapeConstants {
      * Another DB engine can be specified in the project file
      */
     String jdbcDriver = projectProperties.getProperty(NodusC.PROP_JDBC_DRIVER, defaultDriver);
-    final String userName = projectProperties.getProperty(NodusC.PROP_JDBC_USERNAME, defaultUser);
-    final String password =
-        projectProperties.getProperty(NodusC.PROP_JDBC_PASSWORD, defaultPassword);
-    final String jdbcURL = projectProperties.getProperty(NodusC.PROP_JDBC_URL, defaultURL);
-
-    // Change to MariaDB driver
-    if (jdbcDriver.equals("com.mysql.jdbc.Driver")) {
-      jdbcDriver = "org.mariadb.jdbc.Driver";
-    }
+    String userName = projectProperties.getProperty(NodusC.PROP_JDBC_USERNAME, defaultUser);
+    String password = projectProperties.getProperty(NodusC.PROP_JDBC_PASSWORD, defaultPassword);
+    String jdbcURL = projectProperties.getProperty(NodusC.PROP_JDBC_URL, defaultURL);
 
     localProperties.setProperty(NodusC.PROP_JDBC_USERNAME, userName);
     localProperties.setProperty(NodusC.PROP_JDBC_PASSWORD, password);
@@ -1533,8 +1527,10 @@ public class NodusProject implements ShapeConstants {
       return;
     }
 
-    // Set some defaults for HSQLDB 2.1
+    // Initialize JDBCUtils
+    JDBCUtils.setConnection(jdbcConnection);
 
+    // Set some defaults for HSQLDB 2.1
     if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB) {
       try {
         Statement stmt = jdbcConnection.createStatement();
@@ -1566,6 +1562,20 @@ public class NodusProject implements ShapeConstants {
       }
     }
 
+    /* Be sure MySQL / MariaDB uses UTF-8 */
+    /* if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
+      System.out.println("forece utf8");
+      try {
+        Statement stmt;
+        stmt = jdbcConnection.createStatement();
+        stmt.executeQuery("SET NAMES 'UTF8'");
+        stmt.executeQuery("SET CHARACTER SET 'UTF8'");
+      } catch (SQLException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }*/
+
     // Open the log file for this project
     try {
       loggerHandler = new FileHandler(projectPath + "nodus.log", true);
@@ -1581,8 +1591,6 @@ public class NodusProject implements ShapeConstants {
 
     // Initialize the user defined modal split methods for this project
     new ModalSplitMethodsLoader(projectPath);
-
-    JDBCUtils.setConnection(jdbcConnection);
 
     // Test if this project has valid virtual network tables
     if (!isValidVirtualNetworkVersion()) {
