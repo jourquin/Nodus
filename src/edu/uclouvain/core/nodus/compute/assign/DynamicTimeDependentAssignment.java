@@ -153,12 +153,15 @@ public class DynamicTimeDependentAssignment extends Assignment {
         if (!virtualNet.odClassHasDemand(odClass)) {
           continue;
         }
+        
+        // Must paths be saved
+        boolean withPaths = assignmentParameters.isSavePaths();
 
         // Get the number of threads
         int threads = assignmentParameters.getThreads();
 
         // Compute costs
-        if (!virtualNet.computeCosts(0, odClass, currentTimeSlice, threads)) {
+        if (!virtualNet.computeCosts(0, odClass, currentTimeSlice, withPaths, threads)) {
           return false;
         }
 

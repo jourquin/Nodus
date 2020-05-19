@@ -138,18 +138,26 @@ public class CostParserWorker extends Thread {
           VirtualLink vl = linkLit.next();
 
           // Reset
-          vl.setWeight(groupIndex, CostParser.UNDEFINED_FUNCTION);
+          vl.setCost(groupIndex, CostParser.UNDEFINED_FUNCTION);
 
           if (!isVirtualLinkExcluded(i, vl, groupNum)) {
+
             double cost = 0.0;
-
-            cost = costParser.compute(vl);
-
+            cost = costParser.compute(vl, false);
             if (cost == CostParser.PARSER_ERROR) {
               return false;
             }
+            vl.setCost(groupIndex, cost);
 
-            vl.setWeight(groupIndex, cost);
+            // Transit times must be computed only when paths are saved.
+            if (cwp.isWithPaths()) {
+              double transitTime = 0.0;
+              transitTime = costParser.compute(vl, true);
+              if (transitTime == CostParser.PARSER_ERROR) {
+                return false;
+              }
+              vl.setTransitTime(groupIndex, cost);
+            }
 
             if (withFirstDerivative) {
               firstDerivative +=

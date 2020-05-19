@@ -104,7 +104,11 @@ public class VirtualLink {
   private byte virtualLinkType;
 
   /* This variable will contain the cost computed for this particular virtual link */
-  private double[] weight = null;
+  private double[] cost = null;
+  
+  /* This variable will contain the transit time computed for this particular virtual link */
+  private double[] transitTime = null;
+  
 
   /**
    * Constructor for a non moving virtual link, given a virtual link number, the location of the
@@ -420,10 +424,10 @@ public class VirtualLink {
    * Returns the weights associated to a given group index.
    *
    * @param groupIndex The index of the group of commodities
-   * @return The weight associated to the group.
+   * @return The cost associated to the group.
    */
   public double getWeight(byte groupIndex) {
-    return weight[groupIndex];
+    return cost[groupIndex];
   }
 
   /**
@@ -432,7 +436,7 @@ public class VirtualLink {
    * @return An array with the weights for all the groups of commodities.
    */
   public double[] getWeights() {
-    return weight;
+    return cost;
   }
 
   /**
@@ -492,7 +496,8 @@ public class VirtualLink {
    */
   @SuppressWarnings("unchecked")
   public void setNbGroups(int nbGroups, int nbTimeSlices) {
-    weight = new double[nbGroups];
+    cost = new double[nbGroups];
+    transitTime = new double[nbGroups];
     currentFlow = new double[nbGroups][nbTimeSlices];
     auxiliaryFlow = new double[nbGroups];
     previousFlow = new double[nbGroups];
@@ -500,7 +505,7 @@ public class VirtualLink {
     this.nbGroups = (byte) nbGroups;
 
     for (int i = 0; i < nbGroups; i++) {
-      weight[i] = -1;
+      cost[i] = -1;
 
       for (int j = 0; j < nbTimeSlices; j++) {
         currentFlow[i][j] = 0;
@@ -525,13 +530,23 @@ public class VirtualLink {
   }
 
   /**
-   * Set the weight of this virtual link for a given group index.
+   * Set the transit time of this virtual link for a given group index.
    *
    * @param groupIndex Index of the group of commodities.
-   * @param weight Weight (cost) to associate to this virtual link.
+   * @param transitTime Transit time (seconds) to associate to this virtual link.
    */
-  public void setWeight(byte groupIndex, double weight) {
-    this.weight[groupIndex] = weight;
+  public void setTransitTime(byte groupIndex, double transitTime) {
+    this.transitTime[groupIndex] = transitTime;
+  }
+  
+  /**
+   * Set the cost of this virtual link for a given group index.
+   *
+   * @param groupIndex Index of the group of commodities.
+   * @param cost Weight (cost) to associate to this virtual link.
+   */
+  public void setCost(byte groupIndex, double cost) {
+    this.cost[groupIndex] = cost;
   }
 
   /**

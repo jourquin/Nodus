@@ -372,10 +372,11 @@ public class CostParser {
    * Returns the cost computed for a given virtual link.
    *
    * @param vl A virtual link.
+   * @param computeTransitTime If true, compute transit time, else compute cost.
    * @return The computed cost. This function also can return Parse_ERROR if and error occurred
    *     during parsing or UNDEFINED_FUNCTION if no cost function was defined for this virtual link.
    */
-  public double compute(VirtualLink vl) {
+  public double compute(VirtualLink vl, boolean computeTransitTime) {
 
     int type = vl.getType();
 

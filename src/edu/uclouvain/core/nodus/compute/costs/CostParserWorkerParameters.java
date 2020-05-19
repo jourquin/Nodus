@@ -39,6 +39,7 @@ public class CostParserWorkerParameters {
   private byte odClass;
   private VirtualNetwork virtualnetwork;
   private boolean withFirstDerivative;
+  private boolean withPaths;
 
   /**
    * Sets the needed parameters.
@@ -46,21 +47,20 @@ public class CostParserWorkerParameters {
    * @param costWorkers The array of cost workers that is used.
    * @param project The Nodus project.
    * @param odClass The OD class the costs must be computed for.
-   * @param groupIndex The index of the group.
-   * @param groupNum The OG group the costs must be computed for.
+   * @param groupIndex The index of this OD group in VirtualNetwork.
    * @param vn The virtual network structure.
    * @param costParser The cost parser
+   * @param withPath Transit times are only computed when paths are saved.
    */
-  // TO DO : group index could be retrieved from within this class
   public CostParserWorkerParameters(
       CostParserWorker[] costWorkers,
       NodusProject project,
       byte odClass,
       byte groupIndex,
-      byte groupNum,
       VirtualNetwork vn,
-      CostParser costParser) {
-    this(costWorkers, project, odClass, groupIndex, groupNum, vn, costParser, false);
+      CostParser costParser,
+      boolean withPath) {
+    this(costWorkers, project, odClass, groupIndex, vn, costParser, withPath, false);
   }
 
   /**
@@ -69,10 +69,10 @@ public class CostParserWorkerParameters {
    * @param costWorkers The array of cost workers that is used.
    * @param project The Nodus project.
    * @param odClass The OD class the costs must be computed for.
-   * @param groupIndex The index of the group.
-   * @param groupNum The OG group the costs must be computed for.
+   * @param groupIndex The index of this OD group in VirtualNetwork.
    * @param vn The virtual network structure.
-   * @param costParser The cost parser
+   * @param costParser The cost parser.
+   * @param withPaths Transit times are only computed when paths are saved.
    * @param withFirstDerivative True if the first derivative of the objective function must be
    *     computed (for Frank-Wolfe assignments only).
    */
@@ -81,18 +81,20 @@ public class CostParserWorkerParameters {
       NodusProject project,
       byte odClass,
       byte groupIndex,
-      byte groupNum,
       VirtualNetwork vn,
       CostParser costParser,
+      boolean withPaths,
       boolean withFirstDerivative) {
     this.nodusProject = project;
     this.odClass = odClass;
     this.groupIndex = groupIndex;
-    this.groupNum = groupNum;
     this.virtualnetwork = vn;
     this.costWorkers = costWorkers;
     this.costParser = costParser;
+    this.withPaths = withPaths;
     this.withFirstDerivative = withFirstDerivative;
+    
+    this.groupNum = this.virtualnetwork.getGroups()[groupIndex];
   }
 
   /**
@@ -166,5 +168,14 @@ public class CostParserWorkerParameters {
    */
   public boolean isWithFirstDerivative() {
     return withFirstDerivative;
+  }
+
+  /**
+   * Returns true if paths must be saved and, hence, transit times must be computed.
+   *
+   * @return True if paths must be saved.
+   */
+  public boolean isWithPaths() {
+    return withPaths;
   }
 }

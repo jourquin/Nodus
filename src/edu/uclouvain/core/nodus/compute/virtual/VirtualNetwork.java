@@ -278,7 +278,8 @@ public class VirtualNetwork {
    * @param nbThreads The number of thread to create in the pool.
    * @return True on success.
    */
-  public boolean computeCosts(int iteration, byte odClass, byte timeSlice, int nbThreads) {
+  public boolean computeCosts(
+      int iteration, byte odClass, byte timeSlice, boolean withPaths, int nbThreads) {
 
     if (vnl == null) {
       return false;
@@ -297,18 +298,18 @@ public class VirtualNetwork {
 
     // Add the works to the queue
     for (byte groupIndex = 0; groupIndex < getNbGroups(); groupIndex++) {
-      CostParser cp =
+      CostParser costParser =
           new CostParser(costFunctions, nodusProject, groups[groupIndex], odClass, timeSlice);
-      if (!cp.isInitialized()) {
+      if (!costParser.isInitialized()) {
         // Display the error message
         JOptionPane.showMessageDialog(
-            null, cp.getErrorMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+            null, costParser.getErrorMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
         return false;
       }
 
       CostParserWorkerParameters cpp =
           new CostParserWorkerParameters(
-              worker, nodusProject, odClass, groupIndex, groups[groupIndex], this, cp);
+              worker, nodusProject, odClass, groupIndex, this, costParser, withPaths);
       queue.addWork(cpp);
     }
 
@@ -360,8 +361,8 @@ public class VirtualNetwork {
    * @param nbThreads The number of thread to create in the pool.
    * @return True on success.
    */
-  public boolean computeCosts(int iteration, byte odClass, int nbThreads) {
-    return computeCosts(iteration, odClass, (byte) -1, nbThreads);
+  public boolean computeCosts(int iteration, byte odClass, boolean withPaths, int nbThreads) {
+    return computeCosts(iteration, odClass, (byte) -1, withPaths, nbThreads);
   }
 
   /**
@@ -1231,19 +1232,19 @@ public class VirtualNetwork {
 
       // Add the works to the queue
       for (byte groupIndex = 0; groupIndex < getNbGroups(); groupIndex++) {
-        CostParser cp =
+        CostParser costParser =
             new CostParser(costFunctions, nodusProject, groups[groupIndex], odClass, (byte) -1);
-        if (!cp.isInitialized()) {
+        if (!costParser.isInitialized()) {
           nodusMapPanel.stopProgress();
           // Display the error message
           JOptionPane.showMessageDialog(
-              null, cp.getErrorMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+              null, costParser.getErrorMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
           return Double.NaN;
         }
 
         CostParserWorkerParameters cpp =
             new CostParserWorkerParameters(
-                worker, nodusProject, odClass, groupIndex, groups[groupIndex], this, cp, true);
+                worker, nodusProject, odClass, groupIndex, this, costParser, true, true);
         queue.addWork(cpp);
       }
 

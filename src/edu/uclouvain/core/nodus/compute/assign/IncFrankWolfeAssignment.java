@@ -131,11 +131,14 @@ public class IncFrankWolfeAssignment extends Assignment {
           continue;
         }
 
+        // Must paths be saved
+        boolean withPaths = assignmentParameters.isSavePaths();
+        
         // Get the number of threads
         int threads = assignmentParameters.getThreads();
 
         // (re)Compute costs
-        if (!virtualNet.computeCosts(iteration, odClass, threads)) {
+        if (!virtualNet.computeCosts(iteration, odClass, withPaths, threads)) {
           nodusMapPanel.stopProgress();
           return false;
         }
@@ -213,6 +216,9 @@ public class IncFrankWolfeAssignment extends Assignment {
 
     int end = assignmentParameters.getNbIterations() + 1 + nbIterationsInc;
 
+    // Must paths be saved
+    boolean withPaths = assignmentParameters.isSavePaths();
+    
     // Get the number of threads
     int threads = assignmentParameters.getThreads();
 
@@ -224,7 +230,7 @@ public class IncFrankWolfeAssignment extends Assignment {
           continue;
         }
 
-        if (!virtualNet.computeCosts(start, odClass, threads)) {
+        if (!virtualNet.computeCosts(start, odClass, withPaths, threads)) {
           nodusMapPanel.stopProgress();
           return false;
         }
