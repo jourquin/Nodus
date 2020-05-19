@@ -1721,6 +1721,7 @@ public class NodusProject implements ShapeConstants {
 
       // Set the visibility
       boolean b = this.getLocalProperty(nodeLayers[n].getTableName() + NodusC.PROP_VISIBLE, true);
+      nodesLocationHandler[n].setVisible(b);
       nodeLayers[n].setVisible(b);
 
       n++;
@@ -1774,10 +1775,6 @@ public class NodusProject implements ShapeConstants {
             }
           });
 
-      // Set the visibility
-      boolean b = this.getLocalProperty(linkLayers[n].getTableName() + NodusC.PROP_VISIBLE, true);
-      linkLayers[n].setVisible(b);
-
       // Create a new location handler based on the ESRI layer
       linksLocationHandler[n] = new NodusLocationHandler(linkLayers[n]);
       linksLocationHandler[n].setProperties(currentLayerName, localProperties);
@@ -1786,6 +1783,12 @@ public class NodusProject implements ShapeConstants {
       linkLayers[n].doPrepare();
 
       nodusMapPanel.getLayerHandler().addLayer(linkLayers[n], layerPosition++);
+
+      // Set the visibility
+      boolean b = this.getLocalProperty(linkLayers[n].getTableName() + NodusC.PROP_VISIBLE, true);
+      linksLocationHandler[n].setVisible(b);
+      linkLayers[n].setVisible(b);
+
       n++;
     }
 

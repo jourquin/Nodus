@@ -140,4 +140,5 @@ that are not supported by Nodus.
 - Use JavaDbf4Nodus 1.12.1, that uses UTF-8 encoding by default.
 - Upgrade to mariadb-java-client 2.6
 - Accept SQL DATE in the DBF files.
+- The labels of a Nodus layer are now displayed only if the layer itself is visible (both are now synchronized). 
 

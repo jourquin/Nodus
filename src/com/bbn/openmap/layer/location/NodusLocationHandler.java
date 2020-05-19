@@ -128,6 +128,9 @@ public class NodusLocationHandler extends AbstractLocationHandler
   /** The properties file associated to the project. */
   private Properties projectProperties;
 
+  /** Display or not the labels. */
+  private boolean isVisible = true;
+
   /**
    * Associate this location handler to a given NodusEsriLayer.
    *
@@ -371,6 +374,11 @@ public class NodusLocationHandler extends AbstractLocationHandler
       return;
     }
 
+    if (!isVisible) {
+      graphicList.clear();
+      return;
+    }
+
     // Create basic query statement
     String s = JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM);
     String locationQueryString = "SELECT  " + s + " FROM " + nodusEsriLayer.getTableName();
@@ -590,6 +598,19 @@ public class NodusLocationHandler extends AbstractLocationHandler
 
     String code = getFontString(fontName);
     projectProperties.setProperty(nodusEsriLayer.getTableName() + NodusC.PROP_FONT, code);
+  }
+
+  /**
+   * Make the locations stored in this handler visible or not. This is used to synchronize the
+   * display of the locations with the display of their correspondent NodusEsriLayer.
+   *
+   * @param visible If true, the locations and location names are displayed if the correspondent
+   *     checkboxes are checked.
+   */
+  public void setVisible(boolean visible) {
+    this.isVisible = visible;
+    reloadData();
+    getLayer().doPrepare();
   }
 
   /**

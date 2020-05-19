@@ -25,6 +25,7 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.Layer;
 import com.bbn.openmap.layer.drawing.NodusDrawingToolLayer;
 import com.bbn.openmap.layer.highlightedarea.HighlightedAreaLayer;
+import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.layer.shape.PoliticalBoundariesLayer;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
@@ -215,7 +216,10 @@ public class NodusLayersPanel extends LayersPanel {
     }
   }
 
-  /** Intercept the LayerSelectedCmd in order to avoid the removing of Nodus core layers. */
+  /**
+   * Intercept the LayerSelectedCmd in order to avoid the removing of Nodus core layers. this also
+   * links the visibility of labels of a Nodus layer to the visibility of the layer itself.
+   */
   @Override
   public void propertyChange(PropertyChangeEvent pce) {
     String command = pce.getPropertyName();
@@ -225,6 +229,12 @@ public class NodusLayersPanel extends LayersPanel {
     if (command == LayerSelectedCmd && obj instanceof Layer) {
       Layer layer = (Layer) obj;
       if (!layer.getAddAsBackground()) {
+
+        if (layer instanceof NodusEsriLayer) {
+          NodusEsriLayer nes = (NodusEsriLayer) layer;
+          nes.getLocationHandler().setVisible(!nes.isVisible());
+        }
+
         firePropertyChange(command, null, obj);
         removeButton.setEnabled(false);
         return;
