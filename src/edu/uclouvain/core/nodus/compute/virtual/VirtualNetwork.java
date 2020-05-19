@@ -943,7 +943,7 @@ public class VirtualNetwork {
           VirtualLink vl = linkLit.next();
 
           // Ignore excluded links
-          if (vl.getWeight(groupIndex) < 0) {
+          if (vl.getCost(groupIndex) < 0) {
             continue;
           }
 

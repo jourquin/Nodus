@@ -236,23 +236,23 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
 
             switch (vl.getType()) {
               case VirtualLink.TYPE_LOAD:
-                pathCosts.ldCosts += vl.getWeight(groupIndex);
+                pathCosts.ldCosts += vl.getCost(groupIndex);
                 loadingMode = vl.getEndVirtualNode().getMode();
                 loadingMeans = vl.getEndVirtualNode().getMeans();
                 pathDuration += transitTimesParser.getLoadingDuration(loadingMode, loadingMeans);
                 break;
               case VirtualLink.TYPE_UNLOAD:
-                pathCosts.ulCosts += vl.getWeight(groupIndex);
+                pathCosts.ulCosts += vl.getCost(groupIndex);
                 unloadingMode = vl.getBeginVirtualNode().getMode();
                 unloadingMeans = vl.getBeginVirtualNode().getMeans();
                 pathDuration +=
                     transitTimesParser.getUnloadingDuration(unloadingMode, unloadingMeans);
                 break;
               case VirtualLink.TYPE_TRANSIT:
-                pathCosts.trCosts += vl.getWeight(groupIndex);
+                pathCosts.trCosts += vl.getCost(groupIndex);
                 break;
               case VirtualLink.TYPE_TRANSHIP:
-                pathCosts.tpCosts += vl.getWeight(groupIndex);
+                pathCosts.tpCosts += vl.getCost(groupIndex);
                 nbTranshipments++;
                 pathDuration +=
                     transitTimesParser.getTranshipmentDuration(
@@ -262,7 +262,7 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
                         vl.getEndVirtualNode().getMeans());
                 break;
               case VirtualLink.TYPE_MOVE:
-                pathCosts.mvCosts += vl.getWeight(groupIndex);
+                pathCosts.mvCosts += vl.getCost(groupIndex);
                 pathLength += vl.getLength();
                 pathDuration += vl.getDuration();
                 pathWriter.savePathLink(vl);

@@ -304,10 +304,10 @@ public class VirtualNetworkWriter {
                 for (byte k = 0; k < (byte) groups.length; k++) {
 
                   totalQty += vl.getCurrentFlow(k, timeSlice);
-                  averageWeight += vl.getCurrentFlow(k, timeSlice) * vl.getWeight(k);
+                  averageWeight += vl.getCurrentFlow(k, timeSlice) * vl.getCost(k);
                   totalVehicles += vl.getCurrentVehicles(k, timeSlice);
 
-                  prepStmt.setDouble(idx++, vl.getWeight(k));
+                  prepStmt.setDouble(idx++, vl.getCost(k));
                   prepStmt.setDouble(idx++, vl.getCurrentFlow(k, timeSlice));
                   prepStmt.setInt(idx++, vl.getCurrentVehicles(k, timeSlice));
                 }

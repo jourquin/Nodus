@@ -108,7 +108,7 @@ public class AdjacencyNode {
    */
   public void setNext(AdjacencyNode next, byte group, VirtualLink vl) {
     nextNode = next;
-    edgeWeight = vl.getWeight(group);
+    edgeWeight = vl.getCost(group);
     originalEdgeWeight = edgeWeight;
     virtualLink = vl;
     endVirtualNode = vl.getEndVirtualNode().getId();

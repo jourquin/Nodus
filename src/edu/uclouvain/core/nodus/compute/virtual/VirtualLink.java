@@ -421,21 +421,21 @@ public class VirtualLink {
   }
 
   /**
-   * Returns the weights associated to a given group index.
+   * Returns the cost associated to a given group index.
    *
    * @param groupIndex The index of the group of commodities
    * @return The cost associated to the group.
    */
-  public double getWeight(byte groupIndex) {
+  public double getCost(byte groupIndex) {
     return cost[groupIndex];
   }
 
   /**
-   * Returns the set of weights (one per group of commodities) associated to this virtual link.
+   * Returns the set of costs (one per group of commodities) associated to this virtual link.
    *
-   * @return An array with the weights for all the groups of commodities.
+   * @return An array with the costs for all the groups of commodities.
    */
-  public double[] getWeights() {
+  public double[] getCosts() {
     return cost;
   }
 

@@ -395,31 +395,36 @@ public class CostParser {
       previousLayerVariableName = layerVariableName;
     }
 
+    char separator = '.';
+    if (computeTransitTime) {
+    	separator = ':';
+    }
+    
     // Build cost function
     String costFunctionName = "";
 
     switch (type) {
       case VirtualLink.TYPE_LOAD:
         costFunctionName =
-            "ld." + vl.getEndVirtualNode().getMode() + "," + vl.getEndVirtualNode().getMeans();
+            "ld" + separator + vl.getEndVirtualNode().getMode() + "," + vl.getEndVirtualNode().getMeans();
 
         break;
 
       case VirtualLink.TYPE_UNLOAD:
         costFunctionName =
-            "ul." + vl.getBeginVirtualNode().getMode() + "," + vl.getBeginVirtualNode().getMeans();
+            "ul" + separator + vl.getBeginVirtualNode().getMode() + "," + vl.getBeginVirtualNode().getMeans();
 
         break;
 
       case VirtualLink.TYPE_MOVE:
         costFunctionName =
-            "mv." + vl.getBeginVirtualNode().getMode() + "," + vl.getBeginVirtualNode().getMeans();
+            "mv" + separator + vl.getBeginVirtualNode().getMode() + "," + vl.getBeginVirtualNode().getMeans();
 
         break;
 
       case VirtualLink.TYPE_TRANSHIP:
         costFunctionName =
-            "tp."
+            "tp" + separator
                 + vl.getBeginVirtualNode().getMode()
                 + ","
                 + vl.getBeginVirtualNode().getMeans()
@@ -432,7 +437,7 @@ public class CostParser {
 
       case VirtualLink.TYPE_SWITCH:
         costFunctionName =
-            "sw."
+            "sw" + separator
                 + vl.getBeginVirtualNode().getMode()
                 + ","
                 + vl.getBeginVirtualNode().getMeans()
@@ -444,13 +449,13 @@ public class CostParser {
 
       case VirtualLink.TYPE_TRANSIT:
         costFunctionName =
-            "tr." + vl.getBeginVirtualNode().getMode() + "," + vl.getBeginVirtualNode().getMeans();
+            "tr" + separator + vl.getBeginVirtualNode().getMode() + "," + vl.getBeginVirtualNode().getMeans();
 
         break;
 
       case VirtualLink.TYPE_STOP:
         costFunctionName =
-            "stp." + vl.getBeginVirtualNode().getMode() + "," + vl.getBeginVirtualNode().getMeans();
+            "stp" + separator + vl.getBeginVirtualNode().getMode() + "," + vl.getBeginVirtualNode().getMeans();
 
         break;
       default:
@@ -629,21 +634,21 @@ public class CostParser {
       errorMessage = vl.toString() + ": " + costFunctionFormula + '\n' + e.toString();
       return PARSER_ERROR;
     }
-    double cost = -1.0;
-    cost = expression.evaluate();
+    double value = -1.0;
+    value = expression.evaluate();
 
-    if (Double.isNaN(cost)) {
+    if (Double.isNaN(value)) {
       errorMessage = vl.toString() + ": " + costFunctionFormula + " =  NaN\n";
       return PARSER_ERROR;
     }
 
-    if (Double.isInfinite(cost)) {
+    if (Double.isInfinite(value)) {
       errorMessage = vl.toString() + ": " + costFunctionFormula + " =  Infinity\n";
       return PARSER_ERROR;
     }
 
     // The cost must be positive
-    if (cost < 0) {
+    if (value < 0) {
       errorMessage =
           costFunctionFormula
               + '\n'
@@ -651,8 +656,8 @@ public class CostParser {
       return PARSER_ERROR;
     }
 
-    // A correct cost was computed
-    return cost;
+    // A correct cost or transit time was computed
+    return value;
   }
 
   /**

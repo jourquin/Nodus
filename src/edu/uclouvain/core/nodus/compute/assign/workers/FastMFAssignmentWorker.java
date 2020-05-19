@@ -548,7 +548,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
           vl.addCell(groupIndex, pathODCell);
 
           // Add the real cost to the total cost
-          weight += vl.getWeight(groupIndex);
+          weight += vl.getCost(groupIndex);
 
           // Which mode and means is used on the path?
           if (vl.getType() == VirtualLink.TYPE_MOVE) {
@@ -568,23 +568,23 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
           switch (vl.getType()) {
             case VirtualLink.TYPE_LOAD:
-              pathCosts.ldCosts += vl.getWeight(groupIndex);
+              pathCosts.ldCosts += vl.getCost(groupIndex);
               loadingMode = vl.getEndVirtualNode().getMode();
               loadingMeans = vl.getEndVirtualNode().getMeans();
               pathDuration += transitTimesParser.getLoadingDuration(loadingMode, loadingMeans);
               break;
             case VirtualLink.TYPE_UNLOAD:
-              pathCosts.ulCosts += vl.getWeight(groupIndex);
+              pathCosts.ulCosts += vl.getCost(groupIndex);
               unloadingMode = vl.getBeginVirtualNode().getMode();
               unloadingMeans = vl.getBeginVirtualNode().getMeans();
               pathDuration +=
                   transitTimesParser.getUnloadingDuration(unloadingMode, unloadingMeans);
               break;
             case VirtualLink.TYPE_TRANSIT:
-              pathCosts.trCosts += vl.getWeight(groupIndex);
+              pathCosts.trCosts += vl.getCost(groupIndex);
               break;
             case VirtualLink.TYPE_TRANSHIP:
-              pathCosts.tpCosts += vl.getWeight(groupIndex);
+              pathCosts.tpCosts += vl.getCost(groupIndex);
               pathDuration +=
                   transitTimesParser.getTranshipmentDuration(
                       vl.getBeginVirtualNode().getMode(),
@@ -593,7 +593,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
                       vl.getEndVirtualNode().getMeans());
               break;
             case VirtualLink.TYPE_MOVE:
-              pathCosts.mvCosts += vl.getWeight(groupIndex);
+              pathCosts.mvCosts += vl.getCost(groupIndex);
 
               // Save detailed path info if needed
               if (pathWriter.isSavePaths()) {
