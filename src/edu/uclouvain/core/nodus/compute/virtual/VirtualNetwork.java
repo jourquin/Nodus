@@ -251,7 +251,7 @@ public class VirtualNetwork {
         rl.setOriginNodeId(node1);
         rl.setLength(length);
         rl.setSpeed(speed);
-        rl.setDuration(3600 * length / speed);
+        //rl.setDuration(3600 * length / speed);
         rl.resetStandardVehicles();
 
         j++;

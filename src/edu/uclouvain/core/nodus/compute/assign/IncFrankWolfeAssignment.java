@@ -63,6 +63,12 @@ public class IncFrankWolfeAssignment extends Assignment {
   /** Computation thread that does the real assignment work. */
   @Override
   public boolean assign() {
+
+    // Test if cost functions contain deprecated XX_Duration variables
+    if (costsContainDeprecatedDurations()) {
+      return false;
+    }
+
     // Test if scenario already exists
     if (!VirtualNetworkWriter.acceptScenario(
         nodusProject, assignmentParameters.getScenario(), assignmentParameters.isConfirmDelete())) {
@@ -98,16 +104,6 @@ public class IncFrankWolfeAssignment extends Assignment {
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {
       displayConsoleIfNeeded();
-      /*new NodusConsole(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
-      System.out.println(i18n.get(Assignment.class, "Lost_paths", "Lost paths:"));
-      System.out.println(
-          NodusC.DBF_GROUP
-              + ", "
-              + NodusC.DBF_ORIGIN
-              + ", "
-              + NodusC.DBF_DESTINATION
-              + ", "
-              + NodusC.DBF_QUANTITY);*/
     }
 
     // Force Garbage collector?
@@ -133,7 +129,7 @@ public class IncFrankWolfeAssignment extends Assignment {
 
         // Must paths be saved
         boolean withPaths = assignmentParameters.isSavePaths();
-        
+
         // Get the number of threads
         int threads = assignmentParameters.getThreads();
 
@@ -218,7 +214,7 @@ public class IncFrankWolfeAssignment extends Assignment {
 
     // Must paths be saved
     boolean withPaths = assignmentParameters.isSavePaths();
-    
+
     // Get the number of threads
     int threads = assignmentParameters.getThreads();
 

@@ -16,4 +16,6 @@
 # Jung and xchart
 - Set user defined color for modes and means
 
-cheapestPathDuration removed from AltPathsList
+
+# Diverse
+check use of getTotalCost() 

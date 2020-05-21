@@ -60,42 +60,42 @@ public class MultinomialLogit extends ModalSplitMethod {
   }
 
   @Override
-  public boolean split(ODCell odCell, HashMap<Integer, AltPathsList> hm) {
+  public boolean split(ODCell odCell, HashMap<Integer, ModalPaths> hm) {
 
     /*
-     * Compute the market share for each mode
+     * Compute the market marketShare for each mode
      */
     double denominator = 0.0;
-    Iterator<AltPathsList> hmIt = hm.values().iterator();
+    Iterator<ModalPaths> hmIt = hm.values().iterator();
     while (hmIt.hasNext()) {
-      AltPathsList altPathsList = hmIt.next();
-      double d = Math.exp(-altPathsList.cheapestPathTotalCost);
+      ModalPaths modalPaths = hmIt.next();
+      double d = Math.exp(-modalPaths.cheapestPath.getCost());
       denominator += d;
     }
 
-    // Compute the market share per mode
+    // Compute the market marketShare per mode
     hmIt = hm.values().iterator();
     while (hmIt.hasNext()) {
-      AltPathsList altPathsList = hmIt.next();
+      ModalPaths modalPaths = hmIt.next();
 
-      double v = Math.exp(-altPathsList.cheapestPathTotalCost) / denominator;
+      double v = Math.exp(-modalPaths.cheapestPath.getCost()) / denominator;
       if (Double.isNaN(v)) {
         v = 0.0;
       }
-      altPathsList.marketShare = v;
+      modalPaths.marketShare = v;
     }
 
-    // Compute the market share per path for each mode
+    // Compute the market marketShare per path for each mode
     hmIt = hm.values().iterator();
     while (hmIt.hasNext()) {
-      AltPathsList altPathsList = hmIt.next();
+      ModalPaths modalPaths = hmIt.next();
 
       // Denominator for this mode
       denominator = 0.0;
-      Iterator<Path> it = altPathsList.alternativePaths.iterator();
+      Iterator<Path> it = modalPaths.pathList.iterator();
       while (it.hasNext()) {
         Path path = it.next();
-        double d = Math.exp(-path.weight);
+        double d = Math.exp(-path.weights.getCost());
         if (d == 0) {
           if (!warningAlreadyDisplayed) {
             warningAlreadyDisplayed = true;
@@ -114,15 +114,16 @@ public class MultinomialLogit extends ModalSplitMethod {
       }
 
       // Spread over each path of this mode
-      it = altPathsList.alternativePaths.iterator();
+      it = modalPaths.pathList.iterator();
       while (it.hasNext()) {
         Path path = it.next();
 
-        double v = Math.exp(-path.weight) / denominator;
+        double v = Math.exp(-path.weights.getCost()) / denominator;
         if (Double.isNaN(v)) {
           v = 0.0;
         }
-        path.weight = v * altPathsList.marketShare;
+      
+        path.marketShare = v * modalPaths.marketShare;
       }
     }
     return true;

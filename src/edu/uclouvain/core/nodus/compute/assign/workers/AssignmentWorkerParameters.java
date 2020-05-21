@@ -41,7 +41,7 @@ public class AssignmentWorkerParameters {
    *
    * @param assignment The Assignment object these parameters belong to.
    * @param groupIndex The index of the group that will be assigned by this worker.
-   * @param odClass The OD class thatwill be assigned by this worker.
+   * @param odClass The OD class that will be assigned by this worker.
    */
   public AssignmentWorkerParameters(Assignment assignment, byte groupIndex, byte odClass) {
     this(assignment, groupIndex, odClass, (byte) 0, 0.0);

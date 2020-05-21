@@ -22,10 +22,10 @@
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.AltPathsList;
+import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalPaths;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
-import edu.uclouvain.core.nodus.compute.assign.workers.PathDetailedCosts;
+import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 
 import java.util.HashMap;

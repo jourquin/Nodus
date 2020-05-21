@@ -136,9 +136,7 @@ public class MSAAssignmentWorker extends AssignmentWorker {
 
       int currentNode = endNode;
       boolean isPathFound = true;
-      float pathLength = 0;
-      float pathDuration = 0;
-      PathDetailedCosts pathCosts = new PathDetailedCosts();
+      PathWeights pathCosts = new PathWeights();
       int nbTranshipments = 0;
       byte loadingMode = 0;
       byte loadingMeans = 0;
@@ -151,15 +149,6 @@ public class MSAAssignmentWorker extends AssignmentWorker {
 
         if (predecessor == 0) {
           if (assignmentParameters.isLogLostPaths()) {
-            /*System.out.println(
-            currentGroup
-                + ", "
-                + virtualNet.getVirtualNodeLists()[nodeIndex].getRealNodeId()
-                + ", "
-                + virtualNet.getVirtualNodeLists()[destinationNodeIndex].getRealNodeId()
-                + ", "
-                + demand.getQuantity());*/
-
             System.out.println(
                 "delete from "
                     + assignmentParameters.getODMatrix()
@@ -190,46 +179,41 @@ public class MSAAssignmentWorker extends AssignmentWorker {
           an.virtualLink.addAuxiliaryFlow(groupIndex, demand.getQuantity());
 
           // Save this link in the detailed path table if needed
-          if (pathWriter.isSavePaths()) {
-            VirtualLink vl = an.virtualLink;
+          // if (pathWriter.isSavePaths()) {
+          VirtualLink vl = an.virtualLink;
 
-            switch (vl.getType()) {
-              case VirtualLink.TYPE_LOAD:
-                pathCosts.ldCosts += vl.getCost(groupIndex);
-                loadingMode = vl.getEndVirtualNode().getMode();
-                loadingMeans = vl.getEndVirtualNode().getMeans();
-                pathDuration += transitTimesParser.getLoadingDuration(loadingMode, loadingMeans);
-                break;
-              case VirtualLink.TYPE_UNLOAD:
-                pathCosts.ulCosts += vl.getCost(groupIndex);
-                unloadingMode = vl.getBeginVirtualNode().getMode();
-                unloadingMeans = vl.getBeginVirtualNode().getMeans();
-                pathDuration +=
-                    transitTimesParser.getUnloadingDuration(unloadingMode, unloadingMeans);
-                break;
-              case VirtualLink.TYPE_TRANSIT:
-                pathCosts.trCosts += vl.getCost(groupIndex);
-                break;
-              case VirtualLink.TYPE_TRANSHIP:
-                pathCosts.tpCosts += vl.getCost(groupIndex);
-                nbTranshipments++;
-                pathDuration +=
-                    transitTimesParser.getTranshipmentDuration(
-                        vl.getBeginVirtualNode().getMode(),
-                        vl.getBeginVirtualNode().getMeans(),
-                        vl.getEndVirtualNode().getMode(),
-                        vl.getEndVirtualNode().getMeans());
-                break;
-              case VirtualLink.TYPE_MOVE:
-                pathCosts.mvCosts += vl.getCost(groupIndex);
-                pathLength += vl.getLength();
-                pathDuration += vl.getDuration();
-                pathWriter.savePathLink(vl);
-                break;
-              default:
-                break;
-            }
+          switch (vl.getType()) {
+            case VirtualLink.TYPE_LOAD:
+              pathCosts.ldCosts += vl.getCost(groupIndex);
+              pathCosts.ldDuration += vl.getDuration(groupIndex);
+              loadingMode = vl.getEndVirtualNode().getMode();
+              loadingMeans = vl.getEndVirtualNode().getMeans();
+              break;
+            case VirtualLink.TYPE_UNLOAD:
+              pathCosts.ulCosts += vl.getCost(groupIndex);
+              pathCosts.ulDuration += vl.getDuration(groupIndex);
+              unloadingMode = vl.getBeginVirtualNode().getMode();
+              unloadingMeans = vl.getBeginVirtualNode().getMeans();
+              break;
+            case VirtualLink.TYPE_TRANSIT:
+              pathCosts.trCosts += vl.getCost(groupIndex);
+              pathCosts.trDuration += vl.getDuration(groupIndex);
+              break;
+            case VirtualLink.TYPE_TRANSHIP:
+              pathCosts.tpCosts += vl.getCost(groupIndex);
+              pathCosts.tpDuration += vl.getDuration(groupIndex);
+              nbTranshipments++;
+              break;
+            case VirtualLink.TYPE_MOVE:
+              pathCosts.mvCosts += vl.getCost(groupIndex);
+              pathCosts.mvDuration += vl.getDuration(groupIndex);
+              pathCosts.length += vl.getLength();
+              pathWriter.savePathLink(vl);
+              break;
+            default:
+              break;
           }
+          // }
 
           // Go to next chunk in the path
           currentNode = predecessor;
@@ -242,8 +226,6 @@ public class MSAAssignmentWorker extends AssignmentWorker {
             iteration,
             demand,
             demand.getQuantity(),
-            pathLength,
-            pathDuration,
             pathCosts,
             loadingMode,
             loadingMeans,

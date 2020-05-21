@@ -29,7 +29,6 @@ import edu.uclouvain.core.nodus.compute.assign.Assignment;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
-import edu.uclouvain.core.nodus.compute.costs.TransitTimesParser;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
@@ -96,9 +95,6 @@ public abstract class AssignmentWorker extends Thread {
   /** Virtual network that will be generated before the assignment. */
   VirtualNetwork virtualNet;
   
-  /** Used to fetch loading, unloading and transhipment durations from the cost functions file. */
-  TransitTimesParser transitTimesParser;
-
   Assignment assignment;
 
   /**
@@ -173,13 +169,6 @@ public abstract class AssignmentWorker extends Thread {
 
         currentGroup = virtualNet.getGroups()[groupIndex];
         
-        // Transit durations parser
-        transitTimesParser =
-            new TransitTimesParser(
-                assignmentParameters.getCostFunctions(),
-                assignmentParameters.getScenario(),
-                currentGroup);
-
         // Start the real work
         if (!doAssignment()) {
           // Cancel all workers

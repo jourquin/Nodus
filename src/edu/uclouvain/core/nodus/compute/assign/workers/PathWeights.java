@@ -22,26 +22,44 @@
 package edu.uclouvain.core.nodus.compute.assign.workers;
 
 /**
- * Convenient class to keep the details of the costs of a path.
+ * Convenient class to keep the details of the costs and transit times of a path.
  *
  * @author Bart Jourquin
  */
-public class PathDetailedCosts {
+public class PathWeights {
 
   /** loading cost. */
-  public double ldCosts = 0;
+  public double ldCosts = 0.0;
 
   /** Moving cost. */
-  public double mvCosts = 0;
+  public double mvCosts = 0.0;
 
   /** Transhipment cost. */
-  public double tpCosts = 0;
+  public double tpCosts = 0.0;
 
   /** Transit cost. */
-  public double trCosts = 0;
+  public double trCosts = 0.0;
 
   /** Unloading cost. */
-  public double ulCosts = 0;
+  public double ulCosts = 0.0;
+
+  /** loading duration. */
+  public float ldDuration = 0;
+
+  /** Moving duration. */
+  public float mvDuration = 0;
+
+  /** Transhipment duration. */
+  public float tpDuration = 0;
+
+  /** Transit duration. */
+  public float trDuration = 0;
+
+  /** Unloading duration. */
+  public float ulDuration = 0;
+
+  /** Length of the path. */
+  public float length;
 
   /**
    * Return the total cost of the path, computed as the sum of loading, unloading, transit,
@@ -49,7 +67,26 @@ public class PathDetailedCosts {
    *
    * @return The total cost.
    */
-  public double getTotalCost() {
+  public double getCost() {
     return ldCosts + ulCosts + trCosts + tpCosts + mvCosts;
+  }
+
+  /**
+   * Return the total length of the path.
+   *
+   * @return The total cost.
+   */
+  public float getLength() {
+    return length;
+  }
+
+  /**
+   * Return the total duration of the path, computed as the sum of loading, unloading, transit,
+   * transhipment and moving durations.
+   *
+   * @return The total cost.
+   */
+  public float getTransitTime() {
+    return ldDuration + ulDuration + trDuration + tpDuration + mvDuration;
   }
 }

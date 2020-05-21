@@ -23,7 +23,7 @@ package edu.uclouvain.core.nodus.compute.assign.workers;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.AltPathsList;
+import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalPaths;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
@@ -241,7 +241,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
             return false;
           }
 
-          // Apply modal share to path headers
+          // Apply modal marketShare to path headers
           if (assignmentParameters.isSavePaths()) {
 
             // Update the path headers in memory to compute the quantity on each path
@@ -251,14 +251,12 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
               if (ph.demand.getOriginNodeId() == demand.getOriginNodeId()
                   && ph.demand.getDestinationNodeId() == demand.getDestinationNodeId()) {
-                if (paths[ph.iteration].weight != Double.MAX_VALUE) {
-                  double q = demand.getQuantity() * paths[ph.iteration].weight;
+                if (paths[ph.iteration].isValid) {
+                  double q = demand.getQuantity() * paths[ph.iteration].marketShare;
                   if (!pathWriter.savePathHeader(
                       ph.iteration,
                       demand,
                       q,
-                      ph.length,
-                      ph.duration,
                       ph.pathCosts,
                       ph.loadingMode,
                       ph.loadingMeans,
@@ -296,9 +294,9 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     return true;
   }
 
-  private HashMap<Integer, AltPathsList> getPathList() {
+  private HashMap<Integer, ModalPaths> getPaths() {
 
-    HashMap<Integer, AltPathsList> hm = new HashMap<>();
+    HashMap<Integer, ModalPaths> hm = new HashMap<>();
 
     float cheapestPathLength = Float.MAX_VALUE;
     double cheapestIntermodalPathWeight = Double.MAX_VALUE;
@@ -309,17 +307,17 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
         index < assignmentParameters.getNbIterations() * availableModeMeans.length;
         index++) {
 
-      if (paths[index].weight != Double.MAX_VALUE) {
+      if (paths[index].isValid) {
 
         /*
          * If the same path is found several times in the set of alternatives, just keep one
-         * instance. To achieve this, just put an infinite cost on the additional instance.
+         * instance.
          */
         if (index > 0) {
           for (int j = 0; j < index; j++) {
             if (paths[index].detailedPathKey == paths[j].detailedPathKey) {
               // Mark cell
-              paths[index].weight = Double.MAX_VALUE;
+              paths[index].isValid = false;
             }
           }
         }
@@ -328,14 +326,14 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
          * Keep the cheapest intermodal path, if any. Used later if intermodal solutions
          * have to be kept only if they are the cheapest transport solution.
          */
-        if (paths[index].intermodal && paths[index].weight < cheapestIntermodalPathWeight) {
-          cheapestIntermodalPathWeight = paths[index].weight;
+        if (paths[index].intermodal && paths[index].weights.getCost() < cheapestIntermodalPathWeight) {
+          cheapestIntermodalPathWeight = paths[index].weights.getCost();
         }
 
         // Keep info about shortest and cheapest paths
-        if (paths[index].weight < cheapestPathWeight) {
-          cheapestPathWeight = paths[index].weight;
-          cheapestPathLength = paths[index].length;
+        if (paths[index].weights.getCost() < cheapestPathWeight) {
+          cheapestPathWeight = paths[index].weights.getCost();
+          cheapestPathLength = paths[index].weights.getLength();
         }
       }
     }
@@ -347,7 +345,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
         index < assignmentParameters.getNbIterations() * availableModeMeans.length;
         index++) {
 
-      if (paths[index].weight != Double.MAX_VALUE) {
+      if (paths[index].isValid) {
 
         if (assignmentParameters.isKeepOnlyCheapestIntermodalPath()) {
           /*
@@ -357,11 +355,11 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
           if (paths[index].intermodal) {
             if (cheapestPathWeight < cheapestIntermodalPathWeight) {
               // Mark cell
-              paths[index].weight = Double.MAX_VALUE;
+              paths[index].isValid = false;
             } else {
-              if (paths[index].weight > cheapestIntermodalPathWeight) {
+              if (paths[index].weights.getCost() > cheapestIntermodalPathWeight) {
                 // Mark cell
-                paths[index].weight = Double.MAX_VALUE;
+                paths[index].isValid = false;
               }
             }
           }
@@ -369,19 +367,19 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
         // Limit length of alternative paths to the length of the shortest path x maxDettour
         if (assignmentParameters.getMaxDetour() > 0) {
-          if (paths[index].length > maxPathLength) {
+          if (paths[index].weights.getLength() > maxPathLength) {
             // Mark cell
-            paths[index].weight = Double.MAX_VALUE;
+            paths[index].isValid = false;
           }
         }
 
         // Only retain valid paths
-        if (paths[index].weight != Double.MAX_VALUE) {
+        if (paths[index].isValid) {
           // Get the list of paths for this mode or create one
-          AltPathsList altPathsList = hm.get(paths[index].intermodalModeKey);
+          ModalPaths altPathsList = hm.get(paths[index].intermodalModeKey);
           if (altPathsList == null) {
             // Create new list of path for this mode
-            altPathsList = new AltPathsList(paths[index]);
+            altPathsList = new ModalPaths(paths[index]);
             hm.put(paths[index].intermodalModeKey, altPathsList);
           } else {
             // A list of paths for this mode already exists. Update it
@@ -405,15 +403,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
       String key = it.next();
       if (foundPaths.get(key) == null) {
         ODCell lostPath = potentialLostPaths.get(key);
-
-        /*System.out.println(
-        lostPath.getGroup()
-            + ", "
-            + lostPath.getOriginNodeId()
-            + ", "
-            + lostPath.getDestinationNodeId()
-            + ", "
-            + lostPath.getQuantity());*/
 
         System.out.println(
             "delete from "
@@ -456,7 +445,8 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     int mode = -1;
 
     PathODCell pathODCell = new PathODCell(iteration, demand.getQuantity());
-    double weight = 0.0;
+    //double weight = 0.0;
+    // float length = 0;
 
     int currentPathIndex = 0;
     if (pathWriter.isSavePaths()) {
@@ -472,9 +462,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
     int currentNode = endNode;
     boolean isPathFound = true;
-    float pathLength = 0;
-    float pathDuration = 0;
-    PathDetailedCosts pathCosts = new PathDetailedCosts();
+    PathWeights pathCosts = new PathWeights();
     int nbTranshipments = 0;
     byte loadingMode = 0;
     byte loadingMeans = 0;
@@ -499,7 +487,8 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
             potentialLostPaths.put(key, demand);
           }
         }
-        weight = Double.MAX_VALUE;
+        //weight = Double.MAX_VALUE;
+        path.isValid = false;
         isPathFound = false;
 
         break;
@@ -521,59 +510,55 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
         vl.addCell(groupIndex, pathODCell);
 
         // Add the real cost to the total cost
-        weight += vl.getCost(groupIndex);
+        //weight += vl.getCost(groupIndex);
 
         // Which mode and means is used on the path?
-        if (vl.getType() == VirtualLink.TYPE_MOVE) {
-          mode = vl.getBeginVirtualNode().getMode();
-          pathLength += vl.getLength();
-          pathDuration += vl.getDuration();
-        }
+        // if (vl.getType() == VirtualLink.TYPE_MOVE) {
+        //  mode = vl.getBeginVirtualNode().getMode();
+        //  length += vl.getLength();
+        // }
 
         if (vl.getType() == VirtualLink.TYPE_TRANSHIP) {
           intermodalModeKey *=
               NodusC.MAXMM * vl.getBeginVirtualNode().getMode() + vl.getEndVirtualNode().getMode();
+          mode = intermodalModeKey;
           path.intermodal = true;
           nbTranshipments++;
         }
 
+        // if (pathWriter.isSavePaths()) {
         switch (vl.getType()) {
           case VirtualLink.TYPE_LOAD:
             pathCosts.ldCosts += vl.getCost(groupIndex);
+            pathCosts.ldDuration += vl.getDuration(groupIndex);
             loadingMode = vl.getEndVirtualNode().getMode();
             loadingMeans = vl.getEndVirtualNode().getMeans();
-            pathDuration += transitTimesParser.getLoadingDuration(loadingMode, loadingMeans);
             break;
           case VirtualLink.TYPE_UNLOAD:
             pathCosts.ulCosts += vl.getCost(groupIndex);
+            pathCosts.ulDuration += vl.getDuration(groupIndex);
             unloadingMode = vl.getBeginVirtualNode().getMode();
             unloadingMeans = vl.getBeginVirtualNode().getMeans();
-            pathDuration += transitTimesParser.getUnloadingDuration(unloadingMode, unloadingMeans);
             break;
           case VirtualLink.TYPE_TRANSIT:
             pathCosts.trCosts += vl.getCost(groupIndex);
+            pathCosts.trDuration += vl.getDuration(groupIndex);
             break;
           case VirtualLink.TYPE_TRANSHIP:
             pathCosts.tpCosts += vl.getCost(groupIndex);
-            pathDuration +=
-                transitTimesParser.getTranshipmentDuration(
-                    vl.getBeginVirtualNode().getMode(),
-                    vl.getBeginVirtualNode().getMeans(),
-                    vl.getEndVirtualNode().getMode(),
-                    vl.getEndVirtualNode().getMeans());
+            pathCosts.tpDuration += vl.getDuration(groupIndex);
             break;
           case VirtualLink.TYPE_MOVE:
+            mode = vl.getBeginVirtualNode().getMode();
             pathCosts.mvCosts += vl.getCost(groupIndex);
-
-            // Save detailed path info if needed
-            if (pathWriter.isSavePaths()) {
-              pathWriter.savePathLink(vl, currentPathIndex);
-            }
-
+            pathCosts.mvDuration += vl.getDuration(groupIndex);
+            pathCosts.length += vl.getLength();
+            pathWriter.savePathLink(vl, currentPathIndex);
             break;
           default:
             break;
         }
+        // }
 
         // Build the key that represents this path
         path.detailedPathKey += vl.getId();
@@ -582,21 +567,15 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
       }
     }
 
-    // Save the properties of the path. Will be used to split the flow over the paths
-    if (path.intermodal) {
-      mode = intermodalModeKey;
-    }
-
     path.intermodalModeKey = mode;
     path.loadingMode = loadingMode;
     path.loadingMeans = loadingMeans;
-    path.weight = weight;
-    path.pathDetailedCosts = pathCosts;
-    path.length = pathLength;
-    path.duration = pathDuration;
+    //path.weight = weight;
+    path.weights = pathCosts;
+    // path.length = length;
 
     // Associate the key with the length to maximize chances to have a unique key
-    path.detailedPathKey *= pathLength;
+    path.detailedPathKey *= path.weights.getLength();
 
     // Save the header of this detailed path if needed
     if (isPathFound) {
@@ -613,8 +592,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
             new PathHeader(
                 iteration,
                 demand,
-                pathLength,
-                pathDuration,
                 pathCosts,
                 loadingMode,
                 loadingMeans,
@@ -628,10 +605,10 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     return path;
   }
 
-  /** Computes the market share of each mode/path. */
+  /** Computes the market marketShare of each mode/path. */
   private boolean modalSplit(ODCell odCell) {
 
-    HashMap<Integer, AltPathsList> hm = getPathList();
+    HashMap<Integer, ModalPaths> hm = getPaths();
 
     return modalSplitMethod.split(odCell, hm);
   }

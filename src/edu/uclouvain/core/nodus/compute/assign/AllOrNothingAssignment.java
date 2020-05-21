@@ -57,6 +57,11 @@ public class AllOrNothingAssignment extends Assignment {
   @Override
   public boolean assign() {
 
+    // Test if cost functions contain deprecated XX_Duration variables
+    if (costsContainDeprecatedDurations()) {
+      return false;
+    }
+
     // Test if scenario already exists
     if (!VirtualNetworkWriter.acceptScenario(
         nodusProject, assignmentParameters.getScenario(), assignmentParameters.isConfirmDelete())) {
@@ -120,10 +125,9 @@ public class AllOrNothingAssignment extends Assignment {
 
       // Must paths be saved
       boolean withPaths = assignmentParameters.isSavePaths();
-      
+
       // Get the number of threads
       int threads = assignmentParameters.getThreads();
-      
 
       // Compute costs
       if (!virtualNet.computeCosts(0, odClass, withPaths, threads)) {

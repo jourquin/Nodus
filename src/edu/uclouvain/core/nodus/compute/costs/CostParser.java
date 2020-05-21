@@ -372,11 +372,11 @@ public class CostParser {
    * Returns the cost computed for a given virtual link.
    *
    * @param vl A virtual link.
-   * @param computeTransitTime If true, compute transit time, else compute cost.
+   * @param computeDuration If true, compute transit time, else compute cost.
    * @return The computed cost. This function also can return Parse_ERROR if and error occurred
    *     during parsing or UNDEFINED_FUNCTION if no cost function was defined for this virtual link.
    */
-  public double compute(VirtualLink vl, boolean computeTransitTime) {
+  public double compute(VirtualLink vl, boolean computeDuration) {
 
     int type = vl.getType();
 
@@ -396,35 +396,48 @@ public class CostParser {
     }
 
     char separator = '.';
-    if (computeTransitTime) {
-    	separator = ':';
+    if (computeDuration) {
+      separator = '@';
     }
-    
+
     // Build cost function
     String costFunctionName = "";
 
     switch (type) {
       case VirtualLink.TYPE_LOAD:
         costFunctionName =
-            "ld" + separator + vl.getEndVirtualNode().getMode() + "," + vl.getEndVirtualNode().getMeans();
+            "ld"
+                + separator
+                + vl.getEndVirtualNode().getMode()
+                + ","
+                + vl.getEndVirtualNode().getMeans();
 
         break;
 
       case VirtualLink.TYPE_UNLOAD:
         costFunctionName =
-            "ul" + separator + vl.getBeginVirtualNode().getMode() + "," + vl.getBeginVirtualNode().getMeans();
+            "ul"
+                + separator
+                + vl.getBeginVirtualNode().getMode()
+                + ","
+                + vl.getBeginVirtualNode().getMeans();
 
         break;
 
       case VirtualLink.TYPE_MOVE:
         costFunctionName =
-            "mv" + separator + vl.getBeginVirtualNode().getMode() + "," + vl.getBeginVirtualNode().getMeans();
+            "mv"
+                + separator
+                + vl.getBeginVirtualNode().getMode()
+                + ","
+                + vl.getBeginVirtualNode().getMeans();
 
         break;
 
       case VirtualLink.TYPE_TRANSHIP:
         costFunctionName =
-            "tp" + separator
+            "tp"
+                + separator
                 + vl.getBeginVirtualNode().getMode()
                 + ","
                 + vl.getBeginVirtualNode().getMeans()
@@ -437,7 +450,8 @@ public class CostParser {
 
       case VirtualLink.TYPE_SWITCH:
         costFunctionName =
-            "sw" + separator
+            "sw"
+                + separator
                 + vl.getBeginVirtualNode().getMode()
                 + ","
                 + vl.getBeginVirtualNode().getMeans()
@@ -449,13 +463,21 @@ public class CostParser {
 
       case VirtualLink.TYPE_TRANSIT:
         costFunctionName =
-            "tr" + separator + vl.getBeginVirtualNode().getMode() + "," + vl.getBeginVirtualNode().getMeans();
+            "tr"
+                + separator
+                + vl.getBeginVirtualNode().getMode()
+                + ","
+                + vl.getBeginVirtualNode().getMeans();
 
         break;
 
       case VirtualLink.TYPE_STOP:
         costFunctionName =
-            "stp" + separator + vl.getBeginVirtualNode().getMode() + "," + vl.getBeginVirtualNode().getMeans();
+            "stp"
+                + separator
+                + vl.getBeginVirtualNode().getMode()
+                + ","
+                + vl.getBeginVirtualNode().getMeans();
 
         break;
       default:
@@ -528,9 +550,9 @@ public class CostParser {
         OMGraphic omg = links[layerIndex].getOMGraphicAt(indexInLayer);
         RealLink rl = (RealLink) omg.getAttribute(0);
 
-        // Get length and duration
+        // Get length
         setVariable(NodusC.VARNAME_LENGTH, rl.getLength());
-        setVariable(NodusC.VARNAME_DURATION, rl.getDuration());
+        // setVariable(NodusC.VARNAME_DURATION, rl.getDuration());
 
         // Remove the tranship variable if exists
         if (!hasMoveVariables) {
@@ -656,7 +678,7 @@ public class CostParser {
       return PARSER_ERROR;
     }
 
-    // A correct cost or transit time was computed
+    // A correct cost or duration was computed
     return value;
   }
 
@@ -688,7 +710,7 @@ public class CostParser {
 
       // Must be a variable
       // TODO Allow scenario/group/class specific variables without a need to define the generic one
-      if (propName.indexOf(".") < 0 && propName.indexOf('-') < 0) {
+      if (propName.indexOf(".") < 0 && propName.indexOf('-') < 0 && propName.indexOf('@') < 0) {
         // Get property value
         String propValue = costFunctions.getProperty(propName);
 

@@ -101,48 +101,48 @@ public class Abraham extends ModalSplitMethod {
   }
 
   @Override
-  public boolean split(ODCell odCell, HashMap<Integer, AltPathsList> hm) {
+  public boolean split(ODCell odCell, HashMap<Integer, ModalPaths> hm) {
 
     if (exponent >= 0) {
       return false;
     }
 
     /*
-     * Compute the market share for each mode
+     * Compute the market marketShare for each mode
      */
     double denominator = 0.0;
-    Iterator<AltPathsList> hmIt = hm.values().iterator();
+    Iterator<ModalPaths> hmIt = hm.values().iterator();
     while (hmIt.hasNext()) {
-      AltPathsList altPathsList = hmIt.next();
-      denominator += Math.pow(altPathsList.cheapestPathTotalCost, exponent);
+      ModalPaths modalPaths = hmIt.next();
+      denominator += Math.pow(modalPaths.cheapestPath.getCost(), exponent);
     }
 
-    // Compute the market share per mode
+    // Compute the market marketShare per mode
     hmIt = hm.values().iterator();
     while (hmIt.hasNext()) {
-      AltPathsList altPathsList = hmIt.next();
-      altPathsList.marketShare =
-          Math.pow(altPathsList.cheapestPathTotalCost, exponent) / denominator;
+      ModalPaths modalPaths = hmIt.next();
+      modalPaths.marketShare =
+          Math.pow(modalPaths.cheapestPath.getCost(), exponent) / denominator;
     }
 
-    // Compute the market share per path for each mode
+    // Compute the market marketShare per path for each mode
     hmIt = hm.values().iterator();
     while (hmIt.hasNext()) {
-      AltPathsList altPathsList = hmIt.next();
+      ModalPaths modalPaths = hmIt.next();
 
       // Denominator for this mode
       denominator = 0.0;
-      Iterator<Path> it = altPathsList.alternativePaths.iterator();
+      Iterator<Path> it = modalPaths.pathList.iterator();
       while (it.hasNext()) {
         Path path = it.next();
-        denominator += Math.pow(path.weight, exponent);
+        denominator += Math.pow(path.weights.getCost(), exponent);
       }
 
       // Spread over each path of this mode
-      it = altPathsList.alternativePaths.iterator();
+      it = modalPaths.pathList.iterator();
       while (it.hasNext()) {
         Path path = it.next();
-        path.weight = Math.pow(path.weight, exponent) / denominator * altPathsList.marketShare;
+        path.marketShare = Math.pow(path.weights.getCost(), exponent) / denominator * modalPaths.marketShare;
       }
     }
     return true;

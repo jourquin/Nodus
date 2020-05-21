@@ -30,58 +30,32 @@ import edu.uclouvain.core.nodus.compute.od.ODCell;
  * @author Bart Jourquin
  */
 class PathHeader {
+  /** OD cell. */
   public ODCell demand;
 
-  public float duration;
-
+  /** Index in path header table. */
   public int index;
 
+  /** Alternative route number. */
   public int iteration;
-
-  public float length;
-
-  public byte loadingMeans;
-
-  public byte loadingMode;
-
-  public int nbTranshipments;
-
-  public PathDetailedCosts pathCosts;
-
-  public byte unloadingMeans;
-
-  public byte unloadingMode;
-
-  public PathHeader(
-      int iteration,
-      ODCell demand,
-      float length,
-      float duration,
-      PathDetailedCosts pathCosts,
-      byte loadingMode,
-      byte loadingMeans,
-      byte unloadingMode,
-      byte unloadingMeans,
-      int nbTranshipments,
-      int index) {
-    this.iteration = iteration;
-    this.demand = demand;
-    this.length = length;
-    this.duration = duration;
-    this.pathCosts = pathCosts;
-    this.loadingMode = loadingMode;
-    this.loadingMeans = loadingMeans;
-    this.unloadingMode = unloadingMode;
-    this.unloadingMeans = unloadingMeans;
-    this.nbTranshipments = nbTranshipments;
-    this.index = index;
-  }
 
   /** loading cost. */
   public double ldCosts = 0;
 
+  /** Means at loading time. */
+  public byte loadingMeans;
+
+  /** Mode at loading time. */
+  public byte loadingMode;
+
   /** Moving cost. */
   public double mvCosts = 0;
+
+  /** Number of transhipments along the route. */
+  public int nbTranshipments;
+
+  /** Detailed costs, durations and route length. */
+  public PathWeights pathCosts;
 
   /** Transhipment cost. */
   public double tpCosts = 0;
@@ -92,13 +66,43 @@ class PathHeader {
   /** Unloading cost. */
   public double ulCosts = 0;
 
+  /** Means at unloading time. */
+  public byte unloadingMeans;
+
+  /** Mode at unloading time. */
+  public byte unloadingMode;
+
   /**
-   * Return the total cost of the path, computed as the sum of loading, unloading, transit,
-   * transhipment and moving costs.
-   *
-   * @return The total cost.
+   * Contains the information that will be stored in the path header table.
+   * 
+   * @param iteration Alternative route number.
+   * @param demand OD cell.
+   * @param pathCosts Detailed costs, durations and route length.
+   * @param loadingMode Transport mode at loading.
+   * @param loadingMeans Transport means at loading.
+   * @param unloadingMode Transport mode at unloading.
+   * @param unloadingMeans Transport means at unloading.
+   * @param nbTranshipments Number of transhipments along the route.
+   * @param index Index in path header table.
    */
-  public double getTotalCost() {
-    return ldCosts + ulCosts + trCosts + tpCosts + mvCosts;
+  public PathHeader(
+      int iteration,
+      ODCell demand,
+      PathWeights pathCosts,
+      byte loadingMode,
+      byte loadingMeans,
+      byte unloadingMode,
+      byte unloadingMeans,
+      int nbTranshipments,
+      int index) {
+    this.iteration = iteration;
+    this.demand = demand;
+    this.pathCosts = pathCosts;
+    this.loadingMode = loadingMode;
+    this.loadingMeans = loadingMeans;
+    this.unloadingMode = unloadingMode;
+    this.unloadingMeans = unloadingMeans;
+    this.nbTranshipments = nbTranshipments;
+    this.index = index;
   }
 }

@@ -59,6 +59,12 @@ public class MSAAssignment extends Assignment {
   /** Computation thread that does the real assignment work. */
   @Override
   public boolean assign() {
+
+    // Test if cost functions contain deprecated XX_Duration variables
+    if (costsContainDeprecatedDurations()) {
+      return false;
+    }
+
     // Test if scenario already exists
     if (!VirtualNetworkWriter.acceptScenario(
         nodusProject, assignmentParameters.getScenario(), assignmentParameters.isConfirmDelete())) {
@@ -121,7 +127,7 @@ public class MSAAssignment extends Assignment {
         if (!virtualNet.odClassHasDemand(odClass)) {
           continue;
         }
-        
+
         // Must paths be saved
         boolean withPaths = assignmentParameters.isSavePaths();
 

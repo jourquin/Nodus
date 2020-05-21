@@ -338,13 +338,13 @@ public class StatPieDlg extends EscapeDialog {
       sum += values[index].get(i);
     }
 
-    // Compute market share and fill table
+    // Compute market marketShare and fill table
     for (int i = 0; i < size; i++) {
 
       // Value
       Long l = values[index].get(i).longValue();
 
-      // Market share
+      // Market marketShare
       String s = formatter.format(Float.valueOf(100 * values[index].get(i) / sum));
 
       // Add row

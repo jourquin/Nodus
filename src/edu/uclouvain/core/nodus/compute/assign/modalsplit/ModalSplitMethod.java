@@ -121,5 +121,5 @@ public abstract class ModalSplitMethod {
    * 
    * @return True on success.
    */
-  public abstract boolean split(ODCell odCell, HashMap<Integer, AltPathsList> hm);
+  public abstract boolean split(ODCell odCell, HashMap<Integer, ModalPaths> hm);
 }

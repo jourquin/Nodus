@@ -21,7 +21,7 @@
 
 package edu.uclouvain.core.nodus.compute.assign.modalsplit;
 
-import edu.uclouvain.core.nodus.compute.assign.workers.PathDetailedCosts;
+import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
 import java.util.LinkedList;
 
 /**
@@ -31,62 +31,50 @@ import java.util.LinkedList;
  *
  * @author Bart Jourquin
  */
-public class AltPathsList {
-
-  /** Duration of the cheapest path of the path list, expressed in seconds. */
-  public float cheapestPathDuration = 0;
-
-  /** Duration of the cheapest path of the path list for means 1, expressed in seconds. */
-  public float cheapestMeans1PathDuration = 0;
-
-  /** Length of the cheapest path of the path list. */
-  public float cheapestPathLength = 0;
-
-  /** Length of the cheapest path of the path list for means 1. */
-  public float cheapestMeans1PathLength = 0;
+public class ModalPaths {
 
   /** Loading mode for this set of alternative paths. */
   public int loadingMode;
 
-  /** Market share assigned to this set of alternative paths. */
+  /** Market marketShare assigned to this set of alternative paths. */
   public double marketShare;
 
   /** Detailed costs of the cheapest path in the list of alternatives. */
-  public PathDetailedCosts cheapestPathDetailedCosts;
+  public PathWeights cheapestPath;
 
   /** Detailed cost of the cheapest path for means 1 in the list of alternatives. */
-  public PathDetailedCosts cheapestMeans1PathDetailedCosts;
+  public PathWeights cheapestMeans1Path;
 
   /** List of alternative paths. */
-  public LinkedList<Path> alternativePaths = new LinkedList<>();
+  public LinkedList<Path> pathList = new LinkedList<>();
 
   /** Value of the utility given to the cheapest path of the list. */
   public double utility;
 
   /** Weight (cost) of the cheapest path in the list of alternatives. */
-  public double cheapestPathTotalCost = Double.MAX_VALUE;
+  private double cheapestPathTotalCost = Double.MAX_VALUE;
 
   /** Weight (cost) of the cheapest path for transportation means 1. */
-  public double cheapestMeans1TotalCost = Double.MAX_VALUE;
+  private double cheapestMeans1TotalCost = Double.MAX_VALUE;
 
   /**
    * Initializes a valid paths list.
    *
    * @param path The first path of the set of alternative paths.
    */
-  public AltPathsList(Path path) {
+  public ModalPaths(Path path) {
     this.loadingMode = path.loadingMode;
-    this.cheapestPathDuration = path.duration;
-    this.cheapestPathLength = path.length;
-    this.cheapestPathTotalCost = path.weight;
-    this.cheapestPathDetailedCosts = path.pathDetailedCosts;
-    this.alternativePaths.add(path);
+    //this.cheapestPathLength = path.weights.getLength();
+    this.cheapestPathTotalCost = path.weights.getCost();
+    //this.cheapestPathDuration = path.weights.getTransitTime();
+    this.cheapestPath = path.weights;
+    this.pathList.add(path);
 
     if (path.loadingMeans == 1) {
-      cheapestMeans1TotalCost = path.weight;
-      cheapestMeans1PathDetailedCosts = path.pathDetailedCosts;
-      cheapestMeans1PathLength = path.length;
-      cheapestMeans1PathDuration = path.duration;
+      cheapestMeans1TotalCost = path.weights.getCost();
+      //cheapestMeans1PathLength = path.weights.getLength();
+      //cheapestMeans1PathDuration = path.weights.getTransitTime();
+      cheapestMeans1Path = path.weights;
     }
   }
 
@@ -97,22 +85,22 @@ public class AltPathsList {
    */
   public void addPath(Path path) {
     // Track the cheapest alternative
-    if (this.cheapestPathTotalCost > path.weight) {
+    if (this.cheapestPathTotalCost > path.weights.getCost()) {
       this.loadingMode = path.loadingMode;
-      this.cheapestPathDuration = path.duration;
-      this.cheapestPathLength = path.length;
-      this.cheapestPathTotalCost = path.weight;
-      this.cheapestPathDetailedCosts = path.pathDetailedCosts;
+      //this.cheapestPathLength = path.weights.getLength();
+      this.cheapestPathTotalCost = path.weights.getCost();
+      //this.cheapestPathDuration = path.weights.getTransitTime();
+      this.cheapestPath = path.weights;
     }
 
     // Track the cheapest alternative for means 1
-    if (path.loadingMeans == 1 && path.weight < cheapestMeans1TotalCost) {
-      cheapestMeans1TotalCost = path.weight;
-      cheapestMeans1PathDetailedCosts = path.pathDetailedCosts;
-      cheapestMeans1PathLength = path.length;
-      cheapestMeans1PathDuration = path.duration;
+    if (path.loadingMeans == 1 && path.weights.getCost() < cheapestMeans1TotalCost) {
+      cheapestMeans1TotalCost = path.weights.getCost();
+      //cheapestMeans1PathLength = path.weights.getLength();
+      //cheapestMeans1PathDuration = path.weights.getTransitTime();
+      cheapestMeans1Path = path.weights;
     }
 
-    this.alternativePaths.add(path);
+    this.pathList.add(path);
   }
 }

@@ -59,6 +59,11 @@ public class FastMFAssignment extends Assignment {
   @Override
   public boolean assign() {
 
+    // Test if cost functions contain deprecated XX_Duration variables
+    if (costsContainDeprecatedDurations()) {
+      return false;
+    }
+
     // Test if scenario already exists
     if (!VirtualNetworkWriter.acceptScenario(
         nodusProject, assignmentParameters.getScenario(), assignmentParameters.isConfirmDelete())) {
@@ -111,7 +116,7 @@ public class FastMFAssignment extends Assignment {
     int gcInterval = nodusMapPanel.getGarbageCollectorInterval();
     final GarbageCollectionRunner gcr = new GarbageCollectionRunner(gcInterval);
 
-    //long start = System.currentTimeMillis();
+    // long start = System.currentTimeMillis();
 
     /*
      * Here, the assignment must be performed line per line in the O-D matrix. For each line,
@@ -131,7 +136,7 @@ public class FastMFAssignment extends Assignment {
 
       // Must paths be saved
       boolean withPaths = assignmentParameters.isSavePaths();
-      
+
       // Get the number of threads
       int threads = assignmentParameters.getThreads();
 
@@ -209,8 +214,8 @@ public class FastMFAssignment extends Assignment {
     // Create a Virtual Network writer
     VirtualNetworkWriter vnw = new VirtualNetworkWriter(assignmentParameters, virtualNet);
 
-    //long end = System.currentTimeMillis();
-    //System.out.println("Duration : " + (end - start) / 1000 + " seconds");
+    // long end = System.currentTimeMillis();
+    // System.out.println("Duration : " + (end - start) / 1000 + " seconds");
 
     return vnw.save();
   }

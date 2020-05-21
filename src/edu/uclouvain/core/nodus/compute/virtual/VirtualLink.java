@@ -105,10 +105,9 @@ public class VirtualLink {
 
   /* This variable will contain the cost computed for this particular virtual link */
   private double[] cost = null;
-  
+
   /* This variable will contain the transit time computed for this particular virtual link */
-  private double[] transitTime = null;
-  
+  private double[] duration = null;
 
   /**
    * Constructor for a non moving virtual link, given a virtual link number, the location of the
@@ -315,19 +314,6 @@ public class VirtualLink {
   }
 
   /**
-   * Returns the duration needed to travel along this virtual link. Only valid for moving virtual
-   * links. Returns 0 for non moving virtual links.
-   *
-   * @return The time needed to travel along this virtual link, expressed in seconds.
-   */
-  public double getDuration() {
-    if (virtualLinkType != TYPE_MOVE) {
-      return 0.0;
-    }
-    return realLink.getDuration();
-  }
-
-  /**
    * Returns the end virtual node of this virtual link.
    *
    * @return The end virtual.
@@ -431,6 +417,16 @@ public class VirtualLink {
   }
 
   /**
+   * Returns the transit time associated to a given group index.
+   *
+   * @param groupIndex The index of the group of commodities
+   * @return The transit time associated to the group.
+   */
+  public double getDuration(byte groupIndex) {
+    return duration[groupIndex];
+  }
+
+  /**
    * Returns the set of costs (one per group of commodities) associated to this virtual link.
    *
    * @return An array with the costs for all the groups of commodities.
@@ -497,7 +493,7 @@ public class VirtualLink {
   @SuppressWarnings("unchecked")
   public void setNbGroups(int nbGroups, int nbTimeSlices) {
     cost = new double[nbGroups];
-    transitTime = new double[nbGroups];
+    duration = new double[nbGroups];
     currentFlow = new double[nbGroups][nbTimeSlices];
     auxiliaryFlow = new double[nbGroups];
     previousFlow = new double[nbGroups];
@@ -506,6 +502,7 @@ public class VirtualLink {
 
     for (int i = 0; i < nbGroups; i++) {
       cost[i] = -1;
+      duration[i] = 0;
 
       for (int j = 0; j < nbTimeSlices; j++) {
         currentFlow[i][j] = 0;
@@ -533,12 +530,12 @@ public class VirtualLink {
    * Set the transit time of this virtual link for a given group index.
    *
    * @param groupIndex Index of the group of commodities.
-   * @param transitTime Transit time (seconds) to associate to this virtual link.
+   * @param duration Transit time (seconds) to associate to this virtual link.
    */
-  public void setTransitTime(byte groupIndex, double transitTime) {
-    this.transitTime[groupIndex] = transitTime;
+  public void setDuration(byte groupIndex, double duration) {
+    this.duration[groupIndex] = duration;
   }
-  
+
   /**
    * Set the cost of this virtual link for a given group index.
    *
@@ -550,7 +547,7 @@ public class VirtualLink {
   }
 
   /**
-   * For each path that makes use of this virtual link, assigns a share of the demand. This is
+   * For each path that makes use of this virtual link, assigns a marketShare of the demand. This is
    * called by the exact multi-flow assignment algorithm once the modal split function has been
    * called.
    *
@@ -566,8 +563,8 @@ public class VirtualLink {
     while (it.hasNext()) {
       PathODCell pathODCell = it.next();
 
-      if (path[pathODCell.alternativePath].weight != Double.MAX_VALUE) {
-        addFlow(groupIndex, pathODCell.quantity * path[pathODCell.alternativePath].weight);
+      if (path[pathODCell.alternativePath].isValid) {
+        addFlow(groupIndex, pathODCell.quantity * path[pathODCell.alternativePath].marketShare);
       }
     }
 
@@ -575,7 +572,7 @@ public class VirtualLink {
   }
 
   /**
-   * For each path that makes use of this virtual link, assigns a share of the demand. This is
+   * For each path that makes use of this virtual link, assigns a marketShare of the demand. This is
    * called by the exact multi-flow assignment algorithm once the modal split function has been
    * called.
    *
@@ -591,11 +588,11 @@ public class VirtualLink {
 
     while (it.hasNext()) {
       PathODCell pathODCell = it.next();
-      if (path[pathODCell.alternativePath][pathODCell.indexInODLine].weight != Double.MAX_VALUE) {
+      if (path[pathODCell.alternativePath][pathODCell.indexInODLine].isValid) {
         addFlow(
             groupIndex,
             pathODCell.quantity
-                * path[pathODCell.alternativePath][pathODCell.indexInODLine].weight);
+                * path[pathODCell.alternativePath][pathODCell.indexInODLine].marketShare);
       }
     }
 

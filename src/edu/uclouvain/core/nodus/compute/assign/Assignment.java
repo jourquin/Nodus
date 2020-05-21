@@ -39,6 +39,8 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Properties;
+import java.util.Set;
 import javax.swing.JOptionPane;
 import org.codehaus.groovy.control.CompilationFailedException;
 
@@ -286,5 +288,48 @@ public abstract class Assignment implements Runnable {
 
     System.err.println("Modal split method not found. This should not be possible!");
     return null;
+  }
+
+  /**
+   * A quick & dirty way to introduce durations was introduces in Nodus 7.1 and 7.2, using
+   * XX_DURATION variables in the costs functions files. Since Nodus 7.3, durations are handled in
+   * the same way than cost functions, usin the '@' séparator instead of '.' after the type of
+   * function.
+   *
+   * <p>Example : "mv.1,1 = " for costs and "mv@1,1 = " for durations. If a duration function is not
+   * defined, Nodus put it to 0.
+   *
+   * @return true if the cost functions contain at least one of these variables.
+   */
+  public boolean costsContainDeprecatedDurations() {
+
+    Properties costFunctions = assignmentParameters.getCostFunctions();
+    boolean hasDeprecatedVariables = false;
+    // Scan the cots function to detect the presence of durations
+    Set<Object> keys = costFunctions.keySet();
+    for (Object key : keys) {
+      if (((String) key).contains(NodusC.VARNAME_LOADING_DURATION)) {
+        hasDeprecatedVariables = true;
+        break;
+      }
+      if (((String) key).contains(NodusC.VARNAME_UNLOADING_DURATION)) {
+        hasDeprecatedVariables = true;
+        break;
+      }
+      if (((String) key).contains(NodusC.VARNAME_TRANSHIP_DURATION)) {
+        hasDeprecatedVariables = true;
+        break;
+      }
+    }
+
+    if (hasDeprecatedVariables) {
+      JOptionPane.showMessageDialog(
+          null,
+          "Costs contain deprecated duration variables. Must be fixed before assignment.",
+          NodusC.APPNAME,
+          JOptionPane.ERROR_MESSAGE);
+    }
+
+    return hasDeprecatedVariables;
   }
 }

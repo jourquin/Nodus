@@ -23,7 +23,7 @@ package edu.uclouvain.core.nodus.compute.assign.workers;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.AltPathsList;
+import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalPaths;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
@@ -185,7 +185,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
               paths[currentPathPropertiesIndex] = new Path[demandList.size()];
               for (int i = 0; i < demandList.size(); i++) {
                 paths[currentPathPropertiesIndex][i] = new Path();
-                paths[currentPathPropertiesIndex][i].weight = Double.MAX_VALUE;
+                paths[currentPathPropertiesIndex][i].isValid = false;
               }
             } else {
               /*
@@ -264,25 +264,23 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
             return false;
           }
 
-          // Apply modal share to path headers
+          // Apply modal marketShare to path headers
           if (assignmentParameters.isSavePaths()) {
 
             /* Update the path headers in memory to compute the quantity on each path */
             Iterator<PathHeader> it2 = pathHeaders.iterator();
             while (it2.hasNext()) {
               PathHeader ph = it2.next();
-
               if (ph.demand.getOriginNodeId() == demand.getOriginNodeId()
                   && ph.demand.getDestinationNodeId() == demand.getDestinationNodeId()) {
-                if (paths[ph.iteration][currentPath].weight != Double.MAX_VALUE) {
-                  double q = demand.getQuantity() * paths[ph.iteration][currentPath].weight;
+                if (paths[ph.iteration][currentPath].isValid) {
+                  double q =
+                      demand.getQuantity() * paths[ph.iteration][currentPath].marketShare;
 
                   if (!pathWriter.savePathHeader(
                       ph.iteration,
                       demand,
                       q,
-                      ph.length,
-                      ph.duration,
                       ph.pathCosts,
                       ph.loadingMode,
                       ph.loadingMeans,
@@ -318,9 +316,9 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     return true;
   }
 
-  private HashMap<Integer, AltPathsList> getPathList(int currentPath) {
+  private HashMap<Integer, ModalPaths> getPaths(int currentPath) {
 
-    HashMap<Integer, AltPathsList> hm = new HashMap<>();
+    HashMap<Integer, ModalPaths> hm = new HashMap<>();
 
     float cheapestPathLength = Float.MAX_VALUE;
     double cheapestIntermodalPathWeight = Double.MAX_VALUE;
@@ -331,7 +329,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         index < assignmentParameters.getNbIterations() * availableModeMeans.length;
         index++) {
 
-      if (paths[index][currentPath].weight != Double.MAX_VALUE) {
+      if (paths[index][currentPath].isValid) {
 
         /*
          * If the same path is found several times in the set of alternatives, just keep one
@@ -342,7 +340,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
             if (paths[index][currentPath].detailedPathKey
                 == paths[j][currentPath].detailedPathKey) {
               // Mark cell
-              paths[index][currentPath].weight = Double.MAX_VALUE;
+              paths[index][currentPath].isValid = false;
             }
           }
         }
@@ -351,14 +349,14 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
          * have to be kept only if they are the cheapest transport solution.
          */
         if (paths[index][currentPath].intermodal
-            && paths[index][currentPath].weight < cheapestIntermodalPathWeight) {
-          cheapestIntermodalPathWeight = paths[index][currentPath].weight;
+            && paths[index][currentPath].weights.getCost() < cheapestIntermodalPathWeight) {
+          cheapestIntermodalPathWeight = paths[index][currentPath].weights.getCost();
         }
 
         // Keep info about shortest and cheapest paths
-        if (paths[index][currentPath].weight < cheapestPathWeight) {
-          cheapestPathWeight = paths[index][currentPath].weight;
-          cheapestPathLength = paths[index][currentPath].length;
+        if (paths[index][currentPath].weights.getCost() < cheapestPathWeight) {
+          cheapestPathWeight = paths[index][currentPath].weights.getCost();
+          cheapestPathLength = paths[index][currentPath].weights.getLength();
         }
       }
     }
@@ -370,7 +368,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         index < assignmentParameters.getNbIterations() * availableModeMeans.length;
         index++) {
 
-      if (paths[index][currentPath].weight != Double.MAX_VALUE) {
+      if (paths[index][currentPath].isValid) {
 
         if (assignmentParameters.isKeepOnlyCheapestIntermodalPath()) {
           /*
@@ -380,11 +378,11 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
           if (paths[index][currentPath].intermodal) {
             if (cheapestPathWeight < cheapestIntermodalPathWeight) {
               // Mark cell
-              paths[index][currentPath].weight = Double.MAX_VALUE;
+              paths[index][currentPath].isValid = false;
             } else {
-              if (paths[index][currentPath].weight > cheapestIntermodalPathWeight) {
+              if (paths[index][currentPath].weights.getCost() > cheapestIntermodalPathWeight) {
                 // Mark cell
-                paths[index][currentPath].weight = Double.MAX_VALUE;
+                paths[index][currentPath].isValid = false;
               }
             }
           }
@@ -392,20 +390,20 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
         // Limit length of alternative paths to the length of the shortest path x maxDettour
         if (assignmentParameters.getMaxDetour() > 0) {
-          if (paths[index][currentPath].length > maxPathLength) {
+          if (paths[index][currentPath].weights.getLength() > maxPathLength) {
             // Mark cell
-            paths[index][currentPath].weight = Double.MAX_VALUE;
+            paths[index][currentPath].isValid = false;
           }
         }
 
         // Only retain valid paths
-        if (paths[index][currentPath].weight != Double.MAX_VALUE) {
+        if (paths[index][currentPath].isValid) {
           // Get the list of paths for this mode or create one
-          AltPathsList altPathsList = hm.get(paths[index][currentPath].intermodalModeKey);
+          ModalPaths altPathsList = hm.get(paths[index][currentPath].intermodalModeKey);
 
           if (altPathsList == null) {
             // Create new list of path for this mode
-            altPathsList = new AltPathsList(paths[index][currentPath]);
+            altPathsList = new ModalPaths(paths[index][currentPath]);
             hm.put(paths[index][currentPath].intermodalModeKey, altPathsList);
           } else {
             // A list of paths for this mode already exists. Update it
@@ -428,14 +426,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
       String key = it.next();
       if (foundPaths.get(key) == null) {
         ODCell lostPath = potentialLostPaths.get(key);
-        /*System.out.println(
-            lostPath.getGroup()
-                + ", "
-                + lostPath.getOriginNodeId()
-                + ", "
-                + lostPath.getDestinationNodeId()
-                + ", "
-                + lostPath.getQuantity());*/
 
         System.out.println(
             "delete from "
@@ -487,7 +477,8 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     while (it.hasNext()) {
       ODCell demand = it.next();
       PathODCell pathODCell = new PathODCell(iteration, indexInODRow, demand.getQuantity());
-      double weight = 0.0;
+      //double weight = 0.0;
+      //float length = 0;
       int intermodalModeKey = 1;
 
       int currentPathIndex = 0;
@@ -504,9 +495,8 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
       int currentNode = endNode;
       boolean isPathFound = true;
-      float pathLength = 0;
-      float pathDuration = 0;
-      PathDetailedCosts pathCosts = new PathDetailedCosts();
+
+      PathWeights pathCosts = new PathWeights();
 
       int nbTranshipments = 0;
       byte loadingMode = 0;
@@ -529,7 +519,8 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
               potentialLostPaths.put(key, demand);
             }
           }
-          weight = Double.MAX_VALUE;
+          //weight = Double.MAX_VALUE;
+          
           isPathFound = false;
 
           break;
@@ -548,14 +539,13 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
           vl.addCell(groupIndex, pathODCell);
 
           // Add the real cost to the total cost
-          weight += vl.getCost(groupIndex);
+          //weight += vl.getCost(groupIndex);
 
           // Which mode and means is used on the path?
-          if (vl.getType() == VirtualLink.TYPE_MOVE) {
-            mode = vl.getBeginVirtualNode().getMode();
-            pathLength += vl.getLength();
-            pathDuration += vl.getDuration();
-          }
+          //if (vl.getType() == VirtualLink.TYPE_MOVE) {
+          //  mode = vl.getBeginVirtualNode().getMode();
+          //  length += vl.getLength();
+          // }
 
           // Detect if this is an intermodal path
           if (vl.getType() == VirtualLink.TYPE_TRANSHIP) {
@@ -566,45 +556,39 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
             nbTranshipments++;
           }
 
+          // if (pathWriter.isSavePaths()) {
           switch (vl.getType()) {
             case VirtualLink.TYPE_LOAD:
               pathCosts.ldCosts += vl.getCost(groupIndex);
+              pathCosts.ldDuration += vl.getDuration(groupIndex);
               loadingMode = vl.getEndVirtualNode().getMode();
               loadingMeans = vl.getEndVirtualNode().getMeans();
-              pathDuration += transitTimesParser.getLoadingDuration(loadingMode, loadingMeans);
               break;
             case VirtualLink.TYPE_UNLOAD:
               pathCosts.ulCosts += vl.getCost(groupIndex);
+              pathCosts.ulDuration += vl.getDuration(groupIndex);
               unloadingMode = vl.getBeginVirtualNode().getMode();
               unloadingMeans = vl.getBeginVirtualNode().getMeans();
-              pathDuration +=
-                  transitTimesParser.getUnloadingDuration(unloadingMode, unloadingMeans);
               break;
             case VirtualLink.TYPE_TRANSIT:
               pathCosts.trCosts += vl.getCost(groupIndex);
+              pathCosts.trDuration += vl.getDuration(groupIndex);
               break;
             case VirtualLink.TYPE_TRANSHIP:
               pathCosts.tpCosts += vl.getCost(groupIndex);
-              pathDuration +=
-                  transitTimesParser.getTranshipmentDuration(
-                      vl.getBeginVirtualNode().getMode(),
-                      vl.getBeginVirtualNode().getMeans(),
-                      vl.getEndVirtualNode().getMode(),
-                      vl.getEndVirtualNode().getMeans());
+              pathCosts.tpDuration += vl.getDuration(groupIndex);
               break;
             case VirtualLink.TYPE_MOVE:
               pathCosts.mvCosts += vl.getCost(groupIndex);
-
-              // Save detailed path info if needed
-              if (pathWriter.isSavePaths()) {
-                pathWriter.savePathLink(vl, currentPathIndex);
-              }
-
+              pathCosts.mvDuration += vl.getDuration(groupIndex);
+              pathCosts.length += vl.getLength();
+              mode = vl.getBeginVirtualNode().getMode();
+              pathWriter.savePathLink(vl, currentPathIndex);
               break;
             default:
               break;
           }
-
+          // }
           // Build the key that represents this path
           paths[indexInODRow].detailedPathKey += vl.getId();
 
@@ -620,13 +604,11 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
       paths[indexInODRow].intermodalModeKey = mode;
       paths[indexInODRow].loadingMode = loadingMode;
       paths[indexInODRow].loadingMeans = loadingMeans;
-      paths[indexInODRow].weight = weight;
-      paths[indexInODRow].pathDetailedCosts = pathCosts;
-      paths[indexInODRow].length = pathLength;
-      paths[indexInODRow].duration = pathDuration;
-
+      // paths[indexInODRow].weight = weight;
+      paths[indexInODRow].weights = pathCosts;
+      // paths[indexInODRow].length = length;
       // Associate the key with the length to maximize chances to have a unique key
-      paths[indexInODRow].detailedPathKey *= pathLength;
+      paths[indexInODRow].detailedPathKey *= pathCosts.getLength();
 
       indexInODRow++;
 
@@ -645,8 +627,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
               new PathHeader(
                   iteration,
                   demand,
-                  pathLength,
-                  pathDuration,
                   pathCosts,
                   loadingMode,
                   loadingMeans,
@@ -662,7 +642,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
   }
 
   /**
-   * Compute the market share of each mode/path.
+   * Compute the market marketShare of each mode/path.
    *
    * @param currentPath : the path to handle in the result set
    * @param msp = the parameters used for the modal split model
@@ -671,7 +651,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
   private boolean modalSplit(ODCell odCell, int currentPath) {
 
     // Retrieve all the valid routes
-    HashMap<Integer, AltPathsList> hm = getPathList(currentPath);
+    HashMap<Integer, ModalPaths> hm = getPaths(currentPath);
 
     return modalSplitMethod.split(odCell, hm);
   }

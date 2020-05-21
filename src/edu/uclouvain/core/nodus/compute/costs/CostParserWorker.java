@@ -142,22 +142,25 @@ public class CostParserWorker extends Thread {
 
           if (!isVirtualLinkExcluded(i, vl, groupNum)) {
 
-            double cost = 0.0;
-            cost = costParser.compute(vl, false);
+            // Compute costs
+            double cost = costParser.compute(vl, false);
             if (cost == CostParser.PARSER_ERROR) {
               return false;
             }
             vl.setCost(groupIndex, cost);
 
-            // Transit times must be computed only when paths are saved.
-            if (cwp.isWithPaths()) {
-              double transitTime = 0.0;
-              transitTime = costParser.compute(vl, true);
-              if (transitTime == CostParser.PARSER_ERROR) {
-                return false;
-              }
-              vl.setTransitTime(groupIndex, cost);
+            // Compute transit times
+            double duration = costParser.compute(vl, true);
+            if (duration == CostParser.PARSER_ERROR) {
+              return false;
             }
+
+            // Duration functions are not mandatory
+            if (duration == CostParser.UNDEFINED_FUNCTION) {
+              duration = 0.0;
+            }
+
+            vl.setDuration(groupIndex, duration);
 
             if (withFirstDerivative) {
               firstDerivative +=

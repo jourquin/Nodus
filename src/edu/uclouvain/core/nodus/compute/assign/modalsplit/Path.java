@@ -21,7 +21,7 @@
 
 package edu.uclouvain.core.nodus.compute.assign.modalsplit;
 
-import edu.uclouvain.core.nodus.compute.assign.workers.PathDetailedCosts;
+import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
 
 /**
  * Data structure that contains the details of a computed path. It just contains public variables.
@@ -31,8 +31,7 @@ import edu.uclouvain.core.nodus.compute.assign.workers.PathDetailedCosts;
  */
 public class Path {
 
-  /** Duration expressed in seconds. */
-  public float duration = 0;
+  public boolean isValid = true;
 
   /** True if the path is intermodal. False by default. */
   public boolean intermodal = false;
@@ -43,8 +42,8 @@ public class Path {
    */
   public double detailedPathKey = 0.0;
 
-  /** Length of the path. */
-  public float length = 0;
+  /** Market share of this path among all the alternative paths */
+  public double marketShare = 0;
 
   /** Transport mode used at the beginning of the path. */
   public byte loadingMode;
@@ -62,12 +61,5 @@ public class Path {
    * Detailed costs (loading, unloading, transit, transhipment, moving and total). Is used only when
    * detailed costs are asked for the assignment.
    */
-  public PathDetailedCosts pathDetailedCosts;
-
-  /**
-   * Weight of the path. This value represents the total cost of the path before the modal split is
-   * performed. The modal split methods have to transforms this value into a modal share (between 0
-   * and 1).
-   */
-  public double weight = 0.0;
+  public PathWeights weights;
 }

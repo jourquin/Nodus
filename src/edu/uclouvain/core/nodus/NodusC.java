@@ -235,6 +235,7 @@ public class NodusC {
   public static final String DBF_LENGTH = "length";
 
   /** Name of the "duration" field in the database tables. */
+  @Deprecated
   public static final String DBF_DURATION = "duration";
 
   /** Name of the "length" field in the database tables. */
@@ -257,6 +258,22 @@ public class NodusC {
 
   /** Name of the moving cost field in the database tables. */
   public static final String DBF_MVCOST = "mvcost";
+  
+  /** Name of the loading duration field in the database tables. */
+  public static final String DBF_LDDURATION = "ldduration";
+
+  /** Name of the unloading duration field in the database tables. */
+  public static final String DBF_ULDURATION = "uldurationt";
+
+  /** Name of the transit cost field in the database tables. */
+  public static final String DBF_TRDURATION = "trduration";
+
+  /** Name of the transhipment duration field in the database tables. */
+  public static final String DBF_TPDURATION = "tpduration";
+
+  /** Name of the moving duration field in the database tables. */
+  public static final String DBF_MVDURATION = "mvduration";
+
 
   /*
    * *********************************************************************************************
@@ -339,12 +356,6 @@ public class NodusC {
 
   /** Name of the variable that must be used in cost functions to use the length on a link. */
   public static final String VARNAME_LENGTH = "LENGTH";
-
-  /**
-   * Name of the variable that must be used in cost functions to use the duration (in seconds) on a
-   * link.
-   */
-  public static final String VARNAME_DURATION = "DURATION";
 
   /** Name of the variable that must be used in cost functions to use the frequency of a service. */
   public static final String VARNAME_FREQUENCY = "FREQUENCY";

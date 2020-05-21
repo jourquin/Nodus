@@ -63,6 +63,11 @@ public class ExactMFAssignment extends Assignment {
   @Override
   public boolean assign() {
 
+    // Test if cost functions contain deprecated XX_Duration variables
+    if (costsContainDeprecatedDurations()) {
+      return false;
+    }
+
     // double meansModeRatio = assignmentParameters.getMeansModeRatio();
 
     // Test if scenario already exists
@@ -140,7 +145,7 @@ public class ExactMFAssignment extends Assignment {
 
       // Must paths be saved
       boolean withPaths = assignmentParameters.isSavePaths();
-      
+
       // Get the number of threads
       int threads = assignmentParameters.getThreads();
 

@@ -28,8 +28,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 /**
- * Univariate Logarithmic Logit with exponent set to -1. This method simply allocates a modal share
- * proportionally to the inverse of the cost of each alternative.
+ * Univariate Logarithmic Logit with exponent set to -1. This method simply allocates a modal
+ * marketShare proportionally to the inverse of the cost of each alternative.
  *
  * @author Bart Jourquin
  */
@@ -48,43 +48,43 @@ public class Proportional extends ModalSplitMethod {
   }
 
   @Override
-  public boolean split(ODCell odCell, HashMap<Integer, AltPathsList> hm) {
+  public boolean split(ODCell odCell, HashMap<Integer, ModalPaths> hm) {
 
     /*
-     * Compute the market share for each mode
+     * Compute the market marketShare for each mode
      */
     double denominator = 0.0;
-    Iterator<AltPathsList> hmIt = hm.values().iterator();
+    Iterator<ModalPaths> hmIt = hm.values().iterator();
     while (hmIt.hasNext()) {
-      AltPathsList altPathsList = hmIt.next();
-      denominator += Math.pow(altPathsList.cheapestPathTotalCost, -1);
+      ModalPaths modalPaths = hmIt.next();
+      denominator += Math.pow(modalPaths.cheapestPath.getCost(), -1);
     }
 
-    // Compute the market share per mode
+    // Compute the market marketShare per mode
     hmIt = hm.values().iterator();
     while (hmIt.hasNext()) {
-      AltPathsList altPathsList = hmIt.next();
-      altPathsList.marketShare = Math.pow(altPathsList.cheapestPathTotalCost, -1) / denominator;
+      ModalPaths modalPaths = hmIt.next();
+      modalPaths.marketShare = Math.pow(modalPaths.cheapestPath.getCost(), -1) / denominator;
     }
 
-    // Compute the market share per path for each mode
+    // Compute the market marketShare per path for each mode
     hmIt = hm.values().iterator();
     while (hmIt.hasNext()) {
-      AltPathsList altPathsList = hmIt.next();
+      ModalPaths modalPaths = hmIt.next();
 
       // Denominator for this mode
       denominator = 0.0;
-      Iterator<Path> it = altPathsList.alternativePaths.iterator();
+      Iterator<Path> it = modalPaths.pathList.iterator();
       while (it.hasNext()) {
         Path path = it.next();
-        denominator += Math.pow(path.weight, -1);
+        denominator += Math.pow(path.weights.getCost(), -1);
       }
 
       // Spread over each path of this mode
-      it = altPathsList.alternativePaths.iterator();
+      it = modalPaths.pathList.iterator();
       while (it.hasNext()) {
-        Path path = it.next();
-        path.weight = Math.pow(path.weight, -1) / denominator * altPathsList.marketShare;
+        Path path = it.next();      
+        path.marketShare = Math.pow(path.weights.getCost(), -1) / denominator * modalPaths.marketShare;
       }
     }
     return true;

@@ -62,6 +62,11 @@ public class DynamicTimeDependentAssignment extends Assignment {
   @Override
   public boolean assign() {
 
+    // Test if cost functions contain deprecated XX_Duration variables
+    if (costsContainDeprecatedDurations()) {
+      return false;
+    }
+
     // Test if scenario already exists
     if (!VirtualNetworkWriter.acceptScenario(
         nodusProject, assignmentParameters.getScenario(), assignmentParameters.isConfirmDelete())) {
@@ -153,7 +158,7 @@ public class DynamicTimeDependentAssignment extends Assignment {
         if (!virtualNet.odClassHasDemand(odClass)) {
           continue;
         }
-        
+
         // Must paths be saved
         boolean withPaths = assignmentParameters.isSavePaths();
 

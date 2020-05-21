@@ -27,7 +27,7 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
-import edu.uclouvain.core.nodus.compute.assign.workers.PathDetailedCosts;
+import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.database.JDBCField;
 import edu.uclouvain.core.nodus.database.JDBCIndex;
@@ -92,6 +92,10 @@ public class PathWriter {
     scenario = assignmentParameters.getScenario();
     savePaths = assignmentParameters.isSavePaths();
     saveDetailedPaths = assignmentParameters.isDetailedPaths();
+
+    if (!savePaths) {
+      saveDetailedPaths = false;
+    }
 
     maxBatchSize =
         nodusProject.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
@@ -272,7 +276,7 @@ public class PathWriter {
   /** Creates empty tables to store the paths. */
   private void resetPathsTables() {
 
-    int nbFields = 19;
+    int nbFields = 23;
     JDBCField[] fields = new JDBCField[nbFields];
     int idx = 0;
     fields[idx++] = new JDBCField(NodusC.DBF_GROUP, "NUMERIC(2)");
@@ -282,12 +286,17 @@ public class PathWriter {
     fields[idx++] = new JDBCField(NodusC.DBF_ITERATION, "NUMERIC(3)");
     fields[idx++] = new JDBCField(NodusC.DBF_QUANTITY, "NUMERIC(13,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_LENGTH, "NUMERIC(8,3)");
-    fields[idx++] = new JDBCField(NodusC.DBF_DURATION, "NUMERIC(7,0)");
+    // fields[idx++] = new JDBCField(NodusC.DBF_DURATION, "NUMERIC(7,0)");
     fields[idx++] = new JDBCField(NodusC.DBF_LDCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_ULCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_TRCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_TPCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_MVCOST, "NUMERIC(10,3)");
+    fields[idx++] = new JDBCField(NodusC.DBF_LDDURATION, "NUMERIC(10,3)");
+    fields[idx++] = new JDBCField(NodusC.DBF_ULDURATION, "NUMERIC(10,3)");
+    fields[idx++] = new JDBCField(NodusC.DBF_TRDURATION, "NUMERIC(10,3)");
+    fields[idx++] = new JDBCField(NodusC.DBF_TPDURATION, "NUMERIC(10,3)");
+    fields[idx++] = new JDBCField(NodusC.DBF_MVDURATION, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_LDMODE, "NUMERIC(2)");
     fields[idx++] = new JDBCField(NodusC.DBF_LDMEANS, "NUMERIC(2)");
     fields[idx++] = new JDBCField(NodusC.DBF_ULMODE, "NUMERIC(2)");
@@ -300,7 +309,7 @@ public class PathWriter {
     String sqlStmt =
         "INSERT INTO "
             + JDBCUtils.getCompliantIdentifier(pathHeaderTableName)
-            + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     try {
       prepStmtHeaders = con.prepareStatement(sqlStmt);
@@ -382,10 +391,9 @@ public class PathWriter {
    *
    * @param iteration The iteration of the assignment.
    * @param odCell The OD cell associated to this path.
-   * @param quantity The quantity to assign to this path.
-   * @param length The length of this path.
-   * @param duration The travel duration (in seconds).
-   * @param pc The costs of the different operations (loading, moving, ...) relative to this path.
+   * @param quantity The quantity to assign to this path. It can be different from the one stored in
+   *     the OD cell.
+   * @param weights The costs, durations and length relative to this path.
    * @param ldMode The ID of the mode used at the origin.
    * @param ldMeans The ID of the means used at the origin.
    * @param ulMode The ID of the mode used at the destination.
@@ -397,9 +405,7 @@ public class PathWriter {
       int iteration,
       ODCell odCell,
       double quantity,
-      float length,
-      float duration,
-      PathDetailedCosts pc,
+      PathWeights weights,
       byte ldMode,
       byte ldMeans,
       byte ulMode,
@@ -409,9 +415,7 @@ public class PathWriter {
         iteration,
         odCell,
         quantity,
-        length,
-        duration,
-        pc,
+        weights,
         ldMode,
         ldMeans,
         ulMode,
@@ -429,10 +433,9 @@ public class PathWriter {
    *
    * @param iteration The iteration of the assignment.
    * @param odCell The OD cell associated to this path.
-   * @param quantity The quantity to assign to this path.
-   * @param length The length of this path.
-   * @param duration The travel duration (in seconds).
-   * @param pc The costs of the different operations (loading, moving, ...) relative to this path.
+   * @param quantity The quantity to assign to this path. It can be different from the one stored in
+   *     the OD cell.
+   * @param detailedCosts The costs, durations and length relative to this path.
    * @param ldMode The ID of the mode used at the origin.
    * @param ldMeans The ID of the means used at the origin.
    * @param ulMode The ID of the mode used at the destination.
@@ -445,9 +448,7 @@ public class PathWriter {
       int iteration,
       ODCell odCell,
       double quantity,
-      float length,
-      float duration,
-      PathDetailedCosts pc,
+      PathWeights detailedCosts,
       byte ldMode,
       byte ldMeans,
       byte ulMode,
@@ -463,13 +464,18 @@ public class PathWriter {
       prepStmtHeaders.setInt(idx++, odCell.getStartingTime() / 60);
       prepStmtHeaders.setInt(idx++, iteration);
       prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(quantity)));
-      prepStmtHeaders.setFloat(idx++, Float.parseFloat(df.format(length)));
-      prepStmtHeaders.setFloat(idx++, Float.parseFloat(df.format(duration)));
-      prepStmtHeaders.setDouble(idx++, pc.ldCosts);
-      prepStmtHeaders.setDouble(idx++, pc.ulCosts);
-      prepStmtHeaders.setDouble(idx++, pc.trCosts);
-      prepStmtHeaders.setDouble(idx++, pc.tpCosts);
-      prepStmtHeaders.setDouble(idx++, pc.mvCosts);
+      prepStmtHeaders.setFloat(idx++, Float.parseFloat(df.format(detailedCosts.length)));
+      // prepStmtHeaders.setFloat(idx++, Float.parseFloat(df.format(duration)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ldCosts)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ulCosts)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.trCosts)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.tpCosts)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.mvCosts)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ldDuration)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ulDuration)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.trDuration)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.tpDuration)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.mvDuration)));
       prepStmtHeaders.setInt(idx++, ldMode);
       prepStmtHeaders.setInt(idx++, ldMeans);
       prepStmtHeaders.setInt(idx++, ulMode);
