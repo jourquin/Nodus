@@ -23,7 +23,7 @@ package edu.uclouvain.core.nodus.compute.assign.workers;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalPaths;
+import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
@@ -296,9 +296,9 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     return true;
   }
 
-  private HashMap<Integer, ModalPaths> getPaths() {
+  private HashMap<Integer, PathsForMode> getPaths() {
 
-    HashMap<Integer, ModalPaths> hm = new HashMap<>();
+    HashMap<Integer, PathsForMode> hm = new HashMap<>();
 
     float cheapestPathLength = Float.MAX_VALUE;
     double cheapestIntermodalPathWeight = Double.MAX_VALUE;
@@ -379,10 +379,10 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
         // Only retain valid paths
         if (paths[index].isValid) {
           // Get the list of paths for this mode or create one
-          ModalPaths altPathsList = hm.get(paths[index].intermodalModeKey);
+          PathsForMode altPathsList = hm.get(paths[index].intermodalModeKey);
           if (altPathsList == null) {
             // Create new list of path for this mode
-            altPathsList = new ModalPaths(paths[index]);
+            altPathsList = new PathsForMode(paths[index]);
             hm.put(paths[index].intermodalModeKey, altPathsList);
           } else {
             // A list of paths for this mode already exists. Update it
@@ -610,7 +610,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
   /** Computes the market marketShare of each mode/path. */
   private boolean modalSplit(ODCell odCell) {
-    List<ModalPaths> list = new ArrayList<ModalPaths>(getPaths().values());
+    List<PathsForMode> list = new ArrayList<PathsForMode>(getPaths().values());
     return modalSplitMethod.split(odCell, list);
   }
 

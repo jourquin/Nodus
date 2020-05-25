@@ -31,7 +31,7 @@ import java.util.LinkedList;
  *
  * @author Bart Jourquin
  */
-public class ModalPaths {
+public class PathsForMode {
 
   /** Loading mode for this set of alternative paths. */
   public int loadingMode;
@@ -62,7 +62,7 @@ public class ModalPaths {
    *
    * @param path The first path of the set of alternative paths.
    */
-  public ModalPaths(Path path) {
+  public PathsForMode(Path path) {
     this.loadingMode = path.loadingMode;
     this.cheapestPathTotalCost = path.weights.getCost();
     this.cheapestPathWeights = path.weights;

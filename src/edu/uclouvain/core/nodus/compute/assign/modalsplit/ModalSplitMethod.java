@@ -97,8 +97,8 @@ public abstract class ModalSplitMethod {
    * Runs the modal split method algorithm.
    *
    * @param odCell The OD cell for which the modal split has to be performed.
-   * @param modalPathsLists A list that contains the lists of routes for each mode.
+   * @param pathsLists A list that contains the lists of routes for each mode.
    * @return True on success.
    */
-  public abstract boolean split(ODCell odCell, List<ModalPaths> modalPathsLists);
+  public abstract boolean split(ODCell odCell, List<PathsForMode> pathsLists);
 }

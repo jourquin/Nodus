@@ -22,7 +22,7 @@
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalPaths;
+import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
@@ -104,9 +104,9 @@ public class MLogit extends ModalSplitMethod {
    * Computes the utility for the cheapest path identified for a mode.
    *
    * @param modalPaths List of alternative routes for a mode.
-   * @return ModalPaths The updated ModalPaths with its utility.
+   * @return PathsForMode The updated PathsForMode with its utility.
    */
-  private ModalPaths computeUtility(ModalPaths modalPaths) {
+  private PathsForMode computeUtility(PathsForMode modalPaths) {
     PathWeights weights = modalPaths.cheapestPathWeights;
     int mode = modalPaths.loadingMode;
 
@@ -125,47 +125,47 @@ public class MLogit extends ModalSplitMethod {
    * Runs the modal split method algorithm.
    *
    * @param odCell The OD cell for which the modal split has to be performed.
-   * @param modalPathsLists A list that contains the lists of routes for each mode.
+   * @param pathsList A list that contains the lists of routes for each mode.
    * @return True on success.
    */
-  public boolean split(ODCell odCell, List<ModalPaths> modalPathsLists) {
+  public boolean split(ODCell odCell, List<PathsForMode> pathsList) {
 
     /*
-     * Compute the market share for each mode, based on the estimated utilities
+     * Compute the utility of each mode and the denominator of the logit
      */
     double denominator = 0.0;
-    Iterator<ModalPaths> mplIt = modalPathsLists.iterator();
-    while (mplIt.hasNext()) {
-      ModalPaths pathList = mplIt.next();
-      pathList = computeUtility(pathList);
-      denominator += Math.exp(pathList.utility);
+    Iterator<PathsForMode> plIt = pathsList.iterator();
+    while (plIt.hasNext()) {
+      PathsForMode modalPaths = plIt.next();
+      modalPaths = computeUtility(modalPaths);
+      denominator += Math.exp(modalPaths.utility);
     }
 
     // Compute the market share for each mode
-    mplIt = modalPathsLists.iterator();
-    while (mplIt.hasNext()) {
-      ModalPaths pathsList = mplIt.next();
-      pathsList.marketShare = Math.exp(pathsList.utility) / denominator;
+    plIt = pathsList.iterator();
+    while (plIt.hasNext()) {
+      PathsForMode modalPaths = plIt.next();
+      modalPaths.marketShare = Math.exp(modalPaths.utility) / denominator;
     }
 
     // Compute the market share for each path of a mode (proportional)
-    mplIt = modalPathsLists.iterator();
-    while (mplIt.hasNext()) {
-      ModalPaths pathList = mplIt.next();
+    plIt = pathsList.iterator();
+    while (plIt.hasNext()) {
+      PathsForMode modalPaths = plIt.next();
 
       // Denominator for this mode
       denominator = 0.0;
-      Iterator<Path> it = pathList.pathList.iterator();
+      Iterator<Path> it = modalPaths.pathList.iterator();
       while (it.hasNext()) {
         Path path = it.next();
         denominator += Math.pow(path.getCost(), -1);
       }
 
       // Spread over each path of this mode
-      it = pathList.pathList.iterator();
+      it = modalPaths.pathList.iterator();
       while (it.hasNext()) {
         Path path = it.next();
-        path.marketShare = (Math.pow(path.getCost(), -1) / denominator) * pathList.marketShare;
+        path.marketShare = (Math.pow(path.getCost(), -1) / denominator) * modalPaths.marketShare;
       }
     }
     return true;

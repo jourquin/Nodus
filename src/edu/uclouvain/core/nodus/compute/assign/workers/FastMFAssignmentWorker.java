@@ -23,7 +23,7 @@ package edu.uclouvain.core.nodus.compute.assign.workers;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalPaths;
+import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
@@ -317,9 +317,9 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     return true;
   }
 
-  private HashMap<Integer, ModalPaths> getPaths(int currentPath) {
+  private HashMap<Integer, PathsForMode> getPaths(int currentPath) {
 
-    HashMap<Integer, ModalPaths> hm = new HashMap<>();
+    HashMap<Integer, PathsForMode> hm = new HashMap<>();
 
     float cheapestPathLength = Float.MAX_VALUE;
     double cheapestIntermodalPathWeight = Double.MAX_VALUE;
@@ -400,11 +400,11 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         // Only retain valid paths
         if (paths[index][currentPath].isValid) {
           // Get the list of paths for this mode or create one
-          ModalPaths altPathsList = hm.get(paths[index][currentPath].intermodalModeKey);
+          PathsForMode altPathsList = hm.get(paths[index][currentPath].intermodalModeKey);
 
           if (altPathsList == null) {
             // Create new list of path for this mode
-            altPathsList = new ModalPaths(paths[index][currentPath]);
+            altPathsList = new PathsForMode(paths[index][currentPath]);
             hm.put(paths[index][currentPath].intermodalModeKey, altPathsList);
           } else {
             // A list of paths for this mode already exists. Update it
@@ -653,7 +653,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
     try {
       // Retrieve all the valid routes
-      List<ModalPaths> list = new ArrayList<ModalPaths>(getPaths(currentPath).values());
+      List<PathsForMode> list = new ArrayList<PathsForMode>(getPaths(currentPath).values());
       return modalSplitMethod.split(odCell, list);
     } catch (NoClassDefFoundError e) {
       // e.printStackTrace();

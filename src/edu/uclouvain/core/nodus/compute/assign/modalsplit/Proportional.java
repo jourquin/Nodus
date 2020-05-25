@@ -48,29 +48,29 @@ public class Proportional extends ModalSplitMethod {
   }
 
   @Override
-  public boolean split(ODCell odCell, List<ModalPaths> modalPathsLists) {
+  public boolean split(ODCell odCell, List<PathsForMode> pathsLists) {
 
     /*
      * Compute the market marketShare for each mode
      */
     double denominator = 0.0;
-    Iterator<ModalPaths> mplIt = modalPathsLists.iterator();
-    while (mplIt.hasNext()) {
-      ModalPaths modalPaths = mplIt.next();
+    Iterator<PathsForMode> plIt = pathsLists.iterator();
+    while (plIt.hasNext()) {
+      PathsForMode modalPaths = plIt.next();
       denominator += Math.pow(modalPaths.cheapestPathWeights.getCost(), -1);
     }
 
     // Compute the market marketShare per mode
-    mplIt = modalPathsLists.iterator();
-    while (mplIt.hasNext()) {
-      ModalPaths modalPaths = mplIt.next();
+    plIt = pathsLists.iterator();
+    while (plIt.hasNext()) {
+      PathsForMode modalPaths = plIt.next();
       modalPaths.marketShare = Math.pow(modalPaths.cheapestPathWeights.getCost(), -1) / denominator;
     }
 
     // Compute the market marketShare per path for each mode
-    mplIt = modalPathsLists.iterator();
-    while (mplIt.hasNext()) {
-      ModalPaths modalPaths = mplIt.next();
+    plIt = pathsLists.iterator();
+    while (plIt.hasNext()) {
+      PathsForMode modalPaths = plIt.next();
 
       // Denominator for this mode
       denominator = 0.0;
