@@ -147,4 +147,8 @@ public class Abraham extends ModalSplitMethod {
     }
     return true;
   }
+  
+  public int getVersion() {
+	  return 1;
+  }
 }

@@ -128,4 +128,8 @@ public class MultinomialLogit extends ModalSplitMethod {
     }
     return true;
   }
+  
+  public int getVersion() {
+	  return 1;
+  }
 }

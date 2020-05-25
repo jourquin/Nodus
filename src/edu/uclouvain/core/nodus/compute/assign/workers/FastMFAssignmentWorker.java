@@ -18,7 +18,6 @@
  * <p>You should have received a copy of the GNU General Public License along with this program. If
  * not, see http://www.gnu.org/licenses/.
  */
-
 package edu.uclouvain.core.nodus.compute.assign.workers;
 
 import edu.uclouvain.core.nodus.NodusC;
@@ -274,8 +273,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
               if (ph.demand.getOriginNodeId() == demand.getOriginNodeId()
                   && ph.demand.getDestinationNodeId() == demand.getDestinationNodeId()) {
                 if (paths[ph.iteration][currentPath].isValid) {
-                  double q =
-                      demand.getQuantity() * paths[ph.iteration][currentPath].marketShare;
+                  double q = demand.getQuantity() * paths[ph.iteration][currentPath].marketShare;
 
                   if (!pathWriter.savePathHeader(
                       ph.iteration,
@@ -477,8 +475,8 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     while (it.hasNext()) {
       ODCell demand = it.next();
       PathODCell pathODCell = new PathODCell(iteration, indexInODRow, demand.getQuantity());
-      //double weight = 0.0;
-      //float length = 0;
+      // double weight = 0.0;
+      // float length = 0;
       int intermodalModeKey = 1;
 
       int currentPathIndex = 0;
@@ -519,8 +517,8 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
               potentialLostPaths.put(key, demand);
             }
           }
-          //weight = Double.MAX_VALUE;
-          
+          // weight = Double.MAX_VALUE;
+
           isPathFound = false;
 
           break;
@@ -539,10 +537,10 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
           vl.addCell(groupIndex, pathODCell);
 
           // Add the real cost to the total cost
-          //weight += vl.getCost(groupIndex);
+          // weight += vl.getCost(groupIndex);
 
           // Which mode and means is used on the path?
-          //if (vl.getType() == VirtualLink.TYPE_MOVE) {
+          // if (vl.getType() == VirtualLink.TYPE_MOVE) {
           //  mode = vl.getBeginVirtualNode().getMode();
           //  length += vl.getLength();
           // }
@@ -653,7 +651,13 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     // Retrieve all the valid routes
     HashMap<Integer, ModalPaths> hm = getPaths(currentPath);
 
-    return modalSplitMethod.split(odCell, hm);
+    try {
+      return modalSplitMethod.split(odCell, hm);
+    } catch (NoClassDefFoundError e) {
+      //e.printStackTrace();
+    	System.out.println("wrong API");
+      return false;
+    }
   }
 
   private boolean updateProgressBar(int nodeIndex) {

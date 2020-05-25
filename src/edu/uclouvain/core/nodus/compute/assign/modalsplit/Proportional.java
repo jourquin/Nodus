@@ -89,4 +89,8 @@ public class Proportional extends ModalSplitMethod {
     }
     return true;
   }
+  
+  public int getVersion() {
+	  return 1;
+  }
 }

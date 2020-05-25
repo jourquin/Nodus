@@ -18,4 +18,9 @@
 
 
 # Diverse
-check use of getTotalCost() 
+Still simplify modal split API ? Remove PathWeights ?
+reuse method for computing market share in virtual link ?
+Detect wrong plugin's
+i18n
+Demo doc
+Other costs (stop...)
