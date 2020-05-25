@@ -1,23 +1,23 @@
-/*******************************************************************************
- * Copyright (c) 1991-2020 Université catholique de Louvain, 
- * Center for Operations Research and Econometrics (CORE)
- * http://www.uclouvain.be
- * 
- * This file is part of Nodus.
- * 
- * Nodus is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+/*
+ * Copyright (c) 1991-2020 Université catholique de Louvain
+ *
+ * <p>Center for Operations Research and Econometrics (CORE)
+ *
+ * <p>http://www.uclouvain.be
+ *
+ * <p>This file is part of Nodus.
+ *
+ * <p>Nodus is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * General Public License as published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * <p>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see http://www.gnu.org/licenses/.
- ******************************************************************************/
+ *
+ * <p>You should have received a copy of the GNU General Public License along with this program. If
+ * not, see http://www.gnu.org/licenses/.
+ */
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
@@ -27,16 +27,15 @@ import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
-
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Properties;
 
 /**
  * This modal split method uses parameters that are estimated using the R mnLogit package. The
- * parameters must be estimated using date that corresponds to the cheapest computed route for each
- * mode, whatever the means used. 
- * 
+ * parameters must be estimated using data that corresponds to the cheapest computed route for each
+ * mode, whatever the means used.
+ *
  * <p>See the MNLogit.R script for the estimation of the parameters.
  *
  * <p>Once the modal split computed, the quantity assigned to each mode is spread over the available
@@ -46,22 +45,16 @@ import java.util.Properties;
  */
 public class MLogit extends ModalSplitMethod {
 
-  // If true, prints the parameters
-  boolean debug = false;
-
-  // Estimated parameters names and values
-  String[] paramNames = {
+  // Names of the estimated parameters (as found in the output of the R MLogit package.
+  private String[] paramNames = {
     "(intercept)", "log(cost)",
   };
 
-  double[][] paramValue;
+  // Estimated values for the parameters
+  private double[][] paramValue;
 
-  Properties costFunctions;
-
-  /** The constructor is a good place to tell if this method will be available or not. */
-  public MLogit() {
-    setEnabled(true);
-  }
+  // The cost functions used in the Nodus project that call this modal split plugin.
+  private Properties costFunctions;
 
   /**
    * Initializes the method with the right parameters.
@@ -70,10 +63,12 @@ public class MLogit extends ModalSplitMethod {
    * @param nodusProject Nodus project
    * @param assignmentParameters Assignment parameters
    */
+  @Override
   public void initialize(
       int currentGroup, NodusProject nodusProject, AssignmentParameters assignmentParameters) {
     super.initialize(currentGroup, nodusProject, assignmentParameters);
 
+    // Retrieve the cost functions
     costFunctions = assignmentParameters.getCostFunctions();
 
     // Retrieve the values of the estimated parameters
@@ -85,84 +80,92 @@ public class MLogit extends ModalSplitMethod {
     }
   }
 
+  /**
+   * Returns the pretty name of the modal split method, as displayed in the Assignment Dialog Box.
+   *
+   * @return The pretty name of the modal split method.
+   */
   @Override
   public String getPrettyName() {
     return "Use R estimators";
   }
 
+  /**
+   * Returns the short name of the modal split method.
+   *
+   * @return The short name of the modal split method.
+   */
   @Override
   public String getName() {
     return "MLogit";
   }
 
   /**
-   * Compute the utility for the cheapest path of a mode.
+   * Computes the utility for the cheapest path identified for a mode.
    *
-   * @param altPathList List of alternative paths
-   * @return AltPathsList The updated list
+   * @param modalPaths List of alternative routes for a mode.
+   * @return ModalPaths The updated ModalPaths with its utility.
    */
-  private AltPathsList computeUtility(AltPathsList altPathList) {
-    PathDetailedCosts c = altPathList.cheapestPathDetailedCosts;
-    int mode = altPathList.loadingMode;
+  private ModalPaths computeUtility(ModalPaths modalPaths) {
+    PathWeights weights = modalPaths.cheapestPathWeights;
+    int mode = modalPaths.loadingMode;
 
     // Compute the total cost of the OD relation
-    double cost = c.ldCosts + c.tpCosts + c.trCosts + c.ulCosts + c.mvCosts;
+    double cost = weights.getCost();
 
     // The model was estimated with logs
     double logCost = Math.log(cost);
 
     // Utility = intercept + log(cost)
-    altPathList.utility =
-        paramValue[mode][0] + paramValue[mode][1] * logCost;
-    return altPathList;
+    modalPaths.utility = paramValue[mode][0] + paramValue[mode][1] * logCost;
+    return modalPaths;
   }
 
   /**
    * Runs the modal split method algorithm.
    *
    * @param odCell The OD cell for which the modal split has to be performed.
-   * @param hm The HashMap that contains the routes over which the flow must be spread.
-   * 
+   * @param modalPathsLists A list that contains the lists of routes for each mode.
    * @return True on success.
    */
-  public boolean split(ODCell odCell, HashMap<Integer, AltPathsList> hm) {
+  public boolean split(ODCell odCell, List<ModalPaths> modalPathsLists) {
 
     /*
      * Compute the market share for each mode, based on the estimated utilities
      */
     double denominator = 0.0;
-    Iterator<AltPathsList> hmIt = hm.values().iterator();
-    while (hmIt.hasNext()) {
-      AltPathsList pathList = hmIt.next();
+    Iterator<ModalPaths> mplIt = modalPathsLists.iterator();
+    while (mplIt.hasNext()) {
+      ModalPaths pathList = mplIt.next();
       pathList = computeUtility(pathList);
       denominator += Math.exp(pathList.utility);
     }
 
-    // Compute the market share per mode
-    hmIt = hm.values().iterator();
-    while (hmIt.hasNext()) {
-      AltPathsList pathsList = hmIt.next();
+    // Compute the market share for each mode
+    mplIt = modalPathsLists.iterator();
+    while (mplIt.hasNext()) {
+      ModalPaths pathsList = mplIt.next();
       pathsList.marketShare = Math.exp(pathsList.utility) / denominator;
     }
 
-    // Compute the market share per path for each mode (proportional)
-    hmIt = hm.values().iterator();
-    while (hmIt.hasNext()) {
-      AltPathsList pathList = hmIt.next();
+    // Compute the market share for each path of a mode (proportional)
+    mplIt = modalPathsLists.iterator();
+    while (mplIt.hasNext()) {
+      ModalPaths pathList = mplIt.next();
 
       // Denominator for this mode
       denominator = 0.0;
-      Iterator<Path> it = pathList.alternativePaths.iterator();
+      Iterator<Path> it = pathList.pathList.iterator();
       while (it.hasNext()) {
         Path path = it.next();
-        denominator += Math.pow(path.weight, -1);
+        denominator += Math.pow(path.getCost(), -1);
       }
 
       // Spread over each path of this mode
-      it = pathList.alternativePaths.iterator();
+      it = pathList.pathList.iterator();
       while (it.hasNext()) {
         Path path = it.next();
-        path.weight = (Math.pow(path.weight, -1) / denominator) * pathList.marketShare;
+        path.marketShare = (Math.pow(path.getCost(), -1) / denominator) * pathList.marketShare;
       }
     }
     return true;
@@ -179,6 +182,8 @@ public class MLogit extends ModalSplitMethod {
   public double getParameter(String name, int mode) {
 
     double ret = 0.0;
+
+    // Search for a mode and group specific value
     String propName = name + "." + mode + "." + getCurrentGroup();
 
     String doubleString = costFunctions.getProperty(propName);
@@ -192,10 +197,6 @@ public class MLogit extends ModalSplitMethod {
       } catch (NumberFormatException e) {
         ret = 0.0;
       }
-    }
-
-    if (debug && ret != 0) {
-      System.out.println(propName + " = " + ret);
     }
 
     return ret;
