@@ -2278,7 +2278,7 @@ public class NodusProject implements ShapeConstants {
    * @param num Scenario number.
    */
   public void setScenario(int num) {
-    setScenario(num, null);
+    setScenario(num, "");
   }
 
   /**

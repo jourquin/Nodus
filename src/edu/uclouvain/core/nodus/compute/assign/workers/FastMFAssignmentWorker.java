@@ -23,9 +23,9 @@ package edu.uclouvain.core.nodus.compute.assign.workers;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
+import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
@@ -655,9 +655,9 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
       // Retrieve all the valid routes
       List<PathsForMode> list = new ArrayList<PathsForMode>(getPaths(currentPath).values());
       return modalSplitMethod.split(odCell, list);
-   } catch (Error e) {
-	   e.printStackTrace();
-   
+    } catch (Error e) {
+      e.printStackTrace();
+
       System.out.println("wrong API");
       return false;
     }

@@ -26,19 +26,14 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
-import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
 import groovy.lang.GroovyShell;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Properties;
 import java.util.Set;
 import javax.swing.JOptionPane;
@@ -257,37 +252,6 @@ public abstract class Assignment implements Runnable {
     }
 
     return true;
-  }
-
-  /**
-   * Returns the ModalSplitMethod which name is given as parameter.
-   *
-   * @param methodName String
-   * @return ModalSplitMethod
-   */
-  public ModalSplitMethod getModalSplitMethod(String methodName) {
-    System.out.println("???");
-    LinkedList<Class<ModalSplitMethod>> ll =
-        ModalSplitMethodsLoader.getAvailableModalSplitMethods();
-    Iterator<Class<ModalSplitMethod>> it = ll.iterator();
-
-    while (it.hasNext()) {
-      Class<ModalSplitMethod> loadedClass = it.next();
-      try {
-        Constructor<ModalSplitMethod> cons = loadedClass.getConstructor();
-        ModalSplitMethod modalSplitMethod = cons.newInstance();
-
-        // Is this the method we are looking for ?
-        if (modalSplitMethod.getName().equals(methodName)) {
-          return modalSplitMethod;
-        }
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-
-    System.err.println("Modal split method not found. This should not be possible!");
-    return null;
   }
 
   /**

@@ -22,9 +22,9 @@
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
+import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import java.util.Iterator;
@@ -55,7 +55,6 @@ public class MLogit extends ModalSplitMethod {
 
   // The cost functions used in the Nodus project that call this modal split plugin.
   private Properties costFunctions;
-  
 
   /**
    * Initializes the method with the right parameters.
@@ -68,7 +67,7 @@ public class MLogit extends ModalSplitMethod {
   public void initialize(
       int currentGroup, NodusProject nodusProject, AssignmentParameters assignmentParameters) {
     super.initialize(currentGroup, nodusProject, assignmentParameters);
-System.out.println("ikkkk");
+
     // Retrieve the cost functions
     costFunctions = assignmentParameters.getCostFunctions();
 
@@ -98,7 +97,7 @@ System.out.println("ikkkk");
    */
   @Override
   public String getName() {
-    return "MLogitDemo";
+    return "MLogit";
   }
 
   /**
@@ -119,6 +118,7 @@ System.out.println("ikkkk");
 
     // Utility = intercept + log(cost)
     modalPaths.utility = paramValue[mode][0] + paramValue[mode][1] * logCost;
+
     return modalPaths;
   }
 
@@ -159,14 +159,15 @@ System.out.println("ikkkk");
       Iterator<Path> it = modalPaths.pathList.iterator();
       while (it.hasNext()) {
         Path path = it.next();
-        denominator += Math.pow(path.getCost(), -1);
+        denominator += Math.pow(path.weights.getCost(), -1);
       }
 
       // Spread over each path of this mode
       it = modalPaths.pathList.iterator();
       while (it.hasNext()) {
         Path path = it.next();
-        path.marketShare = (Math.pow(path.getCost(), -1) / denominator) * modalPaths.marketShare;
+        path.marketShare =
+            (Math.pow(path.weights.getCost(), -1) / denominator) * modalPaths.marketShare;
       }
     }
     return true;
@@ -186,10 +187,8 @@ System.out.println("ikkkk");
 
     // Search for a mode and group specific value
     String propName = name + "." + mode + "." + getCurrentGroup();
-    System.out.println(propName);
-    
+
     String doubleString = costFunctions.getProperty(propName);
-    
 
     if (doubleString == null) {
       ret = 0.0;
@@ -201,7 +200,6 @@ System.out.println("ikkkk");
         ret = 0.0;
       }
     }
-System.out.println(ret);
     return ret;
   }
 }

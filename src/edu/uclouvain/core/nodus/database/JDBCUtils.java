@@ -978,7 +978,7 @@ public class JDBCUtils {
    *     to the list it maintains in memory for performance reasons.
    * @return True on success.
    */
-  public static boolean tableExists(String tableName, boolean reloadList) {
+  public static synchronized boolean tableExists(String tableName, boolean reloadList) {
     // Create table list if needed
     if (tableList == null || reloadList) {
       tableList = new ArrayList<>();

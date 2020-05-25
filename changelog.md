@@ -141,7 +141,7 @@ that are not supported by Nodus.
 - Upgrade to mariadb-java-client 2.6
 - Accept SQL DATE in the DBF files.
 - The labels of a Nodus layer are now displayed only if the layer itself is visible (both are now synchronized).
-- Simplify the API for modal split methods. This breaks existing plugin's. A message is displayed to inform the user.  
+- Simplify the API for modal split methods. This breaks existing plugin's. A console message is displayed to inform the user.  
 - Add the possibility to include transit time functions in cost functions files. These functions follow the same structure as
 the cost functions, but use the '@' separator. Example "ld.1,1=" for a "loading" cost function and "ld@1,1=" for a loading 
 time function. The old, undocumented, possibility to partially compute transit times is removed and a message is displayed 

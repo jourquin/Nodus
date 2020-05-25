@@ -22,6 +22,7 @@
 package edu.uclouvain.core.nodus.utils;
 
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
+import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileNotFoundException;
@@ -150,6 +151,7 @@ public class ModalSplitMethodsLoader {
   @SuppressWarnings("unchecked")
   private void loadUserDefinedModalSplitMethods(String pathToJar) {
 
+    String className;
     try {
       JarFile jarFile = new JarFile(pathToJar);
       Enumeration<JarEntry> e = jarFile.entries();
@@ -163,7 +165,7 @@ public class ModalSplitMethodsLoader {
           continue;
         }
         // -6 because of .class
-        String className = je.getName().substring(0, je.getName().length() - 6);
+        className = je.getName().substring(0, je.getName().length() - 6);
         className = className.replace('/', '.');
         Class<?> c = cl.loadClass(className);
 
@@ -175,9 +177,11 @@ public class ModalSplitMethodsLoader {
           }
         } catch (Exception ex) {
           /*
-           * The jar may contain classes that are not modal split methods.
-           * Do nothing. This exception is thrown by cons.newInstance().
+           * The jar may contain classes that are not valid modal split methods.
            */
+          new NodusConsole();
+          System.err.println(className + " is not (anymore?) a valid ModalSplitMethod.");
+          System.err.println("The modal split plugin's API was changed in Nodus 7.3.");
         }
       }
       jarFile.close();

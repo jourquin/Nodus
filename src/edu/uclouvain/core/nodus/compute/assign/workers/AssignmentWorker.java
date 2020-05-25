@@ -32,7 +32,10 @@ import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
+import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
+import java.lang.reflect.Constructor;
+import java.util.Iterator;
 import java.util.LinkedList;
 
 /**
@@ -94,7 +97,7 @@ public abstract class AssignmentWorker extends Thread {
 
   /** Virtual network that will be generated before the assignment. */
   VirtualNetwork virtualNet;
-  
+
   Assignment assignment;
 
   /**
@@ -168,7 +171,7 @@ public abstract class AssignmentWorker extends Thread {
         odClass = awp.getODClass();
 
         currentGroup = virtualNet.getGroups()[groupIndex];
-        
+
         // Start the real work
         if (!doAssignment()) {
           // Cancel all workers
@@ -182,8 +185,34 @@ public abstract class AssignmentWorker extends Thread {
     }
   }
 
+  /**
+   * Returns a new instance of the ModalSplitMethod which name is given as parameter.
+   *
+   * @param methodName String
+   * @return ModalSplitMethod
+   */
   public ModalSplitMethod getModalSplitMethod(String methodName) {
-    return assignment.getModalSplitMethod(methodName);
+    LinkedList<Class<ModalSplitMethod>> ll =
+        ModalSplitMethodsLoader.getAvailableModalSplitMethods();
+    Iterator<Class<ModalSplitMethod>> it = ll.iterator();
+
+    while (it.hasNext()) {
+      Class<ModalSplitMethod> loadedClass = it.next();
+      try {
+        Constructor<ModalSplitMethod> cons = loadedClass.getConstructor();
+        ModalSplitMethod modalSplitMethod = cons.newInstance();
+
+        // Is this the method we are looking for ?
+        if (modalSplitMethod.getName().equals(methodName)) {
+          return modalSplitMethod;
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+
+    System.err.println("Modal split method not found. This should not be possible!");
+    return null;
   }
 
   /**

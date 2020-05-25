@@ -25,7 +25,6 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
-import edu.uclouvain.core.nodus.compute.assign.Assignment;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
@@ -81,6 +80,8 @@ public class PathWriter {
   private int maxBatchSize;
 
   private boolean hasBatchSupport = false;
+
+  private boolean canceled = false;
 
   /**
    * Initializes the different tables needed to store the paths.
@@ -412,6 +413,21 @@ public class PathWriter {
       byte ulMode,
       byte ulMeans,
       int nbTranshipments) {
+
+    if (canceled) {
+      return false;
+    }
+
+    if (Double.isNaN(quantity)) {
+      canceled = true;
+      JOptionPane.showMessageDialog(
+          null,
+          i18n.get(PathWriter.class, "QuantityIsNan", "Quantity is NaN !"),
+          NodusC.APPNAME,
+          JOptionPane.ERROR_MESSAGE);
+      return false;
+    }
+
     if (!savePathHeader(
         iteration,
         odCell,
@@ -457,7 +473,12 @@ public class PathWriter {
       int nbTranshipments,
       int pathIndex) {
 
+    if (canceled) {
+      return false;
+    }
+
     if (Double.isNaN(quantity)) {
+      canceled = true;
       JOptionPane.showMessageDialog(
           null,
           i18n.get(PathWriter.class, "QuantityIsNan", "Quantity is NaN !"),
@@ -474,10 +495,8 @@ public class PathWriter {
       prepStmtHeaders.setInt(idx++, odCell.getDestinationNodeId());
       prepStmtHeaders.setInt(idx++, odCell.getStartingTime() / 60);
       prepStmtHeaders.setInt(idx++, iteration);
-      System.out.println(quantity);
       prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(quantity)));
       prepStmtHeaders.setFloat(idx++, Float.parseFloat(df.format(detailedCosts.length)));
-      // prepStmtHeaders.setFloat(idx++, Float.parseFloat(df.format(duration)));
       prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ldCosts)));
       prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ulCosts)));
       prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.trCosts)));
