@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
@@ -40,10 +40,7 @@ public class ModalPaths {
   public double marketShare;
 
   /** Detailed costs of the cheapest path in the list of alternatives. */
-  public PathWeights cheapestPath;
-
-  /** Detailed cost of the cheapest path for means 1 in the list of alternatives. */
-  public PathWeights cheapestMeans1Path;
+  public PathWeights cheapestPathWeights;
 
   /** List of alternative paths for this mode. */
   public LinkedList<Path> pathList = new LinkedList<>();
@@ -54,8 +51,11 @@ public class ModalPaths {
   /** Weight (cost) of the cheapest path in the list of alternatives. */
   private double cheapestPathTotalCost = Double.MAX_VALUE;
 
-  /** Weight (cost) of the cheapest path for transportation means 1. */
-  private double cheapestMeans1TotalCost = Double.MAX_VALUE;
+  //  /** Weight (cost) of the cheapest path for transportation means 1. */
+  //  private double cheapestMeans1TotalCost = Double.MAX_VALUE;
+  //
+  //  /** Detailed cost of the cheapest path for means 1 in the list of alternatives. */
+  //  public PathWeights cheapestMeans1Path;
 
   /**
    * Initializes a valid paths list.
@@ -64,18 +64,16 @@ public class ModalPaths {
    */
   public ModalPaths(Path path) {
     this.loadingMode = path.loadingMode;
-    //this.cheapestPathLength = path.weights.getLength();
     this.cheapestPathTotalCost = path.weights.getCost();
-    //this.cheapestPathDuration = path.weights.getTransitTime();
-    this.cheapestPath = path.weights;
+    this.cheapestPathWeights = path.weights;
     this.pathList.add(path);
 
-    if (path.loadingMeans == 1) {
+    /* if (path.loadingMeans == 1) {
       cheapestMeans1TotalCost = path.weights.getCost();
       //cheapestMeans1PathLength = path.weights.getLength();
       //cheapestMeans1PathDuration = path.weights.getTransitTime();
       cheapestMeans1Path = path.weights;
-    }
+    }*/
   }
 
   /**
@@ -87,19 +85,17 @@ public class ModalPaths {
     // Track the cheapest alternative
     if (this.cheapestPathTotalCost > path.weights.getCost()) {
       this.loadingMode = path.loadingMode;
-      //this.cheapestPathLength = path.weights.getLength();
       this.cheapestPathTotalCost = path.weights.getCost();
-      //this.cheapestPathDuration = path.weights.getTransitTime();
-      this.cheapestPath = path.weights;
+      this.cheapestPathWeights = path.weights;
     }
 
     // Track the cheapest alternative for means 1
-    if (path.loadingMeans == 1 && path.weights.getCost() < cheapestMeans1TotalCost) {
+    /* if (path.loadingMeans == 1 && path.weights.getCost() < cheapestMeans1TotalCost) {
       cheapestMeans1TotalCost = path.weights.getCost();
       //cheapestMeans1PathLength = path.weights.getLength();
       //cheapestMeans1PathDuration = path.weights.getTransitTime();
       cheapestMeans1Path = path.weights;
-    }
+    }*/
 
     this.pathList.add(path);
   }

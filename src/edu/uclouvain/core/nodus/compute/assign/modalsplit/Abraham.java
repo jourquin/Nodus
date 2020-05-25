@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
@@ -101,7 +101,7 @@ public class Abraham extends ModalSplitMethod {
   }
 
   @Override
-  public boolean split(ODCell odCell, List<ModalPaths> modalPathsList) {
+  public boolean split(ODCell odCell, List<ModalPaths> modalPathsLists) {
 
     if (exponent >= 0) {
       return false;
@@ -111,21 +111,22 @@ public class Abraham extends ModalSplitMethod {
      * Compute the market marketShare for each mode
      */
     double denominator = 0.0;
-    Iterator<ModalPaths> mplIt = modalPathsList.iterator();
+    Iterator<ModalPaths> mplIt = modalPathsLists.iterator();
     while (mplIt.hasNext()) {
       ModalPaths modalPaths = mplIt.next();
-      denominator += Math.pow(modalPaths.cheapestPath.getCost(), exponent);
+      denominator += Math.pow(modalPaths.cheapestPathWeights.getCost(), exponent);
     }
 
     // Compute the market marketShare per mode
-    mplIt = modalPathsList.iterator();
+    mplIt = modalPathsLists.iterator();
     while (mplIt.hasNext()) {
       ModalPaths modalPaths = mplIt.next();
-      modalPaths.marketShare = Math.pow(modalPaths.cheapestPath.getCost(), exponent) / denominator;
+      modalPaths.marketShare =
+          Math.pow(modalPaths.cheapestPathWeights.getCost(), exponent) / denominator;
     }
 
     // Compute the market marketShare per path for each mode
-    mplIt = modalPathsList.iterator();
+    mplIt = modalPathsLists.iterator();
     while (mplIt.hasNext()) {
       ModalPaths modalPaths = mplIt.next();
 
@@ -146,9 +147,5 @@ public class Abraham extends ModalSplitMethod {
       }
     }
     return true;
-  }
-
-  public int getVersion() {
-    return 1;
   }
 }

@@ -24,3 +24,4 @@ Detect wrong plugin's
 i18n
 Demo doc
 Other costs (stop...)
+Edit DBF structure

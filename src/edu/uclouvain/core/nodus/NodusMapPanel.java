@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
@@ -86,7 +86,7 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.gui.SQLConsole;
 import edu.uclouvain.core.nodus.gui.GlobalPreferencesDlg;
 import edu.uclouvain.core.nodus.gui.LanguageChooser;
-import edu.uclouvain.core.nodus.gui.LookAndFeelManager;
+import edu.uclouvain.core.nodus.gui.LookAndFeelChooser;
 import edu.uclouvain.core.nodus.gui.ProjectPreferencesDlg;
 import edu.uclouvain.core.nodus.gui.SplashDlg;
 import edu.uclouvain.core.nodus.helpbrowser.HelpBrowser;
@@ -2543,7 +2543,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @param e ActionEvent
    */
   private void menuItemToolLookAndFeelActionPerformed(ActionEvent e) {
-    new LookAndFeelManager(this).setVisible(true);
+    new LookAndFeelChooser(this).setVisible(true);
   }
 
   /**

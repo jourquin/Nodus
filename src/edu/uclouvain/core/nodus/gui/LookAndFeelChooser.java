@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
@@ -48,7 +48,7 @@ import javax.swing.LookAndFeel;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
-public class LookAndFeelManager extends EscapeDialog {
+public class LookAndFeelChooser extends EscapeDialog {
 
   private static I18n i18n = Environment.getI18n();
 
@@ -134,10 +134,10 @@ public class LookAndFeelManager extends EscapeDialog {
    *
    * @param nodusMapPanel The Nodus map panel.
    */
-  public LookAndFeelManager(NodusMapPanel nodusMapPanel) {
+  public LookAndFeelChooser(NodusMapPanel nodusMapPanel) {
     super(
         nodusMapPanel.getMainFrame(),
-        i18n.get(LookAndFeelManager.class, "Look_and_Feel", "Look and Feel"),
+        i18n.get(LookAndFeelChooser.class, "Look_and_Feel", "Look and Feel"),
         true);
 
     currentLookAndFeelName = UIManager.getLookAndFeel().getClass().getName();
@@ -202,7 +202,7 @@ public class LookAndFeelManager extends EscapeDialog {
   private JButton getCancelButton() {
     if (cancelButton == null) {
       cancelButton = new JButton();
-      cancelButton.setText(i18n.get(LookAndFeelManager.class, "Cancel", "Cancel"));
+      cancelButton.setText(i18n.get(LookAndFeelChooser.class, "Cancel", "Cancel"));
       cancelButton.addActionListener(
           new ActionListener() {
             @Override
@@ -223,7 +223,7 @@ public class LookAndFeelManager extends EscapeDialog {
   private JButton getOkButton() {
     if (okButton == null) {
       okButton = new JButton();
-      okButton.setText(i18n.get(LookAndFeelManager.class, "Ok", "Ok"));
+      okButton.setText(i18n.get(LookAndFeelChooser.class, "Ok", "Ok"));
       okButton.addActionListener(
           new ActionListener() {
             @Override
@@ -244,7 +244,7 @@ public class LookAndFeelManager extends EscapeDialog {
   private JCheckBox getSoundCheckBox() {
     if (soundCheckBox == null) {
       soundCheckBox = new JCheckBox();
-      soundCheckBox.setText(i18n.get(LookAndFeelManager.class, "Sound", "Sound"));
+      soundCheckBox.setText(i18n.get(LookAndFeelChooser.class, "Sound", "Sound"));
     }
     return soundCheckBox;
   }
@@ -342,7 +342,7 @@ public class LookAndFeelManager extends EscapeDialog {
         JOptionPane.showMessageDialog(
             nodusMapPanel,
             i18n.get(
-                LookAndFeelManager.class,
+                LookAndFeelChooser.class,
                 "Decorations_will_be_applied_at_next_restart",
                 "Decorations will be applied at next restart"),
             NodusC.APPNAME,

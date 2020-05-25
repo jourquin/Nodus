@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
@@ -60,25 +60,25 @@ public class MultinomialLogit extends ModalSplitMethod {
   }
 
   @Override
-  public boolean split(ODCell odCell, List<ModalPaths> modalPathsList) {
+  public boolean split(ODCell odCell, List<ModalPaths> modalPathsLists) {
 
     /*
      * Compute the market marketShare for each mode
      */
     double denominator = 0.0;
-    Iterator<ModalPaths> mplIt = modalPathsList.iterator();
+    Iterator<ModalPaths> mplIt = modalPathsLists.iterator();
     while (mplIt.hasNext()) {
       ModalPaths modalPaths = mplIt.next();
-      double d = Math.exp(-modalPaths.cheapestPath.getCost());
+      double d = Math.exp(-modalPaths.cheapestPathWeights.getCost());
       denominator += d;
     }
 
     // Compute the market marketShare per mode
-    mplIt = modalPathsList.iterator();
+    mplIt = modalPathsLists.iterator();
     while (mplIt.hasNext()) {
       ModalPaths modalPaths = mplIt.next();
 
-      double v = Math.exp(-modalPaths.cheapestPath.getCost()) / denominator;
+      double v = Math.exp(-modalPaths.cheapestPathWeights.getCost()) / denominator;
       if (Double.isNaN(v)) {
         v = 0.0;
       }
@@ -86,7 +86,7 @@ public class MultinomialLogit extends ModalSplitMethod {
     }
 
     // Compute the market marketShare per path for each mode
-    mplIt = modalPathsList.iterator();
+    mplIt = modalPathsLists.iterator();
     while (mplIt.hasNext()) {
       ModalPaths modalPaths = mplIt.next();
 

@@ -18,6 +18,7 @@
  * <p>You should have received a copy of the GNU General Public License along with this program. If
  * not, see http://www.gnu.org/licenses/.
  */
+
 package edu.uclouvain.core.nodus.compute.assign.modalsplit;
 
 import edu.uclouvain.core.nodus.NodusProject;
@@ -96,9 +97,8 @@ public abstract class ModalSplitMethod {
    * Runs the modal split method algorithm.
    *
    * @param odCell The OD cell for which the modal split has to be performed.
-   * @param modalPathsList A list of paths for one mode that contains the routes over which the
-   *     flow. must be spread.
+   * @param modalPathsLists A list that contains the lists of routes for each mode.
    * @return True on success.
    */
-  public abstract boolean split(ODCell odCell, List<ModalPaths> modalPathsList);
+  public abstract boolean split(ODCell odCell, List<ModalPaths> modalPathsLists);
 }
