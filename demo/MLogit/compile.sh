@@ -7,7 +7,7 @@ export CLASSPATH=../../nodus7.jar:../../lib/*:../../lib/groovy/*:../../lib/groov
 javac -source 1.8 -target 1.8 MLogit.java 
 
 # Create the JAR file
-jar cf MLogit.jar MLogit.class
+jar cf ../MLogit.jar MLogit.class
 
 # Remove the compiled class file (not mandatory)
 rm MLogit.class

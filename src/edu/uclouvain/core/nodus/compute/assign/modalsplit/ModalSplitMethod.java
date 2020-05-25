@@ -39,9 +39,9 @@ public abstract class ModalSplitMethod {
    *
    * @exclude
    */
-  public ModalSplitMethod() {
+ /* public ModalSplitMethod() {
     // Default constructor
-  }
+  }*/
 
   /**
    * Returns the assignment parameters.

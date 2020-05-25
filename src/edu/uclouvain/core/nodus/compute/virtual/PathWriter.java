@@ -25,6 +25,7 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.compute.assign.Assignment;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
@@ -455,6 +456,16 @@ public class PathWriter {
       byte ulMeans,
       int nbTranshipments,
       int pathIndex) {
+
+    if (Double.isNaN(quantity)) {
+      JOptionPane.showMessageDialog(
+          null,
+          i18n.get(PathWriter.class, "QuantityIsNan", "Quantity is NaN !"),
+          NodusC.APPNAME,
+          JOptionPane.ERROR_MESSAGE);
+      return false;
+    }
+
     try {
 
       int idx = 1;
@@ -463,6 +474,7 @@ public class PathWriter {
       prepStmtHeaders.setInt(idx++, odCell.getDestinationNodeId());
       prepStmtHeaders.setInt(idx++, odCell.getStartingTime() / 60);
       prepStmtHeaders.setInt(idx++, iteration);
+      System.out.println(quantity);
       prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(quantity)));
       prepStmtHeaders.setFloat(idx++, Float.parseFloat(df.format(detailedCosts.length)));
       // prepStmtHeaders.setFloat(idx++, Float.parseFloat(df.format(duration)));

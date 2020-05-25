@@ -372,24 +372,6 @@ public class NodusC {
   public static final String VARNAME_AVERAGELOAD = "AVGLOAD";
 
   /**
-   * Name of the variable that must be used in cost functions to store the loading duration of a
-   * vehicle.
-   */
-  public static final String VARNAME_LOADING_DURATION = "LD_DURATION";
-
-  /**
-   * Name of the variable that must be used in cost functions to store the unloading duration of a
-   * vehicle.
-   */
-  public static final String VARNAME_UNLOADING_DURATION = "UL_DURATION";
-
-  /**
-   * Name of the variable that must be used in cost functions to store the transhipment duration
-   * between vehicles.
-   */
-  public static final String VARNAME_TRANSHIP_DURATION = "TP_DURATION";
-
-  /**
    * Name of the variable that must be used in cost functions to differentiate Up and DownStream
    * flows.
    */

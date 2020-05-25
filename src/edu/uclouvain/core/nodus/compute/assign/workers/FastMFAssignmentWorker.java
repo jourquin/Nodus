@@ -655,8 +655,9 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
       // Retrieve all the valid routes
       List<PathsForMode> list = new ArrayList<PathsForMode>(getPaths(currentPath).values());
       return modalSplitMethod.split(odCell, list);
-    } catch (NoClassDefFoundError e) {
-      // e.printStackTrace();
+   } catch (Error e) {
+	   e.printStackTrace();
+   
       System.out.println("wrong API");
       return false;
     }

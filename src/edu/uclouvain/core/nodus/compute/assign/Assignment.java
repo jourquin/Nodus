@@ -279,17 +279,9 @@ public abstract class Assignment implements Runnable {
 
         // Is this the method we are looking for ?
         if (modalSplitMethod.getName().equals(methodName)) {
-          /* try {
-            int z = modalSplitMethod.getVersion();
-          } catch (AbstractMethodError e) {
-           System.out.println(modalSplitMethod.getName() + " " + i);
-           return null;
-            //e.printStackTrace();
-          }*/
           return modalSplitMethod;
         }
       } catch (Exception e) {
-
         e.printStackTrace();
       }
     }
@@ -301,7 +293,7 @@ public abstract class Assignment implements Runnable {
   /**
    * A quick & dirty way to introduce durations was introduces in Nodus 7.1 and 7.2, using
    * XX_DURATION variables in the costs functions files. Since Nodus 7.3, durations are handled in
-   * the same way than cost functions, usin the '@' séparator instead of '.' after the type of
+   * the same way than cost functions, using the '@' separator instead of '.' after the type of
    * function.
    *
    * <p>Example : "mv.1,1 = " for costs and "mv@1,1 = " for durations. If a duration function is not
@@ -316,15 +308,15 @@ public abstract class Assignment implements Runnable {
     // Scan the cots function to detect the presence of durations
     Set<Object> keys = costFunctions.keySet();
     for (Object key : keys) {
-      if (((String) key).contains(NodusC.VARNAME_LOADING_DURATION)) {
+      if (((String) key).contains("LD_DURATION")) {
         hasDeprecatedVariables = true;
         break;
       }
-      if (((String) key).contains(NodusC.VARNAME_UNLOADING_DURATION)) {
+      if (((String) key).contains("UL_DURATION")) {
         hasDeprecatedVariables = true;
         break;
       }
-      if (((String) key).contains(NodusC.VARNAME_TRANSHIP_DURATION)) {
+      if (((String) key).contains("TP_DURATION")) {
         hasDeprecatedVariables = true;
         break;
       }
@@ -333,7 +325,10 @@ public abstract class Assignment implements Runnable {
     if (hasDeprecatedVariables) {
       JOptionPane.showMessageDialog(
           null,
-          "Costs contain deprecated duration variables. Must be fixed before assignment.",
+          i18n.get(
+              Assignment.class,
+              "DeprecatedDurations",
+              "Costs contain deprecated duration variables. Must be fixed before assignment."),
           NodusC.APPNAME,
           JOptionPane.ERROR_MESSAGE);
     }

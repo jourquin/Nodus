@@ -55,6 +55,7 @@ public class MLogit extends ModalSplitMethod {
 
   // The cost functions used in the Nodus project that call this modal split plugin.
   private Properties costFunctions;
+  
 
   /**
    * Initializes the method with the right parameters.
@@ -67,7 +68,7 @@ public class MLogit extends ModalSplitMethod {
   public void initialize(
       int currentGroup, NodusProject nodusProject, AssignmentParameters assignmentParameters) {
     super.initialize(currentGroup, nodusProject, assignmentParameters);
-
+System.out.println("ikkkk");
     // Retrieve the cost functions
     costFunctions = assignmentParameters.getCostFunctions();
 
@@ -97,7 +98,7 @@ public class MLogit extends ModalSplitMethod {
    */
   @Override
   public String getName() {
-    return "MLogit";
+    return "MLogitDemo";
   }
 
   /**
@@ -185,8 +186,10 @@ public class MLogit extends ModalSplitMethod {
 
     // Search for a mode and group specific value
     String propName = name + "." + mode + "." + getCurrentGroup();
-
+    System.out.println(propName);
+    
     String doubleString = costFunctions.getProperty(propName);
+    
 
     if (doubleString == null) {
       ret = 0.0;
@@ -198,7 +201,7 @@ public class MLogit extends ModalSplitMethod {
         ret = 0.0;
       }
     }
-
+System.out.println(ret);
     return ret;
   }
 }
