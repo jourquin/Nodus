@@ -18,6 +18,7 @@
  * <p>You should have received a copy of the GNU General Public License along with this program. If
  * not, see http://www.gnu.org/licenses/.
  */
+
 package edu.uclouvain.core.nodus.compute.assign.workers;
 
 import edu.uclouvain.core.nodus.NodusC;
@@ -34,9 +35,11 @@ import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * The fast multi-flow assignment computes one or several alternative routes for each mode/means
@@ -648,14 +651,13 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
    */
   private boolean modalSplit(ODCell odCell, int currentPath) {
 
-    // Retrieve all the valid routes
-    HashMap<Integer, ModalPaths> hm = getPaths(currentPath);
-
     try {
-      return modalSplitMethod.split(odCell, hm);
+      // Retrieve all the valid routes
+      List<ModalPaths> list = new ArrayList<ModalPaths>(getPaths(currentPath).values());
+      return modalSplitMethod.split(odCell, list);
     } catch (NoClassDefFoundError e) {
-      //e.printStackTrace();
-    	System.out.println("wrong API");
+      // e.printStackTrace();
+      System.out.println("wrong API");
       return false;
     }
   }

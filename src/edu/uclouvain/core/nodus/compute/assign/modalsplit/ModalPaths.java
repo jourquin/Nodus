@@ -45,7 +45,7 @@ public class ModalPaths {
   /** Detailed cost of the cheapest path for means 1 in the list of alternatives. */
   public PathWeights cheapestMeans1Path;
 
-  /** List of alternative paths. */
+  /** List of alternative paths for this mode. */
   public LinkedList<Path> pathList = new LinkedList<>();
 
   /** Value of the utility given to the cheapest path of the list. */

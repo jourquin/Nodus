@@ -171,10 +171,7 @@ public class ModalSplitMethodsLoader {
           Constructor<?> cons = c.getConstructor();
           Object o = cons.newInstance();
           if (o instanceof ModalSplitMethod) {
-            ModalSplitMethod msm = (ModalSplitMethod) o;
-            if (msm.isEnabled()) {
-              availableModalSplitMethods.add((Class<ModalSplitMethod>) c);
-            }
+            availableModalSplitMethods.add((Class<ModalSplitMethod>) c);
           }
         } catch (Exception ex) {
           /*

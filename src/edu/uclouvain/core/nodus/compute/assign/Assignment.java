@@ -266,7 +266,7 @@ public abstract class Assignment implements Runnable {
    * @return ModalSplitMethod
    */
   public ModalSplitMethod getModalSplitMethod(String methodName) {
-	  System.out.println("???");
+    System.out.println("???");
     LinkedList<Class<ModalSplitMethod>> ll =
         ModalSplitMethodsLoader.getAvailableModalSplitMethods();
     Iterator<Class<ModalSplitMethod>> it = ll.iterator();
@@ -279,18 +279,17 @@ public abstract class Assignment implements Runnable {
 
         // Is this the method we are looking for ?
         if (modalSplitMethod.getName().equals(methodName)) {
-/*        	try {
-        int z = modalSplitMethod.getVersion();
-      } catch (AbstractMethodError e) {
-    	  System.out.println(modalSplitMethod.getName() + " " + i);
-    	  return null;
-        //e.printStackTrace();
-      }*/
+          /* try {
+            int z = modalSplitMethod.getVersion();
+          } catch (AbstractMethodError e) {
+           System.out.println(modalSplitMethod.getName() + " " + i);
+           return null;
+            //e.printStackTrace();
+          }*/
           return modalSplitMethod;
         }
       } catch (Exception e) {
-    	  
-    	
+
         e.printStackTrace();
       }
     }

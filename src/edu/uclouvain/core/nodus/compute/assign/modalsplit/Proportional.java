@@ -24,8 +24,8 @@ package edu.uclouvain.core.nodus.compute.assign.modalsplit;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * Univariate Logarithmic Logit with exponent set to -1. This method simply allocates a modal
@@ -48,29 +48,29 @@ public class Proportional extends ModalSplitMethod {
   }
 
   @Override
-  public boolean split(ODCell odCell, HashMap<Integer, ModalPaths> hm) {
+  public boolean split(ODCell odCell, List<ModalPaths> modalPathsList) {
 
     /*
      * Compute the market marketShare for each mode
      */
     double denominator = 0.0;
-    Iterator<ModalPaths> hmIt = hm.values().iterator();
-    while (hmIt.hasNext()) {
-      ModalPaths modalPaths = hmIt.next();
+    Iterator<ModalPaths> mplIt = modalPathsList.iterator();
+    while (mplIt.hasNext()) {
+      ModalPaths modalPaths = mplIt.next();
       denominator += Math.pow(modalPaths.cheapestPath.getCost(), -1);
     }
 
     // Compute the market marketShare per mode
-    hmIt = hm.values().iterator();
-    while (hmIt.hasNext()) {
-      ModalPaths modalPaths = hmIt.next();
+    mplIt = modalPathsList.iterator();
+    while (mplIt.hasNext()) {
+      ModalPaths modalPaths = mplIt.next();
       modalPaths.marketShare = Math.pow(modalPaths.cheapestPath.getCost(), -1) / denominator;
     }
 
     // Compute the market marketShare per path for each mode
-    hmIt = hm.values().iterator();
-    while (hmIt.hasNext()) {
-      ModalPaths modalPaths = hmIt.next();
+    mplIt = modalPathsList.iterator();
+    while (mplIt.hasNext()) {
+      ModalPaths modalPaths = mplIt.next();
 
       // Denominator for this mode
       denominator = 0.0;
@@ -83,14 +83,11 @@ public class Proportional extends ModalSplitMethod {
       // Spread over each path of this mode
       it = modalPaths.pathList.iterator();
       while (it.hasNext()) {
-        Path path = it.next();      
-        path.marketShare = Math.pow(path.weights.getCost(), -1) / denominator * modalPaths.marketShare;
+        Path path = it.next();
+        path.marketShare =
+            Math.pow(path.weights.getCost(), -1) / denominator * modalPaths.marketShare;
       }
     }
     return true;
-  }
-  
-  public int getVersion() {
-	  return 1;
   }
 }

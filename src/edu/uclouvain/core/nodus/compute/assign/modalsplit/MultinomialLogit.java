@@ -26,8 +26,8 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 
@@ -60,23 +60,23 @@ public class MultinomialLogit extends ModalSplitMethod {
   }
 
   @Override
-  public boolean split(ODCell odCell, HashMap<Integer, ModalPaths> hm) {
+  public boolean split(ODCell odCell, List<ModalPaths> modalPathsList) {
 
     /*
      * Compute the market marketShare for each mode
      */
     double denominator = 0.0;
-    Iterator<ModalPaths> hmIt = hm.values().iterator();
-    while (hmIt.hasNext()) {
-      ModalPaths modalPaths = hmIt.next();
+    Iterator<ModalPaths> mplIt = modalPathsList.iterator();
+    while (mplIt.hasNext()) {
+      ModalPaths modalPaths = mplIt.next();
       double d = Math.exp(-modalPaths.cheapestPath.getCost());
       denominator += d;
     }
 
     // Compute the market marketShare per mode
-    hmIt = hm.values().iterator();
-    while (hmIt.hasNext()) {
-      ModalPaths modalPaths = hmIt.next();
+    mplIt = modalPathsList.iterator();
+    while (mplIt.hasNext()) {
+      ModalPaths modalPaths = mplIt.next();
 
       double v = Math.exp(-modalPaths.cheapestPath.getCost()) / denominator;
       if (Double.isNaN(v)) {
@@ -86,9 +86,9 @@ public class MultinomialLogit extends ModalSplitMethod {
     }
 
     // Compute the market marketShare per path for each mode
-    hmIt = hm.values().iterator();
-    while (hmIt.hasNext()) {
-      ModalPaths modalPaths = hmIt.next();
+    mplIt = modalPathsList.iterator();
+    while (mplIt.hasNext()) {
+      ModalPaths modalPaths = mplIt.next();
 
       // Denominator for this mode
       denominator = 0.0;
@@ -122,14 +122,10 @@ public class MultinomialLogit extends ModalSplitMethod {
         if (Double.isNaN(v)) {
           v = 0.0;
         }
-      
+
         path.marketShare = v * modalPaths.marketShare;
       }
     }
     return true;
-  }
-  
-  public int getVersion() {
-	  return 1;
   }
 }

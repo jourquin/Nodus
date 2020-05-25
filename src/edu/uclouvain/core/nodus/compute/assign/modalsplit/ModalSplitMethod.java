@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
@@ -18,21 +18,18 @@
  * <p>You should have received a copy of the GNU General Public License along with this program. If
  * not, see http://www.gnu.org/licenses/.
  */
-
 package edu.uclouvain.core.nodus.compute.assign.modalsplit;
 
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
-import java.util.HashMap;
+import java.util.List;
 
 public abstract class ModalSplitMethod {
 
   private AssignmentParameters assignmentParameters;
 
   private int group;
-
-  private boolean enabled = true;
 
   private NodusProject nodusProject;
 
@@ -42,7 +39,7 @@ public abstract class ModalSplitMethod {
    * @exclude
    */
   public ModalSplitMethod() {
-
+    // Default constructor
   }
 
   /**
@@ -96,30 +93,12 @@ public abstract class ModalSplitMethod {
   }
 
   /**
-   * If false, the method will not be displayed in the list of possible methods to use.
-   *
-   * @return boolean
-   */
-  public boolean isEnabled() {
-    return enabled;
-  }
-
-  /**
-   * Controls if the modal split method will be included in the list of possible methods.
-   *
-   * @param enabled True or false
-   */
-  public void setEnabled(boolean enabled) {
-    this.enabled = enabled;
-  }
-
-  /**
    * Runs the modal split method algorithm.
    *
    * @param odCell The OD cell for which the modal split has to be performed.
-   * @param hm The HashMap that contains the routes over which the flow must be spread.
-   * 
+   * @param modalPathsList A list of paths for one mode that contains the routes over which the
+   *     flow. must be spread.
    * @return True on success.
    */
-  public abstract boolean split(ODCell odCell, HashMap<Integer, ModalPaths> hm);
+  public abstract boolean split(ODCell odCell, List<ModalPaths> modalPathsList);
 }

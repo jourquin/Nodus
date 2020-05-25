@@ -35,9 +35,11 @@ import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * The exact multi-flow assignment computes one or several alternative routes for each mode/means
@@ -326,7 +328,8 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
          * Keep the cheapest intermodal path, if any. Used later if intermodal solutions
          * have to be kept only if they are the cheapest transport solution.
          */
-        if (paths[index].intermodal && paths[index].weights.getCost() < cheapestIntermodalPathWeight) {
+        if (paths[index].intermodal
+            && paths[index].weights.getCost() < cheapestIntermodalPathWeight) {
           cheapestIntermodalPathWeight = paths[index].weights.getCost();
         }
 
@@ -445,7 +448,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     int mode = -1;
 
     PathODCell pathODCell = new PathODCell(iteration, demand.getQuantity());
-    //double weight = 0.0;
+    // double weight = 0.0;
     // float length = 0;
 
     int currentPathIndex = 0;
@@ -487,7 +490,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
             potentialLostPaths.put(key, demand);
           }
         }
-        //weight = Double.MAX_VALUE;
+        // weight = Double.MAX_VALUE;
         path.isValid = false;
         isPathFound = false;
 
@@ -510,7 +513,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
         vl.addCell(groupIndex, pathODCell);
 
         // Add the real cost to the total cost
-        //weight += vl.getCost(groupIndex);
+        // weight += vl.getCost(groupIndex);
 
         // Which mode and means is used on the path?
         // if (vl.getType() == VirtualLink.TYPE_MOVE) {
@@ -570,7 +573,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     path.intermodalModeKey = mode;
     path.loadingMode = loadingMode;
     path.loadingMeans = loadingMeans;
-    //path.weight = weight;
+    // path.weight = weight;
     path.weights = pathCosts;
     // path.length = length;
 
@@ -607,10 +610,8 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
   /** Computes the market marketShare of each mode/path. */
   private boolean modalSplit(ODCell odCell) {
-
-    HashMap<Integer, ModalPaths> hm = getPaths();
-
-    return modalSplitMethod.split(odCell, hm);
+    List<ModalPaths> list = new ArrayList<ModalPaths>(getPaths().values());
+    return modalSplitMethod.split(odCell, list);
   }
 
   private boolean updateProgressBar(int nodeIndex) {
