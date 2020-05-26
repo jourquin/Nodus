@@ -131,7 +131,7 @@ public class PathWriter {
 
     // Create new tables if needed
     if (isSavePaths()) {
-      resetPathsTables();
+      createPathsTables();
     } else {
       // Drop existing tables if they exist
       JDBCUtils.dropTable(pathHeaderTableName);
@@ -276,9 +276,9 @@ public class PathWriter {
   }
 
   /** Creates empty tables to store the paths. */
-  private void resetPathsTables() {
+  private void createPathsTables() {
 
-    int nbFields = 23;
+    int nbFields = 27;
     JDBCField[] fields = new JDBCField[nbFields];
     int idx = 0;
     fields[idx++] = new JDBCField(NodusC.DBF_GROUP, "NUMERIC(2)");
@@ -288,17 +288,23 @@ public class PathWriter {
     fields[idx++] = new JDBCField(NodusC.DBF_ITERATION, "NUMERIC(3)");
     fields[idx++] = new JDBCField(NodusC.DBF_QUANTITY, "NUMERIC(13,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_LENGTH, "NUMERIC(8,3)");
-    // fields[idx++] = new JDBCField(NodusC.DBF_DURATION, "NUMERIC(7,0)");
+   
     fields[idx++] = new JDBCField(NodusC.DBF_LDCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_ULCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_TRCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_TPCOST, "NUMERIC(10,3)");
+    fields[idx++] = new JDBCField(NodusC.DBF_STPCOST, "NUMERIC(10,3)");
+    fields[idx++] = new JDBCField(NodusC.DBF_SWCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_MVCOST, "NUMERIC(10,3)");
+   
     fields[idx++] = new JDBCField(NodusC.DBF_LDDURATION, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_ULDURATION, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_TRDURATION, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_TPDURATION, "NUMERIC(10,3)");
+    fields[idx++] = new JDBCField(NodusC.DBF_STPDURATION, "NUMERIC(10,3)");
+    fields[idx++] = new JDBCField(NodusC.DBF_SWDURATION, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_MVDURATION, "NUMERIC(10,3)");
+    
     fields[idx++] = new JDBCField(NodusC.DBF_LDMODE, "NUMERIC(2)");
     fields[idx++] = new JDBCField(NodusC.DBF_LDMEANS, "NUMERIC(2)");
     fields[idx++] = new JDBCField(NodusC.DBF_ULMODE, "NUMERIC(2)");
@@ -311,7 +317,7 @@ public class PathWriter {
     String sqlStmt =
         "INSERT INTO "
             + JDBCUtils.getCompliantIdentifier(pathHeaderTableName)
-            + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     try {
       prepStmtHeaders = con.prepareStatement(sqlStmt);
@@ -497,15 +503,19 @@ public class PathWriter {
       prepStmtHeaders.setInt(idx++, iteration);
       prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(quantity)));
       prepStmtHeaders.setFloat(idx++, Float.parseFloat(df.format(detailedCosts.length)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ldCosts)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ulCosts)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.trCosts)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.tpCosts)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.mvCosts)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ldCost)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ulCost)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.trCost)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.tpCost)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.stpCost)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.swCost)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.mvCost)));
       prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ldDuration)));
       prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ulDuration)));
       prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.trDuration)));
       prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.tpDuration)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.stpDuration)));
+      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.swDuration)));
       prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.mvDuration)));
       prepStmtHeaders.setInt(idx++, ldMode);
       prepStmtHeaders.setInt(idx++, ldMeans);

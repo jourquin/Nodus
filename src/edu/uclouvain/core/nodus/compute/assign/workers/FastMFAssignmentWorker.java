@@ -91,7 +91,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
   @Override
   boolean doAssignment() {
 
-    LinkedList<PathHeader> pathHeaders = new LinkedList<>();
+    LinkedList<MFPathHeader> pathHeaders = new LinkedList<>();
 
     double costMarkup = 1 + assignmentParameters.getCostMarkup();
 
@@ -270,9 +270,9 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
           if (assignmentParameters.isSavePaths()) {
 
             /* Update the path headers in memory to compute the quantity on each path */
-            Iterator<PathHeader> it2 = pathHeaders.iterator();
+            Iterator<MFPathHeader> it2 = pathHeaders.iterator();
             while (it2.hasNext()) {
-              PathHeader ph = it2.next();
+              MFPathHeader ph = it2.next();
               if (ph.demand.getOriginNodeId() == demand.getOriginNodeId()
                   && ph.demand.getDestinationNodeId() == demand.getDestinationNodeId()) {
                 if (paths[ph.iteration][currentPath].isValid) {
@@ -282,7 +282,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
                       ph.iteration,
                       demand,
                       q,
-                      ph.pathCosts,
+                      ph.weights,
                       ph.loadingMode,
                       ph.loadingMeans,
                       ph.unloadingMode,
@@ -456,7 +456,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
    * of all the paths from this node.
    */
   private Path[] markPaths(
-      int nodeIndex, int nbOD, int iteration, LinkedList<PathHeader> pathHeaders) {
+      int nodeIndex, int nbOD, int iteration, LinkedList<MFPathHeader> pathHeaders) {
     VirtualNodeList[] virtualNodeList = virtualNet.getVirtualNodeLists();
     int[] pi = shortestPath.getPredecessors();
     int beginNode = virtualNodeList[nodeIndex].getLoadingVirtualNodeId();
@@ -539,15 +539,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
           vl.addCell(groupIndex, pathODCell);
 
-          // Add the real cost to the total cost
-          // weight += vl.getCost(groupIndex);
-
-          // Which mode and means is used on the path?
-          // if (vl.getType() == VirtualLink.TYPE_MOVE) {
-          //  mode = vl.getBeginVirtualNode().getMode();
-          //  length += vl.getLength();
-          // }
-
           // Detect if this is an intermodal path
           if (vl.getType() == VirtualLink.TYPE_TRANSHIP) {
             intermodalModeKey *=
@@ -557,30 +548,37 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
             nbTranshipments++;
           }
 
-          // if (pathWriter.isSavePaths()) {
           switch (vl.getType()) {
             case VirtualLink.TYPE_LOAD:
-              pathCosts.ldCosts += vl.getCost(groupIndex);
+              pathCosts.ldCost += vl.getCost(groupIndex);
               pathCosts.ldDuration += vl.getDuration(groupIndex);
               loadingMode = vl.getEndVirtualNode().getMode();
               loadingMeans = vl.getEndVirtualNode().getMeans();
               break;
             case VirtualLink.TYPE_UNLOAD:
-              pathCosts.ulCosts += vl.getCost(groupIndex);
+              pathCosts.ulCost += vl.getCost(groupIndex);
               pathCosts.ulDuration += vl.getDuration(groupIndex);
               unloadingMode = vl.getBeginVirtualNode().getMode();
               unloadingMeans = vl.getBeginVirtualNode().getMeans();
               break;
             case VirtualLink.TYPE_TRANSIT:
-              pathCosts.trCosts += vl.getCost(groupIndex);
+              pathCosts.trCost += vl.getCost(groupIndex);
               pathCosts.trDuration += vl.getDuration(groupIndex);
               break;
             case VirtualLink.TYPE_TRANSHIP:
-              pathCosts.tpCosts += vl.getCost(groupIndex);
+              pathCosts.tpCost += vl.getCost(groupIndex);
               pathCosts.tpDuration += vl.getDuration(groupIndex);
               break;
+            case VirtualLink.TYPE_STOP:
+              pathCosts.stpCost += vl.getCost(groupIndex);
+              pathCosts.stpDuration += vl.getDuration(groupIndex);
+              break;
+            case VirtualLink.TYPE_SWITCH:
+              pathCosts.swCost += vl.getCost(groupIndex);
+              pathCosts.swDuration += vl.getDuration(groupIndex);
+              break;
             case VirtualLink.TYPE_MOVE:
-              pathCosts.mvCosts += vl.getCost(groupIndex);
+              pathCosts.mvCost += vl.getCost(groupIndex);
               pathCosts.mvDuration += vl.getDuration(groupIndex);
               pathCosts.length += vl.getLength();
               mode = vl.getBeginVirtualNode().getMode();
@@ -589,7 +587,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
             default:
               break;
           }
-          // }
+
           // Build the key that represents this path
           paths[indexInODRow].detailedPathKey += vl.getId();
 
@@ -625,7 +623,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         if (pathWriter.isSavePaths()) {
           // The quantity assigned to this path will be computed later
           pathHeaders.add(
-              new PathHeader(
+              new MFPathHeader(
                   iteration,
                   demand,
                   pathCosts,

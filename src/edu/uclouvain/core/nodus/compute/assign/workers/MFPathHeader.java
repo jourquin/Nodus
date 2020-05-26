@@ -29,7 +29,7 @@ import edu.uclouvain.core.nodus.compute.od.ODCell;
  *
  * @author Bart Jourquin
  */
-class PathHeader {
+class MFPathHeader {
   /** OD cell. */
   public ODCell demand;
 
@@ -39,32 +39,17 @@ class PathHeader {
   /** Alternative route number. */
   public int iteration;
 
-  /** loading cost. */
-  public double ldCosts = 0;
-
   /** Means at loading time. */
   public byte loadingMeans;
 
   /** Mode at loading time. */
   public byte loadingMode;
 
-  /** Moving cost. */
-  public double mvCosts = 0;
-
   /** Number of transhipments along the route. */
   public int nbTranshipments;
 
   /** Detailed costs, durations and route length. */
-  public PathWeights pathCosts;
-
-  /** Transhipment cost. */
-  public double tpCosts = 0;
-
-  /** Transit cost. */
-  public double trCosts = 0;
-
-  /** Unloading cost. */
-  public double ulCosts = 0;
+  public PathWeights weights;
 
   /** Means at unloading time. */
   public byte unloadingMeans;
@@ -74,10 +59,10 @@ class PathHeader {
 
   /**
    * Contains the information that will be stored in the path header table.
-   * 
+   *
    * @param iteration Alternative route number.
    * @param demand OD cell.
-   * @param pathCosts Detailed costs, durations and route length.
+   * @param weights Detailed costs, durations and route length.
    * @param loadingMode Transport mode at loading.
    * @param loadingMeans Transport means at loading.
    * @param unloadingMode Transport mode at unloading.
@@ -85,10 +70,10 @@ class PathHeader {
    * @param nbTranshipments Number of transhipments along the route.
    * @param index Index in path header table.
    */
-  public PathHeader(
+  public MFPathHeader(
       int iteration,
       ODCell demand,
-      PathWeights pathCosts,
+      PathWeights weights,
       byte loadingMode,
       byte loadingMeans,
       byte unloadingMode,
@@ -97,7 +82,7 @@ class PathHeader {
       int index) {
     this.iteration = iteration;
     this.demand = demand;
-    this.pathCosts = pathCosts;
+    this.weights = weights;
     this.loadingMode = loadingMode;
     this.loadingMeans = loadingMeans;
     this.unloadingMode = unloadingMode;

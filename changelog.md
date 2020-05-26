@@ -146,4 +146,6 @@ that are not supported by Nodus.
 the cost functions, but use the '@' separator. Example "ld.1,1=" for a "loading" cost function and "ld@1,1=" for a loading 
 time function. The old, undocumented, possibility to partially compute transit times is removed and a message is displayed 
 to warn the user.
+- Add stop and switch costs and durations (used with services) in the path header tables.
+
 

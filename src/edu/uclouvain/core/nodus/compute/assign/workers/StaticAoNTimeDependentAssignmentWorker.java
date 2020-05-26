@@ -220,33 +220,38 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
                     + " minutes after midnight is out of time frame");
           }
 
-          // Save this link in the detailed path table if needed
-          // if (pathWriter.isSavePaths()) {
-
           switch (vl.getType()) {
             case VirtualLink.TYPE_LOAD:
-              pathCosts.ldCosts += vl.getCost(groupIndex);
+              pathCosts.ldCost += vl.getCost(groupIndex);
               pathCosts.ldDuration += vl.getDuration(groupIndex);
               loadingMode = vl.getEndVirtualNode().getMode();
               loadingMeans = vl.getEndVirtualNode().getMeans();
               break;
             case VirtualLink.TYPE_UNLOAD:
-              pathCosts.ulCosts += vl.getCost(groupIndex);
+              pathCosts.ulCost += vl.getCost(groupIndex);
               pathCosts.ulDuration += vl.getDuration(groupIndex);
               unloadingMode = vl.getBeginVirtualNode().getMode();
               unloadingMeans = vl.getBeginVirtualNode().getMeans();
               break;
             case VirtualLink.TYPE_TRANSIT:
-              pathCosts.trCosts += vl.getCost(groupIndex);
+              pathCosts.trCost += vl.getCost(groupIndex);
               pathCosts.trDuration += vl.getDuration(groupIndex);
               break;
             case VirtualLink.TYPE_TRANSHIP:
-              pathCosts.tpCosts += vl.getCost(groupIndex);
+              pathCosts.tpCost += vl.getCost(groupIndex);
               pathCosts.tpDuration += vl.getDuration(groupIndex);
               nbTranshipments++;
               break;
+            case VirtualLink.TYPE_STOP:
+              pathCosts.stpCost += vl.getCost(groupIndex);
+              pathCosts.stpDuration += vl.getDuration(groupIndex);
+              break;
+            case VirtualLink.TYPE_SWITCH:
+              pathCosts.swCost += vl.getCost(groupIndex);
+              pathCosts.swDuration += vl.getDuration(groupIndex);
+              break;
             case VirtualLink.TYPE_MOVE:
-              pathCosts.mvCosts += vl.getCost(groupIndex);
+              pathCosts.mvCost += vl.getCost(groupIndex);
               pathCosts.mvDuration += vl.getDuration(groupIndex);
               pathCosts.length += vl.getLength();
               pathWriter.savePathLink(vl);
@@ -254,7 +259,6 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
             default:
               break;
           }
-          // }
         }
         vl.addFlow(groupIndex, timeSlice, demand.getQuantity());
       }

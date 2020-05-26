@@ -23,9 +23,9 @@ package edu.uclouvain.core.nodus.compute.assign.workers;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
+import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapAStar;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
@@ -98,7 +98,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
     double costMarkup = 1 + assignmentParameters.getCostMarkup();
 
-    LinkedList<PathHeader> pathHeaders = new LinkedList<>();
+    LinkedList<MFPathHeader> pathHeaders = new LinkedList<>();
 
     // Initialize the adjacency list for current group
     graph = virtualNet.generateAdjacencyList(groupIndex);
@@ -247,9 +247,9 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
           if (assignmentParameters.isSavePaths()) {
 
             // Update the path headers in memory to compute the quantity on each path
-            Iterator<PathHeader> it3 = pathHeaders.iterator();
+            Iterator<MFPathHeader> it3 = pathHeaders.iterator();
             while (it3.hasNext()) {
-              PathHeader ph = it3.next();
+              MFPathHeader ph = it3.next();
 
               if (ph.demand.getOriginNodeId() == demand.getOriginNodeId()
                   && ph.demand.getDestinationNodeId() == demand.getDestinationNodeId()) {
@@ -259,7 +259,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
                       ph.iteration,
                       demand,
                       q,
-                      ph.pathCosts,
+                      ph.weights,
                       ph.loadingMode,
                       ph.loadingMeans,
                       ph.unloadingMode,
@@ -437,7 +437,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
       BinaryHeapAStar shortestPath,
       int iteration,
       ODCell demand,
-      LinkedList<PathHeader> pathHeaders) {
+      LinkedList<MFPathHeader> pathHeaders) {
     VirtualNodeList[] virtualNodeList = virtualNet.getVirtualNodeLists();
     int[] pi = shortestPath.getPredecessors();
 
@@ -512,15 +512,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
          */
         vl.addCell(groupIndex, pathODCell);
 
-        // Add the real cost to the total cost
-        // weight += vl.getCost(groupIndex);
-
-        // Which mode and means is used on the path?
-        // if (vl.getType() == VirtualLink.TYPE_MOVE) {
-        //  mode = vl.getBeginVirtualNode().getMode();
-        //  length += vl.getLength();
-        // }
-
         if (vl.getType() == VirtualLink.TYPE_TRANSHIP) {
           intermodalModeKey *=
               NodusC.MAXMM * vl.getBeginVirtualNode().getMode() + vl.getEndVirtualNode().getMode();
@@ -529,31 +520,38 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
           nbTranshipments++;
         }
 
-        // if (pathWriter.isSavePaths()) {
         switch (vl.getType()) {
           case VirtualLink.TYPE_LOAD:
-            pathCosts.ldCosts += vl.getCost(groupIndex);
+            pathCosts.ldCost += vl.getCost(groupIndex);
             pathCosts.ldDuration += vl.getDuration(groupIndex);
             loadingMode = vl.getEndVirtualNode().getMode();
             loadingMeans = vl.getEndVirtualNode().getMeans();
             break;
           case VirtualLink.TYPE_UNLOAD:
-            pathCosts.ulCosts += vl.getCost(groupIndex);
+            pathCosts.ulCost += vl.getCost(groupIndex);
             pathCosts.ulDuration += vl.getDuration(groupIndex);
             unloadingMode = vl.getBeginVirtualNode().getMode();
             unloadingMeans = vl.getBeginVirtualNode().getMeans();
             break;
           case VirtualLink.TYPE_TRANSIT:
-            pathCosts.trCosts += vl.getCost(groupIndex);
+            pathCosts.trCost += vl.getCost(groupIndex);
             pathCosts.trDuration += vl.getDuration(groupIndex);
             break;
           case VirtualLink.TYPE_TRANSHIP:
-            pathCosts.tpCosts += vl.getCost(groupIndex);
+            pathCosts.tpCost += vl.getCost(groupIndex);
             pathCosts.tpDuration += vl.getDuration(groupIndex);
+            break;
+          case VirtualLink.TYPE_STOP:
+            pathCosts.stpCost += vl.getCost(groupIndex);
+            pathCosts.stpDuration += vl.getDuration(groupIndex);
+            break;
+          case VirtualLink.TYPE_SWITCH:
+            pathCosts.swCost += vl.getCost(groupIndex);
+            pathCosts.swDuration += vl.getDuration(groupIndex);
             break;
           case VirtualLink.TYPE_MOVE:
             mode = vl.getBeginVirtualNode().getMode();
-            pathCosts.mvCosts += vl.getCost(groupIndex);
+            pathCosts.mvCost += vl.getCost(groupIndex);
             pathCosts.mvDuration += vl.getDuration(groupIndex);
             pathCosts.length += vl.getLength();
             pathWriter.savePathLink(vl, currentPathIndex);
@@ -561,7 +559,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
           default:
             break;
         }
-        // }
 
         // Build the key that represents this path
         path.detailedPathKey += vl.getId();
@@ -592,7 +589,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
       if (pathWriter.isSavePaths()) {
         // The quantity will be computed later
         pathHeaders.add(
-            new PathHeader(
+            new MFPathHeader(
                 iteration,
                 demand,
                 pathCosts,

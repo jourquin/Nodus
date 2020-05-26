@@ -117,7 +117,7 @@ public class CreateMLogitInput_ {
         "@@srcTable := " + srcTable,\
         "drop table if exists tmp2",\
         "create table tmp2 as (select grp, org, dst,\n"\
-            + "ldcost+ulcost+trcost+tpcost+mvcost as cost,\n"\
+            + "ldcost+ulcost+trcost+tpcost+stpcost+swcost+mvcost as cost,\n"\
             + "ldmode from @@srcTable) with data",\
         "create index if not exists tmp2idx on tmp2 (grp,org,dst,ldmode,cost)"\
       ];

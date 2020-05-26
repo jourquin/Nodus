@@ -234,10 +234,6 @@ public class NodusC {
   /** Name of the "length" field in the database tables. */
   public static final String DBF_LENGTH = "length";
 
-  /** Name of the "duration" field in the database tables. */
-  @Deprecated
-  public static final String DBF_DURATION = "duration";
-
   /** Name of the "length" field in the database tables. */
   public static final String DBF_CLASS = "class";
 
@@ -256,9 +252,15 @@ public class NodusC {
   /** Name of the transhipment cost field in the database tables. */
   public static final String DBF_TPCOST = "tpcost";
 
+  /** Name of the stop cost field in the database tables. */
+  public static final String DBF_STPCOST = "stpcost";
+
+  /** Name of the switch cost field in the database tables. */
+  public static final String DBF_SWCOST = "swcost";
+
   /** Name of the moving cost field in the database tables. */
   public static final String DBF_MVCOST = "mvcost";
-  
+
   /** Name of the loading duration field in the database tables. */
   public static final String DBF_LDDURATION = "ldduration";
 
@@ -271,9 +273,14 @@ public class NodusC {
   /** Name of the transhipment duration field in the database tables. */
   public static final String DBF_TPDURATION = "tpduration";
 
+  /** Name of the stop duration field in the database tables. */
+  public static final String DBF_STPDURATION = "stpduration";
+
+  /** Name of the switch duration field in the database tables. */
+  public static final String DBF_SWDURATION = "swduration";
+
   /** Name of the moving duration field in the database tables. */
   public static final String DBF_MVDURATION = "mvduration";
-
 
   /*
    * *********************************************************************************************
@@ -511,7 +518,7 @@ public class NodusC {
 
   /** Pretty name used to identify a layer in the GUI. */
   public static final String PROP_PRETTY_NAME = ".prettyName";
-  
+
   /** Max batch size for SQL batches. */
   public static final String PROP_MAX_SQL_BATCH_SIZE = "maxSqlBatchSize";
 
@@ -1078,7 +1085,6 @@ public class NodusC {
    */
   public static final String PROP_LINKS_FLOW_QUERY = "linksflowquery";
 
-  
   /**
    * Properties strings used in project and/or project local properties.
    *
@@ -1086,7 +1092,6 @@ public class NodusC {
    */
   public static final String PROP_DYNAMIC_FLOW_QUERY = "dynamicflowquery";
 
-  
   /**
    * Properties strings used in project and/or project local properties.
    *

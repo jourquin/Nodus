@@ -3,6 +3,7 @@
 
 ## Transit times
 - Tests needed to validate it
+- update CostParser.java examples
 
 ## Exclusions
 - Allow "all but" or "nothing but"
@@ -16,5 +17,4 @@
 
 # Diverse
 Demo doc
-Other costs (stop...)
 Edit DBF structure

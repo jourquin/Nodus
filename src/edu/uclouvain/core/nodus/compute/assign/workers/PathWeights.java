@@ -29,19 +29,25 @@ package edu.uclouvain.core.nodus.compute.assign.workers;
 public class PathWeights {
 
   /** loading cost. */
-  public double ldCosts = 0.0;
+  public double ldCost = 0.0;
 
   /** Moving cost. */
-  public double mvCosts = 0.0;
+  public double mvCost = 0.0;
 
   /** Transhipment cost. */
-  public double tpCosts = 0.0;
+  public double tpCost = 0.0;
 
   /** Transit cost. */
-  public double trCosts = 0.0;
+  public double trCost = 0.0;
 
   /** Unloading cost. */
-  public double ulCosts = 0.0;
+  public double ulCost = 0.0;
+
+  /** Stop cost. */
+  public double stpCost = 0.0;
+
+  /** Switch cost. */
+  public double swCost = 0.0;
 
   /** loading duration. */
   public float ldDuration = 0;
@@ -58,17 +64,23 @@ public class PathWeights {
   /** Unloading duration. */
   public float ulDuration = 0;
 
+  /** Stop duration. */
+  public float stpDuration = 0;
+
+  /** Switch duration. */
+  public float swDuration = 0;
+
   /** Length of the path. */
   public float length;
 
   /**
    * Return the total cost of the path, computed as the sum of loading, unloading, transit,
-   * transhipment and moving costs.
+   * transhipment, moving costs, stop and switch costs.
    *
    * @return The total cost.
    */
   public double getCost() {
-    return ldCosts + ulCosts + trCosts + tpCosts + mvCosts;
+    return ldCost + ulCost + trCost + tpCost + mvCost + stpCost + swCost;
   }
 
   /**
@@ -82,11 +94,17 @@ public class PathWeights {
 
   /**
    * Return the total duration of the path, computed as the sum of loading, unloading, transit,
-   * transhipment and moving durations.
+   * transhipment, moving, stop and switch durations.
    *
    * @return The total cost.
    */
   public float getTransitTime() {
-    return ldDuration + ulDuration + trDuration + tpDuration + mvDuration;
+    return ldDuration
+        + ulDuration
+        + trDuration
+        + tpDuration
+        + mvDuration
+        + stpDuration
+        + swDuration;
   }
 }
