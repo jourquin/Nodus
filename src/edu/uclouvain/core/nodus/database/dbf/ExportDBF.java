@@ -431,7 +431,11 @@ public class ExportDBF implements ShapeConstants {
           // Transform date string into Date
           if (model.getType(j) == DBF_TYPE_DATE.byteValue() && !(o[j] instanceof Date)) {
             try {
-              Date d = dateFormat.parse((String) o[j]);
+              String date = (String) o[j];
+              if (date.equals("")) {
+                date = "19800101";
+              }
+              Date d = dateFormat.parse(date);
               o[j] = d;
             } catch (ParseException e) {
               // Should never happen...

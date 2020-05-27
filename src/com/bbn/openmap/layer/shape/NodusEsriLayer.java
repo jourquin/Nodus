@@ -29,6 +29,7 @@ import com.bbn.openmap.dataAccess.shape.EsriPointList;
 import com.bbn.openmap.dataAccess.shape.EsriPolyline;
 import com.bbn.openmap.dataAccess.shape.EsriPolylineList;
 import com.bbn.openmap.dataAccess.shape.EsriShapeExport;
+import com.bbn.openmap.dataAccess.shape.NodusMetaDbfTableModel;
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.dataAccess.shape.input.ShxInputStream;
 import com.bbn.openmap.dataAccess.shape.output.ShpOutputStream;
@@ -57,9 +58,12 @@ import edu.uclouvain.core.nodus.services.ServiceEditor;
 import edu.uclouvain.core.nodus.swing.GUIUtils;
 import java.awt.BasicStroke;
 import java.awt.Component;
+import java.awt.GridLayout;
 import java.awt.MouseInfo;
 import java.awt.Paint;
 import java.awt.Point;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -79,7 +83,10 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Level;
+import javax.swing.JButton;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 
 /**
  * This layer extends the original OpenMap EsriLayer, allowing the edition of the content of the DBF
@@ -146,21 +153,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
    * omGraphicList/dbfTableModel.
    */
   private HashMap<Integer, Integer> numIndex = new HashMap<>();
-
-  //  /** Variable that is used to detect a dbf structure change. */
-  //  private int originalColumCount = -1;
-  //
-  //  /** Variable that is used to detect a dbf structure change. */
-  //  private byte[] originalDecimalcount;
-  //
-  //  /** Variable that is used to detect a dbf structure change. */
-  //  private int[] originalLength;
-  //
-  //  /** Variable that is used to detect a dbf structure change. */
-  //  private String[] originalName;
-  //
-  //  /** Variable that is used to detect a dbf structure change. */
-  //  private byte[] originalType;
 
   /**
    * Let the user the possibility to render the graphics according to the "style" field of the dbf
@@ -679,16 +671,18 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     super.doPrepare();
   }
 
-  //  /** Called by getGUI(). Displays the table model and allows to edit its structure */
-  //
-  //  private void editTableModel() {
-  //    // Get the original table structure if needed
-  //    if (originalColumCount == -1) {
-  //      getOriginalTableStructure();
-  //    }
-  //    getModel().showGUI(tableName, DbfTableModel.MODIFY_COLUMN_MASK | DbfTableModel.DONE_MASK);
-  //  }
-  //
+  /** Called by getGUI(). Displays the table model structure and allows to edit it */
+  private void editTableStructure() {
+    // Get the original table structure if needed
+    // if (originalColumCount == -1) {
+    //  getOriginalTableStructure();
+    // }
+    // getModel().showGUI(tableName, DbfTableModel.MODIFY_COLUMN_MASK | DbfTableModel.DONE_MASK);
+    NodusMetaDbfTableModel.logger.setLevel(Level.OFF);
+    NodusMetaDbfTableModel mdtm = new NodusMetaDbfTableModel(this);
+    String dbfFile = tablePath + tableName + NodusC.TYPE_DBF;
+    mdtm.showGUI(dbfFile);
+  }
 
   /**
    * Commits an update statement to the DBMS.
@@ -899,7 +893,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     /* Since Nodus 7.3, the edition of the table model structure was removed */
 
-    /* final JPanel holder = new JPanel(new GridLayout(0, 1));
+    final JPanel holder = new JPanel(new GridLayout(0, 1));
 
     JButton selectProperties =
         new JButton(i18n.get(NodusEsriLayer.class, "Select_properties", "Select properties"));
@@ -922,7 +916,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         });
 
     JButton editDatabase =
-        new JButton(i18n.get(NodusEsriLayer.class, "Edit_database", "Edit database"));
+        new JButton(i18n.get(NodusEsriLayer.class, "Edit_database", "Edit DBF structure"));
     holder.add(editDatabase);
     editDatabase.addActionListener(
         new ActionListener() {
@@ -934,16 +928,15 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
               c.setVisible(false);
               c = c.getParent();
             }
-            editTableModel();
+            editTableStructure();
           }
         });
 
     return holder;
-    */
 
-    SelectPropertiesDlg dlg = new SelectPropertiesDlg(thisNodusEsriLayer);
-    dlg.setVisible(true);
-    return null;
+    // SelectPropertiesDlg dlg = new SelectPropertiesDlg(thisNodusEsriLayer);
+    // dlg.setVisible(true);
+    // return null;
   }
 
   /**
@@ -1037,28 +1030,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     return index.intValue();
   }
-
-  //  /**
-  //   * As the table structure can be modified, one need its original structure in order to test
-  // any
-  //   * change.
-  //   */
-  //
-  //  private void getOriginalTableStructure() {
-  //    originalColumCount = getModel().getColumnCount();
-  //    originalLength = new int[originalColumCount];
-  //    originalDecimalcount = new byte[originalColumCount];
-  //    originalType = new byte[originalColumCount];
-  //    originalName = new String[originalColumCount];
-  //
-  //    for (int i = 0; i < originalColumCount; i++) {
-  //      originalDecimalcount[i] = getModel().getDecimalCount(i);
-  //      originalLength[i] = getModel().getLength(i);
-  //      originalName[i] = getModel().getColumnName(i);
-  //      originalType[i] = getModel().getType(i);
-  //    }
-  //  }
-  //
 
   /**
    * Returns the index of the selected graphic.
@@ -1197,45 +1168,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   public boolean isReady() {
     return isReady;
   }
-
-  //  /**
-  //   * Test if the current table structure is different from the original one.
-  //   *
-  //   * @return boolean
-  //   */
-  //
-  //  private boolean isTableStructureChanged() {
-  //    // If the "modify structure" GUI was never called
-  //    if (originalColumCount == -1) {
-  //      return false;
-  //    }
-  //
-  //    // else ...
-  //    if (getModel().getColumnCount() != originalColumCount) {
-  //      return true;
-  //    }
-  //
-  //    for (int i = 0; i < getModel().getColumnCount(); i++) {
-  //      if (originalDecimalcount[i] != getModel().getDecimalCount(i)) {
-  //        return true;
-  //      }
-  //
-  //      if (originalLength[i] != getModel().getLength(i)) {
-  //        return true;
-  //      }
-  //
-  //      if (!originalName[i].equals(getModel().getColumnName(i))) {
-  //        return true;
-  //      }
-  //
-  //      if (originalType[i] != getModel().getType(i)) {
-  //        return true;
-  //      }
-  //    }
-  //
-  //    return false;
-  //  }
-  //
 
   /**
    * Tests the existence of a given node or link number.

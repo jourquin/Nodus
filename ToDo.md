@@ -17,4 +17,7 @@
 
 # Diverse
 Demo doc
-Edit DBF structure
+Edit DBF structure - more tests needed (modify existing fields, add/delete multiple fields...)
+Edit DBF structure : better detection of changes. Only allow edition of last row ?
+test all DBF types supported by QGis
+
