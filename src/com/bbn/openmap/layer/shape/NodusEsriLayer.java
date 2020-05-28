@@ -29,6 +29,7 @@ import com.bbn.openmap.dataAccess.shape.EsriPointList;
 import com.bbn.openmap.dataAccess.shape.EsriPolyline;
 import com.bbn.openmap.dataAccess.shape.EsriPolylineList;
 import com.bbn.openmap.dataAccess.shape.EsriShapeExport;
+import com.bbn.openmap.dataAccess.shape.NodusDbfTableModel;
 import com.bbn.openmap.dataAccess.shape.NodusMetaDbfTableModel;
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.dataAccess.shape.input.ShxInputStream;
@@ -673,15 +674,14 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
   /** Called by getGUI(). Displays the table model structure and allows to edit it */
   private void editTableStructure() {
-    // Get the original table structure if needed
-    // if (originalColumCount == -1) {
-    //  getOriginalTableStructure();
-    // }
-    // getModel().showGUI(tableName, DbfTableModel.MODIFY_COLUMN_MASK | DbfTableModel.DONE_MASK);
-    NodusMetaDbfTableModel.logger.setLevel(Level.OFF);
-    NodusMetaDbfTableModel mdtm = new NodusMetaDbfTableModel(this);
     String dbfFile = tablePath + tableName + NodusC.TYPE_DBF;
-    mdtm.showGUI(dbfFile);
+    NodusMetaDbfTableModel.logger.setLevel(Level.OFF);
+
+    // NodusMetaDbfTableModel mdtm = new NodusMetaDbfTableModel(this);
+    // mdtm.showGUI(dbfFile);
+
+    NodusDbfTableModel mdtm = new NodusDbfTableModel(this);
+    mdtm.showGUI(dbfFile, DbfTableModel.MODIFY_COLUMN_MASK | DbfTableModel.DONE_MASK);
   }
 
   /**
@@ -933,10 +933,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         });
 
     return holder;
-
-    // SelectPropertiesDlg dlg = new SelectPropertiesDlg(thisNodusEsriLayer);
-    // dlg.setVisible(true);
-    // return null;
   }
 
   /**
