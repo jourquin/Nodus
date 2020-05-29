@@ -114,7 +114,9 @@ public class NodusLocationHandler extends AbstractLocationHandler
   private OMGraphicList graphicList = new OMGraphicList();
 
   /** By default, no field is displayed. */
-  private int locationFieldIndex = -1;
+  // private int locationFieldIndex = -1;
+
+  private String locationFieldName = "";
 
   /** SQL "WHERE" statement that can be used to filter the fields to display. */
   private String locationWhereStmt = "";
@@ -257,8 +259,12 @@ public class NodusLocationHandler extends AbstractLocationHandler
    *
    * @return int
    */
-  public int getCurrentFieldIndex() {
-    return locationFieldIndex;
+  public int getLocationFieldIndex() {
+    return nodusEsriLayer.getModel().getColumnIndexForName(locationFieldName);
+  }
+
+  public String getLocationFieldName() {
+    return locationFieldName;
   }
 
   /**
@@ -266,7 +272,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
    *
    * @return String
    */
-  public String getCurrentWhereStmt() {
+  public String getWhereStmt() {
     return locationWhereStmt;
   }
 
@@ -374,8 +380,11 @@ public class NodusLocationHandler extends AbstractLocationHandler
       return;
     }
 
-    if (!isVisible) {
+    int locationFieldIndex = getLocationFieldIndex();
+
+    if (!isVisible || locationFieldIndex == -1) {
       graphicList.clear();
+      getLayer().doPrepare();
       return;
     }
 
@@ -479,6 +488,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
     Iterator<OMGraphic> it = nodusEsriLayer.getEsriGraphicList().iterator();
     // int index = 0;
     DbfTableModel model = nodusEsriLayer.getModel();
+
     while (it.hasNext()) {
       OMGraphic omGraphic = it.next();
 
@@ -549,11 +559,10 @@ public class NodusLocationHandler extends AbstractLocationHandler
    *
    * @param currentFieldIndex int
    */
-  public void setCurrentFieldIndex(int currentFieldIndex) {
-    locationFieldIndex = currentFieldIndex;
+  public void setLocationFieldName(String fieldName) {
+    this.locationFieldName = fieldName;
     projectProperties.setProperty(
-        nodusEsriLayer.getTableName() + NodusC.PROP_LOCATION_FIELD_INDEX,
-        Integer.toString(locationFieldIndex));
+        nodusEsriLayer.getTableName() + NodusC.PROP_LOCATION_FIELD_NAME, fieldName);
   }
 
   /**
@@ -561,7 +570,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
    *
    * @param currentWhereStmt java.lang.String
    */
-  public void setCurrentWhereStmt(String currentWhereStmt) {
+  public void setWhereStmt(String currentWhereStmt) {
     locationWhereStmt = currentWhereStmt;
     projectProperties.setProperty(
         nodusEsriLayer.getTableName() + NodusC.PROP_LOCATION_WHERESTMT, locationWhereStmt);
@@ -625,11 +634,9 @@ public class NodusLocationHandler extends AbstractLocationHandler
     projectProperties = properties;
 
     // Restore saved settings
-    locationFieldIndex =
-        PropUtils.intFromProperties(
-            projectProperties,
-            nodusEsriLayer.getTableName() + NodusC.PROP_LOCATION_FIELD_INDEX,
-            -1);
+    locationFieldName =
+        projectProperties.getProperty(
+            nodusEsriLayer.getTableName() + NodusC.PROP_LOCATION_FIELD_NAME, "");
     locationWhereStmt =
         projectProperties.getProperty(
             nodusEsriLayer.getTableName() + NodusC.PROP_LOCATION_WHERESTMT, "");

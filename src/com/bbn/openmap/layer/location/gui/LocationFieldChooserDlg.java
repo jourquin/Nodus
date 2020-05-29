@@ -381,13 +381,12 @@ public class LocationFieldChooserDlg extends EscapeDialog {
     fromLabel.setText("FROM " + nodusLocationHandler.getTableName() + " WHERE");
 
     // Update components with previous selection
-    int index = nodusLocationHandler.getCurrentFieldIndex();
-
+    int index = nodusLocationHandler.getLocationFieldIndex();
     if (index >= 0) {
       fieldNames.setSelectedIndex(index);
     }
 
-    whereStmt.setText(nodusLocationHandler.getCurrentWhereStmt());
+    whereStmt.setText(nodusLocationHandler.getWhereStmt());
 
     displayResultsCheckBox.setSelected(nodusLocationHandler.isDisplayResults());
   }
@@ -409,8 +408,8 @@ public class LocationFieldChooserDlg extends EscapeDialog {
    */
   private void okButton_actionPerformed(ActionEvent e) {
     // Save current selection
-    nodusLocationHandler.setCurrentFieldIndex(fieldNames.getSelectedIndex());
-    nodusLocationHandler.setCurrentWhereStmt(whereStmt.getText().trim());
+    nodusLocationHandler.setLocationFieldName((String)fieldNames.getSelectedValue());
+    nodusLocationHandler.setWhereStmt(whereStmt.getText().trim());
     nodusLocationHandler.setDisplayResults(displayResultsCheckBox.isSelected());
     setVisible(false);
   }

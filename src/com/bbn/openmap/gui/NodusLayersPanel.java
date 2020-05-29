@@ -222,6 +222,7 @@ public class NodusLayersPanel extends LayersPanel {
    */
   @Override
   public void propertyChange(PropertyChangeEvent pce) {
+ 
     String command = pce.getPropertyName();
     Object obj = pce.getNewValue();
 
@@ -230,13 +231,15 @@ public class NodusLayersPanel extends LayersPanel {
       Layer layer = (Layer) obj;
       if (!layer.getAddAsBackground()) {
 
-        if (layer instanceof NodusEsriLayer) {
-          NodusEsriLayer nes = (NodusEsriLayer) layer;
-          nes.getLocationHandler().setVisible(!nes.isVisible());
-        }
-
         firePropertyChange(command, null, obj);
         removeButton.setEnabled(false);
+
+        // TODO this does'nt work when control panel is changed... 
+        if (layer instanceof NodusEsriLayer) {
+          NodusEsriLayer nes = (NodusEsriLayer) layer;         
+          //nes.getLocationHandler().setVisible(!nes.isVisible());
+        }
+
         return;
       }
     }

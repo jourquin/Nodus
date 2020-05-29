@@ -17,9 +17,12 @@
 
 # Diverse
 Demo doc
+
 Edit DBF structure - more tests needed (modify existing fields, add/delete multiple fields...) 
 - enable save when record added, but warn duplicate
 - problem with multiple adds / removes
-Edit DBF structure : better detection of changes. Only allow edition of last row ?
+- Prevent delete/modify mandatory fields
+
 test all DBF types supported by QGis
 
+Synchronizing the display of locations with layer is buggy.

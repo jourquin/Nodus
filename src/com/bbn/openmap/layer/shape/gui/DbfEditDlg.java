@@ -1162,7 +1162,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     }
 
     if (bl != null) {
-      int n = nodusEsriLayer.getLocationHandler().getCurrentFieldIndex();
+      int n = nodusEsriLayer.getLocationHandler().getLocationFieldIndex();
 
       if (n >= 0) {
         oldLabel =
@@ -1287,7 +1287,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
         BasicLocation bl = rnbo.getLocation();
 
         if (bl != null) {
-          int n = nodusEsriLayer.getLocationHandler().getCurrentFieldIndex();
+          int n = nodusEsriLayer.getLocationHandler().getLocationFieldIndex();
 
           if (n >= 0) {
             newLabel =

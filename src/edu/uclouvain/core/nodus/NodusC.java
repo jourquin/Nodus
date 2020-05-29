@@ -579,7 +579,7 @@ public class NodusC {
    *
    * @exclude
    */
-  public static final String PROP_LOCATION_FIELD_INDEX = ".locationFieldIndex";
+  public static final String PROP_LOCATION_FIELD_NAME = ".locationFieldName";
 
   /**
    * Properties strings used in project and/or project local properties.

@@ -33,7 +33,10 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
+import javax.swing.ListSelectionModel;
 import javax.swing.WindowConstants;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 
 /**
  * Extends the original MetaDbfTableModel to better control the changes (do not allow two fields
@@ -67,21 +70,67 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
   /** 'Save' button which state changes if the table structure is modified. */
   private JButton saveButton = null;
 
+  /** 'Delete' button that is only enabled for non mandatory fields. */
+  private JButton deleteButton = null;
+
+  // private NodusDbfTableModel parent;
+
   /**
    * Constructor that allows the edition of the structure of the DbfTable of a NodusEsriLayer.
    *
    * @param layer The NodusEsriLayer the DbfTableModel belongs to.
    */
-  public NodusMetaDbfTableModel(NodusEsriLayer layer) {
+  public NodusMetaDbfTableModel(NodusEsriLayer layer, DbfTableModel parent) {
     super(layer.getModel());
     this.layer = layer;
+    // this.parent = parent;
     addTableModelListener(layer.getModel());
     getOriginalTableStructure();
   }
 
+  public NodusMetaDbfTableModel(NodusEsriLayer layer) {
+    super(layer.getModel());
+    this.layer = layer;
+    // this.parent = parent;
+    addTableModelListener(layer.getModel());
+    getOriginalTableStructure();
+  }
+
+  /** Ensure that the proposed field name doesn't already exist. */
+  @Override
+  public void addBlankRecord() {
+    super.addBlankRecord();
+    fireTableDataChanged();
+
+    int rowOfNewRecordIndex = table.getRowCount() - 1;
+
+    // The field name must be unique. Add a numeric suffix if needed
+    String fieldName = (String) getValueAt(rowOfNewRecordIndex, 0);
+    String newName = fieldName;
+    boolean found = true;
+    int suffix = 1;
+    while (found) {
+      found = false;
+      for (int i = 0; i < rowOfNewRecordIndex; i++) {
+        String s = (String) getValueAt(i, 0);
+        if (s.equalsIgnoreCase(newName)) {
+          newName = fieldName + (suffix++);
+          found = true;
+        }
+      }
+    }
+
+    // Set the field name and invite the user to edit it
+    setValueAt(newName, rowOfNewRecordIndex, 0);
+    table.scrollRectToVisible(table.getCellRect(rowOfNewRecordIndex, 0, true));
+    table.editCellAt(rowOfNewRecordIndex, 0);
+    table.getEditorComponent().requestFocus();
+    // saveButton.setEnabled(true);
+    // deleteButton.setEnabled(true);
+  }
+
   @Override
   public void exitWindowClosed() {
-
     saveIfNeeded(true);
   }
 
@@ -107,11 +156,34 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
   /** Field name and type are not editable. */
   @Override
   public boolean isCellEditable(int rowIndex, int columnIndex) {
+    if (isMandatoryField(rowIndex)) {
+      return false;
+    }
     if (columnIndex <= 1 && rowIndex < originalColumnNumber) {
       return false;
     } else {
       return writable;
     }
+  }
+
+  /**
+   * Test if the row contains a mandatory field.
+   *
+   * @param rowIndex Row index in the table.
+   * @return True if the row contains a mandatory field.
+   */
+  private boolean isMandatoryField(int rowIndex) {
+    int nbMandatoryFields;
+    if (layer.getType() == ShapeConstants.SHAPE_TYPE_POLYLINE) {
+      nbMandatoryFields = NodusC.LINKS_MANDATORY_NAMES.length;
+    } else {
+      nbMandatoryFields = NodusC.NODES_MANDATORY_NAMES.length;
+    }
+
+    if (rowIndex < nbMandatoryFields) {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -149,6 +221,14 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
    */
   private void saveIfNeeded(boolean askUser) {
 
+    /*int y = 0;
+    if (y == 0) {
+      super.fireTableStructureChanged();
+      //commitEvents(this);
+      frame.setVisible(false);
+      return;
+    }*/
+
     if (isTableStructureChanged()) {
 
       // If called from 'cancel' button or on window closing...
@@ -173,8 +253,10 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
         }
       }
 
-      // Export the modified DBF
       fireTableStructureChanged();
+
+      // Export the modified DBF
+
       ExportDBF.exportTable(
           layer.getNodusMapPanel().getNodusProject(),
           layer.getTableName() + NodusC.TYPE_DBF,
@@ -192,7 +274,10 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
 
       // Update the SQL database
       ImportDBF.importTable(layer.getNodusMapPanel().getNodusProject(), layer.getTableName());
+
+      // Repaint the layer
       layer.doPrepare();
+      layer.getLocationHandler().reloadData();
     }
 
     frame.setVisible(false);
@@ -252,11 +337,11 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
       super.setValueAt(new Integer(0), row, 3);
     }
 
-    if (isTableStructureChanged()) {
+    /* if (isTableStructureChanged()) {
       saveButton.setEnabled(true);
     } else {
       saveButton.setEnabled(false);
-    }
+    }*/
   }
 
   @Override
@@ -264,17 +349,25 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
     super.showGUI(filename);
     this.fileName = filename;
 
+    // Only one row must be selected at once
+    table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+    // table.setCellSelectionEnabled(true);
+    // table.setRowSelectionAllowed(true);
+    // table.setColumnSelectionAllowed(false);
+
     // Closing will be managed manually, depending on the what the user wants
     frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
-    // Find the 'save' button
+    // Find the 'save' button and replace its listener
     Component[] c = controlPanel.getComponents();
     for (Component element : c) {
       if (element instanceof JButton) {
-        saveButton = (JButton) element;
-        if (saveButton
+        JButton button = (JButton) element;
+        if (button
             .getText()
             .equals(i18n.get(MetaDbfTableModel.class, "Save Changes", "Save Changes"))) {
+
+          saveButton = button;
           // Remove current action listener
           ActionListener[] al = saveButton.getActionListeners();
           for (ActionListener element2 : al) {
@@ -294,28 +387,59 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
       }
     }
 
-    // Find the 'cancel' button
+    // Find the 'cancel' button and replace its listener
     for (Component element : c) {
       if (element instanceof JButton) {
-        JButton cancelButton = (JButton) element;
-        if (cancelButton.getText().equals(i18n.get(DbfTableModel.class, "Done", "Done"))) {
+        JButton button = (JButton) element;
+        if (button.getText().equals(i18n.get(DbfTableModel.class, "Done", "Done"))) {
           // Remove current action listener
-          ActionListener[] al = cancelButton.getActionListeners();
+          ActionListener[] al = button.getActionListeners();
           for (ActionListener element2 : al) {
-            cancelButton.removeActionListener(element2);
+            button.removeActionListener(element2);
           }
 
           // Set a new action listener
-          cancelButton.addActionListener(
+          button.addActionListener(
               new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent ae) {
                   saveIfNeeded(true);
                 }
               });
-          saveButton.setEnabled(false);
         }
       }
     }
+
+    // Find the 'delete' button
+    for (Component element : c) {
+      if (element instanceof JButton) {
+        JButton button = (JButton) element;
+        if (button.getText().equals(i18n.get(DbfTableModel.class, "Delete", "Delete"))) {
+          deleteButton = button;
+          deleteButton.setEnabled(false);
+          break;
+        }
+      }
+    }
+
+    ListSelectionModel selectionModel = table.getSelectionModel();
+
+    selectionModel.addListSelectionListener(
+        new ListSelectionListener() {
+          public void valueChanged(ListSelectionEvent e) {
+            int rowIndex = table.getSelectedRow();
+            if (isMandatoryField(rowIndex)) {
+              deleteButton.setEnabled(false);
+            } else {
+              deleteButton.setEnabled(true);
+            }
+
+            if (isTableStructureChanged()) {
+              saveButton.setEnabled(true);
+            } else {
+              saveButton.setEnabled(false);
+            }
+          }
+        });
   }
 }

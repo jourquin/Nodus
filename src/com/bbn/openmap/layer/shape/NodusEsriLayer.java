@@ -29,7 +29,6 @@ import com.bbn.openmap.dataAccess.shape.EsriPointList;
 import com.bbn.openmap.dataAccess.shape.EsriPolyline;
 import com.bbn.openmap.dataAccess.shape.EsriPolylineList;
 import com.bbn.openmap.dataAccess.shape.EsriShapeExport;
-import com.bbn.openmap.dataAccess.shape.NodusDbfTableModel;
 import com.bbn.openmap.dataAccess.shape.NodusMetaDbfTableModel;
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.dataAccess.shape.input.ShxInputStream;
@@ -677,11 +676,13 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     String dbfFile = tablePath + tableName + NodusC.TYPE_DBF;
     NodusMetaDbfTableModel.logger.setLevel(Level.OFF);
 
-    // NodusMetaDbfTableModel mdtm = new NodusMetaDbfTableModel(this);
-    // mdtm.showGUI(dbfFile);
+    NodusMetaDbfTableModel mdtm = new NodusMetaDbfTableModel(this);
+    mdtm.showGUI(dbfFile);
 
-    NodusDbfTableModel mdtm = new NodusDbfTableModel(this);
-    mdtm.showGUI(dbfFile, DbfTableModel.MODIFY_COLUMN_MASK | DbfTableModel.DONE_MASK);
+    //NodusDbfTableModel mdtm = new NodusDbfTableModel(this);
+    //mdtm.showGUI(dbfFile, DbfTableModel.MODIFY_COLUMN_MASK | DbfTableModel.DONE_MASK);
+
+    // getModel().showGUI(dbfFile, DbfTableModel.MODIFY_COLUMN_MASK | DbfTableModel.DONE_MASK);
   }
 
   /**
