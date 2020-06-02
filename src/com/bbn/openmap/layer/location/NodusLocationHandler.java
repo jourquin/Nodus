@@ -382,6 +382,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
 
     int locationFieldIndex = getLocationFieldIndex();
 
+    // If there is nothing to display
     if (!isVisible || locationFieldIndex == -1) {
       graphicList.clear();
       getLayer().doPrepare();
@@ -617,9 +618,11 @@ public class NodusLocationHandler extends AbstractLocationHandler
    *     checkboxes are checked.
    */
   public void setVisible(boolean visible) {
-    this.isVisible = visible;
-    reloadData();
-    getLayer().doPrepare();
+    if (this.isVisible != visible) {
+      this.isVisible = visible;
+      reloadData();
+      getLayer().doPrepare();
+    }
   }
 
   /**

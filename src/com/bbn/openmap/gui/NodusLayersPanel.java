@@ -36,6 +36,7 @@ import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.net.URL;
 import java.util.Iterator;
+import java.util.Timer;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 
@@ -222,28 +223,39 @@ public class NodusLayersPanel extends LayersPanel {
    */
   @Override
   public void propertyChange(PropertyChangeEvent pce) {
- 
+
     String command = pce.getPropertyName();
     Object obj = pce.getNewValue();
 
-    // Intercept
-    if (command == LayerSelectedCmd && obj instanceof Layer) {
+    // Intercept the selection commands for a layer
+    if ((command == LayerSelectedCmd || command == LayerDeselectedCmd) && obj instanceof Layer) {
+
       Layer layer = (Layer) obj;
+      firePropertyChange(command, null, layer);
+
+      // Synchronize the display of the labels with the display of the layer itself
+      if (layer instanceof NodusEsriLayer) {
+        NodusEsriLayer nes = (NodusEsriLayer) layer;
+
+        // Ugly trick...
+        Timer t = new java.util.Timer();
+        t.schedule(
+            new java.util.TimerTask() {
+              public void run() {
+                nes.getLocationHandler().setVisible(nes.isVisible());
+                t.cancel();
+              }
+            },
+            50);
+      }
+
+      // Removing Nodus project layers is not allowed
       if (!layer.getAddAsBackground()) {
-
-        firePropertyChange(command, null, obj);
         removeButton.setEnabled(false);
-
-        // TODO this does'nt work when control panel is changed... 
-        if (layer instanceof NodusEsriLayer) {
-          NodusEsriLayer nes = (NodusEsriLayer) layer;         
-          //nes.getLocationHandler().setVisible(!nes.isVisible());
-        }
-
         return;
       }
+    } else {
+      super.propertyChange(pce);
     }
-
-    super.propertyChange(pce);
   }
 }
