@@ -413,6 +413,7 @@ public class ExportDBF implements ShapeConstants {
   private static boolean fillTable(DBFWriter dbfWriter, DbfTableModel model) {
 
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+    String defaultDate = dateFormat.format(new Date(0));
 
     Object[] o = new Object[model.getColumnCount()];
 
@@ -433,7 +434,7 @@ public class ExportDBF implements ShapeConstants {
             try {
               String date = (String) o[j];
               if (date == null || date.equals("")) {
-                date = "19800101";
+                date = defaultDate;
               }
               Date d = dateFormat.parse(date);
               o[j] = d;

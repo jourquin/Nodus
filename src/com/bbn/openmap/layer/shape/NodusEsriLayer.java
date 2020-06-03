@@ -77,6 +77,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -779,7 +780,12 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   /** Some DBF files contain NULL values for numeric fields. This method replaces them with zero. */
   private void fixDBFFile() {
 
+    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+    dateFormat.setLenient(false);
+    String defaultDate = dateFormat.format(new Date(0));
+
     boolean mustBeFixed = false;
+
     DbfTableModel tm = getModel();
     for (int col = 0; col < tm.getColumnCount(); col++) {
       char type = (char) tm.getType(col);
@@ -792,6 +798,16 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
           value = value.trim();
           if (value.length() == 0) {
             tm.setValueAt(new Double(0), row, col);
+            mustBeFixed = true;
+          }
+        }
+
+        // Replace unset dates with default standard value
+        if (type == DbfTableModel.TYPE_DATE) {
+          try {
+            dateFormat.parse((String) o);
+          } catch (ParseException pe) {
+            tm.setValueAt(defaultDate, row, col);
             mustBeFixed = true;
           }
         }

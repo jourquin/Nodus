@@ -18,8 +18,3 @@
 
 # Diverse
 Demo doc
-
-Edit DBF structure - more tests needed (modify existing fields, add/delete multiple fields...) 
-- test all DBF types supported by QGis
-
-Better detection of old modal split plugins (test isEnabled() ?)
