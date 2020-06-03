@@ -134,13 +134,14 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
 - Make exclusions "direction sensitive". This allows excluding loading operations for a mode (and means) at a centroid but
 keeping unloading possible. 
 - Reload labels after exportdbf of the layer in order to display changes.
-- The edition of the DBF table structures in the Openmap GUI now takes care of the Nodus mandatory structures.
+- The edition of the DBF table structures with the Openmap GUI now takes care of the Nodus mandatory structures.
 - Automatically change LOGICAL DBF fields to NUMERIC(1,0) fields, as Booleans are not supported by all DBMS's.
 - Use JavaDbf4Nodus 1.12.1, that uses UTF-8 encoding by default.
 - Upgrade to mariadb-java-client 2.6
 - Accept SQL DATE in the DBF files.
 - The labels of a Nodus layer are now displayed only if the layer itself is visible (both are now synchronized).
-- Simplify the API for modal split methods. This breaks existing plugin's. A console message is displayed to inform the user.  
+- Simplify the API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error message 
+is displayed to inform the user.  
 - Add the possibility to include transit time functions in cost functions files. These functions follow the same structure as
 the cost functions, but use the '@' separator. Example "ld.1,1=" for a "loading" cost function and "ld@1,1=" for a loading 
 time function. The old, undocumented, possibility to partially compute transit times is removed and a message is displayed 

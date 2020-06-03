@@ -21,6 +21,7 @@
 
 package edu.uclouvain.core.nodus.utils;
 
+import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import java.io.File;
@@ -28,6 +29,7 @@ import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -35,6 +37,7 @@ import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import javax.swing.JOptionPane;
 
 /**
  * Loads the embedded standard model split methods and any valid user defined method found in the
@@ -169,19 +172,36 @@ public class ModalSplitMethodsLoader {
         className = className.replace('/', '.');
         Class<?> c = cl.loadClass(className);
 
+        Constructor<?> cons = null;
         try {
-          Constructor<?> cons = c.getConstructor();
-          Object o = cons.newInstance();
-          if (o instanceof ModalSplitMethod) {
-            availableModalSplitMethods.add((Class<ModalSplitMethod>) c);
-          }
-        } catch (Exception ex) {
-          /*
-           * The jar may contain classes that are not valid modal split methods.
-           */
+          cons = c.getConstructor();
+        } catch (NoSuchMethodException e1) {
+          continue;
+        } catch (SecurityException e1) {
+          e1.printStackTrace();
+        }
+
+        Object o = null;
+
+        try {
+          o = cons.newInstance();
+        } catch (InstantiationException e1) {
           new NodusConsole();
-          System.err.println(className + " is not (anymore?) a valid ModalSplitMethod.");
-          System.err.println("The modal split plugin's API was changed in Nodus 7.3.");
+          e1.printStackTrace();
+        } catch (IllegalAccessException e1) {
+          new NodusConsole();
+          e1.printStackTrace();
+        } catch (IllegalArgumentException e1) {
+          new NodusConsole();
+          e1.printStackTrace();
+        } catch (InvocationTargetException e1) {
+          String s = "The " + c.getName() + " plugin is not compatible with this version of Nodus.";
+          JOptionPane.showMessageDialog(null, s, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+          continue;
+        }
+
+        if (o instanceof ModalSplitMethod) {
+          availableModalSplitMethods.add((Class<ModalSplitMethod>) c);
         }
       }
       jarFile.close();
