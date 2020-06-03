@@ -224,6 +224,8 @@ public class NodusLayersPanel extends LayersPanel {
   @Override
   public void propertyChange(PropertyChangeEvent pce) {
 
+    super.propertyChange(pce);
+
     String command = pce.getPropertyName();
     Object obj = pce.getNewValue();
 
@@ -231,31 +233,23 @@ public class NodusLayersPanel extends LayersPanel {
     if ((command == LayerSelectedCmd || command == LayerDeselectedCmd) && obj instanceof Layer) {
 
       Layer layer = (Layer) obj;
-      firePropertyChange(command, null, layer);
 
       // Synchronize the display of the labels with the display of the layer itself
       if (layer instanceof NodusEsriLayer) {
         NodusEsriLayer nes = (NodusEsriLayer) layer;
-
-        // Ugly trick...
-        Timer t = new java.util.Timer();
-        t.schedule(
-            new java.util.TimerTask() {
+        javax.swing.SwingUtilities.invokeLater(
+            new Runnable() {
               public void run() {
                 nes.getLocationHandler().setVisible(nes.isVisible());
-                t.cancel();
               }
-            },
-            50);
+            });
       }
-
+      
       // Removing Nodus project layers is not allowed
       if (!layer.getAddAsBackground()) {
         removeButton.setEnabled(false);
         return;
       }
-    } else {
-      super.propertyChange(pce);
     }
   }
 }
