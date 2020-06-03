@@ -4,6 +4,7 @@
 ## Transit times
 - Tests needed to validate it
 - update CostParser.java examples
+- Save service fields only if needed ?
 
 ## Exclusions
 - Allow "all but" or "nothing but"
@@ -19,10 +20,6 @@
 Demo doc
 
 Edit DBF structure - more tests needed (modify existing fields, add/delete multiple fields...) 
-- enable save when record added, but warn duplicate
-- problem with multiple adds / removes
-- Prevent delete/modify mandatory fields
+- test all DBF types supported by QGis
 
-test all DBF types supported by QGis
-
-Synchronizing the display of locations with layer is buggy.
+Better detection of old modal split plugins (test isEnabled() ?)

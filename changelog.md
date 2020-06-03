@@ -134,8 +134,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
 - Make exclusions "direction sensitive". This allows excluding loading operations for a mode (and means) at a centroid but
 keeping unloading possible. 
 - Reload labels after exportdbf of the layer in order to display changes.
-- Remove the possibility to modify the table structure of a layer. This was based on an Openmap GUI that allows column types
-that are not supported by Nodus.
+- The edition of the DBF table structures in the Openmap GUI now takes care of the Nodus mandatory structures.
 - Automatically change LOGICAL DBF fields to NUMERIC(1,0) fields, as Booleans are not supported by all DBMS's.
 - Use JavaDbf4Nodus 1.12.1, that uses UTF-8 encoding by default.
 - Upgrade to mariadb-java-client 2.6

@@ -29,6 +29,7 @@ import com.bbn.openmap.dataAccess.shape.EsriPointList;
 import com.bbn.openmap.dataAccess.shape.EsriPolyline;
 import com.bbn.openmap.dataAccess.shape.EsriPolylineList;
 import com.bbn.openmap.dataAccess.shape.EsriShapeExport;
+import com.bbn.openmap.dataAccess.shape.NodusDbfTableModel;
 import com.bbn.openmap.dataAccess.shape.NodusMetaDbfTableModel;
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.dataAccess.shape.input.ShxInputStream;
@@ -671,18 +672,14 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     super.doPrepare();
   }
 
-  /** Called by getGUI(). Displays the table model structure and allows to edit it */
+  /** Called by getGUI(). Displays the table model and allows to edit its structure */
   private void editTableStructure() {
-    String dbfFile = tablePath + tableName + NodusC.TYPE_DBF;
+
     NodusMetaDbfTableModel.logger.setLevel(Level.OFF);
 
-    NodusMetaDbfTableModel mdtm = new NodusMetaDbfTableModel(this);
-    mdtm.showGUI(dbfFile);
-
-    //NodusDbfTableModel mdtm = new NodusDbfTableModel(this);
-    //mdtm.showGUI(dbfFile, DbfTableModel.MODIFY_COLUMN_MASK | DbfTableModel.DONE_MASK);
-
-    // getModel().showGUI(dbfFile, DbfTableModel.MODIFY_COLUMN_MASK | DbfTableModel.DONE_MASK);
+    NodusDbfTableModel ndtm = new NodusDbfTableModel(this);
+    String dbfFile = tablePath + tableName + NodusC.TYPE_DBF;
+    ndtm.showGUI(dbfFile, DbfTableModel.MODIFY_COLUMN_MASK | DbfTableModel.DONE_MASK);
   }
 
   /**
@@ -917,7 +914,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         });
 
     JButton editDatabase =
-        new JButton(i18n.get(NodusEsriLayer.class, "Edit_database", "Edit DBF structure"));
+        new JButton(i18n.get(NodusEsriLayer.class, "Table_content", "Table content and structure"));
     holder.add(editDatabase);
     editDatabase.addActionListener(
         new ActionListener() {

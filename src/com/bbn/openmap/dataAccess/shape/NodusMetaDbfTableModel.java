@@ -28,9 +28,6 @@ import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URI;
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.ListSelectionModel;
@@ -49,8 +46,6 @@ import javax.swing.event.ListSelectionListener;
 public class NodusMetaDbfTableModel extends MetaDbfTableModel {
 
   private static final long serialVersionUID = -5011547449055509195L;
-
-  private String fileName;
 
   /** The NodusEsriLayer this DBF file belongs to. */
   private NodusEsriLayer layer;
@@ -73,26 +68,21 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
   /** 'Delete' button that is only enabled for non mandatory fields. */
   private JButton deleteButton = null;
 
-  // private NodusDbfTableModel parent;
+  private DbfTableModel source;
+
+  //String fileName;
 
   /**
    * Constructor that allows the edition of the structure of the DbfTable of a NodusEsriLayer.
    *
    * @param layer The NodusEsriLayer the DbfTableModel belongs to.
+   * @param source The DbfTableModel to modify.
    */
-  public NodusMetaDbfTableModel(NodusEsriLayer layer, DbfTableModel parent) {
-    super(layer.getModel());
+  public NodusMetaDbfTableModel(NodusEsriLayer layer, DbfTableModel source) {
+    super(source);
     this.layer = layer;
-    // this.parent = parent;
-    addTableModelListener(layer.getModel());
-    getOriginalTableStructure();
-  }
-
-  public NodusMetaDbfTableModel(NodusEsriLayer layer) {
-    super(layer.getModel());
-    this.layer = layer;
-    // this.parent = parent;
-    addTableModelListener(layer.getModel());
+    this.source = source;
+    //this.fileName = fileName;
     getOriginalTableStructure();
   }
 
@@ -125,10 +115,9 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
     table.scrollRectToVisible(table.getCellRect(rowOfNewRecordIndex, 0, true));
     table.editCellAt(rowOfNewRecordIndex, 0);
     table.getEditorComponent().requestFocus();
-    // saveButton.setEnabled(true);
-    // deleteButton.setEnabled(true);
   }
 
+  /** Overridden to ask the user if he reallay wants to cancel his changes. */
   @Override
   public void exitWindowClosed() {
     saveIfNeeded(true);
@@ -219,20 +208,12 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
   /**
    * Saves the modified DbfTableModel if needed. Updates the SQL DBMS and reload the DBFTableModel.
    */
-  private void saveIfNeeded(boolean askUser) {
-
-    /*int y = 0;
-    if (y == 0) {
-      super.fireTableStructureChanged();
-      //commitEvents(this);
-      frame.setVisible(false);
-      return;
-    }*/
+  private void saveIfNeeded(boolean askForCancel) {
 
     if (isTableStructureChanged()) {
 
       // If called from 'cancel' button or on window closing...
-      if (askUser) {
+      if (askForCancel) {
         int check =
             JOptionPane.showConfirmDialog(
                 null,
@@ -244,7 +225,8 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
                 JOptionPane.OK_CANCEL_OPTION);
 
         if (check == JOptionPane.YES_OPTION) {
-          // Cancel changes (do nothing)
+          // Cancel changes
+          source.cleanupChanges();
           frame.setVisible(false);
           return;
         } else {
@@ -253,27 +235,35 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
         }
       }
 
-      fireTableStructureChanged();
+      int check =
+          JOptionPane.showConfirmDialog(
+              null,
+              i18n.get(
+                  MetaDbfTableModel.class,
+                  "Do_you_want_to_save_your_changes",
+                  "Do you want to save your changes?"),
+              NodusC.APPNAME,
+              JOptionPane.YES_NO_OPTION);
+
+      if (check == JOptionPane.YES_OPTION) {
+        fireTableStructureChanged();
+      } else {
+        source.cleanupChanges();
+        frame.setVisible(false);
+        return;
+      }
 
       // Export the modified DBF
-
       ExportDBF.exportTable(
           layer.getNodusMapPanel().getNodusProject(),
           layer.getTableName() + NodusC.TYPE_DBF,
-          layer.getModel());
-
-      // Reload the DbfTableModel
-      File file = new File(fileName);
-      URI uri = file.toURI();
-
-      try {
-        layer.setModel(getDbfTableModel(uri.toURL()));
-      } catch (MalformedURLException e) {
-        e.printStackTrace();
-      }
+          source);
 
       // Update the SQL database
       ImportDBF.importTable(layer.getNodusMapPanel().getNodusProject(), layer.getTableName());
+
+      // Update the DbfTableModel
+      layer.setModel(source);
 
       // Repaint the layer
       layer.doPrepare();
@@ -336,24 +326,15 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
       super.setValueAt(new Integer(8), row, 2);
       super.setValueAt(new Integer(0), row, 3);
     }
-
-    /* if (isTableStructureChanged()) {
-      saveButton.setEnabled(true);
-    } else {
-      saveButton.setEnabled(false);
-    }*/
   }
 
   @Override
   public void showGUI(String filename) {
     super.showGUI(filename);
-    this.fileName = filename;
+    // this.fileName = filename;
 
     // Only one row must be selected at once
     table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-    // table.setCellSelectionEnabled(true);
-    // table.setRowSelectionAllowed(true);
-    // table.setColumnSelectionAllowed(false);
 
     // Closing will be managed manually, depending on the what the user wants
     frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
@@ -367,8 +348,8 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
             .getText()
             .equals(i18n.get(MetaDbfTableModel.class, "Save Changes", "Save Changes"))) {
 
-          saveButton = button;
           // Remove current action listener
+          saveButton = button;
           ActionListener[] al = saveButton.getActionListeners();
           for (ActionListener element2 : al) {
             saveButton.removeActionListener(element2);

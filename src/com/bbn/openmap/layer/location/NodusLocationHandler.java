@@ -556,9 +556,9 @@ public class NodusLocationHandler extends AbstractLocationHandler
   }
 
   /**
-   * Sets CurrentFieldIndex and updates the property file.
+   * Sets the field name to display and updates the property file.
    *
-   * @param currentFieldIndex int
+   * @param fieldName The name of the DBF field to display.
    */
   public void setLocationFieldName(String fieldName) {
     this.locationFieldName = fieldName;

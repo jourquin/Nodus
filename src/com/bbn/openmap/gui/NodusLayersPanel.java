@@ -36,7 +36,6 @@ import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.net.URL;
 import java.util.Iterator;
-import java.util.Timer;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 
