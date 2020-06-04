@@ -155,6 +155,9 @@ public class NodusC {
 
   /** Name of the "group" field in the database tables. */
   public static final String DBF_GROUP = "grp";
+  
+  /** Name of the "scenario" field in the database tables. */
+  public static final String DBF_SCENARIO = "scenario";
 
   /** Name of the "origin" field in the database tables. */
   public static final String DBF_ORIGIN = "org";

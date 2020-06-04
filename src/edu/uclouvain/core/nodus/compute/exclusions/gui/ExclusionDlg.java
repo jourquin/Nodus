@@ -26,7 +26,7 @@ import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
-import edu.uclouvain.core.nodus.database.JDBCField;
+import edu.uclouvain.core.nodus.compute.exclusions.ExclusionReader;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import edu.uclouvain.core.nodus.swing.TableSorter;
@@ -43,13 +43,16 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.Iterator;
 import java.util.LinkedList;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
 import javax.swing.JSpinner;
 import javax.swing.JTable;
 import javax.swing.SpinnerNumberModel;
@@ -78,7 +81,7 @@ public class ExclusionDlg extends EscapeDialog {
 
   private JLabel groupLabel = new JLabel();
 
-  private JSpinner groupSpinner = new JSpinner(new SpinnerNumberModel(0, -1, 99, 1));
+  private JSpinner groupSpinner = new JSpinner(new SpinnerNumberModel(-1, -1, 99, 1));
 
   private JScrollPane scrollPane1 = new JScrollPane();
 
@@ -88,19 +91,23 @@ public class ExclusionDlg extends EscapeDialog {
 
   private JLabel means1Label = new JLabel();
 
-  private JSpinner means1Spinner = new JSpinner(new SpinnerNumberModel(0, -1, 99, 1));
+  private JSpinner means1Spinner = new JSpinner(new SpinnerNumberModel(-1, -1, 99, 1));
 
   private JLabel means2Label = new JLabel();
 
-  private JSpinner means2Spinner = new JSpinner(new SpinnerNumberModel(0, -1, 99, 1));
+  private JSpinner means2Spinner = new JSpinner(new SpinnerNumberModel(-1, -1, 99, 1));
 
   private JLabel mode1Label = new JLabel();
 
-  private JSpinner mode1Spinner = new JSpinner(new SpinnerNumberModel(0, -1, 99, 1));
+  private JSpinner mode1Spinner = new JSpinner(new SpinnerNumberModel(-1, -1, 99, 1));
 
   private JLabel mode2Label = new JLabel();
 
-  private JSpinner mode2Spinner = new JSpinner(new SpinnerNumberModel(0, -1, 99, 1));
+  private JSpinner mode2Spinner = new JSpinner(new SpinnerNumberModel(-1, -1, 99, 1));
+
+  private final JLabel scenarioLabel = new JLabel();
+
+  private final JSpinner scenarioSpinner = new JSpinner(new SpinnerNumberModel(-1, -1, 99, 1));
 
   private int nodeNum;
 
@@ -115,6 +122,14 @@ public class ExclusionDlg extends EscapeDialog {
   private JPanel spinnersPanel = new JPanel();
 
   private GridBagLayout spinnersPanelGridBagLayout = new GridBagLayout();
+
+  private final JRadioButton includeRadioButton = new JRadioButton();
+
+  private final JRadioButton excludeRadioButton = new JRadioButton();
+
+  private final JSeparator separator = new JSeparator();
+
+  private final ButtonGroup buttonGroup = new ButtonGroup();
 
   /**
    * The different add and remove operations will be stored in SQL statements pushed in a linked
@@ -139,33 +154,31 @@ public class ExclusionDlg extends EscapeDialog {
     nodusProject = layer.getNodusMapPanel().getNodusProject();
     this.nodeNum = nodeNum;
 
+    // Set title
+    setTitle(
+        MessageFormat.format(
+            i18n.get(ExclusionDlg.class, "Exclusions_for_node", "Exclusions for node {0}:"),
+            nodeNum));
+
     initialize();
     getRootPane().setDefaultButton(saveButton);
     setLocationRelativeTo(dialog);
   }
 
-  /**
-   * Adds a new exclusion to the list, based on the settings of the spinners.
-   *
-   * @param e ActionEvent
-   */
-  private void addButton_actionPerformed(ActionEvent e) {
-    // Get values from spinners
-    String group = groupSpinner.getValue().toString();
-    String mode1 = mode1Spinner.getValue().toString();
-    String means1 = means1Spinner.getValue().toString();
-    String mode2 = mode2Spinner.getValue().toString();
-    String means2 = means2Spinner.getValue().toString();
-
+  /** Add a new exclusion rule to the table. */
+  private void addRule(
+      String scenario, String group, String mode1, String means1, String mode2, String means2) {
     // Add INSERT statement to batch
     String sqlStmt =
         "INSERT INTO "
             + tableName
             + " VALUES( "
+            + nodeNum
+            + ", "
+            + scenario
+            + ", "
             + group
             + ", "
-            + nodeNum
-            + ","
             + mode1
             + ", "
             + means1
@@ -177,13 +190,49 @@ public class ExclusionDlg extends EscapeDialog {
     sqlBatch.add(sqlStmt);
 
     // Add new row to table
-    String[] row = new String[5];
-    row[0] = group;
-    row[1] = mode1;
-    row[2] = means1;
-    row[3] = mode2;
-    row[4] = means2;
+    String[] row = new String[6];
+    row[0] = scenario;
+    row[1] = group;
+    row[2] = mode1;
+    row[3] = means1;
+    row[4] = mode2;
+    row[5] = means2;
     ((DefaultTableModel) sorter.getTableModel()).addRow(row);
+  }
+
+  /**
+   * Adds a new rule to the list, based on the settings of the spinners.
+   *
+   * @param e ActionEvent
+   */
+  private void addButton_actionPerformed(ActionEvent e) {
+
+    int result =
+        JOptionPane.showConfirmDialog(
+            this,
+            "Add rule for both directions ?",
+            NodusC.APPNAME,
+            JOptionPane.YES_NO_CANCEL_OPTION,
+            JOptionPane.QUESTION_MESSAGE);
+    boolean addReverseMovement = false;
+    if (result == JOptionPane.CANCEL_OPTION) {
+      return;
+    } else if (result == JOptionPane.YES_OPTION) {
+      addReverseMovement = true;
+    }
+
+    // Get values from spinners
+    String scenario = scenarioSpinner.getValue().toString();
+    String group = groupSpinner.getValue().toString();
+    String mode1 = mode1Spinner.getValue().toString();
+    String means1 = means1Spinner.getValue().toString();
+    String mode2 = mode2Spinner.getValue().toString();
+    String means2 = means2Spinner.getValue().toString();
+
+    addRule(scenario, group, mode1, means2, mode2, means2);
+    if (addReverseMovement) {
+      addRule(scenario, group, mode2, means2, mode1, means1);
+    }
 
     // Select added row and remove button
     int n = exclusionTable.getRowCount();
@@ -200,32 +249,9 @@ public class ExclusionDlg extends EscapeDialog {
     setVisible(false);
   }
 
-  /**
-   * Initialises a new exclusion table (called when none exists). Returns true on success
-   *
-   * @param tableName String
-   * @return boolean
-   */
-  private boolean createExclusionsTable(String tableName) {
-    // Create an empty exclusion table
-    JDBCField[] field = new JDBCField[6];
-    int idx = 0;
-    field[idx++] = new JDBCField(NodusC.DBF_GROUP, "NUMERIC(2)");
-    field[idx++] = new JDBCField(NodusC.DBF_NUM, "NUMERIC(10)");
-    field[idx++] = new JDBCField(NodusC.DBF_MODE1, "NUMERIC(2)");
-    field[idx++] = new JDBCField(NodusC.DBF_MEANS1, "NUMERIC(2)");
-    field[idx++] = new JDBCField(NodusC.DBF_MODE2, "NUMERIC(2)");
-    field[idx++] = new JDBCField(NodusC.DBF_MEANS2, "NUMERIC(2)");
-    if (!JDBCUtils.createTable(tableName, field)) {
-      return false;
-    }
-    return true;
-  }
+  
 
-  /**
-   * Creates the GUI and loads the existing exclusions stored in the project exclusion
-   * table.
-   */
+  /** Creates the GUI and loads the existing exclusions stored in the project exclusion table. */
   private void initialize() {
 
     // Add the listener to avoid invalid mode-means combinations
@@ -280,16 +306,6 @@ public class ExclusionDlg extends EscapeDialog {
     spinnersPanel.setLayout(spinnersPanelGridBagLayout);
     spinnersPanel.setOpaque(false);
 
-    saveButton.setMargin(new Insets(2, 14, 2, 14));
-    saveButton.setText(i18n.get(ExclusionDlg.class, "Save", "Save"));
-    saveButton.addActionListener(
-        new java.awt.event.ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
-            saveButton_actionPerformed(e);
-          }
-        });
-
     cancelButton.setText(i18n.get(ExclusionDlg.class, "Cancel", "Cancel"));
     cancelButton.addActionListener(
         new java.awt.event.ActionListener() {
@@ -328,52 +344,37 @@ public class ExclusionDlg extends EscapeDialog {
     mode2Spinner.setMinimumSize(new Dimension(70, 24));
     means1Spinner.setMinimumSize(new Dimension(70, 24));
     means2Spinner.setMinimumSize(new Dimension(70, 24));
+    scrollPane1.setViewportView(exclusionTable);
 
-    scrollPane1.getViewport().add(exclusionTable, null);
+    
+    scenarioLabel.setText(i18n.get(ExclusionDlg.class, "Scenario", "Scenario"));
+    GridBagConstraints scenarioLabelGbc = new GridBagConstraints();
+    scenarioLabelGbc.insets = new Insets(5, 5, 5, 5);
+    scenarioLabelGbc.gridx = 0;
+    scenarioLabelGbc.gridy = 0;
+    spinnersPanel.add(scenarioLabel, scenarioLabelGbc);
+
+    GridBagConstraints scenarioSpinnerGbc = new GridBagConstraints();
+    scenarioSpinnerGbc.insets = new Insets(0, 5, 5, 5);
+    scenarioSpinnerGbc.gridx = 0;
+    scenarioSpinnerGbc.gridy = 1;
+    spinnersPanel.add(scenarioSpinner, scenarioSpinnerGbc);
     spinnersPanel.add(
         groupLabel,
         new GridBagConstraints(
             0,
-            0,
             2,
+            1,
             1,
             0.0,
             0.0,
             GridBagConstraints.CENTER,
             GridBagConstraints.NONE,
-            new Insets(0, 5, 0, 5),
+            new Insets(5, 5, 5, 5),
             0,
             0));
     spinnersPanel.add(
         mode1Label,
-        new GridBagConstraints(
-            0,
-            2,
-            1,
-            1,
-            0.0,
-            0.0,
-            GridBagConstraints.CENTER,
-            GridBagConstraints.NONE,
-            new Insets(0, 5, 0, 5),
-            0,
-            0));
-    spinnersPanel.add(
-        mode1Spinner,
-        new GridBagConstraints(
-            0,
-            3,
-            1,
-            1,
-            0.0,
-            0.0,
-            GridBagConstraints.CENTER,
-            GridBagConstraints.HORIZONTAL,
-            new Insets(0, 5, 5, 5),
-            0,
-            0));
-    spinnersPanel.add(
-        means1Label,
         new GridBagConstraints(
             0,
             4,
@@ -383,11 +384,11 @@ public class ExclusionDlg extends EscapeDialog {
             0.0,
             GridBagConstraints.CENTER,
             GridBagConstraints.NONE,
-            new Insets(0, 5, 0, 5),
+            new Insets(5, 5, 5, 5),
             0,
             0));
     spinnersPanel.add(
-        means1Spinner,
+        mode1Spinner,
         new GridBagConstraints(
             0,
             5,
@@ -396,12 +397,12 @@ public class ExclusionDlg extends EscapeDialog {
             0.0,
             0.0,
             GridBagConstraints.CENTER,
-            GridBagConstraints.HORIZONTAL,
+            GridBagConstraints.NONE,
             new Insets(0, 5, 5, 5),
             0,
             0));
     spinnersPanel.add(
-        mode2Label,
+        means1Label,
         new GridBagConstraints(
             0,
             6,
@@ -411,11 +412,11 @@ public class ExclusionDlg extends EscapeDialog {
             0.0,
             GridBagConstraints.CENTER,
             GridBagConstraints.NONE,
-            new Insets(0, 5, 0, 5),
+            new Insets(5, 5, 5, 5),
             0,
             0));
     spinnersPanel.add(
-        mode2Spinner,
+        means1Spinner,
         new GridBagConstraints(
             0,
             7,
@@ -424,26 +425,12 @@ public class ExclusionDlg extends EscapeDialog {
             0.0,
             0.0,
             GridBagConstraints.CENTER,
-            GridBagConstraints.HORIZONTAL,
+            GridBagConstraints.NONE,
             new Insets(0, 5, 5, 5),
             0,
             0));
     spinnersPanel.add(
-        means2Spinner,
-        new GridBagConstraints(
-            0,
-            9,
-            1,
-            1,
-            0.0,
-            0.0,
-            GridBagConstraints.CENTER,
-            GridBagConstraints.HORIZONTAL,
-            new Insets(0, 5, 5, 5),
-            0,
-            0));
-    spinnersPanel.add(
-        means2Label,
+        mode2Label,
         new GridBagConstraints(
             0,
             8,
@@ -453,7 +440,49 @@ public class ExclusionDlg extends EscapeDialog {
             0.0,
             GridBagConstraints.CENTER,
             GridBagConstraints.NONE,
-            new Insets(0, 5, 0, 5),
+            new Insets(5, 5, 5, 5),
+            0,
+            0));
+    spinnersPanel.add(
+        mode2Spinner,
+        new GridBagConstraints(
+            0,
+            9,
+            1,
+            1,
+            0.0,
+            0.0,
+            GridBagConstraints.CENTER,
+            GridBagConstraints.NONE,
+            new Insets(0, 5, 5, 5),
+            0,
+            0));
+    spinnersPanel.add(
+        means2Spinner,
+        new GridBagConstraints(
+            0,
+            11,
+            1,
+            1,
+            0.0,
+            0.0,
+            GridBagConstraints.CENTER,
+            GridBagConstraints.NONE,
+            new Insets(0, 5, 5, 5),
+            0,
+            0));
+    spinnersPanel.add(
+        means2Label,
+        new GridBagConstraints(
+            0,
+            10,
+            1,
+            1,
+            0.0,
+            0.0,
+            GridBagConstraints.CENTER,
+            GridBagConstraints.NONE,
+            new Insets(5, 5, 5, 5),
             0,
             0));
 
@@ -461,14 +490,14 @@ public class ExclusionDlg extends EscapeDialog {
         groupSpinner,
         new GridBagConstraints(
             0,
-            1,
+            3,
             1,
             1,
             0.0,
             0.0,
             GridBagConstraints.CENTER,
-            GridBagConstraints.HORIZONTAL,
-            new Insets(5, 5, 5, 5),
+            GridBagConstraints.NONE,
+            new Insets(0, 5, 5, 5),
             0,
             0));
 
@@ -478,46 +507,97 @@ public class ExclusionDlg extends EscapeDialog {
             0,
             0,
             1,
-            2,
+            11,
             0.0,
             0.0,
             GridBagConstraints.NORTHWEST,
             GridBagConstraints.NONE,
-            new Insets(5, 5, 0, 5),
+            new Insets(5, 5, 5, 5),
             0,
-            3));
+            0));
     mainPanel.add(
         scrollPane1,
         new GridBagConstraints(
             1,
             0,
-            3,
-            2,
-            0.1,
+            6,
+            11,
+            0.2,
             0.1,
             GridBagConstraints.NORTHWEST,
             GridBagConstraints.BOTH,
             new Insets(5, 5, 5, 5),
-            -1000,
-            -1000));
+            0,
+            0));
+
+    saveButton.setText(i18n.get(ExclusionDlg.class, "Save", "Save"));
+    saveButton.addActionListener(
+        new java.awt.event.ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            saveButton_actionPerformed(e);
+          }
+        });
+
+    GridBagConstraints separatorGbc = new GridBagConstraints();
+    separatorGbc.insets = new Insets(5, 5, 5, 5);
+    separatorGbc.gridx = 0;
+    separatorGbc.gridy = 12;
+    spinnersPanel.add(separator, separatorGbc);
+
+    excludeRadioButton.setText(i18n.get(ExclusionDlg.class, "Exclusions", "Exclusions"));
+    GridBagConstraints excludeRaduiButtonGbc = new GridBagConstraints();
+    excludeRaduiButtonGbc.insets = new Insets(0, 0, 5, 0);
+    excludeRaduiButtonGbc.anchor = GridBagConstraints.WEST;
+    excludeRaduiButtonGbc.gridwidth = 1;
+    excludeRaduiButtonGbc.gridx = 0;
+    excludeRaduiButtonGbc.gridy = 13;
+    spinnersPanel.add(excludeRadioButton, excludeRaduiButtonGbc);
+
+    includeRadioButton.setText(i18n.get(ExclusionDlg.class, "Inclusion", "Inclusion"));
+    GridBagConstraints includeRaduiButtonGbc = new GridBagConstraints();
+    includeRaduiButtonGbc.anchor = GridBagConstraints.WEST;
+    includeRaduiButtonGbc.gridwidth = 1;
+    includeRaduiButtonGbc.gridx = 0;
+    includeRaduiButtonGbc.gridy = 14;
+    spinnersPanel.add(includeRadioButton, includeRaduiButtonGbc);
+
+    excludeRadioButton.setSelected(true);
+    buttonGroup.add(excludeRadioButton);
+    buttonGroup.add(includeRadioButton);
+
+    mainPanel.add(
+        saveButton,
+        new GridBagConstraints(
+            5,
+            11,
+            1,
+            1,
+            0.1,
+            0.0,
+            GridBagConstraints.EAST,
+            GridBagConstraints.NONE,
+            new Insets(5, 5, 5, 5),
+            0,
+            0));
     mainPanel.add(
         cancelButton,
         new GridBagConstraints(
-            3,
+            6,
             11,
             1,
             1,
             0.0,
             0.0,
-            GridBagConstraints.NORTHEAST,
+            GridBagConstraints.EAST,
             GridBagConstraints.NONE,
-            new Insets(5, 100, 5, 5),
+            new Insets(5, 5, 5, 5),
             0,
             0));
     mainPanel.add(
         removeButton,
         new GridBagConstraints(
-            1,
+            3,
             11,
             1,
             1,
@@ -525,25 +605,11 @@ public class ExclusionDlg extends EscapeDialog {
             0.0,
             GridBagConstraints.CENTER,
             GridBagConstraints.NONE,
-            new Insets(5, 5, 5, 5),
+            new Insets(5, 5, 0, 5),
             0,
             0));
     mainPanel.add(
         addButton,
-        new GridBagConstraints(
-            0,
-            11,
-            1,
-            1,
-            0.0,
-            0.0,
-            GridBagConstraints.SOUTH,
-            GridBagConstraints.NONE,
-            new Insets(5, 5, 5, 5),
-            0,
-            0));
-    mainPanel.add(
-        saveButton,
         new GridBagConstraints(
             2,
             11,
@@ -551,9 +617,9 @@ public class ExclusionDlg extends EscapeDialog {
             1,
             0.0,
             0.0,
-            GridBagConstraints.NORTH,
+            GridBagConstraints.CENTER,
             GridBagConstraints.NONE,
-            new Insets(5, 5, 5, 5),
+            new Insets(5, 5, 0, 5),
             0,
             0));
 
@@ -588,12 +654,13 @@ public class ExclusionDlg extends EscapeDialog {
     addButton.setEnabled(false);
     removeButton.setEnabled(false);
 
-    String[] h = new String[5];
-    h[0] = NodusC.DBF_GROUP;
-    h[1] = NodusC.DBF_MODE1;
-    h[2] = NodusC.DBF_MEANS1;
-    h[3] = NodusC.DBF_MODE2;
-    h[4] = NodusC.DBF_MEANS2;
+    String[] h = new String[6];
+    h[0] = NodusC.DBF_SCENARIO;
+    h[1] = NodusC.DBF_GROUP;
+    h[2] = NodusC.DBF_MODE1;
+    h[3] = NodusC.DBF_MEANS1;
+    h[4] = NodusC.DBF_MODE2;
+    h[5] = NodusC.DBF_MEANS2;
     ((DefaultTableModel) sorter.getTableModel()).setColumnIdentifiers(h);
 
     if (loadExclusionsInTable()) {
@@ -616,11 +683,8 @@ public class ExclusionDlg extends EscapeDialog {
    * @return True on success.
    */
   private boolean loadExclusionsInTable() {
-    // Set title
-    setTitle(
-        MessageFormat.format(
-            i18n.get(ExclusionDlg.class, "Exclusions_for_node", "Exclusions for node {0}:"),
-            nodeNum));
+
+    boolean isExcluded = true;
 
     // Create SQL statement
     String defValue =
@@ -629,11 +693,13 @@ public class ExclusionDlg extends EscapeDialog {
 
     // Exclusions may not exist: create an empty table
     if (!JDBCUtils.tableExists(tableName)) {
-      createExclusionsTable(tableName);
+      ExclusionReader.createExclusionsTable(tableName);
     }
 
     String sql =
         "SELECT "
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
+            + ","
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
             + ","
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
@@ -643,13 +709,17 @@ public class ExclusionDlg extends EscapeDialog {
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
             + ","
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
+            + ","
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
             + " FROM "
             + tableName
-            + " WHERE "
+            + " WHERE ABS("
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
-            + " = "
+            + ") = "
             + nodeNum
             + " ORDER BY "
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
+            + ", "
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP);
 
     // connect to database and execute query
@@ -660,10 +730,16 @@ public class ExclusionDlg extends EscapeDialog {
 
       // model.setColumnIdentifiers(h);
       while (rs.next()) {
-        String[] row = new String[5];
+        String[] row = new String[6];
 
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 6; i++) {
           row[i] = rs.getObject(i + 1).toString();
+        }
+
+        // Negative node ID's are exclusions, positive are inclusions
+        int id = rs.getInt(7);
+        if (id > 0) {
+          isExcluded = false;
         }
 
         ((DefaultTableModel) sorter.getTableModel()).addRow(row);
@@ -678,6 +754,13 @@ public class ExclusionDlg extends EscapeDialog {
       return false;
     }
 
+    // Set the radio button to exclude or include
+    if (isExcluded) {
+      excludeRadioButton.setSelected(true);
+    } else {
+      includeRadioButton.setSelected(true);
+    }
+
     return true;
   }
 
@@ -690,17 +773,26 @@ public class ExclusionDlg extends EscapeDialog {
     DefaultTableModel sorterModel = (DefaultTableModel) sorter.getTableModel();
     // Get values from selected row
     int sr = exclusionTable.getSelectedRow();
-    int group = Integer.parseInt(sorterModel.getValueAt(sr, 0).toString());
-    int mode1 = Integer.parseInt(sorterModel.getValueAt(sr, 1).toString());
-    int means1 = Integer.parseInt(sorterModel.getValueAt(sr, 2).toString());
-    int mode2 = Integer.parseInt(sorterModel.getValueAt(sr, 3).toString());
-    int means2 = Integer.parseInt(sorterModel.getValueAt(sr, 4).toString());
+    int scenario = Integer.parseInt(sorterModel.getValueAt(sr, 0).toString());
+    int group = Integer.parseInt(sorterModel.getValueAt(sr, 1).toString());
+    int mode1 = Integer.parseInt(sorterModel.getValueAt(sr, 2).toString());
+    int means1 = Integer.parseInt(sorterModel.getValueAt(sr, 3).toString());
+    int mode2 = Integer.parseInt(sorterModel.getValueAt(sr, 4).toString());
+    int means2 = Integer.parseInt(sorterModel.getValueAt(sr, 5).toString());
 
     // Add DELETE statement to batch
     String sqlStmt =
         "DELETE FROM "
             + tableName
-            + " WHERE "
+            + " WHERE ABS("
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+            + ") = "
+            + nodeNum
+            + " AND "
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
+            + " = "
+            + scenario
+            + " AND "
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
             + " = "
             + group
@@ -748,6 +840,25 @@ public class ExclusionDlg extends EscapeDialog {
         String sqlStmt = it.next();
         stmt.executeUpdate(sqlStmt);
       }
+
+      // Update the "all but" or "nothing but" status, using a negative node ID for "all but" rules
+      int signedNodeNum = nodeNum;
+      if (excludeRadioButton.isSelected()) {
+        signedNodeNum = -nodeNum;
+      }
+
+      String sqlStmt =
+          "UPDATE "
+              + tableName
+              + " SET "
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+              + " = "
+              + signedNodeNum
+              + " WHERE ABS("
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+              + ") = "
+              + nodeNum;
+      stmt.executeUpdate(sqlStmt);
 
       stmt.close();
 

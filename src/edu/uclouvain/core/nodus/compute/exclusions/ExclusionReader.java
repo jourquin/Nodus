@@ -28,8 +28,10 @@ import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
+import edu.uclouvain.core.nodus.database.JDBCField;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import javax.swing.JOptionPane;
@@ -118,9 +120,11 @@ public class ExclusionReader {
       return false;
     }
 
-    // Load all exclusions for current group and for group 0
+    // Load all exclusions
     String sql =
         "SELECT "
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
+            + ","
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
             + ","
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
@@ -136,6 +140,9 @@ public class ExclusionReader {
             + tableName;
 
     // connect to database and execute query
+
+    int scenario = -1;
+
     int group = -1;
 
     int num = -1;
@@ -164,7 +171,7 @@ public class ExclusionReader {
           return false;
         }
 
-        for (int i = 1; i <= 6; i++) {
+        for (int i = 1; i <= 7; i++) {
           Object obj = rs.getObject(i);
           int value = JDBCUtils.getInt(obj);
 
@@ -174,26 +181,30 @@ public class ExclusionReader {
 
           switch (i) {
             case 1:
-              group = value;
+              scenario = value;
               break;
 
             case 2:
-              num = value;
+              group = value;
               break;
 
             case 3:
-              mode1 = value;
+              num = value;
               break;
 
             case 4:
-              means1 = value;
+              mode1 = value;
               break;
 
             case 5:
-              mode2 = value;
+              means1 = value;
               break;
 
             case 6:
+              mode2 = value;
+              break;
+
+            case 7:
               means2 = value;
               break;
 
@@ -206,7 +217,7 @@ public class ExclusionReader {
         int originIndex = virtualNet.getNodeIndexInVirtualNodeList(num, true);
 
         if (originIndex != -1) {
-          Exclusion exc = new Exclusion(group, num, mode1, means1, mode2, means2);
+          Exclusion exc = new Exclusion(scenario, group, num, mode1, means1, mode2, means2);
           vnl[originIndex].addExclusion(exc);
         }
       }
@@ -224,5 +235,131 @@ public class ExclusionReader {
     nodusMapPanel.stopProgress();
 
     return true;
+  }
+
+  /**
+   * Initialises a new exclusion table (called when none exists). Returns true on success
+   *
+   * @param tableName String
+   * @return boolean
+   */
+  public static boolean createExclusionsTable(String tableName) {
+    // Create an empty exclusion table
+    JDBCField[] field = new JDBCField[7];
+    int idx = 0;
+    field[idx++] = new JDBCField(NodusC.DBF_NUM, "NUMERIC(11)");
+    field[idx++] = new JDBCField(NodusC.DBF_SCENARIO, "NUMERIC(2)");
+    field[idx++] = new JDBCField(NodusC.DBF_GROUP, "NUMERIC(2)");
+    field[idx++] = new JDBCField(NodusC.DBF_MODE1, "NUMERIC(2)");
+    field[idx++] = new JDBCField(NodusC.DBF_MEANS1, "NUMERIC(2)");
+    field[idx++] = new JDBCField(NodusC.DBF_MODE2, "NUMERIC(2)");
+    field[idx++] = new JDBCField(NodusC.DBF_MEANS2, "NUMERIC(2)");
+    if (!JDBCUtils.createTable(tableName, field)) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Test if exclusion table is compatible with this version of Nodus. If not, upgrade it.
+   *
+   * @param nodusProject NodusProject
+   */
+  public static void fixExclusionTableIfNeeded(NodusProject nodusProject) {
+
+    // Fetch table name
+    String defValue =
+        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_EXC;
+    String tableName = nodusProject.getLocalProperty(NodusC.PROP_EXC_TABLE, defValue);
+
+    // Exclusions may not exist
+    if (!JDBCUtils.tableExists(tableName)) {
+      return;
+    }
+
+    // Test if  the "scenario" field exists
+    if (JDBCUtils.hasField(tableName, NodusC.DBF_SCENARIO)) {
+      return;
+    }
+
+    // Start upgrading process
+    nodusProject
+        .getNodusMapPanel()
+        .setText(i18n.get(ExclusionReader.class, "Upgrading", "Upgrading exclusions table"));
+
+    String tmpFileName = tableName + "_tmp";
+
+    // Create temporary output table
+    createExclusionsTable(tmpFileName);
+
+    // Convert table
+    String sql =
+        "SELECT "
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
+            + ","
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+            + ","
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
+            + ","
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
+            + ","
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
+            + ","
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
+            + " FROM "
+            + tableName;
+    try {
+      Connection con = nodusProject.getMainJDBCConnection();
+      Statement stmt = con.createStatement();
+      ResultSet rs = stmt.executeQuery(sql);
+
+      String insertStmt = "INSERT INTO " + tmpFileName + " VALUES(?, ?, ? , ?, ?, ?, ?)";
+      PreparedStatement ps = con.prepareStatement(insertStmt);
+
+      int group;
+      int num;
+      int mode1;
+      int means1;
+      int mode2;
+      int means2;
+      while (rs.next()) {
+
+        group = rs.getInt(1);
+        num = rs.getInt(2);
+        mode1 = rs.getInt(3);
+        means1 = rs.getInt(4);
+        mode2 = rs.getInt(5);
+        means2 = rs.getInt(6);
+
+        // Save upgraded record
+        int scenario = -1; // Old exclusions were applicable to all the scenarios
+        num = -num; // Exclusions have now a negative sign. Positive signs are for inclusions
+
+        ps.setInt(1, num);
+        ps.setInt(2, scenario);
+        ps.setInt(3, group);
+        ps.setInt(4, mode1);
+        ps.setInt(5, means1);
+        ps.setInt(6, mode2);
+        ps.setInt(7, means2);
+
+        ps.execute();
+      }
+
+      ps.close();
+      if (!con.getAutoCommit()) {
+        con.commit();
+      }
+      rs.close();
+      stmt.close();
+
+    } catch (Exception e) {
+      JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+
+    // Rename tmp table
+    JDBCUtils.dropTable(tableName);
+    JDBCUtils.renameTable(tmpFileName, tableName);
   }
 }

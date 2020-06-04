@@ -36,6 +36,7 @@ public class CostParserWorkerParameters {
   private byte groupIndex;
   private byte groupNum;
   private NodusProject nodusProject;
+  private byte scenario;
   private byte odClass;
   private VirtualNetwork virtualnetwork;
   private boolean withFirstDerivative;
@@ -46,6 +47,7 @@ public class CostParserWorkerParameters {
    *
    * @param costWorkers The array of cost workers that is used.
    * @param project The Nodus project.
+   * @param scenario Scenario.
    * @param odClass The OD class the costs must be computed for.
    * @param groupIndex The index of this OD group in VirtualNetwork.
    * @param vn The virtual network structure.
@@ -55,12 +57,13 @@ public class CostParserWorkerParameters {
   public CostParserWorkerParameters(
       CostParserWorker[] costWorkers,
       NodusProject project,
+      byte scenario,
       byte odClass,
       byte groupIndex,
       VirtualNetwork vn,
       CostParser costParser,
       boolean withPath) {
-    this(costWorkers, project, odClass, groupIndex, vn, costParser, withPath, false);
+    this(costWorkers, project, scenario, odClass, groupIndex, vn, costParser, withPath, false);
   }
 
   /**
@@ -68,6 +71,7 @@ public class CostParserWorkerParameters {
    *
    * @param costWorkers The array of cost workers that is used.
    * @param project The Nodus project.
+   * @param scenario Scenario.
    * @param odClass The OD class the costs must be computed for.
    * @param groupIndex The index of this OD group in VirtualNetwork.
    * @param vn The virtual network structure.
@@ -79,6 +83,7 @@ public class CostParserWorkerParameters {
   public CostParserWorkerParameters(
       CostParserWorker[] costWorkers,
       NodusProject project,
+      byte scenario,
       byte odClass,
       byte groupIndex,
       VirtualNetwork vn,
@@ -86,6 +91,7 @@ public class CostParserWorkerParameters {
       boolean withPaths,
       boolean withFirstDerivative) {
     this.nodusProject = project;
+    this.scenario = scenario;
     this.odClass = odClass;
     this.groupIndex = groupIndex;
     this.virtualnetwork = vn;
@@ -151,6 +157,16 @@ public class CostParserWorkerParameters {
     return odClass;
   }
 
+  
+  /**
+   * Returns the scenario ID.
+   *
+   * @return The scenario for which the costs are computed.
+   */
+  public byte getScenario() {
+    return scenario;
+  }
+  
   /**
    * Returns the virtual network structure.
    *

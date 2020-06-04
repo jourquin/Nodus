@@ -97,6 +97,7 @@ public class CostParserWorker extends Thread {
 
     VirtualNetwork virtualNetwork = cwp.getVirtualNetwork();
     vnl = virtualNetwork.getVirtualNodeLists();
+    byte scenario = cwp.getScenario();
     byte groupNum = cwp.getGroupNum();
     byte groupIndex = cwp.getGroupIndex();
 
@@ -140,7 +141,7 @@ public class CostParserWorker extends Thread {
           // Reset
           vl.setCost(groupIndex, CostParser.UNDEFINED_FUNCTION);
 
-          if (!isVirtualLinkExcluded(i, vl, groupNum)) {
+          if (!isVirtualLinkExcluded(i, vl, scenario, groupNum)) {
 
             // Compute costs
             double cost = costParser.compute(vl, false);
@@ -207,10 +208,11 @@ public class CostParserWorker extends Thread {
    *
    * @param index Index of virtual node.
    * @param vl Virtual link.
+   * @param scenario Scenario.
    * @param group Group of commodities.
    * @return True if virtual link is excluded.
    */
-  boolean isVirtualLinkExcluded(int index, VirtualLink vl, byte group) {
+  boolean isVirtualLinkExcluded(int index, VirtualLink vl, byte scenario, byte group) {
     // Exclusion lists only exist for transhipment nodes
     if (!vnl[index].isTranshipmentNode() && !vnl[index].isLoadingUnloadingNode()) {
       return false;
@@ -225,6 +227,7 @@ public class CostParserWorker extends Thread {
       Exclusion exc = lit.next();
 
       if (exc.isExcluded(
+          scenario,
           group,
           vnl[index].getRealNodeId(),
           vl.getBeginVirtualNode().getMode(),

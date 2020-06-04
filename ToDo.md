@@ -4,7 +4,6 @@
 ## Transit times
 - Tests needed to validate it
 - update CostParser.java examples
-- Save service fields only if needed ?
 
 ## Exclusions
 - Allow "all but" or "nothing but"
@@ -18,3 +17,6 @@
 
 # Diverse
 Demo doc
+
+test FW assignment (isWithFirstDFerivative)
+Label fonts mac ?

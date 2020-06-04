@@ -61,6 +61,8 @@ public class AllOrNothingAssignment extends Assignment {
     if (costsContainDeprecatedDurations()) {
       return false;
     }
+    
+    byte scenario = assignmentParameters.getScenario();
 
     // Test if scenario already exists
     if (!VirtualNetworkWriter.acceptScenario(
@@ -130,7 +132,7 @@ public class AllOrNothingAssignment extends Assignment {
       int threads = assignmentParameters.getThreads();
 
       // Compute costs
-      if (!virtualNet.computeCosts(0, odClass, withPaths, threads)) {
+      if (!virtualNet.computeCosts(0, scenario, odClass, withPaths, threads)) {
         return false;
       }
 

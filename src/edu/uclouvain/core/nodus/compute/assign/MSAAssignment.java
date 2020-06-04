@@ -64,6 +64,8 @@ public class MSAAssignment extends Assignment {
     if (costsContainDeprecatedDurations()) {
       return false;
     }
+    
+    byte scenario = assignmentParameters.getScenario();
 
     // Test if scenario already exists
     if (!VirtualNetworkWriter.acceptScenario(
@@ -135,7 +137,7 @@ public class MSAAssignment extends Assignment {
         int threads = assignmentParameters.getThreads();
 
         // (re)Compute costs
-        if (!virtualNet.computeCosts(iteration, odClass, withPaths, threads)) {
+        if (!virtualNet.computeCosts(iteration, scenario, odClass, withPaths, threads)) {
           nodusMapPanel.stopProgress();
           return false;
         }

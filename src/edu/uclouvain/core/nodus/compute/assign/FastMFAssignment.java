@@ -63,6 +63,8 @@ public class FastMFAssignment extends Assignment {
     if (costsContainDeprecatedDurations()) {
       return false;
     }
+    
+    byte scenario = assignmentParameters.getScenario();
 
     // Test if scenario already exists
     if (!VirtualNetworkWriter.acceptScenario(
@@ -141,7 +143,7 @@ public class FastMFAssignment extends Assignment {
       int threads = assignmentParameters.getThreads();
 
       // The initial costs must be computed (these are the real costs)
-      if (!virtualNet.computeCosts(0, odClass, withPaths, threads)) {
+      if (!virtualNet.computeCosts(0, scenario, odClass, withPaths, threads)) {
         nodusMapPanel.stopProgress();
 
         return false;

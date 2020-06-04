@@ -40,6 +40,7 @@ import com.bbn.openmap.proj.ProjectionFactory;
 import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
+import edu.uclouvain.core.nodus.compute.exclusions.ExclusionReader;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
 import edu.uclouvain.core.nodus.database.ShapeIntegrityTester;
@@ -1562,20 +1563,6 @@ public class NodusProject implements ShapeConstants {
       }
     }
 
-    /* Be sure MySQL / MariaDB uses UTF-8 */
-    /* if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
-      System.out.println("forece utf8");
-      try {
-        Statement stmt;
-        stmt = jdbcConnection.createStatement();
-        stmt.executeQuery("SET NAMES 'UTF8'");
-        stmt.executeQuery("SET CHARACTER SET 'UTF8'");
-      } catch (SQLException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-    }*/
-
     // Open the log file for this project
     try {
       loggerHandler = new FileHandler(projectPath + "nodus.log", true);
@@ -1883,6 +1870,9 @@ public class NodusProject implements ShapeConstants {
     // Restore the scale rendering threshold
     nodusMapPanel.setRenderingScaleThreshold(
         getLocalProperty(NodusC.PROP_RENDERING_SCALE_THRESHOLD, (float) -1));
+    
+    // Verify if exclusion table is compatible with this version of Nodus
+    ExclusionReader.fixExclusionTableIfNeeded(this);
 
     // Load the service lines
     serviceEditor = new ServiceEditor(this);

@@ -92,7 +92,7 @@ public class AssignmentParameters {
   private boolean savePaths;
 
   /** Scenario to assign. */
-  private int scenario = -1;
+  private byte scenario = -1;
 
   /** The number of parallel threads during assignment. */
   private int threads = 1;
@@ -203,7 +203,7 @@ public class AssignmentParameters {
    *
    * @return int.
    */
-  public int getScenario() {
+  public byte getScenario() {
     return scenario;
   }
 
@@ -477,9 +477,9 @@ public class AssignmentParameters {
   /**
    * Sets the num of the scenario corresponding to this assignment.
    *
-   * @param scenario int
+   * @param scenario byte
    */
-  public void setScenario(int scenario) {
+  public void setScenario(byte scenario) {
     this.scenario = scenario;
   }
 

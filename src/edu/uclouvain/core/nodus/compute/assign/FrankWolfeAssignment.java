@@ -66,6 +66,8 @@ public class FrankWolfeAssignment extends Assignment {
       return false;
     }
 
+    byte scenario = assignmentParameters.getScenario();
+    
     // Test if scenario already exists
     if (!VirtualNetworkWriter.acceptScenario(
         nodusProject, assignmentParameters.getScenario(), assignmentParameters.isConfirmDelete())) {
@@ -132,7 +134,7 @@ public class FrankWolfeAssignment extends Assignment {
           continue;
         }
 
-        if (!virtualNet.computeCosts(iteration - 1, odClass, withPaths, threads)) {
+        if (!virtualNet.computeCosts(iteration - 1, scenario, odClass, withPaths, threads)) {
           nodusMapPanel.stopProgress();
           return false;
         }

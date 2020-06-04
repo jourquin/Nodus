@@ -173,7 +173,7 @@ public class VirtualNetwork {
 
   private boolean[] odClassHasDemand = null;
 
-  private int scenario;
+  private byte scenario;
 
   private int timeSliceDuration = 0;
 
@@ -190,7 +190,7 @@ public class VirtualNetwork {
     nodusProject = ap.getNodusProject();
     this.nodusMapPanel = nodusProject.getNodusMapPanel();
 
-    scenario = nodusProject.getLocalProperty(NodusC.PROP_SCENARIO, 0);
+    scenario = ap.getScenario();
 
     // Get the cost functions
     costFunctions = ap.getCostFunctions();
@@ -251,7 +251,7 @@ public class VirtualNetwork {
         rl.setOriginNodeId(node1);
         rl.setLength(length);
         rl.setSpeed(speed);
-        //rl.setDuration(3600 * length / speed);
+        // rl.setDuration(3600 * length / speed);
         rl.resetStandardVehicles();
 
         j++;
@@ -273,13 +273,19 @@ public class VirtualNetwork {
    * Creates a queue of cost parser workers and a pool of threads that will handle these workers.
    *
    * @param iteration The iteration for which the costs must be computed.
+   * @param scenario Scenario.
    * @param odClass The OD class for which the costs must be computed.
    * @param timeSlice The time slice for which the costs must be computed.
    * @param nbThreads The number of thread to create in the pool.
    * @return True on success.
    */
   public boolean computeCosts(
-      int iteration, byte odClass, byte timeSlice, boolean withPaths, int nbThreads) {
+      int iteration,
+      byte scenario,
+      byte odClass,
+      byte timeSlice,
+      boolean withPaths,
+      int nbThreads) {
 
     if (vnl == null) {
       return false;
@@ -309,7 +315,7 @@ public class VirtualNetwork {
 
       CostParserWorkerParameters cpp =
           new CostParserWorkerParameters(
-              worker, nodusProject, odClass, groupIndex, this, costParser, withPaths);
+              worker, nodusProject, scenario, odClass, groupIndex, this, costParser, withPaths);
       queue.addWork(cpp);
     }
 
@@ -357,12 +363,14 @@ public class VirtualNetwork {
    * Creates a queue of cost parser workers and a pool of threads that will handle these workers.
    *
    * @param iteration The iteration for which the costs must be computed.
+   * @param scenario Scenario.
    * @param odClass The OD class for which the costs must be computed.
    * @param nbThreads The number of thread to create in the pool.
    * @return True on success.
    */
-  public boolean computeCosts(int iteration, byte odClass, boolean withPaths, int nbThreads) {
-    return computeCosts(iteration, odClass, (byte) -1, withPaths, nbThreads);
+  public boolean computeCosts(
+      int iteration, byte scenario, byte odClass, boolean withPaths, int nbThreads) {
+    return computeCosts(iteration, scenario, odClass, (byte) -1, withPaths, nbThreads);
   }
 
   /**
@@ -1244,7 +1252,7 @@ public class VirtualNetwork {
 
         CostParserWorkerParameters cpp =
             new CostParserWorkerParameters(
-                worker, nodusProject, odClass, groupIndex, this, costParser, true, true);
+                worker, nodusProject, scenario, odClass, groupIndex, this, costParser, true, true);
         queue.addWork(cpp);
       }
 

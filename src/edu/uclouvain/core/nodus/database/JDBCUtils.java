@@ -940,7 +940,7 @@ public class JDBCUtils {
     }
 
     try {
-      // Only rename existent tables
+      // Only rename existing tables
       ResultSet rs = dmd.getTables(null, null, getCompliantIdentifier(currentTableName), null);
       if (rs.next()) {
         Statement stmt = jdbcConnection.createStatement();

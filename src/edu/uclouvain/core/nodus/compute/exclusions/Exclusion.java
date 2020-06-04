@@ -28,6 +28,9 @@ package edu.uclouvain.core.nodus.compute.exclusions;
  */
 public class Exclusion {
 
+  /** Scenario to which this exclusion belongs to. -1 if true for any scenario. */
+  private int scenario;
+
   /** Group to which this exclusion belongs. -1 if true for any group */
   private int group;
 
@@ -50,6 +53,7 @@ public class Exclusion {
    * Creates a new exclusion for a give group, node number and a pair of two mode/means
    * combinations.
    *
+   * @param scenario Scenario.
    * @param group Group of goods.
    * @param nodeId Real node num.
    * @param mode1 Mode at the origin.
@@ -57,7 +61,9 @@ public class Exclusion {
    * @param mode2 Mode at the destination.
    * @param means2 Means at the destination.
    */
-  public Exclusion(int group, int nodeId, int mode1, int means1, int mode2, int means2) {
+  public Exclusion(
+      int scenario, int group, int nodeId, int mode1, int means1, int mode2, int means2) {
+    this.scenario = scenario;
     this.group = group;
     this.nodeId = nodeId;
     this.mode1 = mode1;
@@ -70,6 +76,7 @@ public class Exclusion {
    * Returns true if the operation relative to the given group and mode/means combinations is not
    * permitted at node num.
    *
+   * @param scenario Scenario
    * @param group Group of goods.
    * @param nodeId Real node ID.
    * @param mode1 Mode at the origin.
@@ -78,7 +85,9 @@ public class Exclusion {
    * @param means2 Means at the destination.
    * @return boolean True if excluded.
    */
-  public boolean isExcluded(int group, int nodeId, int mode1, int means1, int mode2, int means2) {
+  // TODO Test scenario and validate
+  public boolean isExcluded(
+      int scenario, int group, int nodeId, int mode1, int means1, int mode2, int means2) {
     // Does the pattern concern the relevant node?
     if (nodeId != this.nodeId) {
       return false;
