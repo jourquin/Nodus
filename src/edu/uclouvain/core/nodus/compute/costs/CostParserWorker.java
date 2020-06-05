@@ -213,6 +213,7 @@ public class CostParserWorker extends Thread {
    * @return True if virtual link is excluded.
    */
   boolean isVirtualLinkExcluded(int index, VirtualLink vl, byte scenario, byte group) {
+
     // Exclusion lists only exist for transhipment nodes
     if (!vnl[index].isTranshipmentNode() && !vnl[index].isLoadingUnloadingNode()) {
       return false;
@@ -227,9 +228,9 @@ public class CostParserWorker extends Thread {
       Exclusion exc = lit.next();
 
       if (exc.isExcluded(
+          vnl[index].getRealNodeId(),
           scenario,
           group,
-          vnl[index].getRealNodeId(),
           vl.getBeginVirtualNode().getMode(),
           vl.getBeginVirtualNode().getMeans(),
           vl.getEndVirtualNode().getMode(),

@@ -1665,6 +1665,33 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
    *
    * @return True if the table was successfully updated and saved.
    */
+  //  public boolean updateDbfTableModel() {
+  //
+  //    DbfTableModel tm = null;
+  //    try {
+  //      String fileName =
+  //          nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName +
+  // NodusC.TYPE_DBF;
+  //      File file = new File(fileName);
+  //      URI uri = file.toURI();
+  //      tm = DbfTableModel.getDbfTableModel(uri.toURL());
+  //    } catch (MalformedURLException e) {
+  //      e.printStackTrace();
+  //      return false;
+  //    }
+  //
+  //    setModel(tm);
+  //
+  //    // Reload labels
+  //    getLocationHandler().reloadData();
+  //
+  //    doPrepare();
+  //
+  //    dirtyDbf = false;
+  //
+  //    return true;
+  //  }
+
   public boolean updateDbfTableModel() {
     try {
       Connection con = nodusProject.getMainJDBCConnection();
@@ -1679,9 +1706,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
       ResultSet rs = stmt.executeQuery(sqlStmt);
       ResultSetMetaData rsmd = rs.getMetaData();
       int nbColumns = rsmd.getColumnCount();
-
-      // TODO Add more tests to UpdateDbfTableModel.
-      // Or, better, allow for structure change (but not the mandatory fields)
 
       // - nb rows
       // - table structure

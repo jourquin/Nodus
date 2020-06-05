@@ -297,7 +297,11 @@ public class ExportDBF implements ShapeConstants {
     }
 
     // Write the dbf file
-    return ExportDBF.exportTable(nodusProject, tableName + NodusC.TYPE_DBF, layer.getModel());
+    if (!ExportDBF.exportTable(nodusProject, tableName + NodusC.TYPE_DBF, layer.getModel())) {
+      return false;
+    }
+
+    return true;
   }
 
   /**

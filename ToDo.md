@@ -3,14 +3,11 @@
 
 ## Transit times
 - Tests needed to validate it
-- update CostParser.java examples
+
 
 ## Exclusions
-- Allow "all but" or "nothing but"
-- Ask for reverse operation
-- Include scenario
-- Backward compatibility : script to upgrade exclusion table or automatic upgrade
-- Display "-1" as default value in dialog
+- Test and validation
+- inclusions are not working
   
 # Jung and xchart
 - Set user defined color for modes and means
@@ -19,4 +16,5 @@
 Demo doc
 
 test FW assignment (isWithFirstDFerivative)
-Label fonts mac ?
+exportesridbf fails when nb columns changes
+add an option for fast/good rendering

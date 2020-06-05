@@ -69,6 +69,9 @@ import javax.swing.table.DefaultTableModel;
  */
 public class ExclusionDlg extends EscapeDialog {
 
+  private static final String RULE_EXCLUSION = "exclusion";
+  private static final String RULE_INCLUSION = "inclusion";
+
   private static I18n i18n = Environment.getI18n();
 
   private static final long serialVersionUID = 2034841416338333759L;
@@ -140,6 +143,8 @@ public class ExclusionDlg extends EscapeDialog {
 
   private String tableName;
 
+  private String defaultExclusionRule;
+
   /**
    * Initializes the dialog box that will give the possibility to edit the exclusions related to
    * node num of the currently loaded NodusProject.
@@ -153,6 +158,10 @@ public class ExclusionDlg extends EscapeDialog {
 
     nodusProject = layer.getNodusMapPanel().getNodusProject();
     this.nodeNum = nodeNum;
+
+    // Latest rule used becomes default
+    defaultExclusionRule =
+        nodusProject.getLocalProperty(NodusC.PROP_DEFAUT_EXCLUSION_RULE, RULE_EXCLUSION);
 
     // Set title
     setTitle(
@@ -229,7 +238,7 @@ public class ExclusionDlg extends EscapeDialog {
     String mode2 = mode2Spinner.getValue().toString();
     String means2 = means2Spinner.getValue().toString();
 
-    addRule(scenario, group, mode1, means2, mode2, means2);
+    addRule(scenario, group, mode1, means1, mode2, means2);
     if (addReverseMovement) {
       addRule(scenario, group, mode2, means2, mode1, means1);
     }
@@ -248,8 +257,6 @@ public class ExclusionDlg extends EscapeDialog {
   private void cancelButton_actionPerformed(ActionEvent e) {
     setVisible(false);
   }
-
-  
 
   /** Creates the GUI and loads the existing exclusions stored in the project exclusion table. */
   private void initialize() {
@@ -346,7 +353,6 @@ public class ExclusionDlg extends EscapeDialog {
     means2Spinner.setMinimumSize(new Dimension(70, 24));
     scrollPane1.setViewportView(exclusionTable);
 
-    
     scenarioLabel.setText(i18n.get(ExclusionDlg.class, "Scenario", "Scenario"));
     GridBagConstraints scenarioLabelGbc = new GridBagConstraints();
     scenarioLabelGbc.insets = new Insets(5, 5, 5, 5);
@@ -562,7 +568,6 @@ public class ExclusionDlg extends EscapeDialog {
     includeRaduiButtonGbc.gridy = 14;
     spinnersPanel.add(includeRadioButton, includeRaduiButtonGbc);
 
-    excludeRadioButton.setSelected(true);
     buttonGroup.add(excludeRadioButton);
     buttonGroup.add(includeRadioButton);
 
@@ -685,6 +690,7 @@ public class ExclusionDlg extends EscapeDialog {
   private boolean loadExclusionsInTable() {
 
     boolean isExcluded = true;
+    int nbRecords = 0;
 
     // Create SQL statement
     String defValue =
@@ -730,6 +736,7 @@ public class ExclusionDlg extends EscapeDialog {
 
       // model.setColumnIdentifiers(h);
       while (rs.next()) {
+        nbRecords++;
         String[] row = new String[6];
 
         for (int i = 0; i < 6; i++) {
@@ -755,10 +762,18 @@ public class ExclusionDlg extends EscapeDialog {
     }
 
     // Set the radio button to exclude or include
-    if (isExcluded) {
-      excludeRadioButton.setSelected(true);
+    if (nbRecords > 0) {
+      if (isExcluded) {
+        excludeRadioButton.setSelected(true);
+      } else {
+        includeRadioButton.setSelected(true);
+      }
     } else {
-      includeRadioButton.setSelected(true);
+      if (defaultExclusionRule.equals(RULE_EXCLUSION)) {
+        excludeRadioButton.setSelected(true);
+      } else {
+        includeRadioButton.setSelected(true);
+      }
     }
 
     return true;
@@ -865,6 +880,14 @@ public class ExclusionDlg extends EscapeDialog {
     } catch (SQLException ex) {
       System.out.println(ex.toString());
     }
+
+    // Save this rule as default for later use
+    if (excludeRadioButton.isSelected()) {
+      defaultExclusionRule = RULE_EXCLUSION;
+    } else {
+      defaultExclusionRule = RULE_INCLUSION;
+    }
+    nodusProject.setLocalProperty(NodusC.PROP_DEFAUT_EXCLUSION_RULE, defaultExclusionRule);
 
     // Close dialog
     setVisible(false);

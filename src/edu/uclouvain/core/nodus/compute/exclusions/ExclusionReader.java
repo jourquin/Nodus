@@ -123,11 +123,11 @@ public class ExclusionReader {
     // Load all exclusions
     String sql =
         "SELECT "
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+            + ","
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
             + ","
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
-            + ","
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
             + ","
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
             + ","
@@ -181,15 +181,15 @@ public class ExclusionReader {
 
           switch (i) {
             case 1:
+              num = value;
+              break;
+              
+            case 2:
               scenario = value;
               break;
 
-            case 2:
-              group = value;
-              break;
-
             case 3:
-              num = value;
+              group = value;
               break;
 
             case 4:
@@ -214,10 +214,10 @@ public class ExclusionReader {
         }
 
         // add the exclusion to the relevant list
-        int originIndex = virtualNet.getNodeIndexInVirtualNodeList(num, true);
+        int originIndex = virtualNet.getNodeIndexInVirtualNodeList(Math.abs(num), true);
 
         if (originIndex != -1) {
-          Exclusion exc = new Exclusion(scenario, group, num, mode1, means1, mode2, means2);
+          Exclusion exc = new Exclusion(num, scenario, group, mode1, means1, mode2, means2);
           vnl[originIndex].addExclusion(exc);
         }
       }

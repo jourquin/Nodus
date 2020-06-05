@@ -49,20 +49,23 @@ public class Exclusion {
   /** Node number to which this exclusion belongs to. */
   private int nodeId;
 
+  /** Inclusion or exclusion. */
+  private boolean isExclusion = false;
+
   /**
    * Creates a new exclusion for a give group, node number and a pair of two mode/means
    * combinations.
    *
+   * @param nodeId Real node num.
    * @param scenario Scenario.
    * @param group Group of goods.
-   * @param nodeId Real node num.
    * @param mode1 Mode at the origin.
    * @param means1 Means at the origin.
    * @param mode2 Mode at the destination.
    * @param means2 Means at the destination.
    */
   public Exclusion(
-      int scenario, int group, int nodeId, int mode1, int means1, int mode2, int means2) {
+      int nodeId, int scenario, int group, int mode1, int means1, int mode2, int means2) {
     this.scenario = scenario;
     this.group = group;
     this.nodeId = nodeId;
@@ -70,26 +73,36 @@ public class Exclusion {
     this.means1 = means1;
     this.mode2 = mode2;
     this.means2 = means2;
+
+    if (nodeId < 0) {
+      isExclusion = true;
+    }
   }
 
   /**
    * Returns true if the operation relative to the given group and mode/means combinations is not
    * permitted at node num.
    *
+   * @param nodeId Real node ID.
    * @param scenario Scenario
    * @param group Group of goods.
-   * @param nodeId Real node ID.
    * @param mode1 Mode at the origin.
    * @param means1 Means at the origin.
    * @param mode2 Mode at the destination.
    * @param means2 Means at the destination.
    * @return boolean True if excluded.
    */
-  // TODO Test scenario and validate
   public boolean isExcluded(
-      int scenario, int group, int nodeId, int mode1, int means1, int mode2, int means2) {
+      int nodeId, int scenario, int group, int mode1, int means1, int mode2, int means2) {
+
     // Does the pattern concern the relevant node?
-    if (nodeId != this.nodeId) {
+    if (Math.abs(nodeId) != Math.abs(this.nodeId)) {
+      return false;
+    }
+
+    // Does the pattern concern the relevant scenario or is this exclusion
+    // relative to all scenarios?
+    if (scenario != this.scenario && this.scenario != -1) {
       return false;
     }
 
@@ -128,16 +141,17 @@ public class Exclusion {
         && firstMeans == means1
         && secondMode == mode2
         && secondMeans == means2) {
-      return true;
+      if (isExclusion) {
+        return true;
+      } else {
+        return false;
+      }
     }
 
-    /*if (firstMode == mode2
-        && firstMeans == means2
-        && secondMode == mode1
-        && secondMeans == means1) {
+    if (isExclusion) {
+      return false;
+    } else {
       return true;
-    }*/
-
-    return false;
+    }
   }
 }

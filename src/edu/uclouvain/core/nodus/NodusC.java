@@ -1157,4 +1157,11 @@ public class NodusC {
    * @exclude
    */
   public static final String PROP_RENDERING_SCALE_THRESHOLD = "renderingscalethreshold";
+  
+  /**
+   * Properties strings used in project and/or project local properties.
+   *
+   * @exclude
+   */
+  public static final String PROP_DEFAUT_EXCLUSION_RULE = "defaultexclusionrule";
 }
