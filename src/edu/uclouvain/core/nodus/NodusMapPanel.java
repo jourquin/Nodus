@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus;
 
 import com.bbn.openmap.BufferedLayerMapBean;
 import com.bbn.openmap.Environment;
+import com.bbn.openmap.HintsMapBeanRepaintPolicy;
 import com.bbn.openmap.InformationDelegator;
 import com.bbn.openmap.Layer;
 import com.bbn.openmap.LayerHandler;
@@ -52,6 +53,7 @@ import com.bbn.openmap.image.AcmeGifFormatter;
 import com.bbn.openmap.image.MapBeanPrinter;
 import com.bbn.openmap.image.SunJPEGFormatter;
 import com.bbn.openmap.layer.highlightedarea.HighlightedAreaLayer;
+import com.bbn.openmap.layer.policy.RenderingHintsRenderPolicy;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.layer.shape.PoliticalBoundariesLayer;
 import com.bbn.openmap.layer.shape.ShapeLayer;
@@ -115,6 +117,7 @@ import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Paint;
 import java.awt.Point;
+import java.awt.RenderingHints;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
@@ -215,6 +218,15 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     mapBean.setBorder(BorderFactory.createEtchedBorder(BevelBorder.LOWERED));
     mapBean.setProjection(proj);
     mapBean.setPreferredSize(new Dimension(proj.getWidth(), proj.getHeight()));
+
+    RenderingHints rh =
+        new RenderingHints(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    RenderingHintsRenderPolicy hints = new RenderingHintsRenderPolicy();
+    hints.setRenderingHints(rh);
+    HintsMapBeanRepaintPolicy hmbrp = new HintsMapBeanRepaintPolicy(mapBean);
+    hmbrp.setHints(hints);
+    mapBean.setMapBeanRepaintPolicy(hmbrp);
+
     return mapBean;
   }
 
@@ -2516,7 +2528,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   private void menuItemProjectSQLConsoleActionPerformed(ActionEvent a) {
     if (nodusProject.isOpen()) {
-      //new SQLConsole(nodusProject);
+      // new SQLConsole(nodusProject);
       javax.swing.SwingUtilities.invokeLater(
           new Runnable() {
             @Override
