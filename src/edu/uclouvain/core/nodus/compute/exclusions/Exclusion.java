@@ -46,9 +46,6 @@ public class Exclusion {
   /** Destination mode of the movement to exclude. -1 if applicable to any mode */
   private int mode2;
 
-  /** Node number to which this exclusion belongs to. */
-  private int nodeId;
-
   /** Inclusion or exclusion. */
   private boolean isExclusion = false;
 
@@ -68,7 +65,6 @@ public class Exclusion {
       int nodeId, int scenario, int group, int mode1, int means1, int mode2, int means2) {
     this.scenario = scenario;
     this.group = group;
-    this.nodeId = nodeId;
     this.mode1 = mode1;
     this.means1 = means1;
     this.mode2 = mode2;
@@ -79,9 +75,13 @@ public class Exclusion {
     }
   }
 
+  public boolean isExclusion() {
+    return isExclusion;
+  }
+
   /**
-   * Returns true if the operation relative to the given group and mode/means combinations is not
-   * permitted at node num.
+   * Returns true if the operation relative to the given scenario, group and mode/means combinations
+   * is permitted at node NodeId.
    *
    * @param nodeId Real node ID.
    * @param scenario Scenario
@@ -96,7 +96,12 @@ public class Exclusion {
       int nodeId, int scenario, int group, int mode1, int means1, int mode2, int means2) {
 
     // Does the pattern concern the relevant node?
-    if (Math.abs(nodeId) != Math.abs(this.nodeId)) {
+    //    if (Math.abs(nodeId) != this.nodeId) {
+    //      return false;
+    //    }
+
+    // Transit is always permitted
+    if (mode1 == mode2 && means1 == means2) {
       return false;
     }
 
@@ -141,17 +146,82 @@ public class Exclusion {
         && firstMeans == means1
         && secondMode == mode2
         && secondMeans == means2) {
-      if (isExclusion) {
-        return true;
-      } else {
-        return false;
-      }
-    }
-
-    if (isExclusion) {
-      return false;
-    } else {
       return true;
     }
+
+    return false;
+  }
+
+  /**
+   * Returns true if the operation relative to the given scenario, group and mode/means combinations
+   * is permitted at node NodeId.
+   *
+   * @param nodeId Real node ID.
+   * @param scenario Scenario
+   * @param group Group of goods.
+   * @param mode1 Mode at the origin.
+   * @param means1 Means at the origin.
+   * @param mode2 Mode at the destination.
+   * @param means2 Means at the destination.
+   * @return boolean True if excluded.
+   */
+  public boolean isIncluded(
+      int nodeId, int scenario, int group, int mode1, int means1, int mode2, int means2) {
+
+    // Does the pattern concern the relevant node?
+    //    if (Math.abs(nodeId) != this.nodeId) {
+    //      return false;
+    //    }
+
+    // Transit is always permitted
+    if (mode1 == mode2 && means1 == means2) {
+      return true;
+    }
+
+    // Does the pattern concern the relevant scenario or is this exclusion
+    // relative to all scenarios?
+    if (scenario != this.scenario && this.scenario != -1) {
+      return false;
+    }
+
+    // Does the pattern concern the relevant group or is this exclusion
+    // relative to all groups?
+    if (group != this.group && this.group != -1) {
+      return false;
+    }
+
+    // Test the exclusion
+    int firstMode = this.mode1;
+
+    if (firstMode == -1) {
+      firstMode = mode1; // If M1 is relative to all modes
+    }
+
+    int firstMeans = this.means1;
+
+    if (firstMeans == -1) {
+      firstMeans = means1;
+    }
+
+    int secondMode = this.mode2;
+
+    if (secondMode == -1) {
+      secondMode = mode2;
+    }
+
+    int secondMeans = this.means2;
+
+    if (secondMeans == -1) {
+      secondMeans = means2;
+    }
+
+    if (firstMode == mode1
+        && firstMeans == means1
+        && secondMode == mode2
+        && secondMeans == means2) {
+      return true;
+    }
+
+    return false;
   }
 }

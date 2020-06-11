@@ -397,6 +397,11 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
           }
         }
 
+        // Zero length paths can appear when "inclusions" are used
+        if (paths[index][currentPath].weights.length == 0) {
+          paths[index][currentPath].isValid = false;
+        }
+
         // Only retain valid paths
         if (paths[index][currentPath].isValid) {
           // Get the list of paths for this mode or create one

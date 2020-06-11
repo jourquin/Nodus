@@ -55,9 +55,12 @@ import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JSpinner;
 import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 
 /**
@@ -77,6 +80,8 @@ public class ExclusionDlg extends EscapeDialog {
   private static final long serialVersionUID = 2034841416338333759L;
 
   private JButton addButton = new JButton();
+
+  private JButton updateButton = new JButton();
 
   private JButton cancelButton = new JButton();
 
@@ -216,19 +221,46 @@ public class ExclusionDlg extends EscapeDialog {
    */
   private void addButton_actionPerformed(ActionEvent e) {
 
-    int result =
-        JOptionPane.showConfirmDialog(
-            this,
-            "Add rule for both directions ?",
-            NodusC.APPNAME,
-            JOptionPane.YES_NO_CANCEL_OPTION,
-            JOptionPane.QUESTION_MESSAGE);
+    // Get values from spinners
+    String scenario = scenarioSpinner.getValue().toString();
+    String group = groupSpinner.getValue().toString();
+    String mode1 = mode1Spinner.getValue().toString();
+    String means1 = means1Spinner.getValue().toString();
+    String mode2 = mode2Spinner.getValue().toString();
+    String means2 = means2Spinner.getValue().toString();
+
     boolean addReverseMovement = false;
-    if (result == JOptionPane.CANCEL_OPTION) {
-      return;
-    } else if (result == JOptionPane.YES_OPTION) {
-      addReverseMovement = true;
+    if (!ruleAlreadyExists(scenario, group, mode2, means2, mode1, means1)) {
+      int result =
+          JOptionPane.showConfirmDialog(
+              this,
+              i18n.get(ExclusionDlg.class, "Add_reverse_rule", "Add reverse rule ?"),
+              NodusC.APPNAME,
+              JOptionPane.YES_NO_CANCEL_OPTION,
+              JOptionPane.QUESTION_MESSAGE);
+
+      if (result == JOptionPane.CANCEL_OPTION) {
+        return;
+      } else if (result == JOptionPane.YES_OPTION) {
+        addReverseMovement = true;
+      }
     }
+
+    addRule(scenario, group, mode1, means1, mode2, means2);
+    if (addReverseMovement) {
+      addRule(scenario, group, mode2, means2, mode1, means1);
+    }
+
+    exclusionTable.clearSelection();
+    saveButton.setEnabled(true);
+  }
+
+  /**
+   * Adds a new rule to the list, based on the settings of the spinners.
+   *
+   * @param e ActionEvent
+   */
+  private void updateButton_actionPerformed(ActionEvent e) {
 
     // Get values from spinners
     String scenario = scenarioSpinner.getValue().toString();
@@ -238,15 +270,12 @@ public class ExclusionDlg extends EscapeDialog {
     String mode2 = mode2Spinner.getValue().toString();
     String means2 = means2Spinner.getValue().toString();
 
-    addRule(scenario, group, mode1, means1, mode2, means2);
-    if (addReverseMovement) {
-      addRule(scenario, group, mode2, means2, mode1, means1);
-    }
+    updateRule(scenario, group, mode1, means1, mode2, means2);
 
-    // Select added row and remove button
-    int n = exclusionTable.getRowCount();
-    exclusionTable.setRowSelectionInterval(n - 1, n - 1);
-    removeButton.setEnabled(true);
+    addButton.setEnabled(false);
+    updateButton.setEnabled(false);
+    saveButton.setEnabled(true);
+    // removeButton.setEnabled(true);
   }
 
   /**
@@ -270,28 +299,45 @@ public class ExclusionDlg extends EscapeDialog {
         int mode2 = Integer.parseInt(mode2Spinner.getValue().toString());
         int means2 = Integer.parseInt(means2Spinner.getValue().toString());
 
-        boolean canAdd = true;
+        boolean isValidRule = true;
 
         // Loading : both mode and means must be = 0
         if (mode1 == 0 && means1 != 0) {
-          canAdd = false;
+          isValidRule = false;
         } else if (mode1 != 0 && means1 == 0) {
-          canAdd = false;
+          isValidRule = false;
         }
 
         if (mode2 == 0 && means2 != 0) {
-          canAdd = false;
+          isValidRule = false;
         } else if (mode2 != 0 && means2 == 0) {
-          canAdd = false;
+          isValidRule = false;
         } else if (mode1 == -1 && means1 != -1) {
-          canAdd = false;
+          isValidRule = false;
         } else if (mode2 == -1 && means2 != -1) {
-          canAdd = false;
+          isValidRule = false;
         } else if (mode1 == 0 && mode2 == 0) {
-          canAdd = false;
+          isValidRule = false;
         }
 
-        addButton.setEnabled(canAdd);
+        // Transit
+        if (mode1 == mode2 && means1 == means2) {
+          isValidRule = false;
+        }
+
+        if (ruleInSpinnerAlreadyExists()) {
+          // Don't add sme rule twice
+          addButton.setEnabled(false);
+        } else {
+          addButton.setEnabled(isValidRule);
+        }
+
+        if (isSelectionEqualToSpinners()) {
+          // No need to update as same
+          updateButton.setEnabled(false);
+        } else {
+          updateButton.setEnabled(isValidRule);
+        }
       }
     }
 
@@ -306,6 +352,51 @@ public class ExclusionDlg extends EscapeDialog {
             return false;
           }
         };
+    exclusionTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+    // Synchronize the selected row with the spinners
+    exclusionTable
+        .getSelectionModel()
+        .addListSelectionListener(
+            new ListSelectionListener() {
+              public void valueChanged(ListSelectionEvent event) {
+
+                int row = exclusionTable.getSelectedRow();
+                if (row == -1) {
+                  updateButton.setEnabled(false);
+                  removeButton.setEnabled(false);
+                  if (ruleInSpinnerAlreadyExists()) {
+                    addButton.setEnabled(false);
+                  } else {
+                    addButton.setEnabled(true);
+                  }
+                  return;
+                }
+
+                String s = (String) sorter.getValueAt(row, 0);
+                scenarioSpinner.setValue(Integer.parseInt(s));
+
+                s = (String) sorter.getValueAt(row, 1);
+                groupSpinner.setValue(Integer.parseInt(s));
+
+                s = (String) sorter.getValueAt(row, 2);
+                mode1Spinner.setValue(Integer.parseInt(s));
+
+                s = (String) sorter.getValueAt(row, 3);
+                means1Spinner.setValue(Integer.parseInt(s));
+
+                s = (String) sorter.getValueAt(row, 4);
+                mode2Spinner.setValue(Integer.parseInt(s));
+
+                s = (String) sorter.getValueAt(row, 5);
+                means2Spinner.setValue(Integer.parseInt(s));
+
+                updateButton.setEnabled(false);
+                addButton.setEnabled(false);
+
+                removeButton.setEnabled(true);
+              }
+            });
 
     mainPanel.setLayout(mainPanelGridBagLayout);
     setContentPane(mainPanel);
@@ -322,7 +413,7 @@ public class ExclusionDlg extends EscapeDialog {
           }
         });
 
-    addButton.setText("+");
+    addButton.setText(i18n.get(ExclusionDlg.class, "Add", "Add"));
     addButton.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -331,12 +422,21 @@ public class ExclusionDlg extends EscapeDialog {
           }
         });
 
-    removeButton.setText("-");
+    removeButton.setText(i18n.get(ExclusionDlg.class, "Delete", "Delete"));
     removeButton.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
             removeButton_actionPerformed(e);
+          }
+        });
+
+    updateButton.setText(i18n.get(ExclusionDlg.class, "Update", "Update"));
+    updateButton.addActionListener(
+        new java.awt.event.ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            updateButton_actionPerformed(e);
           }
         });
 
@@ -551,7 +651,7 @@ public class ExclusionDlg extends EscapeDialog {
     separatorGbc.gridy = 12;
     spinnersPanel.add(separator, separatorGbc);
 
-    excludeRadioButton.setText(i18n.get(ExclusionDlg.class, "Exclusions", "Exclusions"));
+    excludeRadioButton.setText(i18n.get(ExclusionDlg.class, "Exclude", "Exclude"));
     GridBagConstraints excludeRaduiButtonGbc = new GridBagConstraints();
     excludeRaduiButtonGbc.insets = new Insets(0, 0, 5, 0);
     excludeRaduiButtonGbc.anchor = GridBagConstraints.WEST;
@@ -560,7 +660,7 @@ public class ExclusionDlg extends EscapeDialog {
     excludeRaduiButtonGbc.gridy = 13;
     spinnersPanel.add(excludeRadioButton, excludeRaduiButtonGbc);
 
-    includeRadioButton.setText(i18n.get(ExclusionDlg.class, "Inclusion", "Inclusion"));
+    includeRadioButton.setText(i18n.get(ExclusionDlg.class, "Include", "Include"));
     GridBagConstraints includeRaduiButtonGbc = new GridBagConstraints();
     includeRaduiButtonGbc.anchor = GridBagConstraints.WEST;
     includeRaduiButtonGbc.gridwidth = 1;
@@ -627,6 +727,20 @@ public class ExclusionDlg extends EscapeDialog {
             new Insets(5, 5, 0, 5),
             0,
             0));
+    mainPanel.add(
+        updateButton,
+        new GridBagConstraints(
+            1,
+            11,
+            1,
+            1,
+            0.0,
+            0.0,
+            GridBagConstraints.CENTER,
+            GridBagConstraints.NONE,
+            new Insets(5, 5, 0, 5),
+            0,
+            0));
 
     if (nodusProject == null) {
       // Just for VE
@@ -658,6 +772,8 @@ public class ExclusionDlg extends EscapeDialog {
 
     addButton.setEnabled(false);
     removeButton.setEnabled(false);
+    updateButton.setEnabled(false);
+    saveButton.setEnabled(false);
 
     String[] h = new String[6];
     h[0] = NodusC.DBF_SCENARIO;
@@ -673,13 +789,44 @@ public class ExclusionDlg extends EscapeDialog {
       exclusionTable.setModel(sorter);
       sorter.setTableHeader(exclusionTable.getTableHeader());
       // Select first row
-      if (exclusionTable.getRowCount() > 0) {
+      /* if (exclusionTable.getRowCount() > 0) {
         exclusionTable.setRowSelectionInterval(0, 0);
         removeButton.setEnabled(true);
-      }
+      }*/
     }
 
     pack();
+  }
+
+  /**
+   * Tests if the selection corresponds to the settings of the spinners.
+   *
+   * @return True if the spinner selections correspond to the selected row.
+   */
+  private boolean isSelectionEqualToSpinners() {
+    int row = exclusionTable.getSelectedRow();
+    if (row == -1) {
+      return false;
+    }
+
+    // Get values from spinners
+    String scenario = scenarioSpinner.getValue().toString();
+    String group = groupSpinner.getValue().toString();
+    String mode1 = mode1Spinner.getValue().toString();
+    String means1 = means1Spinner.getValue().toString();
+    String mode2 = mode2Spinner.getValue().toString();
+    String means2 = means2Spinner.getValue().toString();
+
+    if (sorter.getValueAt(row, 0).equals(scenario)
+        && sorter.getValueAt(row, 1).equals(group)
+        && sorter.getValueAt(row, 2).equals(mode1)
+        && sorter.getValueAt(row, 3).equals(means1)
+        && sorter.getValueAt(row, 4).equals(mode2)
+        && sorter.getValueAt(row, 5).equals(means2)) {
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -831,12 +978,43 @@ public class ExclusionDlg extends EscapeDialog {
 
     // Remove row from table
     sorterModel.removeRow(sr);
+    exclusionTable.clearSelection();
+    saveButton.setEnabled(true);
+  }
 
-    if (exclusionTable.getRowCount() == 0) {
-      removeButton.setEnabled(false);
-    } else {
-      exclusionTable.setRowSelectionInterval(0, 0);
+  private boolean ruleAlreadyExists(
+      String scenario, String group, String mode1, String means1, String mode2, String means2) {
+    // Browse the table
+    int rows = exclusionTable.getRowCount();
+    for (int i = 0; i < rows; i++) {
+      if (sorter.getValueAt(i, 0).equals(scenario)
+          && sorter.getValueAt(i, 1).equals(group)
+          && sorter.getValueAt(i, 2).equals(mode1)
+          && sorter.getValueAt(i, 3).equals(means1)
+          && sorter.getValueAt(i, 4).equals(mode2)
+          && sorter.getValueAt(i, 5).equals(means2)) {
+        return true;
+      }
     }
+    return false;
+  }
+
+  /**
+   * Tests if the combination given by the spinners already exists.
+   *
+   * @return True if the combination already exists.
+   */
+  private boolean ruleInSpinnerAlreadyExists() {
+
+    // Get values from spinners
+    String scenario = scenarioSpinner.getValue().toString();
+    String group = groupSpinner.getValue().toString();
+    String mode1 = mode1Spinner.getValue().toString();
+    String means1 = means1Spinner.getValue().toString();
+    String mode2 = mode2Spinner.getValue().toString();
+    String means2 = means2Spinner.getValue().toString();
+
+    return ruleAlreadyExists(scenario, group, mode1, means1, mode2, means2);
   }
 
   /**
@@ -891,5 +1069,86 @@ public class ExclusionDlg extends EscapeDialog {
 
     // Close dialog
     setVisible(false);
+  }
+
+  /** Add a new exclusion rule to the table. */
+  private void updateRule(
+      String scenario, String group, String mode1, String means1, String mode2, String means2) {
+
+    // Get current values
+    int row = exclusionTable.getSelectedRow();
+    String currentScenario = (String) exclusionTable.getValueAt(row, 0);
+    String currentGroup = (String) exclusionTable.getValueAt(row, 1);
+    String currentMode1 = (String) exclusionTable.getValueAt(row, 2);
+    String currentMeans1 = (String) exclusionTable.getValueAt(row, 3);
+    String currentMode2 = (String) exclusionTable.getValueAt(row, 4);
+    String currentMeans2 = (String) exclusionTable.getValueAt(row, 5);
+
+    // Add UPDATE statement to batch
+    String sqlStmt =
+        "UPDATE "
+            + tableName
+            + " SET "
+            + NodusC.DBF_SCENARIO
+            + "="
+            + scenario
+            + ", "
+            + NodusC.DBF_GROUP
+            + "="
+            + group
+            + ", "
+            + NodusC.DBF_MODE1
+            + "="
+            + mode1
+            + ", "
+            + NodusC.DBF_MEANS1
+            + "="
+            + means1
+            + ", "
+            + NodusC.DBF_MODE2
+            + "="
+            + mode2
+            + ", "
+            + NodusC.DBF_MEANS2
+            + "="
+            + means2
+            + " WHERE "
+            + NodusC.DBF_NUM
+            + "="
+            + nodeNum
+            + " and "
+            + NodusC.DBF_SCENARIO
+            + "="
+            + currentScenario
+            + " and "
+            + NodusC.DBF_GROUP
+            + "="
+            + currentGroup
+            + " and "
+            + NodusC.DBF_MODE1
+            + "="
+            + currentMode1
+            + " and "
+            + NodusC.DBF_MEANS1
+            + "="
+            + currentMeans1
+            + " and "
+            + NodusC.DBF_MODE2
+            + "="
+            + currentMode2
+            + " and "
+            + NodusC.DBF_MEANS2
+            + "="
+            + currentMeans2;
+
+    sqlBatch.add(sqlStmt);
+
+    // Update the table
+    ((DefaultTableModel) sorter.getTableModel()).setValueAt(scenario, row, 0);
+    ((DefaultTableModel) sorter.getTableModel()).setValueAt(group, row, 1);
+    ((DefaultTableModel) sorter.getTableModel()).setValueAt(mode1, row, 2);
+    ((DefaultTableModel) sorter.getTableModel()).setValueAt(means1, row, 3);
+    ((DefaultTableModel) sorter.getTableModel()).setValueAt(mode2, row, 4);
+    ((DefaultTableModel) sorter.getTableModel()).setValueAt(means2, row, 5);
   }
 }

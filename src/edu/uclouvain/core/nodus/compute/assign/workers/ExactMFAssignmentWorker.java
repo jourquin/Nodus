@@ -376,6 +376,11 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
           }
         }
 
+        // Zero length paths can appear when "inclusions" are used
+        if (paths[index].weights.length == 0) {
+          paths[index].isValid = false;
+        }
+
         // Only retain valid paths
         if (paths[index].isValid) {
           // Get the list of paths for this mode or create one

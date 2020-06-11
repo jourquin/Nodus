@@ -220,26 +220,49 @@ public class CostParserWorker extends Thread {
     }
 
     LinkedList<Exclusion> exclusionList = vnl[index].getExclusionList();
+    if (exclusionList.isEmpty()) {
+      return false;
+    }
 
     // Scan the exclusions list
     Iterator<Exclusion> lit = exclusionList.iterator();
 
+    boolean isExclusion = true;
     while (lit.hasNext()) {
       Exclusion exc = lit.next();
 
-      if (exc.isExcluded(
-          vnl[index].getRealNodeId(),
-          scenario,
-          group,
-          vl.getBeginVirtualNode().getMode(),
-          vl.getBeginVirtualNode().getMeans(),
-          vl.getEndVirtualNode().getMode(),
-          vl.getEndVirtualNode().getMeans())) {
-        return true;
+      if (exc.isExclusion()) { // Test exclusion
+        if (exc.isExcluded(
+            vnl[index].getRealNodeId(),
+            scenario,
+            group,
+            vl.getBeginVirtualNode().getMode(),
+            vl.getBeginVirtualNode().getMeans(),
+            vl.getEndVirtualNode().getMode(),
+            vl.getEndVirtualNode().getMeans())) {
+          return true;
+        }
+      } else { // Test inclusion
+        isExclusion = false;
+
+        if (exc.isIncluded(
+            vnl[index].getRealNodeId(),
+            scenario,
+            group,
+            vl.getBeginVirtualNode().getMode(),
+            vl.getBeginVirtualNode().getMeans(),
+            vl.getEndVirtualNode().getMode(),
+            vl.getEndVirtualNode().getMeans())) {
+          return false;
+        }
       }
     }
 
-    return false;
+    if (isExclusion) {
+      return false;
+    } else {
+      return true;
+    }
   }
 
   /** Main entry point of the worker thread. Listens until no more tasks are in queue. */
