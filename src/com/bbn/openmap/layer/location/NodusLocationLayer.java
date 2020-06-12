@@ -36,6 +36,18 @@ public class NodusLocationLayer extends LocationLayer {
 
   static final long serialVersionUID = 7393919340553905118L;
 
+  //    public NodusLocationLayer() {
+  //
+  //      RenderingHints rh =
+  //          new RenderingHints(RenderingHints.KEY_ANTIALIASING,
+  // RenderingHints.VALUE_ANTIALIAS_ON);
+  //      RenderingHintsRenderPolicy rp = new RenderingHintsRenderPolicy(this);
+  //      rp.setRenderingHints(rh);
+  //      setRenderPolicy(rp);
+  //
+  //      setMouseModeIDsForEvents(new String[] {"Gestures"});
+  //    }
+
   /**
    * Initializes the location handler with all the nodes and link layers of the project.
    *
@@ -95,4 +107,5 @@ public class NodusLocationLayer extends LocationLayer {
 
     return false;
   }
+
 }
