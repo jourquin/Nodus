@@ -366,6 +366,7 @@ public class LanguageChooser extends EscapeDialog {
     // Which item is chosen?
     if (selectedIndex != -1) {
       if (selectedIndex != currentLanguageIndex) {
+        setVisible(false);
         JOptionPane.showMessageDialog(
             nodusMapPanel,
             i18n.get(
@@ -377,7 +378,5 @@ public class LanguageChooser extends EscapeDialog {
         properties.setProperty(NodusC.PROP_LOCALE, availableLocales[selectedIndex]);
       }
     }
-
-    setVisible(false);
   }
 }
