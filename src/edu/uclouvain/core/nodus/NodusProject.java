@@ -1576,9 +1576,7 @@ public class NodusProject implements ShapeConstants {
     // Add the project's directory to classpath
     // oldClasspath = ClassPathHacker.getClassPath();
 
-    // Initialize the user defined modal split methods for this project
-    new ModalSplitMethodsLoader(projectPath);
-
+    
     // Test if this project has valid virtual network tables
     if (!isValidVirtualNetworkVersion()) {
       nodusMapPanel.setBusy(false);
@@ -1877,13 +1875,12 @@ public class NodusProject implements ShapeConstants {
     // Load the service lines
     serviceEditor = new ServiceEditor(this);
 
-    nodusMapPanel.enableMenus(true);
+    // Enable menus
     nodusMapPanel.getMenuFile().setEnabled(true);
-
     nodusMapPanel.getNodusLayersPanel().enableButtons(true);
-    nodusMapPanel.setBusy(false);
-
-    isOpen = true;
+       
+    // Initialize the user defined modal split methods for this project
+    new ModalSplitMethodsLoader(projectPath);
 
     // Handle the project's Groovy initial script if exists
     Thread thread =
@@ -1910,6 +1907,9 @@ public class NodusProject implements ShapeConstants {
         };
 
     thread.start();
+    
+    nodusMapPanel.setBusy(false);
+    isOpen = true;
   }
 
   /** Reload the project. Can be used when new node/link layers are added/removed to the project. */
