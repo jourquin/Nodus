@@ -814,6 +814,14 @@ public class NodusC {
    * @exclude
    */
   public static final String PROP_NAV_MOUSE_MODE = "navmousemode";
+  
+  /**
+   * Properties strings used in project and/or project local properties.
+   *
+   * @exclude
+   */
+  public static final String PROP_ANTIALIASING = "antialiasing";
+  
 
   /**
    * Properties strings used in project and/or project local properties.

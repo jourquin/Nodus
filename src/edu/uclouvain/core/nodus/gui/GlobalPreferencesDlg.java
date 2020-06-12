@@ -77,6 +77,7 @@ public class GlobalPreferencesDlg extends EscapeDialog {
   private JCheckBox reloadLastProjectCheckBox;
   private JCheckBox subframesAlwaysOnCheckBox;
   private JCheckBox useNativeGroovyConsoleCheckBox;
+  private JCheckBox antialiasingCheckBox;
 
   /**
    * Creates the system preferences dialog box.
@@ -238,7 +239,7 @@ public class GlobalPreferencesDlg extends EscapeDialog {
             null, title, TitledBorder.LEADING, TitledBorder.TOP, null, new Color(59, 59, 59)));
 
     GridBagConstraints gbcPanel = new GridBagConstraints();
-    gbcPanel.gridheight = 6;
+    gbcPanel.gridheight = 5;
     gbcPanel.insets = new Insets(5, 5, 0, 0);
     gbcPanel.fill = GridBagConstraints.BOTH;
     gbcPanel.gridx = 1;
@@ -299,6 +300,15 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     gbcChckbxUseCenteredNav.gridx = 0;
     gbcChckbxUseCenteredNav.gridy = 7;
     contentPanel.add(navMouseModeCheckBox, gbcChckbxUseCenteredNav);
+
+    antialiasingCheckBox =
+        new JCheckBox(i18n.get(GlobalPreferencesDlg.class, "Antialiasing", "Antialiasing"));
+    GridBagConstraints gbcChckbxUseAntialiasing = new GridBagConstraints();
+    gbcChckbxUseAntialiasing.anchor = GridBagConstraints.WEST;
+    gbcChckbxUseAntialiasing.insets = new Insets(5, 5, 5, 5);
+    gbcChckbxUseAntialiasing.gridx = 0;
+    gbcChckbxUseAntialiasing.gridy = 8;
+    contentPanel.add(antialiasingCheckBox, gbcChckbxUseAntialiasing);
 
     final JPanel buttonPane = new JPanel();
     GridBagConstraints gbcButtonPane = new GridBagConstraints();
@@ -378,6 +388,9 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     if (value.equals("2")) {
       navMouseModeCheckBox.setSelected(true);
     }
+
+    value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_ANTIALIASING, TRUE);
+    antialiasingCheckBox.setSelected(Boolean.parseBoolean(value));
 
     value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_REOPEN_LATST_PROJECT, FALSE);
     reloadLastProjectCheckBox.setSelected(Boolean.parseBoolean(value));
@@ -477,7 +490,12 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     }
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_NAV_MOUSE_MODE, navType);
 
-    nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_USE_GROOVY_CONSOLE, value);
+    // Use antialiasing
+    value = FALSE;
+    if (antialiasingCheckBox.isSelected()) {
+      value = TRUE;
+    }
+    nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_ANTIALIASING, value);
 
     // Default DBMS
     int intValue = JDBCUtils.DB_HSQLDB;
@@ -500,5 +518,8 @@ public class GlobalPreferencesDlg extends EscapeDialog {
 
     // Update type of navigation mode
     nodusMapPanel.addNavMouseMode();
+
+    // Set rendering policy
+    nodusMapPanel.setAntialising();
   }
 }

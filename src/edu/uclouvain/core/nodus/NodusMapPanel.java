@@ -28,6 +28,7 @@ import com.bbn.openmap.InformationDelegator;
 import com.bbn.openmap.Layer;
 import com.bbn.openmap.LayerHandler;
 import com.bbn.openmap.MapBean;
+import com.bbn.openmap.MapBeanRepaintPolicy;
 import com.bbn.openmap.MapHandler;
 import com.bbn.openmap.MouseDelegator;
 import com.bbn.openmap.MultipleSoloMapComponentException;
@@ -53,6 +54,7 @@ import com.bbn.openmap.image.AcmeGifFormatter;
 import com.bbn.openmap.image.MapBeanPrinter;
 import com.bbn.openmap.image.SunJPEGFormatter;
 import com.bbn.openmap.layer.highlightedarea.HighlightedAreaLayer;
+import com.bbn.openmap.layer.location.NodusLocationLayer;
 import com.bbn.openmap.layer.policy.RenderingHintsRenderPolicy;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.layer.shape.PoliticalBoundariesLayer;
@@ -219,13 +221,16 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     mapBean.setProjection(proj);
     mapBean.setPreferredSize(new Dimension(proj.getWidth(), proj.getHeight()));
 
-    RenderingHints rh =
-        new RenderingHints(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-    RenderingHintsRenderPolicy hints = new RenderingHintsRenderPolicy();
-    hints.setRenderingHints(rh);
-    HintsMapBeanRepaintPolicy hmbrp = new HintsMapBeanRepaintPolicy(mapBean);
-    hmbrp.setHints(hints);
-    mapBean.setMapBeanRepaintPolicy(hmbrp);
+    //    RenderingHints rh =
+    //        new RenderingHints(RenderingHints.KEY_ANTIALIASING,
+    // RenderingHints.VALUE_ANTIALIAS_ON);
+    //    RenderingHintsRenderPolicy hints = new RenderingHintsRenderPolicy();
+    //    hints.setRenderingHints(rh);
+    //    HintsMapBeanRepaintPolicy hmbrp = new HintsMapBeanRepaintPolicy(mapBean);
+    //    hmbrp.setHints(hints);
+    //    mapBean.setMapBeanRepaintPolicy(hmbrp);
+
+    defaultMapBeanRepaintPolicy = mapBean.getMapBeanRepaintPolicy();
 
     return mapBean;
   }
@@ -467,6 +472,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** "User defined menus (used by plugins). */
   private Vector<JMenuItem> userDefinedMenus = new Vector<>();
+
+  private static MapBeanRepaintPolicy defaultMapBeanRepaintPolicy;
 
   /**
    * Creates all the GUI components needed by Nodus on the application's panel. The application's
@@ -1466,6 +1473,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   public BufferedLayerMapBean getMapBean() {
     if (mapBean == null) {
       setMapBean(createMapBean());
+      setAntialising();
     }
 
     return mapBean;
@@ -2743,6 +2751,39 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       mapBean.setCursor(c);
     } catch (Exception e) {
       // Invalid mouse mode ID. Do nothing
+    }
+  }
+
+  /** Set antialiasing on or off, depending on the value of stored in the Properties. */
+  public void setAntialising() {
+
+    String value = getNodusProperties().getProperty(NodusC.PROP_ANTIALIASING, "true");
+    boolean antialisaing = Boolean.parseBoolean(value);
+
+    if (antialisaing) {
+      RenderingHints rh =
+          new RenderingHints(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+      RenderingHintsRenderPolicy hints = new RenderingHintsRenderPolicy();
+      hints.setRenderingHints(rh);
+      HintsMapBeanRepaintPolicy hmbrp = new HintsMapBeanRepaintPolicy(mapBean);
+      hmbrp.setHints(hints);
+      mapBean.setMapBeanRepaintPolicy(hmbrp);
+    } else {
+      mapBean.setMapBeanRepaintPolicy(defaultMapBeanRepaintPolicy);
+    }
+
+    // Repaint all layers
+    Layer[] layers = layerHandler.getLayers();
+    for (int i = 0; i < layers.length; i++) {
+      if (layers[i] instanceof NodusEsriLayer) {
+        NodusEsriLayer nes = (NodusEsriLayer) layers[i];
+        nes.doPrepare();
+      } else {
+        if (layers[i] instanceof NodusLocationLayer) {
+          NodusLocationLayer nll = (NodusLocationLayer) layers[i];
+          nll.doPrepare();
+        }
+      }
     }
   }
 
