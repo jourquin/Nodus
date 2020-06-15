@@ -2354,6 +2354,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         new Runnable() {
           @Override
           public void run() {
+            if (nodusProject.isOpen()) {
+              nodusProject.close();
+            }
             String projectName = nodusProject.getProject();
             openProject(projectName);
           }
