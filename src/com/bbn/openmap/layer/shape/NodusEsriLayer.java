@@ -73,6 +73,7 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.net.URL;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
@@ -85,6 +86,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Vector;
 import java.util.logging.Level;
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
@@ -1695,21 +1697,105 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   public boolean updateDbfTableModel() {
     try {
       Connection con = nodusProject.getMainJDBCConnection();
-
-      DbfTableModel model = getModel();
-
       Statement stmt = con.createStatement();
-
       SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
 
-      String sqlStmt = "SELECT * FROM " + tableName;
-      ResultSet rs = stmt.executeQuery(sqlStmt);
-      ResultSetMetaData rsmd = rs.getMetaData();
-      int nbColumns = rsmd.getColumnCount();
+      DatabaseMetaData dbmd = con.getMetaData();
 
-      // - nb rows
-      // - table structure
-      if (nbColumns != model.getColumnCount()) {
+      // Specify the type of object; in this case we want tables
+      ResultSet rs = dbmd.getColumns(null, null, JDBCUtils.getCompliantIdentifier(tableName), null);
+
+      Vector<String> names = new Vector<>();
+      // Vector<String> types = new Vector<>();
+      Vector<Integer> sizes = new Vector<>();
+      Vector<Integer> decimalDigits = new Vector<>();
+
+      while (rs.next()) {
+        names.add(rs.getString("COLUMN_NAME"));
+        String typeName = rs.getString("TYPE_NAME").toUpperCase();
+        // types.add(typeName);
+        decimalDigits.add(rs.getInt("DECIMAL_DIGITS"));
+
+        if (typeName.contains("CHAR")) {
+          sizes.add(rs.getInt("COLUMN_SIZE"));
+        } else if (!typeName.contains("DATE")) {
+          // As the metadata doesn't contain a usable width for numerical values, estimate it
+          int w =
+              JDBCUtils.getNumWidth(
+                  tableName, rs.getString("COLUMN_NAME"), rs.getInt("DECIMAL_DIGITS"));
+          sizes.add(w);
+        } else if (typeName.contains("DATE")) {
+          sizes.add(8);
+        }
+      }
+
+      // The SQL table and the DbfTable model must have the same structure
+      boolean error = false;
+
+      // Must have same number of rows
+      rs = stmt.executeQuery("select count(*) from " + tableName);
+      rs.next();
+      int nbRows = rs.getInt(1);
+      DbfTableModel model = getModel();
+      if (model.getRowCount() != nbRows) {
+        error = true;
+      }
+
+      // Must have the same number of columns
+      int nbColumns = model.getColumnCount();
+      if (names.size() != model.getColumnCount()) {
+        error = true;
+      }
+
+      // Test the columns
+      if (!error) {
+
+        for (int i = 0; i < nbColumns; i++) {
+          // Test field name
+          if (!names.elementAt(i).equalsIgnoreCase(model.getColumnName(i))) {
+            error = true;
+            break;
+          }
+
+          // Test field type ?
+
+          // Test field length
+          if (sizes.elementAt(i) > model.getLength(i)) {
+            error = true;
+            break;
+          }
+
+          // Test decimal count
+          if (decimalDigits.elementAt(i) > model.getDecimalCount(i)) {
+            error = true;
+            break;
+          }
+        }
+
+        String sqlStmt = "SELECT * FROM " + tableName;
+        rs = stmt.executeQuery(sqlStmt);
+        ResultSetMetaData rsmd = rs.getMetaData();
+        nbColumns = rsmd.getColumnCount();
+
+        // Must have same number of columns
+        if (nbColumns != model.getColumnCount()) {
+          error = true;
+        }
+
+        // Must have same column names
+        if (!error) {
+          for (int i = 1; i < nbColumns + 1; i++) {
+            String columnName = rsmd.getColumnName(i);
+            if (columnName.compareToIgnoreCase(model.getColumnName(i - 1)) != 0) {
+              error = true;
+            }
+
+            // TODO test type, length and decimal places
+          }
+        }
+      }
+
+      if (error) {
         System.err.println(
             i18n.get(
                 NodusEsriLayer.class,
@@ -1718,6 +1804,9 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         return false;
       }
 
+      // Read the records
+      String sqlStmt = "SELECT * FROM " + tableName;
+      rs = stmt.executeQuery(sqlStmt);
       Object[] o = new Object[nbColumns];
 
       // Retrieve result of query
@@ -1769,7 +1858,8 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
       getLocationHandler().reloadData();
 
     } catch (Exception ex) {
-      System.out.println(ex.toString());
+      // System.out.println(ex.toString());
+      ex.printStackTrace();
       return false;
     }
 

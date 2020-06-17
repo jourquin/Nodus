@@ -73,7 +73,7 @@ public class NodeResults implements ShapeConstants {
   private float brLon;
 
   private boolean export;
-  
+
   private NodusMapPanel nodusMapPanel;
 
   private NodusProject nodusProject;
@@ -243,6 +243,7 @@ public class NodeResults implements ShapeConstants {
         EsriGraphicList egl = layers[i].getEsriGraphicList();
         DbfTableModel tableModel = layers[i].getModel();
 
+        // TODO Better way to export results ?
         if (export) {
           // Copy the .shp and .shx files
           String fromFile =

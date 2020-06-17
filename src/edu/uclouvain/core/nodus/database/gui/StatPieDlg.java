@@ -435,7 +435,10 @@ public class StatPieDlg extends EscapeDialog {
     chart.getStyler().setAnnotationType(AnnotationType.Percentage);
     chart.getStyler().setAnnotationDistance(1.15);
     chart.getStyler().setPlotContentSize(0.75);
-    //chart.getStyler().setDrawAllAnnotations(true);
+    chart.getStyler().setDrawAllAnnotations(true);
+    
+    //Color [] colors = {Color.RED, Color.BLUE, Color.GRAY};
+    //chart.getStyler().setSeriesColors(colors);
 
     // Reduce font sizes
     Font font = chart.getStyler().getAnnotationsFont();

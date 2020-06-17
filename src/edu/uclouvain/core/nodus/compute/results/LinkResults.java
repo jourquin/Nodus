@@ -346,6 +346,7 @@ public class LinkResults implements ShapeConstants {
       if (linkLayer.isVisible()) {
         EsriGraphicList egl = linkLayer.getEsriGraphicList();
         DbfTableModel tableModel = linkLayer.getModel();
+        // TODO Better way to export results ? 
         if (export) {
           // Copy the .shp and .shx files
           String fromFile =
@@ -543,6 +544,7 @@ public class LinkResults implements ShapeConstants {
         EsriGraphicList egl = layers[i].getEsriGraphicList();
         DbfTableModel tableModel = layers[i].getModel();
 
+        // TODO Export result as GPX file
         if (export) {
           // Copy the .shp and .shx files
           String fromFile =

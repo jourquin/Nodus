@@ -70,7 +70,7 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
 
   private DbfTableModel source;
 
-  //String fileName;
+  // String fileName;
 
   /**
    * Constructor that allows the edition of the structure of the DbfTable of a NodusEsriLayer.
@@ -82,7 +82,7 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
     super(source);
     this.layer = layer;
     this.source = source;
-    //this.fileName = fileName;
+
     getOriginalTableStructure();
   }
 
