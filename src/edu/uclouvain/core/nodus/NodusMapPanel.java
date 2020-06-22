@@ -212,23 +212,15 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @return BufferedLayerMapBean A BufferedLayerMapBean (a BufferedMapBean with an additional image
    *     buffer that holds Layers designated as background layers)
    */
-  public static BufferedLayerMapBean createMapBean() {
+  public static MapBean createMapBean() {
     Projection proj =
         new ProjectionFactory().getDefaultProjectionFromEnvironment(Environment.getInstance());
     MapBean.suppressCopyright = true;
-    BufferedLayerMapBean mapBean = new BufferedLayerMapBean();
+    
+    MapBean mapBean = new BufferedLayerMapBean();
     mapBean.setBorder(BorderFactory.createEtchedBorder(BevelBorder.LOWERED));
     mapBean.setProjection(proj);
     mapBean.setPreferredSize(new Dimension(proj.getWidth(), proj.getHeight()));
-
-    //    RenderingHints rh =
-    //        new RenderingHints(RenderingHints.KEY_ANTIALIASING,
-    // RenderingHints.VALUE_ANTIALIAS_ON);
-    //    RenderingHintsRenderPolicy hints = new RenderingHintsRenderPolicy();
-    //    hints.setRenderingHints(rh);
-    //    HintsMapBeanRepaintPolicy hmbrp = new HintsMapBeanRepaintPolicy(mapBean);
-    //    hmbrp.setHints(hints);
-    //    mapBean.setMapBeanRepaintPolicy(hmbrp);
 
     defaultMapBeanRepaintPolicy = mapBean.getMapBeanRepaintPolicy();
 
@@ -283,7 +275,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   private LayerHandler layerHandler = new LayerHandler();
 
   /** Mapbean to use. See OpenMap documentation for more details. */
-  private BufferedLayerMapBean mapBean;
+  private MapBean mapBean;
 
   /** MapHandler to use. See OpenMap documentation for more details. */
   private MapHandler mapHandler;
@@ -666,8 +658,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       onTopKeeper.run(isStickyDrawingTool());
     }
 
-    BufferedLayerMapBean mb = getMapBean();
-    mb.setBckgrnd(Environment.getCustomBackgroundColor());
+    //MapBean mb = getMapBean();
+    mapBean.setBckgrnd(Environment.getCustomBackgroundColor());
 
     // Navigate with keys in the map
     NodusProjMapBeanKeyListener kl = new NodusProjMapBeanKeyListener();
@@ -1470,7 +1462,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @return MapBean
    */
   @Override
-  public BufferedLayerMapBean getMapBean() {
+  public MapBean getMapBean() {
     if (mapBean == null) {
       setMapBean(createMapBean());
       setAntialising();
@@ -2783,6 +2775,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         OMGraphicHandlerLayer l = (OMGraphicHandlerLayer) layers[i];
         if (l.isEnabled() && l.isVisible()) {
           l.doPrepare();
+          System.out.println(l.getName());
         }
       }
     }
@@ -2853,7 +2846,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @throws MultipleSoloMapComponentException if there is already a map bean in the map handler and
    *     the policy is to reject duplicates (since the MapBean is a SoloMapComponent).
    */
-  public void setMapBean(BufferedLayerMapBean bean) {
+  public void setMapBean(MapBean bean) {
     if (bean == null && mapBean != null) {
       // remove the current MapBean from the application...
       getMapHandler().remove(mapBean);

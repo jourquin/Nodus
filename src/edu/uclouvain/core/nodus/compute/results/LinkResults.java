@@ -771,7 +771,6 @@ public class LinkResults implements ShapeConstants {
         int hour = t / 60 % 24;
         int min = t % 60;
         DecimalFormat hourFormatter = new DecimalFormat("00");
-
         lbl.setLabelText(
             i18n.get(LinkResults.class, "Flow_at", "Flow at")
                 + " "

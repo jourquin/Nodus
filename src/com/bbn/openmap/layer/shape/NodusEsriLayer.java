@@ -683,6 +683,8 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     NodusDbfTableModel ndtm = new NodusDbfTableModel(this);
     String dbfFile = tablePath + tableName + NodusC.TYPE_DBF;
     ndtm.showGUI(dbfFile, DbfTableModel.MODIFY_COLUMN_MASK | DbfTableModel.DONE_MASK);
+
+    // getModel().showGUI(dbfFile, DbfTableModel.MODIFY_COLUMN_MASK | DbfTableModel.DONE_MASK);
   }
 
   /**
@@ -1663,37 +1665,11 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
   /**
    * This method updates the content of the DbfTable (and writes it to disk) with the content of the
-   * DBMS table.
+   * DBMS table. The structure of the SQL table must be identical to the DbfTableModel of this
+   * layer.
    *
    * @return True if the table was successfully updated and saved.
    */
-  //  public boolean updateDbfTableModel() {
-  //
-  //    DbfTableModel tm = null;
-  //    try {
-  //      String fileName =
-  //          nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName +
-  // NodusC.TYPE_DBF;
-  //      File file = new File(fileName);
-  //      URI uri = file.toURI();
-  //      tm = DbfTableModel.getDbfTableModel(uri.toURL());
-  //    } catch (MalformedURLException e) {
-  //      e.printStackTrace();
-  //      return false;
-  //    }
-  //
-  //    setModel(tm);
-  //
-  //    // Reload labels
-  //    getLocationHandler().reloadData();
-  //
-  //    doPrepare();
-  //
-  //    dirtyDbf = false;
-  //
-  //    return true;
-  //  }
-
   public boolean updateDbfTableModel() {
     try {
       Connection con = nodusProject.getMainJDBCConnection();
@@ -1749,7 +1725,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
       // Test the columns
       if (!error) {
-
         for (int i = 0; i < nbColumns; i++) {
           // Test field name
           if (!names.elementAt(i).equalsIgnoreCase(model.getColumnName(i))) {
@@ -1780,18 +1755,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         // Must have same number of columns
         if (nbColumns != model.getColumnCount()) {
           error = true;
-        }
-
-        // Must have same column names
-        if (!error) {
-          for (int i = 1; i < nbColumns + 1; i++) {
-            String columnName = rsmd.getColumnName(i);
-            if (columnName.compareToIgnoreCase(model.getColumnName(i - 1)) != 0) {
-              error = true;
-            }
-
-            // TODO test type, length and decimal places
-          }
         }
       }
 

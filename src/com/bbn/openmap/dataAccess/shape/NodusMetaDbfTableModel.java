@@ -68,6 +68,9 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
   /** 'Delete' button that is only enabled for non mandatory fields. */
   private JButton deleteButton = null;
 
+  /** 'Add' button. */
+  private JButton addButton = null;
+
   private DbfTableModel source;
 
   // String fileName;
@@ -115,12 +118,39 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
     table.scrollRectToVisible(table.getCellRect(rowOfNewRecordIndex, 0, true));
     table.editCellAt(rowOfNewRecordIndex, 0);
     table.getEditorComponent().requestFocus();
+    saveButton.setEnabled(true);
+    addButton.setEnabled(false);
   }
 
-  /** Overridden to ask the user if he reallay wants to cancel his changes. */
+  private void deleteRecord() {
+    int index = getTable().getSelectedRow();
+
+    if (index != -1) {
+
+      // Ask to make sure...
+      int check =
+          JOptionPane.showConfirmDialog(
+              null,
+              (i18n.get(
+                      DbfTableModel.class,
+                      "Are_you_sure_you_want_to_delete",
+                      "Are you sure you want to delete")
+                  + " "
+                  + i18n.get(DbfTableModel.class, "this_row", "this row?")),
+              i18n.get(DbfTableModel.class, "Confirm_Delete", "Confirm Delete"),
+              JOptionPane.OK_CANCEL_OPTION);
+
+      if (check == JOptionPane.YES_OPTION) {
+        remove(index);
+        saveIfNeeded(false, false);
+      }
+    }
+  }
+
+  /** Overridden to ask the user if he really wants to cancel his changes. */
   @Override
   public void exitWindowClosed() {
-    saveIfNeeded(true);
+    saveIfNeeded(true, true);
   }
 
   /**
@@ -208,7 +238,7 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
   /**
    * Saves the modified DbfTableModel if needed. Updates the SQL DBMS and reload the DBFTableModel.
    */
-  private void saveIfNeeded(boolean askForCancel) {
+  private void saveIfNeeded(boolean askForSave, boolean askForCancel) {
 
     if (isTableStructureChanged()) {
 
@@ -222,7 +252,7 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
                     "Are_you_sure",
                     "Are you sure you want to cancel changes?"),
                 i18n.get(MetaDbfTableModel.class, "Cancel_changes", "Cancel changes"),
-                JOptionPane.OK_CANCEL_OPTION);
+                JOptionPane.YES_NO_OPTION);
 
         if (check == JOptionPane.YES_OPTION) {
           // Cancel changes
@@ -235,22 +265,26 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
         }
       }
 
-      int check =
-          JOptionPane.showConfirmDialog(
-              null,
-              i18n.get(
-                  MetaDbfTableModel.class,
-                  "Do_you_want_to_save_your_changes",
-                  "Do you want to save your changes?"),
-              NodusC.APPNAME,
-              JOptionPane.YES_NO_OPTION);
+      if (askForSave) {
+        int check =
+            JOptionPane.showConfirmDialog(
+                null,
+                i18n.get(
+                    MetaDbfTableModel.class,
+                    "Do_you_want_to_save_your_changes",
+                    "Do you want to save your changes?"),
+                NodusC.APPNAME,
+                JOptionPane.YES_NO_OPTION);
 
-      if (check == JOptionPane.YES_OPTION) {
-        fireTableStructureChanged();
+        if (check == JOptionPane.YES_OPTION) {
+          fireTableStructureChanged();
+        } else {
+          source.cleanupChanges();
+          frame.setVisible(false);
+          return;
+        }
       } else {
-        source.cleanupChanges();
-        frame.setVisible(false);
-        return;
+        fireTableStructureChanged();
       }
 
       // Export the modified DBF
@@ -360,10 +394,22 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
               new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent ae) {
-                  saveIfNeeded(false);
+                  saveIfNeeded(true, false);
                 }
               });
           saveButton.setEnabled(false);
+          break;
+        }
+      }
+    }
+
+    // Find the "add" button
+    for (Component element : c) {
+      if (element instanceof JButton) {
+        JButton button = (JButton) element;
+        if (button.getText().equals(i18n.get(DbfTableModel.class, "Add", "Add"))) {
+          addButton = button;
+          break;
         }
       }
     }
@@ -373,6 +419,9 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
       if (element instanceof JButton) {
         JButton button = (JButton) element;
         if (button.getText().equals(i18n.get(DbfTableModel.class, "Done", "Done"))) {
+          // Change text
+          button.setText(i18n.get(DbfTableModel.class, "Cancel", "Cancel"));
+
           // Remove current action listener
           ActionListener[] al = button.getActionListeners();
           for (ActionListener element2 : al) {
@@ -384,20 +433,37 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
               new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent ae) {
-                  saveIfNeeded(true);
+                  saveIfNeeded(true, true);
                 }
               });
+          break;
         }
       }
     }
 
-    // Find the 'delete' button
+    // Find the 'delete' button and replace its listener
     for (Component element : c) {
       if (element instanceof JButton) {
         JButton button = (JButton) element;
         if (button.getText().equals(i18n.get(DbfTableModel.class, "Delete", "Delete"))) {
           deleteButton = button;
           deleteButton.setEnabled(false);
+
+          // Remove current action listener
+          ActionListener[] al = button.getActionListeners();
+          for (ActionListener element2 : al) {
+            button.removeActionListener(element2);
+          }
+
+          // Set a new action listener
+          button.addActionListener(
+              new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                  deleteRecord();
+                }
+              });
+
           break;
         }
       }
