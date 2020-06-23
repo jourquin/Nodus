@@ -99,6 +99,6 @@
 	<classpathentry kind="lib" path="lib/guava-19.0.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-2.6.0.jar"/>
 	<classpathentry kind="lib" path="lib/javadbf4nodus-1.12.1.jar"/>
-	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/openmap6.0b/src"/>
+	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/openmap/src"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
