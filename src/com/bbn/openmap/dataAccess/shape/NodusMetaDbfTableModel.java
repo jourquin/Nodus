@@ -25,10 +25,14 @@ import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
+import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import javax.swing.JButton;
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.WindowConstants;
@@ -73,6 +77,9 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
 
   private DbfTableModel source;
 
+  private boolean addingNewRecord = false;
+  private int dirtyRecordIndex = -1;
+
   // String fileName;
 
   /**
@@ -92,19 +99,22 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
   /** Ensure that the proposed field name doesn't already exist. */
   @Override
   public void addBlankRecord() {
-    super.addBlankRecord();
-    fireTableDataChanged();
 
-    int rowOfNewRecordIndex = table.getRowCount() - 1;
+    super.addBlankRecord();
+    saveButton.setEnabled(true);
+    addButton.setEnabled(false);
+    deleteButton.setEnabled(false);
+
+    int newRowIndex = table.getRowCount() - 1;
 
     // The field name must be unique. Add a numeric suffix if needed
-    String fieldName = (String) getValueAt(rowOfNewRecordIndex, 0);
+    String fieldName = (String) getValueAt(newRowIndex, 0);
     String newName = fieldName;
     boolean found = true;
     int suffix = 1;
     while (found) {
       found = false;
-      for (int i = 0; i < rowOfNewRecordIndex; i++) {
+      for (int i = 0; i < newRowIndex; i++) {
         String s = (String) getValueAt(i, 0);
         if (s.equalsIgnoreCase(newName)) {
           newName = fieldName + (suffix++);
@@ -114,12 +124,12 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
     }
 
     // Set the field name and invite the user to edit it
-    setValueAt(newName, rowOfNewRecordIndex, 0);
-    table.scrollRectToVisible(table.getCellRect(rowOfNewRecordIndex, 0, true));
-    table.editCellAt(rowOfNewRecordIndex, 0);
+    setValueAt(newName, newRowIndex, 0);
+    table.scrollRectToVisible(table.getCellRect(newRowIndex, 0, true));
+    table.editCellAt(newRowIndex, 0);
     table.getEditorComponent().requestFocus();
-    saveButton.setEnabled(true);
-    addButton.setEnabled(false);
+
+    addingNewRecord = true;
   }
 
   private void deleteRecord() {
@@ -178,6 +188,15 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
     if (isMandatoryField(rowIndex)) {
       return false;
     }
+
+    if (addingNewRecord && table.getSelectedRow() != table.getRowCount() - 1) {
+      return false;
+    }
+
+    if (dirtyRecordIndex != -1 && table.getSelectedRow() != dirtyRecordIndex) {
+      return false;
+    }
+
     if (columnIndex <= 1 && rowIndex < originalColumnNumber) {
       return false;
     } else {
@@ -360,12 +379,54 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
       super.setValueAt(new Integer(8), row, 2);
       super.setValueAt(new Integer(0), row, 3);
     }
+
+    if (isTableStructureChanged()) {
+      saveButton.setEnabled(true);
+      addButton.setEnabled(false);
+      dirtyRecordIndex = table.getSelectedRow();
+    } else {
+      saveButton.setEnabled(false);
+      addButton.setEnabled(true);
+      dirtyRecordIndex = -1;
+    }
   }
 
   @Override
   public void showGUI(String filename) {
-    super.showGUI(filename);
-    // this.fileName = filename;
+
+    if (frame == null) {
+      frame =
+          new JFrame(
+              i18n.get(
+                  MetaDbfTableModel.class,
+                  "Editing_Attribute_File_Structure",
+                  "Editing Attribute File Structure"));
+
+      frame
+          .getContentPane()
+          .add(getGUI(filename, MODIFY_ROW_MASK | DONE_MASK), BorderLayout.CENTER);
+
+      saveButton = new JButton(i18n.get(MetaDbfTableModel.class, "Save Changes", "Save Changes"));
+      saveButton.setEnabled(false);
+      saveButton.addActionListener(
+          new ActionListener() {
+            public void actionPerformed(ActionEvent ae) {
+              saveIfNeeded(true, false);
+            }
+          });
+
+      controlPanel.add(saveButton);
+      frame.validate();
+
+      frame.setSize(500, 300);
+      frame.addWindowListener(
+          new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+              exitWindowClosed();
+            }
+          });
+    }
 
     // Only one row must be selected at once
     table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -373,37 +434,8 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
     // Closing will be managed manually, depending on the what the user wants
     frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
-    // Find the 'save' button and replace its listener
-    Component[] c = controlPanel.getComponents();
-    for (Component element : c) {
-      if (element instanceof JButton) {
-        JButton button = (JButton) element;
-        if (button
-            .getText()
-            .equals(i18n.get(MetaDbfTableModel.class, "Save Changes", "Save Changes"))) {
-
-          // Remove current action listener
-          saveButton = button;
-          ActionListener[] al = saveButton.getActionListeners();
-          for (ActionListener element2 : al) {
-            saveButton.removeActionListener(element2);
-          }
-
-          // Set a new action listener
-          saveButton.addActionListener(
-              new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent ae) {
-                  saveIfNeeded(true, false);
-                }
-              });
-          saveButton.setEnabled(false);
-          break;
-        }
-      }
-    }
-
     // Find the "add" button
+    Component[] c = controlPanel.getComponents();
     for (Component element : c) {
       if (element instanceof JButton) {
         JButton button = (JButton) element;
@@ -474,11 +506,14 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
     selectionModel.addListSelectionListener(
         new ListSelectionListener() {
           public void valueChanged(ListSelectionEvent e) {
+
             int rowIndex = table.getSelectedRow();
             if (isMandatoryField(rowIndex)) {
               deleteButton.setEnabled(false);
             } else {
-              deleteButton.setEnabled(true);
+              if (!addingNewRecord) {
+                deleteButton.setEnabled(true);
+              }
             }
 
             if (isTableStructureChanged()) {
@@ -486,7 +521,15 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
             } else {
               saveButton.setEnabled(false);
             }
+
+            // Stay on dirty record
+            if (dirtyRecordIndex != -1) {
+              table.setRowSelectionInterval(dirtyRecordIndex, dirtyRecordIndex);
+            }
           }
         });
+
+    frame.setLocationRelativeTo(layer.getNodusMapPanel());
+    frame.setVisible(true);
   }
 }
