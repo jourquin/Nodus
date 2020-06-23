@@ -32,11 +32,14 @@ import com.bbn.openmap.proj.Projection;
 import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
+
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Paint;
 import java.util.Properties;
 import java.util.StringTokenizer;
+
 import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
@@ -384,9 +387,11 @@ public class ScaleAndCompassLayer extends OMGraphicHandlerLayer {
     displayWindRose =
         PropUtils.booleanFromProperties(properties, prefix + DisplayWindRoseProperty, true);
     if (displayWindRose) {
-      // Load wind rose
+      // Load wind rose, with no border
       ImageIcon windRose = new ImageIcon(getClass().getResource("windrose.png"));
       windRoseRaster = new OMRaster(-locationXoffset, -locationYoffset, windRose);
+      Paint p = new Color(0, 0, 0, 0);
+      windRoseRaster.setLinePaint(p);
     }
 
     // Get the copyright of the map
