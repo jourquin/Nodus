@@ -142,11 +142,11 @@ public class LocationFieldChooserDlg extends EscapeDialog {
     Font font =
         JFontChooser.showDialog(
             nodusLocationHandler.getEsriLayer().getNodusMapPanel(),
-            nodusLocationHandler.getNameFont());
+            nodusLocationHandler.getFontName());
 
     setAlwaysOnTop(true);
     if (font != null) {
-      nodusLocationHandler.setNameFont(font);
+      nodusLocationHandler.setFontName(font);
     }
   }
 
