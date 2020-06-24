@@ -147,7 +147,12 @@ the cost functions, but use the '@' separator. Example "ld.1,1=" for a "loading"
 time function. The old, undocumented, possibility to partially compute transit times is removed and a message is displayed 
 to warn the user.
 - Add stop and switch costs and durations (used with services) in the path header tables.
-- Improved map rendering.
+- Introduce map rendering with antialiasing. Somewhat slower, but fonts (labels for instance) are much better. Use a BufferedMapBean
+instead of a BufferedLayerMapBean as the background layers of the latest cannot be rendered with antialising (bug in OpenMap).
+- Remove the "-" button in the layer panel. Not useful.
+- New compass image in ScaleAndCompassLayer.
+- Add "font" properties to ScaleAndCompassLayer for label and scale fonts.
+- Use a fork specific version of openmap.jar that fixes a bug with EsriLayer.setModel(...).
 
 
 

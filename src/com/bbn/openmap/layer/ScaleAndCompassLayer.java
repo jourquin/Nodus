@@ -32,16 +32,16 @@ import com.bbn.openmap.proj.Projection;
 import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
-
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Font;
 import java.awt.Paint;
 import java.util.Properties;
 import java.util.StringTokenizer;
-
 import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 
@@ -58,7 +58,7 @@ import javax.swing.JRadioButton;
  * scaleLayer.scaleTextColor=ffCC0033<br>
  * scaleLayer.copyrightTextColor=ff000000<br>
  * scaleLayer.scaleIntervals=1 2 5 10 20 50 100 250 500 1000 2000 5000 10000<br>
- * scaleLayer.copyright=(c) Nodus 7.0b<br>
+ * scaleLayer.copyright=(c) Nodus 7.3<br>
  * scaleLayer.image=/home/jourquin/data/nodus6/test/cartouche.gif<br>
  */
 public class ScaleAndCompassLayer extends OMGraphicHandlerLayer {
@@ -68,6 +68,9 @@ public class ScaleAndCompassLayer extends OMGraphicHandlerLayer {
 
   /** Properties key : Copyright (or label) text color ("FFFFFF" by default). */
   public static final String CopyrightTextColorProperty = "copyrightTextColor";
+
+  /** Properties key : Copyright (or label) Font. */
+  public static final String CopyrightTextFontProperty = "copyrightTextFont";
 
   /** Properties key : "true" (default) or "false". Displays an wind rose on the map. */
   public static final String DisplayWindRoseProperty = "displayWindRose";
@@ -87,6 +90,9 @@ public class ScaleAndCompassLayer extends OMGraphicHandlerLayer {
 
   /** Properties key : Scale text color ("FFFFFF" by default). */
   public static final String ScaleTextColorProperty = "scaleTextColor";
+
+  /** Properties key : Scale text Font. */
+  public static final String ScaleTextFontProperty = "scaleTextFont";
 
   /** Properties key : Unit used for distances : "km" (default) , "m", "nm" or "miles". */
   public static final String UnitOfMeasureProperty = "unitOfMeasure";
@@ -149,6 +155,12 @@ public class ScaleAndCompassLayer extends OMGraphicHandlerLayer {
   private int width = 150;
 
   private OMRaster windRoseRaster;
+
+  private final Font defaultFont = new JLabel().getFont();
+
+  private Font copyrightTextFont = defaultFont;
+
+  private Font scaleTextFont = defaultFont;
 
   /**
    * Creates the GUI.
@@ -326,6 +338,7 @@ public class ScaleAndCompassLayer extends OMGraphicHandlerLayer {
         scaleIntervals[scaleIndex] + " " + unitOfMeasureAbbreviation + " (" + proj + ")";
 
     OMText text = new OMText((leftX + rightX) / 2, lowerY - 3, "" + outtext, OMText.JUSTIFY_CENTER);
+    text.setFont(scaleTextFont);
     text.setLinePaint(scaleTextColor);
     graphics.add(text);
 
@@ -376,8 +389,26 @@ public class ScaleAndCompassLayer extends OMGraphicHandlerLayer {
       copyrightTextColor =
           PropUtils.parseColorFromProperties(
               properties, prefix + CopyrightTextColorProperty, defaultTextColorString);
+
     } catch (NumberFormatException ex) {
       ex.printStackTrace();
+    }
+
+    // Fonts
+    String f = properties.getProperty(prefix + CopyrightTextFontProperty, null);
+    if (f != null) {
+      Font font = Font.decode(f);
+      if (font != null) {
+        copyrightTextFont = font;
+      }
+    }
+
+    f = properties.getProperty(prefix + ScaleTextFontProperty, null);
+    if (f != null) {
+      Font font = Font.decode(f);
+      if (font != null) {
+        scaleTextFont = font;
+      }
     }
 
     String unitOfMeasure = properties.getProperty(prefix + UnitOfMeasureProperty);
@@ -400,9 +431,10 @@ public class ScaleAndCompassLayer extends OMGraphicHandlerLayer {
     if (copyright != null) {
       copyrightText = new OMText(0, 0, copyright, OMText.JUSTIFY_LEFT);
       copyrightText.setLinePaint(copyrightTextColor);
+      copyrightText.setFont(copyrightTextFont);
     }
 
-    // Get the legend
+    // Image to display ?
     String l = properties.getProperty(prefix + imageProperty, null);
     imageRaster = null;
 

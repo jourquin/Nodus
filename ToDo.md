@@ -13,6 +13,4 @@
 # Diverse
 - Demo doc
 - test FW assignment (isWithFirstDFerivative)
-- Allow layer DBF structure change from exportdbf ?
-- test fonts semi-dynamic
-- Put modifies openmap in github
+
