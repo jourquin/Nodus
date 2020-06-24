@@ -344,7 +344,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
    *
    * @return Font
    */
-  public Font getNameFont() {
+  public Font getFontName() {
     return fontName;
   }
 
@@ -541,7 +541,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
 
             loc.setLocationPaint(getLocationColor());
             loc.getLabel().setLinePaint(getNameColor());
-            loc.getLabel().setFont(getNameFont());
+            loc.getLabel().setFont(getFontName());
 
             // Hide labels for non visible graphics
             loc.getLabel().setVisible(omGraphic.isVisible());
@@ -603,7 +603,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
    *
    * @param nameFont Font
    */
-  public void setNameFont(Font nameFont) {
+  public void setFontName(Font nameFont) {
     fontName = nameFont;
 
     String code = getFontString(fontName);
