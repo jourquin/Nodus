@@ -1,4 +1,4 @@
-/*
+/*createMapBean
  * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
@@ -21,7 +21,7 @@
 
 package edu.uclouvain.core.nodus;
 
-import com.bbn.openmap.BufferedLayerMapBean;
+import com.bbn.openmap.BufferedMapBean;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.HintsMapBeanRepaintPolicy;
 import com.bbn.openmap.InformationDelegator;
@@ -204,28 +204,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** Serial version UID. */
   static final long serialVersionUID = -2848516994072912179L;
-
-  /**
-   * A static method that creates a MapBean with it's projection set to the values set in the
-   * Environment.
-   *
-   * @return BufferedLayerMapBean A BufferedLayerMapBean (a BufferedMapBean with an additional image
-   *     buffer that holds Layers designated as background layers)
-   */
-  public static MapBean createMapBean() {
-    Projection proj =
-        new ProjectionFactory().getDefaultProjectionFromEnvironment(Environment.getInstance());
-    MapBean.suppressCopyright = true;
-    
-    MapBean mapBean = new BufferedLayerMapBean();
-    mapBean.setBorder(BorderFactory.createEtchedBorder(BevelBorder.LOWERED));
-    mapBean.setProjection(proj);
-    mapBean.setPreferredSize(new Dimension(proj.getWidth(), proj.getHeight()));
-
-    defaultMapBeanRepaintPolicy = mapBean.getMapBeanRepaintPolicy();
-
-    return mapBean;
-  }
 
   /**
    * Control variables for the progress bar, as the "setBusy" method can be called several times
@@ -658,7 +636,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       onTopKeeper.run(isStickyDrawingTool());
     }
 
-    //MapBean mb = getMapBean();
+    // MapBean mb = getMapBean();
     mapBean.setBckgrnd(Environment.getCustomBackgroundColor());
 
     // Navigate with keys in the map
@@ -1464,8 +1442,46 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   @Override
   public MapBean getMapBean() {
     if (mapBean == null) {
-      setMapBean(createMapBean());
+
+      MapBean.suppressCopyright = true;
+
+      mapBean = new BufferedMapBean();
+      mapBean.setBorder(BorderFactory.createEtchedBorder(BevelBorder.LOWERED));
+
+      Projection proj =
+          new ProjectionFactory().getDefaultProjectionFromEnvironment(Environment.getInstance());
+      mapBean.setProjection(proj);
+
+      mapBean.setPreferredSize(new Dimension(proj.getWidth(), proj.getHeight()));
+      defaultMapBeanRepaintPolicy = mapBean.getMapBeanRepaintPolicy();
+
+      setMapBean(mapBean);
       setAntialising();
+
+      /* String value = getNodusProperties().getProperty(NodusC.PROP_ANTIALIASING, "true");
+      boolean antialisaing = Boolean.parseBoolean(value);
+
+      if (antialisaing) {
+        RenderingHints rh =
+            new RenderingHints(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        RenderingHintsRenderPolicy hints = new RenderingHintsRenderPolicy();
+        hints.setRenderingHints(rh);
+        HintsMapBeanRepaintPolicy hmbrp = new HintsMapBeanRepaintPolicy(mapBean);
+        hmbrp.setHints(hints);
+        mapBean.setMapBeanRepaintPolicy(hmbrp);
+      }
+
+      // Repaint all layers that can be affected by antialising
+      Layer[] layers = layerHandler.getLayers();
+      for (int i = 0; i < layers.length; i++) {
+
+        if (layers[i] instanceof OMGraphicHandlerLayer) {
+          OMGraphicHandlerLayer l = (OMGraphicHandlerLayer) layers[i];
+          if (l.isEnabled() && l.isVisible()) {
+            l.doPrepare();
+          }
+        }
+      }*/
     }
 
     return mapBean;
@@ -2775,7 +2791,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         OMGraphicHandlerLayer l = (OMGraphicHandlerLayer) layers[i];
         if (l.isEnabled() && l.isVisible()) {
           l.doPrepare();
-          System.out.println(l.getName());
+          // System.out.println(l.getName());
         }
       }
     }

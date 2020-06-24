@@ -79,6 +79,8 @@ public class GlobalPreferencesDlg extends EscapeDialog {
   private JCheckBox useNativeGroovyConsoleCheckBox;
   private JCheckBox antialiasingCheckBox;
 
+  private boolean oldAntialiasing;
+
   /**
    * Creates the system preferences dialog box.
    *
@@ -391,6 +393,7 @@ public class GlobalPreferencesDlg extends EscapeDialog {
 
     value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_ANTIALIASING, TRUE);
     antialiasingCheckBox.setSelected(Boolean.parseBoolean(value));
+    oldAntialiasing = Boolean.parseBoolean(value);
 
     value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_REOPEN_LATST_PROJECT, FALSE);
     reloadLastProjectCheckBox.setSelected(Boolean.parseBoolean(value));
@@ -399,13 +402,6 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     displayFullPathCheckBox.setSelected(Boolean.parseBoolean(value));
 
     value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_USE_GROOVY_CONSOLE, FALSE);
-
-    // Groovy 2.x console doesn't work on Mac OS with Java 9
-    /*if (System.getProperty("os.name").toLowerCase().startsWith("mac")
-        && JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
-      value = "false";
-      useNativeGroovyConsoleCheckBox.setEnabled(false);
-    }*/
 
     useNativeGroovyConsoleCheckBox.setSelected(Boolean.parseBoolean(value));
 
@@ -490,13 +486,6 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     }
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_NAV_MOUSE_MODE, navType);
 
-    // Use antialiasing
-    value = FALSE;
-    if (antialiasingCheckBox.isSelected()) {
-      value = TRUE;
-    }
-    nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_ANTIALIASING, value);
-
     // Default DBMS
     int intValue = JDBCUtils.DB_HSQLDB;
     if (h2RadioButton.isSelected()) {
@@ -519,7 +508,23 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     // Update type of navigation mode
     nodusMapPanel.addNavMouseMode();
 
-    // Set rendering policy
-    nodusMapPanel.setAntialising();
+    // Use antialiasing
+    value = FALSE;
+    if (antialiasingCheckBox.isSelected()) {
+      value = TRUE;
+    }
+    nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_ANTIALIASING, value);
+
+    if (Boolean.parseBoolean(value) != oldAntialiasing) {
+      /*JOptionPane.showMessageDialog(
+      nodusMapPanel,
+      i18n.get(
+          GlobalPreferencesDlg.class,
+          "Antialiasing_needs_restart",
+          "Antialiasing setting will be applied at next restart"),
+      NodusC.APPNAME,
+      JOptionPane.INFORMATION_MESSAGE);*/
+      nodusMapPanel.setAntialising();
+    }
   }
 }
