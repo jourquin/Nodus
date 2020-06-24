@@ -24,15 +24,10 @@ package com.bbn.openmap.gui;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.Layer;
 import com.bbn.openmap.layer.drawing.NodusDrawingToolLayer;
-import com.bbn.openmap.layer.highlightedarea.HighlightedAreaLayer;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
-import com.bbn.openmap.layer.shape.PoliticalBoundariesLayer;
 import com.bbn.openmap.util.I18n;
-import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import java.awt.Component;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.net.URL;
 import java.util.Iterator;
@@ -66,8 +61,6 @@ public class NodusLayersPanel extends LayersPanel {
 
   /** Main frame of the application. */
   private NodusMapPanel nodusMapPanel;
-
-  private JButton removeButton;
 
   /**
    * Adds a new button and icon to the original LayersPanel GUI.
@@ -116,51 +109,6 @@ public class NodusLayersPanel extends LayersPanel {
   }
 
   /**
-   * Detect if the remove action is performed on a PoliticalBoundariesLayer or a
-   * HighlightedAreaLayer. These are Nodus specific layers, and their removal involves some actions
-   *
-   * @param button The remove button.
-   */
-  private void addRemoveButtonListener(JButton button) {
-    if (removeButton == null) {
-      removeButton = button;
-      removeButton.addActionListener(
-          new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-              Iterator<?> it = getPanes().iterator();
-              while (it.hasNext()) {
-                Object o = it.next();
-
-                if (o instanceof LayerPane) {
-                  LayerPane lp = (LayerPane) o;
-
-                  if (lp.layerName != null && lp.isSelected()) {
-                    if (lp.getLayer() instanceof PoliticalBoundariesLayer) {
-                      // Clean remove
-                      nodusMapPanel.displayPoliticalBoundaries(false, false);
-                      nodusMapPanel
-                          .getNodusProject()
-                          .setLocalProperty(NodusC.PROP_ADD_POLITICAL_BOUNDARIES, false);
-                      break;
-                    }
-                    if (lp.getLayer() instanceof HighlightedAreaLayer) {
-                      // Clean remove
-                      nodusMapPanel.displayHighlightedAreaLayer(false, false);
-                      nodusMapPanel
-                          .getNodusProject()
-                          .setLocalProperty(NodusC.PROP_ADD_HIGHLIGHTED_AREA, false);
-                      break;
-                    }
-                  }
-                }
-              }
-            }
-          });
-    }
-  }
-
-  /**
    * Modified from original tool in order not to display the NodusDrawingToolLayer...
    *
    * @param inLayers Layer[]
@@ -180,6 +128,19 @@ public class NodusLayersPanel extends LayersPanel {
 
         if (lp.getLayer() instanceof NodusDrawingToolLayer) {
           lp.setVisible(false);
+        }
+      }
+    }
+
+    // Hide remove button
+    Component[] c = controls.getComponents();
+    for (int i = 0; i < c.length; i++) {
+      if (c[i] instanceof JButton) {
+        JButton jb = (JButton) c[i];
+
+        if (jb.getActionCommand() == LayersPanel.LayerRemoveCmd) {
+          jb.setEnabled(false);
+          jb.setVisible(false);
         }
       }
     }
@@ -204,14 +165,6 @@ public class NodusLayersPanel extends LayersPanel {
       if (o instanceof JButton) {
         JButton jb = (JButton) o;
         jb.setEnabled(enable);
-
-        // The remove button must not be enabled. A layer must be selected for that
-        if (enable && jb.getActionCommand() == LayersPanel.LayerRemoveCmd) {
-          if (removeButton == null) {
-            addRemoveButtonListener(jb);
-          }
-          jb.setEnabled(false);
-        }
       }
     }
   }
@@ -229,25 +182,18 @@ public class NodusLayersPanel extends LayersPanel {
     Object obj = pce.getNewValue();
 
     // Intercept the selection commands for a layer
-    if ((command == LayerSelectedCmd || command == LayerDeselectedCmd) && obj instanceof Layer) {
-
-      Layer layer = (Layer) obj;
-
+    if (command == LayerSelectedCmd && obj instanceof Layer) {
       // Synchronize the display of the labels with the display of the layer itself
+      Layer layer = (Layer) obj;
       if (layer instanceof NodusEsriLayer) {
         NodusEsriLayer nes = (NodusEsriLayer) layer;
-        javax.swing.SwingUtilities.invokeLater(
-            new Runnable() {
-              public void run() {
-                nes.getLocationHandler().setVisible(nes.isVisible());
-              }
-            });
-      }
-      
-      // Removing Nodus project layers is not allowed
-      if (!layer.getAddAsBackground()) {
-        removeButton.setEnabled(false);
-        return;
+        nes.getLocationHandler().setVisible(!nes.isVisible());
+        /*javax.swing.SwingUtilities.invokeLater(
+        new Runnable() {
+          public void run() {
+            nes.getLocationHandler().setVisible(nes.isVisible());
+          }
+        });*/
       }
     }
   }
