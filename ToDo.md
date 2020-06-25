@@ -13,4 +13,4 @@
 # Diverse
 - Demo doc
 - test FW assignment (isWithFirstDFerivative)
-
+- Improve warning message when nothing to display in Jung

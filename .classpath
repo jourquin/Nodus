@@ -11,7 +11,7 @@
 	<classpathentry kind="lib" path="lib/JResourcesMonitor.jar"/>
 	<classpathentry kind="lib" path="lib/commons-io-2.6.jar"/>
 	<classpathentry kind="lib" path="lib/jung-algorithms-2.1.1.jar"/>
-	<classpathentry kind="lib" path="lib/jung-api-2.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/jung-api-2.1.1.jar" sourcepath="/jung/jung-api/src"/>
 	<classpathentry kind="lib" path="lib/jung-graph-impl-2.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/jung-visualization-2.1.1.jar" sourcepath="/jung"/>
 	<classpathentry kind="lib" path="lib/groovy/qdox-1.12.1.jar"/>

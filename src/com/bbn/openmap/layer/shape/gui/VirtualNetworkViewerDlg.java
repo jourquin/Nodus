@@ -296,13 +296,22 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
       stmt.close();
 
       // Now display graph
-      List<JungVirtualNode> nodeList = new ArrayList<JungVirtualNode>(nodesHashMap.values());
-      List<JungVirtualLink> linkList = new ArrayList<JungVirtualLink>(linksHashMap.values());
-      VirtualNetworkGraphViewerDlg dialog =
-          new VirtualNetworkGraphViewerDlg(this, nodeList, linkList, isNode);
-      dialog.setVisible(true);
+      if (!nodesHashMap.isEmpty()) {
+        List<JungVirtualNode> nodeList = new ArrayList<JungVirtualNode>(nodesHashMap.values());
+        List<JungVirtualLink> linkList = new ArrayList<JungVirtualLink>(linksHashMap.values());
+        VirtualNetworkGraphViewerDlg dialog =
+            new VirtualNetworkGraphViewerDlg(this, nodeList, linkList, isNode);
+        dialog.setVisible(true);
+      } else {
+        JOptionPane.showMessageDialog(
+            null,
+            i18n.get(VirtualNetworkViewerDlg.class, "Nothing_to_display", "Nothing to display"),
+            NodusC.APPNAME,
+            JOptionPane.INFORMATION_MESSAGE);
+      }
 
     } catch (Exception ex) {
+
       JOptionPane.showMessageDialog(
           null,
           ex.getMessage(),

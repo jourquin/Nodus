@@ -131,28 +131,33 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
 - Bug fix : Labels were incorrect if the objects in their layer where filtered with a SQL "where" clause.
 
 ## v7.3 - BuildXXXXXXXX
-- Make exclusions "direction sensitive". This allows excluding loading operations for a mode (and means) at a centroid but
-keeping unloading possible. 
-- Reload labels after exportdbf of the layer in order to display changes.
-- The edition of the DBF table structures with the Openmap GUI now takes care of the Nodus mandatory structures.
-- Automatically change LOGICAL DBF fields to NUMERIC(1,0) fields, as Booleans are not supported by all DBMS's.
-- Use JavaDbf4Nodus 1.12.1, that uses UTF-8 encoding by default.
-- Upgrade to mariadb-java-client 2.6
-- Accept SQL DATE in the DBF files.
-- The labels of a Nodus layer are now displayed only if the layer itself is visible (both are now synchronized).
-- Simplify the API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error message 
-is displayed to inform the user.  
-- Add the possibility to include transit time functions in cost functions files. These functions follow the same structure as
-the cost functions, but use the '@' separator. Example "ld.1,1=" for a "loading" cost function and "ld@1,1=" for a loading 
-time function. The old, undocumented, possibility to partially compute transit times is removed and a message is displayed 
-to warn the user.
-- Add stop and switch costs and durations (used with services) in the path header tables.
-- Introduce map rendering with antialiasing. Somewhat slower, but fonts (labels for instance) are much better. Use a BufferedMapBean
-instead of a BufferedLayerMapBean as the background layers of the latest cannot be rendered with antialising (bug in OpenMap).
-- Remove the "-" button in the layer panel. Not useful.
-- New compass image in ScaleAndCompassLayer.
-- Add "font" properties to ScaleAndCompassLayer for label and scale fonts.
-- Use a fork specific version of openmap.jar that fixes a bug with EsriLayer.setModel(...).
 
+- New functionalities : 
+    - Make exclusions "direction sensitive". This allows excluding loading operations for a mode (and means) at a centroid but keeping unloading possible. 
+    - Exclusions can be defined "all but" (exclusions) or "nothing bur" (inclusions).
+    - Add the possibility to include transit time functions in cost functions files. These functions follow the same structure as the cost functions, but use the '@' separator. Example "ld.1,1=" for a "loading" cost function and "ld@1,1=" for a loading time function. The old, undocumented, possibility to partially compute transit times is removed and a message is displayed to warn the user.
 
+- DBF files
+    - Improved DBF structure editor for the Nodus layers. The GUI now takes care of the Nodus mandatory structures.
+    - Automatically change LOGICAL DBF fields to NUMERIC(1,0) fields, as Booleans are not supported by all DBMS's.
+    - Accept SQL DATE in the DBF files.
+    - Use JavaDbf4Nodus 1.12.1, that uses UTF-8 encoding by default.
+    - Better support of non legacy DBF files (such as those written by many GIS softwares.
 
+- Nodes and link labels
+    - Reload labels after 'exportdbf' of a layer in order to display changes.
+    - The labels of a Nodus layer are now displayed only if the layer itself is visible (both are now synchronized).
+
+- Miscellaneous:
+    - Upgrade to mariadb-java-client 2.6
+    - Add stop and switch costs and durations (used with services) in the path header tables.
+    - Introduce map rendering with antialiasing. Somewhat slower, but fonts (labels for instance) are much better. Use a BufferedMapBean instead of a BufferedLayerMapBean as the background layers of the latest cannot be rendered with antialising (bug in OpenMap).
+    - Remove the "-" button in the layer panel. Not useful.
+    - New compass image in ScaleAndCompassLayer.
+    - Add "font" properties to ScaleAndCompassLayer for label and scale fonts.
+    - Use a fork specific version of openmap.jar that fixes a bug with EsriLayer.setModel(...).
+    - Add legend in xirtual network viewer.
+
+- Breaking changes:
+    - "time" functions are now in the same format as regular cost function (see above).
+    - Simplify the API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error message is displayed to inform the user.  

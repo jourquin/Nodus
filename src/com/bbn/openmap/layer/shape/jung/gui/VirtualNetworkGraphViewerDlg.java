@@ -81,6 +81,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 
@@ -149,6 +150,8 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
   /** the visual component and renderer for the graph. */
   private VisualizationViewer<String, String> visualizationViewer;
 
+  private Color transparentColor = new Color(255, 255, 255, 255);
+
   private Function<String, String> edgeLabel =
       new Function<String, String>() {
         @Override
@@ -203,13 +206,13 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
             case VirtualLink.TYPE_LOAD:
               return Color.RED;
             case VirtualLink.TYPE_UNLOAD:
-              return Color.RED;
+              return Color.BLUE;
             case VirtualLink.TYPE_TRANSIT:
-              return Color.BLUE;
+              return Color.DARK_GRAY;
             case VirtualLink.TYPE_TRANSHIP:
-              return Color.BLUE;
-            default:
-              return Color.BLUE;
+              return Color.GREEN;
+            default: // Moving
+              return Color.MAGENTA;
           }
         }
       };
@@ -334,12 +337,12 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
       new Function<String, Paint>() {
         @Override
         public Paint apply(String s) {
-
-          if (isLoadingNode(s)) {
-            return Color.BLUE;
-          } else {
+          return Color.LIGHT_GRAY;
+          /* if (s.startsWith("-")) {
             return Color.RED;
-          }
+          } else {
+            return Color.BLUE;
+          }*/
         }
       };
 
@@ -717,13 +720,55 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
      * Creating the graph needs two passes in order to be able to display arrows in both directions
      * in a tree
      */
+
+    JPanel legend = new JPanel();
+    legend.setBackground(transparentColor);
+
     if (isNode) {
       createTreeForNode(1);
+
+      // Loading
+      JLabel labelLd =
+          new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Loading", "Loading"));
+      labelLd.setBackground(transparentColor);
+      labelLd.setForeground(Color.RED);
+      legend.add(labelLd);
+
+      // UnLoading
+      JLabel labelUl =
+          new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Unloading", "Unloading"));
+      labelUl.setBackground(transparentColor);
+      labelUl.setForeground(Color.BLUE);
+      legend.add(labelUl);
+
+      // Transit
+      JLabel labelTr =
+          new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Transit", "Transit"));
+      labelTr.setBackground(transparentColor);
+      labelTr.setForeground(Color.DARK_GRAY);
+      legend.add(labelTr);
+
+      // Transhipment
+      JLabel labelTp =
+          new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Transhipment", "Transhipment"));
+      labelTp.setBackground(transparentColor);
+      labelTp.setForeground(Color.GREEN);
+      legend.add(labelTp);
+
     } else {
       createTreeForLink(1);
+
+      // Moving
+      JLabel labelMv = new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Moving", "Moving"));
+      labelMv.setBackground(transparentColor);
+      labelMv.setForeground(Color.MAGENTA);
+      legend.add(labelMv);
+
       // Draw the links horizontally
       rotate(visualizationViewer);
     }
+
+    visualizationViewer.add(legend);
 
     final ScalingControl scaler = new CrossoverScalingControl();
     JPanel content = new JPanel();
@@ -1129,7 +1174,7 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
   /**
    * Returns true if a node is a loading point.
    *
-   * @param vl String representation ofa virtual link.
+   * @param vl String representation fa virtual link.
    * @return True if this virtual link corresponds to a loading operation.
    */
   private boolean isLoadingNode(String vl) {
