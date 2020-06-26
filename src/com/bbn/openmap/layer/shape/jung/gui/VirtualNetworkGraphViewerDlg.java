@@ -152,6 +152,11 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
 
   private Color transparentColor = new Color(255, 255, 255, 255);
 
+  private boolean hasLD = false;
+  private boolean hasUL = false;
+  private boolean hasTR = false;
+  private boolean hasTP = false;
+
   private Function<String, String> edgeLabel =
       new Function<String, String>() {
         @Override
@@ -530,6 +535,28 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
 
     if (pass == 0) {
 
+      // Check which types of virtual links are present
+      Iterator<JungVirtualLink> it = linksList.iterator();
+      while (it.hasNext()) {
+        JungVirtualLink jvl = it.next();
+
+        if (jvl.getType() == VirtualLink.TYPE_LOAD) {
+          hasLD = true;
+        }
+
+        if (jvl.getType() == VirtualLink.TYPE_UNLOAD) {
+          hasUL = true;
+        }
+
+        if (jvl.getType() == VirtualLink.TYPE_TRANSIT) {
+          hasTR = true;
+        }
+
+        if (jvl.getType() == VirtualLink.TYPE_TRANSHIP) {
+          hasTP = true;
+        }
+      }
+
       /*
        * Add all the nodes
        */
@@ -584,6 +611,7 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
         JungVirtualLink jvl = it2.next();
 
         if (jvl.getType() == VirtualLink.TYPE_LOAD) {
+
           graph.addEdge(
               jvl.toString(false),
               jvl.getOriginJungVirtualNode().toString(),
@@ -591,13 +619,13 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
         }
 
         if (jvl.getType() == VirtualLink.TYPE_UNLOAD) {
+
           graph.addEdge(
               jvl.toString(false),
               jvl.getDestinationJungVirtualNode().toString(),
               jvl.getOriginJungVirtualNode().toString());
         }
       }
-
     } else {
 
       /* Remove the fakes */
@@ -721,54 +749,13 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
      * in a tree
      */
 
-    JPanel legend = new JPanel();
-    legend.setBackground(transparentColor);
-
     if (isNode) {
       createTreeForNode(1);
-
-      // Loading
-      JLabel labelLd =
-          new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Loading", "Loading"));
-      labelLd.setBackground(transparentColor);
-      labelLd.setForeground(Color.RED);
-      legend.add(labelLd);
-
-      // UnLoading
-      JLabel labelUl =
-          new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Unloading", "Unloading"));
-      labelUl.setBackground(transparentColor);
-      labelUl.setForeground(Color.BLUE);
-      legend.add(labelUl);
-
-      // Transit
-      JLabel labelTr =
-          new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Transit", "Transit"));
-      labelTr.setBackground(transparentColor);
-      labelTr.setForeground(Color.DARK_GRAY);
-      legend.add(labelTr);
-
-      // Transhipment
-      JLabel labelTp =
-          new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Transhipment", "Transhipment"));
-      labelTp.setBackground(transparentColor);
-      labelTp.setForeground(Color.GREEN);
-      legend.add(labelTp);
-
     } else {
       createTreeForLink(1);
-
-      // Moving
-      JLabel labelMv = new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Moving", "Moving"));
-      labelMv.setBackground(transparentColor);
-      labelMv.setForeground(Color.MAGENTA);
-      legend.add(labelMv);
-
       // Draw the links horizontally
       rotate(visualizationViewer);
     }
-
-    visualizationViewer.add(legend);
 
     final ScalingControl scaler = new CrossoverScalingControl();
     JPanel content = new JPanel();
@@ -1099,6 +1086,57 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
     visualizationViewer.getRenderContext().getEdgeLabelRenderer().setRotateEdgeLabels(true);
     visualizationViewer.setEdgeToolTipTransformer(edgePopupLabel);
 
+    // Add legend
+    JPanel legend = new JPanel();
+    legend.setBackground(transparentColor);
+    if (isNode) {
+      // Loading
+      if (hasLD) {
+        JLabel labelLd =
+            new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Loading", "Loading"));
+        labelLd.setBackground(transparentColor);
+        labelLd.setForeground(Color.RED);
+        legend.add(labelLd);
+      }
+
+      // UnLoading
+      if (hasUL) {
+        JLabel labelUl =
+            new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Unloading", "Unloading"));
+        labelUl.setBackground(transparentColor);
+        labelUl.setForeground(Color.BLUE);
+        legend.add(labelUl);
+      }
+
+      // Transit
+      if (hasTR) {
+        JLabel labelTr =
+            new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Transit", "Transit"));
+        labelTr.setBackground(transparentColor);
+        labelTr.setForeground(Color.DARK_GRAY);
+        legend.add(labelTr);
+      }
+
+      // Transhipment
+      if (hasTP) {
+        JLabel labelTp =
+            new JLabel(
+                i18n.get(VirtualNetworkGraphViewerDlg.class, "Transhipment", "Transhipment"));
+        labelTp.setBackground(transparentColor);
+        labelTp.setForeground(Color.GREEN);
+        legend.add(labelTp);
+      }
+
+    } else {
+
+      // Moving
+      JLabel labelMv = new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Moving", "Moving"));
+      labelMv.setBackground(transparentColor);
+      labelMv.setForeground(Color.MAGENTA);
+      legend.add(labelMv);
+    }
+    visualizationViewer.add(legend);
+
     return content;
   }
 
@@ -1214,4 +1252,10 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
         .getTransformer(Layer.LAYOUT)
         .rotate(-Math.PI / 2, center);
   }
+
+  /*  @Override
+  public void setVisible(boolean b) {
+   System.out.println("3");
+      super.setVisible(b);
+  }*/
 }
