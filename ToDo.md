@@ -3,14 +3,14 @@
 
 ## Transit times
 - Tests needed to validate it
+- Ask for automatic update
 
 ## Exclusions
 - Test and validation
   
-# Jung and xchart
+# xchart
 - Set user defined color for modes and means
 
 # Diverse
 - Demo doc
 - test FW assignment (isWithFirstDFerivative)
-- Improve warning message when nothing to display in Jung

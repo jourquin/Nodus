@@ -122,7 +122,8 @@ public class StatPieDlg extends EscapeDialog {
   /** Vector that will contain the results to display. */
   @SuppressWarnings("unchecked")
   private Vector<Float>[] values = (Vector<Float>[]) new Vector[8];
-
+ 
+  
   /**
    * Creates the dialog that will contain the pie charts.
    *
@@ -280,6 +281,7 @@ public class StatPieDlg extends EscapeDialog {
       // Connect to database and execute query
       Statement stmt = jdbcConnection.createStatement();
       ResultSet rs = stmt.executeQuery(sqlQuery[index]);
+      System.out.println(sqlQuery[index]);
 
       ResultSetMetaData m = rs.getMetaData();
 
