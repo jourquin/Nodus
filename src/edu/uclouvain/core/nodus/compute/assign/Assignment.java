@@ -302,7 +302,7 @@ public abstract class Assignment implements Runnable {
               NodusC.APPNAME,
               JOptionPane.YES_NO_OPTION);
 
-      // Upgrade : replace old variables with new ones
+      // Upgrade : replace old variables with new cost functions
       if (check == JOptionPane.YES_OPTION) {
         // Get the file to upgrade
         String costFunctionsFileName =
