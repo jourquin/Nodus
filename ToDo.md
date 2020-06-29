@@ -3,7 +3,6 @@
 
 ## Transit times
 - Tests needed to validate it
-- Ask for automatic update
 
 ## Exclusions
 - Test and validation

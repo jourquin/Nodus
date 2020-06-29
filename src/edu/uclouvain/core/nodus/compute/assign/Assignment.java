@@ -34,6 +34,11 @@ import edu.uclouvain.core.nodus.utils.SoundPlayer;
 import groovy.lang.GroovyShell;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.Set;
 import javax.swing.JOptionPane;
@@ -269,7 +274,7 @@ public abstract class Assignment implements Runnable {
 
     Properties costFunctions = assignmentParameters.getCostFunctions();
     boolean hasDeprecatedVariables = false;
-    // Scan the cots function to detect the presence of durations
+    // Scan the costs function to detect the presence of durations
     Set<Object> keys = costFunctions.keySet();
     for (Object key : keys) {
       if (((String) key).contains("LD_DURATION")) {
@@ -287,16 +292,48 @@ public abstract class Assignment implements Runnable {
     }
 
     if (hasDeprecatedVariables) {
-      JOptionPane.showMessageDialog(
-          null,
-          i18n.get(
-              Assignment.class,
-              "DeprecatedDurations",
-              "Costs contain deprecated duration variables. Must be fixed before assignment."),
-          NodusC.APPNAME,
-          JOptionPane.ERROR_MESSAGE);
-    }
+      int check =
+          JOptionPane.showConfirmDialog(
+              null,
+              i18n.get(
+                  Assignment.class,
+                  "DeprecatedDurations",
+                  "Costs contain deprecated xx_DURATION variables. Upgrade ?"),
+              NodusC.APPNAME,
+              JOptionPane.YES_NO_OPTION);
 
-    return hasDeprecatedVariables;
+      // Upgrade : replace old variables with new ones
+      if (check == JOptionPane.YES_OPTION) {
+        // Get the file to upgrade
+        String costFunctionsFileName =
+            nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
+                + nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS);
+
+        // Replace the deprecated variables
+        Path path = Paths.get(costFunctionsFileName);
+        Charset charset = StandardCharsets.UTF_8;
+
+        try {
+          String content = new String(Files.readAllBytes(path), charset);
+          content = content.replaceAll("LD_DURATION.", "ld@");
+          content = content.replaceAll("UL_DURATION.", "ul@");
+          content = content.replaceAll("TP_DURATION.", "tp@");
+          Files.write(path, content.getBytes(charset));
+        } catch (IOException e) {
+          e.printStackTrace();
+          return true;
+        }
+
+        // Load upgraded cost functions
+        assignmentParameters.setCostFunctions(
+            nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS));
+
+        return false;
+      } else {
+        // Stop assignment if the cost functions are not upgraded
+        return true;
+      }
+    }
+    return false;
   }
 }

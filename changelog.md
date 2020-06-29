@@ -138,7 +138,8 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Exclusions can be defined "all but" (exclusions) or "nothing bur" (inclusions).
     - Add the possibility to include transit time functions in cost functions files. These functions follow the same structure as 
     the cost functions, but use the '@' separator. Example "ld.1,1=" for a "loading" cost function and "ld@1,1=" for a loading time 
-    function. The old, undocumented, possibility to partially compute transit times is removed and a message is displayed to warn the user.
+    function. The old, undocumented, possibility to partially compute transit times using 'xx_DURATION' variables is removed. If such variables 
+    are present,  a message is displayed to warn the user and an automatic upgrade of the cost functions file is proposed.
 
 - DBF files
     - Improved DBF structure editor for the Nodus layers. The GUI now takes care of the Nodus mandatory structures.
@@ -164,6 +165,5 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Add legends in virtual network viewer.
 
 - Breaking changes:
-    - "time" functions are now in the same format as regular cost function (see above).
     - Simplify the API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 
     message is displayed to inform the user.  
