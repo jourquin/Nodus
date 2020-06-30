@@ -164,7 +164,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Use a fork specific version of openmap.jar that fixes a bug with EsriLayer.setModel(...).
     - Add legends in virtual network viewer.
     - Replace 'importTables" property by 'import.tables'. Projects with the old property name are still accepted.
-    - Add the possibility to specify the colors to use for each mode in the statistics pie diagrams in the project file.
+    - Add the possibility to specify the color to use for each mode in the pie diagrams in the project file.
 
 - Breaking changes:
     - Simplify the API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 
