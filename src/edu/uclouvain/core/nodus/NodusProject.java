@@ -40,7 +40,6 @@ import com.bbn.openmap.proj.ProjectionFactory;
 import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
-
 import edu.uclouvain.core.nodus.compute.exclusions.ExclusionReader;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
@@ -54,12 +53,9 @@ import edu.uclouvain.core.nodus.utils.CommentedProperties;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.NodusFileFilter;
 import edu.uclouvain.core.nodus.utils.ProjectLocker;
-
 import foxtrot.Job;
 import foxtrot.Worker;
-
 import groovy.lang.GroovyShell;
-
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Frame;
@@ -85,14 +81,11 @@ import java.util.Vector;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.SimpleFormatter;
-
 import javax.swing.JCheckBox;
-import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
-
 import org.codehaus.groovy.control.CompilationFailedException;
 
 /**
@@ -1014,11 +1007,15 @@ public class NodusProject implements ShapeConstants {
   /** Import the DBF tables specified in the project if needed. */
   private void importDBFTables() {
 
-    final String tablesToImport = projectProperties.getProperty(NodusC.PROP_IMPORT_TABLES, null);
-    final NodusProject _this = this;
+    String tablesToImport = projectProperties.getProperty(NodusC.PROP_IMPORT_TABLES, null);
+    NodusProject thisProject = this;
 
     if (tablesToImport == null) {
-      return;
+      // Could be a project with the old property name
+      tablesToImport = projectProperties.getProperty("importTables", null);
+      if (tablesToImport == null) {
+        return;
+      }
     }
 
     StringTokenizer st = new StringTokenizer(tablesToImport);
@@ -1037,7 +1034,7 @@ public class NodusProject implements ShapeConstants {
                             i18n.get(
                                 NodusProject.class, "Importing", "Importing \"{0}\" in database"),
                             currentTable));
-                ImportDBF.importTable(_this, currentTable);
+                ImportDBF.importTable(thisProject, currentTable);
                 return null;
               }
             });

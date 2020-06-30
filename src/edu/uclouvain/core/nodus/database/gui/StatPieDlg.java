@@ -23,9 +23,12 @@ package edu.uclouvain.core.nodus.database.gui;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
+import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import edu.uclouvain.core.nodus.swing.TableSorter;
+import edu.uclouvain.core.nodus.utils.ColorUtils;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -97,11 +100,13 @@ public class StatPieDlg extends EscapeDialog {
   /** Vehicles per mode & means statistic. */
   public static final byte VKM_Mm = 7;
 
+  private int nbStats = 8;
+
   private DecimalFormat formatter = new DecimalFormat("#.##");
 
   /** Vector that will contain the labels (mode or mode-means). */
   @SuppressWarnings("unchecked")
-  private Vector<String>[] labels = (Vector<String>[]) new Vector[8];
+  private Vector<String>[] labels = (Vector<String>[]) new Vector[nbStats];
 
   /** Nodus project. */
   private NodusProject nodusProject;
@@ -111,7 +116,7 @@ public class StatPieDlg extends EscapeDialog {
   private TableSorter sorter = new TableSorter(new DefaultTableModel());
 
   /** Array of strings that will contain the SQL queries for the types of results to display. */
-  private String[] sqlQuery = new String[8];
+  private String[] sqlQuery = new String[nbStats];
 
   private JTabbedPane tabbedPanes = null;
 
@@ -121,9 +126,15 @@ public class StatPieDlg extends EscapeDialog {
 
   /** Vector that will contain the results to display. */
   @SuppressWarnings("unchecked")
-  private Vector<Float>[] values = (Vector<Float>[]) new Vector[8];
- 
-  
+  private Vector<Float>[] values = (Vector<Float>[]) new Vector[nbStats];
+
+  /** Vector that will contain the colors to display. */
+  @SuppressWarnings("unchecked")
+  private Vector<Color>[] colors = (Vector<Color>[]) new Vector[nbStats];
+
+  /** The color to associate to each mode. */
+  private Color[] modeColors;
+
   /**
    * Creates the dialog that will contain the pie charts.
    *
@@ -136,6 +147,7 @@ public class StatPieDlg extends EscapeDialog {
         false);
     this.nodusProject = statDlg.getNodusProject();
     tableModel = (DefaultTableModel) sorter.getTableModel();
+    getModeColors();
   }
 
   /** Closes the dialog. */
@@ -281,33 +293,44 @@ public class StatPieDlg extends EscapeDialog {
       // Connect to database and execute query
       Statement stmt = jdbcConnection.createStatement();
       ResultSet rs = stmt.executeQuery(sqlQuery[index]);
-      System.out.println(sqlQuery[index]);
 
       ResultSetMetaData m = rs.getMetaData();
 
-      /* col will be equal to 2 for "mode" related stats et 2 for "mode-means" stats. */
+      /* col will be equal to 2 for "mode" related stats and 3 for "mode-means" stats. */
       int col = m.getColumnCount();
 
       labels[index] = new Vector<String>();
       values[index] = new Vector<Float>();
 
+      // Track all the mode-means combinations that are used
+      boolean[][] usedModeMeans = new boolean[NodusC.MAXMM][NodusC.MAXMM];
+
       while (rs.next()) {
 
         if (col == 2) {
-          // Mode stat
+          // Mode stats
+          int mode = rs.getInt(1);
           labels[index].add(
-              MessageFormat.format(
-                  i18n.get(StatPieDlg.class, "Mode", "Mode {0}"), rs.getString(1)));
+              MessageFormat.format(i18n.get(StatPieDlg.class, "Mode", "Mode {0}"), mode));
           values[index].add(Float.valueOf(rs.getFloat(2)));
+          colors[index].add(modeColors[mode]);
         } else {
-          // Mode-Means stat
+          // Mode-Means stats
+          int mode = rs.getInt(1);
+          int means = rs.getInt(2);
           labels[index].add(
               MessageFormat.format(
-                  i18n.get(StatPieDlg.class, "ModeMeans", "Mode {0}, Means {1}"),
-                  rs.getString(1),
-                  rs.getString(2)));
+                  i18n.get(StatPieDlg.class, "ModeMeans", "Mode {0}, Means {1}"), mode, means));
           values[index].add(Float.valueOf(rs.getFloat(3)));
+
+          // Collect all the means for this mode
+          usedModeMeans[mode][means] = true;
         }
+      }
+
+      // Get the color shades for the mode-means stats
+      if (col == 3) {
+        colors[index].addAll(getShades(usedModeMeans));
       }
 
       rs.close();
@@ -405,6 +428,75 @@ public class StatPieDlg extends EscapeDialog {
         i18n.get(StatPieDlg.class, "Vehicles_Km_per_mode_means", "Vehicles.Km per mode/means"));
   }
 
+  /** Fill an array with the base color to associate to each mode. */
+  private void getModeColors() {
+
+    // Fill the array with default colors
+    modeColors = new Color[NodusC.MAXMM];
+    Color[] defaultSequence = {
+      Color.red,
+      Color.blue,
+      Color.gray,
+      Color.green,
+      Color.cyan,
+      Color.magenta,
+      Color.orange,
+      Color.pink,
+      Color.yellow
+    };
+    int j = 0;
+    modeColors[0] = Color.white;
+    for (int i = 1; i < modeColors.length; i++) {
+      modeColors[i] = defaultSequence[j];
+      j++;
+      if (j == defaultSequence.length) {
+        j = 0;
+      }
+    }
+
+    for (int i = 0; i < nbStats; i++) {
+      colors[i] = new Vector<Color>();
+    }
+
+    // Update the array with colors chosen by the user for the project
+    for (int i = 0; i < NodusC.MAXMM; i++) {
+      String key = NodusC.PROP_MODE_COLOR + "." + i;
+      String colorString = nodusProject.getProperty(key);
+      if (colorString != null) {
+        modeColors[i] = ColorUtils.getColorFromString(colorString, modeColors[i]);
+      }
+    }
+  }
+
+  /** Returns a vector with color shades for a given mode. */
+  private Vector<Color> getShades(boolean[][] usedModeMeans) {
+
+    Vector<Color> modeMeansColors = new Vector<Color>();
+    for (int mode = 0; mode < NodusC.MAXMM; mode++) {
+
+      int nbMeans = 0;
+      int maxMeans = 0;
+      for (int means = 0; means < NodusC.MAXMM; means++) {
+        if (usedModeMeans[mode][means]) {
+          nbMeans++;
+          maxMeans = means;
+        }
+      }
+
+      // If at least one means is used for the mode
+      if (nbMeans > 0) {
+        Color[] shades = ColorUtils.getShadesPallette(modeColors[mode], maxMeans);
+        for (int means = 0; means < NodusC.MAXMM; means++) {
+          if (usedModeMeans[mode][means]) {
+            modeMeansColors.add(shades[means - 1]);
+          }
+        }
+      }
+    }
+
+    return modeMeansColors;
+  }
+
   /**
    * This method initializes the Panel.
    *
@@ -438,9 +530,11 @@ public class StatPieDlg extends EscapeDialog {
     chart.getStyler().setAnnotationDistance(1.15);
     chart.getStyler().setPlotContentSize(0.75);
     chart.getStyler().setDrawAllAnnotations(true);
-    
-    //Color [] colors = {Color.RED, Color.BLUE, Color.GRAY};
-    //chart.getStyler().setSeriesColors(colors);
+
+    // Color [] colors = {Color.RED, Color.BLUE, Color.GRAY};
+
+    Color[] c = (Color[]) colors[statId].toArray(new Color[colors[statId].size()]);
+    chart.getStyler().setSeriesColors(c);
 
     // Reduce font sizes
     Font font = chart.getStyler().getAnnotationsFont();

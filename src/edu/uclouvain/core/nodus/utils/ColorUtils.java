@@ -21,6 +21,7 @@
 
 package edu.uclouvain.core.nodus.utils;
 
+import com.bbn.openmap.util.ColorFactory;
 import java.awt.Color;
 
 /**
@@ -31,92 +32,59 @@ import java.awt.Color;
 public class ColorUtils {
 
   /**
+   * Returns a Color given its name or ARGB hex representation.
+   * @param colorString The name of a color or an ARGB hex value
+   * @param defaultColor The Color to return if the decoding fails.
+   * @return The Color that was decoded or the default value.
+   */
+  public static Color getColorFromString(String colorString, Color defaultColor) {
+
+    Color c = ColorFactory.getNamedColor(colorString, null);
+    if (c == null) {
+      try {
+        c = ColorFactory.parseColor(colorString);
+      } catch (NumberFormatException e) {
+        return defaultColor;
+      }
+    }
+    return c;
+  }
+
+  /**
+   * Returns a darker shade of the given Color.
+   *
+   * @param color The Color to start from.
+   * @param fraction A "darkness percentage".
+   * @return A darker shade of the input Color.
+   */
+  public static Color darken(Color color, double fraction) {
+
+    int red = (int) Math.round(Math.max(0, color.getRed() - 255 * fraction));
+    int green = (int) Math.round(Math.max(0, color.getGreen() - 255 * fraction));
+    int blue = (int) Math.round(Math.max(0, color.getBlue() - 255 * fraction));
+
+    int alpha = color.getAlpha();
+
+    return new Color(red, green, blue, alpha);
+  }
+
+  /**
    * Generates a palette of colors, starting from an initial color towards darker colors of the same
-   * dominant RGB component.
+   * shade.
    *
    * @param startColor The color to start from.
    * @param nbColors The number of color shades to generate.
    * @return An array of colors.
    */
-  public static Color[] generateColorPalette(Color startColor, int nbColors) {
+  public static Color[] getShadesPallette(Color startColor, int nbColors) {
     Color[] colors = new Color[nbColors];
     colors[0] = startColor;
 
-    float[] rgbComponents = startColor.getRGBColorComponents(null);
-
-    // Gray ?
-    if (isGray(startColor)) {
-      return generateGrayPalette(rgbComponents[0], nbColors);
-    }
-
-    // Identify dominant color
-    int dominantColorIndex = -1;
-    float dominantColorValue = -1;
-    for (int i = 0; i < rgbComponents.length; i++) {
-      if (rgbComponents[i] > dominantColorValue) {
-        dominantColorValue = rgbComponents[i];
-        dominantColorIndex = i;
-      }
-    }
-
-    // Step towards darker colors
-    float relativeStepSize = dominantColorValue / (nbColors + 1);
-    float decrement = dominantColorValue * relativeStepSize;
-
-    // Generate colors
-    for (int i = 0; i < nbColors - 1; i++) {
-      float[] c = rgbComponents.clone();
-      c[dominantColorIndex] = dominantColorValue - (i + 1) * decrement;
-      colors[i + 1] = new Color(c[0], c[1], c[2]);
-    }
-    return colors;
-  }
-
-  /**
-   * Generate a palette of grays, starting from a start level towards darker tones. The start level
-   * must be between 0 (black) and 1 (white).
-   *
-   * @param startLevel Start level between black (0) and white (1).
-   * @param nbColors The number of gray shades to generate.
-   * @return An array of colors or null if startLevel is invalid.
-   */
-  public static Color[] generateGrayPalette(float startLevel, int nbColors) {
-
-    // If invalid start level
-    if (startLevel < 0 || startLevel > 1) {
-      return null;
-    }
-
-    Color[] colors = new Color[nbColors];
-
-    // Step towards darker colors
-    float relativeStepSize = startLevel / nbColors;
-    float decrement = startLevel * relativeStepSize;
-
-    // Generate colors
     for (int i = 0; i < nbColors; i++) {
-      for (int j = 0; j < 3; j++) {
-        float value = startLevel - i * decrement;
-        colors[i] = new Color(value, value, value);
-      }
+      colors[i] =
+          darken(
+              startColor, (double) i / (double) (nbColors + 3)); // Add 3 to avoid too dark shades
     }
     return colors;
-  }
-
-  /**
-   * Tests if a given color is a shade of gray.
-   *
-   * @param color The Color to test.
-   * @return True if color is a shade of gray.
-   */
-  public static boolean isGray(Color color) {
-    // Gray when RGB components are identical
-    if (color.getBlue() == color.getGreen()) {
-      if (color.getBlue() == color.getRed()) {
-        return true;
-      }
-      return false;
-    }
-    return false;
   }
 }

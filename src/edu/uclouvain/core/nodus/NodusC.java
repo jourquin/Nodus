@@ -525,11 +525,14 @@ public class NodusC {
   /** Max batch size for SQL batches. */
   public static final String PROP_MAX_SQL_BATCH_SIZE = "maxSqlBatchSize";
 
+  /** Named color to use for a mode. */
+  public static final String PROP_MODE_COLOR = "color.mode";
+  
   /**
    * List of (space separated) DBF tables that must be imported with the project (OD tables for
    * instance).
    */
-  public static final String PROP_IMPORT_TABLES = "importTables";
+  public static final String PROP_IMPORT_TABLES = "import.tables";
 
   /** Name of the file that contains the settings of additional OpenMap layers. */
   public static final String PROP_OPENMAP_LAYERS = "openmap.layers";

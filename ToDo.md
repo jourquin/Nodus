@@ -7,9 +7,7 @@
 ## Exclusions
 - Test and validation
   
-# xchart
-- Set user defined color for modes and means
-
 # Diverse
 - Demo doc
 - test FW assignment (isWithFirstDFerivative)
+- Simplify Jung GUI?
