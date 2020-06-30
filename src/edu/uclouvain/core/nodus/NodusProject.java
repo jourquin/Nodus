@@ -40,6 +40,7 @@ import com.bbn.openmap.proj.ProjectionFactory;
 import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
+
 import edu.uclouvain.core.nodus.compute.exclusions.ExclusionReader;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
@@ -53,9 +54,12 @@ import edu.uclouvain.core.nodus.utils.CommentedProperties;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.NodusFileFilter;
 import edu.uclouvain.core.nodus.utils.ProjectLocker;
+
 import foxtrot.Job;
 import foxtrot.Worker;
+
 import groovy.lang.GroovyShell;
+
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Frame;
@@ -81,10 +85,14 @@ import java.util.Vector;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.SimpleFormatter;
+
 import javax.swing.JCheckBox;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+
 import org.codehaus.groovy.control.CompilationFailedException;
 
 /**
@@ -1521,8 +1529,14 @@ public class NodusProject implements ShapeConstants {
 
     } catch (Exception ex) {
       nodusMapPanel.setBusy(false);
-      JOptionPane.showMessageDialog(
-          null, ex.toString(), NodusC.APPNAME, JOptionPane.WARNING_MESSAGE);
+      SwingUtilities.invokeLater(
+          new Runnable() {
+            public void run() {
+              JOptionPane.showMessageDialog(
+                  null, ex.toString(), NodusC.APPNAME, JOptionPane.WARNING_MESSAGE);
+            }
+          });
+
       ProjectLocker.releaseLock();
       nodusMapPanel.getMenuFile().setEnabled(true);
       return;
@@ -1576,7 +1590,6 @@ public class NodusProject implements ShapeConstants {
     // Add the project's directory to classpath
     // oldClasspath = ClassPathHacker.getClassPath();
 
-    
     // Test if this project has valid virtual network tables
     if (!isValidVirtualNetworkVersion()) {
       nodusMapPanel.setBusy(false);
@@ -1868,7 +1881,7 @@ public class NodusProject implements ShapeConstants {
     // Restore the scale rendering threshold
     nodusMapPanel.setRenderingScaleThreshold(
         getLocalProperty(NodusC.PROP_RENDERING_SCALE_THRESHOLD, (float) -1));
-    
+
     // Verify if exclusion table is compatible with this version of Nodus
     ExclusionReader.fixExclusionTableIfNeeded(this);
 
@@ -1878,7 +1891,7 @@ public class NodusProject implements ShapeConstants {
     // Enable menus
     nodusMapPanel.getMenuFile().setEnabled(true);
     nodusMapPanel.getNodusLayersPanel().enableButtons(true);
-       
+
     // Initialize the user defined modal split methods for this project
     new ModalSplitMethodsLoader(projectPath);
 
@@ -1907,7 +1920,7 @@ public class NodusProject implements ShapeConstants {
         };
 
     thread.start();
-    
+
     nodusMapPanel.setBusy(false);
     isOpen = true;
   }
