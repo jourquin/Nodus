@@ -27,3 +27,8 @@ tr.2,4 = 0
 # Move.Mode,Means
 mv.2,2 = SmallBargeRatio*LENGTH/SPEED
 mv.2,4 = LENGTH/SPEED
+
+# Move.Mode,Means duration
+mv@2,2 = 3600*LENGTH/SPEED
+mv@2,4 = 3600*LENGTH/SPEED
+

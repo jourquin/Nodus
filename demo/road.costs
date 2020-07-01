@@ -14,3 +14,6 @@ tr.1,1 = 0
 
 # Move.Mode,Means  
 mv.1,1 = LENGTH/SPEED
+
+# Move.Mode,Means duration
+mv@1,1 = 3600*LENGTH/SPEED
