@@ -253,8 +253,8 @@ public class JDBCUtils {
    * Returns the ID of the DBMS.
    *
    * @param jdbcConnection A Connection to a database.
-   * @return The ID of the database. @Deprecated Use {@link JDBCUtils#setConnection()} and {@link
-   *     JDBCUtils#getDbEngine()}
+   * @return The ID of the database. @Deprecated Use {@link JDBCUtils#setConnection(Connection)} and
+   *     {@link JDBCUtils#getDbEngine()}
    */
   @Deprecated
   public static int getDbEngine(Connection jdbcConnection) {
@@ -327,8 +327,8 @@ public class JDBCUtils {
    * Returns the name of the DB engine.
    *
    * @param jdbcConnection A Connection to a database.
-   * @return The product name of the DBMS. @Deprecated Use {@link JDBCUtils#setConnection()} and
-   *     {@link JDBCUtils#getDbEngineName()}
+   * @return The product name of the DBMS. @Deprecated Use {@link
+   *     JDBCUtils#setConnection(Connection)} and {@link JDBCUtils#getDbEngineName()}
    */
   @Deprecated
   public static String getDbEngineName(Connection jdbcConnection) {
