@@ -8,6 +8,5 @@
 - Test and validation
   
 # Diverse
-- Demo doc
 - test FW assignment (isWithFirstDFerivative)
 -  Add vehicles for loading / unloading / transit ?
