@@ -47,6 +47,7 @@ import parsii.eval.Scope;
 import parsii.eval.Variable;
 import parsii.tokenizer.ParseException;
 
+// TODO : Add the cost functions for stops and switch. 
 /**
  * This cost parser is able to compute the cost of a virtual link given the cost functions written
  * in a "properties like" file. A cost parser is initialized for each group of commodities, OD class
@@ -116,7 +117,20 @@ import parsii.tokenizer.ParseException;
  * # new function for ld.4,1 for group 2 and scenario 3 <br>
  * 3.ld.4,1.2 = 135 <br>
  * <br>
- *
+ * # time/duration functions can also be defined using the same schema <br>
+ * # These functions are not mandatory, and, if used, they must not be defined <br>
+ * # for all the types of movements.  <br>
+ * # A time/duration function uses the '@' separator instead of a dot. <br>
+ * # Example : 'ld.4,1=' is a loading cost function, while 'ld@4,1=' is a loading <br>
+ * # duration function. <br>
+ * # The computed values are stored in the PATHxx_HEADER tables, meaning that <br>
+ * # 'save paths' must be checked for the assignment. <br>
+ * # <br>
+ * # For dynamic time dependent assignments, it is also possible to define specific <br>
+ * # functions for each time slice. Therefore, 'txx.', 'x' being the time slice must be added <br>
+ * # before de regular function.  <br>
+ * # Example = 't0.ld.4,1=' is a loading cost function for time slice 0. <br>
+ * <br>
  * @author Bart Jourquin
  */
 public class CostParser {
