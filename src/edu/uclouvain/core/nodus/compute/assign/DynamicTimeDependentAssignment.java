@@ -66,6 +66,8 @@ public class DynamicTimeDependentAssignment extends Assignment {
     if (costsContainDeprecatedDurations()) {
       return false;
     }
+    
+    byte scenario = assignmentParameters.getScenario();
 
     // Test if scenario already exists
     if (!VirtualNetworkWriter.acceptScenario(
@@ -166,7 +168,7 @@ public class DynamicTimeDependentAssignment extends Assignment {
         int threads = assignmentParameters.getThreads();
 
         // Compute costs
-        if (!virtualNet.computeCosts(0, odClass, currentTimeSlice, withPaths, threads)) {
+        if (!virtualNet.computeCosts(0, scenario, odClass, currentTimeSlice, withPaths, threads)) {
           return false;
         }
 
