@@ -268,7 +268,7 @@ public class NodusC {
   public static final String DBF_LDDURATION = "ldduration";
 
   /** Name of the unloading duration field in the database tables. */
-  public static final String DBF_ULDURATION = "uldurationt";
+  public static final String DBF_ULDURATION = "ulduration";
 
   /** Name of the transit cost field in the database tables. */
   public static final String DBF_TRDURATION = "trduration";

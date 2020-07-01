@@ -37,18 +37,9 @@ import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.control.CrossoverScalingControl;
 import edu.uci.ics.jung.visualization.control.DefaultModalGraphMouse;
-import edu.uci.ics.jung.visualization.control.LensMagnificationGraphMousePlugin;
 import edu.uci.ics.jung.visualization.control.ModalGraphMouse;
-import edu.uci.ics.jung.visualization.control.ModalLensGraphMouse;
 import edu.uci.ics.jung.visualization.control.ScalingControl;
 import edu.uci.ics.jung.visualization.renderers.Renderer;
-import edu.uci.ics.jung.visualization.transform.AbstractLensSupport;
-import edu.uci.ics.jung.visualization.transform.HyperbolicTransformer;
-import edu.uci.ics.jung.visualization.transform.LayoutLensSupport;
-import edu.uci.ics.jung.visualization.transform.MagnifyTransformer;
-import edu.uci.ics.jung.visualization.transform.shape.HyperbolicShapeTransformer;
-import edu.uci.ics.jung.visualization.transform.shape.MagnifyShapeTransformer;
-import edu.uci.ics.jung.visualization.transform.shape.ViewLensSupport;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
@@ -56,15 +47,12 @@ import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.GridLayout;
 import java.awt.Paint;
 import java.awt.Shape;
 import java.awt.Stroke;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
@@ -75,15 +63,12 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.StringTokenizer;
-import javax.swing.BorderFactory;
 import javax.swing.Box;
-import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
 
 /**
  * This dialog box displays a graphical representation of all the virtual links for a given real
@@ -116,24 +101,12 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
   /** The graph. */
   private Forest<String, String> graph;
 
-  /** provides a Hyperbolic lens for the model. */
-  private AbstractLensSupport<String, String> hyperbolicLayoutSupport;
-
-  /** provides a Hyperbolic lens for the view. */
-  private AbstractLensSupport<String, String> hyperbolicViewSupport;
-
   /** Display (or not) the virtual network for a real node or real link. */
   private boolean isNode;
 
   private int labelToDisplay = 0;
 
   private List<JungVirtualLink> linksList;
-
-  /** provides a magnification lens for the model. */
-  private AbstractLensSupport<String, String> magnifyLayoutSupport;
-
-  /** provides a magnification lens for the view. */
-  private AbstractLensSupport<String, String> magnifyViewSupport;
 
   private int nbLinksToDisplay;
 
@@ -337,17 +310,12 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
         }
       };
 
-  /** Assigns a color to a vertex, based on its type. */
+  /** Assigns a color to a vertex. */
   private Function<String, Paint> vertexPaint =
       new Function<String, Paint>() {
         @Override
         public Paint apply(String s) {
           return Color.LIGHT_GRAY;
-          /* if (s.startsWith("-")) {
-            return Color.RED;
-          } else {
-            return Color.BLUE;
-          }*/
         }
       };
 
@@ -768,59 +736,6 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
     visualizationViewer.setGraphMouse(graphMouse);
     visualizationViewer.addKeyListener(graphMouse.getModeKeyListener());
 
-    /*
-     * Lens support
-     */
-    hyperbolicViewSupport =
-        new ViewLensSupport<>(
-            visualizationViewer,
-            new HyperbolicShapeTransformer(
-                visualizationViewer,
-                visualizationViewer
-                    .getRenderContext()
-                    .getMultiLayerTransformer()
-                    .getTransformer(Layer.VIEW)),
-            new ModalLensGraphMouse());
-    hyperbolicLayoutSupport =
-        new LayoutLensSupport<>(
-            visualizationViewer,
-            new HyperbolicTransformer(
-                visualizationViewer,
-                visualizationViewer
-                    .getRenderContext()
-                    .getMultiLayerTransformer()
-                    .getTransformer(Layer.LAYOUT)),
-            new ModalLensGraphMouse());
-    magnifyViewSupport =
-        new ViewLensSupport<>(
-            visualizationViewer,
-            new MagnifyShapeTransformer(
-                visualizationViewer,
-                visualizationViewer
-                    .getRenderContext()
-                    .getMultiLayerTransformer()
-                    .getTransformer(Layer.VIEW)),
-            new ModalLensGraphMouse(new LensMagnificationGraphMousePlugin(1.f, 6.f, .2f)));
-    magnifyLayoutSupport =
-        new LayoutLensSupport<>(
-            visualizationViewer,
-            new MagnifyTransformer(
-                visualizationViewer,
-                visualizationViewer
-                    .getRenderContext()
-                    .getMultiLayerTransformer()
-                    .getTransformer(Layer.LAYOUT)),
-            new ModalLensGraphMouse(new LensMagnificationGraphMousePlugin(1.f, 6.f, .2f)));
-    hyperbolicLayoutSupport
-        .getLensTransformer()
-        .setLensShape(hyperbolicViewSupport.getLensTransformer().getLensShape());
-    magnifyViewSupport
-        .getLensTransformer()
-        .setLensShape(hyperbolicLayoutSupport.getLensTransformer().getLensShape());
-    magnifyLayoutSupport
-        .getLensTransformer()
-        .setLensShape(magnifyViewSupport.getLensTransformer().getLensShape());
-
     String[] labels = {
       i18n.get(VirtualNetworkGraphViewerDlg.class, "Label_Quantity", "Label : Quantity"),
       i18n.get(VirtualNetworkGraphViewerDlg.class, "Label_Vehicles", "Label : Vehicles"),
@@ -912,158 +827,27 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
           }
         });
 
-    JRadioButton normalGlass =
-        new JRadioButton(i18n.get(VirtualNetworkGraphViewerDlg.class, "None", "None"));
-    normalGlass.addItemListener(
-        new ItemListener() {
-          @Override
-          public void itemStateChanged(ItemEvent e) {
-            if (e.getStateChange() == ItemEvent.SELECTED) {
-              if (hyperbolicViewSupport != null) {
-                hyperbolicViewSupport.deactivate();
-              }
-              if (hyperbolicLayoutSupport != null) {
-                hyperbolicLayoutSupport.deactivate();
-              }
-              if (magnifyViewSupport != null) {
-                magnifyViewSupport.deactivate();
-              }
-              if (magnifyLayoutSupport != null) {
-                magnifyLayoutSupport.deactivate();
-              }
-            }
-          }
-        });
-
-    JRadioButton hyperViewGlass =
-        new JRadioButton(
-            i18n.get(VirtualNetworkGraphViewerDlg.class, "Hyperbolic_View", "Hyperbolic View"));
-    hyperViewGlass.addItemListener(
-        new ItemListener() {
-          @Override
-          public void itemStateChanged(ItemEvent e) {
-            hyperbolicViewSupport.activate(e.getStateChange() == ItemEvent.SELECTED);
-            hyperbolicViewSupport.getLens().setPaint(Color.LIGHT_GRAY);
-          }
-        });
-    JRadioButton hyperModelGlass =
-        new JRadioButton(
-            i18n.get(VirtualNetworkGraphViewerDlg.class, "Hyperbolic_Layout", "Hyperbolic Layout"));
-    hyperModelGlass.addItemListener(
-        new ItemListener() {
-          @Override
-          public void itemStateChanged(ItemEvent e) {
-            hyperbolicLayoutSupport.activate(e.getStateChange() == ItemEvent.SELECTED);
-            hyperbolicLayoutSupport.getLens().setPaint(Color.LIGHT_GRAY);
-          }
-        });
-    JRadioButton magnifyViewGlass =
-        new JRadioButton(
-            i18n.get(VirtualNetworkGraphViewerDlg.class, "Magnified_View", "Magnified View"));
-    magnifyViewGlass.addItemListener(
-        new ItemListener() {
-          @Override
-          public void itemStateChanged(ItemEvent e) {
-            magnifyViewSupport.activate(e.getStateChange() == ItemEvent.SELECTED);
-            magnifyViewSupport.getLens().setPaint(Color.LIGHT_GRAY);
-          }
-        });
-    JRadioButton magnifyModelGlass =
-        new JRadioButton(
-            i18n.get(VirtualNetworkGraphViewerDlg.class, "Magnified_Layout", "Magnified Layout"));
-    magnifyModelGlass.addItemListener(
-        new ItemListener() {
-          @Override
-          public void itemStateChanged(ItemEvent e) {
-            magnifyLayoutSupport.activate(e.getStateChange() == ItemEvent.SELECTED);
-            magnifyLayoutSupport.getLens().setPaint(Color.LIGHT_GRAY);
-          }
-        });
-
-    ButtonGroup magnifiersGroup = new ButtonGroup();
-    magnifiersGroup.add(normalGlass);
-    magnifiersGroup.add(hyperModelGlass);
-    magnifiersGroup.add(hyperViewGlass);
-    magnifiersGroup.add(magnifyModelGlass);
-    magnifiersGroup.add(magnifyViewGlass);
-    normalGlass.setSelected(true);
-
-    JButton resetButton =
-        new JButton(i18n.get(VirtualNetworkGraphViewerDlg.class, "Reset", "Reset"));
-    resetButton.addActionListener(
-        new ActionListener() {
-
-          @Override
-          public void actionPerformed(ActionEvent e) {
-            visualizationViewer
-                .getRenderContext()
-                .getMultiLayerTransformer()
-                .getTransformer(Layer.LAYOUT)
-                .setToIdentity();
-            visualizationViewer
-                .getRenderContext()
-                .getMultiLayerTransformer()
-                .getTransformer(Layer.VIEW)
-                .setToIdentity();
-          }
-        });
-
     closeButton = new JButton(i18n.get(VirtualNetworkGraphViewerDlg.class, "Close", "Close"));
     closeButton.addActionListener(
         new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
-            // dispose();
+
             setVisible(false);
           }
         });
 
-    graphMouse.addItemListener(hyperbolicLayoutSupport.getGraphMouse().getModeListener());
-    graphMouse.addItemListener(hyperbolicViewSupport.getGraphMouse().getModeListener());
-    graphMouse.addItemListener(magnifyLayoutSupport.getGraphMouse().getModeListener());
-    graphMouse.addItemListener(magnifyViewSupport.getGraphMouse().getModeListener());
-
-    int nbRows = 2;
-    if (isTimeDependent()) {
-      nbRows = 3;
-    }
-    JPanel scaleGrid = new JPanel(new GridLayout(nbRows, 1, 5, 5));
-    scaleGrid.add(plusButton);
-    scaleGrid.add(minusButton);
-    if (isTimeDependent()) {
-      scaleGrid.setBorder(
-          BorderFactory.createTitledBorder(
-              i18n.get(VirtualNetworkGraphViewerDlg.class, "Zoom_time", "Zoom & time")));
-      scaleGrid.add(timeComboBox);
-    } else {
-      scaleGrid.setBorder(
-          BorderFactory.createTitledBorder(
-              i18n.get(VirtualNetworkGraphViewerDlg.class, "Zoom", "Zoom")));
-    }
-
-    JPanel hyperControls = new JPanel(new GridLayout(3, 2));
-    hyperControls.setBorder(
-        BorderFactory.createTitledBorder(
-            i18n.get(VirtualNetworkGraphViewerDlg.class, "Examiner_Lens", "Examiner Lens")));
-    hyperControls.add(normalGlass);
-    hyperControls.add(labelComboBox);
-    hyperControls.add(hyperModelGlass);
-    hyperControls.add(magnifyModelGlass);
-    hyperControls.add(hyperViewGlass);
-    hyperControls.add(magnifyViewGlass);
-
-    JPanel modeBox = new JPanel(new GridLayout(3, 1, 5, 5));
-    modeBox.setBorder(
-        BorderFactory.createTitledBorder(
-            i18n.get(VirtualNetworkGraphViewerDlg.class, "Mode", "Mode")));
-    modeBox.add(modeComboBox);
-    modeBox.add(resetButton);
-    modeBox.add(closeButton);
-
     Box controls = Box.createHorizontalBox();
-    controls.add(scaleGrid);
-    controls.add(hyperControls);
-    controls.add(modeBox);
+
+    controls.add(plusButton);
+    controls.add(minusButton);
+    controls.add(labelComboBox);
+    if (isTimeDependent()) {
+      JLabel l = new JLabel(" " + i18n.get(VirtualNetworkGraphViewerDlg.class, "at", "at") + " ");
+      controls.add(l);
+      controls.add(timeComboBox);
+    }
+    controls.add(closeButton);
 
     content.add(controls, BorderLayout.SOUTH);
 
@@ -1252,10 +1036,4 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
         .getTransformer(Layer.LAYOUT)
         .rotate(-Math.PI / 2, center);
   }
-
-  /*  @Override
-  public void setVisible(boolean b) {
-   System.out.println("3");
-      super.setVisible(b);
-  }*/
 }

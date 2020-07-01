@@ -10,4 +10,4 @@
 # Diverse
 - Demo doc
 - test FW assignment (isWithFirstDFerivative)
-- Simplify Jung GUI?
+-  Add vehicles for loading / unloading / transit ?
