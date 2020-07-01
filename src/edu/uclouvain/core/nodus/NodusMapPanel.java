@@ -115,6 +115,7 @@ import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.GraphicsEnvironment;
 import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Paint;
@@ -143,6 +144,7 @@ import java.util.LinkedList;
 import java.util.Properties;
 import java.util.Vector;
 import javax.swing.BorderFactory;
+import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
@@ -153,6 +155,7 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JSeparator;
 import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
@@ -1734,23 +1737,69 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     resetMap();
     displayPoliticalBoundaries(true, true);
 
-    // Add a combo to the tool panel that allows to choose a scenario
-    scenarioLabel = new JLabel(i18n.get(NodusMapPanel.class, "Scenario", "Scenario"));
+    JButton fakeButton = new JButton();
+    JLabel fakeLabel = new JLabel();
+    fakeLabel.setPreferredSize(new Dimension(50, fakeButton.getPreferredSize().height));
     toolPanel.add(
-        scenarioLabel,
+        fakeLabel,
         new GridBagConstraints(
-            9, 0, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER, 0, new Insets(0, 200, 0, 0), 0, 0));
-    scenarioComboBox = new JComboBox<>();
-    toolPanel.add(
-        scenarioComboBox,
-        new GridBagConstraints(
-            10,
+            2,
             0,
             1,
             1,
-            100,
-            100,
+            1.0,
+            1.0,
             GridBagConstraints.CENTER,
+            GridBagConstraints.HORIZONTAL,
+            new Insets(0, 0, 0, 0),
+            0,
+            0));
+    JPanel scenarioPanel = new JPanel(new GridBagLayout());
+
+    scenarioLabel = new JLabel(i18n.get(NodusMapPanel.class, "Scenario", "Scenario"));
+
+    scenarioPanel.add(
+        scenarioLabel,
+        new GridBagConstraints(
+            1,
+            0,
+            1,
+            1,
+            1.0,
+            1.0,
+            GridBagConstraints.CENTER,
+            GridBagConstraints.HORIZONTAL,
+            new Insets(0, 0, 0, 0),
+            0,
+            0));
+
+    scenarioComboBox = new JComboBox<>();
+
+    scenarioPanel.add(
+        scenarioComboBox,
+        new GridBagConstraints(
+            2,
+            0,
+            1,
+            1,
+            50.0,
+            50.0,
+            GridBagConstraints.CENTER,
+            GridBagConstraints.BOTH,
+            new Insets(0, 0, 0, 0),
+            0,
+            0));
+
+    toolPanel.add(
+        scenarioPanel,
+        new GridBagConstraints(
+            3,
+            0,
+            1,
+            1,
+            100.0,
+            100.0,
+            GridBagConstraints.EAST,
             GridBagConstraints.HORIZONTAL,
             new Insets(0, 0, 0, 0),
             0,

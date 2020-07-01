@@ -42,8 +42,6 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.InputMap;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.text.DefaultEditorKit;
@@ -58,6 +56,7 @@ import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
  * @author Bart Jourquin
  */
 public class Nodus7 {
+
   /* Nodus icon */
   private static Image icn =
       Toolkit.getDefaultToolkit().createImage(Nodus7.class.getResource("nodus7.png"));
@@ -75,7 +74,7 @@ public class Nodus7 {
   static final long serialVersionUID = -7812175433457058853L;
 
   /* Application MapPanel */
-  private NodusMapPanel nodusMapPanel;
+  private static NodusMapPanel nodusMapPanel;
 
   /**
    * Main entry point of the java application. Initializes a new MapBean after having read the saved
@@ -116,46 +115,7 @@ public class Nodus7 {
 
     setLookAndFeel();
 
-    // Improve Mac OS experience
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
-      // Set icon in Mac OS Dock
-      GUIUtils.setMacOSDockImage(icn);
-
-      if (UIManager.getLookAndFeel().isNativeLookAndFeel()) {
-        // use the mac system menu bar
-        System.setProperty("apple.laf.useScreenMenuBar", "true");
-
-        // set the "About" menu item name
-        System.setProperty("com.apple.mrj.application.apple.menu.about.name", NodusC.APPNAME);
-      }
-
-      // use smoother fonts
-      System.setProperty("apple.awt.textantialiasing", "true");
-
-      // Be sure cmd key is used instead of ctrl in some controls for copy and paste
-      InputMap im;
-      final String[] componentName = {
-        "TextField", "TextArea", "TextPane", "EditorPane", "FormattedTextField"
-      };
-
-      for (int i = 0; i < componentName.length; i++) {
-        im = (InputMap) UIManager.get(componentName[i] + ".focusInputMap");
-        if (im != null) {
-          im.put(
-              KeyStroke.getKeyStroke(KeyEvent.VK_C, KeyEvent.META_DOWN_MASK),
-              DefaultEditorKit.copyAction);
-          im.put(
-              KeyStroke.getKeyStroke(KeyEvent.VK_V, KeyEvent.META_DOWN_MASK),
-              DefaultEditorKit.pasteAction);
-          im.put(
-              KeyStroke.getKeyStroke(KeyEvent.VK_X, KeyEvent.META_DOWN_MASK),
-              DefaultEditorKit.cutAction);
-        }
-      }
-
-      // Try to improve hardware acceleration
-      System.setProperty("apple.awt.graphics.EnableQ2DX", "true");
-
       // If the app is launched without argument, a "-psn_xxx" argument seems to appear
       // In this case, ignore the argument
       if (args.length > 0) {
@@ -273,8 +233,8 @@ public class Nodus7 {
         });
   }
 
-  /** Sets the Look and Feel to the system defaulr, but to Nimbus for Linux. */
-  private static void setLookAndFeel() {
+  /** Sets the Look and Feel to the system default, but to Nimbus for Linux. */
+  public static void setLookAndFeel() {
 
     // Set Look & Feel (default to system l&f, but Nimbus for Linux)
     String lookAndFeel = null;
@@ -283,13 +243,51 @@ public class Nodus7 {
       lookAndFeel = UIManager.getSystemLookAndFeelClassName();
     }
 
-    JFrame.setDefaultLookAndFeelDecorated(true);
-    JDialog.setDefaultLookAndFeelDecorated(true);
+    // JFrame.setDefaultLookAndFeelDecorated(true);
+    // JDialog.setDefaultLookAndFeelDecorated(true);
 
     try {
       UIManager.setLookAndFeel(lookAndFeel);
     } catch (Exception ex) {
       ex.printStackTrace();
+    }
+
+    // Improve Mac OS experience
+    if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
+      // Set icon in Mac OS Dock
+      GUIUtils.setMacOSDockImage(icn);
+
+      if (UIManager.getLookAndFeel().isNativeLookAndFeel()) {
+        // use the mac system menu bar
+        System.setProperty("apple.laf.useScreenMenuBar", "true");
+
+        // set the "About" menu item name
+        System.setProperty("com.apple.mrj.application.apple.menu.about.name", NodusC.APPNAME);
+      }
+
+      // use smoother fonts
+      System.setProperty("apple.awt.textantialiasing", "true");
+
+      // Be sure cmd key is used instead of ctrl in some controls for copy and paste
+      InputMap im;
+      final String[] componentName = {
+        "TextField", "TextArea", "TextPane", "EditorPane", "FormattedTextField"
+      };
+
+      for (int i = 0; i < componentName.length; i++) {
+        im = (InputMap) UIManager.get(componentName[i] + ".focusInputMap");
+        if (im != null) {
+          im.put(
+              KeyStroke.getKeyStroke(KeyEvent.VK_C, KeyEvent.META_DOWN_MASK),
+              DefaultEditorKit.copyAction);
+          im.put(
+              KeyStroke.getKeyStroke(KeyEvent.VK_V, KeyEvent.META_DOWN_MASK),
+              DefaultEditorKit.pasteAction);
+          im.put(
+              KeyStroke.getKeyStroke(KeyEvent.VK_X, KeyEvent.META_DOWN_MASK),
+              DefaultEditorKit.cutAction);
+        }
+      }
     }
   }
 

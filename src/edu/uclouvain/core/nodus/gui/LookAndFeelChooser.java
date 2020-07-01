@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.gui;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
+import edu.uclouvain.core.nodus.Nodus7;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
@@ -42,9 +43,9 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.LookAndFeel;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
@@ -331,27 +332,16 @@ public class LookAndFeelChooser extends EscapeDialog {
 
     // Which L&F is chosen?
     int n = availableLookAndFeelsComboBox.getSelectedIndex();
-   
+
     setVisible(false);
 
     // Save look and feel
     if (n != -1 && !currentLookAndFeelName.equals(info[n].getClassName())) {
-      try {
-        properties.setProperty(NodusC.PROP_LOOK_AND_FEEL, info[n].getClassName());
-        
-        JOptionPane.showMessageDialog(
-            nodusMapPanel,
-            i18n.get(
-                LookAndFeelChooser.class,
-                "Decorations_will_be_applied_at_next_restart",
-                "Decorations will be applied at next restart"),
-            NodusC.APPNAME,
-            JOptionPane.INFORMATION_MESSAGE);
+      properties.setProperty(NodusC.PROP_LOOK_AND_FEEL, info[n].getClassName());
 
-      } catch (Exception ex) {
-        JOptionPane.showMessageDialog(
-            nodusMapPanel, ex.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-      }
+      Nodus7.setLookAndFeel();
+
+      SwingUtilities.updateComponentTreeUI(nodusMapPanel.getMainFrame());
     }
   }
 }
