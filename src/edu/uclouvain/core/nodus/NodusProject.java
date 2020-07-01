@@ -446,7 +446,10 @@ public class NodusProject implements ShapeConstants {
         } catch (Exception e) {
           e.printStackTrace();
         }
-
+        
+        // Reset JDBCUtils
+        JDBCUtils.setConnection(null);
+        
         // Save time stamps of dbf files
         for (NodusEsriLayer nodeLayer : nodeLayers) {
           String key = nodeLayer.getTableName() + NodusC.PROP_DOTLASTMODIFIED;
@@ -1541,7 +1544,7 @@ public class NodusProject implements ShapeConstants {
 
     // Initialize JDBCUtils
     JDBCUtils.setConnection(jdbcConnection);
-
+    
     // Set some defaults for HSQLDB 2.1
     if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB) {
       try {
@@ -1574,6 +1577,9 @@ public class NodusProject implements ShapeConstants {
       }
     }
 
+
+
+    
     // Open the log file for this project
     try {
       loggerHandler = new FileHandler(projectPath + "nodus.log", true);

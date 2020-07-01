@@ -626,6 +626,10 @@ public class JDBCUtils {
    */
   public static boolean setConnection(Connection con) {
     jdbcConnection = con;
+    if (con == null) {
+      tableList = null;
+      return true;
+    }
     dbEngine = getDbEngine();
     try {
       dmd = jdbcConnection.getMetaData();
