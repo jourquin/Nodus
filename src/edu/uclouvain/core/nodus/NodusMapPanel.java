@@ -701,7 +701,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** Creates the action listeners to add to the menu items. */
   private void createMenuActionListeners() {
-    menuItemFileOpen.setText(i18n.get(NodusMapPanel.class, "Open_project", "Open project"));
+    // menuItemFileOpen.setText(i18n.get(NodusMapPanel.class, "Open_project", "Open project"));
     menuItemFileOpen.setAccelerator(
         KeyStroke.getKeyStroke(
             KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -713,8 +713,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemSystemProperties.setText(
-        i18n.get(NodusMapPanel.class, "Open_preferences", "Global preferences"));
+    // menuItemSystemProperties.setText(
+    //    i18n.get(NodusMapPanel.class, "Open_preferences", "Global preferences"));
     menuItemSystemProperties.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -724,7 +724,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         });
 
     menuItemFileSave.setEnabled(false);
-    menuItemFileSave.setText(i18n.get(NodusMapPanel.class, "Save_project", "Save project"));
+    // menuItemFileSave.setText(i18n.get(NodusMapPanel.class, "Save_project", "Save project"));
     menuItemFileSave.setAccelerator(
         KeyStroke.getKeyStroke(
             KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -737,7 +737,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         });
 
     menuItemFileClose.setEnabled(false);
-    menuItemFileClose.setText(i18n.get(NodusMapPanel.class, "Close_project", "Close project"));
+    // menuItemFileClose.setText(i18n.get(NodusMapPanel.class, "Close_project", "Close project"));
     menuItemFileClose.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -746,7 +746,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemFilePrint.setText(i18n.get(NodusMapPanel.class, "Print", "Print"));
+    // menuItemFilePrint.setText(i18n.get(NodusMapPanel.class, "Print", "Print"));
     menuItemFilePrint.setAccelerator(
         KeyStroke.getKeyStroke(
             KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -759,7 +759,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemFileExit.setText(i18n.get(NodusMapPanel.class, "Exit", "Exit"));
+    // menuItemFileExit.setText(i18n.get(NodusMapPanel.class, "Exit", "Exit"));
     menuItemFileExit.setAccelerator(
         KeyStroke.getKeyStroke(
             KeyEvent.VK_Q, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -771,7 +771,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemProjectAssignment.setText(i18n.get(NodusMapPanel.class, "Assignment", "Assignment"));
+    // menuItemProjectAssignment.setText(i18n.get(NodusMapPanel.class, "Assignment", "Assignment"));
     menuItemProjectAssignment.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, 0));
     menuItemProjectAssignment.addActionListener(
@@ -782,7 +782,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemProjectSQLConsole.setText(i18n.get(NodusMapPanel.class, "SQL_Console", "SQL Console"));
+    // menuItemProjectSQLConsole.setText(i18n.get(NodusMapPanel.class, "SQL_Console", "SQL
+    // Console"));
     menuItemProjectSQLConsole.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F7, 0));
     menuItemProjectSQLConsole.addActionListener(
@@ -793,8 +794,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemProjectDisplayResults.setText(
-        i18n.get(NodusMapPanel.class, "Display_results", "Display results"));
+    // menuItemProjectDisplayResults.setText(
+    //    i18n.get(NodusMapPanel.class, "Display_results", "Display results"));
     menuItemProjectDisplayResults.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, 0));
     menuItemProjectDisplayResults.addActionListener(
@@ -805,7 +806,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemProjectScenarios.setText(i18n.get(NodusMapPanel.class, "Scenarios", "Scenarios"));
+    // menuItemProjectScenarios.setText(i18n.get(NodusMapPanel.class, "Scenarios", "Scenarios"));
     menuItemProjectScenarios.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F6, 0));
     menuItemProjectScenarios.addActionListener(
@@ -816,8 +817,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemProjectCosts.setText(
-        i18n.get(NodusMapPanel.class, "Edit_cost_functions", "Edit cost functions"));
+    // menuItemProjectCosts.setText(
+    //    i18n.get(NodusMapPanel.class, "Edit_cost_functions", "Edit cost functions"));
     menuItemProjectCosts.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F2, 0));
     menuItemProjectCosts.addActionListener(
         new java.awt.event.ActionListener() {
@@ -827,8 +828,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemProjectServices.setText(
-        i18n.get(NodusMapPanel.class, "Edit_services", "Edit services"));
+    // menuItemProjectServices.setText(
+    //    i18n.get(NodusMapPanel.class, "Edit_services", "Edit services"));
     menuItemProjectServices.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F3, 0));
 
@@ -840,8 +841,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemProjectPreferences.setText(
-        i18n.get(NodusMapPanel.class, "Project_preferences", "Project preferences"));
+    // menuItemProjectPreferences.setText(
+    //    i18n.get(NodusMapPanel.class, "Project_preferences", "Project preferences"));
 
     menuItemProjectPreferences.addActionListener(
         new java.awt.event.ActionListener() {
@@ -851,7 +852,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemToolLookAndFeel.setText(i18n.get(NodusMapPanel.class, "Look_&_Feel", "Look & Feel"));
+    // menuItemToolLookAndFeel.setText(i18n.get(NodusMapPanel.class, "Look_&_Feel", "Look & Feel"));
 
     menuItemToolLookAndFeel.addActionListener(
         new java.awt.event.ActionListener() {
@@ -861,7 +862,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemToolLanguage.setText(i18n.get(NodusMapPanel.class, "Language", "Language"));
+    // menuItemToolLanguage.setText(i18n.get(NodusMapPanel.class, "Language", "Language"));
 
     menuItemToolLanguage.addActionListener(
         new java.awt.event.ActionListener() {
@@ -871,7 +872,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemToolConsole.setText(i18n.get(NodusMapPanel.class, "Console", "Console"));
+    // menuItemToolConsole.setText(i18n.get(NodusMapPanel.class, "Console", "Console"));
     menuItemToolConsole.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -885,8 +886,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemToolGroovyScripts.setText(
-        i18n.get(NodusMapPanel.class, "Groovy_scripts", "Groovy scripts"));
+    // menuItemToolGroovyScripts.setText(
+    //    i18n.get(NodusMapPanel.class, "Groovy_scripts", "Groovy scripts"));
 
     menuItemToolGroovyScripts.addActionListener(
         new java.awt.event.ActionListener() {
@@ -896,8 +897,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemToolRessourcesMonitor.setText(
-        i18n.get(NodusMapPanel.class, "Resources_monitor", "Resources monitor"));
+    // menuItemToolRessourcesMonitor.setText(
+    //    i18n.get(NodusMapPanel.class, "Resources_monitor", "Resources monitor"));
 
     menuItemToolRessourcesMonitor.addActionListener(
         new java.awt.event.ActionListener() {
@@ -922,7 +923,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemHelpAbout.setText(i18n.get(NodusMapPanel.class, "About", "About"));
+    // menuItemHelpAbout.setText(i18n.get(NodusMapPanel.class, "About", "About"));
     menuItemHelpAbout.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -931,8 +932,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemControlBackground.setText(
-        i18n.get(NodusMapPanel.class, "Set_Background_color", "Set Background color"));
+    // menuItemControlBackground.setText(
+    //    i18n.get(NodusMapPanel.class, "Set_Background_color", "Set Background color"));
 
     menuItemControlBackground.addActionListener(
         new java.awt.event.ActionListener() {
@@ -942,8 +943,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemControlToolpanel.setText(
-        i18n.get(NodusMapPanel.class, "Hide_Tool_Panel", "Hide Tool Panel"));
+    // menuItemControlToolpanel.setText(
+    //    i18n.get(NodusMapPanel.class, "Hide_Tool_Panel", "Hide Tool Panel"));
 
     menuItemControlToolpanel.addActionListener(
         new java.awt.event.ActionListener() {
@@ -953,8 +954,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemControlControlpanel.setText(
-        i18n.get(NodusMapPanel.class, "Hide Control Panel", "Hide Control Panel"));
+    // menuItemControlControlpanel.setText(
+    //    i18n.get(NodusMapPanel.class, "Hide Control Panel", "Hide Control Panel"));
 
     menuItemControlControlpanel.addActionListener(
         new java.awt.event.ActionListener() {
@@ -964,8 +965,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemControlLoadLayers.setText(
-        i18n.get(NodusMapPanel.class, "Add_OpenMap_layers", "Add OpenMap layers"));
+    // menuItemControlLoadLayers.setText(
+    //    i18n.get(NodusMapPanel.class, "Add_OpenMap_layers", "Add OpenMap layers"));
 
     menuItemControlLoadLayers.addActionListener(
         new java.awt.event.ActionListener() {
@@ -1864,9 +1865,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Create the menus. */
   private void initMenus() {
     // Initialize the action listeners
+    setMenuItemsText();
     createMenuActionListeners();
 
-    menuFile.setText(i18n.get(NodusMapPanel.class, "File", "File"));
+    setMenusText();
+
+    // menuFile.setText(i18n.get(NodusMapPanel.class, "File", "File"));
 
     menuItemFileSaveMapAsGIF = new NodusSaveAsImageMenuItem("GIF", new AcmeGifFormatter());
 
@@ -1875,16 +1879,16 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     jpegFormatter.setImageQuality(NodusC.JPEG_QUALITY);
     menuItemFileSaveMapAsJPEG = new NodusSaveAsImageMenuItem("JPEG", jpegFormatter);
 
-    menuProject.setText(i18n.get(NodusMapPanel.class, "Project", "Project"));
+    // menuProject.setText(i18n.get(NodusMapPanel.class, "Project", "Project"));
 
     menuProject.setEnabled(false);
 
-    menuTools.setText(i18n.get(NodusMapPanel.class, "Tools", "Tools"));
+    // menuTools.setText(i18n.get(NodusMapPanel.class, "Tools", "Tools"));
 
-    menuHelp.setText(i18n.get(NodusMapPanel.class, "Help", "Help"));
+    // menuHelp.setText(i18n.get(NodusMapPanel.class, "Help", "Help"));
 
     menuItemFileSaveAs.setEnabled(false);
-    menuItemFileSaveAs.setText(i18n.get(NodusMapPanel.class, "Save_as_", "Save as..."));
+    // menuItemFileSaveAs.setText(i18n.get(NodusMapPanel.class, "Save_as_", "Save as..."));
 
     menuItemFileSaveMapAsGIF.setText("GIF");
     menuItemFileSaveMapAsGIF.setMapHandler(getMapHandler());
@@ -1898,7 +1902,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     menuItemFileSaveMapAsPNG.setMapHandler(getMapHandler());
     menuItemFileSaveAs.add(menuItemFileSaveMapAsPNG);
 
-    menuControl.setText(i18n.get(NodusMapPanel.class, "Control", "Control"));
+    // menuControl.setText(i18n.get(NodusMapPanel.class, "Control", "Control"));
 
     menuControl.setEnabled(false);
 
@@ -2925,6 +2929,79 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
   }
 
+  private void setMenusText() {
+    menuFile.setText(i18n.get(NodusMapPanel.class, "File", "File"));
+
+    menuProject.setText(i18n.get(NodusMapPanel.class, "Project", "Project"));
+
+    menuTools.setText(i18n.get(NodusMapPanel.class, "Tools", "Tools"));
+
+    menuHelp.setText(i18n.get(NodusMapPanel.class, "Help", "Help"));
+
+    menuItemFileSaveAs.setText(i18n.get(NodusMapPanel.class, "Save_as_", "Save as..."));
+
+    menuControl.setText(i18n.get(NodusMapPanel.class, "Control", "Control"));
+  }
+
+  private void setMenuItemsText() {
+    menuItemFileOpen.setText(i18n.get(NodusMapPanel.class, "Open_project", "Open project"));
+
+    menuItemSystemProperties.setText(
+        i18n.get(NodusMapPanel.class, "Open_preferences", "Global preferences"));
+
+    menuItemFileSave.setText(i18n.get(NodusMapPanel.class, "Save_project", "Save project"));
+
+    menuItemFileClose.setText(i18n.get(NodusMapPanel.class, "Close_project", "Close project"));
+
+    menuItemFilePrint.setText(i18n.get(NodusMapPanel.class, "Print", "Print"));
+
+    menuItemFileExit.setText(i18n.get(NodusMapPanel.class, "Exit", "Exit"));
+
+    menuItemProjectAssignment.setText(i18n.get(NodusMapPanel.class, "Assignment", "Assignment"));
+
+    menuItemProjectSQLConsole.setText(i18n.get(NodusMapPanel.class, "SQL_Console", "SQL Console"));
+
+    menuItemProjectDisplayResults.setText(
+        i18n.get(NodusMapPanel.class, "Display_results", "Display results"));
+
+    menuItemProjectScenarios.setText(i18n.get(NodusMapPanel.class, "Scenarios", "Scenarios"));
+
+    menuItemProjectCosts.setText(
+        i18n.get(NodusMapPanel.class, "Edit_cost_functions", "Edit cost functions"));
+
+    menuItemProjectServices.setText(
+        i18n.get(NodusMapPanel.class, "Edit_services", "Edit services"));
+
+    menuItemProjectPreferences.setText(
+        i18n.get(NodusMapPanel.class, "Project_preferences", "Project preferences"));
+
+    menuItemToolLookAndFeel.setText(i18n.get(NodusMapPanel.class, "Look_&_Feel", "Look & Feel"));
+
+    menuItemToolLanguage.setText(i18n.get(NodusMapPanel.class, "Language", "Language"));
+
+    menuItemToolConsole.setText(i18n.get(NodusMapPanel.class, "Console", "Console"));
+
+    menuItemToolGroovyScripts.setText(
+        i18n.get(NodusMapPanel.class, "Groovy_scripts", "Groovy scripts"));
+
+    menuItemToolRessourcesMonitor.setText(
+        i18n.get(NodusMapPanel.class, "Resources_monitor", "Resources monitor"));
+
+    menuItemHelpAbout.setText(i18n.get(NodusMapPanel.class, "About", "About"));
+
+    menuItemControlBackground.setText(
+        i18n.get(NodusMapPanel.class, "Set_Background_color", "Set Background color"));
+
+    menuItemControlToolpanel.setText(
+        i18n.get(NodusMapPanel.class, "Hide_Tool_Panel", "Hide Tool Panel"));
+
+    menuItemControlControlpanel.setText(
+        i18n.get(NodusMapPanel.class, "Hide Control Panel", "Hide Control Panel"));
+
+    menuItemControlLoadLayers.setText(
+        i18n.get(NodusMapPanel.class, "Add_OpenMap_layers", "Add OpenMap layers"));
+  }
+
   /**
    * When double-clicking on the "scale" component of the control panel, a scale threshold can be
    * set. When the zoom level results is a lower scale, the nodes and links styles are rendered.
@@ -3006,6 +3083,16 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     taskLength = 0;
     currentTask = 0;
     setBusy(false);
+  }
+
+  /**
+   * Update menu an other component texts. Must be called when tha applivation Locale is changed.
+   */
+  public void updateComponentsText() {
+    setMenusText();
+    setMenuItemsText();
+
+    scenarioLabel.setText(i18n.get(NodusMapPanel.class, "Scenario", "Scenario"));
   }
 
   /**

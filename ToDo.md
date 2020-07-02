@@ -7,3 +7,4 @@
 - test FW assignment (isWithFirstDFerivative)
 -  Add vehicles for loading / unloading / transit ?
 - Change language without restart ?
+- Test plaf on Win and Linux

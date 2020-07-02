@@ -167,6 +167,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Add the possibility to specify the color to use for each mode in the pie diagrams in the project file.
     - Simplify virtual network visualizer GUI.
     - Allow PLAF change without restarting Nodus.
+    - (Partially) language (Locale) change without restarting Nodus.
 
 - Breaking changes:
     - Simplify the API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 

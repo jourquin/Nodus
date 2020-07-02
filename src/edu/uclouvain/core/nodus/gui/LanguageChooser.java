@@ -372,10 +372,13 @@ public class LanguageChooser extends EscapeDialog {
             i18n.get(
                 LanguageChooser.class,
                 "New_language_will_be_applied_at_next_restart",
-                "New language will be applied at next restart"),
+                "New language will be completely applied at next restart"),
             NodusC.APPNAME,
             JOptionPane.INFORMATION_MESSAGE);
-        properties.setProperty(NodusC.PROP_LOCALE, availableLocales[selectedIndex]);
+        String locale = availableLocales[selectedIndex];
+        properties.setProperty(NodusC.PROP_LOCALE, locale);
+        Locale.setDefault(new Locale(locale.toLowerCase(), locale.toUpperCase()));
+        nodusMapPanel.updateComponentsText();
       }
     }
   }
