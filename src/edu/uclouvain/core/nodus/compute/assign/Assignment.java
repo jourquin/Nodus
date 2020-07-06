@@ -32,7 +32,9 @@ import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
 import groovy.lang.GroovyShell;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -313,12 +315,41 @@ public abstract class Assignment implements Runnable {
         Path path = Paths.get(costFunctionsFileName);
         Charset charset = StandardCharsets.UTF_8;
 
+        boolean[][] availableModeMeans = new boolean[NodusC.MAXMM][NodusC.MAXMM];
+
         try {
           String content = new String(Files.readAllBytes(path), charset);
           content = content.replaceAll("LD_DURATION.", "ld@");
           content = content.replaceAll("UL_DURATION.", "ul@");
           content = content.replaceAll("TP_DURATION.", "tp@");
+
+          for (int mode = 0; mode < NodusC.MAXMM; mode++) {
+            for (int means = 0; means < NodusC.MAXMM; means++) {
+              String key = "mv." + mode + "," + means;
+              if (content.contains(key)) {
+                availableModeMeans[mode][means] = true;
+              }
+            }
+          }
+
           Files.write(path, content.getBytes(charset));
+
+          // Add the default moving durations for available mode-means
+          // expressed in seconds, as in Nodus <= 7.2
+          BufferedWriter output = new BufferedWriter(new FileWriter(costFunctionsFileName, true));
+          for (int mode = 0; mode < NodusC.MAXMM; mode++) {
+            for (int means = 0; means < NodusC.MAXMM; means++) {
+              if (availableModeMeans[mode][means]) {
+                String newFunction = "mv@" + mode + "," + means + " = 3600*LENGTH/SPEED";
+                if ((!content.contains(newFunction))) {
+                  output.append(newFunction);
+                  output.newLine();
+                }
+              }
+            }
+          }
+          output.close();
+
         } catch (IOException e) {
           e.printStackTrace();
           return true;
