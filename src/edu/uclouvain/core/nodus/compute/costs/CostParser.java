@@ -47,7 +47,7 @@ import parsii.eval.Scope;
 import parsii.eval.Variable;
 import parsii.tokenizer.ParseException;
 
-// TODO : Add the cost functions for stops and switch. 
+// TODO : Add the cost functions for stops and switch.
 /**
  * This cost parser is able to compute the cost of a virtual link given the cost functions written
  * in a "properties like" file. A cost parser is initialized for each group of commodities, OD class
@@ -119,7 +119,7 @@ import parsii.tokenizer.ParseException;
  * <br>
  * # time/duration functions can also be defined using the same schema <br>
  * # These functions are not mandatory, and, if used, they must not be defined <br>
- * # for all the types of movements.  <br>
+ * # for all the types of movements. <br>
  * # A time/duration function uses the '@' separator instead of a dot. <br>
  * # Example : 'ld.4,1=' is a loading cost function, while 'ld@4,1=' is a loading <br>
  * # duration function. <br>
@@ -128,9 +128,13 @@ import parsii.tokenizer.ParseException;
  * # <br>
  * # For dynamic time dependent assignments, it is also possible to define specific <br>
  * # functions for each time slice. Therefore, 'txx.', 'x' being the time slice must be added <br>
- * # before de regular function.  <br>
+ * # before de regular function. <br>
  * # Example = 't0.ld.4,1=' is a loading cost function for time slice 0. <br>
  * <br>
+ * # Since Nodus 7.3 it is also possible to set non numeric variables, which names must start with a
+ * '@'. 
+ * <br>
+ *
  * @author Bart Jourquin
  */
 public class CostParser {
@@ -721,6 +725,11 @@ public class CostParser {
     for (; enumerator.hasMoreElements(); ) {
       // Get property name
       String propName = (String) enumerator.nextElement();
+
+      // Non numeric variables can be set with a '@' prefix
+      if (propName.startsWith("@")) {
+        continue;
+      }
 
       // Must be a variable
       // TODO Allow scenario/group/class specific variables without a need to define the generic one

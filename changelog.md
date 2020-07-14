@@ -168,6 +168,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Simplify virtual network visualizer GUI.
     - Allow PLAF change without restarting Nodus.
     - (Partially) language (Locale) change without restarting Nodus.
+    - Allow non numerical variables in the costs functions files. The names of these variables must start with a '@'.
 
 - Breaking changes:
     - Simplify the API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 
