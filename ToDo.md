@@ -7,4 +7,3 @@
 - test FW assignment (isWithFirstDFerivative)
 - Add vehicles for loading / unloading / transit ?
 - Change language without restart ?
-- Add default moving time when no time functions are defined for backward compatibility

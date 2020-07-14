@@ -83,6 +83,8 @@ public class PathWriter {
 
   private boolean canceled = false;
 
+  private boolean hasDurationFunctions = false;
+
   /**
    * Initializes the different tables needed to store the paths.
    *
@@ -94,6 +96,7 @@ public class PathWriter {
     scenario = assignmentParameters.getScenario();
     savePaths = assignmentParameters.isSavePaths();
     saveDetailedPaths = assignmentParameters.isDetailedPaths();
+    hasDurationFunctions = assignmentParameters.hasDurationFunctions();
 
     if (!savePaths) {
       saveDetailedPaths = false;
@@ -288,7 +291,7 @@ public class PathWriter {
     fields[idx++] = new JDBCField(NodusC.DBF_ITERATION, "NUMERIC(3)");
     fields[idx++] = new JDBCField(NodusC.DBF_QUANTITY, "NUMERIC(13,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_LENGTH, "NUMERIC(8,3)");
-   
+
     fields[idx++] = new JDBCField(NodusC.DBF_LDCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_ULCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_TRCOST, "NUMERIC(10,3)");
@@ -296,7 +299,7 @@ public class PathWriter {
     fields[idx++] = new JDBCField(NodusC.DBF_STPCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_SWCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_MVCOST, "NUMERIC(10,3)");
-   
+
     fields[idx++] = new JDBCField(NodusC.DBF_LDDURATION, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_ULDURATION, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_TRDURATION, "NUMERIC(10,3)");
@@ -304,7 +307,7 @@ public class PathWriter {
     fields[idx++] = new JDBCField(NodusC.DBF_STPDURATION, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_SWDURATION, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_MVDURATION, "NUMERIC(10,3)");
-    
+
     fields[idx++] = new JDBCField(NodusC.DBF_LDMODE, "NUMERIC(2)");
     fields[idx++] = new JDBCField(NodusC.DBF_LDMEANS, "NUMERIC(2)");
     fields[idx++] = new JDBCField(NodusC.DBF_ULMODE, "NUMERIC(2)");
@@ -481,6 +484,11 @@ public class PathWriter {
 
     if (canceled) {
       return false;
+    }
+
+    // For backward compatibility with assignments from Nodus < 7.3
+    if (!hasDurationFunctions) {
+      detailedCosts.mvDuration = Math.round(detailedCosts.mvDuration);
     }
 
     if (Double.isNaN(quantity)) {
