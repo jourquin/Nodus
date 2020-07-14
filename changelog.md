@@ -132,7 +132,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
 
 ## v7.3 - BuildXXXXXXXX
 
-- New functionalities : 
+- New functionalities: 
     - Make exclusions "direction sensitive". This allows excluding loading operations for a mode (and means) at a centroid 
     but keeping unloading possible for instance. 
     - Exclusions can be defined "all but" (exclusions) or "nothing bur" (inclusions).
@@ -140,35 +140,36 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     the cost functions, but use the '@' separator. Example "ld.1,1=" for a "loading" cost function and "ld@1,1=" for a loading time 
     function. The old, undocumented, possibility to partially compute transit times using 'xx_DURATION' variables is removed. If such variables 
     are present,  a message is displayed to warn the user and an automatic upgrade of the cost functions file is proposed.
+    - Introduce map rendering with antialiasing. Somewhat slower, but fonts (labels for instance) are much better. Use a 
+    BufferedMapBean instead of a BufferedLayerMapBean as the background layers of the latest cannot be rendered with 
+    antialiasing (bug in OpenMap).
+    - Add the possibility to specify the color to use for each mode in the pie diagrams in the project file.
+    - Allow non numerical variables in the costs functions files. The names of these variables must start with a '@'.
 
-- DBF files
+- DBF files:
     - Improved DBF structure editor for the Nodus layers. The GUI now takes care of the Nodus mandatory structures.
     - Automatically change LOGICAL DBF fields to NUMERIC(1,0) fields, as Booleans are not supported by all DBMS's.
     - Accept SQL DATE in the DBF files.
     - Use JavaDbf4Nodus 1.12.1, that uses UTF-8 encoding by default.
     - Better support of non legacy DBF files (such as those written by many GIS softwares.
 
-- Nodes and link labels
+- Nodes and link labels:
     - Reload labels after 'exportdbf' of a layer in order to display changes.
     - The labels of a Nodus layer are now displayed only if the layer itself is visible (both are now synchronized).
 
 - Miscellaneous:
     - Upgrade to mariadb-java-client 2.6
-    - Add stop and switch costs and durations (used with services) in the path header tables.
-    - Introduce map rendering with antialiasing. Somewhat slower, but fonts (labels for instance) are much better. Use a 
-    BufferedMapBean instead of a BufferedLayerMapBean as the background layers of the latest cannot be rendered with 
-    antialiasing (bug in OpenMap).
+    - Add stop and switch costs and durations (used with services) in the path header tables.  
     - Remove the "-" button in the layer panel. Not useful.
     - New compass image in ScaleAndCompassLayer.
     - Add "font" properties to ScaleAndCompassLayer for label and scale fonts.
     - Use a fork specific version of openmap.jar that fixes a bug with EsriLayer.setModel(...).
     - Add legends in virtual network viewer.
     - Replace 'importTables" property by 'import.tables'. Projects with the old property name are still accepted.
-    - Add the possibility to specify the color to use for each mode in the pie diagrams in the project file.
     - Simplify virtual network visualizer GUI.
     - Allow PLAF change without restarting Nodus.
     - (Partially) language (Locale) change without restarting Nodus.
-    - Allow non numerical variables in the costs functions files. The names of these variables must start with a '@'.
+    - No more exception thrown when statistics are gathered for a non existing group in StatPieDlg.
 
 - Breaking changes:
     - Simplify the API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 

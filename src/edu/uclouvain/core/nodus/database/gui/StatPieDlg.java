@@ -266,7 +266,7 @@ public class StatPieDlg extends EscapeDialog {
           }
         });
 
-    pane.add(getTabbedPanes(), tabbedPanesConstraints);
+    pane.add(tabbedPanes, tabbedPanesConstraints);
     pane.add(getScrollPane(), scrollPaneConstraints);
     pane.add(closeButton, closeButtonConstraints);
 
@@ -337,7 +337,8 @@ public class StatPieDlg extends EscapeDialog {
       stmt.close();
 
     } catch (Exception ex) {
-      ex.printStackTrace();
+      // Probably because one tries to gather info for a group which was not assigned
+      // ex.printStackTrace();
     }
 
     nodusProject.getNodusMapPanel().setBusy(false);
@@ -359,6 +360,12 @@ public class StatPieDlg extends EscapeDialog {
     if (labels[index] != null) {
       size = labels[index].size();
     }
+
+    // Nothing to display
+    if (size == 0) {
+      return;
+    }
+
     for (int i = 0; i < size; i++) {
       sum += values[index].get(i);
     }
@@ -520,6 +527,11 @@ public class StatPieDlg extends EscapeDialog {
   private XChartPanel<PieChart> getPieChart(byte statId, String title) {
 
     executeQuery(statId);
+
+    // If nothing was returned from the query
+    if (values[statId] == null) {
+      return null;
+    }
 
     PieChart chart = new PieChartBuilder().width(600).height(450).theme(ChartTheme.Matlab).build();
     chart.setTitle(title);
