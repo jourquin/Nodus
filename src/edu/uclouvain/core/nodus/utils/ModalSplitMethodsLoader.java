@@ -22,6 +22,7 @@
 package edu.uclouvain.core.nodus.utils;
 
 import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import java.io.File;
@@ -47,10 +48,9 @@ import javax.swing.JOptionPane;
  */
 public class ModalSplitMethodsLoader {
   /** A place where to store the loaded methods. */
-  private static LinkedList<Class<ModalSplitMethod>> availableModalSplitMethods =
-      new LinkedList<>();
+  private static LinkedList<ModalSplitMethod> availableModalSplitMethods = new LinkedList<>();
 
-  public static LinkedList<Class<ModalSplitMethod>> getAvailableModalSplitMethods() {
+  public static LinkedList<ModalSplitMethod> getAvailableModalSplitMethods() {
     return availableModalSplitMethods;
   }
 
@@ -58,13 +58,18 @@ public class ModalSplitMethodsLoader {
 
   private String[] standardModalSpliMethods = {"MultinomialLogit", "Proportional", "Abraham"};
 
+  private NodusProject nodusProject;
+
+  private Class<?>[] paramTypes = {NodusProject.class};
+
   /**
    * Loads all the available modal split methods.
    *
-   * @param projectDirectory The path to the directory that contains the Nodus project.
+   * @param nodusProject The Nodus project the plugins must be loaded for.
    */
-  @SuppressWarnings("unchecked")
-  public ModalSplitMethodsLoader(String projectDirectory) {
+  public ModalSplitMethodsLoader(NodusProject nodusProject) {
+
+    this.nodusProject = nodusProject;
 
     availableModalSplitMethods.clear();
 
@@ -75,16 +80,17 @@ public class ModalSplitMethodsLoader {
         Class<?> c =
             Class.forName(
                 "edu.uclouvain.core.nodus.compute.assign.modalsplit." + standardModalSpliMethod);
-        Constructor<?> cons = c.getConstructor();
-        Object o = cons.newInstance();
+        Constructor<?> cons = c.getConstructor(paramTypes);
+        Object o = cons.newInstance(nodusProject);
         if (o instanceof ModalSplitMethod) {
-          availableModalSplitMethods.add((Class<ModalSplitMethod>) c);
+          availableModalSplitMethods.add((ModalSplitMethod) o);
         }
       } catch (Exception ex) {
         ex.printStackTrace();
       }
     }
 
+    String projectDirectory = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
     directory = new File(projectDirectory);
 
     if (!directory.exists()) {
@@ -151,7 +157,6 @@ public class ModalSplitMethodsLoader {
   }
 
   /** Searches for instances of ModalSplitMethod in a jar. */
-  @SuppressWarnings("unchecked")
   private void loadUserDefinedModalSplitMethods(String pathToJar) {
 
     String className;
@@ -174,7 +179,8 @@ public class ModalSplitMethodsLoader {
 
         Constructor<?> cons = null;
         try {
-          cons = c.getConstructor();
+          cons = c.getConstructor(paramTypes);
+
         } catch (NoSuchMethodException e1) {
           continue;
         } catch (SecurityException e1) {
@@ -184,16 +190,31 @@ public class ModalSplitMethodsLoader {
         Object o = null;
 
         try {
-          o = cons.newInstance();
+          o = cons.newInstance(nodusProject);
         } catch (InstantiationException e1) {
           new NodusConsole();
-          e1.printStackTrace();
+          javax.swing.SwingUtilities.invokeLater(
+              new Runnable() {
+                public void run() {
+                  e1.printStackTrace();
+                }
+              });
         } catch (IllegalAccessException e1) {
           new NodusConsole();
-          e1.printStackTrace();
+          javax.swing.SwingUtilities.invokeLater(
+              new Runnable() {
+                public void run() {
+                  e1.printStackTrace();
+                }
+              });
         } catch (IllegalArgumentException e1) {
           new NodusConsole();
-          e1.printStackTrace();
+          javax.swing.SwingUtilities.invokeLater(
+              new Runnable() {
+                public void run() {
+                  e1.printStackTrace();
+                }
+              });
         } catch (InvocationTargetException e1) {
           String s = "The " + c.getName() + " plugin is not compatible with this version of Nodus.";
           JOptionPane.showMessageDialog(null, s, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
@@ -201,7 +222,7 @@ public class ModalSplitMethodsLoader {
         }
 
         if (o instanceof ModalSplitMethod) {
-          availableModalSplitMethods.add((Class<ModalSplitMethod>) c);
+          availableModalSplitMethods.add((ModalSplitMethod) o);
         }
       }
       jarFile.close();

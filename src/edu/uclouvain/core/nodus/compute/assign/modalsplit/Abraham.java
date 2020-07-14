@@ -49,6 +49,15 @@ public class Abraham extends ModalSplitMethod {
   private double exponent;
 
   /**
+   * Default constructor. Calls the super class.
+   *
+   * @param nodusProject Nodus project to associate to this method.
+   */
+  public Abraham(NodusProject nodusProject) {
+    super(nodusProject);
+  }
+
+  /**
    * Reads the Abraham exponent in the cost functions file.
    *
    * @return double The Abraham exponent found in the cost functions, or -10 by default.
@@ -92,9 +101,8 @@ public class Abraham extends ModalSplitMethod {
   }
 
   @Override
-  public void initialize(
-      int currentGroup, NodusProject nodusProject, AssignmentParameters assignmentParameters) {
-    super.initialize(currentGroup, nodusProject, assignmentParameters);
+  public void initialize(int currentGroup, AssignmentParameters assignmentParameters) {
+    super.initialize(currentGroup, assignmentParameters);
 
     costFunctions = assignmentParameters.getCostFunctions();
     exponent = getExponent();

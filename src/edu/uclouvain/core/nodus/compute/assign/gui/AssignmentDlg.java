@@ -52,7 +52,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileFilter;
-import java.lang.reflect.Constructor;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.Iterator;
@@ -525,23 +524,16 @@ public class AssignmentDlg extends EscapeDialog {
     if (modalSplitMethodComboBox == null) {
 
       // Retrieve the names of the available modal split methods
-      LinkedList<Class<ModalSplitMethod>> ll =
+      LinkedList<ModalSplitMethod> ll =
           ModalSplitMethodsLoader.getAvailableModalSplitMethods();
-      Iterator<Class<ModalSplitMethod>> it = ll.iterator();
+      Iterator<ModalSplitMethod> it = ll.iterator();
 
       modalSplitMethodNames = new ModalSplitMethodName[ll.size()];
       for (int i = 0; i < modalSplitMethodNames.length; i++) {
-        Class<?> c = it.next();
-        try {
-          Constructor<?> cons = c.getConstructor();
-          ModalSplitMethod modalSplitMethod = (ModalSplitMethod) cons.newInstance();
-          modalSplitMethodNames[i] =
-              new ModalSplitMethodName(
-                  modalSplitMethod.getPrettyName(), modalSplitMethod.getName());
-
-        } catch (Exception ex) {
-          ex.printStackTrace();
-        }
+        ModalSplitMethod c = it.next();
+        modalSplitMethodNames[i] =
+                new ModalSplitMethodName(
+                    c.getPrettyName(), c.getName());
       }
 
       modalSplitMethodComboBox = new JComboBox<ModalSplitMethodName>();

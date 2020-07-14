@@ -112,7 +112,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     if (modalSplitMethod == null) {
       return false;
     }
-    modalSplitMethod.initialize(currentGroup, nodusProject, assignmentParameters);
+    modalSplitMethod.initialize(currentGroup, assignmentParameters);
 
     for (int nodeIndex = 0; nodeIndex < virtualNet.getVirtualNodeLists().length; nodeIndex++) {
 

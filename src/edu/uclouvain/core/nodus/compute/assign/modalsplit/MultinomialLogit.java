@@ -41,6 +41,16 @@ public class MultinomialLogit extends ModalSplitMethod {
   private I18n i18n = Environment.getI18n();
 
   private boolean warningAlreadyDisplayed = false;
+  
+  /**
+   * Default constructor. Calls the super class.
+   *
+   * @param nodusProject Nodus project to associate to this method.
+   */
+  public MultinomialLogit(NodusProject nodusProject) {
+    super(nodusProject);
+  }
+
 
   @Override
   public String getName() {
@@ -54,8 +64,8 @@ public class MultinomialLogit extends ModalSplitMethod {
 
   @Override
   public void initialize(
-      int currentGroup, NodusProject nodusProject, AssignmentParameters assignmentParameters) {
-    super.initialize(currentGroup, nodusProject, assignmentParameters);
+      int currentGroup, AssignmentParameters assignmentParameters) {
+    super.initialize(currentGroup, assignmentParameters);
     warningAlreadyDisplayed = false;
   }
 

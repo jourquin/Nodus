@@ -34,7 +34,6 @@ import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
-import java.lang.reflect.Constructor;
 import java.util.Iterator;
 import java.util.LinkedList;
 
@@ -192,22 +191,14 @@ public abstract class AssignmentWorker extends Thread {
    * @return ModalSplitMethod
    */
   public ModalSplitMethod getModalSplitMethod(String methodName) {
-    LinkedList<Class<ModalSplitMethod>> ll =
-        ModalSplitMethodsLoader.getAvailableModalSplitMethods();
-    Iterator<Class<ModalSplitMethod>> it = ll.iterator();
+    LinkedList<ModalSplitMethod> ll = ModalSplitMethodsLoader.getAvailableModalSplitMethods();
+    Iterator<ModalSplitMethod> it = ll.iterator();
 
     while (it.hasNext()) {
-      Class<ModalSplitMethod> loadedClass = it.next();
-      try {
-        Constructor<ModalSplitMethod> cons = loadedClass.getConstructor();
-        ModalSplitMethod modalSplitMethod = cons.newInstance();
-
-        // Is this the method we are looking for ?
-        if (modalSplitMethod.getName().equals(methodName)) {
-          return modalSplitMethod;
-        }
-      } catch (Exception e) {
-        e.printStackTrace();
+      ModalSplitMethod modalSplitMethod = it.next();
+      // Is this the method we are looking for ?
+      if (modalSplitMethod.getName().equals(methodName)) {
+        return modalSplitMethod;
       }
     }
 

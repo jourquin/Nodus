@@ -107,7 +107,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     if (modalSplitMethod == null) {
       return false;
     }
-    modalSplitMethod.initialize(currentGroup, nodusProject, assignmentParameters);
+    modalSplitMethod.initialize(currentGroup, assignmentParameters);
 
     // Get the structure of the virtual network
     VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();

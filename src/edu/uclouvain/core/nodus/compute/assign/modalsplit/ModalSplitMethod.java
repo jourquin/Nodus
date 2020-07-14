@@ -35,12 +35,14 @@ public abstract class ModalSplitMethod {
   private NodusProject nodusProject;
 
   /**
-   * Default constructor.
+   * Default constructor. Associates a Nodus project to the modal split method. It is called when a
+   * project is loaded, not at assignment time. In a user defined modal split method, this
+   * constructor can be used to initialize some data structures for instance.
    *
-   * @exclude
+   * @param nodusProject The Nodus project to associate to the method.
    */
-  public ModalSplitMethod() {
-    // Default constructor
+  public ModalSplitMethod(NodusProject nodusProject) {
+    this.nodusProject = nodusProject;
   }
 
   /**
@@ -80,21 +82,21 @@ public abstract class ModalSplitMethod {
   public abstract String getPrettyName();
 
   /**
-   * Initializes the method with the right parameters.
+   * Initializes the method with the right parameters. This is called by the doAssignment() method
+   * of the multiflow assignment workers. Therefore, if this method is overridden by a user defined
+   * modal split method, the code must be thread safe.
    *
    * @param group Group ID for the commodities
-   * @param nodusProject Nodus project
    * @param assignmentParameters Assignment parameters
    */
-  public void initialize(
-      int group, NodusProject nodusProject, AssignmentParameters assignmentParameters) {
+  public void initialize(int group, AssignmentParameters assignmentParameters) {
     this.group = group;
     this.assignmentParameters = assignmentParameters;
-    this.nodusProject = nodusProject;
   }
 
   /**
-   * Runs the modal split method algorithm.
+   * Runs the modal split method algorithm. This is called by the the multiflow assignment workers.
+   * Therefore, this method must be thread safe.
    *
    * @param odCell The OD cell for which the modal split has to be performed.
    * @param pathsLists A list that contains the lists of routes for each mode.

@@ -44,7 +44,7 @@ import java.util.Properties;
  * @author Bart Jourquin
  */
 public class MLogit extends ModalSplitMethod {
-
+	
   // Names of the estimated parameters (as found in the output of the R MLogit package.
   private String[] paramNames = {
     "(intercept)", "log(cost)",
@@ -55,18 +55,27 @@ public class MLogit extends ModalSplitMethod {
 
   // The cost functions used in the Nodus project that call this modal split plugin.
   private Properties costFunctions;
+  
+  /**
+   * Default constructor. Calls the super class.
+   *
+   * @param nodusProject Nodus project to associate to this method.
+   */
+  public MLogit(NodusProject nodusProject) {
+    super(nodusProject);
+  }
+
 
   /**
    * Initializes the method with the right parameters.
    *
    * @param currentGroup Group ID for the commodities
-   * @param nodusProject Nodus project
    * @param assignmentParameters Assignment parameters
    */
   @Override
   public void initialize(
-      int currentGroup, NodusProject nodusProject, AssignmentParameters assignmentParameters) {
-    super.initialize(currentGroup, nodusProject, assignmentParameters);
+      int currentGroup, AssignmentParameters assignmentParameters) {
+    super.initialize(currentGroup, assignmentParameters);
 
     // Retrieve the cost functions
     costFunctions = assignmentParameters.getCostFunctions();

@@ -1896,7 +1896,7 @@ public class NodusProject implements ShapeConstants {
     nodusMapPanel.getNodusLayersPanel().enableButtons(true);
 
     // Initialize the user defined modal split methods for this project
-    new ModalSplitMethodsLoader(projectPath);
+    new ModalSplitMethodsLoader(this);
 
     // Handle the project's Groovy initial script if exists
     Thread thread =

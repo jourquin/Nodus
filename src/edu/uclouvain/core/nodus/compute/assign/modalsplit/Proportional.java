@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.compute.assign.modalsplit;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
+import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import java.util.Iterator;
 import java.util.List;
@@ -36,6 +37,16 @@ import java.util.List;
 public class Proportional extends ModalSplitMethod {
 
   private static I18n i18n = Environment.getI18n();
+  
+  /**
+   * Default constructor. Calls the super class.
+   *
+   * @param nodusProject Nodus project to associate to this method.
+   */
+  public Proportional(NodusProject nodusProject) {
+    super(nodusProject);
+  }
+
 
   @Override
   public String getName() {

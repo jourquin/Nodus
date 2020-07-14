@@ -8,7 +8,5 @@
 - Add vehicles for loading / unloading / transit ?
 - Change language without restart ?
 - Allow string variables in cost functions
-- How to multi-class plugins ?
 - Exceptions when stats for a group without data
-- Allow package names in plugins ?
 - Add default moving time when no time functions are defined for backward compatibility
