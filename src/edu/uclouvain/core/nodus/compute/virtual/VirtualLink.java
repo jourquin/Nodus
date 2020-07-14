@@ -417,6 +417,19 @@ public class VirtualLink {
   }
 
   /**
+   * Returns the default transit time for a moving virtual link. It corresponds to the time needed
+   * to travel along the link at nominal speed, expressed in seconds.
+   *
+   * @return double
+   */
+  public double getDefaultDuration() {
+    if (virtualLinkType != TYPE_MOVE) {
+      return 0;
+    }
+    return realLink.getDefaultTransitTime();
+  }
+
+  /**
    * Returns the transit time associated to a given group index.
    *
    * @param groupIndex The index of the group of commodities

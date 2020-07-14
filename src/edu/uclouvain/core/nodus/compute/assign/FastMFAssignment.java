@@ -63,7 +63,12 @@ public class FastMFAssignment extends Assignment {
     if (costsContainDeprecatedDurations()) {
       return false;
     }
-    
+
+    // Mention if the cost functions file contain duration functions
+    if (hasDurationFunctions()) {
+      assignmentParameters.setDurationFunctions(true);
+    }
+
     byte scenario = assignmentParameters.getScenario();
 
     // Test if scenario already exists

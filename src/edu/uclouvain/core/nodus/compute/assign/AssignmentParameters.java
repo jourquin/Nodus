@@ -100,6 +100,9 @@ public class AssignmentParameters {
   /** SQL statement that can be given to filter the O-D matrix. */
   private String whereStmt;
 
+  /** Set to true of duration functions are defined. */
+  private boolean withDurationFunction = false;
+
   /**
    * Initializes the assignment parameters.
    *
@@ -235,6 +238,15 @@ public class AssignmentParameters {
   }
 
   /**
+   * Returns true if the cost functions contain duration functions.
+   *
+   * @return True if duration functions are present.
+   */
+  public boolean hasDurationFunctions() {
+    return withDurationFunction;
+  }
+
+  /**
    * Returns true if the user must confirm before an existing scenario is overwritten.
    *
    * @return boolean
@@ -362,6 +374,16 @@ public class AssignmentParameters {
     this.detailedPaths = detailedPaths;
   }
 
+  /**
+   * Mention if the cost functions file contain duration functions.
+   *
+   * @param withDurationFunctions True to mention that the cost functions file contain duration
+   *     functions.
+   */
+  public void setDurationFunctions(boolean withDurationFunctions) {
+    this.withDurationFunction = withDurationFunctions;
+  }
+  
   /**
    * If true, all the computed intermodal routes will be used, even if they are more expensive than
    * unimodal alternatives.

@@ -43,8 +43,6 @@ public class RealLink extends RealNetworkObject {
   /** Number of standard vehicles assigned upstream to this link. */
   private int currentStandardVehiclesUp = 0;
 
-  //private float duration = -1;
-
   /** Length of this real link. */
   private float length = -1;
 
@@ -115,6 +113,19 @@ public class RealLink extends RealNetworkObject {
     } else {
       return auxiliaryStandardVehiclesDown;
     }
+  }
+
+  /**
+   * Returns the time needed to travel along this link, expressed in seconds.
+   *
+   * @return float
+   */
+  public float getDefaultTransitTime() {
+    // If speed not set
+    if (speed <= 0) {
+      return -1;
+    }
+    return 3600 * length / speed;
   }
 
   /**

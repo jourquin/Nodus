@@ -212,7 +212,11 @@ public class MSAAssignmentWorker extends AssignmentWorker {
               break;
             case VirtualLink.TYPE_MOVE:
               pathCosts.mvCost += vl.getCost(groupIndex);
-              pathCosts.mvDuration += vl.getDuration(groupIndex);
+              if (assignmentParameters.hasDurationFunctions()) {
+                pathCosts.mvDuration += vl.getDuration(groupIndex);
+              } else {
+                pathCosts.mvDuration += vl.getDefaultDuration();
+              }
               pathCosts.length += vl.getLength();
               pathWriter.savePathLink(vl);
               break;

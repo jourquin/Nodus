@@ -262,6 +262,36 @@ public abstract class Assignment implements Runnable {
   }
 
   /**
+   * Test if the cost functions file contains duration functions.
+   *
+   * @return true if at least one type of duration functions is present
+   */
+  protected boolean hasDurationFunctions() {
+    Properties costFunctions = assignmentParameters.getCostFunctions();
+
+    // Scan the costs function to detect the presence of duration cost function
+    Set<Object> keys = costFunctions.keySet();
+    for (Object key : keys) {
+      if (((String) key).contains("ld@")) {
+        return true;
+      }
+      if (((String) key).contains("ul@")) {
+        return true;
+      }
+      if (((String) key).contains("tr@")) {
+        return true;
+      }
+      if (((String) key).contains("tp@")) {
+        return true;
+      }
+      if (((String) key).contains("mv@")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * A quick & dirty way to introduce durations was introduces in Nodus 7.1 and 7.2, using
    * XX_DURATION variables in the costs functions files. Since Nodus 7.3, durations are handled in
    * the same way than cost functions, using the '@' separator instead of '.' after the type of
@@ -272,7 +302,7 @@ public abstract class Assignment implements Runnable {
    *
    * @return true if the cost functions contain at least one of these variables.
    */
-  public boolean costsContainDeprecatedDurations() {
+  protected boolean costsContainDeprecatedDurations() {
 
     Properties costFunctions = assignmentParameters.getCostFunctions();
     boolean hasDeprecatedVariables = false;
