@@ -24,7 +24,6 @@ package edu.uclouvain.core.nodus.compute.assign.modalsplit;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusProject;
-import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import java.util.Iterator;
 import java.util.List;
@@ -63,9 +62,9 @@ public class MultinomialLogit extends ModalSplitMethod {
   }
 
   @Override
-  public void initialize(
-      int currentGroup, AssignmentParameters assignmentParameters) {
-    super.initialize(currentGroup, assignmentParameters);
+  public void initializeGroup(
+      int currentGroup) {
+    super.initializeGroup(currentGroup);
     warningAlreadyDisplayed = false;
   }
 

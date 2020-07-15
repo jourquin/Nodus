@@ -27,14 +27,11 @@ import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
-import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
-import java.util.Iterator;
 import java.util.LinkedList;
 
 /**
@@ -182,28 +179,6 @@ public abstract class AssignmentWorker extends Thread {
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
-  }
-
-  /**
-   * Returns a new instance of the ModalSplitMethod which name is given as parameter.
-   *
-   * @param methodName String
-   * @return ModalSplitMethod
-   */
-  public ModalSplitMethod getModalSplitMethod(String methodName) {
-    LinkedList<ModalSplitMethod> ll = ModalSplitMethodsLoader.getAvailableModalSplitMethods();
-    Iterator<ModalSplitMethod> it = ll.iterator();
-
-    while (it.hasNext()) {
-      ModalSplitMethod modalSplitMethod = it.next();
-      // Is this the method we are looking for ?
-      if (modalSplitMethod.getName().equals(methodName)) {
-        return modalSplitMethod;
-      }
-    }
-
-    System.err.println("Modal split method not found. This should not be possible!");
-    return null;
   }
 
   /**

@@ -33,6 +33,7 @@ import edu.uclouvain.core.nodus.compute.virtual.PathODCell;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
+import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -107,12 +108,21 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     availableModeMeans = virtualNet.getAvailableModeMeans(groupIndex);
     paths = new Path[assignmentParameters.getNbIterations() * availableModeMeans.length];
 
-    // Initialize the modal split method from the name found in the assignment parameters
-    modalSplitMethod = getModalSplitMethod(assignmentParameters.getModalSplitMethodName());
+    // Use a copy of the already initialized method
+    ModalSplitMethod msp =
+        ModalSplitMethodsLoader.getModalSplitMethod(assignmentParameters.getModalSplitMethodName());
+
+    try {
+      modalSplitMethod = (ModalSplitMethod) msp.clone();
+    } catch (CloneNotSupportedException e) {
+      e.printStackTrace();
+      return false;
+    }
+
     if (modalSplitMethod == null) {
       return false;
     }
-    modalSplitMethod.initialize(currentGroup, assignmentParameters);
+    modalSplitMethod.initializeGroup(currentGroup);
 
     for (int nodeIndex = 0; nodeIndex < virtualNet.getVirtualNodeLists().length; nodeIndex++) {
 

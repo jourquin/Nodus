@@ -22,6 +22,7 @@
 package edu.uclouvain.core.nodus.compute.assign;
 
 import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorkerParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.FastMFAssignmentWorker;
@@ -31,6 +32,7 @@ import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
+import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 
 /**
@@ -102,6 +104,14 @@ public class FastMFAssignment extends Assignment {
 
     // Create a path writer
     pathWriter = new PathWriter(assignmentParameters);
+
+    // Initialize the modal split method from the name found in the assignment parameters
+    ModalSplitMethod modalSplitMethod =
+        ModalSplitMethodsLoader.getModalSplitMethod(assignmentParameters.getModalSplitMethodName());
+    if (modalSplitMethod == null) {
+      return false;
+    }
+    modalSplitMethod.initialize(assignmentParameters);
 
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {

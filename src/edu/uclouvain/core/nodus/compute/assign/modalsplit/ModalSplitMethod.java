@@ -26,7 +26,7 @@ import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import java.util.List;
 
-public abstract class ModalSplitMethod {
+public abstract class ModalSplitMethod implements Cloneable {
 
   private AssignmentParameters assignmentParameters;
 
@@ -37,12 +37,24 @@ public abstract class ModalSplitMethod {
   /**
    * Default constructor. Associates a Nodus project to the modal split method. It is called when a
    * project is loaded, not at assignment time. In a user defined modal split method, this
-   * constructor can be used to initialize some data structures for instance.
+   * constructor can be used to initialize some stuff that will not be modified before assignment
+   * time. Generally, it is better to override the initialize or setGroup method.
    *
    * @param nodusProject The Nodus project to associate to the method.
    */
   public ModalSplitMethod(NodusProject nodusProject) {
     this.nodusProject = nodusProject;
+  }
+
+  /**
+   * Returns a copy of this object. Needed a the ModalSpiltMethod is initialized at the assignment
+   * level, but also at the assignment worker (thread) level. An instance of the ModalSplitMethod
+   * must exist in each worker.
+   * 
+   * @return a clone of the ModalSplitMethod.
+   */
+  public Object clone() throws CloneNotSupportedException {
+    return super.clone();
   }
 
   /**
@@ -82,15 +94,23 @@ public abstract class ModalSplitMethod {
   public abstract String getPrettyName();
 
   /**
-   * Initializes the method with the right parameters. This is called by the doAssignment() method
-   * of the multiflow assignment workers. Therefore, if this method is overridden by a user defined
-   * modal split method, the code must be thread safe.
+   * Initializes the method at the group level. This is called by the doAssignment() method of the
+   * multiflow assignment workers. Therefore, if this method is overridden by a user defined modal
+   * split method, the code must be thread safe.
    *
    * @param group Group ID for the commodities
+   */
+  public void initializeGroup(int group) {
+    this.group = group;
+  }
+
+  /**
+   * Initializes the method with the right parameters at the assignment level . This is called by
+   * the assign() method of the multiflow assignment.
+   *
    * @param assignmentParameters Assignment parameters
    */
-  public void initialize(int group, AssignmentParameters assignmentParameters) {
-    this.group = group;
+  public void initialize(AssignmentParameters assignmentParameters) {
     this.assignmentParameters = assignmentParameters;
   }
 

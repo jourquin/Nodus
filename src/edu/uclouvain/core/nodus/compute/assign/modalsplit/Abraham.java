@@ -27,7 +27,6 @@ import com.bbn.openmap.util.PropUtils;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
-import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import java.util.Iterator;
 import java.util.List;
@@ -101,10 +100,10 @@ public class Abraham extends ModalSplitMethod {
   }
 
   @Override
-  public void initialize(int currentGroup, AssignmentParameters assignmentParameters) {
-    super.initialize(currentGroup, assignmentParameters);
+  public void initializeGroup(int currentGroup) {
+    super.initializeGroup(currentGroup);
 
-    costFunctions = assignmentParameters.getCostFunctions();
+    costFunctions = getAssignmentParameters().getCostFunctions();
     exponent = getExponent();
   }
 

@@ -37,7 +37,7 @@ import java.util.List;
 public class Proportional extends ModalSplitMethod {
 
   private static I18n i18n = Environment.getI18n();
-  
+
   /**
    * Default constructor. Calls the super class.
    *
@@ -46,7 +46,6 @@ public class Proportional extends ModalSplitMethod {
   public Proportional(NodusProject nodusProject) {
     super(nodusProject);
   }
-
 
   @Override
   public String getName() {
@@ -60,7 +59,6 @@ public class Proportional extends ModalSplitMethod {
 
   @Override
   public boolean split(ODCell odCell, List<PathsForMode> pathsLists) {
-
     /*
      * Compute the market marketShare for each mode
      */

@@ -35,6 +35,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -233,5 +234,27 @@ public class ModalSplitMethodsLoader {
     } catch (IOException e) {
       e.printStackTrace();
     }
+  }
+  
+  /**
+   * Returns the ModalSplitMethod which name is given as parameter.
+   *
+   * @param methodName String
+   * @return ModalSplitMethod
+   */
+  public static ModalSplitMethod getModalSplitMethod(String methodName) {
+    LinkedList<ModalSplitMethod> ll = getAvailableModalSplitMethods();
+    Iterator<ModalSplitMethod> it = ll.iterator();
+
+    while (it.hasNext()) {
+      ModalSplitMethod modalSplitMethod = it.next();
+      // Is this the method we are looking for ?
+      if (modalSplitMethod.getName().equals(methodName)) {
+        return modalSplitMethod;
+      }
+    }
+
+    System.err.println("Modal split method not found. This should not be possible!");
+    return null;
   }
 }
