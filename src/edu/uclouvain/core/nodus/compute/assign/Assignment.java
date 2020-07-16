@@ -32,8 +32,11 @@ import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
 import groovy.lang.GroovyShell;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -341,6 +344,40 @@ public abstract class Assignment implements Runnable {
             nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
                 + nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS);
 
+        // Express the times in seconds instead of hours
+        BufferedWriter output;
+        try {
+          File file = new File(costFunctionsFileName);
+          File tmpFile = new File(costFunctionsFileName + ".tmp");
+          if (tmpFile.exists()) {
+            tmpFile.delete();
+          }
+          file.renameTo(tmpFile);
+          FileReader input = new FileReader(tmpFile);
+          BufferedReader br = new BufferedReader(input);
+          output = new BufferedWriter(new FileWriter(costFunctionsFileName));
+
+          String line;
+          while ((line = br.readLine()) != null) {
+            if (line.contains("LD_DURATION")
+                || line.contains("UL_DURATION")
+                || line.contains("TP_DURATION")) {
+              line += "*3600";
+            }
+            output.append(line);
+            output.newLine();
+          }
+          input.close();
+          output.close();
+          tmpFile.delete();
+        } catch (FileNotFoundException e1) {
+          e1.printStackTrace();
+          return true;
+        } catch (IOException e1) {
+          e1.printStackTrace();
+          return true;
+        }
+
         // Replace the deprecated variables
         Path path = Paths.get(costFunctionsFileName);
         Charset charset = StandardCharsets.UTF_8;
@@ -366,7 +403,7 @@ public abstract class Assignment implements Runnable {
 
           // Add the default moving durations for available mode-means
           // expressed in seconds, as in Nodus <= 7.2
-          BufferedWriter output = new BufferedWriter(new FileWriter(costFunctionsFileName, true));
+          output = new BufferedWriter(new FileWriter(costFunctionsFileName, true));
           for (int mode = 0; mode < NodusC.MAXMM; mode++) {
             for (int means = 0; means < NodusC.MAXMM; means++) {
               if (availableModeMeans[mode][means]) {
