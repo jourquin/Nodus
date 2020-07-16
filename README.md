@@ -81,6 +81,7 @@ By default, Nodus uses the following strategy:
 Otherwise it is set to 2Go.
 - The maximum heap that can be claimed for (-Xmx) is set to 50% of the physical memory, with a maximum 
 of 6Go.
+- If Nodus runs on a 32bits JVM (not recommended), -Xmx is limited to 1.4Gb and -Xms is not set.
 
 These values are stored in "jvmargs.sh" or "jvmargs.bat", a file created in the installation directory by
 Nodus at launch time if it doesn't exist yet. This file can be edited if other values (or even other JVM parameters)

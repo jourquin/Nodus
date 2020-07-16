@@ -77,6 +77,9 @@ public class SetDefaultHeapSizes {
     long mb = 1024 * 1024;
     long gb = 1024 * mb;
 
+    // Get architecture
+    int arch = Integer.parseInt(System.getProperty("sun.arch.data.model"));
+
     // Get total memory
     long memorySize =
         ((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean())
@@ -87,9 +90,14 @@ public class SetDefaultHeapSizes {
     if (maxHeap > 6 * gb) {
       maxHeap = 6 * gb;
     }
+
+    if (arch == 32 && maxHeap > 1.4 * gb) {
+      maxHeap = Math.round(1.4 * gb);
+    }
+
     String heapSettings = "-Xmx" + maxHeap / mb + "m";
 
-    if (memorySize / gb >= 4) {
+    if (memorySize / gb >= 4 && arch != 32) {
       heapSettings += " -Xms" + 2 * gb / mb + "m";
     }
 
