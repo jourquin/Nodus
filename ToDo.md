@@ -7,4 +7,5 @@
 - test FW assignment (isWithFirstDFerivative)
 - Add vehicles for loading / unloading / transit ?
 - Change language without restart ?
-- Validate ModalSplitMethod at worker level (is clone() OK?)
+- Upgrade time functions : multiply values by 3600
+- Save assignment description when save button is used in Assignment dialog
