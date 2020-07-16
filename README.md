@@ -74,7 +74,7 @@ A documented sample Nodus project can be found in the "[demo](https://github.com
 Nodus is written in Java. Therefore, it uses the memory allocation system provided by the Java Virtual Machine (JVM). 
 In particular, the maximum memory allocated to the software must be defined by the user if the default
 values are not appropriate. This can be set using the -Xms and -Xmx command line parameters 
-passed to the JVM. Please refer to the JVM documentation for a detailed information on theses switches. 
+passed to the JVM. Please refer to the JVM documentation for a detailed information on these switches. 
 
 By default, Nodus uses the following strategy:
 - If the physical memory of the computer it runs on is at most 4Go large, no -Xms (minimum heap) value is set. 
