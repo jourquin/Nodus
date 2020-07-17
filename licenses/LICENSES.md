@@ -14,6 +14,8 @@
 
 [JCheckList](https://github.com/jourquin/JCheckList), Apache v2
 
+[JNA](https://github.com/java-native-access/jna), Apache v2
+
 [JResourcesMonitor](https://github.com/jourquin/JResourcesMonitor), Apache v2
 
 [jtouchbar](https://github.com/Thizzer/jtouchbar), MIT
@@ -22,13 +24,17 @@
 
 [log4j](https://logging.apache.org/log4j), Apache v2
 
-[openmap](http://openmap-java.org),  Openmap
+[openmap](http://openmap-java.org), Openmap
+
+[oshi](https://github.com/oshi/oshi), MIT
 
 [parsii](https://github.com/scireum/parsii), MIT
 
 [poi\*](https://poi.apache.org), Apache v2
 
 [rsyntaxtextarea](https://github.com/bobbylight/RSyntaxTextArea), modified BSD
+
+[slf4j](http://www.slf4j.org), MIT
 
 [xchart](http://knowm.org/open-source/xchart/), Apache v2
 

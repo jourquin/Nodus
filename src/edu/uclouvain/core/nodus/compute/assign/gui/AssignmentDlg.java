@@ -82,6 +82,9 @@ import javax.swing.event.PopupMenuListener;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+import oshi.SystemInfo;
+import oshi.hardware.CentralProcessor;
+import oshi.hardware.HardwareAbstractionLayer;
 
 /**
  * Dialog box used to select the type of assignment to perform and the associated parameters.
@@ -233,6 +236,8 @@ public class AssignmentDlg extends EscapeDialog {
 
   private final JButton saveButton = new JButton();
 
+  private int nbCores = 1;
+
   /**
    * Initializes the dialog box.
    *
@@ -241,6 +246,12 @@ public class AssignmentDlg extends EscapeDialog {
   public AssignmentDlg(NodusMapPanel mapPanel) {
     super(mapPanel.getMainFrame(), "", true);
     setTitle(i18n.get(AssignmentDlg.class, "Assignment", "Assignment"));
+
+    // Get the number of physical cores
+    SystemInfo si = new SystemInfo();
+    HardwareAbstractionLayer hal = si.getHardware();
+    CentralProcessor cpu = hal.getProcessor();
+    nbCores = cpu.getPhysicalProcessorCount();
 
     nodusMapPanel = mapPanel;
 
@@ -524,16 +535,13 @@ public class AssignmentDlg extends EscapeDialog {
     if (modalSplitMethodComboBox == null) {
 
       // Retrieve the names of the available modal split methods
-      LinkedList<ModalSplitMethod> ll =
-          ModalSplitMethodsLoader.getAvailableModalSplitMethods();
+      LinkedList<ModalSplitMethod> ll = ModalSplitMethodsLoader.getAvailableModalSplitMethods();
       Iterator<ModalSplitMethod> it = ll.iterator();
 
       modalSplitMethodNames = new ModalSplitMethodName[ll.size()];
       for (int i = 0; i < modalSplitMethodNames.length; i++) {
         ModalSplitMethod c = it.next();
-        modalSplitMethodNames[i] =
-                new ModalSplitMethodName(
-                    c.getPrettyName(), c.getName());
+        modalSplitMethodNames[i] = new ModalSplitMethodName(c.getPrettyName(), c.getName());
       }
 
       modalSplitMethodComboBox = new JComboBox<ModalSplitMethodName>();
@@ -1856,10 +1864,9 @@ public class AssignmentDlg extends EscapeDialog {
             .getLocalProperty(NodusC.PROP_ASSIGNMENT_DESCRIPTION + scenarioSuffix, "");
     descriptionTextField.setText(stringValue);
 
-    // Fill the "threads" spinner
-    int processors = Runtime.getRuntime().availableProcessors();
-    String[] v = new String[processors];
-    for (int i = 0; i < processors; i++) {
+    // Fill the "threads" spinner. The number of threads is limited to the number of physical cores
+    String[] v = new String[nbCores];
+    for (int i = 0; i < nbCores; i++) {
       v[i] = String.valueOf(i + 1);
     }
     SpinnerListModel threadsSpinnerModel = new SpinnerListModel(v);
@@ -1867,7 +1874,10 @@ public class AssignmentDlg extends EscapeDialog {
     intValue =
         nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_THREADS + scenarioSuffix, -1);
     if (intValue == -1) {
-      intValue = nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_THREADS, processors);
+      intValue = nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_THREADS, nbCores);
+    }
+    if (intValue > nbCores) {
+      intValue = nbCores;
     }
     stringValue = String.valueOf(intValue);
     try {
