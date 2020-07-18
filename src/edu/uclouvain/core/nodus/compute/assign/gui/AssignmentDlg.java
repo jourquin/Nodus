@@ -65,6 +65,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSpinner;
@@ -236,7 +237,9 @@ public class AssignmentDlg extends EscapeDialog {
 
   private final JButton saveButton = new JButton();
 
-  private int nbCores = 1;
+  private int nbPhysicalCores = 1;
+
+  private int nbLogicalCores = 1;
 
   /**
    * Initializes the dialog box.
@@ -251,7 +254,8 @@ public class AssignmentDlg extends EscapeDialog {
     SystemInfo si = new SystemInfo();
     HardwareAbstractionLayer hal = si.getHardware();
     CentralProcessor cpu = hal.getProcessor();
-    nbCores = cpu.getPhysicalProcessorCount();
+    nbPhysicalCores = cpu.getPhysicalProcessorCount();
+    nbLogicalCores = cpu.getLogicalProcessorCount();
 
     nodusMapPanel = mapPanel;
 
@@ -282,6 +286,24 @@ public class AssignmentDlg extends EscapeDialog {
    * @param e ActionEvent
    */
   private void assignButton_actionPerformed(ActionEvent e) {
+
+    int nbThreads = Integer.parseInt(threadsSpinner.getValue().toString());
+    if (nbThreads > nbPhysicalCores) {
+      int check =
+          JOptionPane.showConfirmDialog(
+              null,
+              i18n.get(
+                  AssignmentDlg.class,
+                  "Assign_with_many_threads",
+                  "Assign with more threads than physical cores?"),
+              NodusC.APPNAME,
+              JOptionPane.OK_CANCEL_OPTION);
+
+      if (check == JOptionPane.CANCEL_OPTION) {
+
+        return;
+      }
+    }
 
     AssignmentParameters ap = new AssignmentParameters(nodusMapPanel.getNodusProject());
 
@@ -1864,20 +1886,22 @@ public class AssignmentDlg extends EscapeDialog {
             .getLocalProperty(NodusC.PROP_ASSIGNMENT_DESCRIPTION + scenarioSuffix, "");
     descriptionTextField.setText(stringValue);
 
-    // Fill the "threads" spinner. The number of threads is limited to the number of physical cores
-    String[] v = new String[nbCores];
-    for (int i = 0; i < nbCores; i++) {
+    // Fill the "threads" spinner. The number of threads is limited to the number of cores
+    String[] v = new String[nbLogicalCores];
+    for (int i = 0; i < nbLogicalCores; i++) {
       v[i] = String.valueOf(i + 1);
     }
     SpinnerListModel threadsSpinnerModel = new SpinnerListModel(v);
     threadsSpinner.setModel(threadsSpinnerModel);
     intValue =
         nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_THREADS + scenarioSuffix, -1);
+    // Default to number of physical cores
     if (intValue == -1) {
-      intValue = nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_THREADS, nbCores);
+      intValue =
+          nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_THREADS, nbPhysicalCores);
     }
-    if (intValue > nbCores) {
-      intValue = nbCores;
+    if (intValue > nbLogicalCores) {
+      intValue = nbLogicalCores;
     }
     stringValue = String.valueOf(intValue);
     try {
