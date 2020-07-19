@@ -41,6 +41,7 @@ import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.gui.ProjectPreferencesDlg;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
+import edu.uclouvain.core.nodus.utils.HardwareUtils;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -83,9 +84,6 @@ import javax.swing.event.PopupMenuListener;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
-import oshi.SystemInfo;
-import oshi.hardware.CentralProcessor;
-import oshi.hardware.HardwareAbstractionLayer;
 
 /**
  * Dialog box used to select the type of assignment to perform and the associated parameters.
@@ -250,12 +248,9 @@ public class AssignmentDlg extends EscapeDialog {
     super(mapPanel.getMainFrame(), "", true);
     setTitle(i18n.get(AssignmentDlg.class, "Assignment", "Assignment"));
 
-    // Get the number of physical cores
-    SystemInfo si = new SystemInfo();
-    HardwareAbstractionLayer hal = si.getHardware();
-    CentralProcessor cpu = hal.getProcessor();
-    nbPhysicalCores = cpu.getPhysicalProcessorCount();
-    nbLogicalCores = cpu.getLogicalProcessorCount();
+    // Get the number of physical and logical cores
+    nbPhysicalCores = HardwareUtils.getNbPhysicalCores();
+    nbLogicalCores = HardwareUtils.getNbLogicalCores();
 
     nodusMapPanel = mapPanel;
 

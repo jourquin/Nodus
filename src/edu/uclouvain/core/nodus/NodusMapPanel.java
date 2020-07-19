@@ -2504,6 +2504,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             @Override
             public void run() {
               dlg.setVisible(true);
+              getMapBean().requestFocus();
             }
           });
     }
