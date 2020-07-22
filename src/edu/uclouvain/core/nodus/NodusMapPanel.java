@@ -100,6 +100,7 @@ import edu.uclouvain.core.nodus.swing.OnTopKeeper;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NodusGroovyConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NotePad;
+import edu.uclouvain.core.nodus.utils.HardwareUtils;
 import edu.uclouvain.core.nodus.utils.JavaVersionUtil;
 import edu.uclouvain.core.nodus.utils.NodusFileFilter;
 import edu.uclouvain.core.nodus.utils.PluginsLoader;
@@ -161,7 +162,6 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.BevelBorder;
-import org.uclouvain.gtm.util.gui.JResourcesMonitor;
 
 /**
  * The NodusMapPanel class initialized the Nodus GUI and is the central place where all the menu
@@ -904,22 +904,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
-
-            // Only create a instance if none exists
-            Frame[] frames = Frame.getFrames();
-
-            for (Frame element : frames) {
-              if (element instanceof JFrame) {
-                JFrame f = (JFrame) element;
-                if (f.getClass().toString().endsWith("ResourcesMonitor") && f.isVisible()) {
-                  return;
-                }
-              }
-            }
-
-            JResourcesMonitor mm = new JResourcesMonitor();
-            // ContextualHelp.setHelp(mm, "org.apache.batik.util.gui.MemoryMonitor");
-            mm.setVisible(true);
+            HardwareUtils.displayRessourcesMonitor();
           }
         });
 

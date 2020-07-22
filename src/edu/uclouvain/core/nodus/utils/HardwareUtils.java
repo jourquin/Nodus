@@ -21,17 +21,37 @@
 
 package edu.uclouvain.core.nodus.utils;
 
+import java.awt.Frame;
+import javax.swing.JFrame;
+import org.uclouvain.gtm.util.gui.JResourcesMonitor;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
 import oshi.hardware.HardwareAbstractionLayer;
 
 /**
  * Some utilities to gather hardware information.
- * 
- * @author Bart Jourquin
  *
+ * @author Bart Jourquin
  */
 public class HardwareUtils {
+
+  /** Display the reources monitor. */
+  public static void displayRessourcesMonitor() {
+    // Only create a instance if none exists
+    Frame[] frames = Frame.getFrames();
+
+    for (Frame element : frames) {
+      if (element instanceof JFrame) {
+        JFrame f = (JFrame) element;
+        if (f.getClass().toString().endsWith("ResourcesMonitor") && f.isVisible()) {
+          return;
+        }
+      }
+    }
+
+    JResourcesMonitor mm = new JResourcesMonitor();
+    mm.setVisible(true);
+  }
 
   /**
    * Return the number of physical cores of the computer.
