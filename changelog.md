@@ -172,6 +172,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - No more exception thrown when statistics are gathered for a non existing group in StatPieDlg.
     - Limit max heap size to 1.4Go if run on a 32bit JVM
     - Warn the user if the number of threads set for an assignment is larger than the number of physical cores.
+    - Tested with Java 11
 
 - Breaking changes:
     - Simplify the API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 

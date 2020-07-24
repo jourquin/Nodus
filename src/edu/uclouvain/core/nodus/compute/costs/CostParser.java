@@ -47,7 +47,7 @@ import parsii.eval.Scope;
 import parsii.eval.Variable;
 import parsii.tokenizer.ParseException;
 
-// TODO : Add the cost functions for stops and switch.
+// TODO Add the cost functions for stops and switch.
 /**
  * This cost parser is able to compute the cost of a virtual link given the cost functions written
  * in a "properties like" file. A cost parser is initialized for each group of commodities, OD class

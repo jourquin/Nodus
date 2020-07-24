@@ -8,6 +8,3 @@
 - Add vehicles for loading / unloading / transit ?
 - Change language without restart ?
 - Save assignment description when save button is used in Assignment dialog
-- Test Java 11
-
-

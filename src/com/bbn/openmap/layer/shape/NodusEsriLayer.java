@@ -801,7 +801,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
           String value = (String) o;
           value = value.trim();
           if (value.length() == 0) {
-            tm.setValueAt(new Double(0), row, col);
+            tm.setValueAt(Double.valueOf(0.0), row, col);
             mustBeFixed = true;
           }
         }
@@ -831,9 +831,9 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         for (int row = 0; row < tm.getRowCount(); row++) {
           String o = (String) tm.getValueAt(row, col);
           if (o.equals("T")) {
-            tm.setValueAt(new Double(1), row, col);
+            tm.setValueAt(Double.valueOf(1.0), row, col);
           } else {
-            tm.setValueAt(new Double(0), row, col);
+            tm.setValueAt(Double.valueOf(0.0), row, col);
           }
         }
       }

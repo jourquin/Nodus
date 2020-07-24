@@ -80,6 +80,7 @@ import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
+import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
@@ -446,10 +447,10 @@ public class NodusProject implements ShapeConstants {
         } catch (Exception e) {
           e.printStackTrace();
         }
-        
+
         // Reset JDBCUtils
         JDBCUtils.setConnection(null);
-        
+
         // Save time stamps of dbf files
         for (NodusEsriLayer nodeLayer : nodeLayers) {
           String key = nodeLayer.getTableName() + NodusC.PROP_DOTLASTMODIFIED;
@@ -1471,6 +1472,10 @@ public class NodusProject implements ShapeConstants {
                 + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
                 + "_hsqldb;shutdown=true";
         defaultUser = "SA";
+
+        // Hide info logging
+        Logger databaseLogger = Logger.getLogger("hsqldb.db");
+        databaseLogger.setUseParentHandlers(false);
         break;
       case JDBCUtils.DB_H2:
         defaultDriver = "org.h2.Driver";
@@ -1519,6 +1524,7 @@ public class NodusProject implements ShapeConstants {
     localProperties.setProperty(NodusC.PROP_JDBC_URL, jdbcURL);
     try {
       Class.forName(jdbcDriver).getDeclaredConstructor().newInstance();
+
       jdbcConnection = getMainJDBCConnection();
       if (jdbcConnection == null) {
         nodusMapPanel.setBusy(false);
@@ -1544,9 +1550,11 @@ public class NodusProject implements ShapeConstants {
 
     // Initialize JDBCUtils
     JDBCUtils.setConnection(jdbcConnection);
-    
-    // Set some defaults for HSQLDB 2.1
+
+    // Set some defaults for HSQLDB
     if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB) {
+      // Suppress info logger
+      // Logger.getLogger("org.hsqldb").setLevel(java.util.logging.Level.WARNING);
       try {
         Statement stmt = jdbcConnection.createStatement();
         stmt.execute("SET DEFAULT TABLE TYPE CACHED");
@@ -1577,9 +1585,6 @@ public class NodusProject implements ShapeConstants {
       }
     }
 
-
-
-    
     // Open the log file for this project
     try {
       loggerHandler = new FileHandler(projectPath + "nodus.log", true);

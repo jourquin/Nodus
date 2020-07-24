@@ -376,8 +376,8 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
     String s = (String) super.getValueAt(row, META_TYPE_COLUMN_NUMBER);
 
     if (s.equalsIgnoreCase("date")) {
-      super.setValueAt(new Integer(8), row, 2);
-      super.setValueAt(new Integer(0), row, 3);
+      super.setValueAt(Integer.valueOf(8), row, 2);
+      super.setValueAt(Integer.valueOf(0), row, 3);
     }
 
     if (isTableStructureChanged()) {

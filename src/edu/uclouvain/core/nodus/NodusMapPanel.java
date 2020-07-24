@@ -1927,7 +1927,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       // Use the standard Mac exit
       try {
         if (JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
-          OSXAdapterForJava9.setAboutHandler(
+          OSXAdapterForJava9.setQuitHandler(
               this,
               getClass()
                   .getDeclaredMethod(
@@ -1970,6 +1970,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       // Use the standard Mac About
       try {
         if (JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
+
           OSXAdapterForJava9.setAboutHandler(
               this,
               getClass()

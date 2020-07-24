@@ -144,7 +144,9 @@ public class OSXAdapterForJava9 implements InvocationHandler {
           }
         };
     try {
+
       Class<?> applicationClass = Class.forName("com.apple.eawt.Application");
+
       if (macOSXApplication == null) {
         macOSXApplication =
             applicationClass.getConstructor((Class[]) null).newInstance((Object[]) null);
@@ -304,7 +306,7 @@ public class OSXAdapterForJava9 implements InvocationHandler {
         | IllegalAccessException
         | IllegalArgumentException
         | InvocationTargetException ex) {
-      /* Likely a NoSuchMethodException or an IllegalAccessException 
+      /* Likely a NoSuchMethodException or an IllegalAccessException
        * loading/invoking eawt.Application methods
        */
       logger.severe("Mac OS X Adapter could not talk to EAWT:");

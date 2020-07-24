@@ -254,6 +254,9 @@ public class Nodus7 {
 
     // Improve Mac OS experience
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
+
+      GUIUtils.supressIllegalReflectiveAccessOperationWarnings();
+  
       // Set icon in Mac OS Dock
       GUIUtils.setMacOSDockImage(icn);
 
