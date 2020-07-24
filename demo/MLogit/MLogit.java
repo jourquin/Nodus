@@ -73,12 +73,11 @@ public class MLogit extends ModalSplitMethod {
    * @param assignmentParameters Assignment parameters
    */
   @Override
-  public void initialize(
-      int currentGroup, AssignmentParameters assignmentParameters) {
-    super.initialize(currentGroup, assignmentParameters);
+  public void initializeGroup(int currentGroup) {
+    super.initializeGroup(currentGroup);
 
     // Retrieve the cost functions
-    costFunctions = assignmentParameters.getCostFunctions();
+    costFunctions = getAssignmentParameters().getCostFunctions();
 
     // Retrieve the values of the estimated parameters
     paramValue = new double[NodusC.MAXMM][paramNames.length];
