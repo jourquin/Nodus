@@ -159,6 +159,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
 
 - Miscellaneous:
     - Upgrade to mariadb-java-client 2.6
+    - Upgrade to HSQLDB 2.5.1
     - Add stop and switch costs and durations (used with services) in the path header tables.  
     - Remove the "-" button in the layer panel. Not useful.
     - New compass image in ScaleAndCompassLayer.
