@@ -53,7 +53,7 @@ public class ODReader {
   private static I18n i18n = Environment.getI18n();
 
   /**
-   * Returns a list containing all the valid OD tables foun in the database.
+   * Returns a list containing all the valid OD tables found in the database.
    *
    * @param nodusProject The Nodus project.
    * @return A Vector containing table names corresponding to valid OD tables.
@@ -239,16 +239,19 @@ public class ODReader {
 
     /* Does table exists? */
     if (!JDBCUtils.tableExists(odTableName)) {
-      JOptionPane.showMessageDialog(
-          null,
-          MessageFormat.format(
-              i18n.get(ODReader.class, "TableNotFound", "Table {0} not found"), odTableName),
-          NodusC.APPNAME,
-          JOptionPane.ERROR_MESSAGE);
+      // Force an update of the list of tables to be sure
+      if (!JDBCUtils.tableExists(odTableName, true)) {
+        JOptionPane.showMessageDialog(
+            null,
+            MessageFormat.format(
+                i18n.get(ODReader.class, "TableNotFound", "Table {0} not found"), odTableName),
+            NodusC.APPNAME,
+            JOptionPane.ERROR_MESSAGE);
 
-      isOk = false;
+        isOk = false;
 
-      return;
+        return;
+      }
     }
 
     nodusMapPanel.setBusy(true);
