@@ -1132,6 +1132,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     layerHandler.setLayers();
     nodusLayersPanel.enableButtons(true);
+
+    // Ugly trick used to ensure that the political boundaries are displayed when no project is
+    // loaded
+    if (politicalBoundariesLayer != null) {
+      politicalBoundariesLayer.setProjection((Projection) null);
+    }
   }
 
   /**
