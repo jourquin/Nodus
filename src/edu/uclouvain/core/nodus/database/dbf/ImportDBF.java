@@ -120,6 +120,11 @@ public class ImportDBF {
       while (dbfReader.hasNextRecord()) {
         Object[] o = dbfReader.nextRecord();
 
+        // If the record is marked as deleted
+        if (o == null) {
+          continue;
+        }
+
         for (int i = 0; i < o.length; i++) {
 
           // QGIS (?) sometimes  stores null values. Replace with 0 or empty String (ugly trick)

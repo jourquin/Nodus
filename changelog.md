@@ -152,6 +152,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Accept SQL DATE in the DBF files.
     - Use JavaDbf4Nodus 1.12.1, that uses UTF-8 encoding by default.
     - Better support of non legacy DBF files (such as those written by many GIS softwares.
+    - Handle DBF files with records marked as deleted.
 
 - Nodes and link labels:
     - Reload labels after 'exportdbf' of a layer in order to display changes.
