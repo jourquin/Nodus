@@ -267,6 +267,16 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
         vl.addFlow(groupIndex, timeSlice, demand.getQuantity());
       }
 
+      // The total cost of a path must be strictly positive
+      if (pathCosts.getCost() == 0.0) {
+        setErrorMessage(
+            i18n.get(
+                AssignmentWorker.class,
+                "Cost_must_be_positive",
+                "The total cost for all paths must be strictly positive"));
+        return false;
+      }
+
       // Save the header of this detailed path if needed
       if (isPathFound && pathWriter.isSavePaths()) {
         if (!pathWriter.savePathHeader(

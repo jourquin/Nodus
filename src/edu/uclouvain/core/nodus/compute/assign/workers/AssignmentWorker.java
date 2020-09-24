@@ -111,6 +111,14 @@ public abstract class AssignmentWorker extends Thread {
   }
 
   /**
+   * Sets an error message that will be displayed once the assignment canceled.
+   * @param msg The message to display.
+   */
+  public void setErrorMessage(String msg) {
+    assignment.setErrorMessage(msg);
+  }
+
+  /**
    * Main work must be done here. Must be overridden in a sub-class.
    *
    * @return True on success

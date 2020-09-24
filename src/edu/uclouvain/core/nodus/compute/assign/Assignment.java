@@ -103,6 +103,8 @@ public abstract class Assignment implements Runnable {
 
   AssignmentWorker[] assignmentWorkers = null;
 
+  private String errorMessage = "";
+
   /**
    * Initializes the assignment procedure. The effective computation starts calling the run()
    * methode.
@@ -199,6 +201,11 @@ public abstract class Assignment implements Runnable {
       System.exit(0);
     }
 
+    if (!success && !errorMessage.isEmpty()) {
+      JOptionPane.showMessageDialog(
+          nodusProject.getNodusMapPanel(), errorMessage, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+    }
+
     // Run the post assignment script, if any
     if (success) {
       success = runPostAssignmentScript();
@@ -262,6 +269,14 @@ public abstract class Assignment implements Runnable {
     }
 
     return true;
+  }
+
+  /**
+   * Sets an error message that will be displayed once the assignment canceled.
+   * @param msg The message to display.
+   */
+  public void setErrorMessage(String msg) {
+    errorMessage = msg;
   }
 
   /**

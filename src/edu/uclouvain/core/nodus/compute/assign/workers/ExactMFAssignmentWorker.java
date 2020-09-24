@@ -210,6 +210,10 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
                       demand,
                       pathHeaders);
 
+              if (paths[currentPathPropertiesIndex] == null) {
+                return false;
+              }
+
               /*
                * Increase the costs in the adjacency list to make the already used links more
                *  expensive (not for last iteration).
@@ -592,6 +596,16 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     // path.weight = weight;
     path.weights = pathCosts;
     // path.length = length;
+
+    // The total cost of a path must be strictly positive
+    if (pathCosts.getCost() == 0.0) {
+      setErrorMessage(
+          i18n.get(
+              AssignmentWorker.class,
+              "Cost_must_be_positive",
+              "The total cost for all paths must be strictly positive"));
+      return null;
+    }
 
     // Associate the key with the length to maximize chances to have a unique key
     path.detailedPathKey *= path.weights.getLength();

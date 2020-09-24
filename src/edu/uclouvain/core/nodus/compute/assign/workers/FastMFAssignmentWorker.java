@@ -113,8 +113,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
       e.printStackTrace();
       return false;
     }
-   
-    
+
     if (modalSplitMethod == null) {
       return false;
     }
@@ -211,6 +210,10 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
                */
               paths[currentPathPropertiesIndex] =
                   markPaths(nodeIndex, demandList.size(), currentPathPropertiesIndex, pathHeaders);
+
+              if (paths[currentPathPropertiesIndex] == null) {
+                return false;
+              }
 
               /*
                * Increase the costs in the adjacency list to make the already used links more
@@ -613,6 +616,16 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
           currentNode = predecessor;
         }
+      }
+
+      // The total cost of a path must be strictly positive
+      if (pathCosts.getCost() == 0.0) {
+        setErrorMessage(
+            i18n.get(
+                AssignmentWorker.class,
+                "Cost_must_be_positive",
+                "The total cost for all paths must be strictly positive"));
+        return null;
       }
 
       // Save the properties of the path. Will be used to split the flow over the paths
