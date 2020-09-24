@@ -128,8 +128,7 @@ public class SystemInfoDlg extends EscapeDialog {
       long maxHeap = Runtime.getRuntime().maxMemory() / (1024 * 1024);
       htmlDescription =
           "<html><body><div style=\"text-align: center;\">"
-              + "<font face=\"Helvetica, Arial, sans-serif\">"
-              + "<br>"
+    		  + "<br>"
               + System.getProperty("java.vm.name")
               + "<br>"
               + System.getProperty("java.version")
