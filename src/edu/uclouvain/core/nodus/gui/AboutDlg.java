@@ -95,7 +95,7 @@ public class AboutDlg extends EscapeDialog {
           new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-              ArchInfoDlg dlg = new ArchInfoDlg(_this);
+              SystemInfoDlg dlg = new SystemInfoDlg(_this);
               dlg.setVisible(true);
             }
           });

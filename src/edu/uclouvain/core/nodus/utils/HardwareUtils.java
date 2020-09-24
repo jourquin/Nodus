@@ -21,15 +21,10 @@
 
 package edu.uclouvain.core.nodus.utils;
 
-import com.sun.xml.bind.v2.schemagen.xmlschema.List;
-
 import java.awt.Frame;
 import java.util.Iterator;
-
 import javax.swing.JFrame;
-
 import org.uclouvain.gtm.util.gui.JResourcesMonitor;
-
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
 import oshi.hardware.ComputerSystem;
@@ -37,8 +32,6 @@ import oshi.hardware.Display;
 import oshi.hardware.GlobalMemory;
 import oshi.hardware.GraphicsCard;
 import oshi.hardware.HardwareAbstractionLayer;
-import oshi.software.os.FileSystem;
-import oshi.software.os.OSFileStore;
 import oshi.software.os.OperatingSystem;
 import oshi.util.EdidUtil;
 import oshi.util.FormatUtil;
@@ -95,29 +88,43 @@ public class HardwareUtils {
     return cpu.getLogicalProcessorCount();
   }
 
+  /**
+   * Returns the name and version of the OS.
+   *
+   * @return Name and version of the OS.
+   */
   public static String getOsInfo() {
-    StringBuilder sb = new StringBuilder();
-
     OperatingSystem os = si.getOperatingSystem();
-
     return os.toString();
   }
 
+  /**
+   * Returns the name of the computer.
+   *
+   * @return Name of the computer system.
+   */
   public static String getComputerInfo() {
-
     ComputerSystem computerSystem = si.getHardware().getComputerSystem();
-
     return computerSystem.getManufacturer() + " " + computerSystem.getModel();
   }
 
+  /**
+   * Returns a complete description of the CPU(s).
+   *
+   * @return Description of the CPU's.
+   */
   public static String getProcessorInfo() {
     StringBuilder sb = new StringBuilder();
     CentralProcessor proc = si.getHardware().getProcessor();
     sb.append(proc.toString());
-
     return sb.toString();
   }
 
+  /**
+   * Returns a description of the computer system display(s).
+   *
+   * @return Description of the display(s).
+   */
   public static String getDisplayInfo() {
     StringBuilder sb = new StringBuilder();
     java.util.List<Display> displays = si.getHardware().getDisplays();
@@ -138,17 +145,23 @@ public class HardwareUtils {
           sb.append('\n');
         }
         sb.append(name).append(": ");
-        int hSize = EdidUtil.getHcm(edid);
-        int vSize = EdidUtil.getVcm(edid);
+        int horizontalSize = EdidUtil.getHcm(edid);
+        int verticalSize = EdidUtil.getVcm(edid);
         sb.append(
-            String.format("%d x %d cm (%.1f x %.1f in)", hSize, vSize, hSize / 2.54, vSize / 2.54));
+            String.format(
+                "%d x %d cm (%.1f x %.1f in)",
+                horizontalSize, verticalSize, horizontalSize / 2.54, verticalSize / 2.54));
       }
     }
     return sb.toString();
   }
 
+  /**
+   * Returns the description of installed the graphics card(s).
+   *
+   * @return Description of the graphics card(s).
+   */
   public static String getGraphicsCardInfo() {
-
     java.util.List<GraphicsCard> graphicsCards = si.getHardware().getGraphicsCards();
     Iterator<GraphicsCard> it = graphicsCards.iterator();
     String s = "";
@@ -157,45 +170,29 @@ public class HardwareUtils {
       s += gc.getVendor() + " ";
       s += gc.getName();
       if (it.hasNext()) {
-    	  s += System.lineSeparator();
+        s += System.lineSeparator();
       }
     }
-
     return s;
   }
 
+  /**
+   * Returns the total amount of RAM of the computer system.
+   *
+   * @return The total amount of RAM with the appropriate unit suffix.
+   */
   public static String getTotalMemoryInfo() {
     GlobalMemory memory = si.getHardware().getMemory();
-
     return FormatUtil.formatBytes(memory.getTotal());
   }
 
+  /**
+   * Returns the available amount of RAM of the computer system.
+   *
+   * @return The available amount of RAM with the appropriate unit suffix.
+   */
   public static String getAvailableMemoryInfo() {
     GlobalMemory memory = si.getHardware().getMemory();
-
     return FormatUtil.formatBytes(memory.getAvailable());
-  }
-
-  public static String getFileSystemInfo() {
-
-    FileSystem fileSystem = si.getOperatingSystem().getFileSystem();
-    java.util.List<OSFileStore> fileStores = fileSystem.getFileStores();
-
-    for (OSFileStore store : fileStores) {
-      System.out.println(store.getName());
-
-      System.out.println(store.getType());
-
-      long usable = store.getUsableSpace();
-      long total = store.getTotalSpace();
-
-      long usablePct = Math.round(((double) usable / (double) total) * 100);
-
-      // System.out.println(usablePct + "/" + total);
-
-      System.out.println();
-    }
-
-    return "";
   }
 }

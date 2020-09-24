@@ -24,21 +24,23 @@ package edu.uclouvain.core.nodus.gui;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
+import edu.uclouvain.core.nodus.utils.HardwareUtils;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import javax.swing.JButton;
 import javax.swing.JDialog;
-import javax.swing.JLabel;
+import javax.swing.JEditorPane;
 import javax.swing.JPanel;
-import javax.swing.SwingConstants;
+import javax.swing.JScrollPane;
 
 /**
  * A dialog box that display several informations about the system Nodus is running on.
  *
  * @author Bart Jourquin
  */
-public class ArchInfoDlg extends EscapeDialog {
+public class SystemInfoDlg extends EscapeDialog {
 
   private static final long serialVersionUID = 1L;
 
@@ -48,17 +50,29 @@ public class ArchInfoDlg extends EscapeDialog {
 
   private JPanel mainPanel = null;
 
-  private JLabel versionInfo = null;
+  private JEditorPane systemInfo = null;
+
+  private JScrollPane infoScrollPane = new JScrollPane();
+
+  private String computerInfo = HardwareUtils.getComputerInfo();
+  private String processorInfo = HardwareUtils.getProcessorInfo();
+  private String displayInfo = HardwareUtils.getDisplayInfo();
+  private String graphicCardsInfo = HardwareUtils.getGraphicsCardInfo();
+  private String osInfo = HardwareUtils.getOsInfo();
+  private String totalMemoryInfo = HardwareUtils.getTotalMemoryInfo();
+  private String availableMemoryInfo = HardwareUtils.getAvailableMemoryInfo();
+  private String htmlDescription;
 
   /**
    * Creates the dialog box.
    *
    * @param aboutDlg The parent dialog.
    */
-  public ArchInfoDlg(JDialog aboutDlg) {
-    super(aboutDlg, i18n.get(ArchInfoDlg.class, "System_info", "System info"), true);
-    this.setSize(300, 200);
+  public SystemInfoDlg(JDialog aboutDlg) {
+    super(aboutDlg, i18n.get(SystemInfoDlg.class, "System_info", "System info"), true);
+    this.setPreferredSize(new Dimension(400, 400));
     this.setContentPane(getMainPanel());
+    pack();
     getRootPane().setDefaultButton(closeButton);
     setLocationRelativeTo(aboutDlg);
   }
@@ -104,31 +118,55 @@ public class ArchInfoDlg extends EscapeDialog {
       versionInfoConstraints.fill = GridBagConstraints.BOTH;
       versionInfoConstraints.gridy = 0;
 
+      computerInfo = computerInfo.replaceAll(System.lineSeparator(), "<br>");
+      processorInfo = processorInfo.replaceAll(System.lineSeparator(), "<br>");
+      displayInfo = displayInfo.replaceAll(System.lineSeparator(), "<br>");
+      graphicCardsInfo = graphicCardsInfo.replaceAll(System.lineSeparator(), "<br>");
+      osInfo = osInfo.replaceAll(System.lineSeparator(), "<br>");
+
       /* Build a html page with the version info of the JVM and the OS. */
       long maxHeap = Runtime.getRuntime().maxMemory() / (1024 * 1024);
-      String s =
+      htmlDescription =
           "<html><body><div style=\"text-align: center;\">"
+              + "<font face=\"Helvetica, Arial, sans-serif\">"
+              + "<br>"
               + System.getProperty("java.vm.name")
               + "<br>"
               + System.getProperty("java.version")
               + "<br>"
               + System.getProperty("java.vm.vendor")
               + "<br>"
-              + System.getProperty("os.name")
-              + " - "
-              + System.getProperty("os.arch")
-              + "<br>"
               + "MaxHeap = "
               + maxHeap
               + "Mb"
+              + "<br><br>"
+              + computerInfo
+              + "<br>"
+              + processorInfo
+              + "<br><br>"
+              + displayInfo
+              + "<br>"
+              + graphicCardsInfo
+              + "<br><br>"
+              + availableMemoryInfo
+              + " / "
+              + totalMemoryInfo
+              + "<br><br>"
+              + osInfo
               + "</div></body></html>";
 
-      versionInfo = new JLabel(s);
-      versionInfo.setHorizontalAlignment(SwingConstants.CENTER);
+      systemInfo = new JEditorPane();
+      systemInfo.setContentType("text/html");
+      systemInfo.setEditable(false);
+      systemInfo.setText(htmlDescription);
+      infoScrollPane.setViewportView(systemInfo);
+
+      // systemInfo.setVerticalAlignment(SwingConstants.TOP);
+      // systemInfo.setHorizontalAlignment(SwingConstants.CENTER);
 
       mainPanel = new JPanel();
       mainPanel.setLayout(new GridBagLayout());
-      mainPanel.add(versionInfo, versionInfoConstraints);
+      mainPanel.add(infoScrollPane, versionInfoConstraints);
       mainPanel.add(getCloseButton(), closeButtonConstraints);
     }
     return mainPanel;
