@@ -41,7 +41,8 @@ public class NodusC {
   public static final String APPNAME = "Nodus " + VERSION;
 
   /** Copyright. */
-  public static final String COPYRIGHT = "(c) Université catholique de Louvain, 1991-2020";
+  public static final String COPYRIGHT =
+      "(c) Université catholique de Louvain (UCLouvain)," + " 1991-2020";
 
   /*
    * *********************************************************************************************
@@ -155,7 +156,7 @@ public class NodusC {
 
   /** Name of the "group" field in the database tables. */
   public static final String DBF_GROUP = "grp";
-  
+
   /** Name of the "scenario" field in the database tables. */
   public static final String DBF_SCENARIO = "scenario";
 
@@ -527,7 +528,7 @@ public class NodusC {
 
   /** Named color to use for a mode. */
   public static final String PROP_MODE_COLOR = "color.mode";
-  
+
   /**
    * List of (space separated) DBF tables that must be imported with the project (OD tables for
    * instance).
@@ -817,14 +818,13 @@ public class NodusC {
    * @exclude
    */
   public static final String PROP_NAV_MOUSE_MODE = "navmousemode";
-  
+
   /**
    * Properties strings used in project and/or project local properties.
    *
    * @exclude
    */
   public static final String PROP_ANTIALIASING = "antialiasing";
-  
 
   /**
    * Properties strings used in project and/or project local properties.
@@ -1168,7 +1168,7 @@ public class NodusC {
    * @exclude
    */
   public static final String PROP_RENDERING_SCALE_THRESHOLD = "renderingscalethreshold";
-  
+
   /**
    * Properties strings used in project and/or project local properties.
    *

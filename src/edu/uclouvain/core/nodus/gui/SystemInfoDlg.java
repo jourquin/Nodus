@@ -25,7 +25,6 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import edu.uclouvain.core.nodus.utils.HardwareUtils;
-import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -70,9 +69,15 @@ public class SystemInfoDlg extends EscapeDialog {
    */
   public SystemInfoDlg(JDialog aboutDlg) {
     super(aboutDlg, i18n.get(SystemInfoDlg.class, "System_info", "System info"), true);
-    this.setPreferredSize(new Dimension(400, 400));
+
     this.setContentPane(getMainPanel());
     pack();
+
+    // Give a little more space around the text
+    int width = getWidth();
+    int height = getHeight();
+    setSize(width + 20, height + 20);
+
     getRootPane().setDefaultButton(closeButton);
     setLocationRelativeTo(aboutDlg);
   }
@@ -126,9 +131,16 @@ public class SystemInfoDlg extends EscapeDialog {
 
       /* Build a html page with the version info of the JVM and the OS. */
       long maxHeap = Runtime.getRuntime().maxMemory() / (1024 * 1024);
+
+      closeButton = getCloseButton();
+      String fontFamily = closeButton.getFont().getFamily();
+      String prefix = "<html><body style=\"font-family: " + fontFamily + "\"<b>";
+      String suffix = "</b></html>";
+
       htmlDescription =
-          "<html><body><div style=\"text-align: center;\">"
-    		  + "<br>"
+          prefix
+              + "<div align=\"center\">"
+              + "<br>"
               + System.getProperty("java.vm.name")
               + "<br>"
               + System.getProperty("java.version")
@@ -152,16 +164,14 @@ public class SystemInfoDlg extends EscapeDialog {
               + totalMemoryInfo
               + "<br><br>"
               + osInfo
-              + "</div></body></html>";
+              + "</div></body>"
+              + suffix;
 
       systemInfo = new JEditorPane();
       systemInfo.setContentType("text/html");
       systemInfo.setEditable(false);
       systemInfo.setText(htmlDescription);
       infoScrollPane.setViewportView(systemInfo);
-
-      // systemInfo.setVerticalAlignment(SwingConstants.TOP);
-      // systemInfo.setHorizontalAlignment(SwingConstants.CENTER);
 
       mainPanel = new JPanel();
       mainPanel.setLayout(new GridBagLayout());

@@ -24,15 +24,13 @@ package edu.uclouvain.core.nodus.gui;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.MapBean;
 import com.bbn.openmap.util.I18n;
+import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
-import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import java.io.IOException;
-import java.net.MalformedURLException;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JEditorPane;
@@ -131,14 +129,33 @@ public class AboutDlg extends EscapeDialog {
     mainPanel.setLayout(mainPanelGridBagLayout);
 
     nodusInfoHTMLPane.setEditable(false);
+    nodusInfoHTMLPane.setContentType("text/html");
 
-    try {
-      nodusInfoHTMLPane.setPage(getClass().getResource("about.htm"));
-    } catch (MalformedURLException ex) {
-      System.out.println("invalid url");
-    } catch (IOException ex) {
-      System.out.println("file not found");
-    }
+    String fontFamily = okButton.getFont().getFamily();
+    String prefix = "<html><body style=\"font-family: " + fontFamily + "\"<b>";
+    String suffix = "</b></html>";
+    String imgSrc = getClass().getResource("uclouvain.png").toString();
+
+    String content =
+        prefix
+            + "<div align=\"center\"><font color=\"#000099\"><br>"
+            + "<strong><big><big><big><big>"
+            + NodusC.APPNAME
+            + "</big></big></big></big></strong></font><br>"
+            + "<br>"
+            + "Nodus is a trademark of UCLouvain<br>"
+            + "<br>"
+            + "<strong> &ensp;"
+            + NodusC.COPYRIGHT
+            + "&ensp;</strong><strong><br>"
+            + "</strong><strong>Center for Operations Research and Econometrics (CORE)<br>"
+            + "</strong><strong> http://www.uclouvain.be/core</strong><br>"
+            + "<img src=\""
+            + imgSrc
+            + "\" width=\"250\" height=\"125\"></div>"
+            + suffix;
+
+    nodusInfoHTMLPane.setText(content);
 
     okButton.setText(i18n.get(AboutDlg.class, "Ok", "Ok"));
     okButton.addActionListener(
@@ -149,7 +166,7 @@ public class AboutDlg extends EscapeDialog {
           }
         });
 
-    nodusInfoScrollPane.setPreferredSize(new Dimension(430, 250));
+    // nodusInfoScrollPane.setPreferredSize(new Dimension(500, 300));
 
     nodusInfoScrollPane.setViewportView(nodusInfoHTMLPane);
     openMapTextCopyright.setBackground(UIManager.getColor("Button.background"));
