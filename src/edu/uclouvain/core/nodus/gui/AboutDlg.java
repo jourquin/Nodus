@@ -27,20 +27,16 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
-import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JEditorPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
-import javax.swing.UIManager;
 
 /**
  * Displays the "About" dialog.
@@ -62,8 +58,6 @@ public class AboutDlg extends EscapeDialog {
   private JScrollPane nodusInfoScrollPane = new JScrollPane();
 
   private JButton okButton = new JButton();
-
-  private JTextArea openMapTextCopyright = new JTextArea();
 
   private JButton systemInfoButton = null;
 
@@ -126,7 +120,7 @@ public class AboutDlg extends EscapeDialog {
     GridBagConstraints systemInfoButtonConstraints = new GridBagConstraints();
     systemInfoButtonConstraints.gridx = 0;
     systemInfoButtonConstraints.insets = new Insets(0, 0, 5, 0);
-    systemInfoButtonConstraints.gridy = 2;
+    systemInfoButtonConstraints.gridy = 1;
 
     mainPanel.setLayout(mainPanelGridBagLayout);
 
@@ -138,6 +132,9 @@ public class AboutDlg extends EscapeDialog {
     String suffix = "</b></html>";
     String imgSrc = getClass().getResource("uclouvain.png").toString();
 
+    String openMapCopyright = MapBean.getCopyrightMessage();
+    openMapCopyright = openMapCopyright.replaceAll("\r\n", "<br>");
+
     String content =
         prefix
             + "<div align=\"center\"><font color=\"#000099\"><br>"
@@ -147,19 +144,21 @@ public class AboutDlg extends EscapeDialog {
             + "<br>"
             + "Nodus is a trademark of UCLouvain<br>"
             + "<br>"
-            + "<strong> &ensp;"
+            + "<strong>"
             + NodusC.COPYRIGHT
-            + "&ensp;</strong><strong><br>"
+            + "</strong><strong><br>"
             + "</strong><strong>Center for Operations Research and Econometrics (CORE)<br>"
             + "</strong><strong> http://www.uclouvain.be/core</strong><br>"
             + "<img src=\""
             + imgSrc
-            + "\" width=\"250\" height=\"125\"></div>"
+            + "\" width=\"250\" height=\"125\">"
+            + "<br>"
+            + openMapCopyright
+            + "<br></div>"
             + suffix;
 
     nodusInfoHTMLPane.setText(content);
     nodusInfoHTMLPane.setOpaque(true);
-   
 
     okButton.setText(i18n.get(AboutDlg.class, "Ok", "Ok"));
     okButton.addActionListener(
@@ -170,16 +169,10 @@ public class AboutDlg extends EscapeDialog {
           }
         });
 
-    // nodusInfoScrollPane.setPreferredSize(new Dimension(500, 300));
-
     nodusInfoScrollPane.setViewportView(nodusInfoHTMLPane);
-    openMapTextCopyright.setBackground(UIManager.getColor("Button.background"));
-    openMapTextCopyright.setFont(new java.awt.Font("Dialog", 0, 12));
-    openMapTextCopyright.setEditable(false);
-    openMapTextCopyright.setText(MapBean.getCopyrightMessage());
-    openMapTextCopyright.setRows(0);
-    openMapTextCopyright.setBackground(Color.white);
-    
+    nodusInfoScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+    nodusInfoScrollPane.setViewportView(nodusInfoHTMLPane);
+
     setResizable(false);
     mainPanel.add(
         nodusInfoScrollPane,
@@ -196,29 +189,16 @@ public class AboutDlg extends EscapeDialog {
             0,
             0));
     mainPanel.add(okButton, okButtonConstraints);
-    mainPanel.add(
-        openMapTextCopyright,
-        new GridBagConstraints(
-            0,
-            1,
-            1,
-            1,
-            0.0,
-            0.0,
-            GridBagConstraints.CENTER,
-            GridBagConstraints.NONE,
-            new Insets(0, 10, 10, 10),
-            0,
-            0));
+
     mainPanel.add(getSystemInfoButton(), systemInfoButtonConstraints);
-    nodusInfoScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
-    nodusInfoScrollPane.setViewportView(nodusInfoHTMLPane);
-    nodusInfoScrollPane.setBorder(BorderFactory.createLineBorder(Color.white));
-    nodusInfoScrollPane.setBackground(Color.white);
-    mainPanel.setBackground(Color.white);
 
     setContentPane(mainPanel);
     pack();
+
+    // Give a little more space around the text
+    int width = getWidth();
+    int height = getHeight();
+    setSize(width + 20, height + 20);
   }
 
   /**
