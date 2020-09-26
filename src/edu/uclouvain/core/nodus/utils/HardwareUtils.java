@@ -114,10 +114,8 @@ public class HardwareUtils {
    * @return Description of the CPU's.
    */
   public static String getProcessorInfo() {
-    StringBuilder sb = new StringBuilder();
     CentralProcessor proc = si.getHardware().getProcessor();
-    sb.append(proc.toString());
-    return sb.toString();
+    return proc.toString();
   }
 
   /**
