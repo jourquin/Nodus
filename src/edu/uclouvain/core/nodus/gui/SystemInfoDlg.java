@@ -25,9 +25,11 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import edu.uclouvain.core.nodus.utils.HardwareUtils;
+import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JEditorPane;
@@ -171,12 +173,17 @@ public class SystemInfoDlg extends EscapeDialog {
       systemInfo.setContentType("text/html");
       systemInfo.setEditable(false);
       systemInfo.setText(htmlDescription);
+      systemInfo.setOpaque(true);
+      systemInfo.setBackground(Color.white);
       infoScrollPane.setViewportView(systemInfo);
+      infoScrollPane.setBorder(BorderFactory.createLineBorder(Color.white));
+      infoScrollPane.setBackground(Color.white);
 
       mainPanel = new JPanel();
       mainPanel.setLayout(new GridBagLayout());
       mainPanel.add(infoScrollPane, versionInfoConstraints);
       mainPanel.add(getCloseButton(), closeButtonConstraints);
+      mainPanel.setBackground(Color.white);
     }
     return mainPanel;
   }

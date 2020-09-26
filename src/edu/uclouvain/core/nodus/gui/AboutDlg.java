@@ -27,10 +27,12 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
+import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JEditorPane;
@@ -156,6 +158,8 @@ public class AboutDlg extends EscapeDialog {
             + suffix;
 
     nodusInfoHTMLPane.setText(content);
+    nodusInfoHTMLPane.setOpaque(true);
+   
 
     okButton.setText(i18n.get(AboutDlg.class, "Ok", "Ok"));
     okButton.addActionListener(
@@ -207,6 +211,9 @@ public class AboutDlg extends EscapeDialog {
     mainPanel.add(getSystemInfoButton(), systemInfoButtonConstraints);
     nodusInfoScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
     nodusInfoScrollPane.setViewportView(nodusInfoHTMLPane);
+    nodusInfoScrollPane.setBorder(BorderFactory.createLineBorder(Color.white));
+    nodusInfoScrollPane.setBackground(Color.white);
+    mainPanel.setBackground(Color.white);
 
     setContentPane(mainPanel);
     pack();
