@@ -123,11 +123,11 @@ public class SystemInfoDlg extends EscapeDialog {
       versionInfoConstraints.fill = GridBagConstraints.BOTH;
       versionInfoConstraints.gridy = 0;
 
-      computerInfo = computerInfo.replaceAll(System.lineSeparator(), "<br>");
-      processorInfo = processorInfo.replaceAll(System.lineSeparator(), "<br>");
-      displayInfo = displayInfo.replaceAll(System.lineSeparator(), "<br>");
-      graphicCardsInfo = graphicCardsInfo.replaceAll(System.lineSeparator(), "<br>");
-      osInfo = osInfo.replaceAll(System.lineSeparator(), "<br>");
+      computerInfo = computerInfo.replaceAll("\n", "<br>");
+      processorInfo = processorInfo.replaceAll("\n", "<br>");
+      displayInfo = displayInfo.replaceAll("\n", "<br>");
+      graphicCardsInfo = graphicCardsInfo.replaceAll("\n", "<br>");
+      osInfo = osInfo.replaceAll("\n", "<br>");
 
       /* Build a html page with the version info of the JVM and the OS. */
       long maxHeap = Runtime.getRuntime().maxMemory() / (1024 * 1024);
