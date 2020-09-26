@@ -178,6 +178,8 @@ public class AboutDlg extends EscapeDialog {
     openMapTextCopyright.setEditable(false);
     openMapTextCopyright.setText(MapBean.getCopyrightMessage());
     openMapTextCopyright.setRows(0);
+    openMapTextCopyright.setBackground(Color.white);
+    
     setResizable(false);
     mainPanel.add(
         nodusInfoScrollPane,
