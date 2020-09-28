@@ -52,7 +52,7 @@ import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 
-//TODO Interaction with services not working
+// TODO Interaction with services not working
 
 /**
  * This drawing tool makes it possible to modify the graphics stored into a set of nodes and link
@@ -99,7 +99,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
   /** Action ID used to transfert a node between layers. */
   private static final byte TRANSFERT_NODE = 3;
 
-  //private boolean controlPressed;
+  // private boolean controlPressed;
 
   /** Traces if an object is currently selected and moved to another location. */
   private boolean isMoving = false;
@@ -625,7 +625,9 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
     // Remove the closing listener on the launcher
     WindowSupport.Frm frm =
         (WindowSupport.Frm) nodusOMDrawingToolLauncher.getWindowSupport().getDisplay();
-    frm.removeWindowListener(closeAdapter);
+    if (frm != null) {
+      frm.removeWindowListener(closeAdapter);
+    }
 
     // If there was an ongoing link moving action, restore to node tool
     if (isMoving) {
