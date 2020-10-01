@@ -268,7 +268,7 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
       }
 
       // The total cost of a path must be strictly positive
-      if (pathCosts.getCost() == 0.0) {
+      if (isPathFound && pathCosts.getCost() == 0.0) {
         setErrorMessage(
             i18n.get(
                 AssignmentWorker.class,
