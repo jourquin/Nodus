@@ -75,6 +75,24 @@ public class Exclusion {
     }
   }
 
+  /**
+   * Returns the scenario ID of this exclusion.
+   *
+   * @return The scenario ID.
+   */
+  public int getScenario() {
+    return scenario;
+  }
+
+  /**
+   * Returns the group ID of this exclusion.
+   *
+   * @return The group ID of this exclusion.
+   */
+  public int getGroup() {
+    return group;
+  }
+
   public boolean isExclusion() {
     return isExclusion;
   }
@@ -83,7 +101,6 @@ public class Exclusion {
    * Returns true if the operation relative to the given scenario, group and mode/means combinations
    * is permitted at node NodeId.
    *
-   * @param nodeId Real node ID.
    * @param scenario Scenario
    * @param group Group of goods.
    * @param mode1 Mode at the origin.
@@ -94,11 +111,6 @@ public class Exclusion {
    */
   public boolean isExcluded(
       int nodeId, int scenario, int group, int mode1, int means1, int mode2, int means2) {
-
-    // Does the pattern concern the relevant node?
-    //    if (Math.abs(nodeId) != this.nodeId) {
-    //      return false;
-    //    }
 
     // Transit is always permitted
     if (mode1 == mode2 && means1 == means2) {
@@ -156,7 +168,6 @@ public class Exclusion {
    * Returns true if the operation relative to the given scenario, group and mode/means combinations
    * is permitted at node NodeId.
    *
-   * @param nodeId Real node ID.
    * @param scenario Scenario
    * @param group Group of goods.
    * @param mode1 Mode at the origin.
@@ -167,11 +178,6 @@ public class Exclusion {
    */
   public boolean isIncluded(
       int nodeId, int scenario, int group, int mode1, int means1, int mode2, int means2) {
-
-    // Does the pattern concern the relevant node?
-    //    if (Math.abs(nodeId) != this.nodeId) {
-    //      return false;
-    //    }
 
     // Transit is always permitted
     if (mode1 == mode2 && means1 == means2) {

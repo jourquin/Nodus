@@ -57,15 +57,18 @@ public class ExclusionReader {
 
   private VirtualNetwork virtualNet;
 
+  private int scenario;
+
   /**
    * Initializes the exclusions reader.
    *
    * @param vnet The virtual network
    */
-  public ExclusionReader(VirtualNetwork vnet) {
+  public ExclusionReader(VirtualNetwork vnet, int scenario) {
     nodusProject = vnet.getNodusProject();
     nodusMapPanel = nodusProject.getNodusMapPanel();
     virtualNet = vnet;
+    this.scenario = scenario;
 
     // Create SQL statement
     String defValue =
@@ -77,7 +80,16 @@ public class ExclusionReader {
       return;
     }
 
-    String sql = "SELECT COUNT(*) FROM " + tableName;
+    // Read generic and scenario specific exclusions
+    String sql =
+        "SELECT COUNT(*) FROM "
+            + tableName
+            + " WHERE "
+            + NodusC.DBF_SCENARIO
+            + " = -1 OR "
+            + NodusC.DBF_SCENARIO
+            + " = "
+            + scenario;
 
     // Fetch number of records to read
     try {
@@ -136,8 +148,16 @@ public class ExclusionReader {
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
             + ","
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
+            + ","
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SYMETRY)
             + " FROM "
-            + tableName;
+            + tableName
+            + " WHERE "
+            + NodusC.DBF_SCENARIO
+            + " = -1 OR "
+            + NodusC.DBF_SCENARIO
+            + " = "
+            + scenario;
 
     // connect to database and execute query
 
@@ -155,6 +175,8 @@ public class ExclusionReader {
 
     int means2 = -1;
 
+    int symetry = 0;
+
     try {
       Connection con = nodusProject.getMainJDBCConnection();
       Statement stmt = con.createStatement();
@@ -171,7 +193,7 @@ public class ExclusionReader {
           return false;
         }
 
-        for (int i = 1; i <= 7; i++) {
+        for (int i = 1; i <= 8; i++) {
           Object obj = rs.getObject(i);
           int value = JDBCUtils.getInt(obj);
 
@@ -183,7 +205,7 @@ public class ExclusionReader {
             case 1:
               num = value;
               break;
-              
+
             case 2:
               scenario = value;
               break;
@@ -208,6 +230,10 @@ public class ExclusionReader {
               means2 = value;
               break;
 
+            case 8:
+              symetry = value;
+              break;
+
             default:
               break;
           }
@@ -219,6 +245,12 @@ public class ExclusionReader {
         if (originIndex != -1) {
           Exclusion exc = new Exclusion(num, scenario, group, mode1, means1, mode2, means2);
           vnl[originIndex].addExclusion(exc);
+
+          // Add reverse rule ?
+          if (symetry != 0) {
+            exc = new Exclusion(num, scenario, group, mode2, means2, mode1, means1);
+            vnl[originIndex].addExclusion(exc);
+          }
         }
       }
 
@@ -245,7 +277,7 @@ public class ExclusionReader {
    */
   public static boolean createExclusionsTable(String tableName) {
     // Create an empty exclusion table
-    JDBCField[] field = new JDBCField[7];
+    JDBCField[] field = new JDBCField[8];
     int idx = 0;
     field[idx++] = new JDBCField(NodusC.DBF_NUM, "NUMERIC(11)");
     field[idx++] = new JDBCField(NodusC.DBF_SCENARIO, "NUMERIC(2)");
@@ -254,6 +286,7 @@ public class ExclusionReader {
     field[idx++] = new JDBCField(NodusC.DBF_MEANS1, "NUMERIC(2)");
     field[idx++] = new JDBCField(NodusC.DBF_MODE2, "NUMERIC(2)");
     field[idx++] = new JDBCField(NodusC.DBF_MEANS2, "NUMERIC(2)");
+    field[idx++] = new JDBCField(NodusC.DBF_SYMETRY, "NUMERIC(1)");
     if (!JDBCUtils.createTable(tableName, field)) {
       return false;
     }
@@ -313,7 +346,7 @@ public class ExclusionReader {
       Statement stmt = con.createStatement();
       ResultSet rs = stmt.executeQuery(sql);
 
-      String insertStmt = "INSERT INTO " + tmpFileName + " VALUES(?, ?, ? , ?, ?, ?, ?)";
+      String insertStmt = "INSERT INTO " + tmpFileName + " VALUES(?, ?, ? , ?, ?, ?, ?, ?)";
       PreparedStatement ps = con.prepareStatement(insertStmt);
 
       int group;
@@ -342,6 +375,7 @@ public class ExclusionReader {
         ps.setInt(5, means1);
         ps.setInt(6, mode2);
         ps.setInt(7, means2);
+        ps.setInt(8, 1); // Old exclusions were all symetric (both directions)
 
         ps.execute();
       }

@@ -219,8 +219,8 @@ public class CostParserWorker extends Thread {
       return false;
     }
 
-    LinkedList<Exclusion> exclusionList = vnl[index].getExclusionList();
-    if (exclusionList.isEmpty()) {
+    LinkedList<Exclusion> exclusionList = vnl[index].getExclusions(scenario, group);
+    if (exclusionList == null) {
       return false;
     }
 

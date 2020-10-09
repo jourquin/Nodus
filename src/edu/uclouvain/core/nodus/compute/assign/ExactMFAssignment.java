@@ -75,8 +75,6 @@ public class ExactMFAssignment extends Assignment {
       assignmentParameters.setDurationFunctions(true);
     }
 
-    byte scenario = assignmentParameters.getScenario();
-
     // double meansModeRatio = assignmentParameters.getMeansModeRatio();
 
     // Test if scenario already exists
@@ -92,8 +90,10 @@ public class ExactMFAssignment extends Assignment {
       return false;
     }
 
+    byte scenario = assignmentParameters.getScenario();
+
     // Read the exclusions
-    ExclusionReader er = new ExclusionReader(virtualNet);
+    ExclusionReader er = new ExclusionReader(virtualNet, scenario);
 
     if (er.hasExclusions()) {
       if (!er.loadExclusions()) {

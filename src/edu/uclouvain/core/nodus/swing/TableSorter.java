@@ -28,15 +28,15 @@ import javax.swing.table.TableModel;
  * TableSorter is a decorator for TableModels; adding sorting functionality to a supplied
  * TableModel. TableSorter does not store or copy the data in its TableModel; instead it maintains a
  * map from the row indexes of the view to the row indexes of the model. As requests are made of the
- * sorter (like getValueAt(row, col)) they are passed to the underlying model after the row numbers
- * have been translated via the internal mapping array. This way, the TableSorter appears to hold
- * another copy of the table with the rows in a different order.
+ * rowSorter (like getValueAt(row, col)) they are passed to the underlying model after the row
+ * numbers have been translated via the internal mapping array. This way, the TableSorter appears to
+ * hold another copy of the table with the rows in a different order.
  *
  * <p>TableSorter registers itself as a listener to the underlying model, just as the JTable itself
- * would. Events recieved from the model are examined, sometimes manipulated (typically widened),
+ * would. Events received from the model are examined, sometimes manipulated (typically widened),
  * and then passed on to the TableSorter listeners (typically the JTable). If a change to the model
- * has invalidated the order of TableSorter rows, a note of this is made and the sorter will resort
- * the rows the next time a value is requested.
+ * has invalidated the order of TableSorter rows, a note of this is made and the rowSorter will
+ * resort the rows the next time a value is requested.
  *
  * <p>When the tableHeader property is set, either by using the setTableHeader() method or the two
  * argument constructor, the table header may be used as a complete UI for TableSorter. The default

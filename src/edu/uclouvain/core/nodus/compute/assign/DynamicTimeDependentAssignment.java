@@ -72,8 +72,6 @@ public class DynamicTimeDependentAssignment extends Assignment {
       assignmentParameters.setDurationFunctions(true);
     }
 
-    byte scenario = assignmentParameters.getScenario();
-
     // Test if scenario already exists
     if (!VirtualNetworkWriter.acceptScenario(
         nodusProject, assignmentParameters.getScenario(), assignmentParameters.isConfirmDelete())) {
@@ -115,8 +113,10 @@ public class DynamicTimeDependentAssignment extends Assignment {
       return false;
     }
 
+    byte scenario = assignmentParameters.getScenario();
+
     // Read the exclusions
-    ExclusionReader er = new ExclusionReader(virtualNet);
+    ExclusionReader er = new ExclusionReader(virtualNet, scenario);
 
     if (er.hasExclusions()) {
       if (!er.loadExclusions()) {

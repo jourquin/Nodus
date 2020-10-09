@@ -45,11 +45,31 @@ public class VirtualNodeList {
     public int unloadingVirtualNodeId = -1;
   }
 
+  private class GroupExclusions {
+    int group;
+    LinkedList<Exclusion> exclusions;
+
+    public GroupExclusions(int group) {
+      this.group = group;
+      exclusions = new LinkedList<Exclusion>();
+    }
+  }
+
+  /*private class ScenarioExclusions {
+    int scenario;
+    LinkedList<GroupExclusions> groupExclusions;
+
+    public ScenarioExclusions(int scenario) {
+      this.scenario = scenario;
+      groupExclusions = new LinkedList<GroupExclusions>();
+    }
+  }*/
+
   /** Virtual node number that represent the loading node. */
   private Vector<Demands> demands = null;
 
   /** List of prohibited movements at the associated real node. */
-  private LinkedList<Exclusion> exclusionsList = null;
+  private LinkedList<GroupExclusions>[] scenarioExclusions = null;
 
   /** OMGraphic that represents this node. */
   private OMPoint graphic;
@@ -110,11 +130,11 @@ public class VirtualNodeList {
     if (isLoadingUnloading) {
       demands = new Vector<>(1, 1);
       demands.add(new Demands());
-      exclusionsList = new LinkedList<>();
-    } else {
-      if (isTranshipment) {
-        exclusionsList = new LinkedList<>();
-      }
+      // allExclusions = new ScenarioExclusions;
+      // } else {
+      // if (isTranshipment) {
+      //  allExclusions = new LinkedList<ScenarioExclusions>();
+      // }
     }
   }
 
@@ -195,12 +215,61 @@ public class VirtualNodeList {
   }
 
   /**
-   * Adds an exclude operation to the real node associated to this list.
+   * Adds an exclude operation to the real node associated to this list. The exclusions are stored
+   * in lists, per scenario and group of commodities. the scenario independent (-1) and group
+   * independent (-1) exclusions are stored at the first place of their respective lists.
    *
-   * @param exclusion Exclusion
+   * @param exclusion The Exclusion to store.
    */
+  @SuppressWarnings("unchecked")
   public void addExclusion(Exclusion exclusion) {
-    exclusionsList.add(exclusion);
+
+    // Generic exclusions are stored ate index 0, scenario specific exclusions at index 1
+
+    if (scenarioExclusions == null) {
+      scenarioExclusions = new LinkedList[2];
+    }
+
+    int scenario = exclusion.getScenario();
+    int group = exclusion.getGroup();
+
+    if (scenario == -1 && scenarioExclusions[0] == null) {
+      scenarioExclusions[0] = new LinkedList<GroupExclusions>();
+    }
+
+    if (scenario != -1 && scenarioExclusions[1] == null) {
+      scenarioExclusions[1] = new LinkedList<GroupExclusions>();
+    }
+
+    int scenarioIndex = 0;
+    if (scenario != -1) {
+      scenarioIndex = 1;
+    }
+
+    // Is there already a list of exclusions for this group in the scenario ?
+    LinkedList<GroupExclusions> groupExclusions = scenarioExclusions[scenarioIndex];
+    Iterator<GroupExclusions> it = groupExclusions.iterator();
+    boolean found = false;
+    while (it.hasNext()) {
+      GroupExclusions ge = it.next();
+      if (ge.group == group) {
+        ge.exclusions.add(exclusion);
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      // Create a list for this group and add the exclusion
+      GroupExclusions ge = new GroupExclusions(group);
+      ge.exclusions.add(exclusion);
+      // The generic group (-1) must be first in the list
+      if (group == -1) {
+        scenarioExclusions[scenarioIndex].addFirst(ge);
+      } else {
+        scenarioExclusions[scenarioIndex].add(ge);
+      }
+    }
   }
 
   /**
@@ -249,12 +318,49 @@ public class VirtualNodeList {
   }
 
   /**
-   * Returns the list of excluded movements associated to the real node.
+   * Returns the list of excluded movements associated to the real node for a given scenario and
+   * group. If no scenario specific exclusions are defined, the exclusions are searched for the
+   * generic (-1) scenario. Once the scenario (or generic) exclusions identified, one looks to
+   * group, specific exclusions. If no group specific exclusions are defined, one looks for group
+   * independent (-1) exclusions.
    *
-   * @return Linked list of exclusions.
+   * @param scenario The scenario for which the exclusions are searched for.
+   * @param group The group for which the exclusions are searched for.
+   * @return A list of exclusions or null if none are found.
    */
-  public LinkedList<Exclusion> getExclusionList() {
-    return exclusionsList;
+  public LinkedList<Exclusion> getExclusions(int scenario, int group) {
+
+    if (scenarioExclusions == null) {
+      return null;
+    }
+
+    // Test scenario specific exclusions
+    LinkedList<GroupExclusions> groupExclusions = scenarioExclusions[1];
+    if (groupExclusions == null) {
+      // Look for generic exclusions
+      groupExclusions = scenarioExclusions[0];
+    }
+
+    if (groupExclusions == null) {
+      return null;
+    }
+
+    // Are group specific exclusions present ?
+    Iterator<GroupExclusions> it = groupExclusions.iterator();
+    while (it.hasNext()) {
+      GroupExclusions ge = it.next();
+      if (ge.group == group) {
+        return ge.exclusions;
+      }
+    }
+
+    // Generic exclusions ?
+    GroupExclusions ge = groupExclusions.getFirst();
+    if (ge.group == -1) {
+      return ge.exclusions;
+    }
+
+    return null;
   }
 
   /**
