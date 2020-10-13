@@ -209,7 +209,7 @@ public class NodusC {
   public static final String DBF_MEANS2 = "means2";
 
   /** Name of the "exclusion symetry" field in the database tables. */
-  public static final String DBF_SYMETRY = "symetry";
+  public static final String DBF_SYMMETRY = "symetry";
   
   /** Name of the "path index" field in the database tables. */
   public static final String DBF_PATH_INDEX = "pathidx";

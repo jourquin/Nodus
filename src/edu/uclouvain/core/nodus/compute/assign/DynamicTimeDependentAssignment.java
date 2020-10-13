@@ -26,8 +26,8 @@ import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorkerParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.DynamicTimeDependentAssignmentWorker;
-import edu.uclouvain.core.nodus.compute.exclusions.ExclusionReader;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
+import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
@@ -116,7 +116,7 @@ public class DynamicTimeDependentAssignment extends Assignment {
     byte scenario = assignmentParameters.getScenario();
 
     // Read the exclusions
-    ExclusionReader er = new ExclusionReader(virtualNet, scenario);
+    NodeRulesReader er = new NodeRulesReader(virtualNet, scenario);
 
     if (er.hasExclusions()) {
       if (!er.loadExclusions()) {

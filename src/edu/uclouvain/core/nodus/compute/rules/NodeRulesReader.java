@@ -19,7 +19,7 @@
  * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus.compute.exclusions;
+package edu.uclouvain.core.nodus.compute.rules;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
@@ -41,7 +41,7 @@ import javax.swing.JOptionPane;
  *
  * @author Bart Jourquin
  */
-public class ExclusionReader {
+public class NodeRulesReader {
 
   private static I18n i18n = Environment.getI18n();
 
@@ -64,7 +64,7 @@ public class ExclusionReader {
    *
    * @param vnet The virtual network
    */
-  public ExclusionReader(VirtualNetwork vnet, int scenario) {
+  public NodeRulesReader(VirtualNetwork vnet, int scenario) {
     nodusProject = vnet.getNodusProject();
     nodusMapPanel = nodusProject.getNodusMapPanel();
     virtualNet = vnet;
@@ -149,7 +149,7 @@ public class ExclusionReader {
             + ","
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
             + ","
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SYMETRY)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SYMMETRY)
             + " FROM "
             + tableName
             + " WHERE "
@@ -188,7 +188,7 @@ public class ExclusionReader {
 
       while (rs.next()) {
         if (!nodusMapPanel.updateProgress(
-            i18n.get(ExclusionReader.class, "Loading_exclusions", "Loading exclusions"))) {
+            i18n.get(NodeRulesReader.class, "Loading_exclusions", "Loading exclusions"))) {
 
           return false;
         }
@@ -243,12 +243,12 @@ public class ExclusionReader {
         int originIndex = virtualNet.getNodeIndexInVirtualNodeList(Math.abs(num), true);
 
         if (originIndex != -1) {
-          Exclusion exc = new Exclusion(num, scenario, group, mode1, means1, mode2, means2);
+          NodeRule exc = new NodeRule(num, scenario, group, mode1, means1, mode2, means2);
           vnl[originIndex].addExclusion(exc);
 
           // Add reverse rule ?
           if (symetry != 0) {
-            exc = new Exclusion(num, scenario, group, mode2, means2, mode1, means1);
+            exc = new NodeRule(num, scenario, group, mode2, means2, mode1, means1);
             vnl[originIndex].addExclusion(exc);
           }
         }
@@ -286,7 +286,7 @@ public class ExclusionReader {
     field[idx++] = new JDBCField(NodusC.DBF_MEANS1, "NUMERIC(2)");
     field[idx++] = new JDBCField(NodusC.DBF_MODE2, "NUMERIC(2)");
     field[idx++] = new JDBCField(NodusC.DBF_MEANS2, "NUMERIC(2)");
-    field[idx++] = new JDBCField(NodusC.DBF_SYMETRY, "NUMERIC(1)");
+    field[idx++] = new JDBCField(NodusC.DBF_SYMMETRY, "NUMERIC(1)");
     if (!JDBCUtils.createTable(tableName, field)) {
       return false;
     }
@@ -318,7 +318,7 @@ public class ExclusionReader {
     // Start upgrading process
     nodusProject
         .getNodusMapPanel()
-        .setText(i18n.get(ExclusionReader.class, "Upgrading", "Upgrading exclusions table"));
+        .setText(i18n.get(NodeRulesReader.class, "Upgrading", "Upgrading exclusions table"));
 
     String tmpFileName = tableName + "_tmp";
 

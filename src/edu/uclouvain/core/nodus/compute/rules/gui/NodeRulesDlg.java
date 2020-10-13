@@ -19,14 +19,14 @@
  * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus.compute.exclusions.gui;
+package edu.uclouvain.core.nodus.compute.rules.gui;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
-import edu.uclouvain.core.nodus.compute.exclusions.ExclusionReader;
+import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import java.awt.Color;
@@ -43,6 +43,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
+import java.util.HashMap;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -69,48 +70,65 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
 /**
- * This dialog box handles the exclusions that can be maintained for a given node. Exclusions
- * represent operations are not allowed between two given pairs of mode and means, for a given
- * group. Using a 0 value means "any" group or mode or means.
+ * This dialog box handles the rules that can be maintained for a given node. These rules
+ * represent operations are allowed or not between two given pairs of mode and means, for a given
+ * scenario and group. Using a -1 value means "any" scenario, group, mode or means. Rules can
+ * be defined as being symmetric.
  *
  * @author Bart Jourquin
  */
-public class ExclusionDlg extends EscapeDialog {
+public class NodeRulesDlg extends EscapeDialog {
 
-  private static final String RULE_EXCLUSION = "exclusion";
-  private static final String RULE_INCLUSION = "inclusion";
+  private static final long serialVersionUID = 2034841416338333759L;
 
-  private static final byte idxScenario = 0;
-  private static final byte idxGroup = 1;
-  private static final byte idxMode1 = 2;
-  private static final byte idxMeans1 = 3;
-  private static final byte idxMode2 = 4;
-  private static final byte idxMeans2 = 5;
-  private static final byte idxSymetry = 6;
-  private static final byte idxNum = 7;
-
-  private static Color includeColor = new Color(10, 220, 50);
-  private static Color excludeColor = new Color(220, 10, 10);
-  private static Color errorColor = Color.LIGHT_GRAY;
-
-  private static String singleArrow = "\u2192"; // Simple arrow
   private static String doubleArrow = "\u2194"; // bidirectional arrow
+  private static String singleArrow = "\u2192"; // Simple arrow
+
+  private static Color errorColor = Color.LIGHT_GRAY;
+  private static Color excludeColor = new Color(220, 10, 10);
+  private static Color includeColor = new Color(10, 220, 50);
 
   private static I18n i18n = Environment.getI18n();
 
-  private static final long serialVersionUID = 2034841416338333759L;
+  private static final byte idxGroup = 1;
+  private static final byte idxMeans1 = 3;
+  private static final byte idxMeans2 = 5;
+  private static final byte idxMode1 = 2;
+  private static final byte idxMode2 = 4;
+  private static final byte idxNum = 7;
+  private static final byte idxScenario = 0;
+  private static final byte idxSymmetry = 6;
+
+  private static final String RULE_EXCLUSION = "exclusion";
+  private static final String RULE_INCLUSION = "inclusion";
 
   private JButton addButton = new JButton();
 
   private JButton cancelButton = new JButton();
 
-  private JTable exclusionTable;
+  private int currentRow = -1;
+
+  private int currentScenario;
+
+  private String defaultExclusionRule;
+
+  private final ButtonGroup excludeButtonGroup = new ButtonGroup();
+
+  private final JRadioButton excludeRadioButton = new JRadioButton();
+
+  private DefaultTableModel exclusionsTableModel;
+
+  private final JLabel fromLabel = new JLabel();
+
+  private final JRadioButton genercicRadioButton = new JRadioButton();
 
   private JLabel groupLabel = new JLabel();
 
   private JSpinner groupSpinner = new JSpinner(new SpinnerNumberModel(-1, -1, 99, 1));
 
-  private JScrollPane scrollPane1 = new JScrollPane();
+  private final JRadioButton includeRadioButton = new JRadioButton();
+
+  private int initialRulesHashCode;
 
   private JPanel mainPanel = new JPanel();
 
@@ -132,47 +150,33 @@ public class ExclusionDlg extends EscapeDialog {
 
   private JSpinner mode2Spinner = new JSpinner(new SpinnerNumberModel(-1, -1, 99, 1));
 
-  private final JRadioButton genercicRadioButton = new JRadioButton();
-
-  private final JRadioButton scenarioRadioButton = new JRadioButton();
-
-  private final ButtonGroup scenarioButtonGroup = new ButtonGroup();
-
   private int nodeNum;
-
-  private int currentScenario;
 
   private NodusProject nodusProject;
 
   private JButton removeButton = new JButton();
 
+  private JTable rulesTable;
+
   private JButton saveButton = new JButton();
 
-  private DefaultTableModel exclusionsTableModel;
+  private final ButtonGroup scenarioButtonGroup = new ButtonGroup();
+
+  private final JRadioButton scenarioRadioButton = new JRadioButton();
+
+  private JScrollPane scrollPane1 = new JScrollPane();
 
   private JPanel spinnersPanel = new JPanel();
 
   private GridBagLayout spinnersPanelGridBagLayout = new GridBagLayout();
 
-  private final JRadioButton includeRadioButton = new JRadioButton();
-
-  private final JRadioButton excludeRadioButton = new JRadioButton();
-
-  private final ButtonGroup excludeButtonGroup = new ButtonGroup();
-
-  private final JCheckBox symetryCheckBox = new JCheckBox();
-
-  private int currentRow = -1;
-
-  private int initialRulesHashCode;
+  private final JCheckBox symmetryCheckBox = new JCheckBox();
 
   private String tableName;
 
-  private String defaultExclusionRule;
-
-  private final JLabel fromLabel = new JLabel();
-
   private final JLabel toLabel = new JLabel();
+
+  private HashMap<Integer, Integer> existingRules = new HashMap<>();
 
   /**
    * Initializes the dialog box that will give the possibility to edit the exclusions related to
@@ -182,7 +186,7 @@ public class ExclusionDlg extends EscapeDialog {
    * @param layer NodusEsriLayer the node belongs to.
    * @param nodeNum The node num for which the exclusions list must be edited.
    */
-  public ExclusionDlg(JDialog dialog, NodusEsriLayer layer, int nodeNum) {
+  public NodeRulesDlg(JDialog dialog, NodusEsriLayer layer, int nodeNum) {
     super(dialog, "", false);
 
     nodusProject = layer.getNodusMapPanel().getNodusProject();
@@ -197,7 +201,7 @@ public class ExclusionDlg extends EscapeDialog {
     setTitle(
         MessageFormat.format(
             i18n.get(
-                ExclusionDlg.class, "Operation_rules_for_node", "Operation rules for node {0}:"),
+                NodeRulesDlg.class, "Operation_rules_for_node", "Operation rules for node {0}:"),
             new DecimalFormat("###").format(nodeNum)));
 
     initialize();
@@ -216,8 +220,7 @@ public class ExclusionDlg extends EscapeDialog {
     genercicRadioButton.setEnabled(true);
     enableRuleControls(true);
 
-    // Set default exclusion type
-    // int nbRows = exclusionTable.getRowCount();
+    // Set default rule type
     String nodeId = "" + nodeNum;
     if (defaultExclusionRule == RULE_EXCLUSION) {
       nodeId = "-" + nodeId;
@@ -231,73 +234,16 @@ public class ExclusionDlg extends EscapeDialog {
     row[idxMeans1] = "-1";
     row[idxMode2] = "-1";
     row[idxMeans2] = "-1";
-    row[idxSymetry] = singleArrow;
+    row[idxSymmetry] = singleArrow;
     row[idxNum] = nodeId;
 
-    ((DefaultTableModel) exclusionTable.getModel()).addRow(row);
+    ((DefaultTableModel) rulesTable.getModel()).addRow(row);
 
-    int lastRowIdx = exclusionTable.getRowCount() - 1;
+    int lastRowIdx = rulesTable.getRowCount() - 1;
 
-    exclusionTable.setRowSelectionInterval(lastRowIdx, lastRowIdx);
+    rulesTable.setRowSelectionInterval(lastRowIdx, lastRowIdx);
 
-    exclusionsTableModel.fireTableRowsUpdated(0, exclusionTable.getRowCount() - 1);
-  }
-
-  /**
-   * Computes a hash for the set of rules.
-   *
-   * @return
-   */
-  private int getRulesHashCode() {
-
-    // Compute the hash of the current rules
-    String rules = "";
-    int nbRows = exclusionTable.getRowCount();
-    int nbColumns = exclusionTable.getColumnCount();
-    for (int row = 0; row < nbRows; row++) {
-      for (int col = 0; col < nbColumns; col++) {
-        rules += exclusionsTableModel.getValueAt(row, col).toString();
-      }
-    }
-
-    return rules.hashCode();
-  }
-
-  /**
-   * The "Save" button is enabled if the current rules are different from the initial ones and if
-   * all the rules are valid. The "Add" button is enabled when all the existing rules are valid. The
-   * "Remove" button is enabled if a rule is selected, eben if it is wrong.
-   */
-  private void setButtonsState() {
-
-    boolean allRulesAreValid = true;
-    int nbRows = exclusionTable.getRowCount();
-
-    if (exclusionTable.getSelectedRow() == -1) {
-      removeButton.setEnabled(false);
-    } else {
-      removeButton.setEnabled(true);
-    }
-
-    for (int row = 0; row < nbRows; row++) {
-      if (getTableRowForeground(row).equals(errorColor)) {
-        allRulesAreValid = false;
-        break;
-      }
-    }
-
-    if (!allRulesAreValid) {
-      addButton.setEnabled(false);
-      saveButton.setEnabled(false);
-    } else {
-      addButton.setEnabled(true);
-
-      if (getRulesHashCode() == initialRulesHashCode) {
-        saveButton.setEnabled(false);
-      } else {
-        saveButton.setEnabled(true);
-      }
-    }
+    exclusionsTableModel.fireTableRowsUpdated(0, rulesTable.getRowCount() - 1);
   }
 
   /**
@@ -323,61 +269,27 @@ public class ExclusionDlg extends EscapeDialog {
     fromLabel.setEnabled(enable);
     toLabel.setEnabled(enable);
 
-    symetryCheckBox.setEnabled(enable);
+    symmetryCheckBox.setEnabled(enable);
   }
 
   /**
-   * Tests if the rule stored in a given row is valid.
+   * Computes a hash for the set of rules.
    *
-   * @param row The row index in the table.
-   * @return True if valid rule.
+   * @return
    */
-  private boolean isValidRule(int row) {
+  private int getRulesHashCode() {
 
-    if (row == -1) {
-      return true;
+    // Compute the hash of the current rules
+    String rules = "";
+    int nbRows = rulesTable.getRowCount();
+    int nbColumns = rulesTable.getColumnCount();
+    for (int row = 0; row < nbRows; row++) {
+      for (int col = 0; col < nbColumns; col++) {
+        rules += exclusionsTableModel.getValueAt(row, col).toString();
+      }
     }
 
-    int mode1 = Integer.parseInt((String) exclusionTable.getModel().getValueAt(row, idxMode1));
-    int means1 = Integer.parseInt((String) exclusionTable.getModel().getValueAt(row, idxMeans1));
-    int mode2 = Integer.parseInt((String) exclusionTable.getModel().getValueAt(row, idxMode2));
-    int means2 = Integer.parseInt((String) exclusionTable.getModel().getValueAt(row, idxMeans2));
-
-    // Loading : both mode and means must be = 0
-    if (mode1 == 0 && means1 != 0) {
-      return false;
-    }
-
-    if (mode1 != 0 && means1 == 0) {
-      return false;
-    }
-
-    // Same for unloading
-    if (mode2 == 0 && means2 != 0) {
-      return false;
-    }
-    if (mode2 != 0 && means2 == 0) {
-      return false;
-    }
-
-    if (mode1 == 0 && mode2 == 0) {
-      return false;
-    }
-
-    if (mode1 == -1 && means1 != -1) {
-      return false;
-    }
-
-    if (mode2 == -1 && means2 != -1) {
-      return false;
-    }
-
-    // Transit
-    if (mode1 == mode2 && means1 == means2) {
-      return false;
-    }
-
-    return true;
+    return rules.hashCode();
   }
 
   /**
@@ -387,11 +299,11 @@ public class ExclusionDlg extends EscapeDialog {
    * @return The foreground color or null for non valid row indexes.
    */
   private Color getTableRowForeground(int row) {
-    if (row == -1 || row >= exclusionTable.getRowCount()) {
+    if (row == -1 || row >= rulesTable.getRowCount()) {
       return null;
     }
-    TableCellRenderer renderer = exclusionTable.getCellRenderer(row, 0);
-    Component component = exclusionTable.prepareRenderer(renderer, row, 0);
+    TableCellRenderer renderer = rulesTable.getCellRenderer(row, 0);
+    Component component = rulesTable.prepareRenderer(renderer, row, 0);
     return component.getForeground();
   }
 
@@ -399,7 +311,7 @@ public class ExclusionDlg extends EscapeDialog {
   private void initialize() {
 
     // Create a non editable table
-    exclusionTable =
+    rulesTable =
         new JTable() {
           private static final long serialVersionUID = -7104802055801606119L;
 
@@ -409,12 +321,12 @@ public class ExclusionDlg extends EscapeDialog {
             return false;
           }
         };
-    exclusionTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+    rulesTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-    exclusionsTableModel = (DefaultTableModel) exclusionTable.getModel();
+    exclusionsTableModel = (DefaultTableModel) rulesTable.getModel();
 
     // Display inclusions and exclusions using a specific color
-    exclusionTable.setDefaultRenderer(
+    rulesTable.setDefaultRenderer(
         Object.class,
         new DefaultTableCellRenderer() {
 
@@ -445,25 +357,25 @@ public class ExclusionDlg extends EscapeDialog {
 
     // Center values in cells
     DefaultTableCellRenderer tcr =
-        (DefaultTableCellRenderer) exclusionTable.getDefaultRenderer(String.class);
+        (DefaultTableCellRenderer) rulesTable.getDefaultRenderer(String.class);
     tcr.setHorizontalAlignment(JLabel.CENTER);
 
-    exclusionTable.setDefaultRenderer(String.class, tcr);
+    rulesTable.setDefaultRenderer(String.class, tcr);
 
     // Synchronize the selected row with the spinners
-    exclusionTable
+    rulesTable
         .getSelectionModel()
         .addListSelectionListener(
             new ListSelectionListener() {
               public void valueChanged(ListSelectionEvent event) {
                 // Don't allow to change row if current rule is wrong
                 if (currentRow != -1 && errorColor.equals(getTableRowForeground(currentRow))) {
-                  exclusionTable.setRowSelectionInterval(currentRow, currentRow);
+                  rulesTable.setRowSelectionInterval(currentRow, currentRow);
                   // saveButton.setEnabled(false);
                   return;
                 }
 
-                int row = exclusionTable.getSelectedRow();
+                int row = rulesTable.getSelectedRow();
                 currentRow = row;
                 if (row == -1) {
                   removeButton.setEnabled(false);
@@ -502,18 +414,18 @@ public class ExclusionDlg extends EscapeDialog {
                 s = (String) exclusionsTableModel.getValueAt(row, idxMeans2);
                 means2Spinner.setValue(Integer.parseInt(s));
 
-                s = (String) exclusionsTableModel.getValueAt(row, idxSymetry);
+                s = (String) exclusionsTableModel.getValueAt(row, idxSymmetry);
                 if (s.equals(singleArrow)) {
-                  symetryCheckBox.setSelected(false);
+                  symmetryCheckBox.setSelected(false);
                 } else {
-                  symetryCheckBox.setSelected(true);
+                  symmetryCheckBox.setSelected(true);
                 }
 
                 enableRuleControls(true);
               }
             });
 
-    scrollPane1.setViewportView(exclusionTable);
+    scrollPane1.setViewportView(rulesTable);
 
     mainPanel.setLayout(mainPanelGridBagLayout);
     setContentPane(mainPanel);
@@ -526,7 +438,7 @@ public class ExclusionDlg extends EscapeDialog {
     TitledBorder border;
     border =
         BorderFactory.createTitledBorder(
-            i18n.get(ExclusionDlg.class, "Scope_of_rule", "Scope of rule"));
+            i18n.get(NodeRulesDlg.class, "Scope_of_rule", "Scope of rule"));
     border.setTitleJustification(TitledBorder.LEFT);
     scenarioPannel.setBorder(border);
 
@@ -538,7 +450,7 @@ public class ExclusionDlg extends EscapeDialog {
     scenarioPannelGbd.gridheight = 2;
     spinnersPanel.add(scenarioPannel, scenarioPannelGbd);
 
-    genercicRadioButton.setText(i18n.get(ExclusionDlg.class, "Generic", "Generic"));
+    genercicRadioButton.setText(i18n.get(NodeRulesDlg.class, "Generic", "Generic"));
     genercicRadioButton.setEnabled(false);
     GridBagConstraints genercicRadioButtonGbc = new GridBagConstraints();
     genercicRadioButtonGbc.gridwidth = 1;
@@ -554,7 +466,7 @@ public class ExclusionDlg extends EscapeDialog {
           public void actionPerformed(ActionEvent e) {
             JRadioButton radioButton = (JRadioButton) e.getSource();
 
-            int selectedRow = exclusionTable.getSelectedRow();
+            int selectedRow = rulesTable.getSelectedRow();
             if (selectedRow != -1) {
 
               if (radioButton.isSelected()) {
@@ -563,7 +475,7 @@ public class ExclusionDlg extends EscapeDialog {
 
                 // It at least one rule exists for this scenario, use the same type of
                 // inclusion/exclusion
-                int nbRows = exclusionTable.getRowCount();
+                int nbRows = rulesTable.getRowCount();
                 String nodeId = "" + nodeNum;
                 for (int row = 0; row < nbRows; row++) {
                   String s = (String) exclusionsTableModel.getValueAt(row, idxNum);
@@ -581,7 +493,7 @@ public class ExclusionDlg extends EscapeDialog {
         });
 
     scenarioRadioButton.setText(
-        i18n.get(ExclusionDlg.class, "Scenario_specific", "Scenario specific"));
+        i18n.get(NodeRulesDlg.class, "Scenario_specific", "Scenario specific"));
     scenarioRadioButton.setEnabled(false);
     GridBagConstraints scenarioRadioButtonGbc = new GridBagConstraints();
     scenarioRadioButtonGbc.gridwidth = 1;
@@ -597,7 +509,7 @@ public class ExclusionDlg extends EscapeDialog {
           public void actionPerformed(ActionEvent e) {
             JRadioButton radioButton = (JRadioButton) e.getSource();
 
-            int selectedRow = exclusionTable.getSelectedRow();
+            int selectedRow = rulesTable.getSelectedRow();
             if (selectedRow != -1) {
 
               if (radioButton.isSelected()) {
@@ -606,7 +518,7 @@ public class ExclusionDlg extends EscapeDialog {
 
                 // It at least one rule exists for this scenario, use the same type of
                 // inclusion/exclusion
-                int nbRows = exclusionTable.getRowCount();
+                int nbRows = rulesTable.getRowCount();
                 String nodeId = "" + nodeNum;
                 for (int row = 0; row < nbRows; row++) {
                   String s = (String) exclusionsTableModel.getValueAt(row, idxNum);
@@ -626,7 +538,7 @@ public class ExclusionDlg extends EscapeDialog {
     scenarioButtonGroup.add(genercicRadioButton);
     scenarioButtonGroup.add(scenarioRadioButton);
 
-    excludeRadioButton.setText(i18n.get(ExclusionDlg.class, "All_but", "All but..."));
+    excludeRadioButton.setText(i18n.get(NodeRulesDlg.class, "All_but", "All but..."));
     excludeRadioButton.setForeground(excludeColor);
     GridBagConstraints excludeRaduiButtonGbc = new GridBagConstraints();
     excludeRaduiButtonGbc.insets = new Insets(15, 5, 5, 0);
@@ -642,7 +554,7 @@ public class ExclusionDlg extends EscapeDialog {
           public void actionPerformed(ActionEvent e) {
             JRadioButton radioButton = (JRadioButton) e.getSource();
 
-            int selectedRow = exclusionTable.getSelectedRow();
+            int selectedRow = rulesTable.getSelectedRow();
             if (selectedRow != -1) {
 
               if (radioButton.isSelected()) {
@@ -666,7 +578,7 @@ public class ExclusionDlg extends EscapeDialog {
           }
         });
 
-    includeRadioButton.setText(i18n.get(ExclusionDlg.class, "Nothing_but", "Nothing but..."));
+    includeRadioButton.setText(i18n.get(NodeRulesDlg.class, "Nothing_but", "Nothing but..."));
     includeRadioButton.setForeground(includeColor);
     GridBagConstraints includeRaduiButtonGbc = new GridBagConstraints();
     includeRaduiButtonGbc.insets = new Insets(0, 5, 5, 0);
@@ -682,7 +594,7 @@ public class ExclusionDlg extends EscapeDialog {
           public void actionPerformed(ActionEvent e) {
             JRadioButton radioButton = (JRadioButton) e.getSource();
 
-            int selectedRow = exclusionTable.getSelectedRow();
+            int selectedRow = rulesTable.getSelectedRow();
             if (selectedRow != -1) {
 
               if (radioButton.isSelected()) {
@@ -709,7 +621,7 @@ public class ExclusionDlg extends EscapeDialog {
     excludeButtonGroup.add(excludeRadioButton);
     excludeButtonGroup.add(includeRadioButton);
 
-    groupLabel.setText(i18n.get(ExclusionDlg.class, "Group", "Group"));
+    groupLabel.setText(i18n.get(NodeRulesDlg.class, "Group", "Group"));
     spinnersPanel.add(
         groupLabel,
         new GridBagConstraints(
@@ -744,10 +656,10 @@ public class ExclusionDlg extends EscapeDialog {
     fromLabelGbc.gridwidth = 3;
     fromLabelGbc.gridx = 0;
     fromLabelGbc.gridy = 6;
-    fromLabel.setText(i18n.get(ExclusionDlg.class, "from", "from"));
+    fromLabel.setText(i18n.get(NodeRulesDlg.class, "from", "from"));
     spinnersPanel.add(fromLabel, fromLabelGbc);
 
-    mode1Label.setText(i18n.get(ExclusionDlg.class, "Mode_1", "Mode 1"));
+    mode1Label.setText(i18n.get(NodeRulesDlg.class, "Mode_1", "Mode 1"));
     spinnersPanel.add(
         mode1Label,
         new GridBagConstraints(
@@ -777,7 +689,7 @@ public class ExclusionDlg extends EscapeDialog {
             0,
             0));
 
-    means1Label.setText(i18n.get(ExclusionDlg.class, "Means_1", "Means 1"));
+    means1Label.setText(i18n.get(NodeRulesDlg.class, "Means_1", "Means 1"));
     spinnersPanel.add(
         means1Label,
         new GridBagConstraints(
@@ -812,10 +724,10 @@ public class ExclusionDlg extends EscapeDialog {
     toLabelGbc.gridwidth = 3;
     toLabelGbc.gridx = 0;
     toLabelGbc.gridy = 9;
-    toLabel.setText(i18n.get(ExclusionDlg.class, "to", "to"));
+    toLabel.setText(i18n.get(NodeRulesDlg.class, "to", "to"));
     spinnersPanel.add(toLabel, toLabelGbc);
 
-    mode2Label.setText(i18n.get(ExclusionDlg.class, "Mode_2", "Mode 2"));
+    mode2Label.setText(i18n.get(NodeRulesDlg.class, "Mode_2", "Mode 2"));
     spinnersPanel.add(
         mode2Label,
         new GridBagConstraints(
@@ -831,7 +743,7 @@ public class ExclusionDlg extends EscapeDialog {
             0,
             0));
 
-    means2Label.setText(i18n.get(ExclusionDlg.class, "Means_2", "Means 2"));
+    means2Label.setText(i18n.get(NodeRulesDlg.class, "Means_2", "Means 2"));
     spinnersPanel.add(
         means2Label,
         new GridBagConstraints(
@@ -882,14 +794,14 @@ public class ExclusionDlg extends EscapeDialog {
 
     mode2Spinner.setMinimumSize(new Dimension(70, 24));
 
-    symetryCheckBox.setText(
-        i18n.get(ExclusionDlg.class, "Symetric_operations", "Symetric operations"));
+    symmetryCheckBox.setText(
+        i18n.get(NodeRulesDlg.class, "Symmetric_operations", "Symmetric operations"));
     GridBagConstraints biDirectionCheckBoxGbc = new GridBagConstraints();
     biDirectionCheckBoxGbc.gridwidth = 3;
     biDirectionCheckBoxGbc.insets = new Insets(5, 5, 5, 5);
     biDirectionCheckBoxGbc.gridx = 0;
     biDirectionCheckBoxGbc.gridy = 12;
-    spinnersPanel.add(symetryCheckBox, biDirectionCheckBoxGbc);
+    spinnersPanel.add(symmetryCheckBox, biDirectionCheckBoxGbc);
     means2Spinner.setMinimumSize(new Dimension(70, 24));
     spinnersPanel.add(
         means2Spinner,
@@ -921,7 +833,7 @@ public class ExclusionDlg extends EscapeDialog {
             0,
             0));
 
-    symetryCheckBox.addChangeListener(
+    symmetryCheckBox.addChangeListener(
         new ChangeListener() {
           @Override
           public void stateChanged(ChangeEvent e) {
@@ -931,15 +843,15 @@ public class ExclusionDlg extends EscapeDialog {
             if (isBidirectional) {
               value = doubleArrow;
             }
-            int row = exclusionTable.getSelectedRow();
+            int row = rulesTable.getSelectedRow();
             if (row != -1) {
-              exclusionTable.setValueAt(value, row, idxSymetry);
+              rulesTable.setValueAt(value, row, idxSymmetry);
               setButtonsState();
             }
           }
         });
 
-    cancelButton.setText(i18n.get(ExclusionDlg.class, "Cancel", "Cancel"));
+    cancelButton.setText(i18n.get(NodeRulesDlg.class, "Cancel", "Cancel"));
     cancelButton.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -948,7 +860,7 @@ public class ExclusionDlg extends EscapeDialog {
           }
         });
 
-    addButton.setText(i18n.get(ExclusionDlg.class, "Add", "Add"));
+    addButton.setText(i18n.get(NodeRulesDlg.class, "Add", "Add"));
     addButton.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -957,7 +869,7 @@ public class ExclusionDlg extends EscapeDialog {
           }
         });
 
-    removeButton.setText(i18n.get(ExclusionDlg.class, "Delete", "Delete"));
+    removeButton.setText(i18n.get(NodeRulesDlg.class, "Delete", "Delete"));
     removeButton.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -966,7 +878,7 @@ public class ExclusionDlg extends EscapeDialog {
           }
         });
 
-    saveButton.setText(i18n.get(ExclusionDlg.class, "Save", "Save"));
+    saveButton.setText(i18n.get(NodeRulesDlg.class, "Save", "Save"));
     saveButton.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -1058,9 +970,9 @@ public class ExclusionDlg extends EscapeDialog {
             public void stateChanged(ChangeEvent e) {
               JSpinner spinner = (JSpinner) e.getSource();
               String value = spinner.getValue().toString();
-              int row = exclusionTable.getSelectedRow();
+              int row = rulesTable.getSelectedRow();
               if (row != -1) {
-                exclusionTable.setValueAt(value, row, idxGroup);
+                rulesTable.setValueAt(value, row, idxGroup);
                 setButtonsState();
               }
             }
@@ -1072,9 +984,9 @@ public class ExclusionDlg extends EscapeDialog {
             public void stateChanged(ChangeEvent e) {
               JSpinner spinner = (JSpinner) e.getSource();
               String value = spinner.getValue().toString();
-              int row = exclusionTable.getSelectedRow();
+              int row = rulesTable.getSelectedRow();
               if (row != -1) {
-                exclusionTable.setValueAt(value, row, idxMode1);
+                rulesTable.setValueAt(value, row, idxMode1);
                 setButtonsState();
               }
             }
@@ -1086,9 +998,9 @@ public class ExclusionDlg extends EscapeDialog {
             public void stateChanged(ChangeEvent e) {
               JSpinner spinner = (JSpinner) e.getSource();
               String value = spinner.getValue().toString();
-              int row = exclusionTable.getSelectedRow();
+              int row = rulesTable.getSelectedRow();
               if (row != -1) {
-                exclusionTable.setValueAt(value, row, idxMeans1);
+                rulesTable.setValueAt(value, row, idxMeans1);
                 setButtonsState();
               }
             }
@@ -1100,9 +1012,9 @@ public class ExclusionDlg extends EscapeDialog {
             public void stateChanged(ChangeEvent e) {
               JSpinner spinner = (JSpinner) e.getSource();
               String value = spinner.getValue().toString();
-              int row = exclusionTable.getSelectedRow();
+              int row = rulesTable.getSelectedRow();
               if (row != -1) {
-                exclusionTable.setValueAt(value, row, idxMode2);
+                rulesTable.setValueAt(value, row, idxMode2);
                 setButtonsState();
               }
             }
@@ -1114,9 +1026,9 @@ public class ExclusionDlg extends EscapeDialog {
             public void stateChanged(ChangeEvent e) {
               JSpinner spinner = (JSpinner) e.getSource();
               String value = spinner.getValue().toString();
-              int row = exclusionTable.getSelectedRow();
+              int row = rulesTable.getSelectedRow();
               if (row != -1) {
-                exclusionTable.setValueAt(value, row, idxMeans2);
+                rulesTable.setValueAt(value, row, idxMeans2);
                 setButtonsState();
               }
             }
@@ -1132,14 +1044,14 @@ public class ExclusionDlg extends EscapeDialog {
     header[idxMeans1] = NodusC.DBF_MEANS1;
     header[idxMode2] = NodusC.DBF_MODE2;
     header[idxMeans2] = NodusC.DBF_MEANS2;
-    header[idxSymetry] = NodusC.DBF_SYMETRY;
+    header[idxSymmetry] = NodusC.DBF_SYMMETRY;
     header[idxNum] = NodusC.DBF_NUM;
 
     exclusionsTableModel.setColumnIdentifiers(header);
 
     if (loadExclusionsInTable()) {
-      exclusionTable.getColumnModel().getColumn(idxNum).setMinWidth(0);
-      exclusionTable.getColumnModel().getColumn(idxNum).setMaxWidth(0);
+      rulesTable.getColumnModel().getColumn(idxNum).setMinWidth(0);
+      rulesTable.getColumnModel().getColumn(idxNum).setMaxWidth(0);
 
       currentRow = -1;
       initialRulesHashCode = getRulesHashCode();
@@ -1159,6 +1071,102 @@ public class ExclusionDlg extends EscapeDialog {
   }
 
   /**
+   * Test if the rule stored in the given row has already been stored.
+   *
+   * @param row The row index in the exclusion table
+   * @return True if the rule already exists.
+   */
+  private boolean isDuplicate(int row) {
+
+    boolean symmetric = false;
+    if (rulesTable.getValueAt(row, idxSymmetry).equals(doubleArrow)) {
+      symmetric = true;
+    }
+
+    String nodeId = (String) rulesTable.getModel().getValueAt(row, idxNum);
+    String scenario = (String) rulesTable.getModel().getValueAt(row, idxScenario);
+    String group = (String) rulesTable.getModel().getValueAt(row, idxGroup);
+    String mode1 = (String) rulesTable.getModel().getValueAt(row, idxMode1);
+    String means1 = (String) rulesTable.getModel().getValueAt(row, idxMeans1);
+    String mode2 = (String) rulesTable.getModel().getValueAt(row, idxMode2);
+    String means2 = (String) rulesTable.getModel().getValueAt(row, idxMeans2);
+
+    String rule = nodeId + scenario + group + mode1 + means1 + mode2 + means2;
+    int hashKey = rule.hashCode();
+    
+    // Test if rule exists
+    if (existingRules.get(hashKey) != null) {
+      return true;
+    }
+
+    // Store new rule
+    existingRules.put(hashKey, hashKey);
+
+    // Also store reverse rule if needed
+    if (symmetric) {
+      rule = nodeId + scenario + group + mode2 + means2 + mode1 + means1;
+      hashKey = rule.hashCode();
+      existingRules.put(hashKey, hashKey);
+    }
+
+    return false;
+  }
+
+  /**
+   * Tests if the rule stored in a given row is valid.
+   *
+   * @param row The row index in the table.
+   * @return True if valid rule.
+   */
+  private boolean isValidRule(int row) {
+
+    if (row == -1) {
+      return true;
+    }
+
+    int mode1 = Integer.parseInt((String) rulesTable.getModel().getValueAt(row, idxMode1));
+    int means1 = Integer.parseInt((String) rulesTable.getModel().getValueAt(row, idxMeans1));
+    int mode2 = Integer.parseInt((String) rulesTable.getModel().getValueAt(row, idxMode2));
+    int means2 = Integer.parseInt((String) rulesTable.getModel().getValueAt(row, idxMeans2));
+
+    // Loading : both mode and means must be = 0
+    if (mode1 == 0 && means1 != 0) {
+      return false;
+    }
+
+    if (mode1 != 0 && means1 == 0) {
+      return false;
+    }
+
+    // Same for unloading
+    if (mode2 == 0 && means2 != 0) {
+      return false;
+    }
+    if (mode2 != 0 && means2 == 0) {
+      return false;
+    }
+
+    if (mode1 == 0 && mode2 == 0) {
+      return false;
+    }
+
+    if (mode1 == -1 && means1 != -1) {
+      return false;
+    }
+
+    if (mode2 == -1 && means2 != -1) {
+      return false;
+    }
+
+    // Transit
+    if (mode1 == mode2 && means1 == means2) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Loads the generic and scenario specific exclusion rules for the current edited node in the
    * list. Ignore invalid rules.
    *
@@ -1173,7 +1181,7 @@ public class ExclusionDlg extends EscapeDialog {
 
     // Exclusions may not exist: create an empty table
     if (!JDBCUtils.tableExists(tableName)) {
-      ExclusionReader.createExclusionsTable(tableName);
+      NodeRulesReader.createExclusionsTable(tableName);
     }
 
     String sql =
@@ -1190,7 +1198,7 @@ public class ExclusionDlg extends EscapeDialog {
             + ","
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
             + ","
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SYMETRY)
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SYMMETRY)
             + ","
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
             + " FROM "
@@ -1232,7 +1240,7 @@ public class ExclusionDlg extends EscapeDialog {
 
         for (int i = 0; i < columns.length; i++) {
           String value = rs.getObject(i + 1).toString();
-          if (i == idxSymetry) {
+          if (i == idxSymmetry) {
             if (value.equals("0")) {
               value = singleArrow;
             } else {
@@ -1244,8 +1252,8 @@ public class ExclusionDlg extends EscapeDialog {
 
         // Remove this rule if not valid
         exclusionsTableModel.addRow(columns);
-        int n = exclusionTable.getRowCount() - 1;
-        exclusionTable.setRowSelectionInterval(n, n);
+        int n = rulesTable.getRowCount() - 1;
+        rulesTable.setRowSelectionInterval(n, n);
         if (!isValidRule(n)) {
           exclusionsTableModel.removeRow(n);
         }
@@ -1260,7 +1268,7 @@ public class ExclusionDlg extends EscapeDialog {
       return false;
     }
 
-    exclusionTable.clearSelection();
+    rulesTable.clearSelection();
     return true;
   }
 
@@ -1272,7 +1280,7 @@ public class ExclusionDlg extends EscapeDialog {
   void removeButton_actionPerformed(ActionEvent e) {
     // DefaultTableModel sorterModel = (DefaultTableModel) exclusionsTableModel.getTableModel();
     // Get values from selected row
-    int sr = exclusionTable.getSelectedRow();
+    int sr = rulesTable.getSelectedRow();
     if (sr == -1) {
       return;
     }
@@ -1281,16 +1289,16 @@ public class ExclusionDlg extends EscapeDialog {
     exclusionsTableModel.removeRow(sr);
 
     // Select a row close to the deleted one
-    int n = exclusionTable.getRowCount();
+    int n = rulesTable.getRowCount();
     if (n > sr) {
-      exclusionTable.setRowSelectionInterval(sr, sr);
-      currentRow = exclusionTable.getSelectedRow();
+      rulesTable.setRowSelectionInterval(sr, sr);
+      currentRow = rulesTable.getSelectedRow();
     } else if (n > 0) {
-      exclusionTable.setRowSelectionInterval(n - 1, n - 1);
-      currentRow = exclusionTable.getSelectedRow();
+      rulesTable.setRowSelectionInterval(n - 1, n - 1);
+      currentRow = rulesTable.getSelectedRow();
     } else {
       currentRow = -1;
-      exclusionTable.clearSelection();
+      rulesTable.clearSelection();
     }
   }
 
@@ -1300,6 +1308,7 @@ public class ExclusionDlg extends EscapeDialog {
    * @param e ActionEvent
    */
   void saveButton_actionPerformed(ActionEvent e) {
+
     // Execute batch
     try {
       Connection con = nodusProject.getMainJDBCConnection();
@@ -1322,33 +1331,48 @@ public class ExclusionDlg extends EscapeDialog {
               + ")";
       stmt.executeUpdate(sqlStmt);
 
-      // Save new rules
-      for (int row = 0; row < exclusionTable.getRowCount(); row++) {
-        String symetry = "0";
-        if (exclusionTable.getValueAt(row, idxSymetry).equals(doubleArrow)) {
-          symetry = "1";
+      // Save new rules, but avoid duplicates. herefore, a 2 pass procedure is
+      // used, starting with the symectric rules
+      existingRules.clear();
+      for (int pass = 0; pass < 2; pass++) {
+        for (int row = 0; row < rulesTable.getRowCount(); row++) {
+          String symmetry = "0";
+          if (rulesTable.getValueAt(row, idxSymmetry).equals(doubleArrow)) {
+            symmetry = "1";
+          }
+
+          if (pass == 0 && symmetry.equals("0")) {
+            continue;
+          }
+
+          if (pass == 1 && symmetry.equals("1")) {
+            continue;
+          }
+
+          if (!isDuplicate(row)) {
+            sqlStmt =
+                "INSERT INTO "
+                    + tableName
+                    + " VALUES( "
+                    + rulesTable.getValueAt(row, idxNum)
+                    + ", "
+                    + rulesTable.getValueAt(row, idxScenario)
+                    + ", "
+                    + rulesTable.getValueAt(row, idxGroup)
+                    + ", "
+                    + rulesTable.getValueAt(row, idxMode1)
+                    + ", "
+                    + rulesTable.getValueAt(row, idxMeans1)
+                    + ", "
+                    + rulesTable.getValueAt(row, idxMode2)
+                    + ", "
+                    + rulesTable.getValueAt(row, idxMeans2)
+                    + ", "
+                    + symmetry
+                    + ")";
+            stmt.executeUpdate(sqlStmt);
+          }
         }
-        sqlStmt =
-            "INSERT INTO "
-                + tableName
-                + " VALUES( "
-                + exclusionTable.getValueAt(row, idxNum)
-                + ", "
-                + exclusionTable.getValueAt(row, idxScenario)
-                + ", "
-                + exclusionTable.getValueAt(row, idxGroup)
-                + ", "
-                + exclusionTable.getValueAt(row, idxMode1)
-                + ", "
-                + exclusionTable.getValueAt(row, idxMeans1)
-                + ", "
-                + exclusionTable.getValueAt(row, idxMode2)
-                + ", "
-                + exclusionTable.getValueAt(row, idxMeans2)
-                + ", "
-                + symetry
-                + ")";
-        stmt.executeUpdate(sqlStmt);
       }
 
       stmt.close();
@@ -1367,5 +1391,42 @@ public class ExclusionDlg extends EscapeDialog {
 
     // Close dialog
     setVisible(false);
+  }
+
+  /**
+   * The "Save" button is enabled if the current rules are different from the initial ones and if
+   * all the rules are valid. The "Add" button is enabled when all the existing rules are valid. The
+   * "Remove" button is enabled if a rule is selected, eben if it is wrong.
+   */
+  private void setButtonsState() {
+
+    boolean allRulesAreValid = true;
+    int nbRows = rulesTable.getRowCount();
+
+    if (rulesTable.getSelectedRow() == -1) {
+      removeButton.setEnabled(false);
+    } else {
+      removeButton.setEnabled(true);
+    }
+
+    for (int row = 0; row < nbRows; row++) {
+      if (getTableRowForeground(row).equals(errorColor)) {
+        allRulesAreValid = false;
+        break;
+      }
+    }
+
+    if (!allRulesAreValid) {
+      addButton.setEnabled(false);
+      saveButton.setEnabled(false);
+    } else {
+      addButton.setEnabled(true);
+
+      if (getRulesHashCode() == initialRulesHashCode) {
+        saveButton.setEnabled(false);
+      } else {
+        saveButton.setEnabled(true);
+      }
+    }
   }
 }

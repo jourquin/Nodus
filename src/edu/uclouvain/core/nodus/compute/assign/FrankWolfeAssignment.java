@@ -25,8 +25,8 @@ import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorkerParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.FrankWolfeAssignmentWorker;
-import edu.uclouvain.core.nodus.compute.exclusions.ExclusionReader;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
+import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
@@ -87,7 +87,7 @@ public class FrankWolfeAssignment extends Assignment {
     byte scenario = assignmentParameters.getScenario();
 
     // Read the exclusions
-    ExclusionReader er = new ExclusionReader(virtualNet, scenario);
+    NodeRulesReader er = new NodeRulesReader(virtualNet, scenario);
 
     if (er.hasExclusions()) {
       if (!er.loadExclusions()) {

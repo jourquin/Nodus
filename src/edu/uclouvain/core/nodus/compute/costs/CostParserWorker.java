@@ -23,7 +23,7 @@ package edu.uclouvain.core.nodus.compute.costs;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-import edu.uclouvain.core.nodus.compute.exclusions.Exclusion;
+import edu.uclouvain.core.nodus.compute.rules.NodeRule;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
@@ -214,22 +214,22 @@ public class CostParserWorker extends Thread {
    */
   boolean isVirtualLinkExcluded(int index, VirtualLink vl, byte scenario, byte group) {
 
-    // Exclusion lists only exist for transhipment nodes
+    // NodeRule lists only exist for transhipment nodes
     if (!vnl[index].isTranshipmentNode() && !vnl[index].isLoadingUnloadingNode()) {
       return false;
     }
 
-    LinkedList<Exclusion> exclusionList = vnl[index].getExclusions(scenario, group);
+    LinkedList<NodeRule> exclusionList = vnl[index].getExclusions(scenario, group);
     if (exclusionList == null) {
       return false;
     }
 
     // Scan the exclusions list
-    Iterator<Exclusion> lit = exclusionList.iterator();
+    Iterator<NodeRule> lit = exclusionList.iterator();
 
     boolean isExclusion = true;
     while (lit.hasNext()) {
-      Exclusion exc = lit.next();
+      NodeRule exc = lit.next();
 
       if (exc.isExclusion()) { // Test exclusion
         if (exc.isExcluded(

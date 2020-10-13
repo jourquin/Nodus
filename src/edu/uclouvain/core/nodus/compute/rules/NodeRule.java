@@ -19,14 +19,14 @@
  * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus.compute.exclusions;
+package edu.uclouvain.core.nodus.compute.rules;
 
 /**
  * Simple class that maintains information related to an exclusion for a given node.
  *
  * @author Bart Jourquin
  */
-public class Exclusion {
+public class NodeRule {
 
   /** Scenario to which this exclusion belongs to. -1 if true for any scenario. */
   private int scenario;
@@ -61,7 +61,7 @@ public class Exclusion {
    * @param mode2 Mode at the destination.
    * @param means2 Means at the destination.
    */
-  public Exclusion(
+  public NodeRule(
       int nodeId, int scenario, int group, int mode1, int means1, int mode2, int means2) {
     this.scenario = scenario;
     this.group = group;

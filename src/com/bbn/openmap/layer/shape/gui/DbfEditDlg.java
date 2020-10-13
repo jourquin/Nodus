@@ -32,8 +32,8 @@ import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.proj.Length;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
-import edu.uclouvain.core.nodus.compute.exclusions.gui.ExclusionDlg;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
+import edu.uclouvain.core.nodus.compute.rules.gui.NodeRulesDlg;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import java.awt.BasicStroke;
@@ -316,7 +316,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
   private DbfTableCellEditor dbfTableCellEditor;
 
-  private JButton exclusionsButton = new JButton();
+  private JButton nodeRulesButton = new JButton();
 
   private JScrollPane fieldsScrollPane = new JScrollPane();
 
@@ -583,7 +583,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
    * @param e ActionEvent
    */
   private void exclusionsButton_actionPerformed(ActionEvent e) {
-    ExclusionDlg excDlg = new ExclusionDlg(this, nodusEsriLayer, objectNum);
+    NodeRulesDlg excDlg = new NodeRulesDlg(this, nodusEsriLayer, objectNum);
     excDlg.setVisible(true);
   }
 
@@ -896,8 +896,8 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
         });
     mainPanel.add(enabledCheckBox, gbcChckbxEnabled);
 
-    exclusionsButton.setText(i18n.get(DbfEditDlg.class, "Exclusions", "Exclusions"));
-    mainPanel.add(exclusionsButton, exclusionsButtonConstraints);
+    nodeRulesButton.setText(i18n.get(DbfEditDlg.class, "Node_rules", "Node rules"));
+    mainPanel.add(nodeRulesButton, exclusionsButtonConstraints);
 
     GridBagConstraints cancelButtonConstraints = new GridBagConstraints();
     cancelButtonConstraints.anchor = GridBagConstraints.EAST;
@@ -989,7 +989,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
           }
         });
     mainPanel.add(saveButton, saveButtonConstraints);
-    exclusionsButton.addActionListener(
+    nodeRulesButton.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -1043,7 +1043,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     mainPanel.add(transhipLabel, transhipLabelConstraints);
     mainPanel.add(getServicesButton(), servicesButtonConstraints);
     if (nodusEsriLayer.getType() != SHAPE_TYPE_POINT) {
-      exclusionsButton.setEnabled(false);
+      nodeRulesButton.setEnabled(false);
     }
 
     // Get user defined data attached to the selected graphic

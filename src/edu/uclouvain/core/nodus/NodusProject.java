@@ -40,7 +40,7 @@ import com.bbn.openmap.proj.ProjectionFactory;
 import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
-import edu.uclouvain.core.nodus.compute.exclusions.ExclusionReader;
+import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
 import edu.uclouvain.core.nodus.database.ShapeIntegrityTester;
@@ -1891,7 +1891,7 @@ public class NodusProject implements ShapeConstants {
         getLocalProperty(NodusC.PROP_RENDERING_SCALE_THRESHOLD, (float) -1));
 
     // Verify if exclusion table is compatible with this version of Nodus
-    ExclusionReader.fixExclusionTableIfNeeded(this);
+    NodeRulesReader.fixExclusionTableIfNeeded(this);
 
     // Load the service lines
     serviceEditor = new ServiceEditor(this);

@@ -23,8 +23,8 @@ package edu.uclouvain.core.nodus.compute.virtual;
 
 import com.bbn.openmap.omGraphics.OMPoint;
 import edu.uclouvain.core.nodus.NodusC;
-import edu.uclouvain.core.nodus.compute.exclusions.Exclusion;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
+import edu.uclouvain.core.nodus.compute.rules.NodeRule;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,11 +47,11 @@ public class VirtualNodeList {
 
   private class GroupExclusions {
     int group;
-    LinkedList<Exclusion> exclusions;
+    LinkedList<NodeRule> exclusions;
 
     public GroupExclusions(int group) {
       this.group = group;
-      exclusions = new LinkedList<Exclusion>();
+      exclusions = new LinkedList<NodeRule>();
     }
   }
 
@@ -219,10 +219,10 @@ public class VirtualNodeList {
    * in lists, per scenario and group of commodities. the scenario independent (-1) and group
    * independent (-1) exclusions are stored at the first place of their respective lists.
    *
-   * @param exclusion The Exclusion to store.
+   * @param exclusion The NodeRule to store.
    */
   @SuppressWarnings("unchecked")
-  public void addExclusion(Exclusion exclusion) {
+  public void addExclusion(NodeRule exclusion) {
 
     // Generic exclusions are stored ate index 0, scenario specific exclusions at index 1
 
@@ -328,7 +328,7 @@ public class VirtualNodeList {
    * @param group The group for which the exclusions are searched for.
    * @return A list of exclusions or null if none are found.
    */
-  public LinkedList<Exclusion> getExclusions(int scenario, int group) {
+  public LinkedList<NodeRule> getExclusions(int scenario, int group) {
 
     if (scenarioExclusions == null) {
       return null;
