@@ -191,7 +191,9 @@ public class ModalSplitMethodsLoader {
         Object o = null;
 
         try {
-          o = cons.newInstance(nodusProject);
+          if (nodusProject != null) {
+            o = cons.newInstance(nodusProject);
+          }
         } catch (InstantiationException e1) {
           new NodusConsole();
           javax.swing.SwingUtilities.invokeLater(
@@ -235,7 +237,7 @@ public class ModalSplitMethodsLoader {
       e.printStackTrace();
     }
   }
-  
+
   /**
    * Returns the ModalSplitMethod which name is given as parameter.
    *
