@@ -1396,7 +1396,8 @@ public class NodeRulesDlg extends EscapeDialog {
     if (hasDuplicates) {
       JOptionPane.showMessageDialog(
           this,
-          i18n.get(NodeRulesDlg.class, "Duplicate_rules_removed", "Duplicate rules will be removed"),
+          i18n.get(
+              NodeRulesDlg.class, "Duplicate_rules_removed", "Duplicate rules will be removed"),
           NodusC.APPNAME,
           JOptionPane.INFORMATION_MESSAGE);
     }
