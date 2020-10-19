@@ -70,10 +70,10 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
 /**
- * This dialog box handles the rules that can be maintained for a given node. These rules
- * represent operations are allowed or not between two given pairs of mode and means, for a given
- * scenario and group. Using a -1 value means "any" scenario, group, mode or means. Rules can
- * be defined as being symmetric.
+ * This dialog box handles the rules that can be maintained for a given node. These rules represent
+ * operations are allowed or not between two given pairs of mode and means, for a given scenario and
+ * group. Using a -1 value means "any" scenario, group, mode or means. Rules can be defined as being
+ * symmetric.
  *
  * @author Bart Jourquin
  */
@@ -1093,7 +1093,7 @@ public class NodeRulesDlg extends EscapeDialog {
 
     String rule = nodeId + scenario + group + mode1 + means1 + mode2 + means2;
     int hashKey = rule.hashCode();
-    
+
     // Test if rule exists
     if (existingRules.get(hashKey) != null) {
       return true;
@@ -1309,6 +1309,8 @@ public class NodeRulesDlg extends EscapeDialog {
    */
   void saveButton_actionPerformed(ActionEvent e) {
 
+    boolean hasDuplicates = false;
+
     // Execute batch
     try {
       Connection con = nodusProject.getMainJDBCConnection();
@@ -1371,6 +1373,8 @@ public class NodeRulesDlg extends EscapeDialog {
                     + symmetry
                     + ")";
             stmt.executeUpdate(sqlStmt);
+          } else {
+            hasDuplicates = true;
           }
         }
       }
@@ -1388,6 +1392,14 @@ public class NodeRulesDlg extends EscapeDialog {
       defaultExclusionRule = RULE_INCLUSION;
     }
     nodusProject.setLocalProperty(NodusC.PROP_DEFAUT_EXCLUSION_RULE, defaultExclusionRule);
+
+    if (hasDuplicates) {
+      JOptionPane.showMessageDialog(
+          this,
+          i18n.get(NodeRulesDlg.class, "Duplicate_rules_removed", "Duplicate rules will be removed"),
+          NodusC.APPNAME,
+          JOptionPane.INFORMATION_MESSAGE);
+    }
 
     // Close dialog
     setVisible(false);

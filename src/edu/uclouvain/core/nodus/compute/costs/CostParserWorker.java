@@ -214,7 +214,7 @@ public class CostParserWorker extends Thread {
    */
   boolean isVirtualLinkExcluded(int index, VirtualLink vl, byte scenario, byte group) {
 
-    // NodeRule lists only exist for transhipment nodes
+    // Node rules  only exist for loading, unloading and transhipment nodes
     if (!vnl[index].isTranshipmentNode() && !vnl[index].isLoadingUnloadingNode()) {
       return false;
     }
