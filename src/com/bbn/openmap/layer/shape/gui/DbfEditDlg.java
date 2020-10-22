@@ -660,6 +660,16 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
                 // Update table (third row)
                 dbfTable.setValueAt(value, 2, 1);
                 isTableChanged = true;
+
+                // Rules are only available for (un)loading and transhipment operations
+                int operationType = Integer.valueOf(value);
+                if (operationType == NodusC.HANDLING_LOAD_UNLOAD
+                    || operationType == NodusC.HANDLING_ALL
+                    || operationType == NodusC.HANDLING_TRANSHIP) {
+                  nodeRulesButton.setEnabled(true);
+                } else {
+                  nodeRulesButton.setEnabled(false);
+                }
               }
             }
           });
