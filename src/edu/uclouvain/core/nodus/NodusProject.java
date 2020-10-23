@@ -94,7 +94,7 @@ import org.codehaus.groovy.control.CompilationFailedException;
  * <br>
  * <br>
  * #--------------------------------------------------------------------- <br>
- * # Demo project file for Nodus 7.0 <br>
+ * # Demo project file for Nodus 8.0 <br>
  * #--------------------------------------------------------------------- <br>
  * <br>
  * # By default, Nodus uses an embedded DBMS, but other can be used, such as MySQL/MariaDB. <br>
@@ -573,7 +573,7 @@ public class NodusProject implements ShapeConstants {
       // Close the log file for this project
       loggerHandler.flush();
       loggerHandler.close();
-      Nodus7.nodusLogger.removeHandler(loggerHandler);
+      Nodus.nodusLogger.removeHandler(loggerHandler);
 
       nodusMapPanel.setBusy(false);
       nodusMapPanel.getMenuFile().setEnabled(true);
@@ -1589,7 +1589,7 @@ public class NodusProject implements ShapeConstants {
     try {
       loggerHandler = new FileHandler(projectPath + "nodus.log", true);
       loggerHandler.setFormatter(new SimpleFormatter());
-      Nodus7.nodusLogger.addHandler(loggerHandler);
+      Nodus.nodusLogger.addHandler(loggerHandler);
     } catch (SecurityException e1) {
       e1.printStackTrace();
     } catch (IOException e1) {
@@ -2118,7 +2118,7 @@ public class NodusProject implements ShapeConstants {
         }
       }
 
-      Nodus7.nodusLogger.info("Rollback project");
+      Nodus.nodusLogger.info("Rollback project");
       nodusMapPanel.setBusy(false);
     }
   }
@@ -2143,7 +2143,7 @@ public class NodusProject implements ShapeConstants {
         }
       }
 
-      Nodus7.nodusLogger.info("Save project");
+      Nodus.nodusLogger.info("Save project");
       nodusMapPanel.setBusy(false);
     }
   }

@@ -6,8 +6,8 @@
 	<!-- The info section. -->
 	<info>
 		<appname>Nodus</appname>
-		<appversion>7.3</appversion>
-		<appsubpath>Nodus7</appsubpath>
+		<appversion>8.0</appversion>
+		<appsubpath>Nodus8</appsubpath>
 		<uninstaller write="false"/>
         <writeinstallationinformation>false</writeinstallationinformation>
         <javaversion>1.8</javaversion>
@@ -31,7 +31,7 @@
 		<res id="HTMLLicencePanel.licence_fra" src="installer/license_fra.html" />
 		<res id="HTMLInfoPanel.info_eng" src="installer/info_eng.html" />
 		<res id="HTMLInfoPanel.info_fra" src="installer/info_fra.html" />
-		<res id="installer.langsel.img" src="src/edu/uclouvain/core/nodus/gui/NodusSplash7_3.png" />
+		<res id="installer.langsel.img" src="src/edu/uclouvain/core/nodus/gui/NodusSplash8_0.png" />
 		<res id="Installer.image" src="installer/uclouvain-vertical.png" />
 		<res id="packsLang.xml_fra" src="installer/packsLang_fra.xml" />
 		<res id="packsLang.xml_eng" src="installer/packsLang_eng.xml" />
@@ -57,17 +57,17 @@
 			<file src="changelog.md" targetdir="$INSTALL_PATH" />
 			<file src="LICENSE" targetdir="$INSTALL_PATH" />
 			<file src="gpl-french.pdf" targetdir="$INSTALL_PATH" />
-			<file src="installer/nodus7.bat" os="windows" targetdir="$INSTALL_PATH" />
+			<file src="installer/nodus8.bat" os="windows" targetdir="$INSTALL_PATH" />
 			<file src="devtools/Bat_To_Exe_Converter.exe" os="windows"
 				targetdir="$INSTALL_PATH" />
-			<file src="installer/nodus7.sh" os="unix" targetdir="$INSTALL_PATH" />
+			<file src="installer/nodus8.sh" os="unix" targetdir="$INSTALL_PATH" />
 			<!-- make script executable -->
-			<executable targetfile="$INSTALL_PATH/nodus7.sh" os="unix" stage="never" />
+			<executable targetfile="$INSTALL_PATH/nodus8.sh" os="unix" stage="never" />
 			
-			<file src="installer/nodus7.png" os="unix" targetdir="$INSTALL_PATH" />
-			<file src="installer/nodus7.ico" os="windows" targetdir="$INSTALL_PATH" />
-			<file src="installer/nodus7.icns" os="mac" targetdir="$INSTALL_PATH" />
-			<file src="nodus7.jar" targetdir="$INSTALL_PATH" />
+			<file src="installer/nodus.png" os="unix" targetdir="$INSTALL_PATH" />
+			<file src="installer/nodus.ico" os="windows" targetdir="$INSTALL_PATH" />
+			<file src="installer/nodus.icns" os="mac" targetdir="$INSTALL_PATH" />
+			<file src="nodus8.jar" targetdir="$INSTALL_PATH" />
             <file src="nodus.groovy" targetdir="$INSTALL_PATH" />
 
 			<file src="installer/AppifyNodus.sh" os="mac" targetdir="$INSTALL_PATH" />
@@ -82,11 +82,11 @@
 				os="windows" stage="postinstall" keep="false">
 				<args>
 					<arg value="-bat" />
-					<arg value="$INSTALL_PATH/nodus7.bat" />
+					<arg value="$INSTALL_PATH/nodus8.bat" />
 					<arg value="-save" />
-					<arg value="$INSTALL_PATH/Nodus7.exe" />
+					<arg value="$INSTALL_PATH/Nodus8.exe" />
 					<arg value="-icon" />
-					<arg value="$INSTALL_PATH/nodus7.ico" />
+					<arg value="$INSTALL_PATH/nodus.ico" />
 					<arg value="-invisible" />
 				</args>
 			</executable>

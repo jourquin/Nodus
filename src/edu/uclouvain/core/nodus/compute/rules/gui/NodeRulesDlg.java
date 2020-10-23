@@ -275,7 +275,7 @@ public class NodeRulesDlg extends EscapeDialog {
   /**
    * Computes a hash for the set of rules.
    *
-   * @return
+   * @return The hash code
    */
   private int getRulesHashCode() {
 

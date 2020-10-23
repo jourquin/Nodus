@@ -1,5 +1,4 @@
-Sample Groovy scripts
---------------------------
+#Sample Groovy scripts
 
 - nodus.groovy : auto executable script that zooms onto Europe when Nodus is 
   launched (must be put in the main Nodus installation directory).

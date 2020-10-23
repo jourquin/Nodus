@@ -256,7 +256,7 @@ public class NotePad extends JFrame {
 
     // if (!JFrame.isDefaultLookAndFeelDecorated()) {
     setIconImage(
-        Toolkit.getDefaultToolkit().createImage(NodusMapPanel.class.getResource("nodus7.png")));
+        Toolkit.getDefaultToolkit().createImage(NodusMapPanel.class.getResource("nodus.png")));
     // }
 
     this.setSize(800, 600);

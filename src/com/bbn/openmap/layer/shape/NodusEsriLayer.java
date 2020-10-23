@@ -909,8 +909,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   @Override
   public Component getGUI() {
 
-    /* Since Nodus 7.3, the edition of the table model structure was removed */
-
     final JPanel holder = new JPanel(new GridLayout(0, 1));
 
     JButton selectProperties =

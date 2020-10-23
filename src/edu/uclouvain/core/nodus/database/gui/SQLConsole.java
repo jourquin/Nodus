@@ -1420,7 +1420,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     frame.setName(this.getClass().getName());
     frame.getContentPane().add(createToolBar(), "North");
     frame.setIconImage(
-        Toolkit.getDefaultToolkit().createImage(NodusMapPanel.class.getResource("nodus7.png")));
+        Toolkit.getDefaultToolkit().createImage(NodusMapPanel.class.getResource("nodus.png")));
 
     frame.addWindowListener(this);
 

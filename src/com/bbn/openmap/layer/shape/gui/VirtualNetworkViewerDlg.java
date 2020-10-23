@@ -526,7 +526,7 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
     mainPanel.add(resultsTableScrollPane, resultsTableScrollPaneConstraints);
 
     setIconImage(
-        Toolkit.getDefaultToolkit().createImage(NodusMapPanel.class.getResource("nodus7.png")));
+        Toolkit.getDefaultToolkit().createImage(NodusMapPanel.class.getResource("nodus.png")));
 
     pack();
   }

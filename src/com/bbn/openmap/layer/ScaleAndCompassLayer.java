@@ -58,7 +58,7 @@ import javax.swing.JRadioButton;
  * scaleLayer.scaleTextColor=ffCC0033<br>
  * scaleLayer.copyrightTextColor=ff000000<br>
  * scaleLayer.scaleIntervals=1 2 5 10 20 50 100 250 500 1000 2000 5000 10000<br>
- * scaleLayer.copyright=(c) Nodus 7.3<br>
+ * scaleLayer.copyright=(c) Nodus 8.0<br>
  * scaleLayer.image=/home/jourquin/data/nodus6/test/cartouche.gif<br>
  */
 public class ScaleAndCompassLayer extends OMGraphicHandlerLayer {

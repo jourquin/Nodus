@@ -23,7 +23,7 @@ package edu.uclouvain.core.nodus.gui;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-import edu.uclouvain.core.nodus.Nodus7;
+import edu.uclouvain.core.nodus.Nodus;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
@@ -339,7 +339,7 @@ public class LookAndFeelChooser extends EscapeDialog {
     if (n != -1 && !currentLookAndFeelName.equals(info[n].getClassName())) {
       properties.setProperty(NodusC.PROP_LOOK_AND_FEEL, info[n].getClassName());
 
-      Nodus7.setLookAndFeel();
+      Nodus.setLookAndFeel();
 
       SwingUtilities.updateComponentTreeUI(nodusMapPanel.getMainFrame());
     }

@@ -24,13 +24,13 @@
 # and executed after installation. It is then deleted by the installer.
 # At the end, Nodus.app is created, with an icon.  
 
-NODUS7_HOME="$INSTALL_PATH"
+NODUS8_HOME="$INSTALL_PATH"
 
-SCRIPT="nodus7.sh"
-APPNAME="Nodus7"
-ICON="nodus7.icns"
+SCRIPT="nodus8.sh"
+APPNAME="Nodus8"
+ICON="nodus.icns"
 
-cd "$NODUS7_HOME"
+cd "$NODUS8_HOME"
 
 DIR="$APPNAME.app/Contents"
  
@@ -40,15 +40,15 @@ fi
  
 mkdir -p $DIR/{MacOS,Resources}
 
-cd "$NODUS7_HOME/$DIR/Resources"
+cd "$NODUS8_HOME/$DIR/Resources"
 ln -s "../../../$ICON" $APPNAME.icns
 
-cd "$NODUS7_HOME/$DIR/MacOS"
+cd "$NODUS8_HOME/$DIR/MacOS"
 ln -s "../../../$SCRIPT" $APPNAME
-chmod +x "$NODUS7_HOME/$SCRIPT"
+chmod +x "$NODUS8_HOME/$SCRIPT"
  
 
-cat <<EOF > "$NODUS7_HOME"/$DIR/Info.plist
+cat <<EOF > "$NODUS8_HOME"/$DIR/Info.plist
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">

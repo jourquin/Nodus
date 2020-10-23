@@ -127,7 +127,7 @@ public class NodusConsole extends WindowAdapter
     frame.setTitle(i18n.get(NodusConsole.class, "Nodus_Console", "Nodus Console"));
     frame.setName(thisComponentName);
     frame.setIconImage(
-        Toolkit.getDefaultToolkit().createImage(NodusMapPanel.class.getResource("nodus7.png")));
+        Toolkit.getDefaultToolkit().createImage(NodusMapPanel.class.getResource("nodus.png")));
     Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
     Dimension frameSize = new Dimension(screenSize.width / 3, screenSize.height / 4);
     int x = frameSize.width / 20;

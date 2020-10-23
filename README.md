@@ -1,4 +1,4 @@
-# Nodus 7.3
+# Nodus 8.0
 
 Nodus is a transportation network modeling software especially designed for multimodal and
 intermodal freight transport. It is developed at the Center for Operations Research and 
@@ -44,12 +44,12 @@ along with contributions to congresses and seminars can be found on
 See also the [documentation](http://htmlpreview.github.com/?https://github.com/jourquin/Nodus/blob/master/doc/help.html) and
 an example of [user defined modal choice models](https://github.com/jourquin/BoxCoxLogit).
 
-## History of the 7.x releases
+## History of the releases
 
 - 7.0 - November 2017: First open source version of Nodus.
 - 7.1 - November 2018: Upgrade to Groovy 2.5.x.
 - 7.2 - February 2020: Upgrade to Groovy 3.x
-- 7.3 - June 2020: Introduce time functions (in addition to cost functions)
+- 8.0 - November 2020: Introduce time functions (in addition to cost functions). Simpler API for modal-choice plugins
 
 See the [change log](changelog.md) for a detailed build history.
 
@@ -58,12 +58,12 @@ See the [change log](changelog.md) for a detailed build history.
 Download the [Nodus installer](https://github.com/jourquin/Nodus/releases).
 As the software is written in the [Java](https://java.com/en/download/) programming language, the 
 latest must be installed on your computer. Nodus needs Java 8 or later. Depending on your system, either (double) click
-on "Nodus7-install.jar" or run "java -jar Nodus7-install.jar" from your shell console.
+on "Nodus8-install.jar" or run "java -jar Nodus8-install.jar" from your shell console.
 
 Once installed, Nodus can be launched using
-- "nodus7.sh" on Linux
-- "Nodus7.app" on MacOS
-- "Nodus7.exe" on Windows
+- "nodus8.sh" on Linux
+- "Nodus8.app" on MacOS
+- "Nodus8.exe" on Windows
 
 The software has a modern and integrated user-friendly GUI. Complete reference and user guides
 are not available, but the API is fully documented. 
@@ -89,7 +89,7 @@ are desired.
    
 ## License
 
-You can redistribute it and/or modify Nodus 7.x under the terms of the GNU General Public License 
+You can redistribute it and/or modify Nodus 8.x under the terms of the GNU General Public License 
 as published by the Free Software Foundation, either [version 3](https://www.gnu.org/licenses/gpl-3.0.html)
 of the License, or (at your option) any later version. 
 
@@ -108,7 +108,7 @@ ant Installer
 This will compile the project, generate the JavaDoc for the API and bundle all what is needed into 
 the installer jar file.
 
-It is also possible to only compile the main nodus7.jar using:
+It is also possible to only compile the main nodus8.jar using:
  
 ```
 ant Jar
@@ -128,5 +128,5 @@ The software doesn't modify the "registry" of any supported OS (Mac OS, Linux or
 run the uninstaller provided with the distribution or simply delete the installation directory to 
 remove the software from your system. 
 
-You can also delete the small ".nodus7.properties" file that is located at the root of your "home" dir.   
+You can also delete the small ".nodus8.properties" file that is located at the root of your "home" dir.   
 

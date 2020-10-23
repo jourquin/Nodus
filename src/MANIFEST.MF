@@ -1,2 +1,2 @@
 Manifest-Version: 1.0
-Main-Class: edu.uclouvain.core.nodus.Nodus7
+Main-Class: edu.uclouvain.core.nodus.Nodus

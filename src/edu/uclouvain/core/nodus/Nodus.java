@@ -55,14 +55,14 @@ import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
  *
  * @author Bart Jourquin
  */
-public class Nodus7 {
+public class Nodus {
 
   /* Nodus icon */
   private static Image icn =
-      Toolkit.getDefaultToolkit().createImage(Nodus7.class.getResource("nodus7.png"));
+      Toolkit.getDefaultToolkit().createImage(Nodus.class.getResource("nodus.png"));
 
   /* Logger */
-  public static final Logger nodusLogger = Logger.getLogger(Nodus7.class.getName());
+  public static final Logger nodusLogger = Logger.getLogger(Nodus.class.getName());
 
   /**
    * Properties file used to load/save the "state" of the application when it was closed the last
@@ -100,7 +100,7 @@ public class Nodus7 {
     // Open the properties file
     try {
       String home = System.getProperty("user.home") + "/";
-      nodusProperties.load(new FileInputStream(home + ".nodus7.properties"));
+      nodusProperties.load(new FileInputStream(home + ".nodus8.properties"));
     } catch (IOException ex) {
       // Nothing to do. The properties file will be created later.
     }
@@ -171,7 +171,7 @@ public class Nodus7 {
       }
     }
 
-    new Nodus7(projectToLoad);
+    new Nodus(projectToLoad);
 
     splash.dispose();
   }
@@ -181,7 +181,7 @@ public class Nodus7 {
    *
    * @param projectToLoad Full path to the Nodus project file to load at startup.
    */
-  public Nodus7(final String projectToLoad) {
+  public Nodus(final String projectToLoad) {
 
     /*
      * Register the NodusSQL language (Nodus specific convenient commands added,

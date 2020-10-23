@@ -20,18 +20,18 @@ done
 PHYS_DIR=`pwd -P`
 SCRIPT=$PHYS_DIR/$TARGET_FILE
 
-NODUS7_HOME=$(dirname "$SCRIPT")
+NODUS8_HOME=$(dirname "$SCRIPT")
 
 # Set some dirs
-LIBDIR="$NODUS7_HOME"/lib/*:"$NODUS7_HOME"/lib/groovy/*:"$NODUS7_HOME"/lib/groovy/extras-jaxb/*
-JDBCDIR="$NODUS7_HOME"/jdbcDrivers/*
-NODUSJAR="$NODUS7_HOME"/nodus7.jar
+LIBDIR="$NODUS8_HOME"/lib/*:"$NODUS8_HOME"/lib/groovy/*:"$NODUS8_HOME"/lib/groovy/extras-jaxb/*
+JDBCDIR="$NODUS8_HOME"/jdbcDrivers/*
+NODUSJAR="$NODUS8_HOME"/nodus8.jar
 
 # Set default values for the JVM heap sizes if not yet set
-java -cp "$NODUS7_HOME"/nodus7.jar -DNODUS_HOME="$NODUS7_HOME" edu.uclouvain.core.nodus.utils.SetDefaultHeapSizes
-source "$NODUS7_HOME"/jvmargs.sh
+java -cp "$NODUS8_HOME"/nodus8.jar -DNODUS_HOME="$NODUS8_HOME" edu.uclouvain.core.nodus.utils.SetDefaultHeapSizes
+source "$NODUS8_HOME"/jvmargs.sh
 
 # Launch Nodus
-NODUSCP="$NODUSJAR:$LIBDIR:$JDBCDIR:"$NODUS7_HOME""
-java -cp "$NODUSCP" $JVMARGS -DNODUS_HOME="$NODUS7_HOME" edu.uclouvain.core.nodus.Nodus7 "$@"
+NODUSCP="$NODUSJAR:$LIBDIR:$JDBCDIR:$NODUS8_HOME"
+java -cp "$NODUSCP" $JVMARGS -DNODUS_HOME="$NODUS8_HOME" edu.uclouvain.core.nodus.Nodus "$@"
 

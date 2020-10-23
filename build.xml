@@ -3,14 +3,13 @@
               Any modifications will be overwritten.
               To include a user specific buildfile here, simply create one in the same
               directory with the processing instruction <?eclipse.ant.import?>
-              as the first entry and export the buildfile again. -->
-<project basedir="." default="build" name="Nodus7.3">
+              as the first entry and export the buildfile again. --><project basedir="." default="build" name="Nodus">
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.8"/>
     <property name="source" value="1.8"/>
     <import file="build-user.xml"/>
-    <path id="Nodus7.3.classpath">
+    <path id="Nodus.classpath">
         <pathelement location="classes"/>
         <pathelement location="lib/foxtrot-core-4.0.jar"/>
         <pathelement location="lib/JCheckList.jar"/>
@@ -104,13 +103,13 @@
         <pathelement location="jdbcDrivers/sqlite-jdbc-3.30.1.jar"/>
         <pathelement location="lib/guava-19.0.jar"/>
         <pathelement location="jdbcDrivers/mariadb-java-client-2.6.0.jar"/>
-        <pathelement location="lib/javadbf4nodus-1.12.1.jar"/>
         <pathelement location="lib/openmap.jar"/>
         <pathelement location="lib/jna-5.6.0.jar"/>
         <pathelement location="lib/jna-platform-5.6.0.jar"/>
         <pathelement location="lib/oshi-core-5.2.1.jar"/>
         <pathelement location="lib/slf4j-api-1.7.9.jar"/>
         <pathelement location="lib/slf4j-nop-1.7.9.jar"/>
+        <pathelement location="lib/javadbf4nodus-1.12.2.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
@@ -131,44 +130,49 @@
         <echo message="${ant.project.name}: ${ant.file}"/>
         <javac debug="true" debuglevel="${debuglevel}" destdir="classes" includeantruntime="false" source="${source}" target="${target}">
             <src path="src"/>
-            <classpath refid="Nodus7.2.classpath"/>
+            <classpath refid="Nodus.classpath"/>
         </javac>
     </target>
     <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
     <target name="TestColors (5)">
         <java classname="TestColors" failonerror="true" fork="yes">
-            <classpath refid="Nodus7.2.classpath"/>
+            <classpath refid="Nodus.classpath"/>
         </java>
     </target>
     <target name="Test (3)">
         <java classname="com.bbn.openmap.layer.shape.gui.Test" failonerror="true" fork="yes">
-            <classpath refid="Nodus7.2.classpath"/>
+            <classpath refid="Nodus.classpath"/>
         </java>
     </target>
-    <target name="Nodus7">
-        <java classname="edu.uclouvain.core.nodus.Nodus7" failonerror="true" fork="yes">
-            <jvmarg line="-Xmx6G -Xms4G"/>
-            <classpath refid="Nodus7.2.classpath"/>
+    <target name="HardwareInfo">
+        <java classname="edu.uclouvain.core.nodus.gui.HardwareInfo" failonerror="true" fork="yes">
+            <classpath refid="Nodus.classpath"/>
         </java>
     </target>
     <target name="SetDefaultHeapSizes">
         <java classname="edu.uclouvain.core.nodus.utils.SetDefaultHeapSizes" failonerror="true" fork="yes">
-            <classpath refid="Nodus7.2.classpath"/>
+            <classpath refid="Nodus.classpath"/>
         </java>
     </target>
     <target name="Test (4)">
         <java classname="com.bbn.openmap.layer.shape.Test" failonerror="true" fork="yes">
-            <classpath refid="Nodus7.2.classpath"/>
+            <classpath refid="Nodus.classpath"/>
         </java>
     </target>
     <target name="Test2">
         <java classname="Test2" failonerror="true" fork="yes">
-            <classpath refid="Nodus7.2.classpath"/>
+            <classpath refid="Nodus.classpath"/>
         </java>
     </target>
     <target name="Test">
         <java classname="edu.uclouvain.core.nodus.test" failonerror="true" fork="yes">
-            <classpath refid="Nodus7.2.classpath"/>
+            <classpath refid="Nodus.classpath"/>
+        </java>
+    </target>
+    <target name="Nodus">
+        <java classname="edu.uclouvain.core.nodus.Nodus" failonerror="true" fork="yes">
+            <jvmarg line="-Xmx6G -Xms4G"/>
+            <classpath refid="Nodus.classpath"/>
         </java>
     </target>
 </project>

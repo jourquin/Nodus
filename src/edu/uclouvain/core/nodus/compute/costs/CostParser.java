@@ -131,7 +131,7 @@ import parsii.tokenizer.ParseException;
  * # before de regular function. <br>
  * # Example = 't0.ld.4,1=' is a loading cost function for time slice 0. <br>
  * <br>
- * # Since Nodus 7.3 it is also possible to set non numeric variables, which names must start with a
+ * # Since Nodus 8 it is also possible to set non numeric variables, which names must start with a
  * '@'. 
  * <br>
  *

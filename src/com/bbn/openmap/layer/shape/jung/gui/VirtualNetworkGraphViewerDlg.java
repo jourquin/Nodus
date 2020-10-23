@@ -411,7 +411,7 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
     this.setSize(frameSize, frameSize);
 
     setIconImage(
-        Toolkit.getDefaultToolkit().createImage(NodusMapPanel.class.getResource("nodus7.png")));
+        Toolkit.getDefaultToolkit().createImage(NodusMapPanel.class.getResource("nodus.png")));
 
     // Get all the time periods for which there is some traffic
     availableTimes = getAvailableTimes();

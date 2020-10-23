@@ -454,7 +454,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * <br>
    * See also OpenMap documentation for more details on the behavior of the MapBeans.
    *
-   * @param properties The .nodus7.properties file content
+   * @param properties The .nodus8.properties file content
    */
   public NodusMapPanel(Properties properties) {
     MapHandler mh = getMapHandler();
@@ -598,9 +598,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     try {
       String home = System.getProperty("user.home") + "/";
-      nodusProperties.store(new FileOutputStream(home + ".nodus7.properties"), null);
+      nodusProperties.store(new FileOutputStream(home + ".nodus8.properties"), null);
     } catch (IOException ex) {
-      System.err.println("Caught IOException saving nodus7.properties");
+      System.err.println("Caught IOException saving nodus8.properties");
     }
 
     dispose();
@@ -1170,7 +1170,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         TouchBarButton nodusIcon = new TouchBarButton();
         com.thizzer.jtouchbar.common.Image img =
             new com.thizzer.jtouchbar.common.Image(
-                NodusMapPanel.class.getResource("nodus7.png").getPath(), true);
+                NodusMapPanel.class.getResource("nodus.png").getPath(), true);
         nodusIcon.setImage(img);
         nodusIcon.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
         initialTouchBar.addItem(new TouchBarItem("fake_button", nodusIcon, true));

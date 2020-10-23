@@ -33,10 +33,10 @@
 			encoding="UTF-8" docencoding="UTF-8" charset="UTF-8" 
 			packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
 			author="true" version="true" use="true" 
-			windowtitle="Nodus 7.3 API" 
+			windowtitle="Nodus 8.0 API" 
 			doctitle="Nodus" bottom="Copyright 1991-2020, Université catholique de Louvain (UCLouvain), Center for Operations Research and Econometrics (CORE)" 
 			doclet="ExcludeDoclet" docletpath="${basedir}/devtools/ExcludeDoclet.jar" 
-			classpathref="Nodus7.3.classpath" failonerror="false" />
+			classpathref="Nodus.classpath" failonerror="false" />
 	</target>
 
 
@@ -52,7 +52,7 @@
 		<antcall target="Jar" />
 		<antcall target="ApiDoc" />
 		<mkdir dir="${basedir}/BinaryDistribution"/>
-		<izpack input="${basedir}/installer/installer.xml" output="${basedir}/BinaryDistribution/Nodus7-install.jar" installerType="standard" basedir="${basedir}" izPackDir="${basedir}" />
+		<izpack input="${basedir}/installer/installer.xml" output="${basedir}/BinaryDistribution/Nodus8-install.jar" installerType="standard" basedir="${basedir}" izPackDir="${basedir}" />
 	</target>
 
 	<!-- Create jar -->
@@ -60,7 +60,7 @@
 		<echo message="Creating Nodus jar file" />
 		<antcall target="BuildId" />
 		<antcall target="build" />
-		<jar destfile="${basedir}/nodus7.jar" basedir="${basedir}/classes" manifest="${basedir}/src/MANIFEST.MF" index="true" />
+		<jar destfile="${basedir}/nodus8.jar" basedir="${basedir}/classes" manifest="${basedir}/src/MANIFEST.MF" index="true" />
 		<delete file="./classes/edu/uclouvain/core/nodus/utils/buildid.properties" />
 	</target>
 </project>

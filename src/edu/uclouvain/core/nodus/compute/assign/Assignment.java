@@ -310,8 +310,8 @@ public abstract class Assignment implements Runnable {
   }
 
   /**
-   * A quick & dirty way to introduce durations was introduces in Nodus 7.1 and 7.2, using
-   * XX_DURATION variables in the costs functions files. Since Nodus 7.3, durations are handled in
+   * A quick & dirty way to introduce durations was introduces in Nodus 7, using
+   * XX_DURATION variables in the costs functions files. Since Nodus 8, durations are handled in
    * the same way than cost functions, using the '@' separator instead of '.' after the type of
    * function.
    *
