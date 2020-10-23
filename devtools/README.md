@@ -38,7 +38,4 @@ info instead of warnings (to avoid warnings for classes developed in OpenMap pac
 
 Some IzPack (v5) application installer libraries. Used by "Installer" ant task.
 
-## [Bat_To_Exe_Converter.exe](http://www.f2ko.de/en/b2e.php):
-
-A freeware .bat to .exe "compiler". Used at install time to generate the "NodusX.exe" file.
 

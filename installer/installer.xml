@@ -8,9 +8,9 @@
 		<appname>Nodus</appname>
 		<appversion>8.0</appversion>
 		<appsubpath>Nodus8</appsubpath>
-		<uninstaller write="false"/>
-        <writeinstallationinformation>false</writeinstallationinformation>
-        <javaversion>1.8</javaversion>
+		<uninstaller write="false" />
+		<writeinstallationinformation>false</writeinstallationinformation>
+		<javaversion>1.8</javaversion>
 	</info>
 
 	<!-- The gui preferences -->
@@ -24,6 +24,11 @@
 		<langpack iso3="eng" />
 		<langpack iso3="fra" />
 	</locale>
+
+
+	<variables>
+		<variable name="TargetPanel.dir.windows" value="${SYSTEM_USER_DIR}\Nodus8" />
+	</variables>
 
 	<!-- The resources section -->
 	<resources>
@@ -58,44 +63,37 @@
 			<file src="LICENSE" targetdir="$INSTALL_PATH" />
 			<file src="gpl-french.pdf" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus8.bat" os="windows" targetdir="$INSTALL_PATH" />
-			<file src="devtools/Bat_To_Exe_Converter.exe" os="windows"
-				targetdir="$INSTALL_PATH" />
+			<file src="installer/make_executable.bat" os="windows" targetdir="$INSTALL_PATH" />
+			<file src="installer/Bat_To_Exe_Converter.exe" os="windows" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus8.sh" os="unix" targetdir="$INSTALL_PATH" />
 			<!-- make script executable -->
 			<executable targetfile="$INSTALL_PATH/nodus8.sh" os="unix" stage="never" />
-			
+
 			<file src="installer/nodus.png" os="unix" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus.ico" os="windows" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus.icns" os="mac" targetdir="$INSTALL_PATH" />
 			<file src="nodus8.jar" targetdir="$INSTALL_PATH" />
-            <file src="nodus.groovy" targetdir="$INSTALL_PATH" />
+			<file src="nodus.groovy" targetdir="$INSTALL_PATH" />
 
 			<file src="installer/AppifyNodus.sh" os="mac" targetdir="$INSTALL_PATH" />
-			<parsable targetfile="$INSTALL_PATH/AppifyNodus.sh" os="mac"
-				type="plain" />
+			<parsable targetfile="$INSTALL_PATH/AppifyNodus.sh" os="mac" type="plain" />
 
 			<!-- execute after install -->
-			<executable targetfile="$INSTALL_PATH/AppifyNodus.sh" os="mac"
-				stage="postinstall" />
+			<executable targetfile="$INSTALL_PATH/AppifyNodus.sh" os="mac" stage="postinstall" />
 
-			<executable targetfile="$INSTALL_PATH/Bat_To_Exe_Converter.exe"
-				os="windows" stage="postinstall" keep="false">
-				<args>
-					<arg value="-bat" />
-					<arg value="$INSTALL_PATH/nodus8.bat" />
-					<arg value="-save" />
-					<arg value="$INSTALL_PATH/Nodus8.exe" />
-					<arg value="-icon" />
-					<arg value="$INSTALL_PATH/nodus.ico" />
-					<arg value="-invisible" />
-				</args>
+			<!--executable targetfile="$INSTALL_PATH/Bat_To_Exe_Converter.exe" os="windows" 
+				stage="postinstall" keep="false"> <args> <arg value="/bat" /> <arg value="$INSTALL_PATH/nodus8.bat" 
+				/> <arg value="/exe" /> <arg value="$INSTALL_PATH/nodus8.exe" /> <arg value="/icon" 
+				/> <arg value="$INSTALL_PATH/nodus.ico" /> <arg value="/overwrite" /> <arg 
+				value="/invisible" /> </args> </executable -->
+
+			<executable targetfile="$INSTALL_PATH/make_executable.bat" os="windows" stage="postinstall" keep="false">
 			</executable>
-
 
 			<fileset dir="lib" targetdir="${INSTALL_PATH}/lib" />
 			<fileset dir="licenses" targetdir="${INSTALL_PATH}/licenses" />
 			<fileset dir="plugins" targetdir="${INSTALL_PATH}/plugins" />
-			<executable targetfile="$INSTALL_PATH/plugins/compile.sh" os="unix" stage="never" />  
+			<executable targetfile="$INSTALL_PATH/plugins/compile.sh" os="unix" stage="never" />
 		</pack>
 		<pack name="Help" id="help.package" required="no">
 			<description>Browsable HTML help files.</description>
@@ -103,8 +101,11 @@
 		</pack>
 		<pack name="Demo" id="demo.package" required="no">
 			<description>Some Nodus demo projects.</description>
-			<fileset dir="demo" targetdir="${INSTALL_PATH}/demo" excludes="*.odt"/>
-			<executable targetfile="$INSTALL_PATH/demo/MLogit/compile.sh" os="unix" stage="never" />  
+			<fileset dir="demo" targetdir="${INSTALL_PATH}/demo"
+				excludes="*.odt" />
+			<executable
+				targetfile="$INSTALL_PATH/demo/MLogit/compile.sh" os="unix"
+				stage="never" />
 		</pack>
 		<pack name="Scripts" id="gvy.package" required="no">
 			<description>A set of sample Groovy scripts for Nodus.</description>
@@ -117,7 +118,8 @@
 		<pack name="JDBC drivers" id="jdbc.package" required="no">
 			<description>Several embedded databases and JDBC drivers.
 			</description>
-			<fileset dir="jdbcDrivers" targetdir="${INSTALL_PATH}/jdbcDrivers" />
+			<fileset dir="jdbcDrivers"
+				targetdir="${INSTALL_PATH}/jdbcDrivers" />
 		</pack>
 		<pack name="JFlowMap" id="jflowmap.package" required="no">
 			<description>JFlowMap flow map visualization tool. </description>
