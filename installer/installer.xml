@@ -27,7 +27,7 @@
 
 
 	<variables>
-		<variable name="TargetPanel.dir.windows" value="${SYSTEM_USER_DIR}\Nodus8" />
+		<variable name="TargetPanel.dir.windows" value="${ENV[USERPROFILE]}\Nodus8" />
 	</variables>
 
 	<!-- The resources section -->
@@ -63,8 +63,8 @@
 			<file src="LICENSE" targetdir="$INSTALL_PATH" />
 			<file src="gpl-french.pdf" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus8.bat" os="windows" targetdir="$INSTALL_PATH" />
-			<file src="installer/make_executable.bat" os="windows" targetdir="$INSTALL_PATH" />
-			<file src="installer/Bat_To_Exe_Converter.exe" os="windows" targetdir="$INSTALL_PATH" />
+			<file src="installer/makelnk.bat" os="windows" targetdir="$INSTALL_PATH" />
+			<file src="devtools/nircmdc.exe" os="windows" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus8.sh" os="unix" targetdir="$INSTALL_PATH" />
 			<!-- make script executable -->
 			<executable targetfile="$INSTALL_PATH/nodus8.sh" os="unix" stage="never" />
@@ -87,7 +87,7 @@
 				/> <arg value="$INSTALL_PATH/nodus.ico" /> <arg value="/overwrite" /> <arg 
 				value="/invisible" /> </args> </executable -->
 
-			<executable targetfile="$INSTALL_PATH/make_executable.bat" os="windows" stage="postinstall" keep="false">
+			<executable targetfile="$INSTALL_PATH/makelnk.bat" os="windows" stage="postinstall" keep="false">
 			</executable>
 
 			<fileset dir="lib" targetdir="${INSTALL_PATH}/lib" />

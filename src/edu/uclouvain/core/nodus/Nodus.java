@@ -201,6 +201,11 @@ public class Nodus {
           public void run() {
             showInFrame();
             nodusMapPanel.restoreSizeAndLocation();
+            
+            // Be sure window is in foreground
+            boolean b = nodusMapPanel.getMainFrame().isAlwaysOnTop();
+            nodusMapPanel.getMainFrame().setAlwaysOnTop(true);
+            nodusMapPanel.getMainFrame().setAlwaysOnTop(b);
 
             // Run the "nodus.groovy" script if exists
             Thread thread =

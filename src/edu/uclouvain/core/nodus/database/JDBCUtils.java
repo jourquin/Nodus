@@ -80,7 +80,7 @@ public class JDBCUtils {
   private static List<String> tableList = null;
 
   /**
-   * This constructor is maintained for backward compatibility (< Nodus 8)
+   * This constructor is maintained for backward compatibility (< Nodus 8).
    *
    * @param jdbcConnection The connection to the database @Deprecated Use JDBCUtils in a pure static
    *     way.

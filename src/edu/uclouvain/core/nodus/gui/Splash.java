@@ -155,7 +155,9 @@ public class Splash extends JWindow {
     this.setSize(width + 2 * frameBorder, height + 2 * frameBorder);
     setLocationRelativeTo(null);
 
+    // Display and set in foreground
     setVisible(true);
+    setAlwaysOnTop(true);
 
     try {
       Thread.sleep(delay);
