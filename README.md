@@ -63,7 +63,7 @@ on "Nodus8-install.jar" or run "java -jar Nodus8-install.jar" from your shell co
 Once installed, Nodus can be launched using
 - "nodus8.sh" on Linux
 - "Nodus8.app" on MacOS
-- "Nodus8.exe" on Windows
+- "Nodus 8" shortcut on Windows
 
 The software has a modern and integrated user-friendly GUI. Complete reference and user guides
 are not available, but the API is fully documented. 
@@ -125,8 +125,7 @@ in order to write code that adheres to the Google Java coding standard and to lo
 ## Uninstall
 
 The software doesn't modify the "registry" of any supported OS (Mac OS, Linux or Windows). Just
-run the uninstaller provided with the distribution or simply delete the installation directory to 
-remove the software from your system. 
+delete the installation directory to remove the software from your system.  
 
 You can also delete the small ".nodus8.properties" file that is located at the root of your "home" dir.   
 
