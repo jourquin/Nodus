@@ -63,31 +63,26 @@
 			<file src="LICENSE" targetdir="$INSTALL_PATH" />
 			<file src="gpl-french.pdf" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus8.bat" os="windows" targetdir="$INSTALL_PATH" />
-			<file src="installer/makelnk.bat" os="windows" targetdir="$INSTALL_PATH" />
-			<file src="devtools/nircmdc.exe" os="windows" targetdir="$INSTALL_PATH" />
+			<file src="installer/MakeLnk.bat" os="windows" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus8.sh" os="unix" targetdir="$INSTALL_PATH" />
-			<!-- make script executable -->
-			<executable targetfile="$INSTALL_PATH/nodus8.sh" os="unix" stage="never" />
-
+			<file src="nodus8.jar" targetdir="$INSTALL_PATH" />
+			<file src="nodus.groovy" targetdir="$INSTALL_PATH" />
+			
+			<!-- Copy the right version of the icon -->
 			<file src="installer/nodus.png" os="unix" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus.ico" os="windows" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus.icns" os="mac" targetdir="$INSTALL_PATH" />
-			<file src="nodus8.jar" targetdir="$INSTALL_PATH" />
-			<file src="nodus.groovy" targetdir="$INSTALL_PATH" />
-
+		
+			<!-- make sh script executable for Linux -->
+			<executable targetfile="$INSTALL_PATH/nodus8.sh" os="unix" stage="never" />
+            	
+			<!-- Create Mac app -->
 			<file src="installer/AppifyNodus.sh" os="mac" targetdir="$INSTALL_PATH" />
 			<parsable targetfile="$INSTALL_PATH/AppifyNodus.sh" os="mac" type="plain" />
-
-			<!-- execute after install -->
 			<executable targetfile="$INSTALL_PATH/AppifyNodus.sh" os="mac" stage="postinstall" />
-
-			<!--executable targetfile="$INSTALL_PATH/Bat_To_Exe_Converter.exe" os="windows" 
-				stage="postinstall" keep="false"> <args> <arg value="/bat" /> <arg value="$INSTALL_PATH/nodus8.bat" 
-				/> <arg value="/exe" /> <arg value="$INSTALL_PATH/nodus8.exe" /> <arg value="/icon" 
-				/> <arg value="$INSTALL_PATH/nodus.ico" /> <arg value="/overwrite" /> <arg 
-				value="/invisible" /> </args> </executable -->
-
-			<executable targetfile="$INSTALL_PATH/makelnk.bat" os="windows" stage="postinstall" keep="false">
+			
+			<!-- Create Windows shortcut -->
+			<executable targetfile="$INSTALL_PATH/MakeLnk.bat" os="windows" stage="postinstall" keep="false">
 			</executable>
 
 			<fileset dir="lib" targetdir="${INSTALL_PATH}/lib" />

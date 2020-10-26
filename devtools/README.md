@@ -38,8 +38,3 @@ info instead of warnings (to avoid warnings for classes developed in OpenMap pac
 
 Some IzPack (v5) application installer libraries. Used by "Installer" ant task.
 
-## [nircmdc.exe](https://www.nirsoft.net/utils/nircmd.html):
-
-Windows command line utilities. Used to create a Windows shortcut to tne nodusX.bat file
-at install time.
-
