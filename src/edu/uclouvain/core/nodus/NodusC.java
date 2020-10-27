@@ -46,6 +46,14 @@ public class NodusC {
 
   /*
    * *********************************************************************************************
+   * Control functionalities. Useful to enable/disable experimental stuff
+   * *********************************************************************************************
+   */
+
+  public static boolean withServices = false;
+
+  /*
+   * *********************************************************************************************
    * Default values for various aspects of Nodus
    * *********************************************************************************************
    */
@@ -210,7 +218,7 @@ public class NodusC {
 
   /** Name of the "exclusion symetry" field in the database tables. */
   public static final String DBF_SYMMETRY = "symetry";
-  
+
   /** Name of the "path index" field in the database tables. */
   public static final String DBF_PATH_INDEX = "pathidx";
 

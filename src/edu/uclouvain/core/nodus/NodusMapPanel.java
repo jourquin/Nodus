@@ -1,4 +1,4 @@
-/*createMapBean
+/*
  * Copyright (c) 1991-2020 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
@@ -1205,17 +1205,19 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         regularTouchBar.addItem(new TouchBarItem("f2", f2, true));
 
         // F3
-        TouchBarButton f3 = new TouchBarButton();
-        f3.setTitle(i18n.get(NodusMapPanel.class, "Services", "Services"));
-        f3.setAction(
-            new TouchBarViewAction() {
-              @Override
-              public void onCall(TouchBarView view) {
-                menuItemProjectServicesActionPerformed(null);
-              }
-            });
-        f3.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
-        regularTouchBar.addItem(new TouchBarItem("f3", f3, true));
+        if (NodusC.withServices) {
+          TouchBarButton f3 = new TouchBarButton();
+          f3.setTitle(i18n.get(NodusMapPanel.class, "Services", "Services"));
+          f3.setAction(
+              new TouchBarViewAction() {
+                @Override
+                public void onCall(TouchBarView view) {
+                  menuItemProjectServicesActionPerformed(null);
+                }
+              });
+          f3.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
+          regularTouchBar.addItem(new TouchBarItem("f3", f3, true));
+        }
 
         // F4
         TouchBarButton f4 = new TouchBarButton();
@@ -1953,7 +1955,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     menuProject.add(menuItemProjectPreferences);
     menuProject.add(menuItemProjectCosts);
-    menuProject.add(menuItemProjectServices);
+    if (NodusC.withServices) {
+      menuProject.add(menuItemProjectServices);
+    }
     menuProject.add(menuItemProjectAssignment);
     menuProject.add(menuItemProjectDisplayResults);
     menuProject.add(menuItemProjectScenarios);

@@ -179,6 +179,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - SystemInfoDlg replaces ArchInfoDlg and gives now also information about the system hardware.
     - Change default Windows install directory to user home directory.
     - Replace Windows Nodus.exe with a Windows shortcut because the .exe generation was often intercepted by anti-virus software.
+    - Disable the "services". Still too buggy to remain in public distribution.
     
     
 

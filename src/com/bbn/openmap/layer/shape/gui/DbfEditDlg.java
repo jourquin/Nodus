@@ -726,7 +726,6 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     exclusionsButtonConstraints.gridy = 2;
     exclusionsButtonConstraints.insets = new Insets(5, 5, 5, 5);
     exclusionsButtonConstraints.anchor = GridBagConstraints.CENTER;
-    exclusionsButtonConstraints.gridx = 1;
 
     GridBagConstraints fieldsScrollPaneConstraints =
         new GridBagConstraints(
@@ -907,7 +906,9 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     mainPanel.add(enabledCheckBox, gbcChckbxEnabled);
 
     nodeRulesButton.setText(i18n.get(DbfEditDlg.class, "Node_rules", "Node rules"));
-    mainPanel.add(nodeRulesButton, exclusionsButtonConstraints);
+    if (nodusEsriLayer.getType() == SHAPE_TYPE_POINT) {
+      mainPanel.add(nodeRulesButton, exclusionsButtonConstraints);
+    }
 
     GridBagConstraints cancelButtonConstraints = new GridBagConstraints();
     cancelButtonConstraints.anchor = GridBagConstraints.EAST;
@@ -1051,7 +1052,11 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
             0));
     mainPanel.add(getTranshipComboBox(), gridBagConstraints);
     mainPanel.add(transhipLabel, transhipLabelConstraints);
-    mainPanel.add(getServicesButton(), servicesButtonConstraints);
+
+    if (nodusEsriLayer.getType() != SHAPE_TYPE_POINT && NodusC.withServices) {
+      mainPanel.add(getServicesButton(), servicesButtonConstraints);
+    }
+
     if (nodusEsriLayer.getType() != SHAPE_TYPE_POINT) {
       nodeRulesButton.setEnabled(false);
     }
@@ -1082,8 +1087,11 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
           i18n.get(DbfEditDlg.class, "Transhipment_only", "2 - Transhipment only");
       handling[NodusC.HANDLING_LOAD_UNLOAD] =
           i18n.get(DbfEditDlg.class, "Loading_Unloading_only", "3 - Loading/Unloading only");
-      handling[NodusC.HANDLING_CHANGE_SERVICE] =
-          i18n.get(DbfEditDlg.class, "Change_Service_only", "4 - Change Line only");
+
+      if (NodusC.withServices) {
+        handling[NodusC.HANDLING_CHANGE_SERVICE] =
+            i18n.get(DbfEditDlg.class, "Change_Service_only", "4 - Change Line only");
+      }
 
       for (String element : handling) {
         transhipComboBox.addItem(element);
