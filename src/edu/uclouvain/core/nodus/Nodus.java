@@ -191,9 +191,6 @@ public class Nodus {
         (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
     atmf.putMapping("text/NodusSQL", "edu.uclouvain.core.nodus.database.gui.NodusSQLTokenMaker");
 
-    // Create main window
-    // nodusMapPanel = new NodusMapPanel(nodusProperties);
-
     // Initialize the components
     javax.swing.SwingUtilities.invokeLater(
         new Runnable() {
