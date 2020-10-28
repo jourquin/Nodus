@@ -1118,7 +1118,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       layerHandler.removeLayer(politicalBoundariesLayer);
       politicalBoundariesLayer = null;
     }
-
+    
     if (added) {
       politicalBoundariesLayer = PoliticalBoundariesLayer.getLayer(mapBean);
       try {
@@ -1129,15 +1129,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             "displayPoliticalBoundaries throws an exception. This should not happen...");
       }
     }
-
+    
     layerHandler.setLayers();
     nodusLayersPanel.enableButtons(true);
-
-    // Ugly trick used to ensure that the political boundaries are displayed when no project is
-    // loaded
-    if (politicalBoundariesLayer != null) {
-      politicalBoundariesLayer.setProjection((Projection) null);
-    }
   }
 
   /**
@@ -1727,7 +1721,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     enableMenus(false);
 
     nodusProject = new NodusProject(this);
-
+    
     resetMap();
     displayPoliticalBoundaries(true, true);
 

@@ -240,6 +240,12 @@ public class NodusProject implements ShapeConstants {
   /** Properties file that contains the styles for the nodes and links. */
   private Properties stylesProperties;
 
+  /** Scale of view at starting time. */
+  private float initialScale;
+
+  /** Lat/Lon of center point at starting time. */
+  private LatLonPoint initialCenterPoint;
+
   /**
    * The constructor just needs to know the frame the project will be displayed on.
    *
@@ -581,6 +587,10 @@ public class NodusProject implements ShapeConstants {
       nodusMapPanel.resetTitle();
       nodusMapPanel.resetText();
       nodusMapPanel.getNodusLayersPanel().enableButtons(false);
+
+      // Reset view to initial values
+      getNodusMapPanel().getMapBean().setScale(initialScale);
+      getNodusMapPanel().getMapBean().setCenter(initialCenterPoint);
     }
   }
 
@@ -1345,6 +1355,10 @@ public class NodusProject implements ShapeConstants {
     projectResourceFileNameAndPath = projectName;
 
     nodusMapPanel.setBusy(true);
+
+    // Save current view
+    initialScale = getNodusMapPanel().getMapBean().getScale();
+    initialCenterPoint = (LatLonPoint) getNodusMapPanel().getMapBean().getCenter();
 
     try {
       projectProperties = new CommentedProperties();

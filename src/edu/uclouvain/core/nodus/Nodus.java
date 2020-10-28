@@ -192,16 +192,17 @@ public class Nodus {
     atmf.putMapping("text/NodusSQL", "edu.uclouvain.core.nodus.database.gui.NodusSQLTokenMaker");
 
     // Create main window
-    nodusMapPanel = new NodusMapPanel(nodusProperties);
+    // nodusMapPanel = new NodusMapPanel(nodusProperties);
 
     // Initialize the components
     javax.swing.SwingUtilities.invokeLater(
         new Runnable() {
           @Override
           public void run() {
+            // Create main window
+            nodusMapPanel = new NodusMapPanel(nodusProperties);
             showInFrame();
-            nodusMapPanel.restoreSizeAndLocation();
-            
+
             // Be sure window is in foreground
             boolean b = nodusMapPanel.getMainFrame().isAlwaysOnTop();
             nodusMapPanel.getMainFrame().setAlwaysOnTop(true);
@@ -261,7 +262,7 @@ public class Nodus {
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
 
       GUIUtils.supressIllegalReflectiveAccessOperationWarnings();
-  
+
       // Set icon in Mac OS Dock
       GUIUtils.setMacOSDockImage(icn);
 
@@ -327,7 +328,7 @@ public class Nodus {
     }
 
     setWindowListenerOnFrame(omf);
-
+    nodusMapPanel.restoreSizeAndLocation();
     omf.setVisible(true);
     nodusMapPanel.getMapBean().showLayerPalettes();
   }

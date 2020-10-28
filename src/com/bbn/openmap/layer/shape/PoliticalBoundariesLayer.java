@@ -92,9 +92,8 @@ public class PoliticalBoundariesLayer extends ShapeLayer {
       Layer[] layers = LayerHandler.getLayers(layersValue, startuplayers, props);
       politicalBoundariesLayer = (PoliticalBoundariesLayer) layers[0];
       politicalBoundariesLayer.setAddAsBackground(true);
-      politicalBoundariesLayer.setProjection(mapBean.getProjection());
     }
-    politicalBoundariesLayer.getRenderPolicy().prepare();
+
     return politicalBoundariesLayer;
   }
 }
