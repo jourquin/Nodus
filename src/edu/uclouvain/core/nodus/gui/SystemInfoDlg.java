@@ -161,8 +161,9 @@ public class SystemInfoDlg extends EscapeDialog {
               + graphicCardsInfo
               + "<br><br>"
               + availableMemoryInfo
-              + " / "
+              + " free / "
               + totalMemoryInfo
+              + " RAM"
               + "<br><br>"
               + osInfo
               + "</div></body>"

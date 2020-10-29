@@ -190,8 +190,7 @@ public class HardwareUtils {
    * @return The total amount of RAM with the appropriate unit suffix.
    */
   public static String getTotalMemoryInfo() {
-    GlobalMemory memory = si.getHardware().getMemory();
-    return FormatUtil.formatBytes(memory.getTotal());
+    return FormatUtil.formatBytes(getTotalMemory());
   }
   
   /**
