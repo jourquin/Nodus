@@ -177,13 +177,23 @@ public class HardwareUtils {
   /**
    * Returns the total amount of RAM of the computer system.
    *
+   * @return The total amount of RAM as a long integer.
+   */
+  public static long getTotalMemory() {
+    GlobalMemory memory = si.getHardware().getMemory();
+    return memory.getTotal();
+  }
+
+  /**
+   * Returns the total amount of RAM of the computer system.
+   *
    * @return The total amount of RAM with the appropriate unit suffix.
    */
   public static String getTotalMemoryInfo() {
     GlobalMemory memory = si.getHardware().getMemory();
     return FormatUtil.formatBytes(memory.getTotal());
   }
-
+  
   /**
    * Returns the available amount of RAM of the computer system.
    *

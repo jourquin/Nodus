@@ -81,10 +81,8 @@ public class SetDefaultHeapSizes {
     int arch = Integer.parseInt(System.getProperty("sun.arch.data.model"));
 
     // Get total memory
-    long memorySize =
-        ((com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean())
-            .getTotalPhysicalMemorySize();
-
+    long memorySize = HardwareUtils.getTotalMemory();
+    
     // Define the default max heap size
     long maxHeap = memorySize / 2;
     if (maxHeap > 6 * gb) {

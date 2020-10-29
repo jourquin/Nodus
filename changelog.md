@@ -159,7 +159,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - The labels of a Nodus layer are now displayed only if the layer itself is visible (both are now synchronized).
 
 - Miscellaneous:
-    - Upgrade to mariadb-java-client 2.6
+    - Upgrade to mariadb-java-client 2.7
     - Upgrade to HSQLDB 2.5.1
     - Add stop and switch costs and durations (used with services) in the path header tables.  
     - Remove the "-" button in the layer panel. Not useful.
@@ -174,13 +174,14 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - No more exception thrown when statistics are gathered for a non existing group in StatPieDlg.
     - Limit max heap size to 1.4Go if run on a 32bit JVM
     - Warn the user if the number of threads set for an assignment is larger than the number of physical cores.
-    - Tested with Java 11
+    - Tested with Java 11 and 15
     - The assignments are now canceled (with an error message) if a path has a non strictly positive cost.
     - SystemInfoDlg replaces ArchInfoDlg and gives now also information about the system hardware.
     - Change default Windows install directory to user home directory.
     - Replace Windows Nodus.exe with a Windows shortcut because the .exe generation was often intercepted by anti-virus software.
     - Disable the "services". Still too buggy to remain in public distribution.
     - Initial scale and center lat/lon point are now reset when a project is closed.
+    - Don't close open project when users cancels the opening of another one.
     
 
 - Breaking changes:
