@@ -180,7 +180,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Change default Windows install directory to user home directory.
     - Replace Windows Nodus.exe with a Windows shortcut because the .exe generation was often intercepted by anti-virus software.
     - Disable the "services". Still too buggy to remain in public distribution.
-    
+    - Initial scale and center lat/lon point are now reset when a project is closed.
     
 
 - Breaking changes:

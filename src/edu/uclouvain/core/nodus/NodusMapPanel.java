@@ -700,6 +700,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /** Creates the action listeners to add to the menu items. */
+  @SuppressWarnings("deprecation")
   private void createMenuActionListeners() {
     // menuItemFileOpen.setText(i18n.get(NodusMapPanel.class, "Open_project", "Open project"));
     menuItemFileOpen.setAccelerator(
@@ -1118,7 +1119,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       layerHandler.removeLayer(politicalBoundariesLayer);
       politicalBoundariesLayer = null;
     }
-    
+
     if (added) {
       politicalBoundariesLayer = PoliticalBoundariesLayer.getLayer(mapBean);
       try {
@@ -1129,7 +1130,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             "displayPoliticalBoundaries throws an exception. This should not happen...");
       }
     }
-    
+
     layerHandler.setLayers();
     nodusLayersPanel.enableButtons(true);
   }
@@ -1721,7 +1722,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     enableMenus(false);
 
     nodusProject = new NodusProject(this);
-    
+
     resetMap();
     displayPoliticalBoundaries(true, true);
 
