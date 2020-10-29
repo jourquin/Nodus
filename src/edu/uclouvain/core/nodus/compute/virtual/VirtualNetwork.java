@@ -493,15 +493,31 @@ public class VirtualNetwork {
           while (linkLit.hasNext()) {
             VirtualLink vl = linkLit.next();
 
-            // Vehicles are only computed for moving virtual links
-            if (vl.getType() == VirtualLink.TYPE_MOVE) {
+            double averageLoad;
+            double esv;
 
-              double averageLoad =
-                  VehiclesParser.getVehicleAverageLoad(
-                      vl.getBeginVirtualNode().getMode(), vl.getBeginVirtualNode().getMeans());
-              double esv =
-                  VehiclesParser.getEquivalentStandardVehicleRatio(
-                      vl.getBeginVirtualNode().getMode(), vl.getBeginVirtualNode().getMeans());
+            // Vehicles are not computed for transhipment virtual links
+            if (vl.getType() == VirtualLink.TYPE_MOVE
+                || vl.getType() == VirtualLink.TYPE_LOAD
+                || vl.getType() == VirtualLink.TYPE_UNLOAD
+                || vl.getType() == VirtualLink.TYPE_TRANSIT) {
+
+              if (vl.getType()
+                  == VirtualLink.TYPE_LOAD) { // Take end virtual node to get mode/means
+                averageLoad =
+                    VehiclesParser.getVehicleAverageLoad(
+                        vl.getEndVirtualNode().getMode(), vl.getEndVirtualNode().getMeans());
+                esv =
+                    VehiclesParser.getEquivalentStandardVehicleRatio(
+                        vl.getEndVirtualNode().getMode(), vl.getEndVirtualNode().getMeans());
+              } else {
+                averageLoad =
+                    VehiclesParser.getVehicleAverageLoad(
+                        vl.getBeginVirtualNode().getMode(), vl.getBeginVirtualNode().getMeans());
+                esv =
+                    VehiclesParser.getEquivalentStandardVehicleRatio(
+                        vl.getBeginVirtualNode().getMode(), vl.getBeginVirtualNode().getMeans());
+              }
 
               vl.initializeVehicles(groupIndex, timeSlice, averageLoad, esv);
             }

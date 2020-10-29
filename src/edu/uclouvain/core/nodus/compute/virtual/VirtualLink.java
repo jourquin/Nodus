@@ -298,15 +298,18 @@ public class VirtualLink {
   }
 
   /**
-   * * Returns the number of vehicles computed for a given group. Returns 0 for non moving virtual
-   * links
+   * Returns the number of vehicles computed for a given group. Returns 0 for transhipment virtual
+   * links.
    *
    * @param groupIndex The index of the group of commodities.
    * @param timeSlice The time slice the number of vehicles is asked for.
    * @return The number of vehicles.
    */
   public int getCurrentVehicles(byte groupIndex, byte timeSlice) {
-    if (virtualLinkType == TYPE_MOVE) {
+    if (virtualLinkType == TYPE_MOVE
+        || virtualLinkType == TYPE_LOAD
+        || virtualLinkType == TYPE_UNLOAD
+        || virtualLinkType == TYPE_TRANSIT) {
       return currentVehicles[groupIndex][timeSlice];
     } else {
       return 0;
@@ -484,15 +487,25 @@ public class VirtualLink {
    */
   public void initializeVehicles(
       byte groupIndex, byte timeSlice, double averageLoad, double equivalentStandardVehicles) {
-    if (virtualLinkType == TYPE_MOVE) {
+    if (virtualLinkType == TYPE_MOVE
+        || virtualLinkType == TYPE_LOAD
+        || virtualLinkType == TYPE_UNLOAD
+        || virtualLinkType == TYPE_TRANSIT) {
       int nbVehicles = (int) Math.ceil(currentFlow[groupIndex][timeSlice] / averageLoad);
       currentVehicles[groupIndex][timeSlice] = nbVehicles;
-      realLink.addStandardVehicles(this, (int) Math.ceil(nbVehicles * equivalentStandardVehicles));
+
+      if (virtualLinkType == TYPE_MOVE) {
+        realLink.addStandardVehicles(
+            this, (int) Math.ceil(nbVehicles * equivalentStandardVehicles));
+      }
 
       int nbAuxiliaryVehicles = (int) Math.ceil(auxiliaryFlow[groupIndex] / averageLoad);
       auxiliaryVehicles[groupIndex] = nbAuxiliaryVehicles;
-      realLink.addAuxiliaryStandardVehicles(
-          this, (int) Math.ceil(nbAuxiliaryVehicles * equivalentStandardVehicles));
+
+      if (virtualLinkType == TYPE_MOVE) {
+        realLink.addAuxiliaryStandardVehicles(
+            this, (int) Math.ceil(nbAuxiliaryVehicles * equivalentStandardVehicles));
+      }
     }
   }
 
@@ -523,7 +536,10 @@ public class VirtualLink {
       auxiliaryFlow[i] = previousFlow[i] = 0;
     }
 
-    if (virtualLinkType == TYPE_MOVE) {
+    if (virtualLinkType == TYPE_MOVE
+        || virtualLinkType == TYPE_LOAD
+        || virtualLinkType == TYPE_UNLOAD
+        || virtualLinkType == TYPE_TRANSIT) {
 
       currentVehicles = new int[nbGroups][nbTimeSlices];
       auxiliaryVehicles = new int[nbGroups];

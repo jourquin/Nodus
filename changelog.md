@@ -182,7 +182,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Disable the "services". Still too buggy to remain in public distribution.
     - Initial scale and center lat/lon point are now reset when a project is closed.
     - Don't close open project when users cancels the opening of another one.
-    
+    - Nb equivalent standard vehicles are now also computed for (un)loading and transit virtual links.
 
 - Breaking changes:
     - Simplify the API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 
