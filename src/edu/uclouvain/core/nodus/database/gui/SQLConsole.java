@@ -1413,7 +1413,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   }
 
   /** Creates the GUI. */
-  @SuppressWarnings("deprecation")
+  //@SuppressWarnings("deprecation")
   void initialize() {
 
     frame = new JFrame(NodusC.APPNAME);

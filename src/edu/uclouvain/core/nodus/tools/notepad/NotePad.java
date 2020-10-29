@@ -230,7 +230,7 @@ public class NotePad extends JFrame {
    * @param fileName The name of the file to open.
    * @param componentName The name given to this NotePad component.
    */
-  @SuppressWarnings("deprecation")
+  //@SuppressWarnings("deprecation")
   public NotePad(NodusMapPanel nodusMapPanel, String path, String fileName, String componentName) {
 
     // Only create an instance if none exists

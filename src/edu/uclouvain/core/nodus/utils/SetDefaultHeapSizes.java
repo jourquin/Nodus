@@ -25,7 +25,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 
 /**
  * This utility is called in order to set reasonable values for the -Xmx and -Xms JVM parameters in

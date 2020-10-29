@@ -700,7 +700,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /** Creates the action listeners to add to the menu items. */
-  @SuppressWarnings("deprecation")
+  //@SuppressWarnings("deprecation")
   private void createMenuActionListeners() {
     // menuItemFileOpen.setText(i18n.get(NodusMapPanel.class, "Open_project", "Open project"));
     menuItemFileOpen.setAccelerator(
