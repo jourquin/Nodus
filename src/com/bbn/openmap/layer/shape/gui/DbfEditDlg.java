@@ -714,7 +714,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
         new GridBagConstraints(
             0,
             2,
-            1,
+            2,
             1,
             0.0,
             0.0,
@@ -725,7 +725,6 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
             0);
     exclusionsButtonConstraints.gridy = 2;
     exclusionsButtonConstraints.insets = new Insets(5, 5, 5, 5);
-    exclusionsButtonConstraints.anchor = GridBagConstraints.CENTER;
 
     GridBagConstraints fieldsScrollPaneConstraints =
         new GridBagConstraints(
@@ -747,7 +746,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     gridBagConstraints.gridy = 1;
     gridBagConstraints.weightx = 1.0D;
     gridBagConstraints.gridwidth = 3;
-    gridBagConstraints.insets = new Insets(5, 5, 5, 5);
+    gridBagConstraints.insets = new Insets(5, 0, 5, 5);
     gridBagConstraints.anchor = GridBagConstraints.CENTER;
     gridBagConstraints.gridx = 1;
     mainPanel.setLayout(mainPanelGridBagLayout);
