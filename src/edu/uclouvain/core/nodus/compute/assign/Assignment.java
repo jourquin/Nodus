@@ -216,8 +216,6 @@ public abstract class Assignment implements Runnable {
       nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_OK);
     } else {
       nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
-      // Clean database
-      nodusProject.removeScenario(assignmentParameters.getScenario());
     }
     nodusMapPanel.getAssignmentMenuItem().setEnabled(true);
 
@@ -273,6 +271,7 @@ public abstract class Assignment implements Runnable {
 
   /**
    * Sets an error message that will be displayed once the assignment canceled.
+   *
    * @param msg The message to display.
    */
   public void setErrorMessage(String msg) {
@@ -310,10 +309,9 @@ public abstract class Assignment implements Runnable {
   }
 
   /**
-   * A quick & dirty way to introduce durations was introduces in Nodus 7, using
-   * XX_DURATION variables in the costs functions files. Since Nodus 8, durations are handled in
-   * the same way than cost functions, using the '@' separator instead of '.' after the type of
-   * function.
+   * A quick & dirty way to introduce durations was introduces in Nodus 7, using XX_DURATION
+   * variables in the costs functions files. Since Nodus 8, durations are handled in the same way
+   * than cost functions, using the '@' separator instead of '.' after the type of function.
    *
    * <p>Example : "mv.1,1 = " for costs and "mv@1,1 = " for durations. If a duration function is not
    * defined, Nodus put it to 0.
