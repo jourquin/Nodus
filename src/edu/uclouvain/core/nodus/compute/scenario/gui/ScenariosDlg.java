@@ -864,7 +864,7 @@ public class ScenariosDlg extends EscapeDialog {
     String tableName =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
     tableName = nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenarioId;
-    if (JDBCUtils.tableExists(tableName, true)) {
+    if (JDBCUtils.tableExists(tableName)) {
       return true;
     }
     return false;

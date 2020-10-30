@@ -33,6 +33,7 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import javax.swing.JOptionPane;
 
@@ -44,8 +45,6 @@ import javax.swing.JOptionPane;
 public class NodeRulesReader {
 
   private static I18n i18n = Environment.getI18n();
-
-  private boolean isOk = true;
 
   private int nbRecords = 0;
 
@@ -101,11 +100,9 @@ public class NodeRulesReader {
       nbRecords = rs.getInt(1);
       rs.close();
       stmt.close();
-
-    } catch (Exception e) {
+    } catch (SQLException e) {
       JOptionPane.showMessageDialog(
           null, e.getMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-      isOk = false;
     }
   }
 
@@ -128,7 +125,7 @@ public class NodeRulesReader {
    * @return True on success.
    */
   public boolean loadExclusions() {
-    if (!isOk) {
+    if (nbRecords == 0) {
       return false;
     }
 

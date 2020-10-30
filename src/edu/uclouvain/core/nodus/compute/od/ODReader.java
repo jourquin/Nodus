@@ -239,19 +239,15 @@ public class ODReader {
 
     /* Does table exists? */
     if (!JDBCUtils.tableExists(odTableName)) {
-      // Force an update of the list of tables to be sure
-      if (!JDBCUtils.tableExists(odTableName, true)) {
-        JOptionPane.showMessageDialog(
-            null,
-            MessageFormat.format(
-                i18n.get(ODReader.class, "TableNotFound", "Table {0} not found"), odTableName),
-            NodusC.APPNAME,
-            JOptionPane.ERROR_MESSAGE);
+      JOptionPane.showMessageDialog(
+          null,
+          MessageFormat.format(
+              i18n.get(ODReader.class, "TableNotFound", "Table {0} not found"), odTableName),
+          NodusC.APPNAME,
+          JOptionPane.ERROR_MESSAGE);
+      isOk = false;
 
-        isOk = false;
-
-        return;
-      }
+      return;
     }
 
     nodusMapPanel.setBusy(true);

@@ -33,8 +33,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.List;
 import javax.swing.JOptionPane;
 
 /**
@@ -76,8 +74,6 @@ public class JDBCUtils {
   private static DatabaseMetaData dmd;
 
   private static Connection jdbcConnection = null;
-
-  private static List<String> tableList = null;
 
   /**
    * This constructor is maintained for backward compatibility (< Nodus 8).
@@ -627,7 +623,6 @@ public class JDBCUtils {
   public static boolean setConnection(Connection con) {
     jdbcConnection = con;
     if (con == null) {
-      tableList = null;
       return true;
     }
     dbEngine = getDbEngine();
@@ -722,9 +717,6 @@ public class JDBCUtils {
 
       stmt.execute(sqlStmt);
       stmt.close();
-      if (tableList != null) {
-        tableList.add(tableName.toLowerCase());
-      }
     } catch (Exception ex) {
       ex.printStackTrace();
       JOptionPane.showMessageDialog(null, ex.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
@@ -760,9 +752,6 @@ public class JDBCUtils {
         rs.close();
         Statement stmt = jdbcConnection.createStatement();
         stmt.execute("DROP TABLE " + getCompliantIdentifier(tableName));
-        if (tableList != null) {
-          tableList.remove(tableName.toLowerCase());
-        }
       }
 
     } catch (SQLException ex) {
@@ -910,7 +899,6 @@ public class JDBCUtils {
         return true;
       }
     } catch (SQLException e) {
-      // e.printStackTrace();
       return false;
     }
 
@@ -949,10 +937,6 @@ public class JDBCUtils {
       if (rs.next()) {
         Statement stmt = jdbcConnection.createStatement();
         stmt.execute(sqlStmt);
-        if (tableList != null) {
-          tableList.remove(currentTableName.toLowerCase());
-          tableList.add(newTableName.toLowerCase());
-        }
         stmt.close();
         rs.close();
       }
@@ -971,35 +955,14 @@ public class JDBCUtils {
    * @return True on success.
    */
   public static boolean tableExists(String tableName) {
-    return tableExists(tableName, false);
-  }
-
-  /**
-   * Returns true if a the table already exists in the database.
-   *
-   * @param tableName The name of the table to check.
-   * @param reloadList If true, forces the JDBCUtils to reload the list of tables from the database
-   *     to the list it maintains in memory for performance reasons.
-   * @return True on success.
-   */
-  public static synchronized boolean tableExists(String tableName, boolean reloadList) {
-    // Create table list if needed
-    if (tableList == null || reloadList) {
-      tableList = new ArrayList<>();
-
-      try {
-        ResultSet rs = dmd.getTables(null, null, "%", new String[] {"TABLE"});
-        while (rs.next()) {
-          tableList.add(rs.getString(3).toLowerCase());
-        }
-        rs.close();
-
-      } catch (Exception e) {
-        System.out.println(e.toString());
-        return false;
+    try {
+      ResultSet tables = dmd.getTables(null, null, getCompliantIdentifier(tableName), null);
+      if (tables.next()) {
+        return true;
       }
+    } catch (SQLException e) {
+      e.printStackTrace();
     }
-
-    return tableList.contains(tableName.toLowerCase());
+    return false;
   }
 }
