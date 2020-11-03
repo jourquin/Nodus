@@ -59,7 +59,6 @@ import groovy.lang.GroovyShell;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Frame;
-import java.awt.event.WindowListener;
 import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.FileInputStream;
@@ -339,23 +338,9 @@ public class NodusProject implements ShapeConstants {
 
       // Close all the open children frames
       Frame[] frame = Frame.getFrames();
-
       for (Frame element : frame) {
         if (element != nodusMapPanel.getMainFrame()) {
-          // Try to detect an open Help window. Do not close it
-          boolean doClose = true;
-          WindowListener[] wl = element.getWindowListeners();
-
-          for (WindowListener element0 : wl) {
-            if (element0.toString().indexOf("javax.help.WindowPresentation") != -1) {
-              doClose = false;
-              break;
-            }
-          }
-
-          if (doClose) {
-            element.setVisible(false);
-          }
+          element.setVisible(false);
         }
       }
 
@@ -398,8 +383,8 @@ public class NodusProject implements ShapeConstants {
                   null,
                   i18n.get(
                       NodusProject.class,
-                      "Commit_changes_to_database",
-                      "Commit changes to database?"),
+                      "Commit_changes_to_layers",
+                      "Commit changes to layers?"),
                   i18n.get(NodusProject.class, "Network_was_modified", "Network was modified"),
                   JOptionPane.YES_NO_OPTION);
 

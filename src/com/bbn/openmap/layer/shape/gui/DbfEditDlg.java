@@ -73,7 +73,10 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.border.LineBorder;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
@@ -94,9 +97,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
     private DbfTableModel model;
 
-    private JButton okButton;
-
-    private Object oldValue;
+    private JButton saveButton;
 
     private int rowIndex;
 
@@ -117,7 +118,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     public Component getTableCellEditorComponent(
         JTable table, Object value, boolean isSelected, int rowIndex, int colIndex) {
       this.rowIndex = rowIndex;
-      oldValue = value;
+      // oldValue = value;
 
       // Configure the component with the specified value
       ((JTextField) textField).setText((String) value);
@@ -134,7 +135,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     }
 
     public void setOkButton(JButton b) {
-      okButton = b;
+      saveButton = b;
     }
 
     /**
@@ -152,7 +153,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
                 String.valueOf(model.getLength(rowIndex)));
 
         JOptionPane.showMessageDialog(null, message, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-        okButton.setEnabled(false);
+        saveButton.setEnabled(false);
 
         return false;
       }
@@ -172,7 +173,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
                   NodusC.APPNAME,
                   JOptionPane.ERROR_MESSAGE);
 
-              okButton.setEnabled(false);
+              saveButton.setEnabled(false);
 
               return false;
             } else {
@@ -183,7 +184,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
                     NodusC.APPNAME,
                     JOptionPane.ERROR_MESSAGE);
 
-                okButton.setEnabled(false);
+                saveButton.setEnabled(false);
 
                 return false;
               }
@@ -217,18 +218,11 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
               NodusC.APPNAME,
               JOptionPane.ERROR_MESSAGE);
 
-          okButton.setEnabled(false);
+          saveButton.setEnabled(false);
 
           return false;
         }
       }
-
-      // Is this a changed value?
-      if (!value.equals(oldValue)) {
-        isTableChanged = true;
-      }
-
-      okButton.setEnabled(true);
 
       return super.stopCellEditing();
     }
@@ -324,10 +318,6 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
   private boolean isStyleChanged = false;
 
-  private boolean isEnabledChanged = false;
-
-  private boolean isTableChanged = false;
-
   private JPanel mainPanel = new JPanel();
 
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
@@ -340,7 +330,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
   String oldLabel = null;
 
-  private int oldStyle;
+  private int initialStyle;
 
   private Object[] oldValues;
 
@@ -375,6 +365,10 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
   private JCheckBox enabledCheckBox =
       new JCheckBox(i18n.get(DbfEditDlg.class, "Enabled", "Enabled"));
+
+  private int initialValuesHashCode;
+
+  private boolean isInitialized = false;
 
   /**
    * The constructor needs the NodusEsriLayer the record to edit refers to.
@@ -454,6 +448,33 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
           .setValueAt(oldValues[i], nodusEsriLayer.getSelectedGraphicIndex(), i);
     }
     nodusEsriLayer.setCanceled(true);
+  }
+
+  /**
+   * Computes a hash code for all the displayed values.
+   *
+   * @return A hash code.
+   */
+  private int computeHashCode() {
+
+    String key = "";
+    for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
+      key += dbfTable.getValueAt(i, 1).toString();
+    }
+
+    String b = "0";
+    if (nodusEsriLayer.getType() == SHAPE_TYPE_POINT) {
+      if (transitCheckBox.isSelected()) {
+        b = "1";
+      }
+    } else {
+      if (enabledCheckBox.isSelected()) {
+        b = "1";
+      }
+    }
+    key += b;
+
+    return key.hashCode();
   }
 
   /**
@@ -657,9 +678,9 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
                 // Get the affected item
                 int idx = cb.getSelectedIndex();
                 String value = String.valueOf(idx);
-                // Update table (third row)
-                dbfTable.setValueAt(value, 2, 1);
-                isTableChanged = true;
+
+                // Update table
+                dbfTable.setValueAt(value, NodusC.DBF_IDX_TRANSHIP, 1);
 
                 // Rules are only available for (un)loading and transhipment operations
                 int operationType = Integer.valueOf(value);
@@ -671,6 +692,8 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
                   nodeRulesButton.setEnabled(false);
                 }
               }
+
+              setSaveButtonState();
             }
           });
     }
@@ -823,6 +846,16 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     dbfTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
     dbfTable.setColumnSelectionAllowed(false);
 
+    ListSelectionModel selectionModel = dbfTable.getSelectionModel();
+    selectionModel.addListSelectionListener(
+        new ListSelectionListener() {
+
+          @Override
+          public void valueChanged(ListSelectionEvent e) {
+            setSaveButtonState();
+          }
+        });
+
     if (nodusEsriLayer != null && nodusEsriLayer.getCopyRecordIndex() == -1) {
       pasteButton.setEnabled(false);
     }
@@ -874,9 +907,10 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
             // Update the value (>= 5 if no transit is allowed)
             String value = String.valueOf(idx);
 
-            // Update table (third row)
+            // Update table
             dbfTable.setValueAt(value, NodusC.DBF_IDX_TRANSHIP, 1);
-            isTableChanged = true;
+
+            setSaveButtonState();
           }
         });
     mainPanel.add(transitCheckBox, gbcChckbxTransit);
@@ -897,9 +931,10 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
               value = "0";
             }
 
-            // Update table (third row)
+            // Update table
             dbfTable.setValueAt(value, NodusC.DBF_IDX_ENABLED, 1);
-            isEnabledChanged = true;
+
+            setSaveButtonState();
           }
         });
     mainPanel.add(enabledCheckBox, gbcChckbxEnabled);
@@ -976,19 +1011,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     mainPanel.add(pasteButton, pasteButtonConstraints);
     mainPanel.add(cancelButton, cancelButtonConstraints);
 
-    GridBagConstraints saveButtonConstraints =
-        new GridBagConstraints(
-            1,
-            4,
-            1,
-            1,
-            0.0,
-            0.0,
-            GridBagConstraints.WEST,
-            GridBagConstraints.NONE,
-            new Insets(5, 5, 5, 5),
-            0,
-            0);
+   
 
     saveButton.setText(i18n.get(DbfEditDlg.class, "Save", "Save"));
     saveButton.addActionListener(
@@ -998,6 +1021,21 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
             saveButton_actionPerformed(e);
           }
         });
+    saveButton.setEnabled(false);
+    
+    GridBagConstraints saveButtonConstraints =
+            new GridBagConstraints(
+                1,
+                4,
+                1,
+                1,
+                0.0,
+                0.0,
+                GridBagConstraints.WEST,
+                GridBagConstraints.NONE,
+                new Insets(5, 5, 5, 5),
+                0,
+                0);
     mainPanel.add(saveButton, saveButtonConstraints);
     nodeRulesButton.addActionListener(
         new java.awt.event.ActionListener() {
@@ -1099,7 +1137,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
       // Value of tranship in dbf
       int t = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_TRANSHIP));
 
-      // If the valur of t is larger than 4, it means that no transit is permitted
+      // If the value of t is larger than 4, it means that no transit is permitted
       boolean transit = true;
       if (t >= 5) {
         t -= 5;
@@ -1158,7 +1196,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     sampleLabelHeight = sampleLabel.getHeight();
 
     int index = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_STYLE));
-    oldStyle = index;
+    initialStyle = index;
 
     for (int i = 0;
         i < nodusEsriLayer.getNodusMapPanel().getNodusProject().getNbStyles(omGraphic);
@@ -1189,6 +1227,9 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
                 .toString();
       }
     }
+
+    initialValuesHashCode = computeHashCode();
+    isInitialized = true;
     pack();
   }
 
@@ -1227,10 +1268,11 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     enabled = enabled.substring(0, enabled.indexOf('.'));
     dbfTable.setValueAt(enabled, NodusC.DBF_IDX_ENABLED, 1);
 
-    // Tell that values are changed and reset "clipboard"
-    isTableChanged = true;
+    // Reset "clipboard"
     nodusEsriLayer.setCopyRecordIndex(-1);
     pasteButton.setEnabled(false);
+
+    setSaveButtonState();
   }
 
   /**
@@ -1240,7 +1282,11 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
    * @param e ActionEvent
    */
   private void saveButton_actionPerformed(ActionEvent e) {
-    if (isTableChanged || isStyleChanged || isEnabledChanged) {
+
+    int currentValuesHashCode = computeHashCode();
+
+    if (initialValuesHashCode != currentValuesHashCode) {
+
       // Put the new values in the table.
       // We know they are correct because they were tested in the cell editor
       for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
@@ -1326,9 +1372,6 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
         nodusEsriLayer.attachStyles();
         nodusEsriLayer.doPrepare();
       }
-
-      // Avoid re-entrance
-      isTableChanged = false;
     }
 
     nodusEsriLayer.setCanceled(false);
@@ -1344,11 +1387,22 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     int index = styleComboBox.getSelectedIndex();
     drawSample(index);
     dbfTable.setValueAt(Integer.toString(index), NodusC.DBF_IDX_STYLE, 1);
-    // TableColumn col = dbfTable.getColumnModel().getColumn(1);
-    if (index == oldStyle) {
+   
+    if (index == initialStyle) {
       isStyleChanged = false;
     } else {
       isStyleChanged = true;
+    }
+
+    setSaveButtonState();
+  }
+
+  /** Enable the save button if at least one value is different from the initial ones. */
+  private void setSaveButtonState() {
+    if (isInitialized && computeHashCode() != initialValuesHashCode) {
+      saveButton.setEnabled(true);
+    } else {
+      saveButton.setEnabled(false);
     }
   }
 
