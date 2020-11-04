@@ -1011,8 +1011,6 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     mainPanel.add(pasteButton, pasteButtonConstraints);
     mainPanel.add(cancelButton, cancelButtonConstraints);
 
-   
-
     saveButton.setText(i18n.get(DbfEditDlg.class, "Save", "Save"));
     saveButton.addActionListener(
         new java.awt.event.ActionListener() {
@@ -1022,20 +1020,20 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
           }
         });
     saveButton.setEnabled(false);
-    
+
     GridBagConstraints saveButtonConstraints =
-            new GridBagConstraints(
-                1,
-                4,
-                1,
-                1,
-                0.0,
-                0.0,
-                GridBagConstraints.WEST,
-                GridBagConstraints.NONE,
-                new Insets(5, 5, 5, 5),
-                0,
-                0);
+        new GridBagConstraints(
+            1,
+            4,
+            1,
+            1,
+            0.0,
+            0.0,
+            GridBagConstraints.WEST,
+            GridBagConstraints.NONE,
+            new Insets(5, 5, 5, 5),
+            0,
+            0);
     mainPanel.add(saveButton, saveButtonConstraints);
     nodeRulesButton.addActionListener(
         new java.awt.event.ActionListener() {
@@ -1283,95 +1281,89 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
    */
   private void saveButton_actionPerformed(ActionEvent e) {
 
-    int currentValuesHashCode = computeHashCode();
+    // Put the new values in the table.
+    // We know they are correct because they were tested in the cell editor
+    for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
+      String value = dbfTable.getValueAt(i, 1).toString();
 
-    if (initialValuesHashCode != currentValuesHashCode) {
+      if (nodusEsriLayer.getModel().getType(i) == DbfTableModel.TYPE_NUMERIC) {
+        Double d = Double.valueOf(value);
+        nodusEsriLayer.getModel().setValueAt(d, nodusEsriLayer.getSelectedGraphicIndex(), i);
+      } else {
+        nodusEsriLayer.getModel().setValueAt(value, nodusEsriLayer.getSelectedGraphicIndex(), i);
+      }
+    }
 
-      // Put the new values in the table.
-      // We know they are correct because they were tested in the cell editor
-      for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
-        String value = dbfTable.getValueAt(i, 1).toString();
+    // Build SQL command
+    Object cell;
+    String sqlStmt = "UPDATE ";
+    sqlStmt += nodusEsriLayer.getTableName() + " SET ";
 
-        if (nodusEsriLayer.getModel().getType(i) == DbfTableModel.TYPE_NUMERIC) {
-          Double d = Double.valueOf(value);
-          nodusEsriLayer.getModel().setValueAt(d, nodusEsriLayer.getSelectedGraphicIndex(), i);
+    for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
+      sqlStmt +=
+          JDBCUtils.getQuotedCompliantIdentifier(nodusEsriLayer.getModel().getColumnName(i)) + '=';
+      cell = nodusEsriLayer.getModel().getValueAt(nodusEsriLayer.getSelectedGraphicIndex(), i);
+
+      byte type = nodusEsriLayer.getModel().getType(i);
+
+      if (type == DbfTableModel.TYPE_NUMERIC) {
+        if (nodusEsriLayer.getModel().getDecimalCount(i) > 0) {
+          sqlStmt += JDBCUtils.getDouble(cell);
+
         } else {
-          nodusEsriLayer.getModel().setValueAt(value, nodusEsriLayer.getSelectedGraphicIndex(), i);
+          sqlStmt += JDBCUtils.getInt(cell);
         }
+      } else if (type == DbfTableModel.TYPE_CHARACTER) {
+        sqlStmt += '\'' + cell.toString() + '\'';
+      } else if (type == DbfTableModel.TYPE_DATE) {
+        sqlStmt += JDBCUtils.getDate(cell.toString());
       }
-
-      // Build SQL command
-      Object cell;
-      String sqlStmt = "UPDATE ";
-      sqlStmt += nodusEsriLayer.getTableName() + " SET ";
-
-      for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
-        sqlStmt +=
-            JDBCUtils.getQuotedCompliantIdentifier(nodusEsriLayer.getModel().getColumnName(i))
-                + '=';
-        cell = nodusEsriLayer.getModel().getValueAt(nodusEsriLayer.getSelectedGraphicIndex(), i);
-
-        byte type = nodusEsriLayer.getModel().getType(i);
-
-        if (type == DbfTableModel.TYPE_NUMERIC) {
-          if (nodusEsriLayer.getModel().getDecimalCount(i) > 0) {
-            sqlStmt += JDBCUtils.getDouble(cell);
-
-          } else {
-            sqlStmt += JDBCUtils.getInt(cell);
-          }
-        } else if (type == DbfTableModel.TYPE_CHARACTER) {
-          sqlStmt += '\'' + cell.toString() + '\'';
-        } else if (type == DbfTableModel.TYPE_DATE) {
-          sqlStmt += JDBCUtils.getDate(cell.toString());
-        }
-        if (i < nodusEsriLayer.getModel().getColumnCount() - 1) {
-          sqlStmt += ", ";
-        }
+      if (i < nodusEsriLayer.getModel().getColumnCount() - 1) {
+        sqlStmt += ", ";
       }
+    }
 
-      int num =
-          JDBCUtils.getInt(
+    int num =
+        JDBCUtils.getInt(
+            nodusEsriLayer
+                .getModel()
+                .getValueAt(nodusEsriLayer.getSelectedGraphicIndex(), NodusC.DBF_IDX_NUM));
+    sqlStmt += " WHERE " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM) + " = " + num;
+
+    nodusEsriLayer.executeUpdateSqlStmt(sqlStmt);
+    nodusEsriLayer.setDirtyDbf(true);
+
+    // Get the label attached to this graphic and update it
+    String newLabel = null;
+
+    // Normally no test must be done on the type of AppObject
+    RealNetworkObject rnbo = (RealNetworkObject) omGraphic.getAttribute(0);
+
+    if (rnbo != null) {
+      BasicLocation bl = rnbo.getLocation();
+
+      if (bl != null) {
+        int n = nodusEsriLayer.getLocationHandler().getLocationFieldIndex();
+
+        if (n >= 0) {
+          newLabel =
               nodusEsriLayer
                   .getModel()
-                  .getValueAt(nodusEsriLayer.getSelectedGraphicIndex(), NodusC.DBF_IDX_NUM));
-      sqlStmt += " WHERE " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM) + " = " + num;
-
-      nodusEsriLayer.executeUpdateSqlStmt(sqlStmt);
-      nodusEsriLayer.setDirtyDbf(true);
-
-      // Get the label attached to this graphic and update it
-      String newLabel = null;
-
-      // Normally no test must be done on the type of AppObject
-      RealNetworkObject rnbo = (RealNetworkObject) omGraphic.getAttribute(0);
-
-      if (rnbo != null) {
-        BasicLocation bl = rnbo.getLocation();
-
-        if (bl != null) {
-          int n = nodusEsriLayer.getLocationHandler().getLocationFieldIndex();
-
-          if (n >= 0) {
-            newLabel =
-                nodusEsriLayer
-                    .getModel()
-                    .getValueAt(nodusEsriLayer.getSelectedGraphicIndex(), n)
-                    .toString();
-            bl.setName(newLabel);
-          }
+                  .getValueAt(nodusEsriLayer.getSelectedGraphicIndex(), n)
+                  .toString();
+          bl.setName(newLabel);
         }
-      } else {
-        // Force the labels to be reloaded if a new link or node is
-        // added
-        nodusEsriLayer.getLocationHandler().reloadData();
       }
+    } else {
+      // Force the labels to be reloaded if a new link or node is
+      // added
+      nodusEsriLayer.getLocationHandler().reloadData();
+    }
 
-      // Update the display if needed
-      if (isStyleChanged || oldLabel != null && !oldLabel.equals(newLabel)) {
-        nodusEsriLayer.attachStyles();
-        nodusEsriLayer.doPrepare();
-      }
+    // Update the display if needed
+    if (isStyleChanged || oldLabel != null && !oldLabel.equals(newLabel)) {
+      nodusEsriLayer.attachStyles();
+      nodusEsriLayer.doPrepare();
     }
 
     nodusEsriLayer.setCanceled(false);
@@ -1387,7 +1379,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     int index = styleComboBox.getSelectedIndex();
     drawSample(index);
     dbfTable.setValueAt(Integer.toString(index), NodusC.DBF_IDX_STYLE, 1);
-   
+
     if (index == initialStyle) {
       isStyleChanged = false;
     } else {
