@@ -34,7 +34,6 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
-import edu.uclouvain.core.nodus.utils.FileUtils;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -169,47 +168,7 @@ public class NodeResults implements ShapeConstants {
     NodusEsriLayer[] layers = nodusProject.getNodeLayers();
 
     for (NodusEsriLayer element : layers) {
-      /*
-      // Delete old _results file
-      String fileName =
-          nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
-              + element.getTableName()
-              + NodusC.SUFFIX_RESULTS
-              + NodusC.TYPE_DBF;
-      File f = new File(fileName);
-      if (f.exists()) {
-        boolean ok = f.delete();
-        if (!ok) {
-          System.err.println("Unable to delete " + fileName);
-        }
-      }
 
-      fileName =
-          nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
-              + element.getTableName()
-              + NodusC.SUFFIX_RESULTS
-              + NodusC.TYPE_SHP;
-      f = new File(fileName);
-      if (f.exists()) {
-        boolean ok = f.delete();
-        if (!ok) {
-          System.err.println("Unable to delete " + fileName);
-        }
-      }
-
-      fileName =
-          nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
-              + element.getTableName()
-              + NodusC.SUFFIX_RESULTS
-              + NodusC.TYPE_SHX;
-      f = new File(fileName);
-      if (f.exists()) {
-        boolean ok = f.delete();
-        if (!ok) {
-          System.err.println("Unable to delete " + fileName);
-        }
-      }
-      */
       // Only look into displayed layers
       if (element.isVisible()) {
         EsriGraphicList egl = element.getEsriGraphicList();
@@ -243,52 +202,22 @@ public class NodeResults implements ShapeConstants {
         EsriGraphicList egl = layers[i].getEsriGraphicList();
         DbfTableModel tableModel = layers[i].getModel();
 
-        // TODO Better way to export results ?
         if (export) {
-          // Copy the .shp and .shx files
-          String fromFile =
-              nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
-                  + layers[i].getTableName()
-                  + NodusC.TYPE_SHP;
-          String toFile =
-              nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
-                  + layers[i].getTableName()
-                  + NodusC.SUFFIX_RESULTS
-                  + NodusC.TYPE_SHP;
-          FileUtils.copyFile(fromFile, toFile);
+          // Create dbfTable with NUM and RESULTS field only
+          resultModel = new DbfTableModel(2);
+          resultModel.setColumnName(0, NodusC.DBF_NUM);
+          resultModel.setType(0, DBF_TYPE_NUMERIC);
+          resultModel.setLength(0, 10);
+          resultModel.setDecimalCount(0, (byte) 0);
+          resultModel.setColumnName(1, NodusC.DBF_RESULT);
+          resultModel.setType(1, DBF_TYPE_NUMERIC);
+          resultModel.setLength(1, 12);
+          resultModel.setDecimalCount(1, (byte) 2);
 
-          fromFile =
-              nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
-                  + layers[i].getTableName()
-                  + NodusC.TYPE_SHX;
-          toFile =
-              nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
-                  + layers[i].getTableName()
-                  + NodusC.SUFFIX_RESULTS
-                  + NodusC.TYPE_SHX;
-          FileUtils.copyFile(fromFile, toFile);
-
-          // Clone dbfTable
-          resultModel = new DbfTableModel(tableModel.getColumnCount() + 1);
-          for (int j = 0; j < tableModel.getColumnCount(); j++) {
-            resultModel.setColumnName(j, tableModel.getColumnName(j));
-            resultModel.setType(j, tableModel.getType(j));
-            resultModel.setLength(j, tableModel.getLength(j));
-            resultModel.setDecimalCount(j, tableModel.getDecimalCount(j));
-          }
-
-          // Add new column
-          resultModel.setColumnName(tableModel.getColumnCount(), NodusC.DBF_RESULT);
-          resultModel.setType(tableModel.getColumnCount(), DBF_TYPE_NUMERIC);
-          resultModel.setLength(tableModel.getColumnCount(), 12);
-          resultModel.setDecimalCount(tableModel.getColumnCount(), (byte) 2);
-
-          // Copy the values
+          // Copy the NUM values
           for (int j = 0; j < tableModel.getRowCount(); j++) {
             resultModel.addBlankRecord();
-            for (int k = 0; k < tableModel.getColumnCount(); k++) {
-              resultModel.setValueAt(tableModel.getValueAt(j, k), j, k);
-            }
+            resultModel.setValueAt(tableModel.getValueAt(j, 0), j, 0);
           }
         }
 
@@ -302,8 +231,8 @@ public class NodeResults implements ShapeConstants {
           RealNetworkObject rn = (RealNetworkObject) omg.getAttribute(0);
 
           if (export) {
-            // Set Result in last column
-            resultModel.setValueAt(rn.getResult(), index, tableModel.getColumnCount());
+            // Set Result in second column
+            resultModel.setValueAt(rn.getResult(), index, 1);
           }
 
           if (omg.isVisible()) {
