@@ -11,9 +11,11 @@ set "LIBDIR=%NODUS8_HOME%/lib/*;%NODUS8_HOME%/lib/groovy/*;%NODUS8_HOME%/lib/gro
 set "JDBCDIR=%NODUS8_HOME%/jdbcDrivers/*"
 set "NODUSJAR=%NODUS8_HOME%/nodus8.jar"
 
+rem Set classpath
+set NODUSCP="%NODUSJAR%;%LIBDIR%;%JDBCDIR%;%NODUS8_HOME%;"
+
 rem Set default values for the JVM heap sizes if not yet set
-%JAVABIN% -cp "%NODUSJAR%" -DNODUS_HOME="%NODUS8_HOME%" edu.uclouvain.core.nodus.utils.SetDefaultHeapSizes
+%JAVABIN% -cp %NODUSCP% -DNODUS_HOME="%NODUS8_HOME%" edu.uclouvain.core.nodus.utils.SetDefaultHeapSizes
 call jvmargs.bat
 
-set NODUSCP="%NODUSJAR%;%LIBDIR%;%JDBCDIR%;%NODUS8_HOME%;"
 start %JAVABIN% -cp %NODUSCP% %JVMARGS% -DNODUS_HOME="%NODUS8_HOME%" edu.uclouvain.core.nodus.Nodus "%~1" 

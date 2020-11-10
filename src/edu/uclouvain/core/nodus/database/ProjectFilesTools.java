@@ -467,14 +467,6 @@ public class ProjectFilesTools implements ShapeConstants {
    */
   public static boolean isValidLayer(String path, String layerName, int layerType) {
 
-    /* The file names that ends with "_result" are tables that are exported by Nodus
-     * to use with another GIS. Not valid. */
-    String fn = layerName.toUpperCase();
-    String gis = NodusC.SUFFIX_RESULTS.toUpperCase();
-    if (fn.endsWith(gis)) {
-      return false;
-    }
-
     // Test the shape file
     try {
       BufferedInputStream bis =

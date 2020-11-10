@@ -183,6 +183,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Initial scale and center lat/lon point are now reset when a project is closed.
     - Don't close open project when users cancels the opening of another one.
     - Nb equivalent standard vehicles are now also computed for (un)loading and transit virtual links.
+    - Export of results now only save a DBF table with the value of the result for each node or link ID. 
 
 - Breaking changes:
     - Simplify the API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 
