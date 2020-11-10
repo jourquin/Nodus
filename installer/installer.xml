@@ -116,9 +116,6 @@
 			<fileset dir="jdbcDrivers"
 				targetdir="${INSTALL_PATH}/jdbcDrivers" />
 		</pack>
-		<pack name="JFlowMap" id="jflowmap.package" required="no">
-			<description>JFlowMap flow map visualization tool. </description>
-			<fileset dir="JFlowMap" targetdir="${INSTALL_PATH}/JFlowMap" />
-		</pack>
+		
 	</packs>
 </installation>
