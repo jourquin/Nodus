@@ -1278,7 +1278,7 @@ public class NodeRulesDlg extends EscapeDialog {
    * @param e ActionEvent
    */
   void removeButton_actionPerformed(ActionEvent e) {
-    // DefaultTableModel sorterModel = (DefaultTableModel) exclusionsTableModel.getTableModel();
+
     // Get values from selected row
     int sr = rulesTable.getSelectedRow();
     if (sr == -1) {
@@ -1300,6 +1300,8 @@ public class NodeRulesDlg extends EscapeDialog {
       currentRow = -1;
       rulesTable.clearSelection();
     }
+    
+    setButtonsState();
   }
 
   /**
