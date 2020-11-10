@@ -382,9 +382,7 @@ public class NodusProject implements ShapeConstants {
               JOptionPane.showConfirmDialog(
                   null,
                   i18n.get(
-                      NodusProject.class,
-                      "Commit_changes_to_layers",
-                      "Commit changes to layers?"),
+                      NodusProject.class, "Commit_changes_to_layers", "Commit changes to layers?"),
                   i18n.get(NodusProject.class, "Network_was_modified", "Network was modified"),
                   JOptionPane.YES_NO_OPTION);
 
@@ -1339,16 +1337,34 @@ public class NodusProject implements ShapeConstants {
 
     projectResourceFileNameAndPath = projectName;
 
-    nodusMapPanel.setBusy(true);
-
     // Save current view
     initialScale = getNodusMapPanel().getMapBean().getScale();
     initialCenterPoint = (LatLonPoint) getNodusMapPanel().getMapBean().getCenter();
 
+    projectProperties = new CommentedProperties();
+
     try {
-      projectProperties = new CommentedProperties();
       projectProperties.load(new FileInputStream(projectResourceFileNameAndPath));
-    } catch (IOException e1) {
+    } catch (FileNotFoundException e) {
+      // Nodus may not have access to some folders on Mac...
+      if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
+        String msg = e.getMessage().toLowerCase();
+        if (msg.contains("operation not permitted")) {
+          JOptionPane.showMessageDialog(
+              null,
+              MessageFormat.format(
+                  i18n.get(
+                      NodusProject.class,
+                      "Operation_not_permitted",
+                      "Cannot open {0}: operation not permitted"),
+                  projectResourceFileNameAndPath),
+              NodusC.APPNAME,
+              JOptionPane.ERROR_MESSAGE);
+          return;
+        }
+      }
+      projectProperties = null;
+    } catch (IOException e) {
       projectProperties = null;
     }
 
@@ -1377,11 +1393,11 @@ public class NodusProject implements ShapeConstants {
           System.err.println("Caught IOException creating " + projectResourceFileNameAndPath);
         }
       } else {
-        nodusMapPanel.setBusy(false);
-
         return;
       }
     }
+
+    nodusMapPanel.setBusy(true);
 
     // Find out path and filename
     String projectPath = projectResourceFileNameAndPath;
