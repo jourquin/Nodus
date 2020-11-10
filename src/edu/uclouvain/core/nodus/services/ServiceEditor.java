@@ -49,7 +49,7 @@ import javax.swing.JOptionPane;
  *
  * @author Galina Iassinovskaia
  */
-// TODO Still buggy. Test in interaction with the drawing tool
+// TODO (services) Still buggy. Test in interaction with the drawing tool
 public class ServiceEditor {
 
   private static final int TYPE_LINK = 1;

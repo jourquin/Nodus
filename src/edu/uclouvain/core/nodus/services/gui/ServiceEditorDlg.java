@@ -54,7 +54,7 @@ import javax.swing.table.DefaultTableModel;
  *
  * @author Bart Jourquin
  */
-//TODO Referesh UI
+//TODO (services) Referesh UI
 public class ServiceEditorDlg extends EscapeDialog {
 
   private static I18n i18n = Environment.getI18n();

@@ -544,7 +544,6 @@ public class LinkResults implements ShapeConstants {
         EsriGraphicList egl = layers[i].getEsriGraphicList();
         DbfTableModel tableModel = layers[i].getModel();
 
-        // TODO Export result as GPX file
         if (export) {
           // Copy the .shp and .shx files
           String fromFile =
