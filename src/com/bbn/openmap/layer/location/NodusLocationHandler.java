@@ -374,7 +374,6 @@ public class NodusLocationHandler extends AbstractLocationHandler
   /** Looks in the database and creates the QuadTree holding all the Locations. */
   @Override
   public synchronized void reloadData() {
-
     // Be sure that a the EsriLayer that is attached contains nodes or links
     if (nodusEsriLayer.getEsriGraphicList() == null) {
       return;
@@ -383,7 +382,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
     int locationFieldIndex = getLocationFieldIndex();
 
     // If there is nothing to display
-    if (!isVisible || locationFieldIndex == -1) {
+    if (!isDisplayResults() && (!isVisible || locationFieldIndex == -1)) {
       graphicList.clear();
       getLayer().doPrepare();
       return;
@@ -400,6 +399,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
 
     // Only query the DB if something has changed
     if (!oldLocationQueryString.equalsIgnoreCase(locationQueryString)) {
+
       oldLocationQueryString = locationQueryString;
 
       // Clear the locations currently attached to the graphics
@@ -561,9 +561,14 @@ public class NodusLocationHandler extends AbstractLocationHandler
    * @param fieldName The name of the DBF field to display.
    */
   public void setLocationFieldName(String fieldName) {
+
     this.locationFieldName = fieldName;
-    projectProperties.setProperty(
-        nodusEsriLayer.getTableName() + NodusC.PROP_LOCATION_FIELD_NAME, fieldName);
+    if (fieldName != null) {
+      projectProperties.setProperty(
+          nodusEsriLayer.getTableName() + NodusC.PROP_LOCATION_FIELD_NAME, fieldName);
+    } else {
+      projectProperties.remove(nodusEsriLayer.getTableName() + NodusC.PROP_LOCATION_FIELD_NAME);
+    }
   }
 
   /**

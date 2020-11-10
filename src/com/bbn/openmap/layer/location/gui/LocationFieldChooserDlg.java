@@ -407,8 +407,8 @@ public class LocationFieldChooserDlg extends EscapeDialog {
    * @param e ActionEvent
    */
   private void okButton_actionPerformed(ActionEvent e) {
-    // Save current selection
-    nodusLocationHandler.setLocationFieldName((String)fieldNames.getSelectedValue());
+    // Save current settings
+    nodusLocationHandler.setLocationFieldName((String) fieldNames.getSelectedValue());
     nodusLocationHandler.setWhereStmt(whereStmt.getText().trim());
     nodusLocationHandler.setDisplayResults(displayResultsCheckBox.isSelected());
     setVisible(false);
