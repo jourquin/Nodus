@@ -97,7 +97,6 @@
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.2.10.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/sqlite-jdbc-3.30.1.jar"/>
 	<classpathentry kind="lib" path="lib/guava-19.0.jar"/>
-	<classpathentry kind="lib" path="/Users/jourquinb/git/Nodus/jdbcDrivers/mariadb-java-client-2.7.0.jar"/>
 	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/openmap/src/core/src"/>
 	<classpathentry kind="lib" path="lib/jna-5.6.0.jar"/>
 	<classpathentry kind="lib" path="lib/jna-platform-5.6.0.jar"/>
@@ -105,5 +104,6 @@
 	<classpathentry kind="lib" path="lib/slf4j-api-1.7.9.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-nop-1.7.9.jar"/>
 	<classpathentry kind="lib" path="lib/javadbf4nodus-1.12.2.jar"/>
+	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-2.7.0.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
