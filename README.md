@@ -62,8 +62,8 @@ on "Nodus8-install.jar" or run "java -jar Nodus8-install.jar" from your shell co
 
 Once installed, Nodus can be launched using
 - "nodus8.sh" on Linux
-- "Nodus8.app" on MacOS
-- "Nodus 8" shortcut on Windows
+- "Nodus8.app" or "nodus8.sh" on MacOS
+- "Nodus 8" shortcut or "nodus8.bat" on Windows
 
 The software has a modern and integrated user-friendly GUI. Complete reference and user guides
 are not available, but the API is fully documented. 

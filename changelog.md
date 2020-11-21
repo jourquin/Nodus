@@ -177,14 +177,15 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Tested with Java 11 and 15
     - The assignments are now canceled (with an error message) if a path has a non strictly positive cost.
     - SystemInfoDlg replaces ArchInfoDlg and gives now also information about the system hardware.
-    - Change default Windows install directory to user home directory.
+    - Change default Windows and Mac install directory to user home directory.
     - Replace Windows Nodus.exe with a Windows shortcut because the .exe generation was often intercepted by anti-virus software.
     - Disable the "services". Still too buggy to remain in public distribution.
     - Initial scale and center lat/lon point are now reset when a project is closed.
     - Don't close open project when users cancels the opening of another one.
     - Nb equivalent standard vehicles are now also computed for (un)loading and transit virtual links.
     - Export of results now only save a DBF table with the value of the result for each node or link ID. 
-    - Remove the JFlowMap companion app (old fashioned and not really useful). 
+    - Remove the JFlowMap companion app (old fashioned and not really useful).
+    - Detect not permitted file access on Mac OS
 
 - Breaking changes:
     - Simplify the API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 
