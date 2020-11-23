@@ -61,7 +61,7 @@ public class Nodus {
   private static Image icn =
       Toolkit.getDefaultToolkit().createImage(Nodus.class.getResource("nodus.png"));
 
-  /* Logger */
+  /** Logger. */
   public static final Logger nodusLogger = Logger.getLogger(Nodus.class.getName());
 
   /**

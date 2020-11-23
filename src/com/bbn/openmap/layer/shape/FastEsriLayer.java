@@ -49,6 +49,7 @@ public class FastEsriLayer extends EsriLayer {
   /** List of object to currently display. */
   private OMGraphicList currentProjectedList = null;
 
+  /** Track the previous projection. */
   private Projection previousProj = null;
 
   /** Spatial index for faster drawing. */

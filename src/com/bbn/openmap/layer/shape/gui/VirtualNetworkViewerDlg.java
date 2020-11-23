@@ -71,38 +71,55 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
 
   static final long serialVersionUID = 3971382364950521487L;
 
+  /** . */
   private JButton closeButton = new JButton();
 
+  /** . */
   private JButton drawButton = new JButton();
 
+  /** . */
   private boolean hasServices;
 
+  /** . */
   private boolean hasTime;
 
+  /** . */
   private boolean isNode;
 
+  /** . */
   private JPanel mainPanel = new JPanel();
 
+  /** . */
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private NodusEsriLayer nodusEsriLayer;
 
+  /** . */
   private NodusProject nodusProject;
 
+  /** . */
   private int objectId;
 
+  /** . */
   private JButton queryButton = new JButton();
 
+  /** . */
   private GridSwing results = new GridSwing();
 
+  /** . */
   private JTable resultsTable = new JTable(new TableSorter(results));
 
+  /** . */
   private JScrollPane resultsTableScrollPane = new JScrollPane();
 
+  /** . */
   private JLabel sqlLabel = new JLabel();
 
+  /** . */
   private RSyntaxTextArea sqlTextField = new RSyntaxTextArea();
 
+  /** . */
   private String tableName;
 
   /**
@@ -130,7 +147,7 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
    * Closes dialog-box.
    *
    * @param e ActionEvent
-   * @exclude
+   * @hidden
    */
   public void closeButton_actionPerformed(ActionEvent e) {
     setVisible(false);
@@ -140,7 +157,7 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
    * Opens a dialog box with a graphic representation of the virtual network at that point.
    *
    * @param e ActionEvent
-   * @exclude
+   * @hidden
    */
   public void drawButton_actionPerformed(ActionEvent e) {
 
@@ -535,7 +552,7 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
    * Fill the table with the result of the query string.
    *
    * @param e ActionEvent
-   * @exclude
+   * @hidden
    */
   public void queryButton_actionPerformed(ActionEvent e) {
     try {

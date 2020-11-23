@@ -138,8 +138,10 @@ public class LanguageChooser extends EscapeDialog {
   /** Combo with the language names and flags. */
   private JComboBox<?> languagesCombo;
 
+  /** Main panel of the dialog box. */
   private JPanel mainPanel = new JPanel();
 
+  /** Nodus map panel. */
   private NodusMapPanel nodusMapPanel;
 
   /** OK button. */

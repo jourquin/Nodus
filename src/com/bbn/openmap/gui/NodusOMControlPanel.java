@@ -51,6 +51,7 @@ public class NodusOMControlPanel extends OMControlPanel {
 
   private static I18n i18n = Environment.getI18n();
 
+  /** Text field used to enter scale. */
   private JTextField scaleField = null;
 
   /**

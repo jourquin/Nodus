@@ -31,6 +31,7 @@ import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
  */
 public class Path {
 
+  /** True for a valid path (not a duplicate for instance). */
   public boolean isValid = true;
 
   /** True if the path is intermodal. False by default. */
@@ -62,5 +63,4 @@ public class Path {
    * detailed costs are asked for the assignment.
    */
   public PathWeights weights;
-  
 }

@@ -1,4 +1,4 @@
-package edu.uclouvain.core.nodus.swing;
+package edu.uclouvain.core.nodus.swing.osx;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -53,6 +53,11 @@ public class OSXAdapterForJava9 implements InvocationHandler {
    * Each OSXHandler has the name of the EAWT method it intends to listen for (handleAbout, for
    * example), the Object that will ultimately perform the task, and the Method to be called on that
    * Object.
+   *
+   * @param proxySignature .
+   * @param target .
+   * @param handler .
+   * @hidden
    */
   protected OSXAdapterForJava9(String proxySignature, Object target, Method handler) {
     this.proxySignature = proxySignature;
@@ -63,6 +68,10 @@ public class OSXAdapterForJava9 implements InvocationHandler {
   /**
    * Pass this method an Object and Method equipped to perform application shutdown logic The
    * QuitResponse may be used to respond to a request to quit the application.
+   *
+   * @param target .
+   * @param quitHandler .
+   * @hidden
    */
   public static void setQuitHandler(Object target, Method quitHandler) {
     OSXAdapterForJava9 adapter =
@@ -124,6 +133,10 @@ public class OSXAdapterForJava9 implements InvocationHandler {
   /**
    * Pass this method an Object and Method equipped to display application info. They will be called
    * when the About menu item is selected from the application menu
+   *
+   * @param target .
+   * @param aboutHandler .
+   * @hidden
    */
   public static void setAboutHandler(Object target, Method aboutHandler) {
     OSXAdapterForJava9 adapter =
@@ -185,7 +198,12 @@ public class OSXAdapterForJava9 implements InvocationHandler {
 
   /**
    * Pass this method an Object and a Method equipped to display application options. They will be
-   * called when the Preferences menu item is selected from the application menu
+   * called when the Preferences menu item is selected from the application menu.
+   * 
+   * @param target .
+   * @param prefsHandler .
+   * 
+   * @hidden
    */
   public static void setPreferencesHandler(Object target, Method prefsHandler) {
     OSXAdapterForJava9 adapter =
@@ -243,11 +261,16 @@ public class OSXAdapterForJava9 implements InvocationHandler {
       logger.severe(ex.toString());
     }
   }
-
+  
   /**
    * Pass this method an Object and a Method equipped to handle document events from the Finder.
    * Documents are registered with the Finder via the CFBundleDocumentTypes dictionary in the
-   * application bundle's Info.plist
+   * application bundle's Info.plist.
+   * 
+   * @param target .
+   * @param fileHandler .
+   * 
+   * @hidden
    */
   public static void setFileHandler(Object target, Method fileHandler) {
     OSXAdapter adapter =

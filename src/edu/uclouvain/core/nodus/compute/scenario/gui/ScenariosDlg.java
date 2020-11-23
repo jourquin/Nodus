@@ -64,52 +64,76 @@ public class ScenariosDlg extends EscapeDialog {
 
   private static I18n i18n = Environment.getI18n();
 
+  /** . */
   private ButtonGroup actionButtonGroup = new ButtonGroup();
 
+  /** . */
   private JPanel actionPanel = new JPanel();
 
+  /** . */
   private GridBagLayout actionPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private JButton closeButton = new JButton();
 
+  /** . */
   private JRadioButton compareRadioButton = new JRadioButton();
 
+  /** . */
   private JButton executeButton = new JButton();
 
+  /** . */
   private boolean isBusy = false;
 
+  /** . */
   private JPanel mainPanel = new JPanel();
 
+  /** . */
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private NodusProject nodusProject;
 
+  /** . */
   private JRadioButton removeRadioButton = new JRadioButton();
 
+  /** . */
   private JRadioButton renameRadioButton = new JRadioButton();
 
+  /** . */
   private JLabel resultScenarioLabel = new JLabel();
 
+  /** . */
   private JSpinner resultSpinner = new JSpinner();
 
+  /** . */
   private JLabel scenario1Label = new JLabel();
 
+  /** . */
   private JSpinner scenario1Spinner = new JSpinner();
 
+  /** . */
   private JLabel scenario2Label = new JLabel();
 
+  /** . */
   private JSpinner scenario2Spinner = new JSpinner();
 
+  /** . */
   private Scenarios scenarios;
 
+  /** . */
   private JPanel spinnersPanel = new JPanel();
 
+  /** . */
   private GridBagLayout spinnersPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private RSyntaxTextArea whereLabel = new RSyntaxTextArea();
 
+  /** . */
   private JRadioButton sumRadioButton = null;
 
+  /** . */
   private RSyntaxTextArea whereTextPane = new RSyntaxTextArea();
 
   /**
@@ -822,7 +846,7 @@ public class ScenariosDlg extends EscapeDialog {
    * Intercepts the key pressed events. They are forwarded to the parent class only if this dialog
    * is not busy (comparing...).
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void keyPressed(KeyEvent e) {

@@ -126,7 +126,6 @@ public class FileUtils {
    *
    * @param shortcut The Windows shortcut.
    * @return File The file the Windows shortcut refers to.
-   * @throws IOException On error
    */
   public static File getWindowsRealFile(File shortcut) {
 

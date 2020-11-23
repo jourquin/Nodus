@@ -40,8 +40,7 @@ public class CostParserWorkerParameters {
   private byte odClass;
   private VirtualNetwork virtualnetwork;
   private boolean withFirstDerivative;
-  private boolean withPaths;
-
+  
   /**
    * Sets the needed parameters.
    *
@@ -52,7 +51,6 @@ public class CostParserWorkerParameters {
    * @param groupIndex The index of this OD group in VirtualNetwork.
    * @param vn The virtual network structure.
    * @param costParser The cost parser
-   * @param withPath Transit times are only computed when paths are saved.
    */
   public CostParserWorkerParameters(
       CostParserWorker[] costWorkers,
@@ -61,9 +59,8 @@ public class CostParserWorkerParameters {
       byte odClass,
       byte groupIndex,
       VirtualNetwork vn,
-      CostParser costParser,
-      boolean withPath) {
-    this(costWorkers, project, scenario, odClass, groupIndex, vn, costParser, withPath, false);
+      CostParser costParser) {
+    this(costWorkers, project, scenario, odClass, groupIndex, vn, costParser, false);
   }
 
   /**
@@ -76,7 +73,6 @@ public class CostParserWorkerParameters {
    * @param groupIndex The index of this OD group in VirtualNetwork.
    * @param vn The virtual network structure.
    * @param costParser The cost parser.
-   * @param withPaths Transit times are only computed when paths are saved.
    * @param withFirstDerivative True if the first derivative of the objective function must be
    *     computed (for Frank-Wolfe assignments only).
    */
@@ -88,7 +84,7 @@ public class CostParserWorkerParameters {
       byte groupIndex,
       VirtualNetwork vn,
       CostParser costParser,
-      boolean withPaths,
+      
       boolean withFirstDerivative) {
     this.nodusProject = project;
     this.scenario = scenario;
@@ -97,7 +93,6 @@ public class CostParserWorkerParameters {
     this.virtualnetwork = vn;
     this.costWorkers = costWorkers;
     this.costParser = costParser;
-    this.withPaths = withPaths;
     this.withFirstDerivative = withFirstDerivative;
     
     this.groupNum = this.virtualnetwork.getGroups()[groupIndex];
@@ -186,12 +181,4 @@ public class CostParserWorkerParameters {
     return withFirstDerivative;
   }
 
-  /**
-   * Returns true if paths must be saved and, hence, transit times must be computed.
-   *
-   * @return True if paths must be saved.
-   */
-  public boolean isWithPaths() {
-    return withPaths;
-  }
 }

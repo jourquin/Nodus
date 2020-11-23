@@ -85,17 +85,22 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
 
   private static final long serialVersionUID = 276007512376916496L;
 
+  /** . */
   private FormattedTime[] availableTimes;
 
+  /** . */
   private JButton closeButton;
 
+  /** . */
   private int currentObjectId;
 
+  /** . */
   private FormattedTime currentTime;
 
   /** Used when the virtual network for a node is not a centroid. */
   private JungVirtualNode fakeNode = null;
 
+  /** . */
   private int frameSize;
 
   /** The graph. */
@@ -104,32 +109,51 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
   /** Display (or not) the virtual network for a real node or real link. */
   private boolean isNode;
 
+  /** . */
   private int labelToDisplay = 0;
 
+  /** . */
   private List<JungVirtualLink> linksList;
 
+  /** . */
   private int nbLinksToDisplay;
 
+  /** . */
   private List<JungVirtualNode> nodesList;
 
+  /** . */
   private int originNode = 0;
 
+  /** . */
   private RadialTreeLayout<String, String> radialLayout;
 
+  /** . */
   private VisualizationServer.Paintable rings;
 
+  /** . */
   private TreeLayout<String, String> treeLayout;
 
   /** the visual component and renderer for the graph. */
   private VisualizationViewer<String, String> visualizationViewer;
 
+  /** . */
   private Color transparentColor = new Color(255, 255, 255, 255);
 
+  /** . */
   private boolean hasLD = false;
+  
+  /** . */
   private boolean hasUL = false;
+  
+  /** . */
   private boolean hasTR = false;
+  
+  /** . */
   private boolean hasTP = false;
 
+  /**
+   * Formating of edge label.
+   */
   private Function<String, String> edgeLabel =
       new Function<String, String>() {
         @Override

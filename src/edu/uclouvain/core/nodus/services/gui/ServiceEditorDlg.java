@@ -65,60 +65,88 @@ public class ServiceEditorDlg extends EscapeDialog {
   private static final Insets TYPE_INSETS = new Insets(5, 5, 5, 5);
   private static final Insets LABEL_INSETS = new Insets(5, 15, 5, 5);
 
+  /** . */
   private CardLayout cl = new CardLayout();
 
+  /** . */
   private int[] constPeriod = {1, 12, 52, 365};
 
+  /** . */
   private JPanel displayPanel = null;
 
+  /** . */
   private JPanel editPanel = null;
 
+  /** . */
   private NumberFormat formatter;
 
+  /** . */
   private GridBagConstraints gridBagConstraints;
 
+  /** . */
   private JScrollPane scrollPane = null;
 
+  /** . */
   private JLabel modeField = new JLabel();
 
+  /** . */
   private JLabel idField = new JLabel();
 
+  /** . */
   private DefaultTableModel modeltable = new DefaultTableModel();
 
+  /** . */
   private JTextField nameField = new JTextField(20);
 
+  /** . */
   private JTextField frequencyField = new JTextField(10);
 
+  /** . */
   private JTextField descriptionField = new JTextField(50);
 
+  /** . */
   private JButton newButton = null;
 
+  /** . */
   private JButton editButton = null;
 
+  /** . */
   private JButton deleteButton = null;
 
+  /** . */
   private JButton closeButton = null;
 
+  /** . */
   private JButton cancelButton = null;
 
+  /** . */
   private JButton saveButton = null;
 
+  /** . */
   private JButton copyButton = null;
 
+  /** . */
   private NodusMapPanel nodusMapPanel;
 
+  /** . */
   private JPanel panelRoot = null;
 
+  /** . */
   private String[] period = new String[4];
 
+  /** . */
   private ServiceEditor serviceEditor;
 
+  /** . */
   private JTable serviceTable = null;
 
+  /** . */
   private TableSorter sorter;
 
+  /** . */
   private JComboBox<String> time = new JComboBox<String>();
 
+  /** . */
   private JComboBox<String> meansField = new JComboBox<String>();
 
   /**
@@ -1110,7 +1138,7 @@ public class ServiceEditorDlg extends EscapeDialog {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void setVisible(boolean visible) {

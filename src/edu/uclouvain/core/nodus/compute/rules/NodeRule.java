@@ -93,6 +93,11 @@ public class NodeRule {
     return group;
   }
 
+  /**
+   * Get the nature of the rule: inclusion or exclusion.
+   * 
+   * @return True if the rule is an exclusion.
+   */
   public boolean isExclusion() {
     return isExclusion;
   }
@@ -101,6 +106,7 @@ public class NodeRule {
    * Returns true if the operation relative to the given scenario, group and mode/means combinations
    * is permitted at node NodeId.
    *
+   * @param nodeId The real node ID this rule applies to.
    * @param scenario Scenario
    * @param group Group of goods.
    * @param mode1 Mode at the origin.
@@ -168,6 +174,7 @@ public class NodeRule {
    * Returns true if the operation relative to the given scenario, group and mode/means combinations
    * is permitted at node NodeId.
    *
+   * @param nodeId The real node ID this rule applies to.
    * @param scenario Scenario
    * @param group Group of goods.
    * @param mode1 Mode at the origin.

@@ -58,7 +58,7 @@ public class CapabilitiesInnerTreeNode extends Vector<Object>
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public String toString() {

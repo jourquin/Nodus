@@ -57,32 +57,46 @@ public class LocationFieldChooserDlg extends EscapeDialog {
 
   static final long serialVersionUID = -2641799568965263398L;
 
+  /** . */
   private JButton cancelButton = new JButton();
 
+  /** . */
   private JButton colorButton = new JButton();
 
+  /** . */
   private JCheckBox displayResultsCheckBox = new JCheckBox();
 
+  /** . */
   private JList<String> fieldNames = new JList<String>(new DefaultListModel<String>());
 
+  /** . */
   private JScrollPane fieldsScrollPane = new JScrollPane();
 
+  /** . */
   private JButton fontsButton = new JButton();
 
+  /** . */
   private RSyntaxTextArea fromLabel = new RSyntaxTextArea();
 
+  /** . */
   private JPanel mainPanel = new JPanel();
 
+  /** . */
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private NodusLocationHandler nodusLocationHandler;
 
+  /** . */
   private JButton noFieldButton = new JButton();
 
+  /** . */
   private JButton okButton = new JButton();
 
+  /** . */
   private RSyntaxTextArea selectLabel = new RSyntaxTextArea();
 
+  /** . */
   private RSyntaxTextArea whereStmt = new RSyntaxTextArea();
 
   /**

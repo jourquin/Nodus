@@ -49,7 +49,10 @@ public class NodusC {
    * Control functionalities. Useful to enable/disable experimental stuff
    * *********************************************************************************************
    */
-
+  
+  /**
+   * Enable or disables all the "services" related functionalities.
+   */
   public static boolean withServices = false;
 
   /*
@@ -574,616 +577,616 @@ public class NodusC {
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_EMBEDDED_DB = "embedded_db";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_VIRTUAL_NETWORK_VERSION = "virtual_network_version";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_NAME = ".name";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_LOCATION_FIELD_NAME = ".locationFieldName";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_LOCATION_WHERESTMT = ".locationWhereStmt";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_VISIBLE = ".visible";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_WHERESTMT = ".whereStmt";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_SHOW_NAMES = ".showNames";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_SHOW_LOCATIONS = ".showLocations";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_DBF_TOOLTIPS = ".displayDbfToolTips";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_RENDER_STYLES = ".renderStyles";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_FONT = ".font";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_DOTCOLOR = ".color";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_COLOR = "color";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_AVAILABLE_LAYERS = ".availableLayers";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_DOTLAYERS = ".layers";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_EXC_TABLE = "exctable";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_OD_TABLE = "odtable";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_PATH_TABLE_PREFIX = "pathtableprefix";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_SERVICE_TABLE_PREFIX = "servicetableprefix";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_COST_FUNCTIONS = "costfunctions";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_SAVE_ALL_VN = "vn.saveall";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_ASSIGNMENT_DESCRIPTION = "assignmentdescription";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_VNET_TABLE = "vnettable";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_PROJECT_DOTPATH = "project.path";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_PROJECT_DOTNAME = "project.name";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_PROJECT_CANONICAL_NAME = "project.canonical.name";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_SCENARIO = "scenario";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_DOTLASTMODIFIED = ".lastmodified";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_LAST_PATH = "lastpath";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_LAST_PROJECT = "lastproject";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_FRAME_WIDTH = "frame.width";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_FRAME_HEIGTH = "frame.height";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_FRAME_X = "frame.x";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_GC_INTERVAL = "gc.interval";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_SUBFRAMES_ALWAYS_ON_TOP = "subframes.alwaysontop";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_NAV_MOUSE_MODE = "navmousemode";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_ANTIALIASING = "antialiasing";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_REOPEN_LATST_PROJECT = "reloadlastproject";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_STICKY_DRAWING_TOOL = "stickydrawingtool";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_MAX_SQL_ROWS = "maxsqlrows";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_DISPLAY_FULL_PATH = "displayfullpath";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_FRAME_Y = "frame.y";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_OVERVIEW_DATA = "overviewdata";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_ADD_POLITICAL_BOUNDARIES = "addPoliticalBoundaries";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_SHUTDOWN_COMPACT = "shutdownCompact";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_DISPLAY_POLITICAL_BOUNDARIES = "displayPoliticalBoundaries";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_ADD_HIGHLIGHTED_AREA = "addHighlightedArea";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_DISPLAY_HIGHLIGHTED_AREA = "displayHighlightedArea";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_OPENMAP_STARTUPLAYERS = "openmap.startUpLayers";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_MAP_BACKGROUNDCOLOR = "map.backgroundcolor";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_MAP_SCALE = "map.scale";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_MAP_ORDER = "map.order";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_MAP_LATITUDE = "map.latitude";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_MAP_LONGITUDE = "map.longitude";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_LOOK_AND_FEEL = "look&feel";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_SOUND = "sound";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_USE_SYSTEM_BROWSER = "use.external.browser";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_USE_GROOVY_CONSOLE = "use.groovyconsole";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_THREADS = "threads";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_LOCALE = "locale";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_ASSIGNMENT_TAB = "assignmenttab";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_ASSIGNMENT_METHOD = "assignmentmethod";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_ASSIGNMENT_NB_ITERATIONS = "assignmentnbiterations";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_ASSIGNMENT_PRECISION = "assignmentprecision";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static String PROP_ASSIGNMENT_SAVE_PATHS = "assignmentsavepaths";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static String PROP_ASSIGNMENT_SAVE_DETAILED_PATHS = "assignmentsavedetailedpaths";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static String PROP_ASSIGNMENT_RUN_POST_ASSIGNMENT_SCRIPT = "runpostassignmentscript";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static String PROP_ASSIGNMENT_LOG_LOST_PATHS = "loglostpaths";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static String PROP_ASSIGNMENT_MODAL_SPLIT_METHOD = "modalsplitmethod";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static String PROP_ASSIGNMENT_LIMIT_TO_HIGHLIGHTED_AREA = "limittohighlightedarea";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static String PROP_ASSIGNMENT_POST_ASSIGNMENT_SCRIPT = "postassignmentscript";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_MAX_RADIUS = "maxradius";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_MAX_WIDTH = "maxwidth";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_ASSIGNMENT_QUERY = "assignmentquery";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_NODES_FLOW_QUERY = "nodesflowquery";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_LINKS_FLOW_QUERY = "linksflowquery";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_DYNAMIC_FLOW_QUERY = "dynamicflowquery";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_LINKS_VEHICLES_QUERY = "linksvehiclesquery";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_PATH_QUERY = "pathquery";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_PROJECTION = "projection";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_COST_MARKUP = "costmarkup";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_MAX_DETOUR = "maxdetour";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_KEEP_CHEAPEST_INTERMODAL_PATH_ONLY = "keepcheapestonly";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_HIGHLIGHTED_AREA_COORDINATES = "highlightedareacoordinates";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_ACTIVE_MOUSE_MODE = "activemousemode";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_RENDERING_SCALE_THRESHOLD = "renderingscalethreshold";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
-   * @exclude
+   * @hidden
    */
   public static final String PROP_DEFAUT_EXCLUSION_RULE = "defaultexclusionrule";
 }

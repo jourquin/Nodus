@@ -34,8 +34,10 @@ public class NodusLabelLayer extends LabelLayer {
 
   private static final long serialVersionUID = -679570445355697169L;
 
+  /** Property prefix. */
   private String prefix;
 
+  /** The used properties. */
   private Properties props;
 
   /**
@@ -72,7 +74,7 @@ public class NodusLabelLayer extends LabelLayer {
   /**
    * Intercepts the layer prefix and properties before passing them to the super class.
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void setProperties(String prefix, Properties props) {

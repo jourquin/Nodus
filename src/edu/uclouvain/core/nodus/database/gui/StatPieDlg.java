@@ -79,29 +79,31 @@ public class StatPieDlg extends EscapeDialog {
   /** Loaded tons per mode statistic. */
   public static final byte LoadedTons_M = 0;
 
-  /** Loaded tons per mode & means statistic. */
+  /** Loaded tons per mode and means statistic. */
   public static final byte LoadedTons_Mm = 2;
 
   /** T.km per mode statistic. */
   public static final byte TKM_M = 1;
 
-  /** T.km per mode& & means statistic. */
+  /** T.km per mode and means statistic. */
   public static final byte TKM_Mm = 3;
 
   /** Unloaded tons per mode statistic. */
   public static final byte UnloadedTons_M = 4;
 
-  /** Unloaded tons per mode & means statistic. */
+  /** Unloaded tons per mode and means statistic. */
   public static final byte UnloadedTons_Mm = 5;
 
   /** Vehicles.km per mode statistic. */
   public static final byte VKM_M = 6;
 
-  /** Vehicles per mode & means statistic. */
+  /** Vehicles per mode and means statistic. */
   public static final byte VKM_Mm = 7;
 
+  /** . */
   private int nbStats = 8;
 
+  /** . */
   private DecimalFormat formatter = new DecimalFormat("#.##");
 
   /** Vector that will contain the labels (mode or mode-means). */
@@ -111,17 +113,25 @@ public class StatPieDlg extends EscapeDialog {
   /** Nodus project. */
   private NodusProject nodusProject;
 
+  /** . */
   private JPanel pane = null;
+  
+  /** . */
   private JScrollPane scrollPane = null;
+  
+  /** . */
   private TableSorter sorter = new TableSorter(new DefaultTableModel());
 
   /** Array of strings that will contain the SQL queries for the types of results to display. */
   private String[] sqlQuery = new String[nbStats];
 
+  /** . */
   private JTabbedPane tabbedPanes = null;
 
+  /** . */
   private JTable table = null;
 
+  /** . */
   private DefaultTableModel tableModel;
 
   /** Vector that will contain the results to display. */
@@ -682,7 +692,7 @@ public class StatPieDlg extends EscapeDialog {
   /**
    * Properly close if ESC is pressed.
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void keyPressed(KeyEvent e) {

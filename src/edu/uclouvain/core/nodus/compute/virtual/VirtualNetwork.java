@@ -284,7 +284,6 @@ public class VirtualNetwork {
       byte scenario,
       byte odClass,
       byte timeSlice,
-      boolean withPaths,
       int nbThreads) {
 
     if (vnl == null) {
@@ -315,7 +314,7 @@ public class VirtualNetwork {
 
       CostParserWorkerParameters cpp =
           new CostParserWorkerParameters(
-              worker, nodusProject, scenario, odClass, groupIndex, this, costParser, withPaths);
+              worker, nodusProject, scenario, odClass, groupIndex, this, costParser);
       queue.addWork(cpp);
     }
 
@@ -369,8 +368,8 @@ public class VirtualNetwork {
    * @return True on success.
    */
   public boolean computeCosts(
-      int iteration, byte scenario, byte odClass, boolean withPaths, int nbThreads) {
-    return computeCosts(iteration, scenario, odClass, (byte) -1, withPaths, nbThreads);
+      int iteration, byte scenario, byte odClass, int nbThreads) {
+    return computeCosts(iteration, scenario, odClass, (byte) -1, nbThreads);
   }
 
   /**
@@ -1226,6 +1225,7 @@ public class VirtualNetwork {
    *
    * @param iteration The current iteration in the assignment.
    * @param approachedLambda An estimated/approached value of the descent.
+   * @param threads Number of threads used for the assignment.
    * @return The first derivative of the objective function.
    */
   public double objectiveFunctionFirstDerivative(
@@ -1268,7 +1268,7 @@ public class VirtualNetwork {
 
         CostParserWorkerParameters cpp =
             new CostParserWorkerParameters(
-                worker, nodusProject, scenario, odClass, groupIndex, this, costParser, true, true);
+                worker, nodusProject, scenario, odClass, groupIndex, this, costParser, true);
         queue.addWork(cpp);
       }
 

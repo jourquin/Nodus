@@ -61,7 +61,8 @@ public class NodeRulesReader {
   /**
    * Initializes the exclusions reader.
    *
-   * @param vnet The virtual network
+   * @param vnet The virtual network.
+   * @param scenario Current scenario.
    */
   public NodeRulesReader(VirtualNetwork vnet, int scenario) {
     nodusProject = vnet.getNodusProject();

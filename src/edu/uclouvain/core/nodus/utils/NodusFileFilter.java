@@ -59,6 +59,9 @@ public class NodusFileFilter extends FileFilter {
   /* Extension to display */
   String extension = "*.*";
 
+  /**
+   * Default constructor.
+   */
   public NodusFileFilter() {
 
   }

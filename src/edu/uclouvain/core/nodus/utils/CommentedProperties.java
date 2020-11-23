@@ -41,10 +41,10 @@ public class CommentedProperties extends java.util.Properties {
 
   private static final long serialVersionUID = 4132817967592863730L;
 
-  /* Use a Vector to keep a copy of lines that are a comment or 'blank'. */
+  /** Use a Vector to keep a copy of lines that are a comment or 'blank'. */
   public Vector<String> lineData = new Vector<String>(0, 1);
 
-  /* Use a Vector to keep a copy of lines containing a key, i.e. they are a property. */
+  /** Use a Vector to keep a copy of lines containing a key, i.e. they are a property. */
   public Vector<String> keyData = new Vector<String>(0, 1);
 
   /**

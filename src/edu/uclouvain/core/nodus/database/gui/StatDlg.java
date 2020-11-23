@@ -68,66 +68,97 @@ public class StatDlg extends EscapeDialog {
   private static final String PROP_STAT_VKM_M = "stat_VehKmPerMode";
   private static final String PROP_STAT_VKM_MM = "stat_VehKmPerModeMeans";
 
+  /** . */
   private JPanel checkBoxPanel = new JPanel();
 
+  /** . */
   private GridBagLayout checkBoxPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private JButton closeButton = new JButton();
 
+  /** . */
   private JButton deselectAllButton = new JButton();
 
+  /** . */
   private String distanceUnit = "km";
 
+  /** . */
   private JLabel dummyLabel = new JLabel();
 
+  /** . */
   private JButton generateQueriesButton = new JButton();
 
+  /** . */
   private JLabel groupLabel = new JLabel();
 
+  /** . */
   private JSpinner groupSpinner = new JSpinner();
 
+  /** . */
   private JCheckBox loadedTonsPerModeCheckBox = new JCheckBox();
 
+  /** . */
   private JCheckBox loadedTonsPerModeMeansCheckBox = new JCheckBox();
 
+  /** . */
   private JPanel mainPanel = new JPanel();
 
+  /** . */
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private JCheckBox nbODCheckBox = new JCheckBox();
 
+  /** . */
   private NodusProject nodusProject;
 
+  /** . */
   private JCheckBox pieCheckBox = null;
 
+  /** . */
   private JPanel rightPanel = new JPanel();
 
+  /** . */
   private GridBagLayout rightPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private JComboBox<String> scenarioComboBox = new JComboBox<String>();
 
+  /** . */
   private JLabel scenarioLabel = new JLabel();
 
+  /** . */
   private JButton selectAllButton = new JButton();
 
+  /** . */
   private String[] spinnerList;
 
+  /** . */
   private SQLConsole sqlConsole;
 
+  /** . */
   private JCheckBox tonsKmPerModeCheckBox = new JCheckBox();
 
+  /** . */
   private JCheckBox tonsKmPerModeMeansCheckBox = new JCheckBox();
 
+  /** . */
   private JCheckBox totalCostCheckBox = new JCheckBox();
 
+  /** . */
   private JCheckBox unloadedTonsPerModeCheckBox = new JCheckBox();
 
+  /** . */
   private JCheckBox unloadedTonsPerModeMeansCheckBox = new JCheckBox();
 
+  /** . */
   private JCheckBox vehKmPerModeCheckBox = new JCheckBox();
 
+  /** . */
   private JCheckBox vehKmPerModeMeansCheckBox = new JCheckBox();
 
+  /** . */
   private String virtualNetTableName;
 
   /**

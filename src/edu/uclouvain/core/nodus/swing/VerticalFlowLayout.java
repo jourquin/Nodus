@@ -39,16 +39,32 @@ public class VerticalFlowLayout implements LayoutManager, java.io.Serializable {
 
   static final int DEFAULT_MARGINS = 4;
 
+  /** Arrange components at bottom. */
   public static final int BOTTOM = 2;
+  
+  /** Center components. */
   public static final int CENTER = 1;
+  
+  /** Arrange components at left. */
   public static final int LEFT = 3;
+  
+  /** Arrange components at right. */
   public static final int RIGHT = 4;
+  
+  /** Arrange components at top. */
   public static final int TOP = 0;
 
-  int horizontalAlign;
-  int horizontalGap;
-  int verticalAlign;
-  int verticalGap;
+  /** . */
+  private int horizontalAlign;
+  
+  /** . */
+  private int horizontalGap;
+  
+  /** . */
+  private int verticalAlign;
+  
+  /** . */
+  private int verticalGap;
 
   /** Constructor for the VerticalFlowLayout object. */
   public VerticalFlowLayout() {

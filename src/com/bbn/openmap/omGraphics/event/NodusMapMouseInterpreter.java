@@ -33,7 +33,11 @@ import javax.swing.ToolTipManager;
  */
 public class NodusMapMouseInterpreter extends StandardMapMouseInterpreter {
 
-  /** Just calls the original constructor. */
+  /**
+   * Just calls the original constructor.
+   *
+   * @param l The OMGraphicHandlerLayer this interpreter is serving.
+   */
   public NodusMapMouseInterpreter(OMGraphicHandlerLayer l) {
     super(l);
   }

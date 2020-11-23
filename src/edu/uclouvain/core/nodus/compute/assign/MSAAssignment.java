@@ -128,21 +128,18 @@ public class MSAAssignment extends Assignment {
 
     for (byte iteration = 1; iteration < assignmentParameters.getNbIterations() + 1; iteration++) {
       double split = 1.0 / iteration;
-
+System.out.println(iteration);
       for (byte odClass = 0; odClass < virtualNet.getNbODClasses(); odClass++) {
 
         if (!virtualNet.odClassHasDemand(odClass)) {
           continue;
         }
 
-        // Must paths be saved
-        boolean withPaths = assignmentParameters.isSavePaths();
-
         // Get the number of threads
         int threads = assignmentParameters.getThreads();
 
         // (re)Compute costs
-        if (!virtualNet.computeCosts(iteration, scenario, odClass, withPaths, threads)) {
+        if (!virtualNet.computeCosts(iteration, scenario, odClass, threads)) {
           nodusMapPanel.stopProgress();
           return false;
         }

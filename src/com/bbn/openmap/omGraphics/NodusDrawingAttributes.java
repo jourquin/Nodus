@@ -92,8 +92,10 @@ public class NodusDrawingAttributes extends DrawingAttributes {
   /** Default "alternative" matting color. */
   Paint altMattingPaint = Color.lightGray;
 
+  /** . */
   private boolean oval = DEFAULT_OVAL;
 
+  /** . */
   private int radius = DEFAULT_RADIUS;
 
   /**

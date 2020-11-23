@@ -56,18 +56,25 @@ public class NodusMapTileLayer extends MapTileLayer {
 
   private static final long serialVersionUID = 2145564724102637208L;
 
-  // Default cache dir name
+  /** Default cache dir. */
   private String cacheDirName = "TilesCache";
 
+  /** . */
   private JPanel clearCachePanel = null;
 
-  // Is the server reachable ?
+  
+  /**
+   * Tracks the state of the server.
+   */
   protected boolean isServerReachable;
 
+  /** . */
   private String prefix;
 
+  /** . */
   private Properties props;
 
+  /** . */
   private JPanel transparencyPanel = null;
 
   /** Tells the factory to clean up resources, including the physical cache. */

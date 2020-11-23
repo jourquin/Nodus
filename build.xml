@@ -134,43 +134,7 @@
             <classpath refid="Nodus.classpath"/>
         </javac>
     </target>
-    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
-    <target name="TestColors (5)">
-        <java classname="TestColors" failonerror="true" fork="yes">
-            <classpath refid="Nodus.classpath"/>
-        </java>
-    </target>
-    <target name="Test (3)">
-        <java classname="com.bbn.openmap.layer.shape.gui.Test" failonerror="true" fork="yes">
-            <classpath refid="Nodus.classpath"/>
-        </java>
-    </target>
-    <target name="HardwareInfo">
-        <java classname="edu.uclouvain.core.nodus.gui.HardwareInfo" failonerror="true" fork="yes">
-            <classpath refid="Nodus.classpath"/>
-        </java>
-    </target>
-    <target name="SetDefaultHeapSizes">
-        <java classname="edu.uclouvain.core.nodus.utils.SetDefaultHeapSizes" failonerror="true" fork="yes">
-            <classpath refid="Nodus.classpath"/>
-        </java>
-    </target>
-    <target name="Test (4)">
-        <java classname="com.bbn.openmap.layer.shape.Test" failonerror="true" fork="yes">
-            <classpath refid="Nodus.classpath"/>
-        </java>
-    </target>
-    <target name="Test2">
-        <java classname="Test2" failonerror="true" fork="yes">
-            <classpath refid="Nodus.classpath"/>
-        </java>
-    </target>
-    <target name="Test">
-        <java classname="edu.uclouvain.core.nodus.test" failonerror="true" fork="yes">
-            <classpath refid="Nodus.classpath"/>
-        </java>
-    </target>
-    <target name="Nodus">
+        <target name="Nodus">
         <java classname="edu.uclouvain.core.nodus.Nodus" failonerror="true" fork="yes">
             <jvmarg line="-Xmx6G -Xms4G"/>
             <classpath refid="Nodus.classpath"/>

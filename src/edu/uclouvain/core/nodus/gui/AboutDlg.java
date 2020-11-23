@@ -49,16 +49,22 @@ public class AboutDlg extends EscapeDialog {
 
   private static final long serialVersionUID = -6000434231982983552L;
 
+  /** . */
   private JPanel mainPanel = new JPanel();
 
+  /** . */
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private JEditorPane nodusInfoHTMLPane = new JEditorPane();
 
+  /** . */
   private JScrollPane nodusInfoScrollPane = new JScrollPane();
 
+  /** . */
   private JButton okButton = new JButton();
 
+  /** . */
   private JButton systemInfoButton = null;
 
   /**

@@ -74,7 +74,7 @@ class Rings implements VisualizationServer.Paintable {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   private Collection<Double> getDepths() {
     Set<Double> depths = new HashSet<>();
@@ -89,7 +89,7 @@ class Rings implements VisualizationServer.Paintable {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void paint(Graphics g) {
@@ -114,7 +114,7 @@ class Rings implements VisualizationServer.Paintable {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public boolean useTransform() {

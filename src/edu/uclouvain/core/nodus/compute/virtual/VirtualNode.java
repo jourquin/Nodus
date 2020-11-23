@@ -70,11 +70,13 @@ public class VirtualNode {
    * Creates a new virtual node.
    *
    * @param id ID to give to the new virtual node.
-   * @param realNodeId "Node" element of the virtual node
-   * @param realLinkId "Link" element of the virtual node.
+   * @param realNodeId "real node" element of the virtual node
+   * @param realLinkId "real link" element of the virtual node.
    * @param mode "Mode" element of the virtual node.
    * @param means "Means" element of the virtual node.
    * @param service "Service" element of the virtual node.
+   * @param latitude Latitude of the real node.
+   * @param longitude Longitude of the real node.
    */
   public VirtualNode(
       int id,

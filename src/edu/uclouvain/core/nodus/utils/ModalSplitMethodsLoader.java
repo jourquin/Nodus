@@ -51,6 +51,11 @@ public class ModalSplitMethodsLoader {
   /** A place where to store the loaded methods. */
   private static LinkedList<ModalSplitMethod> availableModalSplitMethods = new LinkedList<>();
 
+  /**
+   * Returns the available modal split methods.
+   * 
+   * @return A linked list that contains the available modal split methods.
+   */
   public static LinkedList<ModalSplitMethod> getAvailableModalSplitMethods() {
     return availableModalSplitMethods;
   }

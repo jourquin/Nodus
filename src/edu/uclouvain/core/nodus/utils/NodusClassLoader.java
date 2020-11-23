@@ -41,10 +41,11 @@ public class NodusClassLoader extends ClassLoader {
 
   private static Hashtable<String, NodusClassLoader> loaders = new Hashtable<>();
 
+  /** Returns a static class loader. */
   public static NodusClassLoader classLoader = createLoader("BeanBox", null);
 
   /**
-   * Creates a cclass loader.
+   * Creates a class loader.
    *
    * @param cookie String
    * @param dir String
@@ -88,7 +89,7 @@ public class NodusClassLoader extends ClassLoader {
     Class<?> c = null;
     try {
       c = super.defineClass(null, buf, 0, buf.length);
-    } catch (Error e) { 
+    } catch (Error e) {
       System.err.println(name);
     }
 

@@ -57,6 +57,7 @@ public class NodusLayersPanel extends LayersPanel {
   /** URL of the "edit layers" icon. */
   private URL urllayers;
 
+  /** "Edit layer" button. */
   private JButton editLayersButton;
 
   /** Main frame of the application. */

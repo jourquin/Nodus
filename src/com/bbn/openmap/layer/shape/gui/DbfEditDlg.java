@@ -302,72 +302,105 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
   static final long serialVersionUID = 1898200016552197983L;
 
+  /** . */
   private JButton cancelButton = new JButton();
 
+  /** . */
   private JButton copyButton = new JButton();
 
+  /** . */
   private JTable dbfTable;
 
+  /** . */
   private DbfTableCellEditor dbfTableCellEditor;
 
+  /** . */
   private JButton nodeRulesButton = new JButton();
 
+  /** . */
   private JScrollPane fieldsScrollPane = new JScrollPane();
 
+  /** . */
   private String[] handling;
 
+  /** . */
   private boolean isStyleChanged = false;
 
+  /** . */
   private JPanel mainPanel = new JPanel();
 
+  /** . */
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private int nbUneditableFields;
 
+  /** . */
   private NodusEsriLayer nodusEsriLayer;
 
+  /** . */
   private int objectNum;
 
+  /** . */
   String oldLabel = null;
 
+  /** . */
   private int initialStyle;
 
+  /** . */
   private Object[] oldValues;
 
+  /** . */
   private OMGraphic omGraphic;
 
+  /** . */
   private JButton pasteButton = new JButton();
 
+  /** . */
   private JLabel sampleLabel = new JLabel();
 
+  /** . */
   private int sampleLabelHeight;
 
+  /** . */
   private int sampleLabelWidth;
 
+  /** . */
   private BufferedImage sampleStyleImage = null;
 
+  /** . */
   private JButton saveButton = new JButton();
 
+  /** . */
   private JButton servicesButton = null;
 
+  /** . */
   private JComboBox<String> styleComboBox = new JComboBox<String>();
 
+  /** . */
   private JLabel styleLabel = new JLabel();
 
+  /** . */
   private JComboBox<String> transhipComboBox = null;
 
+  /** . */
   private JLabel transhipLabel = null;
 
+  /** . */
   private JButton virtualNetworkButton = new JButton();
 
+  /** . */
   private JCheckBox transitCheckBox =
       new JCheckBox(i18n.get(DbfEditDlg.class, "Transit", "Allow transit"));
 
+  /** . */
   private JCheckBox enabledCheckBox =
       new JCheckBox(i18n.get(DbfEditDlg.class, "Enabled", "Enabled"));
 
+  /** . */
   private int initialValuesHashCode;
 
+  /** . */
   private boolean isInitialized = false;
 
   /**

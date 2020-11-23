@@ -374,7 +374,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * Used to recall a command saved in the history.
    *
    * @param ev ActionEvent
-   * @exclude
+   * @hidden
    */
   @Override
   public void actionPerformed(ActionEvent ev) {
@@ -1641,7 +1641,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   /**
    * Handle F5 and Ctrl + Enter.
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void keyPressed(KeyEvent evt) {
@@ -1661,7 +1661,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void keyReleased(KeyEvent k) {
@@ -1671,7 +1671,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void keyTyped(KeyEvent evt) {
@@ -2282,7 +2282,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
   }
 
-  /** .@exclude */
+  /** .@hidden */
   @Override
   public void windowActivated(WindowEvent e) {
     // Must be overridden
@@ -2292,7 +2292,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * Close all the open children frames (Statistics dialog box could be currently visible).
    *
    * @param e WindowEvent
-   * @exclude
+   * @hidden
    */
   @Override
   public void windowClosed(WindowEvent e) {
@@ -2306,7 +2306,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * Closing window event.
    *
    * @param ev WindowEvent
-   * @exclude
+   * @hidden
    */
   @Override
   public void windowClosing(WindowEvent ev) {
@@ -2348,7 +2348,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void windowDeactivated(WindowEvent e) {
@@ -2358,7 +2358,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void windowDeiconified(WindowEvent e) {
@@ -2368,7 +2368,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void windowIconified(WindowEvent e) {
@@ -2378,7 +2378,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void windowOpened(WindowEvent e) {

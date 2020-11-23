@@ -76,7 +76,7 @@ public class JDBCUtils {
   private static Connection jdbcConnection = null;
 
   /**
-   * This constructor is maintained for backward compatibility (< Nodus 8).
+   * This constructor is maintained for backward compatibility (before Nodus 8).
    *
    * @param jdbcConnection The connection to the database @Deprecated Use JDBCUtils in a pure static
    *     way.
@@ -619,6 +619,7 @@ public class JDBCUtils {
    * Constructor.
    *
    * @param con JDBC connection
+   * @return False on error.
    */
   public static boolean setConnection(Connection con) {
     jdbcConnection = con;

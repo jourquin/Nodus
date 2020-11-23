@@ -102,80 +102,118 @@ public class NodeRulesDlg extends EscapeDialog {
   private static final String RULE_EXCLUSION = "exclusion";
   private static final String RULE_INCLUSION = "inclusion";
 
+  /** . */
   private JButton addButton = new JButton();
 
+  /** . */
   private JButton cancelButton = new JButton();
 
+  /** . */
   private int currentRow = -1;
 
+  /** . */
   private int currentScenario;
 
+  /** . */
   private String defaultExclusionRule;
 
+  /** . */
   private final ButtonGroup excludeButtonGroup = new ButtonGroup();
 
+  /** . */
   private final JRadioButton excludeRadioButton = new JRadioButton();
 
+  /** . */
   private DefaultTableModel exclusionsTableModel;
 
+  /** . */
   private final JLabel fromLabel = new JLabel();
 
+  /** . */
   private final JRadioButton genercicRadioButton = new JRadioButton();
 
+  /** . */
   private JLabel groupLabel = new JLabel();
 
+  /** . */
   private JSpinner groupSpinner = new JSpinner(new SpinnerNumberModel(-1, -1, 99, 1));
 
+  /** . */
   private final JRadioButton includeRadioButton = new JRadioButton();
 
+  /** . */
   private int initialRulesHashCode;
 
+  /** . */
   private JPanel mainPanel = new JPanel();
 
+  /** . */
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private JLabel means1Label = new JLabel();
 
+  /** . */
   private JSpinner means1Spinner = new JSpinner(new SpinnerNumberModel(-1, -1, 99, 1));
 
+  /** . */
   private JLabel means2Label = new JLabel();
 
+  /** . */
   private JSpinner means2Spinner = new JSpinner(new SpinnerNumberModel(-1, -1, 99, 1));
 
+  /** . */
   private JLabel mode1Label = new JLabel();
 
+  /** . */
   private JSpinner mode1Spinner = new JSpinner(new SpinnerNumberModel(-1, -1, 99, 1));
 
+  /** . */
   private JLabel mode2Label = new JLabel();
 
+  /** . */
   private JSpinner mode2Spinner = new JSpinner(new SpinnerNumberModel(-1, -1, 99, 1));
 
+  /** . */
   private int nodeNum;
 
+  /** . */
   private NodusProject nodusProject;
 
+  /** . */
   private JButton removeButton = new JButton();
 
+  /** . */
   private JTable rulesTable;
 
+  /** . */
   private JButton saveButton = new JButton();
 
+  /** . */
   private final ButtonGroup scenarioButtonGroup = new ButtonGroup();
 
+  /** . */
   private final JRadioButton scenarioRadioButton = new JRadioButton();
 
+  /** . */
   private JScrollPane scrollPane1 = new JScrollPane();
 
+  /** . */
   private JPanel spinnersPanel = new JPanel();
 
+  /** . */
   private GridBagLayout spinnersPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private final JCheckBox symmetryCheckBox = new JCheckBox();
 
+  /** . */
   private String tableName;
 
+  /** . */
   private final JLabel toLabel = new JLabel();
 
+  /** . */
   private HashMap<Integer, Integer> existingRules = new HashMap<>();
 
   /**

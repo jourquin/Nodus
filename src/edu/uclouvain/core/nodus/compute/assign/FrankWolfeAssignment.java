@@ -121,9 +121,6 @@ public class FrankWolfeAssignment extends Assignment {
     int gcInterval = nodusMapPanel.getGarbageCollectorInterval();
     GarbageCollectionRunner gcr = new GarbageCollectionRunner(gcInterval);
 
-    // Must paths be saved
-    boolean withPaths = assignmentParameters.isSavePaths();
-
     // Get the number of threads
     int threads = assignmentParameters.getThreads();
 
@@ -139,7 +136,7 @@ public class FrankWolfeAssignment extends Assignment {
           continue;
         }
 
-        if (!virtualNet.computeCosts(iteration - 1, scenario, odClass, withPaths, threads)) {
+        if (!virtualNet.computeCosts(iteration - 1, scenario, odClass, threads)) {
           nodusMapPanel.stopProgress();
           return false;
         }

@@ -31,7 +31,6 @@ import com.bbn.openmap.MapBean;
 import com.bbn.openmap.MapBeanRepaintPolicy;
 import com.bbn.openmap.MapHandler;
 import com.bbn.openmap.MouseDelegator;
-import com.bbn.openmap.MultipleSoloMapComponentException;
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.event.DistanceMouseMode;
 import com.bbn.openmap.event.NavMouseMode;
@@ -94,15 +93,14 @@ import edu.uclouvain.core.nodus.gui.LookAndFeelChooser;
 import edu.uclouvain.core.nodus.gui.ProjectPreferencesDlg;
 import edu.uclouvain.core.nodus.gui.SplashDlg;
 import edu.uclouvain.core.nodus.helpbrowser.HelpBrowser;
-import edu.uclouvain.core.nodus.swing.OSXAdapter;
-import edu.uclouvain.core.nodus.swing.OSXAdapterForJava9;
 import edu.uclouvain.core.nodus.swing.OnTopKeeper;
+import edu.uclouvain.core.nodus.swing.osx.OSXAdapter;
+import edu.uclouvain.core.nodus.swing.osx.OSXAdapterForJava9;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NodusGroovyConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NotePad;
 import edu.uclouvain.core.nodus.utils.HardwareUtils;
 import edu.uclouvain.core.nodus.utils.JavaVersionUtil;
-import edu.uclouvain.core.nodus.utils.NodusFileFilter;
 import edu.uclouvain.core.nodus.utils.PluginsLoader;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
 import foxtrot.Job;
@@ -133,7 +131,6 @@ import java.awt.event.KeyEvent;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -149,7 +146,6 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -220,6 +216,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** OpenMap component. See OpenMap's documentation for more details. */
   private NodusOMControlPanel controlPanel = new NodusOMControlPanel(this);
 
+  /** Track the state of the "control" key. */
   private boolean controlPressed = false;
 
   /** Control variables for the progress bar. */
@@ -243,7 +240,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** OpenMap component. See OpenMap documentation for more details. */
   private InformationDelegator infoDelegator = new InformationDelegator();
 
-  /* A MacBook Pro touchbar */
+  /** A MacBook Pro touchbar. */
   private JTouchBar initialTouchBar = null;
 
   /** The browser used for the Nodus API. */
@@ -275,8 +272,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** "Control|Hide/Display Controlpanel" menu item. */
   private JMenuItem menuItemControlControlpanel = new JMenuItem();
-
-  private JMenuItem menuItemControlLoadLayers = new JMenuItem();
 
   /** "Control|Hide/Display Toolpanel" menu item. */
   private JMenuItem menuItemControlToolpanel = new JMenuItem();
@@ -419,7 +414,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Vector of project specific plugins menu items. */
   private Vector<JMenuItem> projectPluginsMenuItems = new Vector<>();
 
-  /* A MacBook Pro touchbar */
+  /** A MacBook Pro touchbar. */
   private JTouchBar regularTouchBar = null;
 
   /**
@@ -467,7 +462,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void addMapComponent(Object mapComponent) {
@@ -700,9 +695,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /** Creates the action listeners to add to the menu items. */
-  //@SuppressWarnings("deprecation")
+  // @SuppressWarnings("deprecation")
   private void createMenuActionListeners() {
-    // menuItemFileOpen.setText(i18n.get(NodusMapPanel.class, "Open_project", "Open project"));
+
     menuItemFileOpen.setAccelerator(
         KeyStroke.getKeyStroke(
             KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -714,8 +709,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemSystemProperties.setText(
-    //    i18n.get(NodusMapPanel.class, "Open_preferences", "Global preferences"));
     menuItemSystemProperties.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -725,7 +718,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         });
 
     menuItemFileSave.setEnabled(false);
-    // menuItemFileSave.setText(i18n.get(NodusMapPanel.class, "Save_project", "Save project"));
     menuItemFileSave.setAccelerator(
         KeyStroke.getKeyStroke(
             KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -738,7 +730,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         });
 
     menuItemFileClose.setEnabled(false);
-    // menuItemFileClose.setText(i18n.get(NodusMapPanel.class, "Close_project", "Close project"));
     menuItemFileClose.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -747,7 +738,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemFilePrint.setText(i18n.get(NodusMapPanel.class, "Print", "Print"));
     menuItemFilePrint.setAccelerator(
         KeyStroke.getKeyStroke(
             KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -760,7 +750,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemFileExit.setText(i18n.get(NodusMapPanel.class, "Exit", "Exit"));
     menuItemFileExit.setAccelerator(
         KeyStroke.getKeyStroke(
             KeyEvent.VK_Q, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -772,7 +761,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemProjectAssignment.setText(i18n.get(NodusMapPanel.class, "Assignment", "Assignment"));
     menuItemProjectAssignment.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, 0));
     menuItemProjectAssignment.addActionListener(
@@ -783,8 +771,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemProjectSQLConsole.setText(i18n.get(NodusMapPanel.class, "SQL_Console", "SQL
-    // Console"));
     menuItemProjectSQLConsole.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F7, 0));
     menuItemProjectSQLConsole.addActionListener(
@@ -795,8 +781,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemProjectDisplayResults.setText(
-    //    i18n.get(NodusMapPanel.class, "Display_results", "Display results"));
     menuItemProjectDisplayResults.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, 0));
     menuItemProjectDisplayResults.addActionListener(
@@ -807,7 +791,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemProjectScenarios.setText(i18n.get(NodusMapPanel.class, "Scenarios", "Scenarios"));
     menuItemProjectScenarios.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F6, 0));
     menuItemProjectScenarios.addActionListener(
@@ -818,8 +801,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemProjectCosts.setText(
-    //    i18n.get(NodusMapPanel.class, "Edit_cost_functions", "Edit cost functions"));
     menuItemProjectCosts.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F2, 0));
     menuItemProjectCosts.addActionListener(
         new java.awt.event.ActionListener() {
@@ -829,8 +810,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemProjectServices.setText(
-    //    i18n.get(NodusMapPanel.class, "Edit_services", "Edit services"));
     menuItemProjectServices.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F3, 0));
 
@@ -842,9 +821,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemProjectPreferences.setText(
-    //    i18n.get(NodusMapPanel.class, "Project_preferences", "Project preferences"));
-
     menuItemProjectPreferences.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -852,8 +828,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             menuItemProjectPreferencesActionPerformed(e);
           }
         });
-
-    // menuItemToolLookAndFeel.setText(i18n.get(NodusMapPanel.class, "Look_&_Feel", "Look & Feel"));
 
     menuItemToolLookAndFeel.addActionListener(
         new java.awt.event.ActionListener() {
@@ -863,8 +837,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemToolLanguage.setText(i18n.get(NodusMapPanel.class, "Language", "Language"));
-
     menuItemToolLanguage.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -873,7 +845,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemToolConsole.setText(i18n.get(NodusMapPanel.class, "Console", "Console"));
     menuItemToolConsole.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -882,13 +853,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             if (getNodusProject().isOpen()) {
               defaultDir = getNodusProject().getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
             }
-
             new NodusConsole(defaultDir);
           }
         });
-
-    // menuItemToolGroovyScripts.setText(
-    //    i18n.get(NodusMapPanel.class, "Groovy_scripts", "Groovy scripts"));
 
     menuItemToolGroovyScripts.addActionListener(
         new java.awt.event.ActionListener() {
@@ -898,9 +865,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemToolRessourcesMonitor.setText(
-    //    i18n.get(NodusMapPanel.class, "Resources_monitor", "Resources monitor"));
-
     menuItemToolRessourcesMonitor.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -909,7 +873,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemHelpAbout.setText(i18n.get(NodusMapPanel.class, "About", "About"));
     menuItemHelpAbout.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -917,9 +880,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             menuItemAboutActionPerformed();
           }
         });
-
-    // menuItemControlBackground.setText(
-    //    i18n.get(NodusMapPanel.class, "Set_Background_color", "Set Background color"));
 
     menuItemControlBackground.addActionListener(
         new java.awt.event.ActionListener() {
@@ -929,9 +889,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemControlToolpanel.setText(
-    //    i18n.get(NodusMapPanel.class, "Hide_Tool_Panel", "Hide Tool Panel"));
-
     menuItemControlToolpanel.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -940,25 +897,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    // menuItemControlControlpanel.setText(
-    //    i18n.get(NodusMapPanel.class, "Hide Control Panel", "Hide Control Panel"));
-
     menuItemControlControlpanel.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
             menuItemControlControlpanelActionPerformed(e);
-          }
-        });
-
-    // menuItemControlLoadLayers.setText(
-    //    i18n.get(NodusMapPanel.class, "Add_OpenMap_layers", "Add OpenMap layers"));
-
-    menuItemControlLoadLayers.addActionListener(
-        new java.awt.event.ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
-            menuItemControlLoadLayersActionPerformed(e);
           }
         });
   }
@@ -1495,7 +1438,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /**
    * MapPanel method. Get a JMenu containing sub-menus created from properties.
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public JMenu getMapMenu() {
@@ -1505,7 +1448,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /**
    * MapPanel method. Get a JMenuBar containing menus created from properties.
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public JMenuBar getMapMenuBar() {
@@ -1961,7 +1904,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     menuControl.add(menuItemControlBackground);
     menuControl.add(menuItemControlToolpanel);
     menuControl.add(menuItemControlControlpanel);
-    menuControl.add(menuItemControlLoadLayers);
 
     menuTools.add(menuItemToolLookAndFeel);
     menuTools.add(menuItemToolLanguage);
@@ -2127,7 +2069,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    *
    * @param dir Place where the plugin is located
    * @param projectPlugin True if plugin a project specific. False for global plugins.
-   * @throws NodusPluginNotCreatedException If the plugin was not successfully initialized.
    */
   public void loadPlugins(String dir, boolean projectPlugin) {
 
@@ -2292,38 +2233,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     } else {
       menuItemControlControlpanel.setText(
           i18n.get(NodusMapPanel.class, "Hide_Control_Panel", "Hide Control Panel"));
-    }
-  }
-
-  /**
-   * Adds additional OpenMap layers to the MapBean. See OpenMap documentation for more details on
-   * how to write the files for these layers.
-   *
-   * @param a ActionEvent
-   */
-  private void menuItemControlLoadLayersActionPerformed(ActionEvent a) {
-    JFileChooser fileChooser =
-        new JFileChooser(nodusProperties.getProperty(NodusC.PROP_LAST_PATH, "."));
-    fileChooser.setFileFilter(
-        new NodusFileFilter(
-            NodusC.TYPE_OPENMAP,
-            i18n.get(NodusMapPanel.class, "OpenMap_layers", "OpenMap layers")));
-
-    int returnVal = fileChooser.showOpenDialog(null);
-
-    if (returnVal == JFileChooser.APPROVE_OPTION) {
-      Properties props = new Properties();
-
-      try {
-        props.load(new FileInputStream(fileChooser.getSelectedFile().getCanonicalPath()));
-      } catch (IOException ex) {
-        System.out.println(ex.toString());
-        return;
-      }
-
-      nodusProject.addOpenMapLayers(props);
-    } else {
-      return;
     }
   }
 
@@ -2906,8 +2815,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * already one, or if the policy allows replacement. The MapHandler will be created if it doesn't
    * exist via a getMapHandler() method call.
    *
-   * @throws MultipleSoloMapComponentException if there is already a map bean in the map handler and
-   *     the policy is to reject duplicates (since the MapBean is a SoloMapComponent).
+   * @param bean The MapBean to set.
    */
   public void setMapBean(MapBean bean) {
     if (bean == null && mapBean != null) {
@@ -2990,10 +2898,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         i18n.get(NodusMapPanel.class, "Hide_Tool_Panel", "Hide Tool Panel"));
 
     menuItemControlControlpanel.setText(
-        i18n.get(NodusMapPanel.class, "Hide Control Panel", "Hide Control Panel"));
-
-    menuItemControlLoadLayers.setText(
-        i18n.get(NodusMapPanel.class, "Add_OpenMap_layers", "Add OpenMap layers"));
+        i18n.get(NodusMapPanel.class, "Hide_Control_Panel", "Hide Control Panel"));
   }
 
   /**

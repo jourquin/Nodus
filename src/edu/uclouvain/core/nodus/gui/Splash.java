@@ -48,6 +48,7 @@ public class Splash extends JWindow {
 
     private static final long serialVersionUID = -2575505510842095637L;
 
+    /** . */
     private Image img;
 
     /**
@@ -68,7 +69,7 @@ public class Splash extends JWindow {
     /**
      * .
      *
-     * @exclude
+     * @hidden
      */
     @Override
     public void paintComponent(Graphics g) {
@@ -89,10 +90,13 @@ public class Splash extends JWindow {
     }
   }
 
+  /** . */
   private static final long serialVersionUID = 6796350856865644296L;
 
+  /** . */
   private int height = 0;
 
+  /** . */
   private int width = 0;
 
   /**

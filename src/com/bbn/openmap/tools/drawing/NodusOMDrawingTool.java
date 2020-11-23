@@ -119,6 +119,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
   /** The set of node layers managed by this Nodus project. */
   private NodusEsriLayer[] nodesLayers;
 
+  /** The map panel. */
   private NodusMapPanel nodusMapPanel;
 
   /** The launcher that is associated to this drawing tool. */
@@ -589,7 +590,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
   /**
    * Avoid the default behavior (not relevant here).
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public JPopupMenu createPopupMenu() {

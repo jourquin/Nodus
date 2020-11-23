@@ -91,6 +91,7 @@ public class AdjacencyNode {
   /**
    * Returns the straight-line distance to the goal (used by AStar).
    *
+   * @param goal The target AdjacencyNode.
    * @return the straight-line distance to the goal
    */
   public double goalEst(AdjacencyNode goal) {

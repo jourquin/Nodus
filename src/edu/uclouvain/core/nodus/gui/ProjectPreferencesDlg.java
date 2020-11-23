@@ -68,70 +68,103 @@ public class ProjectPreferencesDlg extends EscapeDialog {
 
   private static final long serialVersionUID = 291675906672191547L;
 
+  /** . */
   private JCheckBox boundariesCheckbox = null;
 
+  /** . */
   private JButton cancelButton = new JButton();
 
+  /** . */
   private JCheckBox compactCheckBox;
 
+  /** . */
   private JComboBox<String> costFilesCombo = new JComboBox<>();
 
+  /** . */
   private JLabel costLabel = new JLabel();
 
+  /** . */
   private File[] costsFilesNames = null;
 
+  /** . */
   private JTextField descriptionTextField = new JTextField();
 
+  /** . */
   private JLabel excLabel = new JLabel();
 
+  /** . */
   private JTextField excTextField = new JTextField();
 
+  /** . */
   private JCheckBox highlightedAreaCheckBox = null;
 
+  /** . */
   private JPanel mainPanel = new JPanel();
 
+  /** . */
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private NodusProject nodusProject;
 
+  /** . */
   private JLabel odLabel = new JLabel();
 
+  /** . */
   private Vector<String> odTables = null;
 
+  /** . */
   private JComboBox<String> odTablesCombo = new JComboBox<>();
 
+  /** . */
   private JButton okButton = new JButton();
 
+  /** . */
   private boolean oldAddHighlightedArea;
 
+  /** . */
   private boolean oldAddPoliticalBoundaries;
 
+  /** . */
   private JLabel pathLabel = new JLabel();
 
+  /** . */
   private JTextField pathTextField = new JTextField();
 
+  /** . */
   private JLabel radiusLabel = new JLabel();
 
+  /** . */
   private JSpinner radiusSpinner = new JSpinner();
 
+  /** . */
   private JCheckBox saveAllVirtualLinksCheckBox;
 
+  /** . */
   private JLabel scenarioLabel = new JLabel();
 
+  /** . */
   private JSpinner scenarioSpinner = new JSpinner();
 
+  /** . */
   private JLabel servicesLabel = null;
 
+  /** . */
   private JTextField servicesTextField = null;
+  
+  /** . */
+  private JLabel unitLabel = new JLabel();
 
-  JLabel unitLabel = new JLabel();
-
+  /** . */
   private JLabel virtNetLabel = new JLabel();
 
+  /** . */
   private JTextField virtNetTextField = new JTextField();
 
+  /** . */
   private JLabel widthLabel = new JLabel();
 
+  /** . */
   private JSpinner widthSpinner = new JSpinner();
 
   /**

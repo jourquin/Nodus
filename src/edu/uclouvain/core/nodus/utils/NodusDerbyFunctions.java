@@ -44,6 +44,11 @@ public class NodusDerbyFunctions {
     return bd.doubleValue();
   }
 
+  /**
+   * For testing purpose...
+   * @param args .
+   * @hidden
+   */
   public static void main(final String[] args) {
     System.out.println(round(12.3, 2));
   }

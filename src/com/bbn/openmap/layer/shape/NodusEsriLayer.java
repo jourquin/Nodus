@@ -105,7 +105,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   /** I18N mechanism. */
   private static final I18n i18n = Environment.getI18n();
 
-  /** Used for cut&paste. */
+  /** Used for cut and paste. */
   private int copyRecordIndex = -1;
 
   /**
@@ -167,7 +167,10 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   /** Used in doPrepare() to detect if the styles must be be refreshed. */
   private float previousScale = -1;
 
+  /** Previous rendering scale threshold. */
   private float previousRenderingScaleThreshold;
+  
+  /** Indicates if the styles must be refreshed. */
   private boolean stylesMustBeRefreshed = true;
 
   /** All what we need to connect to the relevant dbf file. */

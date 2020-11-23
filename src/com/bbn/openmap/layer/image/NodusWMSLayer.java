@@ -79,15 +79,19 @@ public class NodusWMSLayer extends WMSLayer {
 
   private static final long serialVersionUID = 4799752099609388953L;
 
+  /** . */
   private boolean capabilitiesAlreadyFetched = false;
 
-  //Is the server reachable ?
+  /** Is the server reachable. */
   private boolean isServerReachable;
 
+  /** . */
   private String prefix;
 
+  /** . */
   private Properties properties;
 
+  /** Stores the available layers on the server. */
   private Vector<Object> treeData = null;
 
   /**

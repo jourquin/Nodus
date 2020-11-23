@@ -49,16 +49,22 @@ public class SplashDlg extends EscapeDialog {
 
   private static final long serialVersionUID = -4375799813094308880L;
 
+  /** . */
   private JButton aboutButton = new JButton();
 
+  /** . */
   private JButton closeButton = new JButton();
 
+  /** . */
   private JLabel iconLabel = new JLabel();
 
+  /** . */
   private JPanel mainPanel = new JPanel();
 
+  /** . */
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private NodusMapPanel nodusMapPanel;
 
   /**

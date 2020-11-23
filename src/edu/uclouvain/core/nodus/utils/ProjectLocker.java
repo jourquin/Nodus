@@ -48,7 +48,8 @@ public class ProjectLocker {
   /**
    * Creates a lock in the project'directory if possible.
    *
-   * @param project A Nodus project
+   * @param project A Nodus project.
+   * @return False on error.
    */
   @SuppressWarnings("resource")
   public static boolean createLock(NodusProject project) {

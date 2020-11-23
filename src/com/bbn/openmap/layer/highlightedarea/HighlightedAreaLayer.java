@@ -58,30 +58,46 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
 
   private static final long serialVersionUID = -5193630397555473457L;
 
+  /** . */
   private DecimalFormat decimalformat;
 
+  /** . */
   private DecimalFormatSymbols decimalFormatSymbols = new DecimalFormatSymbols();
 
+  /** . */
   private JButton getCurrentViewButton = new JButton();
 
+  /** . */
   private JPanel gui = null;
 
+  /** . */
   private JTextField highlightedAreaTextField = new JTextField();
 
+  /** . */
   private boolean justGiveVisualFeedback;
 
+  /** . */
   private NodusProject nodusProject;
 
+  /** . */
   private JButton updateButton = new JButton();
 
   /** lat/lon coordinates of the corners. */
   private float upperLeftLat;
 
+  /** . */
   private float upperLeftLon;
+  
+  /** . */
   private float lowerRightLat;
+  
+  /** . */
   private float lowerRightLon;
 
-  /** Constructs the HighlightedAreaLayer. */
+  /**
+   * Constructs the HighlightedAreaLayer.
+   * @param project The Nodus project
+   */
   public HighlightedAreaLayer(NodusProject project) {
     super();
     setAddAsBackground(true);
@@ -334,7 +350,7 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
 
   /**
    * .
-   *  @exclude */
+   *  @hidden */
   @Override
   public boolean mouseClicked(MouseEvent e) {
     return false;
@@ -342,7 +358,7 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
 
   /**
    * .
-   *  @exclude */
+   *  @hidden */
   @Override
   public boolean mouseDragged(MouseEvent e) {
     return false;
@@ -350,7 +366,7 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
 
   /** 
    * .
-   * @exclude */
+   * @hidden */
   @Override
   public void mouseEntered(MouseEvent e) {
 
@@ -358,7 +374,7 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
 
   /** 
    * .
-   * @exclude */
+   * @hidden */
   @Override
   public void mouseExited(MouseEvent e) {
 
@@ -366,7 +382,7 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
 
   /** 
    * .
-   * @exclude */
+   * @hidden */
   @Override
   public void mouseMoved() {
 
@@ -374,7 +390,7 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
 
   /** 
    * .
-   * @exclude */
+   * @hidden */
   @Override
   public boolean mouseMoved(MouseEvent e) {
     return false;
@@ -382,7 +398,7 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
 
   /** 
    * .
-   * @exclude */
+   * @hidden */
   @Override
   public boolean mousePressed(MouseEvent e) {
     return false;
@@ -390,7 +406,7 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
 
   /** 
    * .
-   * @exclude */
+   * @hidden */
   @Override
   public boolean mouseReleased(MouseEvent e) {
     return false;

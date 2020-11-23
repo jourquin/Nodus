@@ -53,24 +53,34 @@ public class SelectPropertiesDlg extends EscapeDialog implements ShapeConstants 
 
   static final long serialVersionUID = -6021795944941747818L;
 
+  /** . */
   private JButton cancelButton = new JButton();
 
+  /** . */
   private JPanel mainPanel = new JPanel();
 
+  /** . */
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private NodusEsriLayer nodusEsriLayer;
 
+  /** . */
   private JButton okButton = new JButton();
 
+  /** . */
   private JCheckBox renderCheckBox = new JCheckBox();
 
+  /** . */
   private JCheckBox resultsCheckBox = new JCheckBox();
 
+  /** . */
   private RSyntaxTextArea sqlLabel = new RSyntaxTextArea();
 
+  /** . */
   private JCheckBox tooltipsCheckBox = new JCheckBox();
 
+  /** . */
   private RSyntaxTextArea whereStmt = new RSyntaxTextArea();
 
   /**

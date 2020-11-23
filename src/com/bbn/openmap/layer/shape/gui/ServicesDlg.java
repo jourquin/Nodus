@@ -55,23 +55,46 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
 
   private static final long serialVersionUID = 1L;
 
+  /** . */
   private JCheckList<String> checkList = null;
 
+  /** . */
   private JButton closeButton = null;
+  
+  /** . */
   private JPanel contentPane = null;
+  
+  /** . */
   private JScrollPane scrollPane = null;
+  
+  /** . */
   private JTable servicesTable = null;
+  
+  /** . */
   private TreeMap<String, ?> listNameForNode = null;
 
+  /** . */
   private DefaultTableModel modeltable = new DefaultTableModel();
+  
+  /** . */
   private NodusMapPanel nodusMapPanel;
+  
+  /** . */
   private int objectNum;
+  
+  /** . */
   private int objectType;
+  
+  /** . */
   private ServiceEditor serviceEditor;
+  
+  /** . */
   private LinkedList<?> serviceIdxForLink;
 
+  /** . */
   private LinkedList<?> serviceNameForLink;
 
+  /** . */
   private TableSorter sorter = null;
 
   /**

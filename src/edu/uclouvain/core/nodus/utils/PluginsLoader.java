@@ -45,6 +45,11 @@ public class PluginsLoader {
   private static LinkedList<Class<NodusPlugin>> availablePlugins =
       new LinkedList<Class<NodusPlugin>>();
 
+  /**
+   * Returns a list of available plugin's.
+   * 
+   * @return A LinkedList of available pugin's.
+   */
   public LinkedList<Class<NodusPlugin>> getAvailablePlugins() {
     return availablePlugins;
   }

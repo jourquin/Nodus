@@ -24,18 +24,44 @@
 		</java>
 	</target>
 
-	<!-- Build the API documentation -->
-	<target name="ApiDoc" description="Makes the javadoc API html documents.">
-		<echo message="Generating the Nodus API documentation" />
-		<delete dir="${basedir}/api" />
+	<!-- Build the API documentation  -->
+	
+	<condition property="OldJavadocAPI">
+	    <contains string="${ant.java.version}" substring="1.8" />
+    </condition>
+	
+	<target name="ApiDoc" description="Generates the javadoc API html documents."
+	    depends="ApiDoc-old, ApiDoc-new">
+	</target>
+	
+	<target name="PrepareApiDoc" description="Prepare the API doc generation.">
+	    <echo message="Generating the Nodus API documentation" />
+	    <delete dir="${basedir}/api" />
+	    <mkdir dir="${basedir}/api" />
+	</target>
+	    
+	<target name="ApiDoc-old" description="Makes the javadoc API html documents." if="OldJavadocAPI">
+	    <antcall target="PrepareApiDoc" />
+	    <javadoc sourcepath="${basedir}/src" destdir="${basedir}/api" maxmemory="256m" 
+	        excludepackagenames="com.bbn.openmap.layer.shape.displayindex,com.bbn.openmap.layer.image.capabilities,org.knowm.xchart.internal.*,edu.uclouvain.core.nodus.database.sql,edu.uclouvain.core.nodus.swing.osx" 
+	        encoding="UTF-8" docencoding="UTF-8" charset="UTF-8" 
+	        packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
+	        author="true" version="true" use="true" 
+	        windowtitle="Nodus 8.0 API" 
+	        doctitle="Nodus" bottom="Copyright 1991-2020, Université catholique de Louvain (UCLouvain), Center for Operations Research and Econometrics (CORE)" 
+	        doclet="HiddenDoclet" docletpath="${basedir}/devtools/HiddenDoclet.jar"
+	        classpathref="Nodus.classpath" failonerror="false" />
+    </target>
+	
+	<target name="ApiDoc-new" description="Makes the javadoc API html documents." unless="OldJavadocAPI">
+	    <antcall target="PrepareApiDoc" />
 		<javadoc sourcepath="${basedir}/src" destdir="${basedir}/api" maxmemory="256m" 
-			excludepackagenames="com.bbn.openmap.layer.shape.displayindex,com.bbn.openmap.layer.image.capabilities,org.knowm.xchart.internal*.*" 
+			excludepackagenames="com.bbn.openmap.layer.shape.displayindex,com.bbn.openmap.layer.image.capabilities,org.knowm.xchart.internal.*,edu.uclouvain.core.nodus.database.sql,edu.uclouvain.core.nodus.swing.osx" 
 			encoding="UTF-8" docencoding="UTF-8" charset="UTF-8" 
 			packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
 			author="true" version="true" use="true" 
 			windowtitle="Nodus 8.0 API" 
-			doctitle="Nodus" bottom="Copyright 1991-2020, Université catholique de Louvain (UCLouvain), Center for Operations Research and Econometrics (CORE)" 
-			doclet="ExcludeDoclet" docletpath="${basedir}/devtools/ExcludeDoclet.jar" 
+			doctitle="Nodus" bottom="Copyright 1991-2020, Université catholique de Louvain (UCLouvain), Center for Operations Research and Econometrics (CORE)"
 			classpathref="Nodus.classpath" failonerror="false" />
 	</target>
 

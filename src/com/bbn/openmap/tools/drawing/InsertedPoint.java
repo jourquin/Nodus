@@ -29,7 +29,7 @@ package com.bbn.openmap.tools.drawing;
  * between (xi,yi) and (xc,yc).
  *
  * @author Jorge Pinna
- * @exclude
+ * @hidden
  */
 class InsertedPoint {
   /**

@@ -55,6 +55,7 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
 
   static final long serialVersionUID = 1550789873018047426L;
 
+  /** . */
   private JComboBox<JComponent> nodusDrawingTool;
 
   /**

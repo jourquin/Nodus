@@ -32,10 +32,19 @@ import java.awt.event.WindowEvent;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 
+/**
+ * An extended DbfTableModel to be used with NodusMetaDbfTableModel.
+ * 
+ * @author Bart Jourquin
+ *
+ */
 public class NodusDbfTableModel extends DbfTableModel {
 
   private static final long serialVersionUID = -7993112735644200473L;
 
+  /**
+   * The layer that hold this table model.
+   */
   protected NodusEsriLayer layer;
 
   /**
@@ -57,6 +66,10 @@ public class NodusDbfTableModel extends DbfTableModel {
     _records = layer.getModel()._records;
   }
 
+  /**
+   * Creates a DbfTableModel from an input stream.
+   * @param is DbfInputStream.
+   */
   public NodusDbfTableModel(DbfInputStream is) {
     super(is);
   }

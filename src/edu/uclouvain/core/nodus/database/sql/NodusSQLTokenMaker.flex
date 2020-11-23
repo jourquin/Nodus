@@ -2,7 +2,7 @@
  * NodusSQLTokenMaker.java - Scanner for SQL.
  *
  */
-package edu.uclouvain.core.nodus.database.gui;
+package edu.uclouvain.core.nodus.database.sql;
 
 import java.io.*;
 import javax.swing.text.Segment;

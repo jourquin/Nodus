@@ -243,7 +243,7 @@ public class NodusConsole extends WindowAdapter
    * Action performed.
    *
    * @param evt ActionEvent
-   * @exclude
+   * @hidden
    */
   @Override
   public synchronized void actionPerformed(ActionEvent evt) {
@@ -271,7 +271,7 @@ public class NodusConsole extends WindowAdapter
 
   /** 
    * .
-   * @exclude 
+   * @hidden 
    **/
   @Override
   public synchronized void run() {
@@ -392,7 +392,7 @@ public class NodusConsole extends WindowAdapter
    * Closes the window and stops the "reader" threads.
    *
    * @param evt WindowEvent
-   * @exclude
+   * @hidden
    */
   @Override
   public synchronized void windowClosed(WindowEvent evt) {
@@ -416,7 +416,7 @@ public class NodusConsole extends WindowAdapter
    * Closes the console.
    * 
    * @param evt WindowEvent.
-   * @exclude
+   * @hidden
    */
   @Override
   public synchronized void windowClosing(WindowEvent evt) {

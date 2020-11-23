@@ -51,20 +51,28 @@ public class GenericPluginConsole extends JDialog {
 
   static final long serialVersionUID = 8603049111333400467L;
 
+  /** . */
   private JButton closeButton = new JButton();
 
+  /** . */
   private GridBagLayout gridBagLayout = new GridBagLayout();
 
+  /** . */
   private JScrollPane scrollPane = null;
 
+  /** . */
   private JTextArea textArea = null;
 
+  /** . */
   private Cursor originalCursor;
 
+  /** . */
   private JPanel panel1 = new JPanel();
 
+  /** . */
   private NodusPlugin nodusPlugin;
 
+  /** . */
   private JButton startButton = new JButton();
 
   /**

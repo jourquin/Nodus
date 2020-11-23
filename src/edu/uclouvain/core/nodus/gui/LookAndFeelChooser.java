@@ -49,6 +49,12 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 
+/**
+ * A dialog that presents the available look and feel's.
+ * 
+ * @author Bart Jourquin
+ *
+ */
 public class LookAndFeelChooser extends EscapeDialog {
 
   private static I18n i18n = Environment.getI18n();
@@ -110,28 +116,38 @@ public class LookAndFeelChooser extends EscapeDialog {
     return lafs.toArray(new UIManager.LookAndFeelInfo[0]);
   }
 
+  /** . */
   private JComboBox<String> availableLookAndFeelsComboBox;
 
+  /** . */
   private JButton cancelButton;
 
+  /** . */
   private UIManager.LookAndFeelInfo[] info;
 
+  /** . */
   private String[] lfNames;
 
+  /** . */
   private JPanel mainPanel = new JPanel();
 
+  /** . */
   private NodusMapPanel nodusMapPanel = null;
 
+  /** . */
   private JButton okButton;
 
+  /** . */
   private String currentLookAndFeelName;
 
+  /** . */
   private Properties properties = null;
 
+  /** . */
   private JCheckBox soundCheckBox = null;
 
   /**
-   * Creates a dialog with the available look&feels.
+   * Creates a dialog with the available look and feel's.
    *
    * @param nodusMapPanel The Nodus map panel.
    */

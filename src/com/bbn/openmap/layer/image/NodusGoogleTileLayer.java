@@ -44,7 +44,7 @@ public class NodusGoogleTileLayer extends NodusMapTileLayer {
 
   private static final long serialVersionUID = 2865864512036579668L;
 
-  /*
+  /**
    * Map types are stored in two arrays. One used for display (can be translated),
    * the other containing the type names as used by the Google API.
    */
@@ -55,10 +55,19 @@ public class NodusGoogleTileLayer extends NodusMapTileLayer {
     i18n.get(NodusGoogleTileLayer.class, "Hybrid", "Hybrid")
   };
 
+  /**
+   * Map types are stored in two arrays. One used for display (can be translated),
+   * the other containing the type names as used by the Google API.
+   */
   private final String[] googleMapType = {"roadmap", "terrain", "satellite", "hybrid"};
 
+  /** . */
   private JPanel mapTypesPanel = null;
+  
+  /** . */
   private Properties props;
+  
+  /** . */
   private JRadioButton[] typeRadioButtons;
 
   /** New GUI with the possibility to choose the map type to display. */

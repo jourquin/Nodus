@@ -42,16 +42,22 @@ public class NodusOMGraphic extends OMGraphicAdapter {
 
   private static final long serialVersionUID = -6793527844340119715L;
 
+  /** . */
   private Paint altFillPaint = clear;
 
+  /** . */
   private Paint altLinePaint = Color.lightGray;
 
+  /** . */
   private Paint altMattingPaint = Color.lightGray;
 
+  /** . */
   private Paint defaultLinePaint = Color.black;
 
+  /** . */
   private boolean oval = DEFAULT_ISOVAL;
 
+  /** . */
   private int radius = DEFAULT_RADIUS;
 
   /**
@@ -61,7 +67,7 @@ public class NodusOMGraphic extends OMGraphicAdapter {
    *
    * @param proj Projection
    * @return boolean
-   * @exclude
+   * @hidden
    */
   @Override
   public boolean generate(Projection proj) {

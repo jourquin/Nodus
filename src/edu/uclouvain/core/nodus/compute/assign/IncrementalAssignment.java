@@ -134,14 +134,11 @@ public class IncrementalAssignment extends Assignment {
           continue;
         }
 
-        // Must paths be saved
-        boolean withPaths = assignmentParameters.isSavePaths();
-
         // Get the number of threads
         int threads = assignmentParameters.getThreads();
 
         // (re)Compute costs
-        if (!virtualNet.computeCosts(iteration, scenario, odClass, withPaths, threads)) {
+        if (!virtualNet.computeCosts(iteration, scenario, odClass, threads)) {
           nodusMapPanel.stopProgress();
           return false;
         }

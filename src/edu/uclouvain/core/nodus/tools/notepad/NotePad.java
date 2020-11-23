@@ -63,7 +63,7 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  */
 public class NotePad extends JFrame {
 
-  // Handles ReDo actions
+  /** Handles ReDo actions. */
   private class RedoAction extends AbstractAction {
     static final long serialVersionUID = 6090244294501337377L;
 
@@ -138,76 +138,112 @@ public class NotePad extends JFrame {
   /** Convenient utility class with all the possible actions for the NotePad. */
   public NotePadActions actions = new NotePadActions(this);
 
+  /** . */
   private JButton copyButton;
 
+  /** . */
   private JMenuItem copyMenuItem;
 
+  /** . */
   private JButton cutButton;
 
+  /** . */
   private JMenuItem cutMenuItem;
 
+  /** . */
   private boolean displayFullPath;
 
+  /** . */
   private JMenu edit;
 
+  /** . */
   private JMenuItem exitMenuItem;
 
+  /** . */
   private JMenu file;
 
+  /** . */
   private String fileName = "";
 
+  /** . */
   private String filePath = "";
 
+  /** . */
   private JButton findButton;
 
+  /** . */
   private JMenuItem findMenuItem;
 
+  /** . */
   private JMenuItem findNexT;
 
+  /** . */
   private boolean isNewInstance = false;
 
+  /** . */
   private JMenuBar menuBar;
 
+  /** . */
   private JButton newButton;
 
+  /** . */
   private JMenuItem newMenuItem;
 
+  /** . */
   NodusFileFilter nodusFileFilter = new NodusFileFilter();
 
+  /** . */
   private JButton openBuuton;
 
+  /** . */
   private JMenuItem openMenuItem;
 
+  /** . */
   private JButton pasteButton;
 
+  /** . */
   private JMenuItem pasteMenuItem;
 
+  /** . */
   private JButton printButton;
 
+  /** . */
   private JMenuItem printMenuItem;
 
+  /** . */
   private RedoAction redoAction = new RedoAction();
 
+  /** . */
   private JButton redoButton;
 
+  /** . */
   private JButton saveAsButton;
 
+  /** . */
   private JMenuItem saveAsMenuItem;
 
+  /** . */
   private JButton saveButton;
 
+  /** . */
   private JMenuItem saveMenuItem;
 
+  /** . */
   private JMenuItem selectAllMenuItem;
 
+  /** . */
   private RSyntaxTextArea textPane;
 
+  /** . */
   private JToolBar toolBar;
 
+  /** . */
   private UndoAction undoAction = new UndoAction();
 
+  /** . */
   private JButton undoButton;
 
+  /** . */
   private UndoManager undoManager = new UndoManager();
 
   /**

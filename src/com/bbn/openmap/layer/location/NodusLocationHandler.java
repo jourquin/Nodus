@@ -263,6 +263,11 @@ public class NodusLocationHandler extends AbstractLocationHandler
     return nodusEsriLayer.getModel().getColumnIndexForName(locationFieldName);
   }
 
+  /**
+   * Get the name of the field that is used as location label.
+   * 
+   * @return The name of the field.
+   */
   public String getLocationFieldName() {
     return locationFieldName;
   }

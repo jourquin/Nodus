@@ -75,13 +75,16 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
   /** 'Add' button. */
   private JButton addButton = null;
 
+  /** The source table model. */
   private DbfTableModel source;
 
+  /** Set to true when a new record is added to the table model. */
   private boolean addingNewRecord = false;
+  
+  /** Index of the record that is modified. */
   private int dirtyRecordIndex = -1;
 
-  // String fileName;
-
+  
   /**
    * Constructor that allows the edition of the structure of the DbfTable of a NodusEsriLayer.
    *

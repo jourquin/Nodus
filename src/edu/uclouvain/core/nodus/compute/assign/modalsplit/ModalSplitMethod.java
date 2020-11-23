@@ -26,6 +26,12 @@ import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import java.util.List;
 
+/**
+ * Modal split method skeleton.
+ * 
+ * @author Bart Jourquin
+ *
+ */
 public abstract class ModalSplitMethod implements Cloneable {
 
   private AssignmentParameters assignmentParameters;
@@ -66,6 +72,11 @@ public abstract class ModalSplitMethod implements Cloneable {
     return assignmentParameters;
   }
 
+  /**
+   * Returns the group of commodities associated to this modal split method.
+   * 
+   * @return The ID of the group of commodities.
+   */
   public int getCurrentGroup() {
     return group;
   }

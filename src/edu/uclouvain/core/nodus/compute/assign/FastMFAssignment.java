@@ -151,14 +151,11 @@ public class FastMFAssignment extends Assignment {
         continue;
       }
 
-      // Must paths be saved
-      boolean withPaths = assignmentParameters.isSavePaths();
-
       // Get the number of threads
       int threads = assignmentParameters.getThreads();
 
       // The initial costs must be computed (these are the real costs)
-      if (!virtualNet.computeCosts(0, scenario, odClass, withPaths, threads)) {
+      if (!virtualNet.computeCosts(0, scenario, odClass, threads)) {
         nodusMapPanel.stopProgress();
 
         return false;

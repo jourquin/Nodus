@@ -101,65 +101,95 @@ public class ScaleAndCompassLayer extends OMGraphicHandlerLayer {
 
   private static I18n i18n = Environment.getI18n();
 
+  /** . */
   private String copyright = null;
 
+  /** . */
   private OMText copyrightText;
 
+  /** . */
   private Color copyrightTextColor = null;
 
+  /** . */
   private String defaultLineColorString = "FFFFFF";
 
+  /** . */
   private String defaultTextColorString = "FFFFFF";
 
+  /** . */
   private String defaultUnitOfMeasureString = "km";
 
+  /** . */
   private boolean displayWindRose = true;
 
+  /** . */
   private int height = 10;
 
+  /** . */
   private OMRaster imageRaster;
 
+  /** . */
   private JPanel panel1;
 
+  /** . */
   private JPanel panel2;
 
+  /** . */
   private JPanel panel3;
 
+  /** . */
   private JRadioButton kmRadioButton;
 
+  /** . */
   private int locationXoffset = -10;
 
+  /** . */
   private int locationYoffset = -10;
 
+  /** . */
   private JRadioButton meterRadioButton;
 
+  /** . */
   private JRadioButton mileRadioButton;
 
+  /** . */
   private JRadioButton nmRadioButton;
 
+  /** Intervals to display. */
   private int[] scaleIntervals =
       new int[] {1, 2, 5, 10, 20, 50, 100, 250, 500, 1000, 2000, 5000, 10000};
 
+  /** . */
   private Color scaleLineColor = null;
 
+  /** . */
   private Color scaleTextColor = null;
 
+  /** . */
   private String unitOfMeasureString = null;
 
+  /** . */
   private Length unitOfMeasure = Length.get(defaultUnitOfMeasureString);
 
+  /** . */
   private String unitOfMeasureAbbreviation = unitOfMeasure.getAbbr();
 
+  /** . */
   private ButtonGroup uomButtonGroup;
 
+  /** . */
   private int width = 150;
 
+  /** . */
   private OMRaster windRoseRaster;
 
+  /** . */
   private final Font defaultFont = new JLabel().getFont();
 
+  /** . */
   private Font copyrightTextFont = defaultFont;
 
+  /** . */
   private Font scaleTextFont = defaultFont;
 
   /**

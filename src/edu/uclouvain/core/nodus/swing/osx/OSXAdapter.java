@@ -1,4 +1,4 @@
-package edu.uclouvain.core.nodus.swing;
+package edu.uclouvain.core.nodus.swing.osx;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -64,6 +64,10 @@ public class OSXAdapter implements InvocationHandler {
   /**
    * Pass this method an Object and Method equipped to display application info They will be called
    * when the About menu item is selected from the application menu.
+   *
+   * @param target .
+   * @param aboutHandler .
+   * @hidden
    */
   public static void setAboutHandler(Object target, Method aboutHandler) {
     boolean enableAboutMenu = (target != null && aboutHandler != null);
@@ -87,6 +91,10 @@ public class OSXAdapter implements InvocationHandler {
   /**
    * Pass this method an Object and a Method equipped to display application options They will be
    * called when the Preferences menu item is selected from the application menu.
+   *
+   * @param target .
+   * @param prefsHandler .
+   * @hidden
    */
   public static void setPreferencesHandler(Object target, Method prefsHandler) {
     boolean enablePrefsMenu = (target != null && prefsHandler != null);
@@ -111,6 +119,10 @@ public class OSXAdapter implements InvocationHandler {
    * Pass this method an Object and a Method equipped to handle document events from the Finder
    * Documents are registered with the Finder via the CFBundleDocumentTypes dictionary in the
    * application bundle Info.plist.
+   *
+   * @param target .
+   * @param fileHandler .
+   * @hidden
    */
   public static void setFileHandler(Object target, Method fileHandler) {
     setHandler(
@@ -136,6 +148,9 @@ public class OSXAdapter implements InvocationHandler {
   /**
    * setHandler creates a Proxy object from the passed OSXAdapter and adds it as an
    * ApplicationListener.
+   *
+   * @param adapter .
+   * @hidden
    */
   public static void setHandler(OSXAdapter adapter) {
     try {
@@ -167,9 +182,9 @@ public class OSXAdapter implements InvocationHandler {
     }
   }
 
-  // Each OSXAdapter has the name of the EAWT method it intends to listen
-  // for (handleAbout, for example),
-  // the Object that will ultimately perform the task, and the Method to be called on that Object
+  // Each OSXAdapter has the name of the EAWT method it intends to listen for (handleAbout, for
+  // example), the Object that will ultimately perform the task, and the Method to be called on that
+  // Object.
   protected OSXAdapter(String proxySignature, Object target, Method handler) {
     this.proxySignature = proxySignature;
     this.targetObject = target;
@@ -179,6 +194,12 @@ public class OSXAdapter implements InvocationHandler {
   /**
    * Override this method to perform any operations on the event that comes with the various
    * callbacks See setFileHandler above for an example.
+   *
+   * @param appleEvent .
+   * @return .
+   * @throws InvocationTargetException .
+   * @throws IllegalAccessException .
+   * @hidden
    */
   public boolean callTarget(Object appleEvent)
       throws InvocationTargetException, IllegalAccessException {
@@ -189,9 +210,12 @@ public class OSXAdapter implements InvocationHandler {
     return Boolean.valueOf(result.toString()).booleanValue();
   }
 
+
   /**
    * InvocationHandler implementation This is the entry point for our proxy object; it is called
    * every time an ApplicationListener method is invoked.
+   *
+   * @hidden
    */
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     if (isCorrectMethod(method, args)) {

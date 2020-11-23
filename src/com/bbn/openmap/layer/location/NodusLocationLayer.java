@@ -101,7 +101,7 @@ public class NodusLocationLayer extends LocationLayer {
    *
    * @param e MouseEvent
    * @return boolean
-   * @exclude
+   * @hidden
    */
   public boolean mousePressed(MouseEvent e) {
 

@@ -27,13 +27,17 @@ import java.awt.event.KeyEvent;
 /**
  * Add keyboard shortcuts to the ProjMapBeanKeyListener.
  *
- * <p>- "+" to zoom in
+ * <br>
+ * "+" to zoom in
  *
- * <p>- "-" to zoom out
+ * <br>
+ * "-" to zoom out
  *
- * <p>- "<-" for previous view in stack
+ * <br>
+ *  "Left arrow" for previous view in stack
  *
- * <p>- "->" for next view in stack
+ * <br> 
+ * "Right arrow" for next view in stack
  *
  * @author Bart Jourquin
  */

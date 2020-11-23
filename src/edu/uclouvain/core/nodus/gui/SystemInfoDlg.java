@@ -46,21 +46,40 @@ public class SystemInfoDlg extends EscapeDialog {
 
   private static I18n i18n = Environment.getI18n();
 
+  /** . */
   private JButton closeButton = null;
 
+  /** . */
   private JPanel mainPanel = null;
 
+  /** . */
   private JEditorPane systemInfo = null;
 
+  /** . */
   private JScrollPane infoScrollPane = new JScrollPane();
 
+  /** . */
   private String computerInfo = HardwareUtils.getComputerInfo();
+  
+  /** . */
   private String processorInfo = HardwareUtils.getProcessorInfo();
+  
+  /** . */
   private String displayInfo = HardwareUtils.getDisplayInfo();
+  
+  /** . */
   private String graphicCardsInfo = HardwareUtils.getGraphicsCardInfo();
+  
+  /** . */
   private String osInfo = HardwareUtils.getOsInfo();
+  
+  /** . */
   private String totalMemoryInfo = HardwareUtils.getTotalMemoryInfo();
+  
+  /** . */
   private String availableMemoryInfo = HardwareUtils.getAvailableMemoryInfo();
+  
+  /** . */
   private String htmlDescription;
 
   /**

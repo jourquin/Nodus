@@ -70,56 +70,82 @@ public class WmsLayersChooserDlg extends EscapeDialog implements MouseListener {
 
   static final long serialVersionUID = -5315204521446748054L;
 
+  /** . */
   private JButton addButton = new JButton(i18n.get(WmsLayersChooserDlg.class, "Add", "Add"));
 
+  /** . */
   private JScrollPane availableLayersScrollPane = new JScrollPane();
 
+  /** . */
   private JButton cancelButton = new JButton();
 
+  /** . */
   private JButton clearButton = new JButton();
 
+  /** . */
   private JPanel controlButtonsPanel = new JPanel();
 
+  /** . */
   private GridBagLayout controlButtonsPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private JButton deleteButton = new JButton();
 
+  /** . */
   private JButton downButton = new JButton();
 
+  /** . */
   private JLabel infoLabel = new JLabel();
 
+  /** . */
   private JScrollPane infoScrollPane = new JScrollPane();
 
+  /** . */
   private JTextArea infoTextArea = new JTextArea();
 
+  /** . */
   private JList<Object> layerList = new JList<Object>();
 
+  /** . */
   private JPanel layersControlPanel = new JPanel();
 
+  /** . */
   private GridBagLayout layersControlPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private JTree layerTree;
 
+  /** . */
   private DefaultListModel<Object> listModel = new DefaultListModel<Object>();
 
+  /** . */
   private JPanel mainPanel = new JPanel();
 
+  /** . */
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private NodusWMSLayer nodusWmsLayer;
 
+  /** . */
   private JButton okButton = new JButton();
 
+  /** . */
   private String oldLayers;
 
+  /** . */
   private String prefix;
 
+  /** . */
   private Properties properties;
 
+  /** . */
   private JScrollPane selectedLayersScrollPane = new JScrollPane();
 
+  /** . */
   private Vector<?> treeData;
 
+  /** . */
   private JButton upButton = new JButton();
 
   /**
@@ -566,7 +592,7 @@ public class WmsLayersChooserDlg extends EscapeDialog implements MouseListener {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void mouseClicked(MouseEvent e) {
@@ -576,7 +602,7 @@ public class WmsLayersChooserDlg extends EscapeDialog implements MouseListener {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void mouseEntered(MouseEvent e) {
@@ -586,7 +612,7 @@ public class WmsLayersChooserDlg extends EscapeDialog implements MouseListener {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void mouseExited(MouseEvent e) {
@@ -664,7 +690,7 @@ public class WmsLayersChooserDlg extends EscapeDialog implements MouseListener {
   /**
    * .
    *
-   * @exclude
+   * @hidden
    */
   @Override
   public void mouseReleased(MouseEvent e) {

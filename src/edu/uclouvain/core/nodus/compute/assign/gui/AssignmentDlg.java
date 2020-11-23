@@ -115,128 +115,190 @@ public class AssignmentDlg extends EscapeDialog {
 
   private static final long serialVersionUID = -5202158951878619321L;
 
+  /** . */
   private JRadioButton allOrNothingRadioButton = new JRadioButton();
 
+  /** . */
   private JPanel aonTab = new JPanel();
 
+  /** . */
   private GridBagLayout aonTabgridBagLayout = new GridBagLayout();
 
+  /** . */
   private JButton assignButton = new JButton();
 
+  /** . */
   private ButtonGroup assignmentButtonGroup = new ButtonGroup();
 
+  /** . */
   private JTabbedPane assignmentTabbedPane = new JTabbedPane();
 
+  /** . */
   private JButton cancelButton = new JButton();
 
+  /** . */
   private JComboBox<String> costFunctionsComboBox = new JComboBox<>();
 
+  /** . */
   private JLabel costFunctionsLabel = new JLabel();
 
+  /** . */
   private JLabel costMarkUpLabel = new JLabel();
 
+  /** . */
   private JSpinner costMarkupSpinner = new JSpinner();
 
+  /** . */
   private JLabel descriptionLabel = new JLabel();
 
+  /** . */
   private JTextField descriptionTextField = new JTextField();
 
+  /** . */
   private JCheckBox detailedPathCheckBox = new JCheckBox();
 
+  /** . */
   private JRadioButton dynamicTimeDependentRadioButton = null;
 
+  /** . */
   private JPanel equilibriumTab = new JPanel();
 
+  /** . */
   private GridBagLayout equilibriumTabGridBagLayout = new GridBagLayout();
 
+  /** . */
   private JRadioButton exactMFRadioButton = new JRadioButton();
 
+  /** . */
   private JRadioButton fastMFRadioButton = new JRadioButton();
 
+  /** . */
   private JRadioButton frankWolfeRadioButton = new JRadioButton();
 
+  /** . */
   private JCheckBox highlightedAreaCheckBox = new JCheckBox();
 
+  /** . */
   private JRadioButton incFrankWolfeRadioButton = new JRadioButton();
 
+  /** . */
   private JRadioButton incrementalRadioButton = new JRadioButton();
 
+  /** . */
   private JLabel iterationLabel = new JLabel();
 
+  /** . */
   private JSpinner iterationSpinner = new JSpinner();
 
+  /** . */
   private JCheckBox keepCheapestOnlyCheckBox = null;
 
+  /** . */
   private JCheckBox lostPathsCheckBox = null;
 
+  /** . */
   private JPanel mainPanel = new JPanel();
 
+  /** . */
   private GridBagLayout mainPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private JLabel maxDetourLabel = null;
 
+  /** . */
   private JSpinner maxDetourSpinner = null;
 
+  /** . */
   private JLabel methodLabel = new JLabel();
 
+  /** . */
   private JComboBox<ModalSplitMethodName> modalSplitMethodComboBox = null;
 
+  /** . */
   private JLabel modalSplitMethodLabel = null;
 
+  /** . */
   private ModalSplitMethodName[] modalSplitMethodNames;
 
+  /** . */
   private JRadioButton msaRadioButton = new JRadioButton();
 
+  /** . */
   private JPanel multiflowTab = new JPanel();
 
+  /** . */
   private GridBagLayout multiflowTabGridBagLayout = new GridBagLayout();
 
+  /** . */
   private NodusMapPanel nodusMapPanel = null;
 
+  /** . */
   private Vector<String> odTables = null;
 
+  /** . */
   private JComboBox<String> odTablesComboBox = new JComboBox<>();
 
+  /** . */
   private JLabel odTablesLabel = new JLabel(i18n.get(AssignmentDlg.class, "OD_table", "OD table:"));
 
+  /** . */
   private JCheckBox pathsCheckBox = new JCheckBox();
 
+  /** . */
   private JTextField postAssignmentScriptTextField = new JTextField();
 
+  /** . */
   private JCheckBox postAssignScriptChekbox = new JCheckBox();
 
+  /** . */
   private JLabel precisionLabel = new JLabel();
 
+  /** . */
   private JSpinner precisionSpinner = new JSpinner();
 
+  /** . */
   private JButton preferencesButton = null;
 
+  /** . */
   private JLabel scenarioLabel = new JLabel();
 
+  /** . */
   private JPanel scenarioPanel = new JPanel();
 
+  /** . */
   private GridBagLayout scenarioPanelGridBagLayout = new GridBagLayout();
 
+  /** . */
   private JSpinner scenarioSpinner = new JSpinner();
 
+  /** . */
   private RSyntaxTextArea sqlLabel = new RSyntaxTextArea();
 
+  /** . */
   private RSyntaxTextArea sqlTextArea = new RSyntaxTextArea();
 
+  /** . */
   private JRadioButton staticAoNTimeDependentRadioButton = null;
 
+  /** . */
   private JLabel threadsLabel = null;
 
+  /** . */
   private JSpinner threadsSpinner = null;
 
+  /** . */
   private JPanel timeDependentTab = new JPanel();
 
+  /** . */
   private GridBagLayout timeDependentTabGridBagLayout = new GridBagLayout();
 
+  /** . */
   private final JButton saveButton = new JButton();
 
+  /** . */
   private int nbPhysicalCores = 1;
 
+  /** . */
   private int nbLogicalCores = 1;
 
   /**

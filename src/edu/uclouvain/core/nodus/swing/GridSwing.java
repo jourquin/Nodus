@@ -33,8 +33,10 @@ public class GridSwing extends AbstractTableModel {
 
   private static final long serialVersionUID = 8944633970142019137L;
 
+  /** . */
   private String[] headers;
 
+  /** . */
   private Vector<String[]> rows;
 
   /** Default constructor. */

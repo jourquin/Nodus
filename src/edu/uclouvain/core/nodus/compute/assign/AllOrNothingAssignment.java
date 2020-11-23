@@ -130,14 +130,11 @@ public class AllOrNothingAssignment extends Assignment {
         continue;
       }
 
-      // Must paths be saved
-      boolean withPaths = assignmentParameters.isSavePaths();
-
       // Get the number of threads
       int threads = assignmentParameters.getThreads();
 
       // Compute costs
-      if (!virtualNet.computeCosts(0, scenario, odClass, withPaths, threads)) {
+      if (!virtualNet.computeCosts(0, scenario, odClass, threads)) {
         return false;
       }
 

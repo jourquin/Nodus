@@ -138,20 +138,28 @@ public class NodusGroovyConsole extends NotePad {
 
   private static String thisComponentName = "NodusGroovyConsole";
 
+  /** . */
   private GroovyThread job = null;
 
+  /** . */
   private NodusMapPanel nodusMapPanel;
 
+  /** . */
   private JMenu run;
 
+  /** . */
   private JButton runButton;
 
+  /** . */
   private JMenuItem runGroovyShell;
 
+  /** . */
   private ImageIcon runIcon = new ImageIcon(getClass().getResource("images/run.png"));
 
+  /** . */
   private boolean running = false;
 
+  /** . */
   private ImageIcon stopIcon = new ImageIcon(getClass().getResource("images/stop.png"));
 
   /**

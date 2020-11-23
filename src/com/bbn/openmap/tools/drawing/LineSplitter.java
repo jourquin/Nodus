@@ -29,7 +29,7 @@ import java.util.LinkedList;
  * node.
  *
  * @author Jorge Pinna
- * @exclude
+ * @hidden
  */
 class LineSplitter {
   /** Number of the Destination Node. */

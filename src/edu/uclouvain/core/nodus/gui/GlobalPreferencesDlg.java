@@ -59,26 +59,57 @@ public class GlobalPreferencesDlg extends EscapeDialog {
 
   private static I18n i18n = Environment.getI18n();
 
+  /** . */
   private JPanel contentPanel = new JPanel();
+  
+  /** . */
   private JPanel dbPanel;
+  
+  /** . */
   private JRadioButton derbyRadioButton;
+  
+  /** . */
   private JCheckBox displayFullPathCheckBox;
+  
+  /** . */
   private JTextField gcIntervalTextField;
+  
+  /** . */
   private JRadioButton h2RadioButton;
+  
+  /** . */
   private JRadioButton hsqldbRadioButton;
+  
+  /** . */
   private JTextField maxSqlRowsTextField;
+  
+  /** . */
   private JCheckBox navMouseModeCheckBox;
+  
+  /** . */
   private NodusMapPanel nodusMapPanel;
+  
+  /** . */
   private ButtonGroup sgdbGroup;
+  /** . */
   private JRadioButton sqliteRadioButton;
 
+  /** . */
   private JCheckBox stickyDrawingToolCheckBox;
 
+  /** . */
   private JCheckBox reloadLastProjectCheckBox;
+  
+  /** . */
   private JCheckBox subframesAlwaysOnCheckBox;
+  
+  /** . */
   private JCheckBox useNativeGroovyConsoleCheckBox;
+  
+  /** . */
   private JCheckBox antialiasingCheckBox;
-
+  
+  /** . */
   private boolean oldAntialiasing;
 
   /**

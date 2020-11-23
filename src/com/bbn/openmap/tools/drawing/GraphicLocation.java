@@ -28,7 +28,7 @@ import com.bbn.openmap.omGraphics.OMGraphic;
  * the layer and the index into this layer.
  *
  * @author Bart Jourquin
- * @exclude
+ * @hidden
  */
 class GraphicLocation {
   /** Index of the layer that contains the object. */

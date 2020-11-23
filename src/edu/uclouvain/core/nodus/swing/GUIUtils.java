@@ -113,7 +113,7 @@ public class GUIUtils {
   }
 
   /**
-   * Suppress the illegal reflective access operation warnings thrown by JVM >= 9 when
+   * Suppress the illegal reflective access operation warnings thrown by JVM 9 and newer when
    * com.apple.aewt classes are used. The Nodus code should be able to call the java.desktop classes
    * that now natively support the Apple desktop, but this needs is not supported by JVM 8.
    */

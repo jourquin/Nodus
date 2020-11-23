@@ -87,52 +87,76 @@ public class ResultsDlg extends EscapeDialog {
   /** Set of possible results to display on nodes. */
   static String[] nodeActions = {i18n.get(ResultsDlg.class, "OD_matrix", "O-D matrix")};
 
+  /** . */
   private JComboBox<String> actionsComboBox = new JComboBox<>();
 
+  /** . */
   private ButtonGroup buttonGroup = new ButtonGroup();
 
+  /** . */
   private JButton cancelButton = new JButton();
 
+  /** . */
   private int currentAction = -1;
 
+  /** . */
   private int currentScenario;
 
+  /** . */
   private JButton defaultQueryButton = null;
 
+  /** . */
   private JCheckBox exportCheckBox = null;
 
+  /** . */
   private GridBagLayout gridBagLayout1 = new GridBagLayout();
 
+  /** . */
   private JRadioButton linkRadioButton = new JRadioButton();
 
+  /** . */
   private String linksFlowQueryString = "";
 
+  /** . */
   private String dynamicFlowQueryString = "";
 
+  /** . */
   private String linksVehiclesQueryString = "";
 
+  /** . */
   private JPanel mainPanel = new JPanel();
 
+  /** . */
   private JRadioButton nodeRadioButton = new JRadioButton();
 
+  /** . */
   private String nodesFlowQueryString = "";
 
+  /** . */
   private NodusMapPanel nodusMapPanel;
 
+  /** . */
   private NodusProject nodusProject;
 
+  /** . */
   private JButton okButton = new JButton();
 
+  /** . */
   private String pathQueryString = "";
 
+  /** . */
   private JButton resetButton = new JButton();
 
+  /** . */
   private JLabel sqlLabel = new JLabel();
 
+  /** . */
   private RSyntaxTextArea sqlTextPane = new RSyntaxTextArea();
 
+  /** . */
   private final JButton statsButton = new JButton();
 
+  /** . */
   private final JCheckBox relativeToViewCheckBox = new JCheckBox();
 
   /**

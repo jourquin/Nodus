@@ -32,6 +32,12 @@ import java.text.MessageFormat;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 
+/**
+ * Convenience class with network utilities.
+ * 
+ * @author Bart Jourquin
+ *
+ */
 public class NetUtils {
 
   private static I18n i18n = Environment.getI18n();

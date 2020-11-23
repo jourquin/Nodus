@@ -100,7 +100,7 @@ public class Print implements Printable {
    * @param pageFormat PageFormat
    * @param pageIndex int
    * @return int
-   * @exclude
+   * @hidden
    */
   @Override
   public int print(Graphics g, PageFormat pageFormat, int pageIndex) {
