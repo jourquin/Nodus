@@ -177,7 +177,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Tested with Java 11 and 15
     - The assignments are now canceled (with an error message) if a path has a non strictly positive cost.
     - SystemInfoDlg replaces ArchInfoDlg and gives now also information about the system hardware.
-    - Change default Windows and Mac install directory to user home directory.
+    - Change default install directory to the user home directory.
     - Replace Windows Nodus.exe with a Windows shortcut because the .exe generation was often intercepted by anti-virus software.
     - Disable the "services". Still too buggy to remain in public distribution.
     - Initial scale and center lat/lon point are now reset when a project is closed.

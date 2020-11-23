@@ -29,6 +29,7 @@
 	<variables>
 		<variable name="TargetPanel.dir.windows" value="${ENV[USERPROFILE]}\Nodus8" />
 		<variable name="TargetPanel.dir.mac" value="${ENV[HOME]}/Nodus8" />
+		<variable name="TargetPanel.dir.linux" value="${ENV[HOME]}/Nodus8" />
 	</variables>
 
 	<!-- The resources section -->
