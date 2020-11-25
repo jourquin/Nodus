@@ -41,9 +41,9 @@ import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.results.gui.ResultsDlg;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
-import foxtrot.Job;
-import foxtrot.Worker;
 import java.awt.BasicStroke;
+import java.awt.SecondaryLoop;
+import java.awt.Toolkit;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.FileInputStream;
@@ -113,6 +113,8 @@ public class LinkResults implements ShapeConstants {
   private float ulLat;
 
   private float ulLon;
+
+  private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
   /**
    * Initializes the class.
@@ -642,10 +644,10 @@ public class LinkResults implements ShapeConstants {
       currentTime += timeSliceDuration;
 
       // Wait 1 second or press "Enter" to display next time slice
-      Worker.post(
-          new Job() {
-            @Override
-            public Object run() {
+      SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+      Thread work =
+          new Thread() {
+            public void run() {
               try {
                 if (autoSliceDisplay) {
                   Thread.sleep(sliceDisplayInterval);
@@ -657,9 +659,12 @@ public class LinkResults implements ShapeConstants {
               } catch (InterruptedException e) {
                 e.printStackTrace();
               }
-              return null;
+              loop.exit();
             }
-          });
+          };
+
+      work.start();
+      loop.enter();
 
       if (cancelDisplay) {
         break;
@@ -724,10 +729,10 @@ public class LinkResults implements ShapeConstants {
   /** Resets the link layers in order to reset the result field of each graphic. */
   void resetResults() {
 
-    Worker.post(
-        new Job() {
-          @Override
-          public Object run() {
+    SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+    Thread work =
+        new Thread() {
+          public void run() {
             NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
             for (NodusEsriLayer element : linkLayers) {
               EsriGraphicList egl = element.getEsriGraphicList();
@@ -738,9 +743,12 @@ public class LinkResults implements ShapeConstants {
                 rno.setResult(0.0);
               }
             }
-            return null;
+            loop.exit();
           }
-        });
+        };
+
+    work.start();
+    loop.enter();
   }
 
   /** Rounds the results obtained on the different links. */

@@ -37,8 +37,8 @@ import edu.uclouvain.core.nodus.database.dbf.DBFField;
 import edu.uclouvain.core.nodus.database.dbf.DBFReader;
 import edu.uclouvain.core.nodus.database.dbf.DBFWriter;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
-import foxtrot.Job;
-import foxtrot.Worker;
+import java.awt.SecondaryLoop;
+import java.awt.Toolkit;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -65,6 +65,8 @@ public class ProjectFilesTools implements ShapeConstants {
 
   private static boolean result;
 
+  private static Toolkit toolKit = Toolkit.getDefaultToolkit();
+
   /**
    * Add the "enabled" field to the dbf file of a link layer. This is a convenient method added in
    * order to upgrade the DBF files transparently (no end user action requested).
@@ -78,16 +80,16 @@ public class ProjectFilesTools implements ShapeConstants {
     new NodusConsole();
 
     result = true;
-    Worker.post(
-        new Job() {
-          @Override
-          public Object run() {
 
+    SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+    Thread work =
+        new Thread() {
+          public void run() {
             System.out.println("Upgrading " + path + layerName + NodusC.TYPE_DBF);
 
             List<Object[]> data = new LinkedList<Object[]>();
 
-            DBFField[] fields;
+            DBFField[] fields = null;
             try {
               DBFReader dbfReader = new DBFReader(path + layerName + NodusC.TYPE_DBF);
 
@@ -126,7 +128,7 @@ public class ProjectFilesTools implements ShapeConstants {
             } catch (DBFException e) {
               e.printStackTrace();
               result = false;
-              return null;
+              loop.exit();
             }
 
             // Write the upgraded DBF file
@@ -140,12 +142,15 @@ public class ProjectFilesTools implements ShapeConstants {
             } catch (DBFException e) {
               e.printStackTrace();
               result = false;
-              return null;
+              loop.exit();
             }
 
-            return null;
+            loop.exit();
           }
-        });
+        };
+
+    work.start();
+    loop.enter();
 
     return result;
   }

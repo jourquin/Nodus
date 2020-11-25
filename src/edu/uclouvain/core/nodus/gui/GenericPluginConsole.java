@@ -24,13 +24,13 @@ package edu.uclouvain.core.nodus.gui;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusPlugin;
-import foxtrot.Task;
-import foxtrot.Worker;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.SecondaryLoop;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.JButton;
@@ -74,6 +74,9 @@ public class GenericPluginConsole extends JDialog {
 
   /** . */
   private JButton startButton = new JButton();
+
+  /** . */
+  private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
   /**
    * Creates a simple output console for a Nodus plugin.
@@ -152,18 +155,7 @@ public class GenericPluginConsole extends JDialog {
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
-            try {
-              Worker.post(
-                  new Task() {
-                    @Override
-                    public Object run() throws Exception {
-                      nodusPlugin.doStart();
-                      return null;
-                    }
-                  });
-            } catch (Exception e1) {
-              e1.printStackTrace();
-            }
+            startButtonAction();
           }
         };
 
@@ -239,5 +231,19 @@ public class GenericPluginConsole extends JDialog {
       setCursor(originalCursor);
       textArea.setCursor(originalCursor);
     }
+  }
+
+  private void startButtonAction() {
+    SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+    Thread work =
+        new Thread() {
+          public void run() {
+            nodusPlugin.doStart();
+            loop.exit();
+          }
+        };
+
+    work.start();
+    loop.enter();
   }
 }

@@ -187,6 +187,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Remove the JFlowMap companion app (old fashioned and not really useful).
     - Detect not permitted file access on Mac OS.
     - The Ant ApiDoc task is now compatible with the old and new javadoc API.
+    - Get rid of the foxtrot API which causes illegal reflective access warnings. Use the native "SecondaryLoop" Java interface.
 
 - Breaking changes:
     - Simplify the API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 

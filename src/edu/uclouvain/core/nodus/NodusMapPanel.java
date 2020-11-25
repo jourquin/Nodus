@@ -103,8 +103,6 @@ import edu.uclouvain.core.nodus.utils.HardwareUtils;
 import edu.uclouvain.core.nodus.utils.JavaVersionUtil;
 import edu.uclouvain.core.nodus.utils.PluginsLoader;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
-import foxtrot.Job;
-import foxtrot.Worker;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -120,6 +118,7 @@ import java.awt.Insets;
 import java.awt.Paint;
 import java.awt.Point;
 import java.awt.RenderingHints;
+import java.awt.SecondaryLoop;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
@@ -443,6 +442,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   private static MapBeanRepaintPolicy defaultMapBeanRepaintPolicy;
 
+  private static Toolkit toolKit = Toolkit.getDefaultToolkit();
+
   /**
    * Creates all the GUI components needed by Nodus on the application's panel. The application's
    * properties are also passed as a parameter in order to restore and save the application "state".
@@ -523,10 +524,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     // Entry point for test features... callable by F8 or F9
     final NodusMapPanel _this = this;
     final String _className = className;
-    Worker.post(
-        new Job() {
-          @Override
-          public Object run() {
+
+    SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+    Thread work =
+        new Thread() {
+          public void run() {
             if (_className != null) {
               try {
                 Class<?> testClass = Class.forName(_className);
@@ -534,30 +536,26 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
                 ctor.newInstance(new Object[] {_this});
               } catch (ClassNotFoundException e) {
                 e.printStackTrace();
-                return null;
               } catch (NoSuchMethodException e) {
                 e.printStackTrace();
-                return null;
               } catch (SecurityException e) {
                 e.printStackTrace();
-                return null;
               } catch (InstantiationException e) {
                 e.printStackTrace();
-                return null;
               } catch (IllegalAccessException e) {
                 e.printStackTrace();
-                return null;
               } catch (IllegalArgumentException e) {
                 e.printStackTrace();
-                return null;
               } catch (InvocationTargetException e) {
                 e.printStackTrace();
-                return null;
               }
             }
-            return null;
+            loop.exit();
           }
-        });
+        };
+
+    work.start();
+    loop.enter();
   }
 
   /**

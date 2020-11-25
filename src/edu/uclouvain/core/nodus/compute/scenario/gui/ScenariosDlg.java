@@ -29,13 +29,13 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.scenario.Scenarios;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
-import foxtrot.Job;
-import foxtrot.Worker;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.SecondaryLoop;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.text.DecimalFormat;
@@ -135,6 +135,8 @@ public class ScenariosDlg extends EscapeDialog {
 
   /** . */
   private RSyntaxTextArea whereTextPane = new RSyntaxTextArea();
+
+  private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
   /**
    * Initializes a new dialog box.
@@ -362,14 +364,18 @@ public class ScenariosDlg extends EscapeDialog {
 
         // Compare
         setBusy(true);
-        Worker.post(
-            new Job() {
-              @Override
-              public Object run() {
+        SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+        Thread work =
+            new Thread() {
+              public void run() {
                 scenarios.compare(scenario1, scenario2, result, whereString);
-                return null;
+                loop.exit();
               }
-            });
+            };
+
+        work.start();
+        loop.enter();
+
         setBusy(false);
 
         // Describe the resulting scenario
@@ -471,14 +477,19 @@ public class ScenariosDlg extends EscapeDialog {
 
         // Sum
         setBusy(true);
-        Worker.post(
-            new Job() {
-              @Override
-              public Object run() {
+
+        SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+        Thread work =
+            new Thread() {
+              public void run() {
                 scenarios.sum(scenario1, scenario2, result, whereString);
-                return null;
+                loop.exit();
               }
-            });
+            };
+
+        work.start();
+        loop.enter();
+
         setBusy(false);
 
         // Describe the resulting scenario

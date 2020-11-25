@@ -53,12 +53,12 @@ import edu.uclouvain.core.nodus.utils.CommentedProperties;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.NodusFileFilter;
 import edu.uclouvain.core.nodus.utils.ProjectLocker;
-import foxtrot.Job;
-import foxtrot.Worker;
 import groovy.lang.GroovyShell;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Frame;
+import java.awt.SecondaryLoop;
+import java.awt.Toolkit;
 import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.FileInputStream;
@@ -245,6 +245,8 @@ public class NodusProject implements ShapeConstants {
   /** Lat/Lon of center point at starting time. */
   private LatLonPoint initialCenterPoint;
 
+  private static Toolkit toolKit = Toolkit.getDefaultToolkit();
+
   /**
    * The constructor just needs to know the frame the project will be displayed on.
    *
@@ -420,14 +422,17 @@ public class NodusProject implements ShapeConstants {
                 nodusMapPanel.setText(
                     i18n.get(NodusProject.class, "Compacting", "Compacting database..."));
 
-                Worker.post(
-                    new Job() {
-                      @Override
-                      public Object run() {
+                SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+                Thread work =
+                    new Thread() {
+                      public void run() {
                         JDBCUtils.shutdownCompact();
-                        return null;
+                        loop.exit();
                       }
-                    });
+                    };
+
+                work.start();
+                loop.enter();
               }
             }
           }
@@ -1020,11 +1025,10 @@ public class NodusProject implements ShapeConstants {
       final String currentTable = st.nextToken();
       // Import only if not exists
       if (!JDBCUtils.tableExists(currentTable)) {
-        // Use a FoxTrot worker to displau "importing" message
-        Worker.post(
-            new Job() {
-              @Override
-              public Object run() {
+        SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+        Thread work =
+            new Thread() {
+              public void run() {
                 getNodusMapPanel()
                     .setText(
                         MessageFormat.format(
@@ -1032,9 +1036,12 @@ public class NodusProject implements ShapeConstants {
                                 NodusProject.class, "Importing", "Importing \"{0}\" in database"),
                             currentTable));
                 ImportDBF.importTable(thisProject, currentTable);
-                return null;
+                loop.exit();
               }
-            });
+            };
+
+        work.start();
+        loop.enter();
       }
     }
   }
@@ -1722,14 +1729,18 @@ public class NodusProject implements ShapeConstants {
 
       final NodusEsriLayer nep = nodeLayers[n];
       final NodusProject _this = this;
-      Worker.post(
-          new Job() {
-            @Override
-            public Object run() {
+
+      SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+      Thread work =
+          new Thread() {
+            public void run() {
               nep.setProject(_this, currentName);
-              return null;
+              loop.exit();
             }
-          });
+          };
+
+      work.start();
+      loop.enter();
 
       // Create a new location handler based on the ESRI layer
       nodesLocationHandler[n] = new NodusLocationHandler(nodeLayers[n]);
@@ -1787,14 +1798,17 @@ public class NodusProject implements ShapeConstants {
 
       final NodusEsriLayer nep = linkLayers[n];
       final NodusProject _this = this;
-      Worker.post(
-          new Job() {
-            @Override
-            public Object run() {
+      SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+      Thread work =
+          new Thread() {
+            public void run() {
               nep.setProject(_this, currentLayerName);
-              return null;
+              loop.exit();
             }
-          });
+          };
+
+      work.start();
+      loop.enter();
 
       // Create a new location handler based on the ESRI layer
       linksLocationHandler[n] = new NodusLocationHandler(linkLayers[n]);
@@ -1820,14 +1834,17 @@ public class NodusProject implements ShapeConstants {
 
     /* Load the numbers of the objects that are in shapefiles in this directory,
      * but not in current project */
-    Worker.post(
-        new Job() {
-          @Override
-          public Object run() {
+    SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+    Thread work =
+        new Thread() {
+          public void run() {
             loadOtherLayersObjectNumbers();
-            return null;
+            loop.exit();
           }
-        });
+        };
+
+    work.start();
+    loop.enter();
 
     // Tell the drawing tool to which layers it has to speak with
     nodusMapPanel.getNodusDrawingTool().setNodusLayers(nodeLayers, linkLayers);

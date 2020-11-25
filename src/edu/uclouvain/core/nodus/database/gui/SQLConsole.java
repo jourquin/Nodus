@@ -38,9 +38,6 @@ import edu.uclouvain.core.nodus.swing.GridSwing;
 import edu.uclouvain.core.nodus.swing.TableSorter;
 import edu.uclouvain.core.nodus.utils.NodusFileFilter;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
-import foxtrot.ConcurrentWorker;
-import foxtrot.Job;
-import foxtrot.Worker;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -48,6 +45,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Insets;
+import java.awt.SecondaryLoop;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -87,7 +85,6 @@ import javax.swing.JTextPane;
 import javax.swing.JToolBar;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
@@ -309,6 +306,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   private boolean withEcho = true;
 
   private boolean withGUI = true;
+
+  private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
   /**
    * Displays the SQL console and connects it to the project database.
@@ -882,27 +881,19 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     final long start = System.currentTimeMillis();
     final int pos = sqlCommandsArea.getCaretPosition();
 
-    try {
-      Worker.post(
-          new Job() {
-            @Override
-            public Object run() {
-              execute();
-              return null;
-            }
-          });
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-
-    // Put this out of the Foxtrot job to avoid exception
-    SwingUtilities.invokeLater(
-        new Runnable() {
-          @Override
+    SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+    Thread work =
+        new Thread() {
           public void run() {
-            gridResultArea.fireTableChanged(null);
+            execute();
+            loop.exit();
           }
-        });
+        };
+
+    work.start();
+    loop.enter();
+
+    gridResultArea.fireTableChanged(null);
 
     // Deselect commands
     int end = sqlCommandsArea.getSelectionEnd();
@@ -1413,7 +1404,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   }
 
   /** Creates the GUI. */
-  //@SuppressWarnings("deprecation")
+  // @SuppressWarnings("deprecation")
   void initialize() {
 
     frame = new JFrame(NodusC.APPNAME);
@@ -1915,11 +1906,10 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     rootNode.removeAllChildren();
     treeModel.nodeStructureChanged(rootNode);
 
-    ConcurrentWorker.post(
-        new Job() {
-          @Override
-          public Object run() {
-
+    SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+    Thread work =
+        new Thread() {
+          public void run() {
             DefaultMutableTreeNode propertiesNode;
             Cursor oldC = treeScrollPane.getCursor();
             treeScrollPane.setCursor(new Cursor(Cursor.WAIT_CURSOR));
@@ -2062,9 +2052,14 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
             // treeModel.nodeStructureChanged(rootNode);
 
             treeScrollPane.setCursor(oldC);
-            return null;
+
+            loop.exit();
           }
-        });
+        };
+
+    work.start();
+    loop.enter();
+
     treeModel.nodeStructureChanged(rootNode);
   }
 
