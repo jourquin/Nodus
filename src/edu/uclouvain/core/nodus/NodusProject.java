@@ -79,6 +79,7 @@ import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import javax.swing.JCheckBox;
@@ -1497,7 +1498,8 @@ public class NodusProject implements ShapeConstants {
 
         // Hide info logging
         Logger databaseLogger = Logger.getLogger("hsqldb.db");
-        databaseLogger.setUseParentHandlers(false);
+        databaseLogger.setLevel(Level.WARNING);
+        databaseLogger.setUseParentHandlers(true);
         break;
       case JDBCUtils.DB_H2:
         defaultDriver = "org.h2.Driver";

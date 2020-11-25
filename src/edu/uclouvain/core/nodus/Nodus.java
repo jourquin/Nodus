@@ -93,9 +93,8 @@ public class Nodus {
     nodusLogger.setUseParentHandlers(false);
     nodusLogger.setLevel(Level.ALL);
 
-    // Trick used to avoid "no appender" Log4J warning message from HSQLDB
-    // Logger rootLogger = Logger.getRootLogger();
-    // rootLogger.addAppender(new NullAppender());
+    // Trick used to avoid info log messages on stdout from HSQLDB
+    System.setProperty("hsqldb.reconfig_logging", "false");
 
     // Open the properties file
     try {
