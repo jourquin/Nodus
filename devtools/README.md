@@ -1,8 +1,8 @@
 #Several tools used to facilitate some development tasks
  
-## [ExcludeDoclet.jar](http://www.oracle.com/technetwork/articles/javase/index-jsp-136712.html): 
+## [HiddenDoclet.jar](https://github.com/jourquin/HiddenDoclet): 
 
-Implements a "@exclude" tag to ignore API doc generation for some methods. Used by "ApiDoc" Ant task.
+Implements a "@hidden" tag to ignore API doc generation for some methods or variables. Used by "ApiDoc" Ant task.
 
 ## [google-java-format-eclipse-plugin-1.3.0.jar](https://github.com/google/google-java-format):
 
