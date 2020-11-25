@@ -4,3 +4,4 @@
 # Diverse
 - test FW assignment (isWithFirstDFerivative)
 
+- HSQLDB logger

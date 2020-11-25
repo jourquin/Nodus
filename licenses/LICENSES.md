@@ -4,8 +4,6 @@
 
 [commons-\*](http://commons.apache.org), Apache v2
 
-[foxtrot-core](http://foxtrot.sourceforge.net), modified BSD                                
-
 [groovy\*](http://groovy-lang.org), Apache v2                                
 
 [guava](https://github.com/google/guava), Apache v2
@@ -21,8 +19,6 @@
 [jtouchbar](https://github.com/Thizzer/jtouchbar), MIT
 
 [jung-\*](https://github.com/jrtom/jung), modified BSD
-
-[log4j](https://logging.apache.org/log4j), Apache v2
 
 [openmap](http://openmap-java.org), Openmap
 
@@ -54,9 +50,4 @@
 [postgresql-jdbc](https://jdbc.postgresql.org), modified BSD
 
 [sqlite-jdbc](https://bitbucket.org/xerial/sqlite-jdbc), Apache v2
-
-
-##Companion app
-
-[JFlowMap](http://www.visualisingdata.com/resources/jflowmap/), Apache v2
 
