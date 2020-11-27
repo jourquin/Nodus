@@ -46,7 +46,6 @@
 	<classpathentry kind="lib" path="lib/poi-4.1.2.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-4.1.2.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-schemas-4.1.2.jar"/>
-	<classpathentry kind="lib" path="lib/xchart-3.6.1.jar" sourcepath="/Users/jourquinb/git/XChart/xchart/src"/>
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.2.10.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/sqlite-jdbc-3.30.1.jar"/>
 	<classpathentry kind="lib" path="lib/guava-19.0.jar"/>
@@ -105,5 +104,6 @@
 	<classpathentry kind="lib" path="lib/oshi-core-5.3.6.jar"/>
 	<classpathentry kind="lib" path="devtools/mrjtoolkitstubs-1.0 2.jar"/>
 	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/xchart-3.6.6.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

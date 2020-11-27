@@ -51,15 +51,11 @@
         <pathelement location="lib/poi-4.1.2.jar"/>
         <pathelement location="lib/poi-ooxml-4.1.2.jar"/>
         <pathelement location="lib/poi-ooxml-schemas-4.1.2.jar"/>
-        <pathelement location="lib/rsyntaxtextarea-3.0.6.jar"/>
-        <pathelement location="lib/xchart-3.6.1.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.10.jar"/>
         <pathelement location="jdbcDrivers/sqlite-jdbc-3.30.1.jar"/>
         <pathelement location="lib/guava-19.0.jar"/>
-        <pathelement location="lib/openmap.jar"/>
         <pathelement location="lib/jna-5.6.0.jar"/>
         <pathelement location="lib/jna-platform-5.6.0.jar"/>
-        <pathelement location="lib/oshi-core-5.2.1.jar"/>
         <pathelement location="lib/slf4j-api-1.7.9.jar"/>
         <pathelement location="lib/slf4j-nop-1.7.9.jar"/>
         <pathelement location="lib/javadbf4nodus-1.12.2.jar"/>
@@ -109,11 +105,17 @@
         <pathelement location="lib/groovy/snakeyaml-1.26.jar"/>
         <pathelement location="lib/groovy/testng-7.3.0.jar"/>
         <pathelement location="lib/groovy/xstream-1.4.13.jar"/>
+        <pathelement location="lib/openmap-6.0-SNAPSHOT.jar"/>
+        <pathelement location="lib/oshi-core-5.3.6.jar"/>
+        <pathelement location="devtools/mrjtoolkitstubs-1.0 2.jar"/>
+        <pathelement location="lib/rsyntaxtextarea-3.1.1.jar"/>
+        <pathelement location="lib/xchart-3.6.6.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
         <copy includeemptydirs="false" todir="classes">
             <fileset dir="src">
+                <exclude name="**/*.launch"/>
                 <exclude name="**/*.java"/>
             </fileset>
         </copy>

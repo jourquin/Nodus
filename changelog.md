@@ -188,7 +188,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Detect not permitted file access on Mac OS.
     - The Ant ApiDoc task is now compatible with the old and new javadoc API.
     - Get rid of the foxtrot API which causes illegal reflective access warnings. Use the native "SecondaryLoop" Java interface.
-    - Upgrade to groovy-3.0.6, oshi-5.3.6, rsyntaxtextarea-3.1.1
+    - Upgrade to groovy-3.0.6, oshi-5.3.6, rsyntaxtextarea-3.1.1 and xchart-3.6.6
     - Upgrade to latest OpenMap 6b snapshot
 
 - Breaking changes:
