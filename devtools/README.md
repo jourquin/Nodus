@@ -27,6 +27,11 @@ Library used by i18nedit
 Java lex generator. Used by "JFlex" ant task to generate Java lex file for Nodus specific 
 SQL extensions syntax highlighting.
     
+## MRJToolkitStubs.jar
+
+Stub classes used for the (old) MacOS L&F. Used to resolve MRJPrefsHandler, MRJQuitHandler, etc called by
+the Groovy console when Nodus is run from within Eclipse.
+
 ## NodusGoogleCheckstyle.xml: 
 
 Can be imported in Eclipse Checkstyle. Only two constraints are relaxed 

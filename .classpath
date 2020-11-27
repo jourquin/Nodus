@@ -104,5 +104,6 @@
 	<classpathentry kind="lib" path="lib/groovy/xstream-1.4.13.jar"/>
 	<classpathentry kind="lib" path="lib/openmap-6.0-SNAPSHOT.jar"/>
 	<classpathentry kind="lib" path="lib/oshi-core-5.3.6.jar"/>
+	<classpathentry kind="lib" path="devtools/mrjtoolkitstubs-1.0 2.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
