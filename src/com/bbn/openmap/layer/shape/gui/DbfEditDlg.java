@@ -134,7 +134,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
       dateFormat.setLenient(false);
     }
 
-    public void setOkButton(JButton b) {
+    public void setSaveButton(JButton b) {
       saveButton = b;
     }
 
@@ -403,15 +403,25 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
   /** . */
   private boolean isInitialized = false;
 
+  /** . */
+  private boolean isNewRecord;
+  
+  /** . */
+  private int graphicIndex;
+
   /**
    * The constructor needs the NodusEsriLayer the record to edit refers to.
    *
    * @param layer NodusEsriLayer
+   * @param graphicIndex Index of the graphic in the table model
+   * @param isNewRecord True if the record to edit is a new one
    */
-  public DbfEditDlg(NodusEsriLayer layer) {
+  public DbfEditDlg(NodusEsriLayer layer, int graphicIndex, boolean isNewRecord) {
     super(layer.getNodusMapPanel().getMainFrame(), "", true);
 
     nodusEsriLayer = layer;
+    this.isNewRecord = isNewRecord;
+    this.graphicIndex = graphicIndex;
 
     // Some of the fields can not be edited in order not to break the integrity of the database
     nbUneditableFields = 5;
@@ -478,7 +488,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
       nodusEsriLayer
           .getModel()
-          .setValueAt(oldValues[i], nodusEsriLayer.getSelectedGraphicIndex(), i);
+          .setValueAt(oldValues[i], graphicIndex, i);
     }
     nodusEsriLayer.setCanceled(true);
   }
@@ -517,7 +527,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
    */
   private void copyButton_actionPerformed(ActionEvent e) {
     // Just keep the index of the current selected graphic
-    nodusEsriLayer.setCopyRecordIndex(nodusEsriLayer.getSelectedGraphicIndex());
+    nodusEsriLayer.setCopyRecordIndex(graphicIndex);
     pasteButton.setEnabled(true);
   }
 
@@ -747,7 +757,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     if (model == null) {
       return;
     }
-    List<Object> values = model.getRecord(nodusEsriLayer.getSelectedGraphicIndex());
+    List<Object> values = model.getRecord(graphicIndex);
 
     oldValues = values.toArray();
 
@@ -867,7 +877,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
       // add a cell editor to second column
       dbfTableCellEditor = new DbfTableCellEditor();
       dbfTableCellEditor.setModel(nodusEsriLayer.getModel());
-      dbfTableCellEditor.setOkButton(saveButton);
+      dbfTableCellEditor.setSaveButton(saveButton);
       TableColumn col = dbfTable.getColumnModel().getColumn(1);
       col.setCellEditor(dbfTableCellEditor);
 
@@ -1133,7 +1143,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     omGraphic =
         nodusEsriLayer
             .getEsriGraphicList()
-            .getOMGraphicAt(nodusEsriLayer.getSelectedGraphicIndex());
+            .getOMGraphicAt(graphicIndex);
 
     String length = "";
 
@@ -1254,7 +1264,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
         oldLabel =
             nodusEsriLayer
                 .getModel()
-                .getValueAt(nodusEsriLayer.getSelectedGraphicIndex(), n)
+                .getValueAt(graphicIndex, n)
                 .toString();
       }
     }
@@ -1321,9 +1331,9 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
       if (nodusEsriLayer.getModel().getType(i) == DbfTableModel.TYPE_NUMERIC) {
         Double d = Double.valueOf(value);
-        nodusEsriLayer.getModel().setValueAt(d, nodusEsriLayer.getSelectedGraphicIndex(), i);
+        nodusEsriLayer.getModel().setValueAt(d, graphicIndex, i);
       } else {
-        nodusEsriLayer.getModel().setValueAt(value, nodusEsriLayer.getSelectedGraphicIndex(), i);
+        nodusEsriLayer.getModel().setValueAt(value, graphicIndex, i);
       }
     }
 
@@ -1335,7 +1345,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
       sqlStmt +=
           JDBCUtils.getQuotedCompliantIdentifier(nodusEsriLayer.getModel().getColumnName(i)) + '=';
-      cell = nodusEsriLayer.getModel().getValueAt(nodusEsriLayer.getSelectedGraphicIndex(), i);
+      cell = nodusEsriLayer.getModel().getValueAt(graphicIndex, i);
 
       byte type = nodusEsriLayer.getModel().getType(i);
 
@@ -1360,7 +1370,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
         JDBCUtils.getInt(
             nodusEsriLayer
                 .getModel()
-                .getValueAt(nodusEsriLayer.getSelectedGraphicIndex(), NodusC.DBF_IDX_NUM));
+                .getValueAt(graphicIndex, NodusC.DBF_IDX_NUM));
     sqlStmt += " WHERE " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM) + " = " + num;
 
     nodusEsriLayer.executeUpdateSqlStmt(sqlStmt);
@@ -1382,7 +1392,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
           newLabel =
               nodusEsriLayer
                   .getModel()
-                  .getValueAt(nodusEsriLayer.getSelectedGraphicIndex(), n)
+                  .getValueAt(graphicIndex, n)
                   .toString();
           bl.setName(newLabel);
         }
@@ -1427,7 +1437,11 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     if (isInitialized && computeHashCode() != initialValuesHashCode) {
       saveButton.setEnabled(true);
     } else {
-      saveButton.setEnabled(false);
+      if (isNewRecord) {
+        saveButton.setEnabled(true);
+      } else {
+        saveButton.setEnabled(false);
+      }
     }
   }
 

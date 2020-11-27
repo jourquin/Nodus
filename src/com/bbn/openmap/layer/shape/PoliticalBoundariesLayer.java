@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Properties;
-import java.util.Vector;
 
 /**
  * This layer displays political boundaries, which ShapeFile is embedded in the Nodus .jar file.

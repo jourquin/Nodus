@@ -264,7 +264,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
           // Now edit this new record
           graphicIndex = list.size() - 1;
 
-          DbfEditDlg dbfDlg = new DbfEditDlg(this);
+          DbfEditDlg dbfDlg = new DbfEditDlg(this, graphicIndex, true);
           Point p = MouseInfo.getPointerInfo().getLocation();
           dbfDlg.setLocation(p);
           GUIUtils.keepDialogInScreen(dbfDlg);
@@ -370,7 +370,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
           // Now edit this new record
           graphicIndex = list.size() - 1;
 
-          DbfEditDlg dbfDlg = new DbfEditDlg(this);
+          DbfEditDlg dbfDlg = new DbfEditDlg(this, graphicIndex, true);
           Point p = MouseInfo.getPointerInfo().getLocation();
           dbfDlg.setLocation(p);
           GUIUtils.keepDialogInScreen(dbfDlg);
@@ -1047,15 +1047,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   }
 
   /**
-   * Returns the index of the selected graphic.
-   *
-   * @return int The index of the selected graphic in the ShapeFile.
-   */
-  public int getSelectedGraphicIndex() {
-    return graphicIndex;
-  }
-
-  /**
    * Returns the Style of a give OMGraphic, embedded in a NodusOmGraphic.
    *
    * @param omg OMGraphic
@@ -1402,7 +1393,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     for (int i = 0; i < getModel().getColumnCount(); i++) {
       sqlStmt += getModel().getColumnName(i) + '=';
-      cell = getModel().getValueAt(getSelectedGraphicIndex(), i);
+      cell = getModel().getValueAt(graphicIndex, i);
 
       byte type = getModel().getType(i);
 
@@ -1463,7 +1454,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
             if (omg.isVisible()) {
               // Display the dialog close to the graphic to edit
-              DbfEditDlg dbfDlg = new DbfEditDlg(this);
+              DbfEditDlg dbfDlg = new DbfEditDlg(this, graphicIndex, false);
 
               Point p = me.getLocationOnScreen();
               dbfDlg.setLocation(p);
