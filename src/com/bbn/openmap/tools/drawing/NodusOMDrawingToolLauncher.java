@@ -81,7 +81,7 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
     for (int i = 0; i < requestorNames.length; i++) {
       requestorNames[i] = drawingToolRequestors.elementAt(i).getName();
     }
-    requestors = new JComboBox<Object>(requestorNames);
+    requestors = new JComboBox<String>(requestorNames);
     requestors.addActionListener(
         new ActionListener() {
           @Override

@@ -74,6 +74,7 @@ import java.text.MessageFormat;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Vector;
@@ -293,8 +294,8 @@ public class NodusProject implements ShapeConstants {
       localProperties.setProperty(propName, propValue);
     }
 
-    Vector<String> startuplayers;
-    Vector<String> layersValue;
+    List<String> startuplayers;
+    List<String> layersValue;
 
     layersValue =
         PropUtils.parseSpacedMarkers(localProperties.getProperty(NodusC.PROP_OPENMAP_LAYERS));

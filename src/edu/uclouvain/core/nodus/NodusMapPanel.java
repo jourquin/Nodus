@@ -1382,7 +1382,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       mapBean.setBorder(BorderFactory.createEtchedBorder(BevelBorder.LOWERED));
 
       Projection proj =
-          new ProjectionFactory().getDefaultProjectionFromEnvironment(Environment.getInstance());
+          new ProjectionFactory().getDefaultProjectionFromEnvironment();
       mapBean.setProjection(proj);
 
       mapBean.setPreferredSize(new Dimension(proj.getWidth(), proj.getHeight()));

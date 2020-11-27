@@ -30,6 +30,7 @@ import com.bbn.openmap.util.PropUtils;
 import edu.uclouvain.core.nodus.NodusC;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 
@@ -82,8 +83,8 @@ public class PoliticalBoundariesLayer extends ShapeLayer {
           i18n.get(PoliticalBoundariesLayer.class, "Political_boundaries", "Political boundaries");
       props.setProperty("shapePolitical.prettyName", boundaryLayerName);
 
-      Vector<String> startuplayers;
-      Vector<String> layersValue;
+      List<String> startuplayers;
+      List<String> layersValue;
 
       String s = props.getProperty(NodusC.PROP_OPENMAP_LAYERS);
       layersValue = PropUtils.parseSpacedMarkers(s);
