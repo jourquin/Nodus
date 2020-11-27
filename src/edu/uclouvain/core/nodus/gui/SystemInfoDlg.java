@@ -179,10 +179,10 @@ public class SystemInfoDlg extends EscapeDialog {
               + "<br>"
               + graphicCardsInfo
               + "<br><br>"
-              + availableMemoryInfo
-              + " free / "
               + totalMemoryInfo
-              + " RAM"
+              + " total RAM / "
+              + availableMemoryInfo
+              + " free RAM"
               + "<br><br>"
               + osInfo
               + "</div></body>"
