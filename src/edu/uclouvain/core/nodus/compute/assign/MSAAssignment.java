@@ -61,7 +61,7 @@ public class MSAAssignment extends Assignment {
   public boolean assign() {
 
     // Test if cost functions contain deprecated XX_Duration variables
-    if (costsContainDeprecatedDurations()) {
+    if (costsContainDeprecatedVariables()) {
       return false;
     }
 
@@ -128,7 +128,7 @@ public class MSAAssignment extends Assignment {
 
     for (byte iteration = 1; iteration < assignmentParameters.getNbIterations() + 1; iteration++) {
       double split = 1.0 / iteration;
-System.out.println(iteration);
+
       for (byte odClass = 0; odClass < virtualNet.getNbODClasses(); odClass++) {
 
         if (!virtualNet.odClassHasDemand(odClass)) {

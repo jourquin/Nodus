@@ -70,9 +70,9 @@ import parsii.tokenizer.ParseException;
  * 1.AVGLOAD.4,1.2 = 15 <br>
  * 1.AVGLOAD.4,1 = 25 <br>
  * <br>
- * # Equivalents to standard vehicles ratios (can also be overridden for scenarios/groups <br>
- * ESV.2,1 = 1 <br>
- * ESV.4,1 = 2 <br>
+ * # Personal Car Units ratios (can also be overridden for scenarios/groups <br>
+ * PCU.2,1 = 1 <br>
+ * PCU.4,1 = 2 <br>
  * <br>
  * # Variables <br>
  * speed = 15 <br>
@@ -132,8 +132,7 @@ import parsii.tokenizer.ParseException;
  * # Example = 't0.ld.4,1=' is a loading cost function for time slice 0. <br>
  * <br>
  * # Since Nodus 8 it is also possible to set non numeric variables, which names must start with a
- * '@'. 
- * <br>
+ * '@'. <br>
  *
  * @author Bart Jourquin
  */
@@ -581,11 +580,10 @@ public class CostParser {
 
         /*
          * Get (oriented) flow for the real link associated to this virtual link.
-         * The flow must here be computed as a number of vehicles
+         * The flow is a number of passenger car units
          */
-
-        setVariable(NodusC.VARNAME_FLOW, rl.getCurrentStandardVehicles(vl));
-
+        setVariable(NodusC.VARNAME_FLOW, rl.getCurrentPassengerCarUnits(vl));
+        
       } else {
         fieldName = nodeFieldName[layerIndex];
         values = nodesDbf[layerIndex].getRecord(indexInLayer);

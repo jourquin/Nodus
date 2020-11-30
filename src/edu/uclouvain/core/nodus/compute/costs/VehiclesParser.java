@@ -36,8 +36,8 @@ public class VehiclesParser {
   /** Average load per mode/means vehicle combination. */
   private static HashMap<String, Double> averageLoad = new HashMap<>();
 
-  /** Equivalent standard vehicle ration for each mode/means combinations. */
-  private static HashMap<String, Double> equivalentStandardVehicleRatio = new HashMap<>();
+  /** Passenger car units ratio for each mode/means combinations. */
+  private static HashMap<String, Double> passengerCarUnitsRatio = new HashMap<>();
 
   /**
    * Returns the number of standard vehicles for a transportation means of a given mode-means
@@ -48,9 +48,9 @@ public class VehiclesParser {
    * @param means The transportation means.
    * @return The equivalent standard vehicle ratio.
    */
-  public static double getEquivalentStandardVehicleRatio(int mode, int means) {
+  public static double getPassengerCarUnitsRatio(int mode, int means) {
     String key = mode + "-" + means;
-    Double value = equivalentStandardVehicleRatio.get(key);
+    Double value = passengerCarUnitsRatio.get(key);
     if (value == null) {
       return 1.0;
     } else {
@@ -88,7 +88,7 @@ public class VehiclesParser {
   public static void loadVehicleCharacteristics(
       Properties costFunctions, int scenario, byte group) {
     averageLoad.clear();
-    equivalentStandardVehicleRatio.clear();
+    passengerCarUnitsRatio.clear();
     String key;
 
     // Load capacities
@@ -136,9 +136,9 @@ public class VehiclesParser {
     // Load equivalent standard vehicles ratios
     for (int mode = 0; mode < NodusC.MAXMM; mode++) {
       for (int means = 0; means < NodusC.MAXMM; means++) {
-        // equivalentStandardVehicleRatio[mode][means] = 1;
+        // passengerCarUnitsRatio[mode][means] = 1;
 
-        String core = NodusC.VARNAME_ESV + "." + mode + "," + means;
+        String core = NodusC.VARNAME_PCU + "." + mode + "," + means;
 
         // Is there a specific value for this scenario and group?
         double value =
@@ -146,7 +146,7 @@ public class VehiclesParser {
                 costFunctions, scenario + "." + core + "." + group, Double.NaN);
         if (!Double.isNaN(value)) {
           key = mode + "-" + means;
-          equivalentStandardVehicleRatio.put(key, Double.valueOf(value));
+          passengerCarUnitsRatio.put(key, Double.valueOf(value));
           continue;
         }
 
@@ -154,7 +154,7 @@ public class VehiclesParser {
         value = PropUtils.doubleFromProperties(costFunctions, scenario + "." + core, Double.NaN);
         if (!Double.isNaN(value)) {
           key = mode + "-" + means;
-          equivalentStandardVehicleRatio.put(key, Double.valueOf(value));
+          passengerCarUnitsRatio.put(key, Double.valueOf(value));
           continue;
         }
 
@@ -162,7 +162,7 @@ public class VehiclesParser {
         value = PropUtils.doubleFromProperties(costFunctions, core + "." + group, Double.NaN);
         if (!Double.isNaN(value)) {
           key = mode + "-" + means;
-          equivalentStandardVehicleRatio.put(key, Double.valueOf(value));
+          passengerCarUnitsRatio.put(key, Double.valueOf(value));
           continue;
         }
 
@@ -170,7 +170,7 @@ public class VehiclesParser {
         value = PropUtils.doubleFromProperties(costFunctions, core, Double.NaN);
         if (!Double.isNaN(value)) {
           key = mode + "-" + means;
-          equivalentStandardVehicleRatio.put(key, Double.valueOf(value));
+          passengerCarUnitsRatio.put(key, Double.valueOf(value));
         }
       }
     }

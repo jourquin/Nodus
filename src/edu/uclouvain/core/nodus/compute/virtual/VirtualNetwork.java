@@ -252,7 +252,7 @@ public class VirtualNetwork {
         rl.setLength(length);
         rl.setSpeed(speed);
         // rl.setDuration(3600 * length / speed);
-        rl.resetStandardVehicles();
+        rl.resetPassengerCarUnits();
 
         j++;
       }
@@ -493,7 +493,7 @@ public class VirtualNetwork {
             VirtualLink vl = linkLit.next();
 
             double averageLoad;
-            double esv;
+            double pcu;
 
             // Vehicles are not computed for transhipment virtual links
             if (vl.getType() == VirtualLink.TYPE_MOVE
@@ -506,19 +506,19 @@ public class VirtualNetwork {
                 averageLoad =
                     VehiclesParser.getVehicleAverageLoad(
                         vl.getEndVirtualNode().getMode(), vl.getEndVirtualNode().getMeans());
-                esv =
-                    VehiclesParser.getEquivalentStandardVehicleRatio(
+                pcu =
+                    VehiclesParser.getPassengerCarUnitsRatio(
                         vl.getEndVirtualNode().getMode(), vl.getEndVirtualNode().getMeans());
               } else {
                 averageLoad =
                     VehiclesParser.getVehicleAverageLoad(
                         vl.getBeginVirtualNode().getMode(), vl.getBeginVirtualNode().getMeans());
-                esv =
-                    VehiclesParser.getEquivalentStandardVehicleRatio(
+                pcu =
+                    VehiclesParser.getPassengerCarUnitsRatio(
                         vl.getBeginVirtualNode().getMode(), vl.getBeginVirtualNode().getMeans());
               }
 
-              vl.initializeVehicles(groupIndex, timeSlice, averageLoad, esv);
+              vl.initializeVehicles(groupIndex, timeSlice, averageLoad, pcu);
             }
           }
         }
@@ -1337,7 +1337,7 @@ public class VirtualNetwork {
       while (it.hasNext()) {
         OMGraphic omg = it.next();
         RealLink rl = (RealLink) omg.getAttribute(0);
-        rl.resetStandardVehicles();
+        rl.resetPassengerCarUnits();
       }
     }
   }

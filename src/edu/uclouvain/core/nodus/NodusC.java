@@ -415,10 +415,10 @@ public class NodusC {
   public static final String VARNAME_ABRAHAM = "ABRAHAM";
 
   /**
-   * Name of the variable that must be used in cost functions to use the equivalent standard vehicle
+   * Name of the variable that must be used in cost functions to use the passenger car units
    * ratio to be used for a vehicle.
    */
-  public static final String VARNAME_ESV = "ESV";
+  public static final String VARNAME_PCU = "PCU";
 
   /**
    * Name of the variable that specifies the start time of a time dependent assignments, expressed

@@ -477,16 +477,16 @@ public class VirtualLink {
   }
 
   /**
-   * Initializes the average load and ESV for a given group index and time slice.
+   * Initializes the average load and PCU for a given group index and time slice.
    *
    * @param groupIndex The index of the group of commodities.
    * @param timeSlice The time slice corresponding to the flow.
    * @param averageLoad The average load for a vehicle using this virtual link.
-   * @param equivalentStandardVehicles The number of equivalent standard vehicles a vehicle using
-   *     this virtual link represents.
+   * @param passengerCarUnits The number of equivalent standard vehicles a vehicle using this
+   *     virtual link represents.
    */
   public void initializeVehicles(
-      byte groupIndex, byte timeSlice, double averageLoad, double equivalentStandardVehicles) {
+      byte groupIndex, byte timeSlice, double averageLoad, double passengerCarUnits) {
     if (virtualLinkType == TYPE_MOVE
         || virtualLinkType == TYPE_LOAD
         || virtualLinkType == TYPE_UNLOAD
@@ -495,16 +495,15 @@ public class VirtualLink {
       currentVehicles[groupIndex][timeSlice] = nbVehicles;
 
       if (virtualLinkType == TYPE_MOVE) {
-        realLink.addStandardVehicles(
-            this, (int) Math.ceil(nbVehicles * equivalentStandardVehicles));
+        realLink.addPassengerCarUnits(this, (int) Math.ceil(nbVehicles * passengerCarUnits));
       }
 
       int nbAuxiliaryVehicles = (int) Math.ceil(auxiliaryFlow[groupIndex] / averageLoad);
       auxiliaryVehicles[groupIndex] = nbAuxiliaryVehicles;
 
       if (virtualLinkType == TYPE_MOVE) {
-        realLink.addAuxiliaryStandardVehicles(
-            this, (int) Math.ceil(nbAuxiliaryVehicles * equivalentStandardVehicles));
+        realLink.addAuxiliaryPassengerCarUnits(
+            this, (int) Math.ceil(nbAuxiliaryVehicles * passengerCarUnits));
       }
     }
   }

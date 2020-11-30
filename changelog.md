@@ -190,7 +190,11 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Get rid of the foxtrot API which causes illegal reflective access warnings. Use the native "SecondaryLoop" Java interface.
     - Upgrade to groovy-3.0.6, oshi-5.3.6, rsyntaxtextarea-3.1.1 and xchart-3.6.6
     - Upgrade to latest OpenMap 6b snapshot
+    - The ESV (Equivalent Standard Vehicle) variable name has been replaced by the PCU (Passenger Car Units) variable name. PCU is
+    a more common acronym used in the literature. An automatic upgrade is proposed to the user.
 
 - Breaking changes:
-    - Simplify the API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 
-    message is displayed to inform the user.  
+    - Simplified API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 
+    message is displayed to inform the user.
+
+    

@@ -150,6 +150,7 @@ public abstract class Assignment implements Runnable {
 
   /**
    * Get the PathWriter for this assignment.
+   *
    * @return The PathWriter.
    */
   public PathWriter getPathWriter() {
@@ -320,123 +321,149 @@ public abstract class Assignment implements Runnable {
    * <p>Example : "mv.1,1 = " for costs and "mv@1,1 = " for durations. If a duration function is not
    * defined, Nodus put it to 0.
    *
+   * <p>The ESV (Equivalent Standard Vehicles) variables must also be replaced by the PCU (Personal
+   * Car Units variable.
+   *
    * @return true if the cost functions contain at least one of these variables.
    */
-  protected boolean costsContainDeprecatedDurations() {
+  protected boolean costsContainDeprecatedVariables() {
 
     Properties costFunctions = assignmentParameters.getCostFunctions();
-    boolean hasDeprecatedVariables = false;
+    boolean hasDeprecatedDurations = false;
+    boolean hasEsv = false;
     // Scan the costs function to detect the presence of durations
     Set<Object> keys = costFunctions.keySet();
     for (Object key : keys) {
       if (((String) key).contains("LD_DURATION")) {
-        hasDeprecatedVariables = true;
+        hasDeprecatedDurations = true;
         break;
       }
       if (((String) key).contains("UL_DURATION")) {
-        hasDeprecatedVariables = true;
+        hasDeprecatedDurations = true;
         break;
       }
       if (((String) key).contains("TP_DURATION")) {
-        hasDeprecatedVariables = true;
+        hasDeprecatedDurations = true;
+        break;
+      }
+
+      if (((String) key).contains("ESV")) {
+        hasEsv = true;
         break;
       }
     }
 
-    if (hasDeprecatedVariables) {
+    if (hasDeprecatedDurations || hasEsv) {
       int check =
           JOptionPane.showConfirmDialog(
               null,
               i18n.get(
                   Assignment.class,
-                  "DeprecatedDurations",
-                  "Costs contain deprecated xx_DURATION variables. Upgrade ?"),
+                  "DeprecatedVariables",
+                  "Costs contain deprecated xx_DURATION or ESV variables. Upgrade ?"),
               NodusC.APPNAME,
               JOptionPane.YES_NO_OPTION);
 
-      // Upgrade : replace old variables with new cost functions
       if (check == JOptionPane.YES_OPTION) {
         // Get the file to upgrade
         String costFunctionsFileName =
             nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
                 + nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS);
 
-        // Express the times in seconds instead of hours
-        BufferedWriter output;
-        try {
-          File file = new File(costFunctionsFileName);
-          File tmpFile = new File(costFunctionsFileName + ".tmp");
-          if (tmpFile.exists()) {
-            tmpFile.delete();
-          }
-          file.renameTo(tmpFile);
-          FileReader input = new FileReader(tmpFile);
-          BufferedReader br = new BufferedReader(input);
-          output = new BufferedWriter(new FileWriter(costFunctionsFileName));
-
-          String line;
-          while ((line = br.readLine()) != null) {
-            if (line.contains("LD_DURATION")
-                || line.contains("UL_DURATION")
-                || line.contains("TP_DURATION")) {
-              line += "*3600";
+        // Upgrade : replace old variables with new cost functions
+        if (hasDeprecatedDurations) {
+          // Express the times in seconds instead of hours
+          BufferedWriter output;
+          try {
+            File file = new File(costFunctionsFileName);
+            File tmpFile = new File(costFunctionsFileName + ".tmp");
+            if (tmpFile.exists()) {
+              tmpFile.delete();
             }
-            output.append(line);
-            output.newLine();
-          }
-          input.close();
-          output.close();
-          tmpFile.delete();
-        } catch (FileNotFoundException e1) {
-          e1.printStackTrace();
-          return true;
-        } catch (IOException e1) {
-          e1.printStackTrace();
-          return true;
-        }
+            file.renameTo(tmpFile);
+            FileReader input = new FileReader(tmpFile);
+            BufferedReader br = new BufferedReader(input);
+            output = new BufferedWriter(new FileWriter(costFunctionsFileName));
 
-        // Replace the deprecated variables
-        Path path = Paths.get(costFunctionsFileName);
-        Charset charset = StandardCharsets.UTF_8;
-
-        boolean[][] availableModeMeans = new boolean[NodusC.MAXMM][NodusC.MAXMM];
-
-        try {
-          String content = new String(Files.readAllBytes(path), charset);
-          content = content.replaceAll("LD_DURATION.", "ld@");
-          content = content.replaceAll("UL_DURATION.", "ul@");
-          content = content.replaceAll("TP_DURATION.", "tp@");
-
-          for (int mode = 0; mode < NodusC.MAXMM; mode++) {
-            for (int means = 0; means < NodusC.MAXMM; means++) {
-              String key = "mv." + mode + "," + means;
-              if (content.contains(key)) {
-                availableModeMeans[mode][means] = true;
+            String line;
+            while ((line = br.readLine()) != null) {
+              if (line.contains("LD_DURATION")
+                  || line.contains("UL_DURATION")
+                  || line.contains("TP_DURATION")) {
+                line += "*3600";
               }
+              output.append(line);
+              output.newLine();
             }
+            input.close();
+            output.close();
+            tmpFile.delete();
+          } catch (FileNotFoundException e1) {
+            e1.printStackTrace();
+            return true;
+          } catch (IOException e1) {
+            e1.printStackTrace();
+            return true;
           }
 
-          Files.write(path, content.getBytes(charset));
+          // Replace the deprecated variables
+          Path path = Paths.get(costFunctionsFileName);
+          Charset charset = StandardCharsets.UTF_8;
 
-          // Add the default moving durations for available mode-means
-          // expressed in seconds, as in Nodus <= 7.2
-          output = new BufferedWriter(new FileWriter(costFunctionsFileName, true));
-          for (int mode = 0; mode < NodusC.MAXMM; mode++) {
-            for (int means = 0; means < NodusC.MAXMM; means++) {
-              if (availableModeMeans[mode][means]) {
-                String newFunction = "mv@" + mode + "," + means + " = 3600*LENGTH/SPEED";
-                if ((!content.contains(newFunction))) {
-                  output.append(newFunction);
-                  output.newLine();
+          boolean[][] availableModeMeans = new boolean[NodusC.MAXMM][NodusC.MAXMM];
+
+          try {
+            String content = new String(Files.readAllBytes(path), charset);
+            content = content.replaceAll("LD_DURATION.", "ld@");
+            content = content.replaceAll("UL_DURATION.", "ul@");
+            content = content.replaceAll("TP_DURATION.", "tp@");
+
+            for (int mode = 0; mode < NodusC.MAXMM; mode++) {
+              for (int means = 0; means < NodusC.MAXMM; means++) {
+                String key = "mv." + mode + "," + means;
+                if (content.contains(key)) {
+                  availableModeMeans[mode][means] = true;
                 }
               }
             }
-          }
-          output.close();
 
-        } catch (IOException e) {
-          e.printStackTrace();
-          return true;
+            Files.write(path, content.getBytes(charset));
+
+            // Add the default moving durations for available mode-means
+            // expressed in seconds, as in Nodus <= 7.2
+            output = new BufferedWriter(new FileWriter(costFunctionsFileName, true));
+            for (int mode = 0; mode < NodusC.MAXMM; mode++) {
+              for (int means = 0; means < NodusC.MAXMM; means++) {
+                if (availableModeMeans[mode][means]) {
+                  String newFunction = "mv@" + mode + "," + means + " = 3600*LENGTH/SPEED";
+                  if ((!content.contains(newFunction))) {
+                    output.append(newFunction);
+                    output.newLine();
+                  }
+                }
+              }
+            }
+            output.close();
+
+          } catch (IOException e) {
+            e.printStackTrace();
+            return true;
+          }
+        }
+
+        // Replace the ESV variables, if any
+        if (hasEsv) {
+          Path path = Paths.get(costFunctionsFileName);
+          Charset charset = StandardCharsets.UTF_8;
+
+          try {
+            String content = new String(Files.readAllBytes(path), charset);
+            content = content.replaceAll("ESV.", "PCU.");
+            Files.write(path, content.getBytes(charset));
+          } catch (IOException e) {
+            e.printStackTrace();
+            return true;
+          }
         }
 
         // Load upgraded cost functions

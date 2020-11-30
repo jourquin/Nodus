@@ -31,17 +31,17 @@ import java.util.LinkedList;
  */
 public class RealLink extends RealNetworkObject {
 
-  /** Number of auxiliary standard vehicles assigned downstream to this link. */
-  private int auxiliaryStandardVehiclesDown = 0;
+  /** Number of auxiliary passenger car units assigned downstream to this link. */
+  private int auxiliaryPassengerCarUnitsDown = 0;
 
-  /** Number of auxiliary standard vehicles assigned upstream to this link. */
-  private int auxiliaryStandardVehiclesUp = 0;
+  /** Number of auxiliary passenger car units upstream to this link. */
+  private int auxiliaryPassengerCarUnitsUp = 0;
 
-  /** Number of standard vehicles assigned downstream to this link. */
-  private int currentStandardVehiclesDown = 0;
+  /** Number of passenger car units assigned downstream to this link. */
+  private int currentPassengerCarUnitsDown = 0;
 
-  /** Number of standard vehicles assigned upstream to this link. */
-  private int currentStandardVehiclesUp = 0;
+  /** Number of passenger car units assigned upstream to this link. */
+  private int currentPassengerCarUnitsUp = 0;
 
   /** Length of this real link. */
   private float length = -1;
@@ -54,16 +54,16 @@ public class RealLink extends RealNetworkObject {
   private float speed = -1;
 
   /**
-   * Adds a number of auxiliary standard vehicles to this real link.
+   * Adds a number of auxiliary passenger car units to this real link.
    *
    * @param virtualLink A VirtualLink related to this real link.
    * @param nbVehicles A number of vehicles to add.
    */
-  public void addAuxiliaryStandardVehicles(VirtualLink virtualLink, int nbVehicles) {
+  public void addAuxiliaryPassengerCarUnits(VirtualLink virtualLink, int nbVehicles) {
     if (virtualLink.getBeginVirtualNode().getRealNodeId(false) == originNode) {
-      auxiliaryStandardVehiclesUp += nbVehicles;
+      auxiliaryPassengerCarUnitsUp += nbVehicles;
     } else {
-      auxiliaryStandardVehiclesDown += nbVehicles;
+      auxiliaryPassengerCarUnitsDown += nbVehicles;
     }
   }
 
@@ -80,16 +80,16 @@ public class RealLink extends RealNetworkObject {
   }
 
   /**
-   * Adds a number of standard vehicles to this real link.
+   * Adds a number of passenger car units to this real link.
    *
    * @param virtualLink VirtualLink
    * @param nbVehicles int
    */
-  public void addStandardVehicles(VirtualLink virtualLink, int nbVehicles) {
+  public void addPassengerCarUnits(VirtualLink virtualLink, int nbVehicles) {
     if (virtualLink.getBeginVirtualNode().getRealNodeId(false) == originNode) {
-      currentStandardVehiclesUp += nbVehicles;
+      currentPassengerCarUnitsUp += nbVehicles;
     } else {
-      currentStandardVehiclesDown += nbVehicles;
+      currentPassengerCarUnitsDown += nbVehicles;
     }
   }
 
@@ -102,16 +102,16 @@ public class RealLink extends RealNetworkObject {
   }
 
   /**
-   * Returns the number of auxiliary standard vehicles assigned to this real link.
+   * Returns the number of auxiliary passenger car units assigned to this real link.
    *
    * @param virtualLink VirtualLink
    * @return double
    */
-  public double getAuxiliaryStandardVehicles(VirtualLink virtualLink) {
+  public double getAuxiliaryPassengerCarUnits(VirtualLink virtualLink) {
     if (virtualLink.getBeginVirtualNode().getRealNodeId(false) == originNode) {
-      return auxiliaryStandardVehiclesUp;
+      return auxiliaryPassengerCarUnitsUp;
     } else {
-      return auxiliaryStandardVehiclesDown;
+      return auxiliaryPassengerCarUnitsDown;
     }
   }
 
@@ -134,11 +134,11 @@ public class RealLink extends RealNetworkObject {
    * @param virtualLink VirtualLink
    * @return double
    */
-  public double getCurrentStandardVehicles(VirtualLink virtualLink) {
+  public double getCurrentPassengerCarUnits(VirtualLink virtualLink) {
     if (virtualLink.getBeginVirtualNode().getRealNodeId(false) == originNode) {
-      return currentStandardVehiclesUp;
+      return currentPassengerCarUnitsUp;
     } else {
-      return currentStandardVehiclesDown;
+      return currentPassengerCarUnitsDown;
     }
   }
 
@@ -161,10 +161,10 @@ public class RealLink extends RealNetworkObject {
   }
 
   /** Resets the vehicles on this real link. */
-  public void resetStandardVehicles() {
-    currentStandardVehiclesUp =
-        auxiliaryStandardVehiclesUp =
-            currentStandardVehiclesDown = auxiliaryStandardVehiclesDown = 0;
+  public void resetPassengerCarUnits() {
+    currentPassengerCarUnitsUp =
+        auxiliaryPassengerCarUnitsUp =
+            currentPassengerCarUnitsDown = auxiliaryPassengerCarUnitsDown = 0;
   }
 
   /**

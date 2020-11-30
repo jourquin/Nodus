@@ -57,7 +57,7 @@ public class IncrementalAssignment extends Assignment {
   public boolean assign() {
 
     // Test if cost functions contain deprecated XX_Duration variables
-    if (costsContainDeprecatedDurations()) {
+    if (costsContainDeprecatedVariables()) {
       return false;
     }
 
