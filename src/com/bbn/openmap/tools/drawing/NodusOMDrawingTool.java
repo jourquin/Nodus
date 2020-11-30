@@ -279,9 +279,6 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
               .addServicesToLink(newNumber, lineSplitter.getServices());
         }
 
-        linksLayers[layerindex].setDirtyShp(true);
-        linksLayers[layerindex].setDirtyDbf(true);
-        linksLayers[layerindex].reloadLabels();
         linksLayers[layerindex].attachStyles();
         linksLayers[layerindex].doPrepare();
         selectedGraphic = null;
@@ -383,9 +380,6 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
         }
 
         if (n > 0) {
-          linksLayers[index].setDirtyShp(true);
-          linksLayers[index].setDirtyDbf(true);
-          linksLayers[index].reloadLabels();
           linksLayers[index].attachStyles();
           linksLayers[index].doPrepare();
         }
