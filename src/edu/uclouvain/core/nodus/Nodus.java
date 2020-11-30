@@ -62,7 +62,7 @@ public class Nodus {
       Toolkit.getDefaultToolkit().createImage(Nodus.class.getResource("nodus.png"));
 
   /** Logger. */
-  public static final Logger nodusLogger = Logger.getLogger(Nodus.class.getName());
+  public static Logger nodusLogger;
 
   /**
    * Properties file used to load/save the "state" of the application when it was closed the last
@@ -90,11 +90,15 @@ public class Nodus {
 
     Environment.init();
 
+    nodusLogger = Logger.getLogger(Nodus.class.getName());
     nodusLogger.setUseParentHandlers(false);
     nodusLogger.setLevel(Level.ALL);
 
     // Trick used to avoid info log messages on stdout from HSQLDB
     System.setProperty("hsqldb.reconfig_logging", "false");
+    Logger databaseLogger = Logger.getLogger("hsqldb.db");
+    databaseLogger.setLevel(Level.WARNING);
+    databaseLogger.setUseParentHandlers(false);
 
     // Open the properties file
     try {
