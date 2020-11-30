@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 1991-2020 Université catholique de Louvain
+ * Copyright (c) 1991-2021 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -39,7 +39,7 @@ import org.codehaus.groovy.control.CompilationFailedException;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 
 /*
- * Copyright (c) 1991-2020 Université catholique de Louvain
+ * Copyright (c) 1991-2021 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *

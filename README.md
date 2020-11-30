@@ -49,7 +49,7 @@ an example of [user defined modal choice models](https://github.com/jourquin/Box
 - 7.0 - November 2017: First open source version of Nodus.
 - 7.1 - November 2018: Upgrade to Groovy 2.5.x.
 - 7.2 - February 2020: Upgrade to Groovy 3.x.
-- 8.0 - December 2020: Introduce time functions (in addition to cost functions). Simplified API for modal-choice plugins. 
+- 8.0 - January 2021: Introduce time functions (in addition to cost functions). Simplified API for modal-choice plugins. 
 Many under the hood improvements.
 
 See the [change log](changelog.md) for a detailed build history.

@@ -39,6 +39,8 @@
 	    <delete dir="${basedir}/api" />
 	    <mkdir dir="${basedir}/api" />
 	</target>
+	
+	<property name="copyrightString" value="Copyright 1991-2021, Université catholique de Louvain (UCLouvain), Center for Operations Research and Econometrics (CORE)"/>
 	    
 	<target name="ApiDoc-old" description="Makes the javadoc API html documents." if="OldJavadocAPI">
 	    <antcall target="PrepareApiDoc" />
@@ -48,7 +50,7 @@
 	        packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
 	        author="true" version="true" use="true" 
 	        windowtitle="Nodus 8.0 API" 
-	        doctitle="Nodus" bottom="Copyright 1991-2020, Université catholique de Louvain (UCLouvain), Center for Operations Research and Econometrics (CORE)" 
+	        doctitle="Nodus" bottom="${copyrightString}"
 	        doclet="HiddenDoclet" docletpath="${basedir}/devtools/HiddenDoclet.jar"
 	        classpathref="Nodus.classpath" failonerror="false" />
     </target>
@@ -61,7 +63,7 @@
 			packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
 			author="true" version="true" use="true" 
 			windowtitle="Nodus 8.0 API" 
-			doctitle="Nodus" bottom="Copyright 1991-2020, Université catholique de Louvain (UCLouvain), Center for Operations Research and Econometrics (CORE)"
+			doctitle="Nodus" bottom="${copyrightString}"
 			classpathref="Nodus.classpath" failonerror="false" />
 	</target>
 

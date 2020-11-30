@@ -1,6 +1,6 @@
 #!/bin/bash
 #-------------------------------------------------------------------------------
-# Copyright (c) 1991-2020 Université catholique de Louvain, 
+# Copyright (c) 1991-2021 Université catholique de Louvain, 
 # Center for Operations Research and Econometrics (CORE)
 # http://www.uclouvain.be
 # 
