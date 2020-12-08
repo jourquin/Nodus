@@ -21,36 +21,55 @@
 
 package edu.uclouvain.core.nodus.compute.costs;
 
-import com.bbn.openmap.util.PropUtils;
+import com.bbn.openmap.Environment;
+import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.utils.StringUtils;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Properties;
+import javax.swing.JOptionPane;
 
 /**
- * Parser used to converts quantities into a number of vehicles.
+ * Parser and place holder used to converts volumes (tons) into a number of vehicles.
  *
  * @author Bart Jourquin
  */
 public class VehiclesParser {
 
-  /** Average load per mode/means vehicle combination. */
-  private static HashMap<String, Double> averageLoad = new HashMap<>();
+  private static I18n i18n = Environment.getI18n();
 
-  /** Passenger car units ratio for each mode/means combinations. */
-  private static HashMap<String, Double> passengerCarUnitsRatio = new HashMap<>();
+  /** Average load per mode/means for each group. */
+  private HashMap<String, Double>[] averageLoad;
+
+  /** PCU per mode/means for each group. */
+  private HashMap<String, Double>[] passengerCarUnits;
+
+  private int scenario;
 
   /**
-   * Returns the number of standard vehicles for a transportation means of a given mode-means
-   * combination. This information must previously be loaded by loadVehicleCharacteristics(int
-   * scenario, int group).
+   * Initialize the data structure that will hold the vehicle characteristics for a scenario.
    *
+   * @param scenario The scenario for which the vehicle characteristics must be loaded.
+   */
+  @SuppressWarnings("unchecked")
+  public VehiclesParser(int scenario) {
+    averageLoad = new HashMap[NodusC.MAXGROUPS];
+    passengerCarUnits = new HashMap[NodusC.MAXGROUPS];
+    this.scenario = scenario;
+  }
+
+  /**
+   * Returns the number of PCU's for a vehicle of a given mode-means combination.
+   *
+   * @param group The group of commodities.
    * @param mode The transportation mode.
    * @param means The transportation means.
-   * @return The equivalent standard vehicle ratio.
+   * @return The Personal car units ratio.
    */
-  public static double getPassengerCarUnitsRatio(int mode, int means) {
+  public double getPassengerCarUnits(int group, int mode, int means) {
     String key = mode + "-" + means;
-    Double value = passengerCarUnitsRatio.get(key);
+    Double value = passengerCarUnits[group].get(key);
     if (value == null) {
       return 1.0;
     } else {
@@ -59,15 +78,16 @@ public class VehiclesParser {
   }
 
   /**
-   * Returns the capacity of a vehicle of a given mode-means combination.
+   * Returns the average load of a vehicle of a given mode-means combination.
    *
+   * @param group The group of commodities.
    * @param mode The transportation mode.
    * @param means The transportation means.
    * @return double The average load for the vehicle.
    */
-  public static double getVehicleAverageLoad(int mode, int means) {
+  public double getAverageLoad(int group, int mode, int means) {
     String key = mode + "-" + means;
-    Double value = averageLoad.get(key);
+    Double value = averageLoad[group].get(key);
     if (value == null) {
       return 1.0;
     } else {
@@ -76,19 +96,25 @@ public class VehiclesParser {
   }
 
   /**
-   * Loads the capacities and equivalent standard vehicles for all the vehicles for a given group of
-   * commodities. If a capacity for a mode-means combination is not defined, it is supposed to be
-   * equal to 1. The same is true for the equivalent standard vehicles.
+   * Loads the capacities and PCU's for all the vehicles for a given group of commodities. If a
+   * capacity for a mode-means combination is not defined, it is supposed to be equal to 1. The same
+   * is true for its PCU.
    *
    * @param costFunctions The properties that contain the cost functions.
-   * @param scenario The scenario currently being computed.
    * @param group The group of commodities for which this information must be loaded from the cost
    *     functions file.
+   * @return True on success.
    */
-  public static void loadVehicleCharacteristics(
-      Properties costFunctions, int scenario, byte group) {
-    averageLoad.clear();
-    passengerCarUnitsRatio.clear();
+  public boolean loadVehicleCharacteristics(Properties costFunctions, byte group) {
+
+    // If already initialized, don't load again
+    if (averageLoad[group] != null) {
+      return true;
+    }
+
+    averageLoad[group] = new HashMap<String, Double>();
+    passengerCarUnits[group] = new HashMap<String, Double>();
+
     String key;
 
     // Load capacities
@@ -99,36 +125,63 @@ public class VehiclesParser {
         String core = NodusC.VARNAME_AVERAGELOAD + "." + mode + "," + means;
 
         // Is there a specific value for this scenario and group?
-        double value =
-            PropUtils.doubleFromProperties(
-                costFunctions, scenario + "." + core + "." + group, Double.NaN);
-        if (!Double.isNaN(value)) {
+        String varName = scenario + "." + core + "." + group;
+        String s = costFunctions.getProperty(varName, null);
+        if (s != null) {
+          if (!StringUtils.isNumeric(s)) {
+            displayError(varName, s);
+            return false;
+          }
+          double value = Double.parseDouble(s);
+
           key = mode + "-" + means;
-          averageLoad.put(key, Double.valueOf(value));
+          averageLoad[group].put(key, Double.valueOf(value));
           continue;
         }
 
         // Is there a specific value for this scenario?
-        value = PropUtils.doubleFromProperties(costFunctions, scenario + "." + core, Double.NaN);
-        if (!Double.isNaN(value)) {
+        varName = scenario + "." + core;
+        s = costFunctions.getProperty(varName, null);
+        if (s != null) {
+          if (!StringUtils.isNumeric(s)) {
+            displayError(varName, s);
+            return false;
+          }
+          double value = Double.parseDouble(s);
+
           key = mode + "-" + means;
-          averageLoad.put(key, Double.valueOf(value));
+          averageLoad[group].put(key, Double.valueOf(value));
           continue;
         }
 
         // Is there a specific value for this group?
-        value = PropUtils.doubleFromProperties(costFunctions, core + "." + group, Double.NaN);
-        if (!Double.isNaN(value)) {
+        varName = core + "." + group;
+        s = costFunctions.getProperty(varName, null);
+        if (s != null) {
+          if (!StringUtils.isNumeric(s)) {
+            displayError(varName, s);
+            return false;
+          }
+          double value = Double.parseDouble(s);
+
           key = mode + "-" + means;
-          averageLoad.put(key, Double.valueOf(value));
+          averageLoad[group].put(key, Double.valueOf(value));
           continue;
         }
 
         // Is there a generic value ?
-        value = PropUtils.doubleFromProperties(costFunctions, core, Double.NaN);
-        if (!Double.isNaN(value)) {
+        varName = core;
+        s = costFunctions.getProperty(varName, null);
+        if (s != null) {
+          if (!StringUtils.isNumeric(s)) {
+            displayError(varName, s);
+            return false;
+          }
+          double value = Double.parseDouble(s);
+
           key = mode + "-" + means;
-          averageLoad.put(key, Double.valueOf(value));
+          averageLoad[group].put(key, Double.valueOf(value));
+          continue;
         }
       }
     }
@@ -136,43 +189,82 @@ public class VehiclesParser {
     // Load equivalent standard vehicles ratios
     for (int mode = 0; mode < NodusC.MAXMM; mode++) {
       for (int means = 0; means < NodusC.MAXMM; means++) {
-        // passengerCarUnitsRatio[mode][means] = 1;
 
         String core = NodusC.VARNAME_PCU + "." + mode + "," + means;
 
         // Is there a specific value for this scenario and group?
-        double value =
-            PropUtils.doubleFromProperties(
-                costFunctions, scenario + "." + core + "." + group, Double.NaN);
-        if (!Double.isNaN(value)) {
+        String varName = scenario + "." + core + "." + group;
+        String s = costFunctions.getProperty(varName, null);
+        if (s != null) {
+          if (!StringUtils.isNumeric(s)) {
+            displayError(varName, s);
+            return false;
+          }
+          double value = Double.parseDouble(s);
+
           key = mode + "-" + means;
-          passengerCarUnitsRatio.put(key, Double.valueOf(value));
+          passengerCarUnits[group].put(key, Double.valueOf(value));
           continue;
         }
 
         // Is there a specific value for this scenario?
-        value = PropUtils.doubleFromProperties(costFunctions, scenario + "." + core, Double.NaN);
-        if (!Double.isNaN(value)) {
+        varName = scenario + "." + core;
+        s = costFunctions.getProperty(varName, null);
+        if (s != null) {
+          if (!StringUtils.isNumeric(s)) {
+            displayError(varName, s);
+            return false;
+          }
+          double value = Double.parseDouble(s);
+
           key = mode + "-" + means;
-          passengerCarUnitsRatio.put(key, Double.valueOf(value));
+          passengerCarUnits[group].put(key, Double.valueOf(value));
           continue;
         }
 
         // Is there a specific value for this group?
-        value = PropUtils.doubleFromProperties(costFunctions, core + "." + group, Double.NaN);
-        if (!Double.isNaN(value)) {
+        varName = core + "." + group;
+        s = costFunctions.getProperty(varName, null);
+        if (s != null) {
+          if (!StringUtils.isNumeric(s)) {
+            displayError(varName, s);
+            return false;
+          }
+          double value = Double.parseDouble(s);
+
           key = mode + "-" + means;
-          passengerCarUnitsRatio.put(key, Double.valueOf(value));
+          passengerCarUnits[group].put(key, Double.valueOf(value));
           continue;
         }
 
         // Is there a generic value ?
-        value = PropUtils.doubleFromProperties(costFunctions, core, Double.NaN);
-        if (!Double.isNaN(value)) {
+        varName = core;
+        s = costFunctions.getProperty(varName, null);
+        if (s != null) {
+          if (!StringUtils.isNumeric(s)) {
+            displayError(varName, s);
+            return false;
+          }
+          double value = Double.parseDouble(s);
+
           key = mode + "-" + means;
-          passengerCarUnitsRatio.put(key, Double.valueOf(value));
+          passengerCarUnits[group].put(key, Double.valueOf(value));
+          continue;
         }
       }
     }
+    return true;
+  }
+
+  private void displayError(String varName, String value) {
+    String errorMessage =
+        MessageFormat.format(
+            i18n.get(
+                VehiclesParser.class,
+                "is_not_a_valid_number",
+                "''{0} = {1}'' is not a valid number"),
+            varName,
+            value);
+    JOptionPane.showMessageDialog(null, errorMessage, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
   }
 }

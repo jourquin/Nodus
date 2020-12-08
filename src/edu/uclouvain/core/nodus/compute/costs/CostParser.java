@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 import parsii.eval.Expression;
+import parsii.eval.Function;
 import parsii.eval.Parser;
 import parsii.eval.Scope;
 import parsii.eval.Variable;
@@ -136,6 +137,7 @@ import parsii.tokenizer.ParseException;
  *
  * @author Bart Jourquin
  */
+// TODO : Should be rewritten
 public class CostParser {
 
   private static I18n i18n = Environment.getI18n();
@@ -380,9 +382,108 @@ public class CostParser {
       setVariable(element.getLayerVariableName(), 0.0);
     }
 
-    if (initialiseVariableForGroup(groupNum, classNum)) {
+    if (initialiseVariablesForGroup(groupNum, classNum)) {
       initialized = true;
     }
+
+    registerFunctions();
+  }
+
+  /**
+   * Some user defined functions, such as volume-delay functions.
+   */
+  private void registerFunctions() {
+
+    // Average of a series of numeric value
+    // Example call ; AVG(1,3,8), that returns 4
+    Parser.registerFunction(
+        "AVG",
+        new Function() {
+          @Override
+          public int getNumberOfArguments() {
+            return -1;
+          }
+
+          @Override
+          public double eval(List<Expression> args) {
+            double avg = 0;
+            if (args.isEmpty()) {
+              return avg;
+            }
+            for (Expression e : args) {
+              avg += e.evaluate();
+            }
+            return avg / args.size();
+          }
+
+          @Override
+          public boolean isNaturalFunction() {
+            return true;
+          }
+        });
+
+    // BPR Volume delay function : 1 + beta * (VOLUME / CAPACITY)^alpha
+    // Call BPR_VDF(VOLUME, CAPACITY, alpha, beta)
+    Parser.registerFunction(
+        "BPR_VDF",
+        new Function() {
+          @Override
+          public int getNumberOfArguments() {
+            return 4;
+          }
+
+          @Override
+          public double eval(List<Expression> args) {
+
+            double volume = args.get(0).evaluate();
+            double capacity = args.get(1).evaluate();
+            double alpha = args.get(2).evaluate();
+            double beta = args.get(3).evaluate();
+
+            double delay = 1 + beta * Math.pow(volume / capacity, alpha);
+            return delay;
+          }
+
+          @Override
+          public boolean isNaturalFunction() {
+            return true;
+          }
+        });
+
+    // Conical (Spiess) Volume delay function :
+    // 2 + sqrt(alpha^2 * (1-(VOLUME/CAPACITY))^2 + beta^2) - alpha*(1-(VOLUME/CAPACITY)) - beta)
+    // with beta = (2*alpha-1)/(2*alpha-2)
+    // Call CONICAL_VDF(VOLUME, CAPACITY, alpha)
+    Parser.registerFunction(
+        "CONICAL_VDF",
+        new Function() {
+          @Override
+          public int getNumberOfArguments() {
+            return 3;
+          }
+
+          @Override
+          public double eval(List<Expression> args) {
+
+            double volume = args.get(0).evaluate();
+            double capacity = args.get(1).evaluate();
+            double alpha = args.get(2).evaluate();
+            double beta = (2 * alpha - 1) / (2 * alpha - 2);
+            double x = volume / capacity;
+
+            double delay =
+                2
+                    + Math.sqrt(Math.pow(alpha, 2) * Math.pow(1 - x, 2) + Math.pow(beta, 2))
+                    - alpha * (1 - x)
+                    - beta;
+            return delay;
+          }
+
+          @Override
+          public boolean isNaturalFunction() {
+            return true;
+          }
+        });
   }
 
   /**
@@ -582,8 +683,8 @@ public class CostParser {
          * Get (oriented) flow for the real link associated to this virtual link.
          * The flow is a number of passenger car units
          */
-        setVariable(NodusC.VARNAME_FLOW, rl.getCurrentPassengerCarUnits(vl));
-        
+        setVariable(NodusC.VARNAME_VOLUME, rl.getCurrentPassengerCarUnits(vl));
+
       } else {
         fieldName = nodeFieldName[layerIndex];
         values = nodesDbf[layerIndex].getRecord(indexInLayer);
@@ -593,7 +694,7 @@ public class CostParser {
 
         // No flow or Length variable for nodes
         if (hasMoveVariables) {
-          scope.remove(NodusC.VARNAME_FLOW);
+          scope.remove(NodusC.VARNAME_VOLUME);
           scope.remove(NodusC.VARNAME_LENGTH);
           hasMoveVariables = false;
         }
@@ -715,7 +816,7 @@ public class CostParser {
    * @param classNum Class for which the variables must be initialized
    * @return boolean True on success
    */
-  private boolean initialiseVariableForGroup(byte groupNum, byte classNum) {
+  private boolean initialiseVariablesForGroup(byte groupNum, byte classNum) {
 
     // Initialize (or reset) the main variables
     Enumeration<?> enumerator = costFunctions.propertyNames();

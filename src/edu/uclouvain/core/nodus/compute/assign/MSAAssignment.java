@@ -25,6 +25,7 @@ import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorkerParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.MSAAssignmentWorker;
+import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
@@ -98,9 +99,17 @@ public class MSAAssignment extends Assignment {
 
     // Read the O-D matrixes
     ODReader odr = new ODReader(assignmentParameters);
-
     if (!odr.loadDemand(virtualNet)) {
       return false;
+    }
+
+    // Initialize the vehicles parser and load the vehicle characteristics for all groups.
+    vehiclesParser = new VehiclesParser(assignmentParameters.getScenario());
+    for (byte groupIndex = 0; groupIndex < (byte) virtualNet.getGroups().length; groupIndex++) {
+      if (!vehiclesParser.loadVehicleCharacteristics(
+          assignmentParameters.getCostFunctions(), virtualNet.getGroups()[groupIndex])) {
+        return false;
+      }
     }
 
     // Create a path writer
@@ -203,7 +212,9 @@ public class MSAAssignment extends Assignment {
       } // Next od class
 
       // Now combine the auxiliary flows with the current flow
-      splitFlows(split);
+      if (!splitFlows(split)) {
+        return false;
+      }
 
       if (assignmentParameters.isSavePaths()) {
         pathWriter.splitPaths(iteration, split);
@@ -234,8 +245,9 @@ public class MSAAssignment extends Assignment {
    * <p>New current flow = (1-lambda) x current flow + lambda x auxilliary flow
    *
    * @param lambda double
+   * @return True on success.
    */
-  public void splitFlows(double lambda) {
+  public boolean splitFlows(double lambda) {
     // Update current flows on virtual links
     VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();
 
@@ -264,7 +276,10 @@ public class MSAAssignment extends Assignment {
     }
 
     // Transform the flows in vehicles
-    virtualNet.flowsToVehicles();
+    if (!virtualNet.flowsToVehicles(vehiclesParser)) {
+      return false;
+    }
+    return true;
   }
 
   /**

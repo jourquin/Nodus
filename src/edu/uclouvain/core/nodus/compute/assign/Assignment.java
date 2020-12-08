@@ -27,6 +27,7 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
+import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
@@ -104,6 +105,9 @@ public abstract class Assignment implements Runnable {
   AssignmentWorker[] assignmentWorkers = null;
 
   private String errorMessage = "";
+
+  /** A parser and place holder for the vehicles characteristics (average load and PCU. */
+  protected VehiclesParser vehiclesParser = null;
 
   /**
    * Initializes the assignment procedure. The effective computation starts calling the run()
@@ -330,8 +334,9 @@ public abstract class Assignment implements Runnable {
 
     Properties costFunctions = assignmentParameters.getCostFunctions();
     boolean hasDeprecatedDurations = false;
-    boolean hasEsv = false;
-    // Scan the costs function to detect the presence of durations
+    boolean hasDeprecatedVariables = false;
+
+    // Scan the costs function to detect the presence of old xx_DURATUION, ESV or FLOW variables
     Set<Object> keys = costFunctions.keySet();
     for (Object key : keys) {
       if (((String) key).contains("LD_DURATION")) {
@@ -348,19 +353,29 @@ public abstract class Assignment implements Runnable {
       }
 
       if (((String) key).contains("ESV")) {
-        hasEsv = true;
+        hasDeprecatedVariables = true;
+        break;
+      }
+
+      // The FLOW variable can be found in the moving cost functions
+      if (((String) key).contains("mv.")) {
+        String value = costFunctions.getProperty((String) key);
+        if (value.contains("FLOW")) {
+          hasDeprecatedVariables = true;
+        }
         break;
       }
     }
 
-    if (hasDeprecatedDurations || hasEsv) {
+    // If something to upgrade
+    if (hasDeprecatedDurations || hasDeprecatedVariables) {
       int check =
           JOptionPane.showConfirmDialog(
               null,
               i18n.get(
                   Assignment.class,
                   "DeprecatedVariables",
-                  "Costs contain deprecated xx_DURATION or ESV variables. Upgrade ?"),
+                  "Costs contain deprecated xx_DURATION, ESV or FLOWA variables. Upgrade ?"),
               NodusC.APPNAME,
               JOptionPane.YES_NO_OPTION);
 
@@ -451,14 +466,15 @@ public abstract class Assignment implements Runnable {
           }
         }
 
-        // Replace the ESV variables, if any
-        if (hasEsv) {
+        // Replace the ESV and FLOW variables, if any
+        if (hasDeprecatedVariables) {
           Path path = Paths.get(costFunctionsFileName);
           Charset charset = StandardCharsets.UTF_8;
 
           try {
             String content = new String(Files.readAllBytes(path), charset);
             content = content.replaceAll("ESV.", "PCU.");
+            content = content.replaceAll("FLOW", "VOLUME");
             Files.write(path, content.getBytes(charset));
           } catch (IOException e) {
             e.printStackTrace();

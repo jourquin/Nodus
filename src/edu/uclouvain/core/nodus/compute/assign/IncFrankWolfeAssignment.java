@@ -26,6 +26,7 @@ import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorkerParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.FrankWolfeAssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.IncrementalAssignmentWorker;
+import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
@@ -100,9 +101,17 @@ public class IncFrankWolfeAssignment extends Assignment {
 
     // Read the O-D matrixes
     ODReader odr = new ODReader(assignmentParameters);
-
     if (!odr.loadDemand(virtualNet)) {
       return false;
+    }
+
+    // Initialize the vehicles parser and load the vehicle characteristics for all groups.
+    vehiclesParser = new VehiclesParser(assignmentParameters.getScenario());
+    for (byte groupIndex = 0; groupIndex < (byte) virtualNet.getGroups().length; groupIndex++) {
+      if (!vehiclesParser.loadVehicleCharacteristics(
+          assignmentParameters.getCostFunctions(), virtualNet.getGroups()[groupIndex])) {
+        return false;
+      }
     }
 
     // Create a path writer
@@ -202,7 +211,9 @@ public class IncFrankWolfeAssignment extends Assignment {
       } // Next od class
 
       // Transform the flows in vehicles
-      virtualNet.flowsToVehicles();
+      if (!virtualNet.flowsToVehicles(vehiclesParser)) {
+        return false;
+      }
     }
 
     // Now start a FW assignment
@@ -290,7 +301,9 @@ public class IncFrankWolfeAssignment extends Assignment {
       } // Next od class
 
       // Transform the flows in vehicles
-      virtualNet.flowsToVehicles();
+      if (!virtualNet.flowsToVehicles(vehiclesParser)) {
+        return false;
+      }
 
       double li = 0;
       double ls = 1;

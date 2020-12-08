@@ -280,11 +280,7 @@ public class VirtualNetwork {
    * @return True on success.
    */
   public boolean computeCosts(
-      int iteration,
-      byte scenario,
-      byte odClass,
-      byte timeSlice,
-      int nbThreads) {
+      int iteration, byte scenario, byte odClass, byte timeSlice, int nbThreads) {
 
     if (vnl == null) {
       return false;
@@ -367,8 +363,7 @@ public class VirtualNetwork {
    * @param nbThreads The number of thread to create in the pool.
    * @return True on success.
    */
-  public boolean computeCosts(
-      int iteration, byte scenario, byte odClass, int nbThreads) {
+  public boolean computeCosts(int iteration, byte scenario, byte odClass, int nbThreads) {
     return computeCosts(iteration, scenario, odClass, (byte) -1, nbThreads);
   }
 
@@ -455,9 +450,12 @@ public class VirtualNetwork {
    * cost functions file. The same file also can contain the "equivalent standard vehicles" that
    * correspond to the different transportation means used. This information is used to assign
    * standard vehicles on the real links (used to compute flow related cost functions).
+   *
+   * @param vehiclesParser The VehicleParser that holds the characteristics of the vehicles.
+   * @return True on success.
    */
-  public void flowsToVehicles() {
-    flowsToVehicles((byte) 0);
+  public boolean flowsToVehicles(VehiclesParser vehiclesParser) {
+    return flowsToVehicles(vehiclesParser, (byte) 0);
   }
 
   /**
@@ -469,14 +467,15 @@ public class VirtualNetwork {
    * cost functions). <br>
    * This method is only used by time dependent assignments.
    *
+   * @param vehiclesParser The VehicleParser that holds the characteristics of the vehicles.
    * @param timeSlice The time slice to consider.
+   * @return True on success.
    */
-  public void flowsToVehicles(byte timeSlice) {
+  public boolean flowsToVehicles(VehiclesParser vehiclesParser, byte timeSlice) {
     /* Use the flows on the virtual links to compute the number of vehicles needed. */
     for (byte groupIndex = 0; groupIndex < getNbGroups(); groupIndex++) {
-      // Load the capacities of the vehicles
-      VehiclesParser.loadVehicleCharacteristics(costFunctions, scenario, groups[groupIndex]);
 
+      int group = groups[groupIndex];
       for (VirtualNodeList element : vnl) {
         // Iterate through all the virtual nodes generated for this real node
         Iterator<VirtualNode> nodeLit = element.getVirtualNodeList().iterator();
@@ -504,18 +503,22 @@ public class VirtualNetwork {
               if (vl.getType()
                   == VirtualLink.TYPE_LOAD) { // Take end virtual node to get mode/means
                 averageLoad =
-                    VehiclesParser.getVehicleAverageLoad(
-                        vl.getEndVirtualNode().getMode(), vl.getEndVirtualNode().getMeans());
+                    vehiclesParser.getAverageLoad(
+                        group, vl.getEndVirtualNode().getMode(), vl.getEndVirtualNode().getMeans());
                 pcu =
-                    VehiclesParser.getPassengerCarUnitsRatio(
-                        vl.getEndVirtualNode().getMode(), vl.getEndVirtualNode().getMeans());
+                    vehiclesParser.getPassengerCarUnits(
+                        group, vl.getEndVirtualNode().getMode(), vl.getEndVirtualNode().getMeans());
               } else {
                 averageLoad =
-                    VehiclesParser.getVehicleAverageLoad(
-                        vl.getBeginVirtualNode().getMode(), vl.getBeginVirtualNode().getMeans());
+                    vehiclesParser.getAverageLoad(
+                        group,
+                        vl.getBeginVirtualNode().getMode(),
+                        vl.getBeginVirtualNode().getMeans());
                 pcu =
-                    VehiclesParser.getPassengerCarUnitsRatio(
-                        vl.getBeginVirtualNode().getMode(), vl.getBeginVirtualNode().getMeans());
+                    vehiclesParser.getPassengerCarUnits(
+                        group,
+                        vl.getBeginVirtualNode().getMode(),
+                        vl.getBeginVirtualNode().getMeans());
               }
 
               vl.initializeVehicles(groupIndex, timeSlice, averageLoad, pcu);
@@ -524,6 +527,7 @@ public class VirtualNetwork {
         }
       }
     }
+    return true;
   }
 
   /**

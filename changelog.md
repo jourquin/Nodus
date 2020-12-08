@@ -192,6 +192,9 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Upgrade to latest OpenMap 6b snapshot
     - The ESV (Equivalent Standard Vehicle) variable name has been replaced by the PCU (Passenger Car Units) variable name. PCU is
     a more common acronym used in the literature. An automatic upgrade is proposed to the user.
+    - The FLOW variable name has been replaced by the VOLUME variable name to be more in-line with terminology used the literature that covers 
+    volume / delay functions. An automatic upgrade is proposed to the user.
+    - Volume predefined delay functions (BPR_VDF and CONICAL_VDF) are now provided and recognized by the cost parser.
 
 - Breaking changes:
     - Simplified API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 

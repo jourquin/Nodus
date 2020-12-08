@@ -26,6 +26,7 @@ import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorkerParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.ExactMFAssignmentWorker;
+import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
@@ -103,9 +104,17 @@ public class ExactMFAssignment extends Assignment {
 
     // Read the O-D matrixes
     ODReader odr = new ODReader(assignmentParameters);
-
     if (!odr.loadDemand(virtualNet)) {
       return false;
+    }
+
+    // Initialize the vehicles parser and load the vehicle characteristics for all groups.
+    vehiclesParser = new VehiclesParser(assignmentParameters.getScenario());
+    for (byte groupIndex = 0; groupIndex < (byte) virtualNet.getGroups().length; groupIndex++) {
+      if (!vehiclesParser.loadVehicleCharacteristics(
+          assignmentParameters.getCostFunctions(), virtualNet.getGroups()[groupIndex])) {
+        return false;
+      }
     }
 
     // Get the structure of the virtual network
@@ -227,7 +236,9 @@ public class ExactMFAssignment extends Assignment {
     } // Next od class
 
     // Transform the flows in vehicles
-    virtualNet.flowsToVehicles();
+    if (!virtualNet.flowsToVehicles(vehiclesParser)) {
+      return false;
+    }
 
     gcr.stop();
     // long end = System.currentTimeMillis();

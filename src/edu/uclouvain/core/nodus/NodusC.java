@@ -49,10 +49,8 @@ public class NodusC {
    * Control functionalities. Useful to enable/disable experimental stuff
    * *********************************************************************************************
    */
-  
-  /**
-   * Enable or disables all the "services" related functionalities.
-   */
+
+  /** Enable or disables all the "services" related functionalities. */
   public static boolean withServices = false;
 
   /*
@@ -93,6 +91,10 @@ public class NodusC {
 
   /** Maximum size of the SQL batch for the path writer. */
   public static final int MAXBATCHSIZE = 1000;
+
+  /** Maximum number of groups of commodities. */
+  public static final int MAXGROUPS = MAXMM;
+
   /*
    * *********************************************************************************************
    * Indexes and names of database fields
@@ -368,10 +370,10 @@ public class NodusC {
    */
 
   /**
-   * Name of the variable that must be used in cost functions to use the current flow on a link.
-   * Used in flow related cost functions (Equilibrium assignment techniques).
+   * Name of the variable that must be used in cost functions to use the current volume expressed in
+   * PCU's. on a link. Used in volume/delay cost functions (Equilibrium assignment techniques).
    */
-  public static final String VARNAME_FLOW = "FLOW";
+  public static final String VARNAME_VOLUME = "VOLUME";
 
   /**
    * Name of the variable that must be used in cost functions to use the value of the tranship field
@@ -415,8 +417,8 @@ public class NodusC {
   public static final String VARNAME_ABRAHAM = "ABRAHAM";
 
   /**
-   * Name of the variable that must be used in cost functions to use the passenger car units
-   * ratio to be used for a vehicle.
+   * Name of the variable that must be used in cost functions to use the passenger car units ratio
+   * to be used for a vehicle.
    */
   public static final String VARNAME_PCU = "PCU";
 
