@@ -423,9 +423,9 @@ public class CostParser {
         });
 
     // BPR Volume delay function : 1 + beta * (VOLUME / CAPACITY)^alpha
-    // Call BPR_VDF(VOLUME, CAPACITY, alpha, beta)
+    // Call BPR(VOLUME, CAPACITY, alpha, beta)
     Parser.registerFunction(
-        "BPR_VDF",
+        "BPR",
         new Function() {
           @Override
           public int getNumberOfArguments() {
@@ -453,9 +453,9 @@ public class CostParser {
     // Conical (Spiess) Volume delay function :
     // 2 + sqrt(alpha^2 * (1-(VOLUME/CAPACITY))^2 + beta^2) - alpha*(1-(VOLUME/CAPACITY)) - beta)
     // with beta = (2*alpha-1)/(2*alpha-2)
-    // Call CONICAL_VDF(VOLUME, CAPACITY, alpha)
+    // Call SpiessConical(VOLUME, CAPACITY, alpha)
     Parser.registerFunction(
-        "CONICAL_VDF",
+        "SpiessConical",
         new Function() {
           @Override
           public int getNumberOfArguments() {
