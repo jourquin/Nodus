@@ -195,6 +195,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - The FLOW variable name has been replaced by the VOLUME variable name to be more in-line with terminology used the literature that covers 
     volume / delay functions. An automatic upgrade is proposed to the user.
     - Predefined Volume-Delay functions (BPR and SpiessConical) are now provided and recognized by the cost parser.
+    - Tested with GraalVM (faster that regular JVM). Compilation to native code with GraalVM's "native-image" tool doesn't work yet.
 
 - Breaking changes:
     - Simplified API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 
