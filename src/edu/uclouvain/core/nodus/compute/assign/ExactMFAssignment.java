@@ -76,14 +76,6 @@ public class ExactMFAssignment extends Assignment {
       assignmentParameters.setDurationFunctions(true);
     }
 
-    // double meansModeRatio = assignmentParameters.getMeansModeRatio();
-
-    // Test if scenario already exists
-    if (!VirtualNetworkWriter.acceptScenario(
-        nodusProject, assignmentParameters.getScenario(), assignmentParameters.isConfirmDelete())) {
-      return false;
-    }
-
     // Generate a virtual network
     virtualNet = new VirtualNetwork(assignmentParameters);
 

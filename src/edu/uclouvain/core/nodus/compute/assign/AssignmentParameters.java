@@ -34,8 +34,8 @@ import java.util.Properties;
  */
 public class AssignmentParameters {
 
-  /** If true, ask before deleting old assignments. */
-  private boolean confirmDelete = true;
+  /* If true, ask before deleting old assignments. */
+  // private boolean confirmDelete = true;
 
   /** Cost functions file. */
   private Properties costFunctions;
@@ -204,7 +204,7 @@ public class AssignmentParameters {
   /**
    * Returns the num of the assigned scenario.
    *
-   * @return int.
+   * @return byte.
    */
   public byte getScenario() {
     return scenario;
@@ -246,14 +246,14 @@ public class AssignmentParameters {
     return withDurationFunction;
   }
 
-  /**
+  /*
    * Returns true if the user must confirm before an existing scenario is overwritten.
    *
    * @return boolean
    */
-  public boolean isConfirmDelete() {
+  /*public boolean isConfirmDelete() {
     return confirmDelete;
-  }
+  }*/
 
   /**
    * Returns true if the details of each path (the list of used network links) must be saved.
@@ -320,14 +320,14 @@ public class AssignmentParameters {
     return isTimeDependent;
   }
 
-  /**
+  /*
    * If true, the user will be asked to confirm before overwritting an exiting assignment.
    *
    * @param confirmDelete boolean.
    */
-  public void setConfirmDelete(boolean confirmDelete) {
+  /*public void setConfirmDelete(boolean confirmDelete) {
     this.confirmDelete = confirmDelete;
-  }
+  }*/
 
   /**
    * Sets the cost functions to use with the assignment. The cost functions can be: <br>
@@ -502,7 +502,7 @@ public class AssignmentParameters {
    * @param scenario byte
    */
   public void setScenario(byte scenario) {
-    this.scenario = scenario;
+    this.scenario = (byte) scenario;
   }
 
   /**

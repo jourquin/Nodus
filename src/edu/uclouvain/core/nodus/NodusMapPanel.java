@@ -31,6 +31,7 @@ import com.bbn.openmap.MapBean;
 import com.bbn.openmap.MapBeanRepaintPolicy;
 import com.bbn.openmap.MapHandler;
 import com.bbn.openmap.MouseDelegator;
+import com.bbn.openmap.dataAccess.shape.EsriGraphicList;
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.event.DistanceMouseMode;
 import com.bbn.openmap.event.NavMouseMode;
@@ -52,6 +53,7 @@ import com.bbn.openmap.gui.menu.ProjectionMenu;
 import com.bbn.openmap.image.AcmeGifFormatter;
 import com.bbn.openmap.image.MapBeanPrinter;
 import com.bbn.openmap.image.SunJPEGFormatter;
+import com.bbn.openmap.layer.LabelLayer;
 import com.bbn.openmap.layer.OMGraphicHandlerLayer;
 import com.bbn.openmap.layer.highlightedarea.HighlightedAreaLayer;
 import com.bbn.openmap.layer.policy.RenderingHintsRenderPolicy;
@@ -59,6 +61,7 @@ import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.layer.shape.PoliticalBoundariesLayer;
 import com.bbn.openmap.layer.shape.ShapeLayer;
 import com.bbn.openmap.omGraphics.OMColorChooser;
+import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.proj.CADRGLoader;
 import com.bbn.openmap.proj.GnomonicLoader;
 import com.bbn.openmap.proj.LLXYLoader;
@@ -83,6 +86,7 @@ import com.thizzer.jtouchbar.item.view.TouchBarButton;
 import com.thizzer.jtouchbar.item.view.TouchBarView;
 import com.thizzer.jtouchbar.item.view.action.TouchBarViewAction;
 import edu.uclouvain.core.nodus.compute.assign.gui.AssignmentDlg;
+import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.results.gui.ResultsDlg;
 import edu.uclouvain.core.nodus.compute.scenario.gui.ScenariosDlg;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
@@ -415,6 +419,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** A MacBook Pro touchbar. */
   private JTouchBar regularTouchBar = null;
+
+  /** Used to know if the scenario is changed in order to reset the displayed results. */
+  private int lastScenario = -1;
 
   /**
    * Max scale above which the links and nodes are not anymore rendered with their specific
@@ -1381,8 +1388,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       mapBean = new BufferedMapBean();
       mapBean.setBorder(BorderFactory.createEtchedBorder(BevelBorder.LOWERED));
 
-      Projection proj =
-          new ProjectionFactory().getDefaultProjectionFromEnvironment();
+      Projection proj = new ProjectionFactory().getDefaultProjectionFromEnvironment();
       mapBean.setProjection(proj);
 
       mapBean.setPreferredSize(new Dimension(proj.getWidth(), proj.getHeight()));
@@ -2637,6 +2643,45 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
   }
 
+  /** Resets the "display results" state of the layers. */
+  private void resetResults(NodusEsriLayer[] layers) {
+
+    for (NodusEsriLayer element : layers) {
+
+      // Reset the user defined attribute of each graphic
+      EsriGraphicList egl = element.getEsriGraphicList();
+      Iterator<OMGraphic> it = egl.iterator();
+      while (it.hasNext()) {
+        OMGraphic omg = it.next();
+        RealNetworkObject rn = (RealNetworkObject) omg.getAttribute(0);
+        if (rn != null) {
+          rn.setResult(0.0);
+        }
+      }
+
+      element.setDisplayResults(false);
+      element.getLocationHandler().setDisplayResults(false);
+      element.getLocationHandler().reloadData();
+      element.applyWhereFilter(element.getWhereStmt());
+      element.attachStyles();
+      element.doPrepare();
+    }
+
+    // Is a label layer present?
+    LabelLayer labelLayer = null;
+    Layer[] l = getLayerHandler().getLayers();
+    for (Layer element : l) {
+      if (element.getClass().getName() == "com.bbn.openmap.layer.LabelLayer") {
+        labelLayer = (LabelLayer) element;
+        break;
+      }
+    }
+    if (labelLayer != null) {
+      labelLayer.setLabelText("");
+      labelLayer.doPrepare();
+    }
+  }
+
   /** Resets/clears the default map. */
   public void resetMap() {
     Dimension dim = Toolkit.getDefaultToolkit().getScreenSize();
@@ -3078,6 +3123,14 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         }
       }
     }
+
+    // Reset the displayed results
+    if (currentScenario != lastScenario) {
+      resetResults(nodusProject.getNodeLayers());
+      resetResults(nodusProject.getLinkLayers());
+    }
+    lastScenario = currentScenario;
+
     setTitle();
 
     // Reset action listeners

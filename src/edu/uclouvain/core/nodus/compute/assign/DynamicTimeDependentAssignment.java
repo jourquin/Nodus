@@ -73,12 +73,6 @@ public class DynamicTimeDependentAssignment extends Assignment {
       assignmentParameters.setDurationFunctions(true);
     }
 
-    // Test if scenario already exists
-    if (!VirtualNetworkWriter.acceptScenario(
-        nodusProject, assignmentParameters.getScenario(), assignmentParameters.isConfirmDelete())) {
-      return false;
-    }
-
     // long start = System.currentTimeMillis();
 
     // Get the information about the time windows in the cost function

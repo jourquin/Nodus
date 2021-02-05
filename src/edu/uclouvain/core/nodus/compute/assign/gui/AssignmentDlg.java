@@ -25,6 +25,7 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AllOrNothingAssignment;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
@@ -38,6 +39,7 @@ import edu.uclouvain.core.nodus.compute.assign.MSAAssignment;
 import edu.uclouvain.core.nodus.compute.assign.StaticAoNTimeDependentAssignment;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
+import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.gui.ProjectPreferencesDlg;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
@@ -328,6 +330,43 @@ public class AssignmentDlg extends EscapeDialog {
   }
 
   /**
+   * Convenience method used to test the existence of a scenario. If it exists, the user is asked if
+   * he wants to overwrite the existent tables in the database. Returns true if the scenario number
+   * is accepted.
+   *
+   * @param scenario The ID of the scenario to assign.
+   * @return True if the scenario is accepted.
+   */
+  private boolean acceptScenario(int scenario) {
+
+    NodusProject nodusProject = nodusMapPanel.getNodusProject();
+    // Build table name
+    String tableName =
+        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
+    tableName = nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenario;
+    tableName = JDBCUtils.getCompliantIdentifier(tableName);
+
+    // If table doesn't exit, no problem
+    if (!JDBCUtils.tableExists(tableName)) {
+      return true;
+    }
+
+    int answer =
+        JOptionPane.showConfirmDialog(
+            this,
+            i18n.get(VirtualNetworkWriter.class, "Clear_existent_flows", "Clear existent flows?"),
+            i18n.get(
+                VirtualNetworkWriter.class, "Scenario_already_exists", "Scenario already exists"),
+            JOptionPane.YES_NO_OPTION);
+
+    if (answer != JOptionPane.YES_OPTION) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
    * Enables the GUI components relevant for the AON assignment method.
    *
    * @param e ChangeEvent
@@ -384,9 +423,6 @@ public class AssignmentDlg extends EscapeDialog {
     ap.setLogLostPaths(lostPathsCheckBox.isSelected());
     ap.setThreads(Integer.parseInt(threadsSpinner.getValue().toString()));
     ap.setScenarioDescription(descriptionTextField.getText());
-    /* nodusMapPanel
-    .getNodusProject()
-    .getLocalProperty(NodusC.PROP_ASSIGNMENT_DESCRIPTION + ap.getScenario(), ""));*/
 
     ModalSplitMethodName msmn = (ModalSplitMethodName) modalSplitMethodComboBox.getSelectedItem();
     if (msmn != null) {
@@ -400,6 +436,12 @@ public class AssignmentDlg extends EscapeDialog {
     }
 
     saveState();
+
+    // Test if scenario already exists
+    if (!acceptScenario(ap.getScenario())) {
+      setVisible(false);
+      return;
+    }
 
     // Launch the assignment
     int assignmentMethod = getSelectedAssignmentMethod();
@@ -2160,8 +2202,8 @@ public class AssignmentDlg extends EscapeDialog {
         .setLocalProperty(NodusC.PROP_ASSIGNMENT_QUERY + scenarioSuffix, sqlTextArea.getText());
 
     /*nodusMapPanel
-        .getNodusProject()
-        .setLocalProperty(NodusC.PROP_ASSIGNMENT_DESCRIPTION, descriptionTextField.getText());*/
+    .getNodusProject()
+    .setLocalProperty(NodusC.PROP_ASSIGNMENT_DESCRIPTION, descriptionTextField.getText());*/
 
     nodusMapPanel
         .getNodusProject()
@@ -2169,7 +2211,7 @@ public class AssignmentDlg extends EscapeDialog {
             NodusC.PROP_ASSIGNMENT_DESCRIPTION + scenarioSuffix, descriptionTextField.getText());
 
     // Update title with current scenario number
-    nodusMapPanel.updateScenarioComboBox();
+    // nodusMapPanel.updateScenarioComboBox();
   }
 
   /**

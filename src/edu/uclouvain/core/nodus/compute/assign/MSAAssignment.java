@@ -71,12 +71,6 @@ public class MSAAssignment extends Assignment {
       assignmentParameters.setDurationFunctions(true);
     }
 
-    // Test if scenario already exists
-    if (!VirtualNetworkWriter.acceptScenario(
-        nodusProject, assignmentParameters.getScenario(), assignmentParameters.isConfirmDelete())) {
-      return false;
-    }
-
     // long Start = System.currentTimeMillis();
 
     // Generate a virtual network

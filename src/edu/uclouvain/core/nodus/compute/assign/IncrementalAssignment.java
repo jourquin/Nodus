@@ -67,12 +67,6 @@ public class IncrementalAssignment extends Assignment {
       assignmentParameters.setDurationFunctions(true);
     }
 
-    // Test if scenario already exists
-    if (!VirtualNetworkWriter.acceptScenario(
-        nodusProject, assignmentParameters.getScenario(), assignmentParameters.isConfirmDelete())) {
-      return false;
-    }
-
     // Generate a virtual network
     virtualNet = new VirtualNetwork(assignmentParameters);
 

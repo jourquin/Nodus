@@ -75,12 +75,6 @@ public class IncFrankWolfeAssignment extends Assignment {
       assignmentParameters.setDurationFunctions(true);
     }
 
-    // Test if scenario already exists
-    if (!VirtualNetworkWriter.acceptScenario(
-        nodusProject, assignmentParameters.getScenario(), assignmentParameters.isConfirmDelete())) {
-      return false;
-    }
-
     // Generate a virtual network
     virtualNet = new VirtualNetwork(assignmentParameters);
 
@@ -217,7 +211,7 @@ public class IncFrankWolfeAssignment extends Assignment {
     }
 
     // Now start a FW assignment
-    // Variables that are used to split current and auxilliary flows
+    // Variables that are used to split current and auxiliary flows
     double lambda = 1.0;
     double lambdaPrecisionThreshold = 0.01;
 
