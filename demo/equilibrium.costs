@@ -1,0 +1,53 @@
+
+#-----------------------------------------------------   
+# Sample cost functions for equilibrium assignments 
+#-----------------------------------------------------   
+
+# Nodus variables ------------------------------------
+
+# Average load and PCU ratio are needed to compute the
+# volume expressed in PCU's, which is the unit used for
+# the capacity of the links 
+
+# Average load trucks
+AVGLOAD.1,1 = 14.88
+
+# Personal car units for the vehicle of type 1,1
+PCU.1,1 = 2.0
+
+# User defined variables -----------------------------
+
+# Average speed for mode 1 
+AVGSPEED1 = 66
+
+# Loading costs road (euro/ton)              
+Loading_M01m01 = 2.7964
+
+# Unloading costs road (euro/ton)                
+Unloading_M01m01 = 2.6488
+
+# Moving costs (euro/t.km) road
+Moving_M01m01 = 0.0634
+
+
+#- Functions -----------------------------------------               
+
+
+# Load.Mode,Means       
+ld.1,1 = Loading_M01m01
+
+# Unload.Mode,Means  
+ul.1,1 = Unloading_M01m01
+
+# Transit.Mode,Means 
+tr.1,1 = 0
+
+# Move.Mode,Means with volume-delay function
+alpha=4
+beta = 1
+#mv.1,1 = (AVGSPEED1/SPEED)*LENGTH*Moving_M01m01*BPR(VOLUME, CAPACITY, alpha, beta)
+mv.1,1 = (AVGSPEED1/SPEED)*LENGTH*Moving_M01m01*SpiessConical(VOLUME, CAPACITY, alpha)
+
+
+
+
