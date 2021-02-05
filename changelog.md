@@ -165,7 +165,6 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Remove the "-" button in the layer panel. Not useful.
     - New compass image in ScaleAndCompassLayer.
     - Add "font" properties to ScaleAndCompassLayer for label and scale fonts.
-    - Use a fork specific version of openmap.jar that fixes a bug with EsriLayer.setModel(...).
     - Add legends in virtual network viewer.
     - Replace 'importTables" property by 'import.tables'. Projects with the old property name are still accepted.
     - Simplify virtual network visualizer GUI.
@@ -196,6 +195,9 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     volume / delay functions. An automatic upgrade is proposed to the user.
     - Predefined Volume-Delay functions (BPR and SpiessConical) are now provided and recognized by the cost parser.
     - Tested with GraalVM (faster that regular JVM). Compilation to native code with GraalVM's "native-image" tool doesn't work yet.
+    - The displayed results are now reset when the scenario is changed.
+    - Add a sample Groovy script in the demo that performs an assignment.
+    - Add a sample costs file and OD matrix for equilibrium assignments in the demo.
 
 - Breaking changes:
     - Simplified API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 
