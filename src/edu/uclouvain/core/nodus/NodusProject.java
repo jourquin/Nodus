@@ -723,6 +723,18 @@ public class NodusProject implements ShapeConstants {
   public int getLocalProperty(String key, int defValue) {
     return PropUtils.intFromProperties(localProperties, key, defValue);
   }
+  
+  /**
+   * Returns the value associated to a given key in the project's local properties. A default value
+   * is also passed as a parameter
+   *
+   * @param key The key of the property.
+   * @param defValue The value returned if the property is not found.
+   * @return The value of the property.
+   */
+  public byte getLocalProperty(String key, byte defValue) {
+    return (byte) PropUtils.intFromProperties(localProperties, key, defValue);
+  }
 
   /**
    * Returns the value associated to a given key in the project's local properties. A default value

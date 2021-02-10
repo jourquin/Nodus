@@ -300,7 +300,8 @@ public class VirtualNetwork {
     // Add the works to the queue
     for (byte groupIndex = 0; groupIndex < getNbGroups(); groupIndex++) {
       CostParser costParser =
-          new CostParser(costFunctions, nodusProject, groups[groupIndex], odClass, timeSlice);
+          new CostParser(
+              costFunctions, nodusProject, scenario, groups[groupIndex], odClass, timeSlice);
       if (!costParser.isInitialized()) {
         // Display the error message
         JOptionPane.showMessageDialog(
@@ -1261,7 +1262,8 @@ public class VirtualNetwork {
       // Add the works to the queue
       for (byte groupIndex = 0; groupIndex < getNbGroups(); groupIndex++) {
         CostParser costParser =
-            new CostParser(costFunctions, nodusProject, groups[groupIndex], odClass, (byte) -1);
+            new CostParser(
+                costFunctions, nodusProject, scenario, groups[groupIndex], odClass, (byte) -1);
         if (!costParser.isInitialized()) {
           nodusMapPanel.stopProgress();
           // Display the error message

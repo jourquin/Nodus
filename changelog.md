@@ -145,6 +145,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     antialiasing (bug in OpenMap).
     - Add the possibility to specify the color to use for each mode in the pie diagrams in the project file.
     - Allow non numerical variables in the costs functions files. The names of these variables must start with a '@'.
+    - Cost parser improved : variables can themselves contain formulas and make reference to other variables.
 
 - DBF files:
     - Improved DBF structure editor for the Nodus layers. The GUI now takes care of the Nodus mandatory structures.

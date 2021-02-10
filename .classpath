@@ -104,6 +104,6 @@
 	<classpathentry kind="lib" path="devtools/mrjtoolkitstubs-1.0 2.jar"/>
 	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/xchart-3.6.6.jar"/>
-	<classpathentry kind="lib" path="lib/openmap.jar"/>
+	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/Users/jourquinb/git/openmap/src/core/src/main/java"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

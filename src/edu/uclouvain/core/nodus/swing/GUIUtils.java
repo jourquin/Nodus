@@ -117,7 +117,6 @@ public class GUIUtils {
    * com.apple.awt classes are used. The Nodus code should be able to call the java.desktop classes
    * that now natively support the Apple desktop, but this is not supported by JVM 8.
    */
-  // TODO Try a reflective access to java.desktop classes ?
   public static void supressIllegalReflectiveAccessOperationWarnings() {
     if (JavaVersionUtil.isJavaVersionAtLeast(9.0f)
         && System.getProperty("os.name").toLowerCase().startsWith("mac")) {

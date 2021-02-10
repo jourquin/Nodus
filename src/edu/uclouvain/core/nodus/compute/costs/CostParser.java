@@ -37,8 +37,11 @@ import edu.uclouvain.core.nodus.utils.StringUtils;
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Vector;
 import parsii.eval.Expression;
@@ -137,7 +140,6 @@ import parsii.tokenizer.ParseException;
  *
  * @author Bart Jourquin
  */
-// TODO : Should be rewritten
 public class CostParser {
 
   private static I18n i18n = Environment.getI18n();
@@ -280,7 +282,7 @@ public class CostParser {
   private NodusProject project = null;
 
   /** Scenario for which the costs must be computed. */
-  private int scenario;
+  private byte scenario;
 
   /** For Parsii. */
   Scope scope = new Scope();
@@ -300,10 +302,12 @@ public class CostParser {
   public CostParser(
       Properties costFunctions,
       NodusProject project,
+      byte scenario,
       byte groupNum,
       byte classNum,
       byte timeSlice) {
     this.costFunctions = costFunctions;
+    this.scenario = scenario;
     this.classNum = classNum;
     this.groupNum = groupNum;
     this.timeSlice = timeSlice;
@@ -311,9 +315,6 @@ public class CostParser {
 
     // Tell Parsii that it must be strict with unknown variable names
     scope.withStrictLookup(true);
-
-    // Get the current scenario
-    scenario = project.getLocalProperty(NodusC.PROP_SCENARIO, 0);
 
     // Get the nodes and link layers
     nodesEsriLayer = project.getNodeLayers();
@@ -382,16 +383,14 @@ public class CostParser {
       setVariable(element.getLayerVariableName(), 0.0);
     }
 
-    if (initialiseVariablesForGroup(groupNum, classNum)) {
+    if (initialiseVariables()) {
       initialized = true;
     }
 
     registerFunctions();
   }
 
-  /**
-   * Some user defined functions, such as volume-delay functions.
-   */
+  /** Some user defined functions, such as volume-delay functions. */
   private void registerFunctions() {
 
     // Average of a series of numeric value
@@ -809,14 +808,202 @@ public class CostParser {
   }
 
   /**
-   * Reads the cost function files to initialize all the variables that are defined for a given
-   * group. Returns false on error.
+   * Looks for a specific scenario, group and/or class value of a variable.
    *
-   * @param groupNum Group for which the variables must be initialized
-   * @param classNum Class for which the variables must be initialized
+   * @return The "most specific" vaule for a variable.
+   */
+  private String getMostSpecificValue(String varName) {
+    String propName;
+    String propValue = null;
+
+    // Is there a scenario, group and od class specific variable?
+    if (classNum != -1) {
+      propName = scenario + "." + varName + "." + groupNum + "-" + classNum;
+      propValue = costFunctions.getProperty(propName);
+    }
+
+    // Is there a scenario and od class specific variable?
+    if (propValue == null && classNum != -1) {
+      propName = scenario + "." + varName + "-" + classNum;
+      propValue = costFunctions.getProperty(propName);
+    }
+
+    // Is there a scenario and group specific variable?
+    if (propValue == null) {
+      propName = scenario + "." + varName + "." + groupNum;
+      propValue = costFunctions.getProperty(propName);
+    }
+
+    // Is there a scenario specific variable?
+    if (propValue == null) {
+      propName = scenario + "." + varName;
+      propValue = costFunctions.getProperty(propName);
+    }
+
+    // Is there a group and od class specific variable?
+    if (propValue == null && classNum != -1) {
+      propName = varName + "." + groupNum + "-" + classNum;
+      propValue = costFunctions.getProperty(propName);
+    }
+
+    // Is there od class specific variable?
+    if (propValue == null && classNum != -1) {
+      propName = varName + "-" + classNum;
+      propValue = costFunctions.getProperty(propName);
+    }
+
+    // Is there a group specific variable?
+    if (propValue == null) {
+      propName = varName + "." + groupNum;
+      propValue = costFunctions.getProperty(propName);
+    }
+
+    // Get the generic value of the variable
+    if (propValue == null) {
+      propName = varName;
+      propValue = costFunctions.getProperty(propName);
+    }
+
+    return propValue;
+  }
+
+  /**
+   * Returns the variable name of a property without its group, class or scenario attributes.
+   *
+   * @param propertyName The name stored in the costs file.
+   * @return The variable name without its attributes or null if something was wrong.
+   */
+  private String getVarName(String propertyName) {
+
+    // Split into tokens that can be separated by "-" or "." delimiters
+    String[] tokens = propertyName.split("[-.]");
+
+    // The token that doesn't represent an integer (scenario, class or group) is the variable name
+    for (int i = 0; i < tokens.length; i++) {
+      try {
+        Integer.parseInt(tokens[i]);
+      } catch (NumberFormatException e) {
+        return tokens[i];
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Reads the cost function files to initialize all the variables. Returns false on error.
+   *
    * @return boolean True on success
    */
-  private boolean initialiseVariablesForGroup(byte groupNum, byte classNum) {
+  private boolean initialiseVariables() {
+
+    HashMap<String, String> hm = new HashMap<String, String>();
+
+    Enumeration<?> enumerator = costFunctions.propertyNames();
+
+    // Browse through the costs and identify all the variables
+    for (; enumerator.hasMoreElements(); ) {
+      // Get property name
+      String propName = (String) enumerator.nextElement();
+
+      // Non numeric variables can be set with a '@' prefix
+      if (propName.startsWith("@")) {
+        continue;
+      }
+
+      // Cost functions are not parsed now
+      if (isCostFunction(propName)) {
+        continue;
+      }
+
+      // Get the name of the variable without attributes
+      String varName = getVarName(propName);
+
+      // Is this variable already set ?
+      if (hm.get(varName) != null) {
+        continue;
+      }
+
+      // Get specific value for this variable, if any
+      String value = getMostSpecificValue(varName);
+
+      // Store this variable if valid
+      if (value != null) {
+        hm.put(varName, value);
+      }
+    }
+
+    // At this point, all the variables are identified, but their value may reference another
+    // variable. Try to parse all the variables to valid double values.
+    boolean foundAValidValue = true;
+    Expression expression;
+    while (foundAValidValue) {
+
+      // Any variable to parse ?
+      if (hm.isEmpty()) {
+        break;
+      }
+
+      foundAValidValue = false;
+
+      Iterator<Entry<String, String>> it = hm.entrySet().iterator();
+      while (it.hasNext()) {
+        Map.Entry<String, String> pair = (Map.Entry<String, String>) it.next();
+
+        // Try to parse the value
+        try {
+          expression = Parser.parse(pair.getValue(), scope);
+        } catch (ParseException e) {
+          // This value probably makes reference to another variable
+
+          continue;
+        }
+
+        // Store the variable if it could be parsed
+        setVariable((String) pair.getKey(), expression.evaluate());
+
+        // Remove this variable from the hashmap as it is resolved
+        it.remove();
+
+        // A next iteration may be needed
+        foundAValidValue = true;
+      }
+    }
+
+    // If at least one variable could not be parsed...
+    if (!hm.isEmpty()) {
+      Iterator<Entry<String, String>> it = hm.entrySet().iterator();
+      Map.Entry<String, String> pair = (Map.Entry<String, String>) it.next();
+
+      errorMessage =
+          MessageFormat.format(
+              i18n.get(CostParser.class, "is_not_a_valid_number", "\"{0}\" cannot be parsed"),
+              pair.getKey() + " = " + pair.getValue());
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Tests if a property name is a cost function.
+   *
+   * @param propertyName Property name.
+   * @return True if the property name is a cost function.
+   */
+  private boolean isCostFunction(String propertyName) {
+    if (propertyName.startsWith("ld.")
+        || propertyName.startsWith("ul.")
+        || propertyName.startsWith("tr.")
+        || propertyName.startsWith("tp.")
+        || propertyName.startsWith("mv.")
+        || propertyName.startsWith("sw.")
+        || propertyName.startsWith("stp.")) {
+      return true;
+    }
+    return false;
+  }
+
+  private boolean initialiseVariablesForGroupOld(byte scenario, byte groupNum, byte classNum) {
 
     // Initialize (or reset) the main variables
     Enumeration<?> enumerator = costFunctions.propertyNames();
@@ -835,6 +1022,7 @@ public class CostParser {
       if (propName.indexOf(".") < 0 && propName.indexOf('-') < 0 && propName.indexOf('@') < 0) {
         // Get property value
         String propValue = costFunctions.getProperty(propName);
+        System.out.println(propName);
 
         // Is this a reference to another variable (recursive approach)?
         boolean found = false;
@@ -861,6 +1049,7 @@ public class CostParser {
 
         // If we are here, we have a valid number
         try {
+
           setVariable(propName, Double.parseDouble(propValue));
         } catch (NumberFormatException e) {
           e.printStackTrace();
@@ -916,7 +1105,6 @@ public class CostParser {
 
       // Is there a group specific variable?
       if (propValue == null) {
-
         propName = varName + "." + groupNum;
         propValue = costFunctions.getProperty(propName);
       }
