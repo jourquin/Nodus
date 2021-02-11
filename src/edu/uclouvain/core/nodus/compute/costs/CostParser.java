@@ -33,9 +33,7 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
-import edu.uclouvain.core.nodus.utils.StringUtils;
 import java.text.MessageFormat;
-import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -48,7 +46,6 @@ import parsii.eval.Expression;
 import parsii.eval.Function;
 import parsii.eval.Parser;
 import parsii.eval.Scope;
-import parsii.eval.Variable;
 import parsii.tokenizer.ParseException;
 
 // TODO (services) Add the cost functions for stops and switch in example.
@@ -452,9 +449,9 @@ public class CostParser {
     // Conical (Spiess) Volume delay function :
     // 2 + sqrt(alpha^2 * (1-(VOLUME/CAPACITY))^2 + beta^2) - alpha*(1-(VOLUME/CAPACITY)) - beta)
     // with beta = (2*alpha-1)/(2*alpha-2)
-    // Call SpiessConical(VOLUME, CAPACITY, alpha)
+    // Call CONICAL(VOLUME, CAPACITY, alpha)
     Parser.registerFunction(
-        "SpiessConical",
+        "CONICAL",
         new Function() {
           @Override
           public int getNumberOfArguments() {
@@ -886,6 +883,9 @@ public class CostParser {
         return tokens[i];
       }
     }
+
+    // The costs functions file may contain other entries that are not recognized as valid
+    // variables.
     return null;
   }
 
@@ -985,12 +985,13 @@ public class CostParser {
   }
 
   /**
-   * Tests if a property name is a cost function.
+   * Tests if a property name is a cost or transit time function.
    *
    * @param propertyName Property name.
    * @return True if the property name is a cost function.
    */
   private boolean isCostFunction(String propertyName) {
+    // Costs
     if (propertyName.startsWith("ld.")
         || propertyName.startsWith("ul.")
         || propertyName.startsWith("tr.")
@@ -1000,149 +1001,19 @@ public class CostParser {
         || propertyName.startsWith("stp.")) {
       return true;
     }
+
+    // Transit times
+    if (propertyName.startsWith("ld@")
+        || propertyName.startsWith("ul@")
+        || propertyName.startsWith("tr@")
+        || propertyName.startsWith("tp@")
+        || propertyName.startsWith("mv@")
+        || propertyName.startsWith("sw@")
+        || propertyName.startsWith("stp@")) {
+      return true;
+    }
+
     return false;
-  }
-
-  private boolean initialiseVariablesForGroupOld(byte scenario, byte groupNum, byte classNum) {
-
-    // Initialize (or reset) the main variables
-    Enumeration<?> enumerator = costFunctions.propertyNames();
-
-    for (; enumerator.hasMoreElements(); ) {
-      // Get property name
-      String propName = (String) enumerator.nextElement();
-
-      // Non numeric variables can be set with a '@' prefix
-      if (propName.startsWith("@")) {
-        continue;
-      }
-
-      // Must be a variable
-      // TODO Allow scenario/group/class specific variables without a need to define the generic one
-      if (propName.indexOf(".") < 0 && propName.indexOf('-') < 0 && propName.indexOf('@') < 0) {
-        // Get property value
-        String propValue = costFunctions.getProperty(propName);
-        System.out.println(propName);
-
-        // Is this a reference to another variable (recursive approach)?
-        boolean found = false;
-        String initialVariableName = propValue;
-
-        while (!found) {
-          if (!StringUtils.isNumeric(propValue)) {
-            propValue = costFunctions.getProperty(propValue);
-
-            if (propValue == null) {
-              errorMessage =
-                  MessageFormat.format(
-                      i18n.get(
-                          CostParser.class,
-                          "is_not_a_valid_number",
-                          "\"{0}\" is not a valid number"),
-                      initialVariableName);
-              return false;
-            }
-          } else {
-            found = true;
-          }
-        }
-
-        // If we are here, we have a valid number
-        try {
-
-          setVariable(propName, Double.parseDouble(propValue));
-        } catch (NumberFormatException e) {
-          e.printStackTrace();
-        }
-      }
-    }
-
-    // Initialize the overridden variables
-    Collection<Variable> variables = scope.getVariables();
-    Iterator<Variable> it = variables.iterator();
-
-    while (it.hasNext()) {
-      String varName = it.next().getName();
-
-      String propName = null;
-      String propValue = null;
-
-      // Is there a scenario, group and od class specific variable?
-      if (classNum != -1) {
-        propName = scenario + "." + varName + "." + groupNum + "-" + classNum;
-        propValue = costFunctions.getProperty(propName);
-      }
-
-      // Is there a scenario and od class specific variable?
-      if (propValue == null && classNum != -1) {
-        propName = scenario + "." + varName + "-" + classNum;
-        propValue = costFunctions.getProperty(propName);
-      }
-
-      // Is there a scenario and group specific variable?
-      if (propValue == null) {
-        propName = scenario + "." + varName + "." + groupNum;
-        propValue = costFunctions.getProperty(propName);
-      }
-
-      // Is there a scenario specific variable?
-      if (propValue == null) {
-        propName = scenario + "." + varName;
-        propValue = costFunctions.getProperty(propName);
-      }
-
-      // Is there a group and od class specific variable?
-      if (propValue == null && classNum != -1) {
-        propName = varName + "." + groupNum + "-" + classNum;
-        propValue = costFunctions.getProperty(propName);
-      }
-
-      // Is there od class specific variable?
-      if (propValue == null && classNum != -1) {
-        propName = varName + "-" + classNum;
-        propValue = costFunctions.getProperty(propName);
-      }
-
-      // Is there a group specific variable?
-      if (propValue == null) {
-        propName = varName + "." + groupNum;
-        propValue = costFunctions.getProperty(propName);
-      }
-
-      if (propValue != null) {
-        // Is this a reference to another variable (recursive approach)?
-        boolean found = false;
-
-        String initialVariableName = propValue;
-
-        while (!found) {
-          if (!StringUtils.isNumeric(propValue)) {
-            propValue = costFunctions.getProperty(propValue);
-
-            if (propValue == null) {
-              errorMessage =
-                  MessageFormat.format(
-                      i18n.get(
-                          CostParser.class,
-                          "is_not_a_valid_number",
-                          "\"{0}\" is not a valid number"),
-                      initialVariableName);
-              return false;
-            }
-          } else {
-            found = true;
-          }
-        }
-
-        try {
-          setVariable(varName, Double.parseDouble(propValue));
-        } catch (NumberFormatException e) {
-          e.printStackTrace();
-        }
-      }
-    }
-
-    return true;
   }
 
   /**
