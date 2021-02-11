@@ -750,7 +750,6 @@ public class AssignmentDlg extends EscapeDialog {
 
     // Exact multi-flow
     if (exactMFRadioButton.isSelected()) {
-
       assignmentMethod = 6;
     }
 
@@ -1428,34 +1427,34 @@ public class AssignmentDlg extends EscapeDialog {
             new Insets(5, 5, 5, 5),
             0,
             0));
-    equilibriumTab.add(
-        frankWolfeRadioButton,
-        new GridBagConstraints(
-            0,
-            2,
-            1,
-            1,
-            0.1,
-            0.0,
-            GridBagConstraints.NORTHWEST,
-            GridBagConstraints.NONE,
-            new Insets(5, 5, 5, 5),
-            0,
-            0));
-    equilibriumTab.add(
-        incFrankWolfeRadioButton,
-        new GridBagConstraints(
-            0,
-            3,
-            1,
-            1,
-            0.1,
-            0.0,
-            GridBagConstraints.NORTHWEST,
-            GridBagConstraints.NONE,
-            new Insets(5, 5, 5, 5),
-            0,
-            0));
+//    equilibriumTab.add(
+//        frankWolfeRadioButton,
+//        new GridBagConstraints(
+//            0,
+//            2,
+//            1,
+//            1,
+//            0.1,
+//            0.0,
+//            GridBagConstraints.NORTHWEST,
+//            GridBagConstraints.NONE,
+//            new Insets(5, 5, 5, 5),
+//            0,
+//            0));
+//    equilibriumTab.add(
+//        incFrankWolfeRadioButton,
+//        new GridBagConstraints(
+//            0,
+//            3,
+//            1,
+//            1,
+//            0.1,
+//            0.0,
+//            GridBagConstraints.NORTHWEST,
+//            GridBagConstraints.NONE,
+//            new Insets(5, 5, 5, 5),
+//            0,
+//            0));
     assignmentTabbedPane.add(
         multiflowTab, i18n.get(AssignmentDlg.class, "Multi_flow", "Multi-flow"));
 

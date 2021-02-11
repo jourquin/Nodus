@@ -194,11 +194,12 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     a more common acronym used in the literature. An automatic upgrade is proposed to the user.
     - The FLOW variable name has been replaced by the VOLUME variable name to be more in-line with terminology used the literature that covers 
     volume / delay functions. An automatic upgrade is proposed to the user.
-    - Predefined Volume-Delay functions (BPR and SpiessConical) are now provided and recognized by the cost parser.
+    - Predefined Volume-Delay functions (BPR and CONICAL) are now provided and recognized by the cost parser.
     - Tested with GraalVM (faster that regular JVM). Compilation to native code with GraalVM's "native-image" tool doesn't work yet.
     - The displayed results are now reset when the scenario is changed.
     - Add a sample Groovy script in the demo that performs an assignment.
     - Add a sample costs file and OD matrix for equilibrium assignments in the demo.
+    - Disable Frank-Wolfe and incremental + Frank-Wolfe assignment methods. They need more validation and are useless.
 
 - Breaking changes:
     - Simplified API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 
