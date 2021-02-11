@@ -200,6 +200,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Add a sample Groovy script in the demo that performs an assignment.
     - Add a sample costs file and OD matrix for equilibrium assignments in the demo.
     - Disable Frank-Wolfe and incremental + Frank-Wolfe assignment methods. They need more validation and are useless.
+    - Add the HOURS, MINUTES and SECONDS functions that can be used in the costs functions for a given LENGHT and SPEED.
 
 - Breaking changes:
     - Simplified API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 

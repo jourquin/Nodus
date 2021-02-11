@@ -1,53 +1,39 @@
+# Example costs for equilibrium assignments
+# Using the Bureau of Public Roads speed flow relation (BPR)
+# or the "conical" function of Spiess.
 
-#-----------------------------------------------------   
-# Sample cost functions for equilibrium assignments 
-#-----------------------------------------------------   
+# Calibration factors
+alpha = 4
+beta = 1
 
-# Nodus variables ------------------------------------
+# The VOLUME variable in Nodus can be expressed in vehicles if
+# the AVGLOAD (average load) variable is defined.
 
-# Average load and PCU ratio are needed to compute the
-# volume expressed in PCU's, which is the unit used for
-# the capacity of the links 
+# Average load per truck
+AVGLOAD.1,1 = 20
 
-# Average load trucks
-AVGLOAD.1,1 = 14.88
-
-# Personal car units for the vehicle of type 1,1
-PCU.1,1 = 2.0
-
-# User defined variables -----------------------------
-
-# Average speed for mode 1 
-AVGSPEED1 = 66
-
-# Loading costs road (euro/ton)              
-Loading_M01m01 = 2.7964
-
-# Unloading costs road (euro/ton)                
-Unloading_M01m01 = 2.6488
-
-# Moving costs (euro/t.km) road
-Moving_M01m01 = 0.0634
-
-
-#- Functions -----------------------------------------               
-
+# Nodus also can handle the capacity usage of a vehicle
+# with the PCU (Passenger Car Units) variable.
+# One truck = 1.5 PCU
+PCU.1,1 = 1.5
 
 # Load.Mode,Means       
-ld.1,1 = Loading_M01m01
+ld.1,1 = 0
 
 # Unload.Mode,Means  
-ul.1,1 = Unloading_M01m01
+ul.1,1 = 0
 
-# Transit.Mode,Means 
+# Transit.Mode,Means    
 tr.1,1 = 0
 
-# Move.Mode,Means with volume-delay function
-alpha=4
-beta = 1
-#mv.1,1 = (AVGSPEED1/SPEED)*LENGTH*Moving_M01m01*BPR(VOLUME, CAPACITY, alpha, beta)
-mv.1,1 = (AVGSPEED1/SPEED)*LENGTH*Moving_M01m01*SpiessConical(VOLUME, CAPACITY, alpha)
+# Move.Mode,Means (cost function that depends on the volume)
 
+# With de BPR formula
+#mv.1,1 = (LENGTH/SPEED) * (1 + beta *(VOLUME/CAPACITY)^alpha)
 
+# With the BPR function
+mv.1,1 = (LENGTH/SPEED) * BPR(VOLUME, CAPACITY, alpha, beta)
 
+# With the "conical" volume-delay function (Spiess) function
+#mv.1,1 = (LENGTH/SPEED) * CONICAL(VOLUME, CAPACITY, alpha)
 

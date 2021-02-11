@@ -480,6 +480,78 @@ public class CostParser {
             return true;
           }
         });
+
+    // Compute the travel duration (hours) for a given length (km) and speed (km/h).
+    // Call HOURS (LENGTH, SPEED)
+    Parser.registerFunction(
+        "HOURS",
+        new Function() {
+          @Override
+          public int getNumberOfArguments() {
+            return 2;
+          }
+
+          @Override
+          public double eval(List<Expression> args) {
+
+            double length = args.get(0).evaluate();
+            double speed = args.get(1).evaluate();
+            return length / speed;
+          }
+
+          @Override
+          public boolean isNaturalFunction() {
+            return true;
+          }
+        });
+
+    // Compute the travel duration (minutes) for a given length (km) and speed (km/h).
+    // Call MINUTES (LENGTH, SPEED)
+    Parser.registerFunction(
+        "MINUTES",
+        new Function() {
+          @Override
+          public int getNumberOfArguments() {
+            return 2;
+          }
+
+          @Override
+          public double eval(List<Expression> args) {
+
+            double length = args.get(0).evaluate();
+            double speed = args.get(1).evaluate();
+            return length * 60 / speed;
+          }
+
+          @Override
+          public boolean isNaturalFunction() {
+            return true;
+          }
+        });
+
+    // Compute the travel duration (seconds) for a given length (km) and speed (km/h).
+    // Call SECONDS (LENGTH, SPEED)
+    Parser.registerFunction(
+        "SECONDS",
+        new Function() {
+          @Override
+          public int getNumberOfArguments() {
+            return 2;
+          }
+
+          @Override
+          public double eval(List<Expression> args) {
+
+            double length = args.get(0).evaluate();
+            double speed = args.get(1).evaluate();
+            return length * 3600 / speed;
+          }
+
+          @Override
+          public boolean isNaturalFunction() {
+            return true;
+          }
+        });
   }
 
   /**
