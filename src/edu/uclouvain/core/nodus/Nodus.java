@@ -94,12 +94,6 @@ public class Nodus {
     nodusLogger.setUseParentHandlers(false);
     nodusLogger.setLevel(Level.ALL);
 
-    // Trick used to avoid info log messages on stdout from HSQLDB
-    System.setProperty("hsqldb.reconfig_logging", "false");
-    Logger databaseLogger = Logger.getLogger("hsqldb.db");
-    databaseLogger.setLevel(Level.WARNING);
-    databaseLogger.setUseParentHandlers(false);
-
     // Open the properties file
     try {
       String home = System.getProperty("user.home") + "/";
@@ -248,9 +242,6 @@ public class Nodus {
     if (lookAndFeel == null) {
       lookAndFeel = UIManager.getSystemLookAndFeelClassName();
     }
-
-    // JFrame.setDefaultLookAndFeelDecorated(true);
-    // JDialog.setDefaultLookAndFeelDecorated(true);
 
     try {
       UIManager.setLookAndFeel(lookAndFeel);

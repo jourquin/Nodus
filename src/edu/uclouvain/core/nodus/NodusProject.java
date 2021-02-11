@@ -79,6 +79,8 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
@@ -723,7 +725,7 @@ public class NodusProject implements ShapeConstants {
   public int getLocalProperty(String key, int defValue) {
     return PropUtils.intFromProperties(localProperties, key, defValue);
   }
-  
+
   /**
    * Returns the value associated to a given key in the project's local properties. A default value
    * is also passed as a parameter
@@ -1475,6 +1477,12 @@ public class NodusProject implements ShapeConstants {
     linkStyle = loadStyles("link");
 
     // Open a connection to a JDBC compliant db manager
+
+    // Trick used to avoid info log messages on stdout from HSQLDB
+    System.setProperty("hsqldb.reconfig_logging", "false");
+    Logger databaseLogger = Logger.getLogger("hsqldb.db");
+    databaseLogger.setLevel(Level.WARNING);
+    databaseLogger.setUseParentHandlers(false);
 
     // Test if this project is already associated with a db
     int defaultEmbeddedDbms = getLocalProperty(NodusC.PROP_EMBEDDED_DB, -1);
