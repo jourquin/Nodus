@@ -835,7 +835,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     }
 
     // Update title with current scenario number
-    nodusProject.getNodusMapPanel().updateScenarioComboBox();
+    nodusProject.getNodusMapPanel().updateScenarioComboBox(false);
 
     setVisible(false);
   }

@@ -1752,7 +1752,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             String item = (String) scenarioComboBox.getSelectedItem();
             int n = Integer.parseInt(item.substring(0, item.indexOf("-")).trim());
             nodusProject.setLocalProperty(NodusC.PROP_SCENARIO, n);
-            updateScenarioComboBox();
+            updateScenarioComboBox(false);
 
             // Update cost function name
             String fileName = nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS + n, null);
@@ -2579,7 +2579,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           setActiveMouseMode(mouseModeId);
         }
         resetText();
-        updateScenarioComboBox();
+        updateScenarioComboBox(true);
         enableMenus(true);
         displayTouchBar(true);
       }
@@ -3071,8 +3071,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     return true;
   }
 
-  /** Updates the scenario combo with the current scenario. */
-  public void updateScenarioComboBox() {
+  
+  /**
+   * Updates the scenario combo with the current scenario.
+   * @param forceReset If true, force a rest of the displayed results if any.
+   */
+  public void updateScenarioComboBox(boolean forceReset) {
 
     if (!nodusProject.isOpen()) {
       return;
@@ -3125,7 +3129,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
 
     // Reset the displayed results
-    if (currentScenario != lastScenario) {
+    if (forceReset || currentScenario != lastScenario) {
       resetResults(nodusProject.getNodeLayers());
       resetResults(nodusProject.getLinkLayers());
     }

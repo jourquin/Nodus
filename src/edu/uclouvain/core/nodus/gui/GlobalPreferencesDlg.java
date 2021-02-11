@@ -530,7 +530,7 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     }
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_EMBEDDED_DB, "" + intValue);
 
-    nodusMapPanel.updateScenarioComboBox();
+    nodusMapPanel.updateScenarioComboBox(false);
 
     // Update state of OnTopKeeper
     nodusMapPanel.runOnTopKeeper(

@@ -188,7 +188,7 @@ public abstract class Assignment implements Runnable {
     nodusMapPanel.getAssignmentMenuItem().setEnabled(false);
 
     // Update the scenario combo of the main window
-    nodusMapPanel.updateScenarioComboBox();
+    nodusMapPanel.updateScenarioComboBox(true);
 
     try {
       success = assign();
@@ -227,8 +227,6 @@ public abstract class Assignment implements Runnable {
       nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
     }
     nodusMapPanel.getAssignmentMenuItem().setEnabled(true);
-
-    nodusMapPanel.updateScenarioComboBox();
   }
 
   /**

@@ -2046,7 +2046,7 @@ public class NodusProject implements ShapeConstants {
     removeLocalProperty(NodusC.PROP_ASSIGNMENT_QUERY + scenario);
     removeLocalProperty(NodusC.PROP_ASSIGNMENT_DESCRIPTION + scenario);
 
-    nodusMapPanel.updateScenarioComboBox();
+    nodusMapPanel.updateScenarioComboBox(false);
   }
 
   /**
@@ -2139,7 +2139,7 @@ public class NodusProject implements ShapeConstants {
     // Change current scenario to new one
     setLocalProperty(NodusC.PROP_SCENARIO, newNum);
 
-    getNodusMapPanel().updateScenarioComboBox();
+    getNodusMapPanel().updateScenarioComboBox(false);
   }
 
   /**
@@ -2347,6 +2347,6 @@ public class NodusProject implements ShapeConstants {
   public void setScenario(int num, String description) {
     setLocalProperty(NodusC.PROP_SCENARIO, num);
     setLocalProperty(NodusC.PROP_ASSIGNMENT_DESCRIPTION + num, description);
-    nodusMapPanel.updateScenarioComboBox();
+    nodusMapPanel.updateScenarioComboBox(false);
   }
 }

@@ -389,7 +389,7 @@ public class ScenariosDlg extends EscapeDialog {
                 scenario1,
                 scenario2));
         nodusProject.setLocalProperty(NodusC.PROP_SCENARIO, result);
-        nodusProject.getNodusMapPanel().updateScenarioComboBox();
+        nodusProject.getNodusMapPanel().updateScenarioComboBox(true);
         // Done
         JOptionPane.showMessageDialog(
             this,
@@ -500,7 +500,7 @@ public class ScenariosDlg extends EscapeDialog {
                 scenario1,
                 scenario2));
         nodusProject.setLocalProperty(NodusC.PROP_SCENARIO, result);
-        nodusProject.getNodusMapPanel().updateScenarioComboBox();
+        nodusProject.getNodusMapPanel().updateScenarioComboBox(true);
 
         // Done
         JOptionPane.showMessageDialog(

@@ -442,7 +442,7 @@ public class AssignmentDlg extends EscapeDialog {
       setVisible(false);
       return;
     }
-
+    
     // Launch the assignment
     int assignmentMethod = getSelectedAssignmentMethod();
     Assignment as = null;
