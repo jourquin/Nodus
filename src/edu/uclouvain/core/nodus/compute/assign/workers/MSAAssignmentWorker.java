@@ -112,7 +112,7 @@ public class MSAAssignmentWorker extends AssignmentWorker {
 
   /**
    * Build all the paths starting from the origin node, loading each used link with of the demand.
-   * The quantity is added to the auxiliary flow. It will later combined with the current flow
+   * The quantity is added to the auxiliary volume. It will later combined with the current volume
    *
    * @param nodeIndex int
    * @return True on success.
@@ -176,7 +176,7 @@ public class MSAAssignmentWorker extends AssignmentWorker {
             an = an.nextNode;
           }
 
-          an.virtualLink.addAuxiliaryFlow(groupIndex, demand.getQuantity());
+          an.virtualLink.addAuxiliaryVolume(groupIndex, demand.getQuantity());
 
           VirtualLink vl = an.virtualLink;
 

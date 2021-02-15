@@ -222,9 +222,9 @@ public class StaticAoNTimeDependentAssignment extends Assignment {
     // Close the detailed path writer
     pathWriter.close();
 
-    // Transform the flows in vehicles
+    // Transform the volumes into vehicles
     for (byte i = 0; i < virtualNet.getNbTimeSlices(); i++) {
-      virtualNet.flowsToVehicles(vehiclesParser, i);
+      virtualNet.volumesToVehicles(vehiclesParser, i);
     }
 
     // Now save virtual network

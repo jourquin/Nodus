@@ -354,7 +354,10 @@ public class AssignmentDlg extends EscapeDialog {
     int answer =
         JOptionPane.showConfirmDialog(
             this,
-            i18n.get(VirtualNetworkWriter.class, "Clear_existent_flows", "Clear existent flows?"),
+            i18n.get(
+                VirtualNetworkWriter.class,
+                "Clear_existent_assignment",
+                "Clear existent assignment?"),
             i18n.get(
                 VirtualNetworkWriter.class, "Scenario_already_exists", "Scenario already exists"),
             JOptionPane.YES_NO_OPTION);

@@ -204,14 +204,14 @@ public class IncFrankWolfeAssignment extends Assignment {
         }
       } // Next od class
 
-      // Transform the flows in vehicles
-      if (!virtualNet.flowsToVehicles(vehiclesParser)) {
+      // Transform the volumes in vehicles
+      if (!virtualNet.volumesToVehicles(vehiclesParser)) {
         return false;
       }
     }
 
     // Now start a FW assignment
-    // Variables that are used to split current and auxiliary flows
+    // Variables that are used to split current and auxiliary volumes
     double lambda = 1.0;
     double lambdaPrecisionThreshold = 0.01;
 
@@ -294,8 +294,8 @@ public class IncFrankWolfeAssignment extends Assignment {
         }
       } // Next od class
 
-      // Transform the flows in vehicles
-      if (!virtualNet.flowsToVehicles(vehiclesParser)) {
+      // Transform the volumes into vehicles
+      if (!virtualNet.volumesToVehicles(vehiclesParser)) {
         return false;
       }
 
@@ -328,8 +328,8 @@ public class IncFrankWolfeAssignment extends Assignment {
 
       lambda = m;
 
-      // Now combine the auxiliary flows with the current flow
-      splitFlows(lambda);
+      // Now combine the auxiliary volumes with the current volume
+      splitVolumes(lambda);
 
       if (assignmentParameters.isSavePaths()) {
         pathWriter.splitPaths(iteration, lambda);
@@ -346,20 +346,20 @@ public class IncFrankWolfeAssignment extends Assignment {
 
     gcr.stop();
 
-    // Save the flows
+    // Save the volumes
     VirtualNetworkWriter vnw = new VirtualNetworkWriter(assignmentParameters, virtualNet);
     return vnw.save();
   }
 
   /**
-   * Updates the flows, combining the current flow and the auxiliarry flow.
+   * Updates the volumes, combining the current volume and the auxiliary volume.
    *
-   * <p>New current flow = (1-lambda) x current flow + lambda x auxilliary flow
+   * <p>New current volume = (1-lambda) x current volume + lambda x auxiliary volume
    *
    * @param lambda double
    */
-  public void splitFlows(double lambda) {
-    // Update current flows on virtual links
+  public void splitVolumes(double lambda) {
+    // Update current volumes on virtual links
     VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();
 
     for (VirtualNodeList element : vnl) {
@@ -380,7 +380,7 @@ public class IncFrankWolfeAssignment extends Assignment {
           byte[] groups = virtualNet.getGroups();
 
           for (byte k = 0; k < (byte) groups.length; k++) {
-            vl.combineFlows(k, lambda);
+            vl.combineVolumes(k, lambda);
           }
         }
       }
@@ -389,7 +389,7 @@ public class IncFrankWolfeAssignment extends Assignment {
 
   /**
    * Returns true if max of allowed iterations is reached, or if the maximum gap in the computed
-   * flows between two successive iterations doesn't vary more than the expected precision.
+   * volumes between two successive iterations doesn't vary more than the expected precision.
    *
    * @param iteration int
    * @param precision double
@@ -402,7 +402,7 @@ public class IncFrankWolfeAssignment extends Assignment {
     double maxGap = 0.0;
 
     if (iteration > 1) {
-      // Update current flows on virtual links
+      // Update current volumes on virtual links
       VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();
 
       for (VirtualNodeList element : vnl) {
@@ -422,8 +422,8 @@ public class IncFrankWolfeAssignment extends Assignment {
             byte[] groups = virtualNet.getGroups();
 
             for (byte k = 0; k < (byte) groups.length; k++) {
-              numerator += Math.abs(vl.getCurrentFlow(k) - vl.getPreviousFlow(k));
-              denominator += vl.getCurrentFlow(k);
+              numerator += Math.abs(vl.getCurrentVolume(k) - vl.getPreviousVolume(k));
+              denominator += vl.getCurrentVolume(k);
             }
           }
 

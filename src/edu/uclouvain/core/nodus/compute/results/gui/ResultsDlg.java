@@ -115,10 +115,10 @@ public class ResultsDlg extends EscapeDialog {
   private JRadioButton linkRadioButton = new JRadioButton();
 
   /** . */
-  private String linksFlowQueryString = "";
+  private String linksQuantitiesQueryString = "";
 
   /** . */
-  private String dynamicFlowQueryString = "";
+  private String dynamicQuantitiesQueryString = "";
 
   /** . */
   private String linksVehiclesQueryString = "";
@@ -130,7 +130,7 @@ public class ResultsDlg extends EscapeDialog {
   private JRadioButton nodeRadioButton = new JRadioButton();
 
   /** . */
-  private String nodesFlowQueryString = "";
+  private String nodesQuantitiesQueryString = "";
 
   /** . */
   private NodusMapPanel nodusMapPanel;
@@ -205,13 +205,13 @@ public class ResultsDlg extends EscapeDialog {
         switch (index) {
           case 0: // Display assigned quantities
             currentAction = actionLinkQuantities;
-            sqlTextPane.setText(getFlowsQueryString(NodusC.DBF_QUANTITY));
+            sqlTextPane.setText(getVolumesQueryString(NodusC.DBF_QUANTITY));
 
             break;
 
           case 1: // Display assigned vehicles
             currentAction = actionLinkVehicles;
-            sqlTextPane.setText(getFlowsQueryString(NodusC.DBF_VEHICLES));
+            sqlTextPane.setText(getVolumesQueryString(NodusC.DBF_VEHICLES));
 
             break;
 
@@ -223,7 +223,7 @@ public class ResultsDlg extends EscapeDialog {
 
           case 3: // Time dependent assigned
             currentAction = actionLinkTimeDependentQuantities;
-            sqlTextPane.setText(getFlowsQueryString(NodusC.DBF_QUANTITY, true));
+            sqlTextPane.setText(getVolumesQueryString(NodusC.DBF_QUANTITY, true));
             getExportCheckBox().setSelected(false);
             getExportCheckBox().setEnabled(false);
             break;
@@ -251,18 +251,18 @@ public class ResultsDlg extends EscapeDialog {
   private void defaultButton_actionPerformed(ActionEvent e) {
     switch (currentAction) {
       case actionNodeOD:
-        nodesFlowQueryString = "";
+        nodesQuantitiesQueryString = "";
         sqlTextPane.setText(getODQueryString());
         break;
 
       case actionLinkQuantities:
-        linksFlowQueryString = "";
-        sqlTextPane.setText(getFlowsQueryString(NodusC.DBF_QUANTITY));
+        linksQuantitiesQueryString = "";
+        sqlTextPane.setText(getVolumesQueryString(NodusC.DBF_QUANTITY));
         break;
 
       case actionLinkVehicles:
         linksVehiclesQueryString = "";
-        sqlTextPane.setText(getFlowsQueryString(NodusC.DBF_VEHICLES));
+        sqlTextPane.setText(getVolumesQueryString(NodusC.DBF_VEHICLES));
         break;
 
       case actionLinkPath:
@@ -271,8 +271,8 @@ public class ResultsDlg extends EscapeDialog {
         break;
 
       case actionLinkTimeDependentQuantities:
-        dynamicFlowQueryString = "";
-        sqlTextPane.setText(getFlowsQueryString(NodusC.DBF_QUANTITY, true));
+        dynamicQuantitiesQueryString = "";
+        sqlTextPane.setText(getVolumesQueryString(NodusC.DBF_QUANTITY, true));
         break;
 
       default:
@@ -317,32 +317,32 @@ public class ResultsDlg extends EscapeDialog {
   }
 
   /**
-   * Builds a template SQL query string for the display of the assigned flows. <br>
+   * Builds a template SQL query string for the display of the assigned volumes. <br>
    * Example :<br>
    * select link, sum(qty) from project_vnet1 where link1 = link2 group by link1 <br>
    * or <br>
    * select link, sum(veh) from project_vnet1 where link1 = link2 group by link1 <br>
    *
-   * @param typeOfFlow String
+   * @param typeOfVolume String
    * @return String
    */
-  private String getFlowsQueryString(String typeOfFlow) {
-    return getFlowsQueryString(typeOfFlow, false);
+  private String getVolumesQueryString(String typeOfVolume) {
+    return getVolumesQueryString(typeOfVolume, false);
   }
 
   /**
    * Builds an SQL query string for the display of the assignment.
    *
-   * @param typeOfFlow NodusC.DBF_QUANTITY or NodusC.DBF_VEHICLES.
+   * @param typeOfVolume NodusC.DBF_QUANTITY or NodusC.DBF_VEHICLES.
    * @param isTimeDependent True if the result to display is time dependent.
-   * @return The queru string.
+   * @return The query string.
    */
-  private String getFlowsQueryString(String typeOfFlow, boolean isTimeDependent) {
+  private String getVolumesQueryString(String typeOfVolume, boolean isTimeDependent) {
     // Get the latest
     if (!isTimeDependent) {
-      if (typeOfFlow.equals(NodusC.DBF_QUANTITY)) {
-        if (!linksFlowQueryString.equals("")) {
-          return linksFlowQueryString;
+      if (typeOfVolume.equals(NodusC.DBF_QUANTITY)) {
+        if (!linksQuantitiesQueryString.equals("")) {
+          return linksQuantitiesQueryString;
         }
       } else {
         if (!linksVehiclesQueryString.equals("")) {
@@ -350,8 +350,8 @@ public class ResultsDlg extends EscapeDialog {
         }
       }
     } else {
-      if (!dynamicFlowQueryString.equals("")) {
-        return dynamicFlowQueryString;
+      if (!dynamicQuantitiesQueryString.equals("")) {
+        return dynamicQuantitiesQueryString;
       }
     }
 
@@ -370,7 +370,7 @@ public class ResultsDlg extends EscapeDialog {
     return "SELECT "
         + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK1)
         + ", SUM("
-        + JDBCUtils.getQuotedCompliantIdentifier(typeOfFlow)
+        + JDBCUtils.getQuotedCompliantIdentifier(typeOfVolume)
         + ") FROM "
         + tableName
         + " WHERE "
@@ -391,8 +391,8 @@ public class ResultsDlg extends EscapeDialog {
    */
   private String getODQueryString() {
     // Return the latest
-    if (!nodesFlowQueryString.equals("")) {
-      return nodesFlowQueryString;
+    if (!nodesQuantitiesQueryString.equals("")) {
+      return nodesQuantitiesQueryString;
     }
 
     // Get the OD table associated to the current scenario
@@ -711,12 +711,12 @@ public class ResultsDlg extends EscapeDialog {
             0));
 
     // Get the last saved query strings
-    nodesFlowQueryString =
-        nodusProject.getLocalProperty(NodusC.PROP_NODES_FLOW_QUERY + currentScenario, "");
-    linksFlowQueryString =
-        nodusProject.getLocalProperty(NodusC.PROP_LINKS_FLOW_QUERY + currentScenario, "");
-    dynamicFlowQueryString =
-        nodusProject.getLocalProperty(NodusC.PROP_DYNAMIC_FLOW_QUERY + currentScenario, "");
+    nodesQuantitiesQueryString =
+        nodusProject.getLocalProperty(NodusC.PROP_NODES_QUANTITIES_QUERY + currentScenario, "");
+    linksQuantitiesQueryString =
+        nodusProject.getLocalProperty(NodusC.PROP_LINKS_QUANTITIES_QUERY + currentScenario, "");
+    dynamicQuantitiesQueryString =
+        nodusProject.getLocalProperty(NodusC.PROP_DYNAMIC_QUANTITIES_QUERY + currentScenario, "");
     linksVehiclesQueryString =
         nodusProject.getLocalProperty(NodusC.PROP_LINKS_VEHICLES_QUERY + currentScenario, "");
     pathQueryString = nodusProject.getLocalProperty(NodusC.PROP_PATH_QUERY + currentScenario, "");
@@ -772,11 +772,11 @@ public class ResultsDlg extends EscapeDialog {
         NodeResults nr = new NodeResults(nodusMapPanel, relativeToView, export);
 
         switch (index) {
-          case 0: // Display flows
+          case 0: // Display volumes
             resetLayers();
-            nodesFlowQueryString = sqlTextPane.getText();
+            nodesQuantitiesQueryString = sqlTextPane.getText();
             nodusProject.setLocalProperty(
-                NodusC.PROP_NODES_FLOW_QUERY + currentScenario, nodesFlowQueryString);
+                NodusC.PROP_NODES_QUANTITIES_QUERY + currentScenario, nodesQuantitiesQueryString);
             success = nr.readOD(sqlTextPane.getText());
             break;
 
@@ -789,10 +789,10 @@ public class ResultsDlg extends EscapeDialog {
         switch (index) {
           case 0: // Display assigned quantities
             resetLayers();
-            linksFlowQueryString = sqlTextPane.getText();
+            linksQuantitiesQueryString = sqlTextPane.getText();
             nodusProject.setLocalProperty(
-                NodusC.PROP_LINKS_FLOW_QUERY + currentScenario, linksFlowQueryString);
-            success = lr.displayFlows(sqlTextPane.getText());
+                NodusC.PROP_LINKS_QUANTITIES_QUERY + currentScenario, linksQuantitiesQueryString);
+            success = lr.displayVolumes(sqlTextPane.getText());
 
             break;
 
@@ -801,7 +801,7 @@ public class ResultsDlg extends EscapeDialog {
             linksVehiclesQueryString = sqlTextPane.getText();
             nodusProject.setLocalProperty(
                 NodusC.PROP_LINKS_VEHICLES_QUERY + currentScenario, linksVehiclesQueryString);
-            success = lr.displayFlows(sqlTextPane.getText());
+            success = lr.displayVolumes(sqlTextPane.getText());
 
             break;
 
@@ -816,9 +816,10 @@ public class ResultsDlg extends EscapeDialog {
 
           case 3: // Display time dependent assigned quantities
             resetLayers();
-            dynamicFlowQueryString = sqlTextPane.getText();
+            dynamicQuantitiesQueryString = sqlTextPane.getText();
             nodusProject.setLocalProperty(
-                NodusC.PROP_DYNAMIC_FLOW_QUERY + currentScenario, dynamicFlowQueryString);
+                NodusC.PROP_DYNAMIC_QUANTITIES_QUERY + currentScenario,
+                dynamicQuantitiesQueryString);
             success = lr.displayTimeDependentFlows(sqlTextPane.getText());
             resetLayers();
             break;

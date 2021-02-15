@@ -95,7 +95,7 @@ public class ODCell {
    * @param destinationNodeId The ID of the destination real node.
    * @param quantity double The quantity to send from the origin to the destination for this group
    *     of commodities.
-   * @param startingTime The starting time of the flow, expressed in minutes after midnight.
+   * @param startingTime The starting time of the volume, expressed in minutes after midnight.
    */
   public ODCell(
       int group, int originNodeId, int destinationNodeId, double quantity, int startingTime) {
@@ -112,7 +112,7 @@ public class ODCell {
    * @param destinationNodeId The ID of the destination real node.
    * @param quantity double The quantity to send from the origin to the destination for this group
    *     of commodities.
-   * @param startingTime The starting time of the flow, expressed in minutes after midnight.
+   * @param startingTime The starting time of the volume, expressed in minutes after midnight.
    * @param odClass The class this OD cell belongs to.
    */
   public ODCell(

@@ -446,34 +446,34 @@ public class VirtualNetwork {
   }
 
   /**
-   * Computes the number of vehicles that correspond to the flows (current and auxiliary) assigned
+   * Computes the number of vehicles that correspond to the volumes (current and auxiliary) assigned
    * on the virtual links. These vehicles are computed accordingly to their capacity stored in the
    * cost functions file. The same file also can contain the "equivalent standard vehicles" that
    * correspond to the different transportation means used. This information is used to assign
-   * standard vehicles on the real links (used to compute flow related cost functions).
+   * standard vehicles on the real links (used to compute volume related cost functions).
    *
    * @param vehiclesParser The VehicleParser that holds the characteristics of the vehicles.
    * @return True on success.
    */
-  public boolean flowsToVehicles(VehiclesParser vehiclesParser) {
-    return flowsToVehicles(vehiclesParser, (byte) 0);
+  public boolean volumesToVehicles(VehiclesParser vehiclesParser) {
+    return volumesToVehicles(vehiclesParser, (byte) 0);
   }
 
   /**
-   * Computes the number of vehicles that correspond to the flows (current and auxiliary) assigned
+   * Computes the number of vehicles that correspond to the volumes (current and auxiliary) assigned
    * on the virtual links during a given time slice. These vehicles are computed accordingly to
    * their capacity stored in the cost functions file. The same file also can contain the
    * "equivalent standard vehicles" that correspond to the different transportation means used. This
-   * information is used to assign standard vehicles on the real links (used to compute flow related
-   * cost functions). <br>
+   * information is used to assign standard vehicles on the real links (used to compute volume
+   * related cost functions). <br>
    * This method is only used by time dependent assignments.
    *
    * @param vehiclesParser The VehicleParser that holds the characteristics of the vehicles.
    * @param timeSlice The time slice to consider.
    * @return True on success.
    */
-  public boolean flowsToVehicles(VehiclesParser vehiclesParser, byte timeSlice) {
-    /* Use the flows on the virtual links to compute the number of vehicles needed. */
+  public boolean volumesToVehicles(VehiclesParser vehiclesParser, byte timeSlice) {
+    /* Use the volumes on the virtual links to compute the number of vehicles needed. */
     for (byte groupIndex = 0; groupIndex < getNbGroups(); groupIndex++) {
 
       int group = groups[groupIndex];

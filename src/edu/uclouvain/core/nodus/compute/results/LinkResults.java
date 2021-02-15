@@ -198,26 +198,26 @@ public class LinkResults implements ShapeConstants {
   }
 
   /**
-   * Read flows in the database by means of the passed SQL statement, and updates the links
-   * attributes in order to display the flows on the map.
+   * Read volumes in the database by means of the passed SQL statement, and updates the links
+   * attributes in order to display the volumes on the map.
    *
    * @param sqlStmt The SQL query used to display this result.
    * @return boolean True on success.
    */
-  public boolean displayFlows(String sqlStmt) {
-    return displayFlows(sqlStmt, -1);
+  public boolean displayVolumes(String sqlStmt) {
+    return displayVolumes(sqlStmt, -1);
   }
 
   /**
-   * Read flows in the database by means of the passed SQL statement and the starting time (in
+   * Read volumes in the database by means of the passed SQL statement and the starting time (in
    * seconds, starting from midnight), and updates the links attributes in order to display the
-   * flows on the map.
+   * volumes on the map.
    *
    * @param sqlStmt The SQL query used to display this result.
    * @param time The starting time if the time slice to display, or -1 for non dynamic assignments.
    * @return boolean True on success.
    */
-  boolean displayFlows(String sqlStmt, int time) {
+  boolean displayVolumes(String sqlStmt, int time) {
 
     nodusMapPanel.setBusy(true);
 
@@ -403,7 +403,7 @@ public class LinkResults implements ShapeConstants {
         if (rl != null) {
           double d = rl.getResult();
 
-          // Add flow to current flow
+          // Add volume to current volume
           d += JDBCUtils.getDouble(rs.getObject(2));
           rl.setResult(d);
         }
@@ -419,7 +419,7 @@ public class LinkResults implements ShapeConstants {
       return false;
     }
 
-    // Round the flows on the links
+    // Round the volumes on the links
     roundResults();
 
     // Update the map to display result
@@ -639,7 +639,7 @@ public class LinkResults implements ShapeConstants {
       }
 
       resetResults();
-      displayFlows(sqlStmt, t);
+      displayVolumes(sqlStmt, t);
 
       currentTime += timeSliceDuration;
 

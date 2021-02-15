@@ -248,7 +248,7 @@ public class CostParser {
    */
   private Vector<String>[] linkFieldName;
 
-  /** Links graphic lists used to store/retrieve/update flows. */
+  /** Links graphic lists used to store/retrieve/update volumes. */
   private EsriGraphicList[] links;
 
   /**
@@ -332,7 +332,7 @@ public class CostParser {
     }
 
     /* Get the links graphic lists, because each link contains a RealLink object,
-     * used to store/retrieve/update flows
+     * used to store/retrieve/update volumes.
      */
     links = new EsriGraphicList[linksEsriLayer.length];
 
@@ -748,8 +748,8 @@ public class CostParser {
         hasMoveVariables = true;
 
         /*
-         * Get (oriented) flow for the real link associated to this virtual link.
-         * The flow is a number of passenger car units
+         * Get (oriented) volume for the real link associated to this virtual link.
+         * The volume is a number of passenger car units (PCU's)
          */
         setVariable(NodusC.VARNAME_VOLUME, rl.getCurrentPassengerCarUnits(vl));
 
@@ -760,7 +760,7 @@ public class CostParser {
         // Get Tranship field
         setVariable(NodusC.VARNAME_TRANSHIP, (double) values.get(NodusC.DBF_IDX_TRANSHIP));
 
-        // No flow or Length variable for nodes
+        // No VOLUME or LENGTH variable for nodes
         if (hasMoveVariables) {
           scope.remove(NodusC.VARNAME_VOLUME);
           scope.remove(NodusC.VARNAME_LENGTH);

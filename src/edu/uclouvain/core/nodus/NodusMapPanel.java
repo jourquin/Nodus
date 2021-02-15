@@ -2439,7 +2439,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /**
-   * Opens the "Display results" dialog box, that makes it possible to visualize flows, paths, ...
+   * Opens the "Display results" dialog box, that makes it possible to visualize volumes, paths, ...
    *
    * @param e ActionEvent
    */

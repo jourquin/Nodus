@@ -172,7 +172,7 @@ public class AllOrNothingAssignmentWorker extends AssignmentWorker {
             an = an.nextNode;
           }
 
-          an.virtualLink.addFlow(groupIndex, demand.getQuantity());
+          an.virtualLink.addVolume(groupIndex, demand.getQuantity());
 
           VirtualLink vl = an.virtualLink;
 

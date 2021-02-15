@@ -314,13 +314,13 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         }
         pathHeaders.clear();
 
-        // Now update the flow on the virtual links, using the just computed weights
+        // Now update the volume on the virtual links, using the just computed weights
         for (int i = 1; i < graph.length; i++) {
           AdjacencyNode current = graph[i];
           while (current != null) {
             VirtualLink vl = current.virtualLink;
             if (vl != null) {
-              vl.spreadFlowOverPaths(groupIndex, paths);
+              vl.spreadVolumeOverPaths(groupIndex, paths);
             }
             current = current.nextNode;
           }
@@ -628,7 +628,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         return null;
       }
 
-      // Save the properties of the path. Will be used to split the flow over the paths
+      // Save the properties of the path. Will be used to split the volume over the paths
       if (paths[indexInODRow].intermodal) {
         mode = intermodalModeKey;
       }

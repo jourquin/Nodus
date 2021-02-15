@@ -1106,21 +1106,21 @@ public class NodusC {
    *
    * @hidden
    */
-  public static final String PROP_NODES_FLOW_QUERY = "nodesflowquery";
+  public static final String PROP_NODES_QUANTITIES_QUERY = "nodesflowquery";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
    * @hidden
    */
-  public static final String PROP_LINKS_FLOW_QUERY = "linksflowquery";
+  public static final String PROP_LINKS_QUANTITIES_QUERY = "linksflowquery";
 
   /**
    * Properties strings used in project and/or project local properties.
    *
    * @hidden
    */
-  public static final String PROP_DYNAMIC_FLOW_QUERY = "dynamicflowquery";
+  public static final String PROP_DYNAMIC_QUANTITIES_QUERY = "dynamicflowquery";
 
   /**
    * Properties strings used in project and/or project local properties.

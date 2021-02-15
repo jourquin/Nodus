@@ -53,8 +53,8 @@ public class VirtualLink {
   /** Virtual link that represent an unloading operation. */
   public static final byte TYPE_UNLOAD = 3;
 
-  /** Auxiliary flows on the virtual link, per group. */
-  private double[] auxiliaryFlow;
+  /** Auxiliary volumes on the virtual link, per group. */
+  private double[] auxiliaryVolume;
 
   /** Auxiliary vehicles on the virtual link, per group. */
   private int[] auxiliaryVehicles;
@@ -62,8 +62,8 @@ public class VirtualLink {
   /** Begin and end virtual nodes for this virtual link. */
   private VirtualNode beginVirtualNode;
 
-  /** Current flows on the virtual link, per group and time slice. */
-  private double[][] currentFlow;
+  /** Current volumes on the virtual link, per group and time slice. */
+  private double[][] currentVolume;
 
   /** Current vehicles on the virtual link, per group and time slice. */
   private int[][] currentVehicles;
@@ -87,10 +87,10 @@ public class VirtualLink {
   private LinkedList<PathODCell>[] pathODCellList = null;
 
   /**
-   * Current flow (per group) computed during the precedent iteration. Needed to compute the lambda
-   * parameter used in the equilibrium assignment algorithms
+   * Current volume (per group) computed during the precedent iteration. Needed to compute the
+   * lambda parameter used in the equilibrium assignment algorithms
    */
-  private double[] previousFlow;
+  private double[] previousVolume;
 
   /* Real link the virtual link is generated from */
   private RealLink realLink;
@@ -176,13 +176,13 @@ public class VirtualLink {
   }
 
   /**
-   * Adds an auxiliary flow to this virtual link for a given group index.
+   * Adds an auxiliary volume to this virtual link for a given group index.
    *
    * @param groupIndex Index of the group of commodities.
-   * @param flow Quantity to add.
+   * @param volume Quantity to add.
    */
-  public void addAuxiliaryFlow(byte groupIndex, double flow) {
-    auxiliaryFlow[groupIndex] += flow;
+  public void addAuxiliaryVolume(byte groupIndex, double volume) {
+    auxiliaryVolume[groupIndex] += volume;
   }
 
   /**
@@ -200,46 +200,48 @@ public class VirtualLink {
   }
 
   /**
-   * Adds a flow of a dynamic assignment to this virtual link.
+   * Adds a quantity of a dynamic assignment to this virtual link.
    *
    * @param groupIndex The index of the group of commodities.
-   * @param timeSlice The time slice the flow belongs to.
-   * @param flow The quantity to add.
+   * @param timeSlice The time slice the volume belongs to.
+   * @param qty The quantity to add.
    */
-  public void addFlow(byte groupIndex, byte timeSlice, double flow) {
+  public void addVolume(byte groupIndex, byte timeSlice, double qty) {
 
-    // The flow can be a NaN instead of 0 in the Multinomial logit modal split function
-    if (Double.isNaN(flow)) {
-      flow = 0.0;
+    // The volume can be a NaN instead of 0 in the Multinomial logit modal split function
+    if (Double.isNaN(qty)) {
+      qty = 0.0;
     }
 
-    currentFlow[groupIndex][timeSlice] += flow;
+    currentVolume[groupIndex][timeSlice] += qty;
+    System.out.println(currentVolume[groupIndex][timeSlice]);
   }
 
   /**
-   * Adds a new flow to the current flow on this virtual link.
+   * Adds a new quantity to the current volume on this virtual link.
    *
    * @param groupIndex The index of the group of commodities.
-   * @param flow The quantity to add.
+   * @param qty The quantity to add.
    */
-  public void addFlow(byte groupIndex, double flow) {
-    addFlow(groupIndex, (byte) 0, flow);
+  public void addVolume(byte groupIndex, double qty) {
+    addVolume(groupIndex, (byte) 0, qty);
   }
 
   /**
-   * Balances the flow on this virtual link using the given lambda.
+   * Balances the volume on this virtual link using the given lambda.
    *
    * @param groupIndex The index of the group of commodities.
-   * @param lambda The balance factor to use : (1-lambda) + previous flow + lambda * current flow.
+   * @param lambda The balance factor to use : (1-lambda) + previous volume + lambda * current
+   *     volume.
    */
-  public void combineFlows(byte groupIndex, double lambda) {
+  public void combineVolumes(byte groupIndex, double lambda) {
     if (lambda != 1.0) {
-      previousFlow[groupIndex] = currentFlow[groupIndex][0];
+      previousVolume[groupIndex] = currentVolume[groupIndex][0];
     }
 
-    currentFlow[groupIndex][0] =
-        (1 - lambda) * currentFlow[groupIndex][0] + lambda * auxiliaryFlow[groupIndex];
-    auxiliaryFlow[groupIndex] = 0;
+    currentVolume[groupIndex][0] =
+        (1 - lambda) * currentVolume[groupIndex][0] + lambda * auxiliaryVolume[groupIndex];
+    auxiliaryVolume[groupIndex] = 0;
 
     if (virtualLinkType == TYPE_MOVE) {
       auxiliaryVehicles[groupIndex] = 0;
@@ -247,13 +249,13 @@ public class VirtualLink {
   }
 
   /**
-   * Returns the auxiliary flow on this virtual link for a given group.
+   * Returns the auxiliary volume on this virtual link for a given group.
    *
    * @param groupIndex The index of the group of commodities.
-   * @return The auxiliary flow associated to this virtual link.
+   * @return The auxiliary volume associated to this virtual link.
    */
-  public double getAuxiliaryFlow(byte groupIndex) {
-    return auxiliaryFlow[groupIndex];
+  public double getAuxiliaryVolume(byte groupIndex) {
+    return auxiliaryVolume[groupIndex];
   }
 
   /**
@@ -266,24 +268,24 @@ public class VirtualLink {
   }
 
   /**
-   * Returns the current flow on this virtual link for a given group index.
+   * Returns the current volume on this virtual link for a given group index.
    *
    * @param groupIndex The index of the group of commodities.
-   * @return The current flow for the group of commodities.
+   * @return The current volume for the group of commodities.
    */
-  public double getCurrentFlow(byte groupIndex) {
-    return currentFlow[groupIndex][0];
+  public double getCurrentVolume(byte groupIndex) {
+    return currentVolume[groupIndex][0];
   }
 
   /**
-   * Returns the current flow on this virtual link for a given group index and time slice.
+   * Returns the current volume on this virtual link for a given group index and time slice.
    *
    * @param groupIndex The index of the group of commodities.
-   * @param timeSlice The time slice for which the flow is asked for.
-   * @return The current flow for the group of commodities and time slice.
+   * @param timeSlice The time slice for which the volume is asked for.
+   * @return The current volume for the group of commodities and time slice.
    */
-  public double getCurrentFlow(byte groupIndex, byte timeSlice) {
-    return currentFlow[groupIndex][timeSlice];
+  public double getCurrentVolume(byte groupIndex, byte timeSlice) {
+    return currentVolume[groupIndex][timeSlice];
   }
 
   /**
@@ -369,13 +371,13 @@ public class VirtualLink {
   }
 
   /**
-   * Returns the flow computed during the previous iteration.
+   * Returns the volume computed during the previous iteration.
    *
    * @param groupIndex The index of the group of commodities.
-   * @return The flow computed at the previous iteration.
+   * @return The volume computed at the previous iteration.
    */
-  public double getPreviousFlow(byte groupIndex) {
-    return previousFlow[groupIndex];
+  public double getPreviousVolume(byte groupIndex) {
+    return previousVolume[groupIndex];
   }
 
   /**
@@ -452,24 +454,24 @@ public class VirtualLink {
   }
 
   /**
-   * Returns true if the current flow for this virtual link is positive for at least one group.
+   * Returns true if the current volume on this virtual link is positive for at least one group.
    *
-   * @return True if there is a flow for at least one group of commodities.
+   * @return True if there is a volume for at least one group of commodities.
    */
-  public boolean hasFlow() {
-    return hasFlow((byte) 0);
+  public boolean hasVolume() {
+    return hasVolume((byte) 0);
   }
 
   /**
-   * Returns true if the current flow for this virtual link is positive for at least one group
+   * Returns true if the current volume on this virtual link is positive for at least one group
    * during the given time slice.
    *
-   * @param timeSlice The time slice a flow is looking for.
-   * @return True if there is a flow for at least one group of commodities.
+   * @param timeSlice The time slice a volume is looking for.
+   * @return True if there is a volume for at least one group of commodities.
    */
-  public boolean hasFlow(byte timeSlice) {
+  public boolean hasVolume(byte timeSlice) {
     for (int i = 0; i < nbGroups; i++) {
-      if (currentFlow[i][timeSlice] > 0) {
+      if (currentVolume[i][timeSlice] > 0) {
         return true;
       }
     }
@@ -480,7 +482,7 @@ public class VirtualLink {
    * Initializes the average load and PCU for a given group index and time slice.
    *
    * @param groupIndex The index of the group of commodities.
-   * @param timeSlice The time slice corresponding to the flow.
+   * @param timeSlice The time slice corresponding to the volume.
    * @param averageLoad The average load for a vehicle using this virtual link.
    * @param passengerCarUnits The number of equivalent standard vehicles a vehicle using this
    *     virtual link represents.
@@ -491,14 +493,18 @@ public class VirtualLink {
         || virtualLinkType == TYPE_LOAD
         || virtualLinkType == TYPE_UNLOAD
         || virtualLinkType == TYPE_TRANSIT) {
-      int nbVehicles = (int) Math.ceil(currentFlow[groupIndex][timeSlice] / averageLoad);
+      int nbVehicles = (int) Math.ceil(currentVolume[groupIndex][timeSlice] / averageLoad);
       currentVehicles[groupIndex][timeSlice] = nbVehicles;
 
+      if (nbVehicles > 0) {
+    	  System.err.println(currentVolume[groupIndex][timeSlice]);
+      }
+      
       if (virtualLinkType == TYPE_MOVE) {
         realLink.addPassengerCarUnits(this, (int) Math.ceil(nbVehicles * passengerCarUnits));
       }
 
-      int nbAuxiliaryVehicles = (int) Math.ceil(auxiliaryFlow[groupIndex] / averageLoad);
+      int nbAuxiliaryVehicles = (int) Math.ceil(auxiliaryVolume[groupIndex] / averageLoad);
       auxiliaryVehicles[groupIndex] = nbAuxiliaryVehicles;
 
       if (virtualLinkType == TYPE_MOVE) {
@@ -519,9 +525,9 @@ public class VirtualLink {
   public void setNbGroups(int nbGroups, int nbTimeSlices) {
     cost = new double[nbGroups];
     duration = new double[nbGroups];
-    currentFlow = new double[nbGroups][nbTimeSlices];
-    auxiliaryFlow = new double[nbGroups];
-    previousFlow = new double[nbGroups];
+    currentVolume = new double[nbGroups][nbTimeSlices];
+    auxiliaryVolume = new double[nbGroups];
+    previousVolume = new double[nbGroups];
     // withFlow = false;
     this.nbGroups = (byte) nbGroups;
 
@@ -530,9 +536,9 @@ public class VirtualLink {
       duration[i] = 0;
 
       for (int j = 0; j < nbTimeSlices; j++) {
-        currentFlow[i][j] = 0;
+        currentVolume[i][j] = 0;
       }
-      auxiliaryFlow[i] = previousFlow[i] = 0;
+      auxiliaryVolume[i] = previousVolume[i] = 0;
     }
 
     if (virtualLinkType == TYPE_MOVE
@@ -592,7 +598,7 @@ public class VirtualLink {
       PathODCell pathODCell = it.next();
 
       if (path[pathODCell.alternativePath].isValid) {
-        addFlow(groupIndex, pathODCell.quantity * path[pathODCell.alternativePath].marketShare);
+        addVolume(groupIndex, pathODCell.quantity * path[pathODCell.alternativePath].marketShare);
       }
     }
 
@@ -607,7 +613,7 @@ public class VirtualLink {
    * @param groupIndex The index of the group of commodities.
    * @param path The set of path computed by the one of the fast multi-flow assignment algorithm.
    */
-  public void spreadFlowOverPaths(byte groupIndex, Path[][] path) {
+  public void spreadVolumeOverPaths(byte groupIndex, Path[][] path) {
     if (pathODCellList[groupIndex] == null) {
       return;
     }
@@ -617,7 +623,7 @@ public class VirtualLink {
     while (it.hasNext()) {
       PathODCell pathODCell = it.next();
       if (path[pathODCell.alternativePath][pathODCell.indexInODLine].isValid) {
-        addFlow(
+        addVolume(
             groupIndex,
             pathODCell.quantity
                 * path[pathODCell.alternativePath][pathODCell.indexInODLine].marketShare);

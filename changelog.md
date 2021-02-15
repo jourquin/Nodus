@@ -193,7 +193,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - The ESV (Equivalent Standard Vehicle) variable name has been replaced by the PCU (Passenger Car Units) variable name. PCU is
     a more common acronym used in the literature. An automatic upgrade is proposed to the user.
     - The FLOW variable name has been replaced by the VOLUME variable name to be more in-line with terminology used the literature that covers 
-    volume / delay functions. An automatic upgrade is proposed to the user.
+    volume / delay functions. An automatic upgrade is proposed to the user. Some API method names are changed accordingly.
     - Predefined Volume-Delay functions (BPR and CONICAL) are now provided and recognized by the cost parser.
     - Tested with GraalVM (faster that regular JVM). Compilation to native code with GraalVM's "native-image" tool doesn't work yet.
     - The displayed results are now reset when the scenario is changed.

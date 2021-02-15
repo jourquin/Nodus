@@ -47,54 +47,6 @@ public class VirtualNetworkWriter {
 
   private NodusMapPanel nodusMapPanel;
 
-  // private static boolean saveCompleteVirtualNetwork;
-
-  /*
-   * Convenience method used to test the existence of a scenario. If it exists, the user is asked if
-   * he wants to overwrite the existent tables in the database. Returns true if the scenario number
-   * is accepted.
-   *
-   * @param parent The JDialog the JOptionPane must be displayed over.
-   * @param nodusProject The Nodus project
-   * @param scenario The ID of the scenario to assign.
-   * @param confirm True if a dialog that asks to confirm overwriting must be displayed.
-   * @return True if the scenario is accepted.
-   */
-  /*public static boolean acceptScenario(
-      JDialog parent, NodusProject nodusProject, int scenario, boolean confirm) {
-
-    // Save the complete virtual network or not
-    saveCompleteVirtualNetwork =
-        Boolean.parseBoolean(nodusProject.getLocalProperty(NodusC.PROP_SAVE_ALL_VN));
-
-    // Build table name
-    String tableName =
-        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
-    tableName = nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenario;
-    tableName = JDBCUtils.getCompliantIdentifier(tableName);
-
-    // If table doesn't exit, no problem
-    if (!JDBCUtils.tableExists(tableName)) {
-      return true;
-    }
-
-    if (confirm) {
-      int answer =
-          JOptionPane.showConfirmDialog(
-              parent,
-              i18n.get(VirtualNetworkWriter.class, "Clear_existent_flows", "Clear existent flows?"),
-              i18n.get(
-                  VirtualNetworkWriter.class, "Scenario_already_exists", "Scenario already exists"),
-              JOptionPane.YES_NO_OPTION);
-
-      if (answer != JOptionPane.YES_OPTION) {
-        return false;
-      }
-    }
-
-    return true;
-  }*/
-
   /**
    * Initializes the database table used to store the virtual network that contains an assignment.
    *
@@ -278,11 +230,11 @@ public class VirtualNetworkWriter {
 
             VirtualLink vl = linkLit.next();
 
-            // Only saves virtual links on which a flow was assigned
+            // Only saves virtual links on which a volume was assigned
             for (byte timeSlice = 0; timeSlice < nbTimeSlices; timeSlice++) {
               int currentTime = assignmentStarTime + timeSlice * timeSliceDuration;
 
-              if (vl.hasFlow(timeSlice) || saveCompleteVirtualNetwork) {
+              if (vl.hasVolume(timeSlice) || saveCompleteVirtualNetwork) {
 
                 int idx = 1;
                 /*
@@ -308,12 +260,12 @@ public class VirtualNetworkWriter {
 
                 for (byte k = 0; k < (byte) groups.length; k++) {
 
-                  totalQty += vl.getCurrentFlow(k, timeSlice);
-                  averageWeight += vl.getCurrentFlow(k, timeSlice) * vl.getCost(k);
+                  totalQty += vl.getCurrentVolume(k, timeSlice);
+                  averageWeight += vl.getCurrentVolume(k, timeSlice) * vl.getCost(k);
                   totalVehicles += vl.getCurrentVehicles(k, timeSlice);
 
                   prepStmt.setDouble(idx++, vl.getCost(k));
-                  prepStmt.setDouble(idx++, vl.getCurrentFlow(k, timeSlice));
+                  prepStmt.setDouble(idx++, vl.getCurrentVolume(k, timeSlice));
                   prepStmt.setInt(idx++, vl.getCurrentVehicles(k, timeSlice));
                 }
 

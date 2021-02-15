@@ -279,7 +279,7 @@ public class StatDlg extends EscapeDialog {
       batchSqlStmt += header + ";\n" + sqlStmt + ";\n";
     }
 
-    // Unit to be used for flows : t_km r t_mile
+    // Unit to be used for volumes : t_km r t_mile
     String unit = "T_KM";
 
     /*
@@ -371,7 +371,7 @@ public class StatDlg extends EscapeDialog {
       batchSqlStmt += header + ";\n" + sqlStmt + ";\n";
     }
 
-    // Unit to be used for flows : t_km r t_mile
+    // Unit to be used for volumes : t_km r t_mile
     unit = "VEH_KM";
 
     /*

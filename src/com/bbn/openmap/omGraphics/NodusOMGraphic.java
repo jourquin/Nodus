@@ -28,7 +28,7 @@ import java.awt.Paint;
 /**
  * Extends OMGraphics with oval and radius attributes, as well as "alternative" painting attributes
  * used to render negative values. This feature is for instance useful when two scenarios are
- * compared and that differences in flows on the links (can be positive or negative) are to be
+ * compared and that differences in volumes on the links (can be positive or negative) are to be
  * displayed. The NodusOMGraphic is not intended to be rendered, but is only a placeholder for the
  * graphic attributes loaded from "shape.properties".
  *

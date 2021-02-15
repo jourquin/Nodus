@@ -165,7 +165,7 @@ public class CostParserWorker extends Thread {
 
             if (withFirstDerivative) {
               firstDerivative +=
-                  (vl.getAuxiliaryFlow(groupIndex) - vl.getCurrentFlow(groupIndex))
+                  (vl.getAuxiliaryVolume(groupIndex) - vl.getCurrentVolume(groupIndex))
                       * vl.getCost(groupIndex);
             }
           }

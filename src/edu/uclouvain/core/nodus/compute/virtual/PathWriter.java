@@ -555,11 +555,11 @@ public class PathWriter {
   }
 
   /**
-   * Balance the flow between the previous saved detailed paths and those saved during the current
+   * Balance the volume between the previous saved detailed paths and those saved during the current
    * iteration. This is used in equilibrium assignment algorithms.
    *
    * @param iteration The iteration of the assignment.
-   * @param lambda The balance factor : (1-lambda) * previous flow + lambda * current flow.
+   * @param lambda The balance factor : (1-lambda) * previous volume + lambda * current volume.
    */
   public void splitPaths(int iteration, double lambda) {
     if (iteration <= 1) {

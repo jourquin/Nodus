@@ -50,7 +50,8 @@ public class JungVirtualLink implements Comparable<Object> {
    * @param quantity The quantity (tons) transported on the virtual link.
    * @param unitCost The cost per unit (ton) transported on the virtual link.
    * @param vehicles The number of vehicles needed to transport the quantity.
-   * @param time The time (minutes after midnight) for this flow (time dependent assignments only).
+   * @param time The time (minutes after midnight) for this volume (time dependent assignments
+   *     only).
    */
   public JungVirtualLink(
       JungVirtualNode originJungVirtualNode,
@@ -107,9 +108,9 @@ public class JungVirtualLink implements Comparable<Object> {
   }
 
   /**
-   * Returns the time of the flow (minutes).
+   * Returns the time of the traffic (minutes).
    *
-   * @return The time of the flow.
+   * @return The time of the traffic.
    */
   public int getTime() {
     return time;

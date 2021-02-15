@@ -60,8 +60,8 @@ public abstract class RealNetworkObject {
   }
 
   /**
-   * Returns the result value associated to this real network object (used when OD matrices or flows
-   * are displayed on the map).
+   * Returns the result value associated to this real network object (used when OD matrices or
+   * volumes are displayed on the map).
    *
    * @return The value associated to this real network object.
    */

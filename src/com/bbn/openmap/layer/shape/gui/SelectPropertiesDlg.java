@@ -43,7 +43,7 @@ import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
  * This dialog box controls the way the links or nodes are displayed. <br>
  * - Filter the graphics to display with a SQL statement <br>
  * - Render or not the style of the graphic <br>
- * - Render or not the results of an operation (flows for instance)
+ * - Render or not the results of an operation (volumes for instance)
  *
  * @author Bart Jourquin
  */

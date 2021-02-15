@@ -264,7 +264,7 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
               break;
           }
         }
-        vl.addFlow(groupIndex, timeSlice, demand.getQuantity());
+        vl.addVolume(groupIndex, timeSlice, demand.getQuantity());
       }
 
       // The total cost of a path must be strictly positive

@@ -44,7 +44,7 @@ import javax.swing.JOptionPane;
  * location. At the beginning of the following period, the assignment starts the assignment of the
  * demand that starts at that time, plus the "relocated" demands which are not yet at their final
  * destination. After each iteration (period), the costs on the network are recomputed. If the costs
- * are flow/capacity dependent, this allows for dynamic route changes occurring during the trip.
+ * are volume/capacity dependent, this allows for dynamic route changes occurring during the trip.
  *
  * @author Bart Jourquin
  */
@@ -245,9 +245,9 @@ public class DynamicTimeDependentAssignment extends Assignment {
     // Close the detailed path writer
     pathWriter.close();
 
-    // Transform the flows in vehicles
+    // Transform the volumes in vehicles
     for (byte i = 0; i < virtualNet.getNbTimeSlices(); i++) {
-      virtualNet.flowsToVehicles(vehiclesParser, i);
+      virtualNet.volumesToVehicles(vehiclesParser, i);
     }
 
     // Now save virtual network

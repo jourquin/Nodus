@@ -39,7 +39,7 @@ import java.util.LinkedList;
  * location. At the beginning of the following period, the assignment starts the assignment of the
  * demand that starts at that time, plus the "relocated" demands which are not yet at their final
  * destination. After each iteration (period), the costs on the network are recomputed. If the costs
- * are flow/capacity dependent, this allows for dynamic route changes occurring during the trip.
+ * are volume/capacity dependent, this allows for dynamic route changes occurring during the trip.
  *
  * @author Bart Jourquin
  */
@@ -332,7 +332,7 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
               break;
           }
         }
-        vl.addFlow(groupIndex, currentTimeSlice, demand.getQuantity());
+        vl.addVolume(groupIndex, currentTimeSlice, demand.getQuantity());
       }
 
       // The total cost of a path must be strictly positive

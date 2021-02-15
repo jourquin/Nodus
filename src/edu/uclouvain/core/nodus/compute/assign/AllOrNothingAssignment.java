@@ -203,8 +203,8 @@ public class AllOrNothingAssignment extends Assignment {
     // long end = System.currentTimeMillis();
     // System.out.println("Duration : " + ((end - start) / 1000));
 
-    // Transform the flows in vehicles
-    if (!virtualNet.flowsToVehicles(vehiclesParser)) {
+    // Transform the volumes into vehicles
+    if (!virtualNet.volumesToVehicles(vehiclesParser)) {
       return false;
     }
 

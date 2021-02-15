@@ -206,8 +206,8 @@ public class IncrementalAssignment extends Assignment {
         }
       } // Next odClass
 
-      // Transform the flows in vehicles
-      if (!virtualNet.flowsToVehicles(vehiclesParser)) {
+      // Transform the volumes into vehicles
+      if (!virtualNet.volumesToVehicles(vehiclesParser)) {
         return false;
       }
     }

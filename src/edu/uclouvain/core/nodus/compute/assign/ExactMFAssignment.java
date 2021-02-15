@@ -153,7 +153,7 @@ public class ExactMFAssignment extends Assignment {
      * plausible.
      */
 
-    // --- Assign flows
+    // --- Assign volumes
     // ---------------------------------------------------------------------
     for (byte odClass = 0; odClass < virtualNet.getNbODClasses(); odClass++) {
 
@@ -227,8 +227,8 @@ public class ExactMFAssignment extends Assignment {
       nodusMapPanel.stopProgress();
     } // Next od class
 
-    // Transform the flows in vehicles
-    if (!virtualNet.flowsToVehicles(vehiclesParser)) {
+    // Transform the volumes into vehicles
+    if (!virtualNet.volumesToVehicles(vehiclesParser)) {
       return false;
     }
 

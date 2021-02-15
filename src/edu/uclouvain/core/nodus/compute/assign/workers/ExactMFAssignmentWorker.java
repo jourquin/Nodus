@@ -288,7 +288,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
             pathHeaders.clear();
           }
 
-          // Update flow on virtual links
+          // Update volume on virtual links
           for (int i = 1; i < graph.length; i++) {
             AdjacencyNode current = graph[i];
 

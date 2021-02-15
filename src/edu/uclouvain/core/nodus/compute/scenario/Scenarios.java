@@ -517,7 +517,7 @@ public class Scenarios {
   }
 
   /**
-   * Sums-up the results of two scenarios. Can be useful to consolidate the flows of two separate
+   * Sums-up the results of two scenarios. Can be useful to consolidate the volumes of two separate
    * assignments.
    *
    * @param scenario1 ID of the first scenario.
