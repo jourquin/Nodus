@@ -83,13 +83,15 @@ public class RealLink extends RealNetworkObject {
    * Adds a number of passenger car units to this real link.
    *
    * @param virtualLink VirtualLink
-   * @param nbVehicles int
+   * @param passengerCarUnits int
    */
-  public void addPassengerCarUnits(VirtualLink virtualLink, int nbVehicles) {
+  public void addPassengerCarUnits(VirtualLink virtualLink, int passengerCarUnits) {
     if (virtualLink.getBeginVirtualNode().getRealNodeId(false) == originNode) {
-      currentPassengerCarUnitsUp += nbVehicles;
+      currentPassengerCarUnitsUp += passengerCarUnits;
+      
+      System.err.println("xxx " + virtualLink.getBeginVirtualNode().getRealLinkId() + " : " + passengerCarUnits);
     } else {
-      currentPassengerCarUnitsDown += nbVehicles;
+      currentPassengerCarUnitsDown += passengerCarUnits;
     }
   }
 
@@ -136,6 +138,7 @@ public class RealLink extends RealNetworkObject {
    */
   public double getCurrentPassengerCarUnits(VirtualLink virtualLink) {
     if (virtualLink.getBeginVirtualNode().getRealNodeId(false) == originNode) {
+    			//System.err.println("CPU's: " + currentPassengerCarUnitsUp);
       return currentPassengerCarUnitsUp;
     } else {
       return currentPassengerCarUnitsDown;

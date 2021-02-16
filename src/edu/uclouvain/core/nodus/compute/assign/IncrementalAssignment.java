@@ -130,7 +130,7 @@ public class IncrementalAssignment extends Assignment {
               * (assignmentParameters.getNbIterations() + 1)
               / 2.0;
       double loadFactor = (assignmentParameters.getNbIterations() - iteration + 1) / denominator;
-
+      
       for (byte odClass = 0; odClass < virtualNet.getNbODClasses(); odClass++) {
 
         if (!virtualNet.odClassHasDemand(odClass)) {

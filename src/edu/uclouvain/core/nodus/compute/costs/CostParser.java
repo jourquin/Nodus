@@ -752,6 +752,7 @@ public class CostParser {
          * The volume is a number of passenger car units (PCU's)
          */
         setVariable(NodusC.VARNAME_VOLUME, rl.getCurrentPassengerCarUnits(vl));
+        System.err.println("VOLUME on " + vl.getBeginVirtualNode().getRealLinkId() + " =  " + rl.getCurrentPassengerCarUnits(vl));
 
       } else {
         fieldName = nodeFieldName[layerIndex];

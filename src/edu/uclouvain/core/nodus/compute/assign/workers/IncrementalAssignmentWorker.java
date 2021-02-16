@@ -211,7 +211,6 @@ public class IncrementalAssignmentWorker extends AssignmentWorker {
               pathCosts.swDuration += vl.getDuration(groupIndex);
               break;
             case VirtualLink.TYPE_MOVE:
-            	  System.out.println("In IncAssignmentWorker: " + an.virtualLink.getId() + " " + demand.getQuantity() * loadFactor);
               pathCosts.mvCost += vl.getCost(groupIndex);
               if (assignmentParameters.hasDurationFunctions()) {
                 pathCosts.mvDuration += vl.getDuration(groupIndex);

@@ -473,7 +473,7 @@ public class VirtualNetwork {
    * @return True on success.
    */
   public boolean volumesToVehicles(VehiclesParser vehiclesParser, byte timeSlice) {
-    /* Use the volumes on the virtual links to compute the number of vehicles needed. */
+    resetPassengerCarUnits();
     for (byte groupIndex = 0; groupIndex < getNbGroups(); groupIndex++) {
 
       int group = groups[groupIndex];
@@ -501,8 +501,8 @@ public class VirtualNetwork {
                 || vl.getType() == VirtualLink.TYPE_UNLOAD
                 || vl.getType() == VirtualLink.TYPE_TRANSIT) {
 
-              if (vl.getType()
-                  == VirtualLink.TYPE_LOAD) { // Take end virtual node to get mode/means
+              // Take end virtual node to get mode/means for loading vlinks
+              if (vl.getType() == VirtualLink.TYPE_LOAD) {
                 averageLoad =
                     vehiclesParser.getAverageLoad(
                         group, vl.getEndVirtualNode().getMode(), vl.getEndVirtualNode().getMeans());
@@ -522,7 +522,7 @@ public class VirtualNetwork {
                         vl.getBeginVirtualNode().getMeans());
               }
 
-              vl.initializeVehicles(groupIndex, timeSlice, averageLoad, pcu);
+              vl.volumesToVehicles(groupIndex, timeSlice, averageLoad, pcu);
             }
           }
         }
@@ -1335,7 +1335,7 @@ public class VirtualNetwork {
   }
 
   /** Resets the vehicles assigned to the real links. */
-  public void resetVehicles() {
+  private void resetPassengerCarUnits() {
     for (NodusEsriLayer element : linksEsriLayer) {
       EsriGraphicList egl = element.getEsriGraphicList();
       Iterator<OMGraphic> it = egl.iterator();

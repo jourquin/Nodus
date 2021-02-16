@@ -214,7 +214,6 @@ public class VirtualLink {
     }
 
     currentVolume[groupIndex][timeSlice] += qty;
-    System.out.println(currentVolume[groupIndex][timeSlice]);
   }
 
   /**
@@ -479,38 +478,27 @@ public class VirtualLink {
   }
 
   /**
-   * Initializes the average load and PCU for a given group index and time slice.
-   *
+   * Transform the volumes on the virtual link into vehicles and updates the corresponding real link PCU's. 
+   * 
    * @param groupIndex The index of the group of commodities.
-   * @param timeSlice The time slice corresponding to the volume.
+   * @param timeSlice The time slice to consider.
    * @param averageLoad The average load for a vehicle using this virtual link.
    * @param passengerCarUnits The number of equivalent standard vehicles a vehicle using this
    *     virtual link represents.
    */
-  public void initializeVehicles(
+  public void volumesToVehicles(
       byte groupIndex, byte timeSlice, double averageLoad, double passengerCarUnits) {
-    if (virtualLinkType == TYPE_MOVE
-        || virtualLinkType == TYPE_LOAD
-        || virtualLinkType == TYPE_UNLOAD
-        || virtualLinkType == TYPE_TRANSIT) {
-      int nbVehicles = (int) Math.ceil(currentVolume[groupIndex][timeSlice] / averageLoad);
-      currentVehicles[groupIndex][timeSlice] = nbVehicles;
 
-      if (nbVehicles > 0) {
-    	  System.err.println(currentVolume[groupIndex][timeSlice]);
-      }
-      
-      if (virtualLinkType == TYPE_MOVE) {
-        realLink.addPassengerCarUnits(this, (int) Math.ceil(nbVehicles * passengerCarUnits));
-      }
+    int nbVehicles = (int) Math.ceil(currentVolume[groupIndex][timeSlice] / averageLoad);
+    currentVehicles[groupIndex][timeSlice] = nbVehicles;
 
-      int nbAuxiliaryVehicles = (int) Math.ceil(auxiliaryVolume[groupIndex] / averageLoad);
-      auxiliaryVehicles[groupIndex] = nbAuxiliaryVehicles;
+    int nbAuxiliaryVehicles = (int) Math.ceil(auxiliaryVolume[groupIndex] / averageLoad);
+    auxiliaryVehicles[groupIndex] = nbAuxiliaryVehicles;
 
-      if (virtualLinkType == TYPE_MOVE) {
-        realLink.addAuxiliaryPassengerCarUnits(
-            this, (int) Math.ceil(nbAuxiliaryVehicles * passengerCarUnits));
-      }
+    if (virtualLinkType == TYPE_MOVE) {
+      realLink.addPassengerCarUnits(this, (int) Math.ceil(nbVehicles * passengerCarUnits));
+      realLink.addAuxiliaryPassengerCarUnits(
+          this, (int) Math.ceil(nbAuxiliaryVehicles * passengerCarUnits));
     }
   }
 
