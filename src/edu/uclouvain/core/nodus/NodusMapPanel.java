@@ -1980,7 +1980,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     add(controlPanel, BorderLayout.WEST);
 
     // Add drawing tool
-    nodusDrawingToolLauncher = new NodusOMDrawingToolLauncher();
+    nodusDrawingToolLauncher = new NodusOMDrawingToolLauncher(this);
     nodusDrawingTool = new NodusOMDrawingTool(this, nodusDrawingToolLauncher);
     nodusDrawingTool.addLoader(new NodusOMPointLoader());
     nodusDrawingTool.addLoader(new NodusOMPolyLoader());
@@ -3071,9 +3071,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     return true;
   }
 
-  
   /**
    * Updates the scenario combo with the current scenario.
+   *
    * @param forceReset If true, force a rest of the displayed results if any.
    */
   public void updateScenarioComboBox(boolean forceReset) {

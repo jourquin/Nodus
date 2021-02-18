@@ -22,14 +22,19 @@
 package com.bbn.openmap.tools.drawing;
 
 import com.bbn.openmap.Environment;
+import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.omGraphics.OMGraphicConstants;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PaletteHelper;
+import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.swing.VerticalFlowLayout;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.util.Iterator;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -58,6 +63,17 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
   /** . */
   private JComboBox<JComponent> nodusDrawingTool;
 
+  NodusMapPanel nodusMapPanel;
+
+  /**
+   * Constructor.
+   * @param nodusMapPanel The NodusMapPanel this drawing tool launcher is attached to. 
+   */
+  public NodusOMDrawingToolLauncher(NodusMapPanel nodusMapPanel) {
+    super();
+    this.nodusMapPanel = nodusMapPanel;
+  }
+
   /**
    * Intercepts the original getGUI() method to let the choice between points and polylines, and
    * replaces the "create" button by a "create/move/delete" button.
@@ -65,7 +81,6 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
   @SuppressWarnings("unchecked")
   @Override
   public void resetGUI() {
-
     removeAll();
     getWindowSupport()
         .setTitle(i18n.get(NodusOMDrawingToolLauncher.class, "Map_editor", "Map editor"));
@@ -123,6 +138,39 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
     // Add panels
     add(requestorsPanel);
     add(buttonsPanel);
+
+    // Editing the network is not allowed when results are displayed or if no project is open.
+    windowSupport.addComponentListener(
+        new ComponentListener() {
+
+          @Override
+          public void componentShown(ComponentEvent e) {
+
+            if (areLayersEditable()) {
+              createButton.setEnabled(true);
+            } else {
+              createButton.setEnabled(false);
+            }
+          }
+
+          @Override
+          public void componentResized(ComponentEvent e) {
+            // TODO Auto-generated method stub
+
+          }
+
+          @Override
+          public void componentMoved(ComponentEvent e) {
+            // TODO Auto-generated method stub
+
+          }
+
+          @Override
+          public void componentHidden(ComponentEvent e) {
+            // TODO Auto-generated method stub
+
+          }
+        });
   }
 
   /** Cancel edit operation and close window. */
@@ -131,6 +179,33 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
       ((NodusOMDrawingTool) drawingTool).cancel();
       getWindowSupport().killWindow();
     }
+  }
+
+  /**
+   * Returns true if results are currently displayed on the map.
+   *
+   * @return True if at least one layer currently displays results.
+   */
+  private boolean areLayersEditable() {
+    NodusProject nodusProject = nodusMapPanel.getNodusProject();
+    if (nodusProject.isOpen()) {
+      NodusEsriLayer[] layers = nodusProject.getLinkLayers();
+      for (int i = 0; i < layers.length; i++) {
+        if (layers[i].isDisplayResults()) {
+          return false;
+        }
+      }
+
+      layers = nodusProject.getNodeLayers();
+      for (int i = 0; i < layers.length; i++) {
+        if (layers[i].isDisplayResults()) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    return false;
   }
 
   /**

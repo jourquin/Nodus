@@ -373,7 +373,7 @@ public abstract class Assignment implements Runnable {
               i18n.get(
                   Assignment.class,
                   "DeprecatedVariables",
-                  "Costs contain deprecated xx_DURATION, ESV or FLOWA variables. Upgrade ?"),
+                  "Costs contain deprecated xx_DURATION, ESV or FLOW variables. Upgrade ?"),
               NodusC.APPNAME,
               JOptionPane.YES_NO_OPTION);
 

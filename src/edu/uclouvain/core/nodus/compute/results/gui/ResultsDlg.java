@@ -760,11 +760,16 @@ public class ResultsDlg extends EscapeDialog {
    */
   private void okButton_actionPerformed(ActionEvent e) {
     boolean success = true;
-    int index = actionsComboBox.getSelectedIndex();
+   
     boolean export = exportCheckBox.isSelected();
     boolean relativeToView = relativeToViewCheckBox.isSelected();
 
     setVisible(false);
+    
+    // Map edition is not allowed when results are displayed
+    nodusMapPanel.getNodusDrawingToolLauncher().cancel();
+    
+    int index = actionsComboBox.getSelectedIndex(); 
     if (index > 0) {
       index--;
 
