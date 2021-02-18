@@ -1121,6 +1121,13 @@ public class NodusC {
    * @hidden
    */
   public static final String PROP_DYNAMIC_QUANTITIES_QUERY = "dynamicflowquery";
+  
+  /**
+   * Properties strings used in project and/or project local properties.
+   *
+   * @hidden
+   */
+  public static final String PROP_DYNAMIC_VEHICLES_QUERY = "dynamichehiclesquery";
 
   /**
    * Properties strings used in project and/or project local properties.

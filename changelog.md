@@ -146,35 +146,35 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Add the possibility to specify the color to use for each mode in the pie diagrams in the project file.
     - Allow non numerical variables in the costs functions files. The names of these variables must start with a '@'.
     - Cost parser improved : variables can themselves contain formulas and make reference to other variables.
+    - Predefined Volume-Delay functions (BPR and CONICAL) are now provided and recognized by the cost parser.
+    - Add the HOURS, MINUTES and SECONDS functions that can be used in the costs functions for a given LENGTH and SPEED.
+    - The results of semi-dynamic assignments can now be displayed both for transported quantities and needed vehicles.
+    - DBF files:
+        - Improved DBF structure editor for the Nodus layers. The GUI now takes care of the Nodus mandatory structures.
+        - Automatically change LOGICAL DBF fields to NUMERIC(1,0) fields, as Booleans are not supported by all DBMS's.
+        - Accept SQL DATE in the DBF files.
+        - Use JavaDbf4Nodus 1.12.1, that uses UTF-8 encoding by default.
+        - Better support of non legacy DBF files (such as those written by many GIS softwares.
+        - Handle DBF files with records marked as deleted.
 
-- DBF files:
-    - Improved DBF structure editor for the Nodus layers. The GUI now takes care of the Nodus mandatory structures.
-    - Automatically change LOGICAL DBF fields to NUMERIC(1,0) fields, as Booleans are not supported by all DBMS's.
-    - Accept SQL DATE in the DBF files.
-    - Use JavaDbf4Nodus 1.12.1, that uses UTF-8 encoding by default.
-    - Better support of non legacy DBF files (such as those written by many GIS softwares.
-    - Handle DBF files with records marked as deleted.
-
-- Nodes and link labels:
-    - Reload labels after 'exportdbf' of a layer in order to display changes.
-    - The labels of a Nodus layer are now displayed only if the layer itself is visible (both are now synchronized).
 
 - Miscellaneous:
-    - Upgrade to mariadb-java-client 2.7
-    - Upgrade to HSQLDB 2.5.1
+    - Reload labels after 'exportdbf' of a layer in order to display changes.
+    - The labels of a Nodus layer are now displayed only if the layer itself is visible (both are now synchronized).
     - Add stop and switch costs and durations (used with services) in the path header tables.  
     - Remove the "-" button in the layer panel. Not useful.
     - New compass image in ScaleAndCompassLayer.
     - Add "font" properties to ScaleAndCompassLayer for label and scale fonts.
     - Add legends in virtual network viewer.
-    - Replace 'importTables" property by 'import.tables'. Projects with the old property name are still accepted.
+    - Replace 'importTables" project property by 'import.tables'. Projects with the old property name are still accepted.
     - Simplify virtual network visualizer GUI.
     - Allow PLAF change without restarting Nodus.
     - (Partially) language (Locale) change without restarting Nodus.
     - No more exception thrown when statistics are gathered for a non existing group in StatPieDlg.
     - Limit max heap size to 1.4Go if run on a 32bit JVM
     - Warn the user if the number of threads set for an assignment is larger than the number of physical cores.
-    - Tested with Java 11 and 15
+    - Tested with Java 11 and 15.
+    - Tested with GraalVM (faster that regular JVM). Compilation to native code with GraalVM's "native-image" tool doesn't work yet.
     - The assignments are now canceled (with an error message) if a path has a non strictly positive cost.
     - SystemInfoDlg replaces ArchInfoDlg and gives now also information about the system hardware.
     - Change default install directory to the user home directory.
@@ -182,28 +182,30 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Disable the "services". Still too buggy to remain in public distribution.
     - Initial scale and center lat/lon point are now reset when a project is closed.
     - Don't close open project when users cancels the opening of another one.
-    - Nb equivalent standard vehicles are now also computed for (un)loading and transit virtual links.
-    - Export of results now only save a DBF table with the value of the result for each node or link ID. 
-    - Remove the JFlowMap companion app (old fashioned and not really useful).
-    - Detect not permitted file access on Mac OS.
+    - Export of results now only save a DBF table with the value of the result for each node or link ID (and not the other fields of the DBF file). 
+    - Detect not permitted file access on Mac OS (Catalina and Big Sur).
     - The Ant ApiDoc task is now compatible with the old and new javadoc API.
-    - Get rid of the foxtrot API which causes illegal reflective access warnings. Use the native "SecondaryLoop" Java interface.
-    - Upgrade to groovy-3.0.6, oshi-5.3.6, rsyntaxtextarea-3.1.1 and xchart-3.6.6
-    - Upgrade to latest OpenMap 6b snapshot
     - The ESV (Equivalent Standard Vehicle) variable name has been replaced by the PCU (Passenger Car Units) variable name. PCU is
     a more common acronym used in the literature. An automatic upgrade is proposed to the user.
+    - PCU's are now also computed for (un)loading and transit virtual links.
     - The FLOW variable name has been replaced by the VOLUME variable name to be more in-line with terminology used the literature that covers 
-    volume / delay functions. An automatic upgrade is proposed to the user. Some API method names are changed accordingly.
-    - Predefined Volume-Delay functions (BPR and CONICAL) are now provided and recognized by the cost parser.
-    - Tested with GraalVM (faster that regular JVM). Compilation to native code with GraalVM's "native-image" tool doesn't work yet.
+    volume / delay functions. An automatic upgrade is proposed to the user. Some API method names are changed accordingly.   
     - The displayed results are now reset when the scenario is changed.
     - Add a sample Groovy script in the demo that performs an assignment.
     - Add a sample costs file and OD matrix for equilibrium assignments in the demo.
     - Disable Frank-Wolfe and incremental + Frank-Wolfe assignment methods. They need more validation and are useless.
-    - Add the HOURS, MINUTES and SECONDS functions that can be used in the costs functions for a given LENGHT and SPEED.
+    - Prevent network edition (add, move, delete... nodes and links) when results are displayed.
 
+
+- External libs
+    - Get rid of the foxtrot API which causes illegal reflective access warnings. Use the native "SecondaryLoop" Java interface.
+    - Upgrade to mariadb-java-client 2.7
+    - Upgrade to HSQLDB 2.5.1
+    - Upgrade to groovy-3.0.6, oshi-5.3.6, rsyntaxtextarea-3.1.1 and xchart-3.6.6
+    - Upgrade to latest OpenMap 6b snapshot
+    - Remove the JFlowMap companion app (old fashioned and not really useful).
+    
+   
 - Breaking changes:
     - Simplified API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 
     message is displayed to inform the user.
-
-    

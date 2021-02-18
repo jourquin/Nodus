@@ -522,6 +522,11 @@ public class LinkResults implements ShapeConstants {
 
     isTimeDependent = true;
 
+    boolean displayVehicles = false;
+    if (sqlStmt.toLowerCase().contains(NodusC.DBF_VEHICLES)) {
+      displayVehicles = true;
+    }
+
     // Is a label layer present?
     LabelLayer labelLayer = null;
     String oldText = null;
@@ -626,15 +631,18 @@ public class LinkResults implements ShapeConstants {
       displayNextTimeSlice = false;
 
       if (lbl != null) {
+        String labelUnit;
+        if (displayVehicles) {
+          labelUnit = i18n.get(LinkResults.class, "Vehicles_at", "Vehicles at");
+        } else {
+          labelUnit = i18n.get(LinkResults.class, "Volume_at", "Volume at");
+        }
+
         int hour = t / 60 % 24;
         int min = t % 60;
         DecimalFormat hourFormatter = new DecimalFormat("00");
         lbl.setLabelText(
-            i18n.get(LinkResults.class, "Flow_at", "Flow at")
-                + " "
-                + hourFormatter.format(hour)
-                + ":"
-                + hourFormatter.format(min));
+            labelUnit + " " + hourFormatter.format(hour) + ":" + hourFormatter.format(min));
         lbl.doPrepare();
       }
 

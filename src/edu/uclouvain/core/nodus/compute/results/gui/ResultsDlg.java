@@ -72,6 +72,8 @@ public class ResultsDlg extends EscapeDialog {
 
   private static final int actionLinkTimeDependentQuantities = 13;
 
+  private static final int actionLinkTimeDependentVehicles = 14;
+
   private static final int actionLinkVehicles = 11;
 
   private static final int actionNodeOD = 0;
@@ -81,7 +83,8 @@ public class ResultsDlg extends EscapeDialog {
     i18n.get(ResultsDlg.class, "Assigned_quantities", "Assigned quantities"),
     i18n.get(ResultsDlg.class, "Assigned_vehicles", "Assigned vehicles"),
     i18n.get(ResultsDlg.class, "Path", "Path"),
-    i18n.get(ResultsDlg.class, "Time_dependant_quantities", "Time dependant quantities")
+    i18n.get(ResultsDlg.class, "Time_dependent_quantities", "Time dependent quantities"),
+    i18n.get(ResultsDlg.class, "Time_dependent_vehicles", "Time dependent vehicles")
   };
 
   /** Set of possible results to display on nodes. */
@@ -119,6 +122,9 @@ public class ResultsDlg extends EscapeDialog {
 
   /** . */
   private String dynamicQuantitiesQueryString = "";
+
+  /** . */
+  private String dynamicVehiclesQueryString = "";
 
   /** . */
   private String linksVehiclesQueryString = "";
@@ -221,9 +227,16 @@ public class ResultsDlg extends EscapeDialog {
 
             break;
 
-          case 3: // Time dependent assigned
+          case 3: // Time dependent assigned (quantities)
             currentAction = actionLinkTimeDependentQuantities;
             sqlTextPane.setText(getVolumesQueryString(NodusC.DBF_QUANTITY, true));
+            getExportCheckBox().setSelected(false);
+            getExportCheckBox().setEnabled(false);
+            break;
+
+          case 4: // Time dependent assigned (vehicles)
+            currentAction = actionLinkTimeDependentVehicles;
+            sqlTextPane.setText(getVolumesQueryString(NodusC.DBF_VEHICLES, true));
             getExportCheckBox().setSelected(false);
             getExportCheckBox().setEnabled(false);
             break;
@@ -273,6 +286,11 @@ public class ResultsDlg extends EscapeDialog {
       case actionLinkTimeDependentQuantities:
         dynamicQuantitiesQueryString = "";
         sqlTextPane.setText(getVolumesQueryString(NodusC.DBF_QUANTITY, true));
+        break;
+
+      case actionLinkTimeDependentVehicles:
+        dynamicVehiclesQueryString = "";
+        sqlTextPane.setText(getVolumesQueryString(NodusC.DBF_VEHICLES, true));
         break;
 
       default:
@@ -350,8 +368,14 @@ public class ResultsDlg extends EscapeDialog {
         }
       }
     } else {
-      if (!dynamicQuantitiesQueryString.equals("")) {
-        return dynamicQuantitiesQueryString;
+      if (typeOfVolume.equals(NodusC.DBF_QUANTITY)) {
+        if (!dynamicQuantitiesQueryString.equals("")) {
+          return dynamicQuantitiesQueryString;
+        }
+      } else {
+        if (!dynamicVehiclesQueryString.equals("")) {
+          return dynamicVehiclesQueryString;
+        }
       }
     }
 
@@ -720,6 +744,8 @@ public class ResultsDlg extends EscapeDialog {
     linksVehiclesQueryString =
         nodusProject.getLocalProperty(NodusC.PROP_LINKS_VEHICLES_QUERY + currentScenario, "");
     pathQueryString = nodusProject.getLocalProperty(NodusC.PROP_PATH_QUERY + currentScenario, "");
+    dynamicVehiclesQueryString =
+        nodusProject.getLocalProperty(NodusC.PROP_DYNAMIC_VEHICLES_QUERY + currentScenario, "");
 
     setActions();
 
@@ -760,16 +786,16 @@ public class ResultsDlg extends EscapeDialog {
    */
   private void okButton_actionPerformed(ActionEvent e) {
     boolean success = true;
-   
+
     boolean export = exportCheckBox.isSelected();
     boolean relativeToView = relativeToViewCheckBox.isSelected();
 
     setVisible(false);
-    
+
     // Map edition is not allowed when results are displayed
     nodusMapPanel.getNodusDrawingToolLauncher().cancel();
-    
-    int index = actionsComboBox.getSelectedIndex(); 
+
+    int index = actionsComboBox.getSelectedIndex();
     if (index > 0) {
       index--;
 
@@ -825,6 +851,15 @@ public class ResultsDlg extends EscapeDialog {
             nodusProject.setLocalProperty(
                 NodusC.PROP_DYNAMIC_QUANTITIES_QUERY + currentScenario,
                 dynamicQuantitiesQueryString);
+            success = lr.displayTimeDependentFlows(sqlTextPane.getText());
+            resetLayers();
+            break;
+
+          case 4: // Display time dependent assigned vehicles
+            resetLayers();
+            dynamicVehiclesQueryString = sqlTextPane.getText();
+            nodusProject.setLocalProperty(
+                NodusC.PROP_DYNAMIC_VEHICLES_QUERY + currentScenario, dynamicVehiclesQueryString);
             success = lr.displayTimeDependentFlows(sqlTextPane.getText());
             resetLayers();
             break;
