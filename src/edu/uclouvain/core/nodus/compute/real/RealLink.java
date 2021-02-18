@@ -88,8 +88,6 @@ public class RealLink extends RealNetworkObject {
   public void addPassengerCarUnits(VirtualLink virtualLink, int passengerCarUnits) {
     if (virtualLink.getBeginVirtualNode().getRealNodeId(false) == originNode) {
       currentPassengerCarUnitsUp += passengerCarUnits;
-      
-      System.err.println("xxx " + virtualLink.getBeginVirtualNode().getRealLinkId() + " : " + passengerCarUnits);
     } else {
       currentPassengerCarUnitsDown += passengerCarUnits;
     }
@@ -138,7 +136,7 @@ public class RealLink extends RealNetworkObject {
    */
   public double getCurrentPassengerCarUnits(VirtualLink virtualLink) {
     if (virtualLink.getBeginVirtualNode().getRealNodeId(false) == originNode) {
-    			//System.err.println("CPU's: " + currentPassengerCarUnitsUp);
+      // System.err.println("CPU's: " + currentPassengerCarUnitsUp);
       return currentPassengerCarUnitsUp;
     } else {
       return currentPassengerCarUnitsDown;

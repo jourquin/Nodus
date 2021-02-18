@@ -47,6 +47,10 @@ import java.util.Iterator;
  *
  * @author Bart Jourquin
  */
+
+/*
+ * Doesn't work (anymore). Is disabled since Nodus 8.0.
+ */
 public class FrankWolfeAssignment extends Assignment {
 
   /**
@@ -283,7 +287,10 @@ public class FrankWolfeAssignment extends Assignment {
    *
    * @param lambda double
    */
-  public void splitVolumes(double lambda) {
+  private void splitVolumes(double lambda) {
+
+    byte[] groups = virtualNet.getGroups();
+
     // Update current volumes on virtual links
     VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();
 
@@ -299,8 +306,6 @@ public class FrankWolfeAssignment extends Assignment {
 
         while (linkLit.hasNext()) {
           VirtualLink vl = linkLit.next();
-
-          byte[] groups = virtualNet.getGroups();
 
           for (byte k = 0; k < (byte) groups.length; k++) {
             vl.combineVolumes(k, lambda);

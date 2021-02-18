@@ -50,6 +50,10 @@ import java.util.Iterator;
  *
  * @author Bart Jourquin
  */
+
+/*
+ * Doesn't work (anymore). Is disabled since Nodus 8.0. 
+ */
 public class IncFrankWolfeAssignment extends Assignment {
 
   /**

@@ -1430,34 +1430,40 @@ public class AssignmentDlg extends EscapeDialog {
             new Insets(5, 5, 5, 5),
             0,
             0));
-    equilibriumTab.add(
-        frankWolfeRadioButton,
-        new GridBagConstraints(
-            0,
-            2,
-            1,
-            1,
-            0.1,
-            0.0,
-            GridBagConstraints.NORTHWEST,
-            GridBagConstraints.NONE,
-            new Insets(5, 5, 5, 5),
-            0,
-            0));
-    equilibriumTab.add(
-        incFrankWolfeRadioButton,
-        new GridBagConstraints(
-            0,
-            3,
-            1,
-            1,
-            0.1,
-            0.0,
-            GridBagConstraints.NORTHWEST,
-            GridBagConstraints.NONE,
-            new Insets(5, 5, 5, 5),
-            0,
-            0));
+
+    /*
+     * The Frank-Wolfe based algorithms are buggy since ... ? As equilibrium assignments
+     * are not really useful in the context of non urban transport, they are disabled
+     * since Nodus 8.0
+     */
+    //    equilibriumTab.add(
+    //        frankWolfeRadioButton,
+    //        new GridBagConstraints(
+    //            0,
+    //            2,
+    //            1,
+    //            1,
+    //            0.1,
+    //            0.0,
+    //            GridBagConstraints.NORTHWEST,
+    //            GridBagConstraints.NONE,
+    //            new Insets(5, 5, 5, 5),
+    //            0,
+    //            0));
+    //    equilibriumTab.add(
+    //        incFrankWolfeRadioButton,
+    //        new GridBagConstraints(
+    //            0,
+    //            3,
+    //            1,
+    //            1,
+    //            0.1,
+    //            0.0,
+    //            GridBagConstraints.NORTHWEST,
+    //            GridBagConstraints.NONE,
+    //            new Insets(5, 5, 5, 5),
+    //            0,
+    //            0));
 
     assignmentTabbedPane.add(
         multiflowTab, i18n.get(AssignmentDlg.class, "Multi_flow", "Multi-flow"));

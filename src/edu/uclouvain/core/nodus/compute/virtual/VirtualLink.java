@@ -240,6 +240,7 @@ public class VirtualLink {
 
     currentVolume[groupIndex][0] =
         (1 - lambda) * currentVolume[groupIndex][0] + lambda * auxiliaryVolume[groupIndex];
+
     auxiliaryVolume[groupIndex] = 0;
 
     if (virtualLinkType == TYPE_MOVE) {
@@ -478,7 +479,8 @@ public class VirtualLink {
   }
 
   /**
-   * Transform the volumes on the virtual link into vehicles and updates the corresponding real link PCU's. 
+   * Transform the volumes on the virtual link into vehicles and updates the 
+   * corresponding real link PCU's. 
    * 
    * @param groupIndex The index of the group of commodities.
    * @param timeSlice The time slice to consider.

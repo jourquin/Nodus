@@ -42,7 +42,7 @@ along with contributions to congresses and seminars can be found on
 - Flexible: user defined database fields, variables, cost functions, mode choice models…
 
 See also the [documentation](http://htmlpreview.github.com/?https://github.com/jourquin/Nodus/blob/master/doc/help.html) and
-an example of [user defined modal choice models](https://github.com/jourquin/BoxCoxLogit).
+the [Demo project](https://github.com/jourquin/Nodus/blob/master/demo).
 
 ## History of the releases
 

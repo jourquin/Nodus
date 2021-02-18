@@ -193,7 +193,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - The displayed results are now reset when the scenario is changed.
     - Add a sample Groovy script in the demo that performs an assignment.
     - Add a sample costs file and OD matrix for equilibrium assignments in the demo.
-    - Disable Frank-Wolfe and incremental + Frank-Wolfe assignment methods. They need more validation and are useless.
+    - Disable Frank-Wolfe and incremental + Frank-Wolfe assignment methods. They are buggy and useless for non urban transport.
     - Prevent network edition (add, move, delete... nodes and links) when results are displayed.
 
 
