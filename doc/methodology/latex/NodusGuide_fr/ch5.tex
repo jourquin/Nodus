@@ -1,0 +1,330 @@
+
+Les pages qui suivent vont maintenant proposer un jeu complet de fonctions de
+coût pour les différents modes de transport terrestre "classiques" que sont la
+route, le chemin de fer et les voies navigables. Encore une fois, ces fonctions
+sont { \it une} approche possible parmi d'autres. Elles ont toutefois l'avantage
+d'avoir prouvé une certaine robustesse dans une série d'applications pratiques
+et publiées.
+
+
+
+\section{Les co\^uts de d\'eplacement}
+
+Les coûts de déplacement seront exprimés ici en unités monétaires par unité de
+poins et par unité de distance parcourue (Francs par tonnes/km par exemple. Ce
+sont d'ailleurs ces unités qui seront utilisées dans la suite du texte).
+
+
+\subsection{Le transport}
+
+Le coût de transport est composé de différents paramètres de nature plus
+tech\-nique. Ce coût diffère en fonction des modes de transport.
+
+\subsubsection{Voies d'eau}
+
+\paragraph{Les péniches}
+
+Soit:
+
+\begin{itemize}
+\item $F$ : les frais fixes annuels (annuité constante, assurances,
+entretiens et salaires),
+\item $u$ : le nombre d'heures de travail/année,
+\item $T$ : la charge, en tonnes, de la péniche,
+\item $b$ : la consommation de carburant en francs/heure,
+\item $\phi$ : la vitesse de navigation moyenne.
+\end{itemize}
+Le coût de déplacement à la tonne et au kilomètre s'exprime par:
+
+$$ B = \frac{F+b.u}{u.\phi . T}$$
+
+\paragraph{Les barges}
+
+Soit:
+
+\begin{itemize}
+\item $F_p$: les frais fixes liés au pousseur comprennent une annuité
+constante, les assurances, les entretiens et les salaires,
+\item $F_b$ : Les frais fixes liés aux barges comprennent uniquement une
+annuité constante, les assurances et les entretiens,
+\item $u$ : le nombre d'heures de travail/année,
+\item $T$ : la charge, en tonnes de la barge,
+\item $b$ : la consommation de carburant en francs/heure,
+\item $\phi$ : la vitesse de navigation moyenne.
+\end{itemize}
+
+$$B = \frac{F_p + F_b + b.u}{u.T.\phi}$$
+
+\subsubsection{Chemin de fer}
+
+Comme pour les barges, les frais fixes se décomposent en $F_m$ et $F_w$, qui
+représen\-tent respectivement les frais fixes liés à la motrice (annuité
+constante, assurances et salaires) et ceux liés aux wagons (annuité constante,
+assurances et entretien). L'entretien étant un coût fixe pour les wagons (coût
+par an), il sera incorporé dans $F_w$. Par contre, les coûts d'entretien sont
+variables pour la motrice et feront donc l'objet d'une formulation distincte.
+
+Soit:
+
+\begin{itemize}
+\item $F_m$ : coût fixe lié à la motrice,
+\item $F_w$ : coût fixe lié aux wagons,
+\item $u$ : le nombre d'heures de travail/année,
+\item $T$ : la charge, en tonnes, du train,
+\item $b$ : la consommation de carburant en francs/kilomètre,
+\item $\phi$ : la vitesse moyenne
+\item $e$ : coût d'entretien de la motrice en francs/kilomètre
+\end{itemize}
+
+
+$$B=\frac{F_m+F_w}{T.u.\phi} + \frac{b+e}{T}$$
+ce qui revient à:
+$$B=\frac{F_m+F_w+(b+e).u.\phi}{T.u.\phi}$$
+
+A l'instar des fonctions de coût spécifiques aux péniches et aux
+barges, il s'agit ici de formes fonctionnelles très "techniques"
+qui essayent de prendre en considération les paramètres les plus
+pertinents liés aux coûts d'exploitation d'un train. Les valeurs
+utilisées pour les calculs pratiques proviennent des statistiques
+ou de comptes annuels publiés par la SNCB.
+
+Ce type d'approche "comptable" présente parfois le danger de présenter une
+sous-estimation des coûts réels, car les coûts liés à une certaine efficacité
+des systèmes de transport, comme le coût salarial d'un éventuel personnel
+excéden\-tai\-re, ne sont pas pris en compte.
+
+
+\subsubsection{Routes}
+
+Contrairement aux bateaux, les frais fixes ne contiennent pas les
+coûts d'entretien. Pour un camion, l'entretien se fait après un
+certain nombre de kilomètres.
+
+Soit:
+
+\begin{itemize}
+\item $u$ : le nombre d'heures de travail/année,
+\item $T$ : la charge, en tonnes, du camion,
+\item $c$ : la consommation de carburant en francs/kilomètre,
+\item $\phi$ : la vitesse moyenne,
+\item $e$ : coût d'entretien en francs/kilomètre.
+\end{itemize}
+
+De ce fait
+
+$$B=\frac{F}{T.u.\phi}+\frac{c+e}{T}$$
+
+ce qui revient à:
+
+$$B=\frac{F+(c+e).U.\phi}{T.u.\phi}$$
+
+
+\subsection{Valeur d'inventaire}
+
+La valeur d'inventaire représente le coût d'opportunité engendré
+par l'immobili\-sation du bien transporté durant le voyage. Cette
+valeur est exprimée par la charge d'intérêt sur la valeur du
+chargement pour une période correspondant à la somme des durées de
+voyage et de transbordement.
+
+Soit:
+\begin{itemize}
+\item $V$ : valeur de la marchandise (F/tonne)
+\item $R_i$ : taux d'intérêt à appliquer pour la valeur d'inventaire
+\item $D$ : durée du voyage
+\end{itemize}
+
+L'expression $V.R_ii.D$ permet de connaître le coût lié à la valeur
+d'inventaire durant le voyage, sous forme d'un coût d'opportunité.
+Puisque la vitesse moyenne du convoi est connue, il est possible de
+calculer la durée de passage sur un arc virtuel de type
+"déplacement".
+
+\subsection{Co\^uts indirects}
+
+De par leur structure, les chemins de fer supportent de gros coûts
+administratifs et autres que l'on doit, lorsque l'on se place dans
+une perspective stratégique, intégrer dans le coût de transport. On
+entend par "coûts administratifs et autres", l'ensemble des coûts
+qui ne sont pas directement à imputer à l'activité de transport de
+l'entreprise, c'est-à-dire:
+
+\begin{itemize}
+\item Services généraux,
+\item Exploitation de l'infrastructure,
+\item Marketing-vente,
+\item Charges diverses,
+\item Dotation pour risques et accidents (les compagnies de chemin de fer
+prati\-quent l'auto-assurance).
+\end{itemize}
+
+Ces coûts peuvent par exemple être ramenés à une certaine somme par
+tonne/ki\-lo\-mè\-tre.
+
+\section{Les co\^uts de transbordements}
+
+Le second type d'arcs générés dans un réseau virtuel sont les arcs
+de transbor\-dement. Le coût qui doit être affecté sur ces arcs se
+compose également de plusieurs aspects.
+
+\subsection{Manutention}
+
+Si on fait abstraction des coûts liés à l'investissement et à
+l'utilisation des infrastructures, les coûts de manutention sont
+fonction de la durée de cette opération. Un transbordement peut se
+scinder en un déchargement et un charge\-ment dont les durées peuvent
+être estimées par la formule de Deming (cfr. supra). Lorsqu'un
+moyen de transport est constitué de plusieurs unités de chargement
+(wagons ou barges), le temps de chargement ou de déchargement est
+calculé par unité de chargement. Le temps total de chargement est
+obtenu en multipliant le temps unitaire par le nombre d'unités de
+chargement. Cette manière de procéder se justifie par la non
+linéarité de la fonction de Deming. En effet, charger 10 wagons de
+30 tonnes prend plus de temps que de charger 300 tonnes en une
+fois.
+
+
+\subsection{Valeur d'inventaire}
+
+La durée de manutention, obtenue grâce à la formule de Deming, peut
+être exprimée en fraction d'année. Soit $D1$ cette expression. Si
+$V$ est la valeur de la marchandise et $R_i$ le taux d'intérêt à
+appliquer $V.D1.Ri$ exprime la charge d'intérêt supportée pendant
+le chargement et/ou le déchargement d'une tonne de marchandise de
+valeur $V$.
+
+\subsection{Co\^uts indirects}
+
+Sous cette rubrique, seront considérés les coûts liés à
+l'immobilisation des véhi\-cules lors des opérations de manutention.
+
+\subsubsection{Voies d'eau}
+
+\paragraph{Les péniches}
+
+Soit:
+
+\begin{itemize}
+\item $F$: les frais fixes annuels (annuité constante, assurances,
+entretiens et salaires),
+\item $L$ : le temps de chargement ou de déchargement,
+\item $u$ : le nombre d'heures de travail/année,
+\item $T$ : la charge, en tonnes, de la péniche,
+\item $n$ : le nombre de personnes qui chargent ou déchargent.
+\end{itemize}
+
+Le coût fixe, à la tonne, peut dès lors s'exprimer par:
+
+$$A=\frac{F.\frac{L}{N}}{u.T}$$
+
+\paragraph{Les barges}
+
+Soit:
+
+\begin{itemize}
+\item $Fp$ : les frais fixes liés au pousseur,
+\item $F_b$ : les frais fixes liés aux barges,
+\item $t$ : le temps nécessaire pour former le convoi,
+\item $L$ : le temps de chargement ou de déchargement,
+\item $u$ : le nombre d'heures de travail/année,
+\item $T$ : la charge, en tonnes, de la péniche,
+\item $n$ : le nombre de personnes qui chargent ou déchargent.
+\end{itemize}
+
+Les frais fixes liés au pousseur comprennent une annuité constante,
+les assurances, les entretiens et les salaires. Les frais fixes
+liés aux barges comprennent uniquement une annuité constante, les
+assurances et les entretiens.
+
+$$A=\frac{F_p.t+\frac{F_b.L}{n}}{u.T}$$
+
+\subsubsection{Chemin de fer}
+
+Comme pour les barges, les frais fixes se décomposent en $F_m$ et
+$F_w$.
+
+\begin{itemize}
+\item $L$ : le temps de chargement ou de déchargement,
+\item $u$ : le nombre d'heures de travail/année,
+\item $T$ : la charge, en tonnes, du train,
+\item $n$ : le nombre de personnes qui chargent ou déchargent,
+\item $t$ : le temps nécessaire pour former le convoi en gare de triage.
+\end{itemize}
+
+De ce fait,
+
+$$A=\frac{F_m.t+\frac{F_w.L}{n}}{u.T}$$
+
+\subsubsection{Routes}
+
+Soit:
+
+\begin{itemize}
+\item $F$: frais fixes,
+\item $L$ : le temps de chargement ou de déchargement,
+\item $u$ : le nombre d'heures de travail/année,
+\item $T$ : la charge, en tonnes, de la péniche,
+\item $n$ : le nombre de personnes qui chargent ou déchargent.
+\end{itemize}
+
+
+$$A=\frac{F.\frac{L}{n}}{u.T}$$
+
+
+\section{Les co\^uts de chargement et d\'echargement}
+
+Ce troisième type d'arc virtuel se voit attribuer une structure de
+coût très semblable à ce qui a été défini pour les transbordements.
+
+Dans ce cas, il faut parfois tenir compte du transit par un
+entrepôt.
+
+\subsection{Manutention}
+
+Le lecteur peut, pour ce type de coûts, se référer aux fonctions
+présentées dans la partie "Coûts de transbordements".
+
+\subsection{Magasinage}
+
+Il est très difficile de développer une fonction de coût générale
+pour l'entreposage. En effet, ce dernier varie en fonction de
+différents paramètres: chaque entrepôt est différent et fonctionne
+de manière différente. Pour simplifier le problème, on peut
+considérer un montant fixe à la tonne, bien que cette manière de
+faire soit critiquable.
+
+\subsection{Valeur d'inventaire}
+
+Voir "Coûts de transbordement".
+
+\subsection{Co\^uts indirects}
+
+Voir "Coûts de transbordement".
+
+\section{Simple passage}
+
+Il reste le quatrième et dernier type d'arc virtuel, celui qui
+représente le "simple passage", sur lequel on peut affecter un coût
+lié à la congestion, si un modèle d'équilibre n'est pas mis en
+oeuvre.
+
+D'autres coûts peuvent également être affectés aux arcs virtuels de simple
+passage. C'est ainsi que les coûts induits par le passage des frontières ou ceux
+engendrés par des contraintes techniques (changement d'écartement de voies,...)
+peuvent être pris en considération. Ce genre de coûts est introduit dans nos
+fonctions par l'intermédiaire d'un coût fixe, associé à certains noeuds du
+réseau.
+
+En effet, ces noeuds (réels) donnent naissance à des arcs
+(virtuels) sur lesquels il est possible d'affecter une fonction de
+coût. Une partie des ces arcs virtuels est constituée d'arcs
+virtuels de simple passage entre deux arcs de même mode/moyen de
+transport.  Le cas d'un passage de frontière ou d'un péage
+autoroutier illustre bien l'utilisation qui peut être faite des
+arcs de simple passage. En effet, un passage de frontière
+n'implique pas un changement de mode/moyen de transport. Par
+contre, il y a souvent des formalités administratives qui prennent
+un certain temps et qui coûtent dès lors de l'argent. Ce type de
+coût peut très bien être affecté à un arc virtuel de simple
+passage. Ce raisonnement peut également être tenu pour prendre en
+considération les coûts liés aux péages sur les autoroutes.
