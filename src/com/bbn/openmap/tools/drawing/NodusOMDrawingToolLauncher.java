@@ -67,7 +67,8 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
 
   /**
    * Constructor.
-   * @param nodusMapPanel The NodusMapPanel this drawing tool launcher is attached to. 
+   *
+   * @param nodusMapPanel The NodusMapPanel this drawing tool launcher is attached to.
    */
   public NodusOMDrawingToolLauncher(NodusMapPanel nodusMapPanel) {
     super();
@@ -155,20 +156,17 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
 
           @Override
           public void componentResized(ComponentEvent e) {
-            // TODO Auto-generated method stub
-
+            // Nothing to do
           }
 
           @Override
           public void componentMoved(ComponentEvent e) {
-            // TODO Auto-generated method stub
-
+            // Nothing to do
           }
 
           @Override
           public void componentHidden(ComponentEvent e) {
-            // TODO Auto-generated method stub
-
+            // Nothing to do
           }
         });
   }
