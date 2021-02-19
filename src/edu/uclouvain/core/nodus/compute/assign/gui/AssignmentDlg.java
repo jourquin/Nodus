@@ -1533,6 +1533,7 @@ public class AssignmentDlg extends EscapeDialog {
         new ActionListener() {
           public void actionPerformed(ActionEvent e) {
             saveState();
+            nodusMapPanel.updateScenarioComboBox(false);
           }
         });
     mainPanel.add(saveButton, saveButtonConstraints);
@@ -2210,17 +2211,13 @@ public class AssignmentDlg extends EscapeDialog {
         .getNodusProject()
         .setLocalProperty(NodusC.PROP_ASSIGNMENT_QUERY + scenarioSuffix, sqlTextArea.getText());
 
-    /*nodusMapPanel
-    .getNodusProject()
-    .setLocalProperty(NodusC.PROP_ASSIGNMENT_DESCRIPTION, descriptionTextField.getText());*/
-
     nodusMapPanel
         .getNodusProject()
         .setLocalProperty(
             NodusC.PROP_ASSIGNMENT_DESCRIPTION + scenarioSuffix, descriptionTextField.getText());
 
     // Update title with current scenario number
-    // nodusMapPanel.updateScenarioComboBox();
+    //nodusMapPanel.updateScenarioComboBox();
   }
 
   /**
