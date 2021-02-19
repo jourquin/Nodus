@@ -93,8 +93,10 @@
 			<executable targetfile="$INSTALL_PATH/plugins/compile.sh" os="unix" stage="never" />
 		</pack>
 		<pack name="Help" id="help.package" required="no">
-			<description>Browsable HTML help files.</description>
-			<fileset dir="doc" targetdir="${INSTALL_PATH}/doc" />
+			<description>Documentation files.</description>
+			<fileset dir="doc" targetdir="${INSTALL_PATH}/doc">
+			    <exclude name="methodology/latex/**" />
+			</fileset>
 		</pack>
 		<pack name="Demo" id="demo.package" required="no">
 			<description>Some Nodus demo projects.</description>
