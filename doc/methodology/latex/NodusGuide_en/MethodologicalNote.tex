@@ -1,0 +1,52 @@
+
+\documentclass[english, a4paper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage{babel}
+\usepackage{graphicx,texhelp,fancyhea,mytitle} 
+\usepackage[hidelinks]{hyperref}
+
+
+\parskip=10pt
+\parindent=0pt
+
+
+\title{NODUS 8.x: Methodological note}
+\author{Bart Jourquin}
+\date{February 2021}
+
+ 
+\begin{document}
+
+\maketitle
+
+\pagestyle{fancyplain}
+
+\bibliographystyle{plain}
+\setheader{{\it Table of contents}}{}{}{}{}{{\it Table of contents}}
+\setfooter{\thepage}{}{}{}{}{\thepage}%
+\pagenumbering{roman}
+
+\tableofcontents
+
+\pagenumbering{arabic}
+
+\setheader{{\it CHAPTER \thechapter}}{}{}{}{}{{\it CHAPTER \thechapter}}%
+\setfooter{\thepage}{}{}{}{}{\thepage}%
+
+\chapter{Introduction}
+\input{./ch1.tex}
+
+\chapter{Modelling principles}
+\input{./ch2.tex}
+
+\chapter{The virtual network}
+\input{./ch3.tex}
+
+\chapter{General considerations on costs}
+\input{./ch4.tex}
+
+\chapter{Some examples of specific cost functions}
+\input{./ch5.tex}
+
+\end{document}

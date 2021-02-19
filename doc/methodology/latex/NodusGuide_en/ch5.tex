@@ -1,0 +1,345 @@
+
+The following pages will present a complete set of cost functions for the
+different "classical" terrestrial modes of transportation, which are the roads,
+the railways and the waterways.  These functions are {\it one} possible approach
+among many others.  They have, however, the advantage of having shown a certain
+stability in several published practical applications.
+
+
+
+\section{The shipping costs}
+
+The transit costs are expressed in monetary units per weight-unit and per distance-unit covered.
+
+
+
+\subsection{The transportation}
+
+The transportation cost consists of different parameters of a more technical
+nature.  This cost differs according to the modes of transportation.
+
+\subsubsection{Waterways}
+
+\paragraph{The ships}
+
+Given:
+
+\begin{itemize}
+\item $F$ : the fixed annual costs (constant capital annuity, insurances, maintenance and
+wages of the crew),
+\item $u$ : number of working hours per year,
+\item $T$ : load of the ship in weight-units,
+\item $b$ : fuel consumption in monetary units per time-unit (hour),
+\item $\phi$ :  average speed.
+\end{itemize}
+
+The shipping cost per weight-unit and per distance-unit is expressed by :
+
+$$ B = \frac{F+b.u}{u.\phi . T}$$
+
+
+
+
+\paragraph{The barges}
+
+Given:
+
+\begin{itemize}
+\item $F_p$: the costs linked to the towboat include a capital annuity, insurances,
+maintenance and the wages of the crew,
+\item $F_b$ : the fixed costs linked to the barges only include a constant capital annuity,
+insurances and maintenance,
+\item $u$ : the number of working hours per year,
+\item $T$ : the load of the barge in weight-units
+\item $b$ : the fuel consumption in monetary units per time-unit (hour),
+\item $\phi$ : the average speed.
+\end{itemize}
+
+$$B = \frac{F_p + F_b + b.u}{u.T.\phi}$$
+
+\subsubsection{Railways}
+
+As for the barges, the fixed costs consist of $F_m$ and $F_w$, representing the
+fixed costs linked to the engine (constant capital annuity, insurances and wages
+of the crew) and those linked to the wagons (constant capital annuity,
+insurances and maintenance) respectively.  Because the maintenance is a fixed
+cost for the wagons, it is incorporated in $F_w$. The maintenance costs of the
+engine, however, vary and are formulated distinctly.
+
+Given:
+
+\begin{itemize}
+\item $F_m$ : fixed cost linked to the engine,
+\item $F_w$ : fixed cost linked to the wagons,
+\item $u$ : the number of working hours per year,
+\item $T$ : the load of the train in weight unit,
+\item $b$ : the fuel consumption in monetary units per time-unit (hour),
+\item $\phi$ : the average speed,
+\item $e$ : the maintenance cost of the engine monetary units per distance unit.
+\end{itemize}
+
+
+$$B=\frac{F_m+F_w}{T.u.\phi} + \frac{b+e}{T}$$
+
+This comes down to:
+$$B=\frac{F_m+F_w+(b+e).u.\phi}{T.u.\phi}$$
+
+
+As the specific cost functions for ships and barges, these forms are very
+"technical" functional forms trying to take the most relevant parameters linked
+to the costs of a train into consideration.
+
+This type of approach sometimes
+underestimates of the real costs, since the costs linked to a certain level of
+efficiency of the transportation systems, such as the labour costs of possibly
+redundant personnel, are not taken into account.
+
+
+
+\subsubsection{Roads}
+
+Contrary to the boats, the fixed costs do not include maintenance costs.  The
+maintenance of a truck takes place after a certain number of distance-units (distance-units).
+
+
+Given:
+
+\begin{itemize}
+\item $u$ : the number of working hours per year,
+\item $T$ : the load of the truck in weight units,
+\item $c$ : the fuel consumption in monetary units per distance-unit,
+\item $\phi$ : the average speed,
+\item $e$ : the maintenance cost in monetary units per distance-unit.
+\end{itemize}
+
+
+Therefore
+
+$$B=\frac{F}{T.u.\phi}+\frac{c+e}{T}$$
+
+This comes down to:
+
+$$B=\frac{F+(c+e).U.\phi}{T.u.\phi}$$
+
+
+
+\subsection{Inventory value}
+
+The inventory value represents the opportunity cost entailed by the
+immobilization of the transported commodity during the trip.  This value is
+expressed by the interest charged on the value of the load for a
+period corresponding to the total duration of the trip.
+
+Given:
+
+\begin{itemize}
+\item $V$ : value of the commodity (monetary units per distance-unit),
+\item $R_i$ : interest rate that will be applied to the inventory value,
+\item $D$ : duration of the trip
+\end{itemize}
+
+
+The expression $V.R_ii.D$ makes it possible to know the cost linked to the
+inventory value during the trip, in the form of an opportunity cost.  Since
+the average speed of the convoy is known, it is possible to calculate the
+duration of the shipping on a " moving " virtual link.
+
+
+
+
+\subsection{Indirect costs}
+
+Because of their structure, the railways bear very high administrative and other diverse
+costs, which have to be included in the transportation costs.  "Administrative and other costs"
+are not directly entailed by the activity of transportation of the company.
+It goes over:
+
+
+\begin{itemize}
+\item General services,
+\item Exploitation of the infrastructure,
+\item Marketing and sales departments,
+\item Other charges,
+\item Contributions for risks and accidents (the railway companies insure themselves).
+\end{itemize}
+
+These costs can, for instance, be reduced to a certain sum per weight unit per
+distance-unit.
+
+
+
+\section{The transshipment costs}
+
+The second type of links generated in a virtual network are the " transshipment
+link ".  The cost that has to be assigned on these links also consists of
+several aspects.
+
+
+\subsection{Handling}
+
+Beside the costs linked to the investment and to the use of the infrastructures,
+the handling costs depend on the duration of this operation.  A transshipment
+can be split up into the actions of unloading and loading, the durations of
+which can be estimated with the formula of Deming (see above).  When a means of
+transportation is made up of several loading units (wagons or barges), the time
+of loading or unloading is calculated per loading unit.  The total time of
+loading is obtained by multiplying the time per unit by the number of loading
+units.  This way of proceeding is explained by the non linearity of the function
+of Deming.  It actually takes more time to load ten wagons of 30 weight units than to
+load 300 weight units at once.
+
+
+
+\subsection{Inventory value}
+
+The duration of the handling, obtained thanks to the formula of Deming, can be
+expressed as a fraction of one year.  That expression is $D1$.  If $V$ is the value of the
+commodity and $R_i$ the interest rate to be applied, $V.D1.Ri$ expresses the
+interest borne during the loading and/or the unloading of one weight unit of a commodity
+value $V$.
+
+
+\subsection{Indirect costs}
+
+In this section the costs linked to the immobilization of the vehicles during
+the handling operations will be dealt with.
+
+\subsubsection{Waterways}
+
+\paragraph{The ships}
+
+Given :
+
+\begin{itemize}
+\item $F$: the fixed annual costs (constant capital annuity, insurances,
+maintenance and wages),
+\item $L$ : the time needed for loading and unloading,
+\item $u$ : the number of working hours per year,
+\item $T$ : the load of the ship expressed in weight units,
+\item $n$ : the number of persons needed for loading and unloading.
+\end{itemize}
+
+
+
+The fixed cost per weight unit can then be expressed by:
+
+$$A=\frac{F.\frac{L}{N}}{u.T}$$
+
+\paragraph{The barges}
+
+Given:
+
+\begin{itemize}
+\item $Fp$ : the fixed costs linked to the towboat,
+\item $F_b$ : the fixed costs linked to the barges,
+\item $t$ : the time needed to form the convoy,
+\item $L$ : the time of loading and unloading,
+\item $u$ : the number of working hours per year,
+\item $T$ : the load of the ship in weight units,
+\item $n$ : the number of persons needed for loading and unloading.
+\end{itemize}
+
+The fixed costs linked to the towboat include a constant capital annuity,
+insurances, maintenance and wages.  The fixed costs linked to the barges only
+include a constant capital annuity, insurances and maintenance.
+
+$$A=\frac{F_p.t+\frac{F_b.L}{n}}{u.T}$$
+
+
+
+
+\subsubsection{Railroads}
+
+
+As for the barges the fixed costs can be split up into $F_m$ and $F_w$.
+
+\begin{itemize}
+\item $L$ : the time needed for loading and unloading,
+\item $u$ : the number of working hours per year,
+\item $T$ : the load of the train in weight units,
+\item $n$ : the number of persons nedeed for loading and unloading,
+\item $t$ : the time needed to form the convoy in the shunting-yard.
+\end{itemize}
+
+
+Therefore:
+
+$$A=\frac{F_m.t+\frac{F_w.L}{n}}{u.T}$$
+
+\subsubsection{Roads}
+
+Given:
+
+\begin{itemize}
+\item $F$: fixed costs,
+\item $L$ : the time nedeed for loading and unloading,
+\item $u$ : the number of working hours per year,
+\item $T$ : the load of the truck in weight units,
+\item $n$ : the number of persons nedeed for loading and unloading.
+\end{itemize}
+
+$$A=\frac{F.\frac{L}{n}}{u.T}$$
+
+
+
+\section{The (un)loading costs }
+
+A cost structure closely linked what has been defined for the transshipments
+is implemented for this third type of virtual links.
+
+In this case, a transit through a warehouse sometimes has to be taken into
+account.
+
+
+
+\subsection{Handling}
+
+Please refer to the functions presented in the
+section "transshipment costs" section.
+
+
+
+\subsection{Storage}
+
+It is very difficult to develop a general cost function for the storage.  The
+storage actually varies according to several parameters: each warehouse is
+different and functions in a different way.  In order to simplify the problem a
+fixed amount per weight unit can be introduced, although this way of proceeding can be
+criticized.
+
+
+
+\subsection{Inventory value}
+
+See "Transshipment costs".
+
+
+
+\subsection{Indirect costs}
+
+See "Transshipment costs".
+
+
+
+\section{Simple transit costs}
+
+There is a  fourth and last type of virtual links left, the one representing the
+"simple transit", on which a cost linked to congestion can be assigned, if no
+equilibrium model is applied.
+
+Other costs can also be assigned to the "simple transit" virtual links :
+the costs entailed by the passage of borders or those entailed
+by technical constraints (different track-gauge for instance) can be
+taken into consideration.  This type of costs is introduced in the functions by
+means of a fixed cost, connected to certain nodes of the network.
+
+These (real) nodes actually generate (virtual) links on which it is possible to
+assign a cost function.  Part of these virtual links consist of "simple transit" virtual links, i.e.
+The case of the passage of a border or of the
+tollage on a motorway clearly illustrate the use that can be made of simple
+transit links.  Actually, the passage of a border does not imply a change of
+mode/means of transportation.  There often are, however, administrative
+formalities that can take a certain time and therefore cost money.  This type of
+cost can very well be assigned to a "simple transit" virtual link.
+This way of reasoning can also be applied in order to take the costs linked to
+the tollage on motorways into consideration.
