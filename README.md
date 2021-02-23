@@ -72,7 +72,8 @@ A documented sample Nodus project can be found in the "[demo](https://github.com
 
 > **Note for macOS users**: recent releases of macOS (Catalina and later) introduce more access control to disks. If you want to use
 > Nodus projects that are stored in "special" folders, such as the Desktop for instance, 
-> **full disk access must be granted to /bin/sh** shell (add entry in Preferences > Security & Privacy > Privacy > Full Disk Access).
+> **full disk access must be granted to the /bin/sh shell** at the OS level 
+> (add entry in Preferences > Security & Privacy > Privacy > Full Disk Access).
 
 ## Memory allocation
 
