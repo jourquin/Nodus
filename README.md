@@ -63,12 +63,16 @@ on "Nodus8-install.jar" or run "java -jar Nodus8-install.jar" from your shell co
 
 Once installed, Nodus can be launched using
 - "nodus8.sh" on Linux
-- "Nodus8.app" or "nodus8.sh" on MacOS
+- "Nodus8.app" or "nodus8.sh" on macOS
 - "Nodus 8" shortcut or "nodus8.bat" on Windows
 
 The software has a modern and integrated user-friendly GUI. Complete reference and user guides
 are not available, but the API is fully documented. 
 A documented sample Nodus project can be found in the "[demo](https://github.com/jourquin/Nodus/blob/master/demo)" directory. 
+
+> **Note for macOS users**: recent releases of macOS (Catalina and later) introduce more access control to disks. If you want to use
+> Nodus projects that are stored in "special" folders, such as the Desktop for instance, 
+> **full disk access must be granted to /bin/sh** shell (add entry in Preferences > Security & Privacy > Privacy > Full Disk Access).
 
 ## Memory allocation
 
