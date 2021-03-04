@@ -66,8 +66,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.Vector;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -300,8 +302,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   private JTextPane txtResultArea;
 
   private JScrollPane txtResultScroll;
-
-  private HashMap<String, String> variables = new HashMap<>();
 
   private boolean withEcho = true;
 
@@ -550,7 +550,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     setBusy(true);
 
     // Decompose all the statements
-    Vector<String> sqlCommands = getValidSQLCommands(sqlCommandsArea.getText());
+    Vector<String> sqlCommands = parseSQLCommands(sqlCommandsArea.getText());
 
     // Limit the output length of a single line query
     try {
@@ -1156,22 +1156,25 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     return sqlCommandsArea;
   }
 
-  /*
-   * TODO The SQL script parser should be rewritten in order to accept new values
-   * for existing variables.
-   */
-
   /**
    * Decompose the batch file into commands. A regular batch command must end with a ";" but can be
    * written on multiple lines. A comment starts with a "--" or "#". A command block is delimited as
-   * in C or Java Variable definitions start with @@
+   * in C or Java. Variable definitions start with @@
    */
-  private Vector<String> getValidSQLCommands(String sqlCommand) {
+  private Vector<String> parseSQLCommands(String sqlCommand) {
+
+    // Comparator used to sort on string length (from longest to shortest)
+    class LengthComparator implements Comparator<String> {
+      public int compare(String o1, String o2) {
+        return Integer.compare(o2.length(), o1.length());
+      }
+    }
 
     boolean isBatchFile = false;
 
-    // Reset user defined variables
-    variables.clear();
+    // The names of the variables are stored and sorted by length from longest to shortest.
+    // This is needed for this simple parser
+    Map<String, String> variables = new TreeMap<String, String>(new LengthComparator());
 
     // Remove block commands
     boolean hasBlockComment = true;
@@ -1223,6 +1226,14 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
             currentCommand = "";
           } else {
             if (currentCommand.endsWith(";")) {
+              // Replace all the user defined variables by their value
+              Iterator<String> it = variables.keySet().iterator();
+              while (it.hasNext()) {
+                String varName = it.next();
+                String varValue = variables.get(varName) + " ";
+                currentCommand = currentCommand.replaceAll(varName, varValue);
+              }
+
               // Remove trailing semi-column and store command
               validLines.add(currentCommand.substring(0, currentCommand.length() - 1));
               currentCommand = "";
@@ -1239,7 +1250,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
 
     // Replace all the user defined variables
-    Iterator<String> it = validLines.iterator();
+    /*Iterator<String> it = validLines.iterator();
     int idx = 0;
     while (it.hasNext()) {
       currentCommand = it.next();
@@ -1251,7 +1262,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
       validLines.set(idx, currentCommand);
       idx++;
-    }
+    }*/
 
     if (isBatchFile) {
       menuResultInText_actionPerformed(null);

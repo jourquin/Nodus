@@ -195,13 +195,14 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Add a sample costs file and OD matrix for equilibrium assignments in the demo.
     - Disable Frank-Wolfe and incremental + Frank-Wolfe assignment methods. They are buggy and useless for non urban transport.
     - Prevent network edition (add, move, delete... nodes and links) when results are displayed.
-
+    - The SQL parser now correctly handles variables which value is changed at a later place in a script.
+    
 
 - External libs
     - Get rid of the foxtrot API which causes illegal reflective access warnings. Use the native "SecondaryLoop" Java interface.
-    - Upgrade to mariadb-java-client 2.7
+    - Upgrade to mariadb-java-client 2.7.2
     - Upgrade to HSQLDB 2.5.1
-    - Upgrade to groovy-3.0.6, oshi-5.3.6, rsyntaxtextarea-3.1.1 and xchart-3.6.6
+    - Upgrade to groovy-3.0.7, oshi-5.3.6, rsyntaxtextarea-3.1.1 and xchart-3.6.6
     - Upgrade to latest OpenMap 6b snapshot
     - Remove the JFlowMap companion app (old fashioned and not really useful).
     
