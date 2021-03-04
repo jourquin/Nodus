@@ -6,6 +6,10 @@ from v7.0 to v7.1 was needed because of the use of Groovy 2.5.x that changes the
 On February 21, 2020, version 7.2 was released, using Groovy 3.x. The release number was changed because this version
 of Groovy may introduce some incompatibilities with scripts written for older versions.
 
+Version 8.0 was released on March 4, 2021. This version is compatible with projects developed for Nodus 7.x but introduces
+an new (simpler and improved) API for user defined modal-choice models. More than 50 improvements are introduced, which are listed 
+at the v8.0 tag of this document. 
+
 DOI of latest release : <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
 
 ## v7.1 - Build20181114
