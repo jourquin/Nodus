@@ -130,7 +130,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
 - Bug fix : Back to Guava 19, as the latest version breaks Jung. 
 - Bug fix : Labels were incorrect if the objects in their layer where filtered with a SQL "where" clause.
 
-## v8.0 - BuildXXXXXXXX
+## v8.0 - Build20210304
 
 - New functionalities: 
     - Make exclusions "direction sensitive". This allows excluding loading operations for a mode (and means) at a centroid 
@@ -202,7 +202,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Get rid of the foxtrot API which causes illegal reflective access warnings. Use the native "SecondaryLoop" Java interface.
     - Upgrade to mariadb-java-client 2.7.2
     - Upgrade to HSQLDB 2.5.1
-    - Upgrade to groovy-3.0.7, oshi-5.3.6, rsyntaxtextarea-3.1.1 and xchart-3.6.6
+    - Upgrade to groovy-3.0.7, oshi-5.6.0, rsyntaxtextarea-3.1.2 and xchart-3.8.0
     - Upgrade to latest OpenMap 6b snapshot
     - Remove the JFlowMap companion app (old fashioned and not really useful).
     

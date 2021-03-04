@@ -27,11 +27,9 @@
 	<classpathentry kind="lib" path="lib/groovy/hamcrest-core-1.3.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ivy-2.5.0.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/jansi-1.18.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/javax.servlet-api-3.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/jline-2.14.6.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/jsp-api-2.0.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/jsr166y-1.7.0.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/junit-4.13.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/multiverse-core-0.7.0.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/opentest4j-1.2.0.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/org.abego.treelayout.core-1.0.1.jar"/>
@@ -49,48 +47,8 @@
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.2.10.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/sqlite-jdbc-3.30.1.jar"/>
 	<classpathentry kind="lib" path="lib/guava-19.0.jar"/>
-	<classpathentry kind="lib" path="lib/jna-5.6.0.jar"/>
 	<classpathentry kind="lib" path="lib/jna-platform-5.6.0.jar"/>
-	<classpathentry kind="lib" path="lib/slf4j-api-1.7.9.jar"/>
-	<classpathentry kind="lib" path="lib/slf4j-nop-1.7.9.jar"/>
 	<classpathentry kind="lib" path="lib/javadbf4nodus-1.12.2.jar"/>
-	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-2.7.0.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/ant-1.10.8.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/ant-antlr-1.10.8.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/ant-junit-1.10.8.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/ant-launcher-1.10.8.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-ant-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-astbuilder-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-bsf-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-cli-commons-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-cli-picocli-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-console-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-datetime-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-dateutil-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-docgenerator-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-groovydoc-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-groovysh-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-jaxb-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-jmx-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-json-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-jsr223-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-macro-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-nio-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-servlet-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-sql-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-swing-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-templates-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-test-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-test-junit5-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-testng-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-xml-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/groovy-yaml-3.0.6.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/jackson-annotations-2.11.2.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/jackson-core-2.11.2.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/jackson-databind-2.11.2.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/jackson-dataformat-yaml-2.11.2.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/javaparser-core-3.16.1.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/jcommander-1.78.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/junit-jupiter-api-5.7.0.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/junit-jupiter-engine-5.7.0.jar"/>
@@ -99,11 +57,54 @@
 	<classpathentry kind="lib" path="lib/groovy/junit-platform-launcher-1.7.0.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/snakeyaml-1.26.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/testng-7.3.0.jar"/>
-	<classpathentry kind="lib" path="lib/groovy/xstream-1.4.13.jar"/>
-	<classpathentry kind="lib" path="lib/oshi-core-5.3.6.jar"/>
 	<classpathentry kind="lib" path="devtools/mrjtoolkitstubs-1.0 2.jar"/>
-	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.1.1.jar"/>
-	<classpathentry kind="lib" path="lib/xchart-3.6.6.jar"/>
 	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/Users/jourquinb/git/openmap/src/core/src/main/java"/>
+	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/ant-1.10.9.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/ant-antlr-1.10.9.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/ant-junit-1.10.9.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/ant-launcher-1.10.9.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-ant-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-astbuilder-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-bsf-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-cli-commons-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-cli-picocli-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-console-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-datetime-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-dateutil-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-docgenerator-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-groovydoc-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-groovysh-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-jaxb-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-jmx-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-json-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-jsr223-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-macro-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-nio-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-servlet-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-sql-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-swing-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-templates-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-test-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-test-junit5-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-testng-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-xml-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/groovy-yaml-3.0.7.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/jackson-annotations-2.11.3.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/jackson-core-2.11.3.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/jackson-databind-2.11.3.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/jackson-dataformat-yaml-2.11.3.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/javaparser-core-3.17.0.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/javax.servlet.jsp-api-2.3.3.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/javax.servlet-api-4.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/junit-4.13.1.jar"/>
+	<classpathentry kind="lib" path="lib/groovy/xstream-1.4.14.jar"/>
+	<classpathentry kind="lib" path="lib/oshi-core-5.6.0.jar"/>
+	<classpathentry kind="lib" path="lib/jna-5.7.0.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-api-1.7.30.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-nop-1.7.30.jar"/>
+	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.1.2.jar"/>
+	<classpathentry kind="lib" path="lib/xchart-3.8.0.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
