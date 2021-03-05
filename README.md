@@ -1,4 +1,5 @@
-# Nodus 8.0
+# Nodus 8.0 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
+
 
 Nodus is a transportation network modeling software especially designed for multimodal and
 intermodal freight transport. It is developed at the Center for Operations Research and 
@@ -125,6 +126,7 @@ enhancements have been introduced without any change in the used external librar
 You can also import Nodus as an [Eclipse](http://www.eclipse.org/) project.
 
 ## Code robustness
+
 The [Checkstyle](https://checkstyle.org) and [SpotBugs](https://spotbugs.github.io) plugins are used in Eclipse 
 in order to write code that adheres to the Google Java coding standard and to look for bugs in Java code.
    
@@ -134,4 +136,9 @@ The software doesn't modify the "registry" of any supported OS (Mac OS, Linux or
 delete the installation directory to remove the software from your system.  
 
 You can also delete the small ".nodus8.properties" file that is located at the root of your "home" dir.   
+
+## How to cite?
+
+Jourquin B. (2021), Nodus 8.0, [source code and binary], http://nodus.uclouvain.be,
+[DOI 10.5281/zenodo.3634540](https://doi.org/10.5281/zenodo.3634540)
 

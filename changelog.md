@@ -158,7 +158,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
         - Automatically change LOGICAL DBF fields to NUMERIC(1,0) fields, as Booleans are not supported by all DBMS's.
         - Accept SQL DATE in the DBF files.
         - Use JavaDbf4Nodus 1.12.1, that uses UTF-8 encoding by default.
-        - Better support of non legacy DBF files (such as those written by many GIS softwares.
+        - Better support of non legacy DBF files (such as those written by many GIS softwares).
         - Handle DBF files with records marked as deleted.
 
 
@@ -178,7 +178,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - Limit max heap size to 1.4Go if run on a 32bit JVM
     - Warn the user if the number of threads set for an assignment is larger than the number of physical cores.
     - Tested with Java 11 and 15.
-    - Tested with GraalVM (faster that regular JVM). Compilation to native code with GraalVM's "native-image" tool doesn't work yet.
+    - Tested with GraalVM (faster that regular JVM).
     - The assignments are now canceled (with an error message) if a path has a non strictly positive cost.
     - SystemInfoDlg replaces ArchInfoDlg and gives now also information about the system hardware.
     - Change default install directory to the user home directory.
