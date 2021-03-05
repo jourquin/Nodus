@@ -143,3 +143,4 @@ Jourquin, Bart. (2021) Nodus, the Transportation Network Modeling Software Desig
 Freight Transport. http://nodus.uclouvain.be. [DOI 10.5281/zenodo.3634540](https://doi.org/10.5281/zenodo.3634540).
 
 
+
