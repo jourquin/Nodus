@@ -70,7 +70,6 @@ public class MLogit extends ModalSplitMethod {
    * Initializes the method with the right parameters.
    *
    * @param currentGroup Group ID for the commodities
-   * @param assignmentParameters Assignment parameters
    */
   @Override
   public void initializeGroup(int currentGroup) {
