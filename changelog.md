@@ -214,3 +214,11 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
 - Breaking changes:
     - Simplified API for modal split methods. This breaks existing plugin's. If an incompatible plugin is found, an error 
     message is displayed to inform the user.
+
+## v8.0 - Build20210310
+- Add a "release.md" file.
+- Bug fix in SQLConsole that didn't correctly parse all the user defined ("@@xxx") variables.
+
+
+ 
+    

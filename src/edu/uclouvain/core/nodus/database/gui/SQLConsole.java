@@ -1163,10 +1163,10 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    */
   private Vector<String> parseSQLCommands(String sqlCommand) {
 
-    // Comparator used to sort on string length (from longest to shortest)
+    // Comparator used to sort strings in reverse order
     class LengthComparator implements Comparator<String> {
       public int compare(String o1, String o2) {
-        return Integer.compare(o2.length(), o1.length());
+        return -o1.compareTo(o2);
       }
     }
 
@@ -1176,7 +1176,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     // This is needed for this simple parser
     Map<String, String> variables = new TreeMap<String, String>(new LengthComparator());
 
-    // Remove block commands
+    // Remove block comments
     boolean hasBlockComment = true;
     while (hasBlockComment) {
       hasBlockComment = false;
@@ -1193,82 +1193,73 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     // Split per line
     String[] line = sqlCommand.split(NL);
 
-    Vector<String> validLines = new Vector<>();
+    // Concatenate multi-line commands
+    Vector<String> commandsToParse = new Vector<>();
     String currentCommand = "";
     for (int i = 0; i < line.length; i++) {
       line[i] = line[i].trim();
-      if (line[i].length() > 0) {
-        if (currentCommand.equals("")) {
-          currentCommand = line[i];
-        } else {
-          // Concatenate multi-line commands
-          currentCommand += " " + line[i];
-        }
 
-        // Handle variable definitions
-        if (currentCommand.startsWith("@@")) {
-          int idx = currentCommand.indexOf(":=");
-          if (idx != -1) {
-            String varName = currentCommand.substring(0, idx).trim();
-            String varValue = currentCommand.substring(idx + 2, currentCommand.length()).trim();
-            if (varValue.endsWith(";")) {
-              varValue = varValue.substring(0, varValue.length() - 1).trim();
-            }
+      // Ignore comments
+      if (line[i].startsWith("#")) {
+        continue;
+      }
 
-            currentCommand = "";
+      currentCommand += line[i];
+      if (line[i].endsWith(";")) {
+        // Remove trailing semi-column and store command
+        commandsToParse.add(currentCommand.substring(0, currentCommand.length() - 1).trim());
+        currentCommand = "";
+        isBatchFile = true;
+      } else {
+        currentCommand += " ";
+      }
+    }
 
-            variables.put(varName, varValue);
+    // Parse the variables
+    Vector<String> parsedCommands = new Vector<>();
+
+    for (int i = 0; i < commandsToParse.size(); i++) {
+
+      currentCommand = commandsToParse.get(i).trim();
+
+      // Handle variable definitions
+      if (currentCommand.startsWith("@@")) {
+        int idx = currentCommand.indexOf(":=");
+        if (idx != -1) {
+          String varName = currentCommand.substring(0, idx).trim();
+          String varValue = currentCommand.substring(idx + 2, currentCommand.length());
+          if (varValue.endsWith(";")) {
+            varValue = varValue.substring(0, varValue.length() - 1).trim();
           }
-        } else {
 
-          // Handle single line comments
-          if (currentCommand.startsWith("#") || currentCommand.startsWith("--")) {
-            currentCommand = "";
-          } else {
-            if (currentCommand.endsWith(";")) {
-              // Replace all the user defined variables by their value
-              Iterator<String> it = variables.keySet().iterator();
-              while (it.hasNext()) {
-                String varName = it.next();
-                String varValue = variables.get(varName) + " ";
-                currentCommand = currentCommand.replaceAll(varName, varValue);
-              }
-
-              // Remove trailing semi-column and store command
-              validLines.add(currentCommand.substring(0, currentCommand.length() - 1));
-              currentCommand = "";
-              isBatchFile = true;
-            }
-          }
+          variables.put(varName, varValue);
+          continue;
         }
       }
+
+      // Replace all the user defined variables by their value
+      Iterator<String> it = variables.keySet().iterator();
+
+      while (it.hasNext()) {
+        String varName = it.next();
+        String varValue = variables.get(varName) + " ";
+        currentCommand = currentCommand.replaceAll(varName, varValue);
+      }
+
+      // Store the parsed command command
+      parsedCommands.add(currentCommand);
     }
 
     // Handle EOF
-    if (!currentCommand.equals("")) {
-      validLines.add(currentCommand);
-    }
-
-    // Replace all the user defined variables
-    /*Iterator<String> it = validLines.iterator();
-    int idx = 0;
-    while (it.hasNext()) {
-      currentCommand = it.next();
-      Iterator<String> it2 = variables.keySet().iterator();
-      while (it2.hasNext()) {
-        String varName = it2.next();
-        String varValue = variables.get(varName);
-        currentCommand = currentCommand.replaceAll(varName, varValue);
-      }
-      validLines.set(idx, currentCommand);
-      idx++;
+    /*if (!currentCommand.equals("")) {
+      parsedCommands.add(currentCommand);
     }*/
 
     if (isBatchFile) {
       menuResultInText_actionPerformed(null);
     }
 
-    return validLines;
+    return parsedCommands;
   }
 
   /**
