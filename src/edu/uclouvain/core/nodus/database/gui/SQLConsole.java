@@ -1215,8 +1215,14 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
     }
 
-    // Parse the variables
+    // Parse the commands
     Vector<String> parsedCommands = new Vector<>();
+
+    // Single command
+    if (!isBatchFile) {
+      parsedCommands.add(currentCommand);
+      return parsedCommands;
+    }
 
     for (int i = 0; i < commandsToParse.size(); i++) {
 
