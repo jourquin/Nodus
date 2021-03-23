@@ -1,6 +1,6 @@
 # Nodus 8.0
 
-Nodus 8.0 introduces a series of new features, among which:
+Nodus 8.0, which first build was released on March 4, 2021, introduces a series of new features, among which:
 
 - The possibility to define **transit time** functions in addition to cost functions;
 - An improved management of **node rules** (operations that are permitted or not at each node of the network);
