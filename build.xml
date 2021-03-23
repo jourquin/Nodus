@@ -49,7 +49,6 @@
         <pathelement location="lib/poi-4.1.2.jar"/>
         <pathelement location="lib/poi-ooxml-4.1.2.jar"/>
         <pathelement location="lib/poi-ooxml-schemas-4.1.2.jar"/>
-        <pathelement location="jdbcDrivers/postgresql-42.2.10.jar"/>
         <pathelement location="lib/guava-19.0.jar"/>
         <pathelement location="lib/jna-platform-5.6.0.jar"/>
         <pathelement location="lib/javadbf4nodus-1.12.2.jar"/>
@@ -112,6 +111,7 @@
         <pathelement location="lib/xchart-3.8.0.jar"/>
         <pathelement location="lib/hsqldb-jdk8.jar"/>
         <pathelement location="jdbcDrivers/sqlite-jdbc-3.34.0.jar"/>
+        <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
