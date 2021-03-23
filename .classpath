@@ -18,7 +18,6 @@
 	<classpathentry kind="lib" path="lib/xmlbeans-3.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/jtouchbar-1.0.0.jar" sourcepath="/Users/jourquinb/git/jtouchbar/src/main/java"/>
 	<classpathentry kind="lib" path="lib/derby.jar"/>
-	<classpathentry kind="lib" path="lib/hsqldb.jar"/>
 	<classpathentry kind="lib" path="lib/h2-1.4.200.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/bsf-2.4.0.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/commons-cli-1.4.jar"/>
@@ -106,5 +105,6 @@
 	<classpathentry kind="lib" path="lib/slf4j-nop-1.7.30.jar"/>
 	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.1.2.jar"/>
 	<classpathentry kind="lib" path="lib/xchart-3.8.0.jar"/>
+	<classpathentry kind="lib" path="lib/hsqldb-jdk8.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

@@ -220,7 +220,9 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
 - Bug fix in SQLConsole that didn't correctly parse all the user defined ("@@xxx") variables.
 
 ## v8.0 - Build20210317
-- Bug fix in SQLconsole that didn't correctly handle single SQL statement that didn't end with a semicolon. 
+- Bug fix in SQLconsole that didn't correctly handle single SQL statement that didn't end with a semicolon.
+- Upgrade to HSQLDB 2.6 (JDK8 version)
+
 
  
     
