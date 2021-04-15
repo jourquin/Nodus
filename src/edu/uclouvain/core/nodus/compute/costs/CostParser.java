@@ -279,7 +279,7 @@ public class CostParser {
   private NodusProject project = null;
 
   /** Scenario for which the costs must be computed. */
-  private byte scenario;
+  private int scenario;
 
   /** For Parsii. */
   Scope scope = new Scope();
@@ -299,7 +299,7 @@ public class CostParser {
   public CostParser(
       Properties costFunctions,
       NodusProject project,
-      byte scenario,
+      int scenario,
       byte groupNum,
       byte classNum,
       byte timeSlice) {

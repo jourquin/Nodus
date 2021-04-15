@@ -36,7 +36,7 @@ public class CostParserWorkerParameters {
   private byte groupIndex;
   private byte groupNum;
   private NodusProject nodusProject;
-  private byte scenario;
+  private int scenario;
   private byte odClass;
   private VirtualNetwork virtualnetwork;
   private boolean withFirstDerivative;
@@ -55,7 +55,7 @@ public class CostParserWorkerParameters {
   public CostParserWorkerParameters(
       CostParserWorker[] costWorkers,
       NodusProject project,
-      byte scenario,
+      int scenario,
       byte odClass,
       byte groupIndex,
       VirtualNetwork vn,
@@ -79,7 +79,7 @@ public class CostParserWorkerParameters {
   public CostParserWorkerParameters(
       CostParserWorker[] costWorkers,
       NodusProject project,
-      byte scenario,
+      int scenario,
       byte odClass,
       byte groupIndex,
       VirtualNetwork vn,
@@ -158,7 +158,7 @@ public class CostParserWorkerParameters {
    *
    * @return The scenario for which the costs are computed.
    */
-  public byte getScenario() {
+  public int getScenario() {
     return scenario;
   }
   

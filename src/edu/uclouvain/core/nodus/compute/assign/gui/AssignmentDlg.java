@@ -414,7 +414,7 @@ public class AssignmentDlg extends EscapeDialog {
     ap.setODMatrix(odTablesComboBox.getSelectedItem().toString().trim());
     ap.setCostFunctions(costFunctionsComboBox.getSelectedItem().toString().trim());
     ap.setNbIterations(Integer.parseInt(iterationSpinner.getValue().toString()));
-    ap.setScenario(Byte.parseByte(scenarioSpinner.getValue().toString()));
+    ap.setScenario(Integer.parseInt(scenarioSpinner.getValue().toString()));
     ap.setPrecision(Float.parseFloat(precisionSpinner.getValue().toString()));
     ap.setSavePaths(pathsCheckBox.isSelected());
     ap.setDetailedPaths(detailedPathCheckBox.isSelected());

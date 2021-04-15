@@ -173,7 +173,7 @@ public class VirtualNetwork {
 
   private boolean[] odClassHasDemand = null;
 
-  private byte scenario;
+  private int scenario;
 
   private int timeSliceDuration = 0;
 
@@ -280,7 +280,7 @@ public class VirtualNetwork {
    * @return True on success.
    */
   public boolean computeCosts(
-      int iteration, byte scenario, byte odClass, byte timeSlice, int nbThreads) {
+      int iteration, int scenario, byte odClass, byte timeSlice, int nbThreads) {
 
     if (vnl == null) {
       return false;
@@ -364,7 +364,7 @@ public class VirtualNetwork {
    * @param nbThreads The number of thread to create in the pool.
    * @return True on success.
    */
-  public boolean computeCosts(int iteration, byte scenario, byte odClass, int nbThreads) {
+  public boolean computeCosts(int iteration, int scenario, byte odClass, int nbThreads) {
     return computeCosts(iteration, scenario, odClass, (byte) -1, nbThreads);
   }
 

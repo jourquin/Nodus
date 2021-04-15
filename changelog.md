@@ -222,11 +222,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
 ## v8.0 - Build20210317
 - Bug fix in SQLconsole that didn't correctly handle single SQL statement that didn't end with a semicolon.
 
-## v8.0 - BuildXXXXXXXX
+## v8.0 - Build20210415
 - Upgrade to HSQLDB 2.6 (JDK8 version)
 - Upgrade to sql-jdbc 3.34.0
-
-
-
- 
-    
+- Use int instead of byte for scenarios

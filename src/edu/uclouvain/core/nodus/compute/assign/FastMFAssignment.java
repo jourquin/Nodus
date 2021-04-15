@@ -79,7 +79,7 @@ public class FastMFAssignment extends Assignment {
       return false;
     }
 
-    byte scenario = assignmentParameters.getScenario();
+    int scenario = assignmentParameters.getScenario();
 
     // Read the exclusions
     NodeRulesReader er = new NodeRulesReader(virtualNet, scenario);
