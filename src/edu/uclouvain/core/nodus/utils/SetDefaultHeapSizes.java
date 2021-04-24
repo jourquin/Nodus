@@ -25,6 +25,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Scanner;
 
 /**
  * This utility is called in order to set reasonable values for the -Xmx and -Xms JVM parameters in
@@ -35,6 +36,13 @@ import java.io.IOException;
  * <p>- The minimum heap size is set (to 2Go) only if the computer has more than 4Go RAM.
  *
  * <p>- The maximum heap is set to 50% of the RAM, with a maximum of 6Go.
+ *
+ * <p>For 32bits JVM, max heap is set to 1.4Go
+ *
+ * <p>Since Nodus 8.0, the additional --illegal-access=permit flag is set if JVM version is >= 9.
+ * This is not really needed if JVM version < 16, but needed for JAVA 16. This should be tackled
+ * more seriously in the Nodus core code as some reflective accesses, such as those called to mimic
+ * Mac OS L&F will no longer be allowed is future versions of the JVM.
  *
  * @author Bart Jourquin
  */
@@ -54,17 +62,18 @@ public class SetDefaultHeapSizes {
 
     String envtFileName = getEnvFileName();
 
-    // Do nothing if it already exists
     File file = new File(envtFileName);
-    if (file.exists()) {
-      return;
+    if (!file.exists()) {
+
+      // Get the heap settings
+      String heapSettings = getDefaultHeapSettings();
+
+      // Update the script
+      createScript(envtFileName, heapSettings);
     }
 
-    // Get the heap settings
-    String heapSettings = getDefaultHeapSettings();
-
-    // Update the script
-    createScript(envtFileName, heapSettings);
+    // Set the --illegal-access=permit flag if needed
+    setIllegalAccessFlag(envtFileName);
   }
 
   /**
@@ -81,7 +90,7 @@ public class SetDefaultHeapSizes {
 
     // Get total memory
     long memorySize = HardwareUtils.getTotalMemory();
-    
+
     // Define the default max heap size
     long maxHeap = memorySize / 2;
     if (maxHeap > 6 * gb) {
@@ -150,6 +159,65 @@ public class SetDefaultHeapSizes {
         line = "set JVMARGS=" + heapSettings;
       } else {
         line = "JVMARGS=\"" + heapSettings + "\"";
+      }
+
+      bufferedWriter.write(line);
+      bufferedWriter.close();
+      fileWriter.close();
+
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * Set the --illegal-access flag accordingly to the used JVM version at runtime.
+   *
+   * @param scriptFileName The name of the file that contains the JVMARGS
+   */
+  private void setIllegalAccessFlag(String scriptFileName) {
+    String line = "";
+    try {
+      String value = "";
+      Scanner scanner = new Scanner(new File(scriptFileName));
+      while (scanner.hasNextLine()) {
+        line = scanner.nextLine();
+        if (line.contains("JVMARGS")) {
+          // Get current value of args
+          int idx = line.indexOf("=");
+          value = line.substring(idx + 1);
+
+          // Remove double quotes, if any
+          value = value.replaceAll("\"", "");
+
+          boolean isAtLeastJava9 = JavaVersionUtil.isJavaVersionAtLeast(9);
+          String illelagAccessFlag = "--illegal-access=permit";
+          if (value.contains(illelagAccessFlag)) {
+            // Remove if JVM < 9
+            if (!isAtLeastJava9) {
+              value = value.replace("--illegal-access=permit", "");
+            }
+          } else {
+            // Add if JVM >= 9
+            if (isAtLeastJava9) {
+              value = value + " " + illelagAccessFlag;
+            }
+          }
+          value = value.trim();
+
+          break;
+        }
+      }
+      scanner.close();
+
+      // Write the file
+      FileWriter fileWriter = new FileWriter(scriptFileName);
+      BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+
+      if (isRunningOnWindows()) {
+        line = "set JVMARGS=" + value;
+      } else {
+        line = "JVMARGS=\"" + value + "\"";
       }
 
       bufferedWriter.write(line);
