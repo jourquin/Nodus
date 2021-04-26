@@ -928,7 +928,7 @@ public class NodusProject implements ShapeConstants {
   /**
    * Returns the file name of the project.
    *
-   * @return The file name of the project, or null if no,project is loaded
+   * @return The file name of the project, or null if no project is loaded
    */
   public String getName() {
     if (isOpen()) {

@@ -49,7 +49,7 @@
 	        encoding="UTF-8" docencoding="UTF-8" charset="UTF-8" 
 	        packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
 	        author="true" version="true" use="true" 
-	        windowtitle="Nodus 8.0 API" 
+	        windowtitle="Nodus 8.1 API" 
 	        doctitle="Nodus" bottom="${copyrightString}"
 	        doclet="HiddenDoclet" docletpath="${basedir}/devtools/HiddenDoclet.jar"
 	        classpathref="Nodus.classpath" failonerror="false" />
@@ -62,7 +62,7 @@
 			encoding="UTF-8" docencoding="UTF-8" charset="UTF-8" 
 			packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
 			author="true" version="true" use="true" 
-			windowtitle="Nodus 8.0 API" 
+			windowtitle="Nodus 8.1 API" 
 			doctitle="Nodus" bottom="${copyrightString}"
 			classpathref="Nodus.classpath" failonerror="false" />
 	</target>

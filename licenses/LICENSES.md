@@ -26,6 +26,8 @@
 
 [parsii](https://github.com/scireum/parsii), MIT
 
+[Py4J](https://www.py4j.org/index.html), modified BSD
+
 [poi\*](https://poi.apache.org), Apache v2
 
 [rsyntaxtextarea](https://github.com/bobbylight/RSyntaxTextArea), modified BSD

@@ -161,6 +161,7 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.BevelBorder;
+import py4j.GatewayServer;
 
 /**
  * The NodusMapPanel class initialized the Nodus GUI and is the central place where all the menu
@@ -451,6 +452,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
+  /** Py4J server. */
+  private GatewayServer gatewayServer = null;
+
   /**
    * Creates all the GUI components needed by Nodus on the application's panel. The application's
    * properties are also passed as a parameter in order to restore and save the application "state".
@@ -465,6 +469,26 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     nodusProperties = properties;
 
     create();
+
+    // TODO How to handle multiple instances of Nodus ?
+    // Launch Python Py4J bridge
+    int port;
+    try {
+      port =
+          Integer.parseInt(
+              nodusProperties.getProperty(
+                  NodusC.PROP_PY4J_PORT, Integer.toString(GatewayServer.DEFAULT_PORT)));
+    } catch (NumberFormatException e) {
+      port = GatewayServer.DEFAULT_PORT;
+    }
+    nodusProperties.setProperty(NodusC.PROP_PY4J_PORT, Integer.toString(port));
+    gatewayServer = new GatewayServer(this, port);
+
+    try {
+      gatewayServer.start();
+    } catch (Exception e) {
+      System.err.println("Could not start Py4J bridge. is another instance of Nodus running?");
+    }
   }
 
   /**
@@ -601,6 +625,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       nodusProperties.store(new FileOutputStream(home + ".nodus8.properties"), null);
     } catch (IOException ex) {
       System.err.println("Caught IOException saving nodus8.properties");
+    }
+
+    // Close the Py4J server
+    if (gatewayServer != null) {
+      gatewayServer.shutdown();
     }
 
     dispose();

@@ -1,4 +1,4 @@
-# Nodus 8.0 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
+# Nodus 8.1 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
 
 
 Nodus is a transportation network modeling software especially designed for multimodal and
@@ -36,8 +36,9 @@ along with contributions to congresses and seminars can be found on
 
 - Compatible with GIS standards: shape files and web mapping, using [OpenMap](http://openmap-java.org/).
 - Parallelized algorithms: able to handle very large networks.
-- Portable: Linux-Mac-Windows
-- Open API: available through scripting (using the [Groovy](http://groovy-lang.org/) language) or plugins
+- Multi-plaform: Linux-Mac-Windows.
+- Open API: available through scripting (using the [Groovy](http://groovy-lang.org/) language or Python through a 
+[Py4J](https://www.py4j.org/index.html) bridge) or plugins.
 - JDBC: compatible with most DBMS’s. Shipped with [HSQLDB](http://hsqldb.org/),
 [H2](http://h2database.com/) and [Apache Derby](https://db.apache.org/derby/).  
 - Flexible: user defined database fields, variables, cost functions, mode choice models…
@@ -52,6 +53,7 @@ the [Demo project](https://github.com/jourquin/Nodus/blob/master/demo).
 - 7.2 - February 2020: Upgrade to Groovy 3.x.
 - 8.0 - February 2021: Introduce time functions (in addition to cost functions). Simplified API for modal-choice plugins. 
 Many under the hood improvements.
+- 8.1 - April 2021: Runs on Java 16 and allows Python scripting through a Py4J bridge in addition to Groovy.
 
 See the [change log](changelog.md) for a detailed build history.
 

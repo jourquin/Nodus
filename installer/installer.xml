@@ -6,7 +6,7 @@
 	<!-- The info section. -->
 	<info>
 		<appname>Nodus</appname>
-		<appversion>8.0</appversion>
+		<appversion>8.1</appversion>
 		<appsubpath>Nodus8</appsubpath>
 		<uninstaller write="false" />
 		<writeinstallationinformation>false</writeinstallationinformation>
@@ -38,7 +38,7 @@
 		<res id="HTMLLicencePanel.licence_fra" src="installer/license_fra.html" />
 		<res id="HTMLInfoPanel.info_eng" src="installer/info_eng.html" />
 		<res id="HTMLInfoPanel.info_fra" src="installer/info_fra.html" />
-		<res id="installer.langsel.img" src="src/edu/uclouvain/core/nodus/gui/NodusSplash8_0.png" />
+		<res id="installer.langsel.img" src="src/edu/uclouvain/core/nodus/gui/NodusSplash8_1.png" />
 		<res id="Installer.image" src="installer/uclouvain-vertical.png" />
 		<res id="packsLang.xml_fra" src="installer/packsLang_fra.xml" />
 		<res id="packsLang.xml_eng" src="installer/packsLang_eng.xml" />

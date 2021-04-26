@@ -35,7 +35,7 @@ public class NodusC {
    */
 
   /** Application version. */
-  public static final String VERSION = "8.0";
+  public static final String VERSION = "8.1";
 
   /** Application name. */
   public static final String APPNAME = "Nodus " + VERSION;
@@ -989,6 +989,13 @@ public class NodusC {
    */
   public static final String PROP_USE_GROOVY_CONSOLE = "use.groovyconsole";
 
+  /**
+   * Properties strings used in project and/or project local properties.
+   *
+   * @hidden
+   */
+  public static final String PROP_PY4J_PORT = "py4j.port";
+  
   /**
    * Properties strings used in project and/or project local properties.
    *

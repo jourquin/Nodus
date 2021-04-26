@@ -31,7 +31,7 @@ public class PlotContent_Pie<ST extends PieStyler, S extends PieSeries>
     super(chart);
     pieStyler = chart.getStyler();
   }
-  // TODO get rid of this
+  
   public static Shape getDonutSliceShape(
       Rectangle2D pieBounds, double thickness, double start, double extent) {
 
@@ -197,7 +197,7 @@ public class PlotContent_Pie<ST extends PieStyler, S extends PieSeries>
       if (pieStyler.isToolTipsEnabled()) {
         // add data labels
         // maybe another option to construct this label
-        // TODO use tool tip label type enum and customize this label
+        
         String toolTipLabel = series.getName() + " (" + df.format(y) + ")";
 
         double angle = (arcAngle + startAngle) - arcAngle / 2;

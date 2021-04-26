@@ -227,7 +227,9 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
 - Upgrade to sql-jdbc 3.34.0
 - Use int instead of byte for scenarios
 
-## v8.0 - BuildXXXXXXXX
+## v8.1 - Build20210426
 - set the --illegal-access=permit flag to the JVM at runtime if JVM version >=9. This flag was introduced in JAVA 9 with its default
-value set to "permit". This is not anymore the case since Java 16.
+value set to "permit". This is not anymore the case since Java 16. It must therefore be set explicitly. 
+- Allows Python scripting through a Py4J bridge
+
 
