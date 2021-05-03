@@ -20,13 +20,64 @@
  */
 
 import com.bbn.openmap.proj.coords.LatLonPoint;
+import j4r.net.server.JavaGatewayServer;
+import j4r.net.server.ServerConfiguration;
+import py4j.GatewayServer;
 
 /**
- * 
- * Sample "autoexec" Groovy script that presents
- * an European view to the user instead of the World map.
+ * Sample "autoexec" Groovy script. Three variables are set when this script is called:
+ * - startNodus = true and closeNodus = false at startup
+ * - startNodus = false and closeNodus = true at closing
+ * - nodusMapPanel, the instance of NodusMapPanel of the running Nodus. This is used as entry point to the API 
  */
 
-nodusMapPanel.getMapBean().setScale((float) 1.4E7);
-nodusMapPanel.getMapBean().setCenter(new LatLonPoint.Double(50.0, 4.0));
-nodusMapPanel.getMapBean().validate();
+// Python and R bridges
+GatewayServer pyGatewayServer = null
+JavaGatewayServer rGatewayServer = null
+
+if (startNodus) {
+	
+	/* 
+	 * Present an European view to the user instead of the World map.
+	 */
+	nodusMapPanel.getMapBean().setScale((float) 1.4E7);
+	nodusMapPanel.getMapBean().setCenter(new LatLonPoint.Double(50.0, 4.0));
+	nodusMapPanel.getMapBean().validate();
+
+	/*
+	 * Launch a J4R server (for R scripting)
+	 */
+	try {
+		ServerConfiguration servConf =
+				new ServerConfiguration(1, 10, new int[] {18000, 18001}, new int[] {50000, 50001}, 212);
+		rGatewayServer = new JavaGatewayServer(servConf, nodusMapPanel);
+		rGatewayServer.startApplication();
+	} catch (Exception e) {
+		System.err.println("Could not start R4J bridge. Is another instance of Nodus running?");
+	}
+
+	/*
+	 * Launch a Py4J server (for Python scripting)
+	 */
+	try {
+		pyGatewayServer = new GatewayServer(nodusMapPanel);
+		pyGatewayServer.start();
+	} catch (Exception e) {
+		System.err.println("Could not start Py4J bridge. Is another instance of Nodus running?");
+	}
+
+} else {
+	
+	/*
+	 * Close the J4R server
+	if (rGatewayServer != null) {
+		rGatewayServer.shutdown(0);
+	}
+	
+	/*
+	 * Close the Py4J server
+	 */
+	if (pyGatewayServer != null) {
+		pyGatewayServer.shutdown();
+	}
+}

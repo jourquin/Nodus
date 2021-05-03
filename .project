@@ -30,11 +30,18 @@
 			<arguments>
 			</arguments>
 		</buildCommand>
+		<buildCommand>
+			<name>org.eclipse.statet.r.resourceProjects.RBuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
 	</buildSpec>
 	<natures>
 		<nature>org.eclipse.texlipse.builder.TexlipseNature</nature>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 		<nature>net.sf.eclipsecs.core.CheckstyleNature</nature>
 		<nature>org.python.pydev.pythonNature</nature>
+		<nature>org.eclipse.statet.ide.resourceProjects.Statet</nature>
+		<nature>org.eclipse.statet.r.resourceProjects.R</nature>
 	</natures>
 </projectDescription>

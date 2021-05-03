@@ -212,6 +212,8 @@ public class Nodus {
 
                     GroovyShell shell = new GroovyShell();
                     shell.setVariable("nodusMapPanel", nodusMapPanel);
+                    shell.setVariable("startNodus", true);
+                    shell.setVariable("closeNodus", false);
                     try {
                       shell.evaluate(new File(homeDir + "/nodus" + NodusC.TYPE_GROOVY));
                     } catch (CompilationFailedException e) {

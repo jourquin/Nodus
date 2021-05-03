@@ -37,8 +37,10 @@ along with contributions to congresses and seminars can be found on
 - Compatible with GIS standards: shape files and web mapping, using [OpenMap](http://openmap-java.org/).
 - Parallelized algorithms: able to handle very large networks.
 - Multi-plaform: Linux-Mac-Windows.
-- Open API: available through scripting (using the [Groovy](http://groovy-lang.org/) language or Python through a 
-[Py4J](https://www.py4j.org/index.html) bridge) or plugins.
+- Open API: available through scripting (using the [Groovy](http://groovy-lang.org/) language,
+[Python](https://www.python.org) through a [Py4J](https://www.py4j.org/index.html) bridge or
+[R](https://www.r-project.org) through a [J4R](https://sourceforge.net/p/repiceasource/wiki/J4R/) bridge) 
+or plugins (in Java jar files).
 - JDBC: compatible with most DBMS’s. Shipped with [HSQLDB](http://hsqldb.org/),
 [H2](http://h2database.com/) and [Apache Derby](https://db.apache.org/derby/).  
 - Flexible: user defined database fields, variables, cost functions, mode choice models…

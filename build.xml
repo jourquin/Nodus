@@ -3,7 +3,8 @@
               Any modifications will be overwritten.
               To include a user specific buildfile here, simply create one in the same
               directory with the processing instruction <?eclipse.ant.import?>
-              as the first entry and export the buildfile again. --><project basedir="." default="build" name="Nodus">
+              as the first entry and export the buildfile again. -->
+    <project basedir="." default="build" name="Nodus">
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.8"/>
@@ -112,6 +113,7 @@
         <pathelement location="jdbcDrivers/sqlite-jdbc-3.34.0.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
         <pathelement location="lib/py4j0.10.9.2.jar"/>
+        <pathelement location="lib/j4r.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>

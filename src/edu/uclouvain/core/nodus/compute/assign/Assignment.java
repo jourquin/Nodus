@@ -246,8 +246,7 @@ public abstract class Assignment implements Runnable {
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
     GroovyShell shell = new GroovyShell();
     shell.setVariable("nodusMapPanel", nodusMapPanel);
-    shell.setVariable("nodusMainFrame", nodusMapPanel);
-
+   
     // Get absolute script file name
     String fileName =
         nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)

@@ -232,4 +232,15 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
 value set to "permit". This is not anymore the case since Java 16. It must therefore be set explicitly. 
 - Allows Python scripting through a Py4J bridge
 
-
+## v8.1 - BuildXXXXXXXX
+- Remove the (deprecated) nodusMainFrame variable passed to Groovy scripts
+- Pass startNodus and closeNodus boolean variables to Groovy when it tries to run the nodus.groovy script
+- The nodus.groovy script is now also run when Nodus is shutdown
+- Pass openProject and closeProject boolean variables to Groovy when it tries to run the "project".groovy script
+- The "project".groovy script is now also run when a project is closed
+- Improved Python example script
+- The Py4J server is now launched from the nodus.groovy script (not anymore hard coded)
+- Allows R scripting through a J4R bridge (version >= 1.0). The server is launched and stopped via the nodus.groovy script (same as for Py4J)
+- Add an example R script (the same as for Python)
+ 
+ 

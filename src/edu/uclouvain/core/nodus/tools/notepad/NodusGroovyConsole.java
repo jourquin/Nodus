@@ -82,7 +82,6 @@ public class NodusGroovyConsole extends NotePad {
       nodusMapPanel = mapPanel;
       this.script = script;
       shell.setVariable("nodusMapPanel", nodusMapPanel);
-      shell.setVariable("nodusMainFrame", nodusMapPanel);
     }
 
     @SuppressWarnings("deprecation")

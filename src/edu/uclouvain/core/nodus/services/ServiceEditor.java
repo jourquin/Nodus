@@ -143,7 +143,7 @@ public class ServiceEditor {
 
     int node1 =
         JDBCUtils.getInt(
-            record.get(NodusC.DBF_IDX_NODE1)); // this.setLocationRelativeTo(nodusMainFrame);
+            record.get(NodusC.DBF_IDX_NODE1)); // this.setLocationRelativeTo(nodusMapPanel);
     int node2 = JDBCUtils.getInt(record.get(NodusC.DBF_IDX_NODE2));
 
     int n1 = getNbOccurences(node1);
@@ -170,7 +170,7 @@ public class ServiceEditor {
       } else {
         return false;
       }
-    } // this.setLocationRelativeTo(nodusMainFrame);
+    } // this.setLocationRelativeTo(nodusMapPanel);
     serviceEditorDlg.loadModeMeans((byte) mode, (byte) means);
     paintService(true);
 

@@ -107,6 +107,7 @@ import edu.uclouvain.core.nodus.utils.HardwareUtils;
 import edu.uclouvain.core.nodus.utils.JavaVersionUtil;
 import edu.uclouvain.core.nodus.utils.PluginsLoader;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
+import groovy.lang.GroovyShell;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -161,7 +162,7 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.BevelBorder;
-import py4j.GatewayServer;
+import org.codehaus.groovy.control.CompilationFailedException;
 
 /**
  * The NodusMapPanel class initialized the Nodus GUI and is the central place where all the menu
@@ -452,9 +453,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
-  /** Py4J server. */
-  private GatewayServer gatewayServer = null;
-
   /**
    * Creates all the GUI components needed by Nodus on the application's panel. The application's
    * properties are also passed as a parameter in order to restore and save the application "state".
@@ -469,26 +467,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     nodusProperties = properties;
 
     create();
-
-    // TODO How to handle multiple instances of Nodus ?
-    // Launch Python Py4J bridge
-    int port;
-    try {
-      port =
-          Integer.parseInt(
-              nodusProperties.getProperty(
-                  NodusC.PROP_PY4J_PORT, Integer.toString(GatewayServer.DEFAULT_PORT)));
-    } catch (NumberFormatException e) {
-      port = GatewayServer.DEFAULT_PORT;
-    }
-    nodusProperties.setProperty(NodusC.PROP_PY4J_PORT, Integer.toString(port));
-    gatewayServer = new GatewayServer(this, port);
-
-    try {
-      gatewayServer.start();
-    } catch (Exception e) {
-      System.err.println("Could not start Py4J bridge. is another instance of Nodus running?");
-    }
   }
 
   /**
@@ -627,10 +605,28 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       System.err.println("Caught IOException saving nodus8.properties");
     }
 
-    // Close the Py4J server
-    if (gatewayServer != null) {
-      gatewayServer.shutdown();
-    }
+    // Run the "nodus.groovy" script if exists
+    Thread thread =
+        new Thread() {
+          @Override
+          public void start() {
+
+            String homeDir = System.getProperty("NODUS_HOME", ".");
+
+            GroovyShell shell = new GroovyShell();
+            shell.setVariable("nodusMapPanel", this);
+            shell.setVariable("startNodus", false);
+            shell.setVariable("closeNodus", true);
+            try {
+              shell.evaluate(new File(homeDir + "/nodus" + NodusC.TYPE_GROOVY));
+            } catch (CompilationFailedException e) {
+              System.err.println(e.getMessage());
+            } catch (IOException e) {
+              // Do nothing. the nodus.groovy script is not mandatory
+            }
+          }
+        };
+    thread.start();
 
     dispose();
     getMainFrame().dispose();
@@ -2411,7 +2407,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
       console.setCurrentFileChooserDir(new File(path));
       console.setVariable("nodusMapPanel", this);
-      console.setVariable("nodusMainFrame", this);
       console.run();
 
       // Relocate console

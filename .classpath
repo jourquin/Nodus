@@ -107,5 +107,6 @@
 	<classpathentry kind="lib" path="jdbcDrivers/sqlite-jdbc-3.34.0.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.2.19.jar"/>
 	<classpathentry kind="lib" path="lib/py4j0.10.9.2.jar" sourcepath="/Users/jourquinb/git/py4j/py4j-java/src"/>
+	<classpathentry kind="lib" path="lib/j4r.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

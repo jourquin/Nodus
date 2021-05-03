@@ -339,6 +339,33 @@ public class NodusProject implements ShapeConstants {
       nodusMapPanel.setBusy(true);
       nodusMapPanel.getMenuFile().setEnabled(false);
 
+      // Handle the project's Groovy project script if exists
+      Thread thread =
+          new Thread() {
+            @Override
+            public void start() {
+
+              GroovyShell shell = new GroovyShell();
+              shell.setVariable("nodusMapPanel", nodusMapPanel);
+              shell.setVariable("openProject", false);
+              shell.setVariable("closeProject", true);
+              String fileName =
+                  localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
+                      + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
+                      + NodusC.TYPE_GROOVY;
+
+              try {
+                shell.evaluate(new File(fileName));
+              } catch (CompilationFailedException e) {
+                System.err.println(e.getMessage());
+              } catch (IOException e) {
+                // Do nothing as the script is not mandatory
+              }
+            }
+          };
+
+      thread.start();
+
       // Close all the open children frames
       Frame[] frame = Frame.getFrames();
       for (Frame element : frame) {
@@ -1949,7 +1976,7 @@ public class NodusProject implements ShapeConstants {
     // Initialize the user defined modal split methods for this project
     new ModalSplitMethodsLoader(this);
 
-    // Handle the project's Groovy initial script if exists
+    // Handle the project's Groovy project script if exists
     Thread thread =
         new Thread() {
           @Override
@@ -1957,7 +1984,8 @@ public class NodusProject implements ShapeConstants {
 
             GroovyShell shell = new GroovyShell();
             shell.setVariable("nodusMapPanel", nodusMapPanel);
-            shell.setVariable("nodusMainFrame", nodusMapPanel);
+            shell.setVariable("openProject", true);
+            shell.setVariable("closeProject", false);
             String fileName =
                 localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
                     + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
