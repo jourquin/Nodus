@@ -8,7 +8,7 @@
 
 [guava](https://github.com/google/guava), Apache v2
 
-[J4R](https://sourceforge.net/p/repiceasource/wiki/J4R/), GPL v3
+[J4R-server](https://sourceforge.net/p/repiceasource/wiki/J4R/), LGPL v3
 
 [JavaDBF4Nodus](https://github.com/jourquin/javadbf), LGPL v3
 
