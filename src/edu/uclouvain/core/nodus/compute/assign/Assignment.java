@@ -45,9 +45,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.AbstractMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import javax.swing.JOptionPane;
@@ -247,10 +244,6 @@ public abstract class Assignment implements Runnable {
 
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
 
-    List<AbstractMap.SimpleEntry<String, Object>> variables =
-        new LinkedList<AbstractMap.SimpleEntry<String, Object>>();
-    variables.add(new AbstractMap.SimpleEntry<String, Object>("nodusMapPanel", nodusMapPanel));
-
     // Get absolute script file name
     String scriptFileName =
         nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
@@ -264,7 +257,11 @@ public abstract class Assignment implements Runnable {
       scriptFileName += NodusC.TYPE_GROOVY;
     }
 
-    return ScriptRunner.run(scriptFileName, variables, false);
+    ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
+    scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
+    scriptRunner.run(true);
+
+    return scriptRunner.run(false);
   }
 
   /**

@@ -234,7 +234,7 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 
 ## v8.1 - BuildXXXXXXXX
 - Remove the (deprecated) nodusMainFrame variable passed to Groovy scripts
-- Pass startNodus and closeNodus boolean variables to Groovy when it tries to run the nodus.groovy script
+- Pass startNodus and quitNodus boolean variables to Groovy when it tries to run the nodus.groovy script
 - The nodus.groovy script is now also run when Nodus is shutdown
 - Pass openProject and closeProject boolean variables to Groovy when it tries to run the "project".groovy script
 - The "project".groovy script is now also run when a project is closed

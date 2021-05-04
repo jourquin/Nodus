@@ -37,9 +37,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.AbstractMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -205,15 +202,13 @@ public class Nodus {
             nodusMapPanel.getMainFrame().setAlwaysOnTop(b);
 
             // Run the "nodus.groovy" script if exists
-            List<AbstractMap.SimpleEntry<String, Object>> variables =
-                new LinkedList<AbstractMap.SimpleEntry<String, Object>>();
-            variables.add(
-                new AbstractMap.SimpleEntry<String, Object>("nodusMapPanel", nodusMapPanel));
-            variables.add(new AbstractMap.SimpleEntry<String, Object>("startNodus", true));
-            variables.add(new AbstractMap.SimpleEntry<String, Object>("closeNodus", false));
             String scriptFileName =
-                System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
-            ScriptRunner.run(scriptFileName, variables, true);
+                    System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
+            ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
+            scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
+            scriptRunner.setVariable("startNodus", true);
+            scriptRunner.setVariable("quitNodus", false);
+            scriptRunner.run(true);
 
             nodusMapPanel.displayTouchBar(false);
 

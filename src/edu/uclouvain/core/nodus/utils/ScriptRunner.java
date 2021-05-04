@@ -25,10 +25,6 @@ import edu.uclouvain.core.nodus.NodusC;
 import groovy.lang.GroovyShell;
 import java.io.File;
 import java.io.IOException;
-import java.util.AbstractMap;
-import java.util.AbstractMap.SimpleEntry;
-import java.util.Iterator;
-import java.util.List;
 import javax.swing.JOptionPane;
 
 /**
@@ -40,33 +36,43 @@ public class ScriptRunner {
 
   private static boolean success;
 
+  GroovyShell shell;
+  String scriptFileName;
+
   /**
-   * Runs a Groovy script in a thread.
+   * Initialize the script runner.
    *
    * @param scriptFileName Full path and file name name of the script to run.
-   * @param variables A List of key (variable name) / values (the corresponding Object) pairs to
-   *     pass to the Groovy shell.
+   */
+  public ScriptRunner(String scriptFileName) {
+    this.scriptFileName = scriptFileName;
+    shell = new GroovyShell();
+  }
+
+  /**
+   * Add a variable to the shell.
+   *
+   * @param name The name of the variable.
+   * @param value The value of the variable
+   */
+  public void setVariable(String name, Object value) {
+    shell.setVariable(name, value);
+  }
+
+  /**
+   * Runs the Groovy script in a thread.
+   *
    * @param ignoreMissingScript If set to false, no error is returned if the script doesn't exist.
    * @return True if script was run successfully.
    */
-  public static boolean run(
-      String scriptFileName,
-      List<AbstractMap.SimpleEntry<String, Object>> variables,
-      boolean ignoreMissingScript) {
+  public boolean run(boolean ignoreMissingScript) {
 
     success = true;
+
     Thread thread =
         new Thread() {
           @Override
           public void start() {
-
-            GroovyShell shell = new GroovyShell();
-
-            Iterator<SimpleEntry<String, Object>> it = variables.iterator();
-            while (it.hasNext()) {
-              SimpleEntry<String, Object> t = it.next();
-              shell.setVariable(t.getKey(), t.getValue());
-            }
 
             try {
               shell.evaluate(new File(scriptFileName));

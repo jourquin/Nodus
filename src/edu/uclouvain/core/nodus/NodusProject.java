@@ -71,7 +71,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
-import java.util.AbstractMap;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -340,16 +339,15 @@ public class NodusProject implements ShapeConstants {
       nodusMapPanel.getMenuFile().setEnabled(false);
 
       // Run the project's Groovy project script if exists
-      List<AbstractMap.SimpleEntry<String, Object>> variables =
-          new LinkedList<AbstractMap.SimpleEntry<String, Object>>();
-      variables.add(new AbstractMap.SimpleEntry<String, Object>("nodusMapPanel", nodusMapPanel));
-      variables.add(new AbstractMap.SimpleEntry<String, Object>("openProject", false));
-      variables.add(new AbstractMap.SimpleEntry<String, Object>("closeProject", true));
       String scriptFileName =
           localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
               + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
               + NodusC.TYPE_GROOVY;
-      ScriptRunner.run(scriptFileName, variables, true);
+      ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
+      scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
+      scriptRunner.setVariable("openProject", false);
+      scriptRunner.setVariable("closeProject", true);
+      scriptRunner.run(true);
 
       // Close all the open children frames
       Frame[] frame = Frame.getFrames();
@@ -1961,17 +1959,15 @@ public class NodusProject implements ShapeConstants {
     // Initialize the user defined modal split methods for this project
     new ModalSplitMethodsLoader(this);
 
-    // Run the project's Groovy project script if exists
-    List<AbstractMap.SimpleEntry<String, Object>> variables =
-        new LinkedList<AbstractMap.SimpleEntry<String, Object>>();
-    variables.add(new AbstractMap.SimpleEntry<String, Object>("nodusMapPanel", nodusMapPanel));
-    variables.add(new AbstractMap.SimpleEntry<String, Object>("openProject", true));
-    variables.add(new AbstractMap.SimpleEntry<String, Object>("closeProject", false));
     String scriptFileName =
         localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
             + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
             + NodusC.TYPE_GROOVY;
-    ScriptRunner.run(scriptFileName, variables, true);
+    ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
+    scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
+    scriptRunner.setVariable("openProject", true);
+    scriptRunner.setVariable("closeProject", false);
+    scriptRunner.run(true);
 
     nodusMapPanel.setBusy(false);
     isOpen = true;

@@ -140,11 +140,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.AbstractMap;
 import java.util.EventObject;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 import javax.swing.BorderFactory;
@@ -607,13 +605,14 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
 
     // Run the "nodus.groovy" script if exists
-    List<AbstractMap.SimpleEntry<String, Object>> variables =
-        new LinkedList<AbstractMap.SimpleEntry<String, Object>>();
-    variables.add(new AbstractMap.SimpleEntry<String, Object>("nodusMapPanel", this));
-    variables.add(new AbstractMap.SimpleEntry<String, Object>("startNodus", false));
-    variables.add(new AbstractMap.SimpleEntry<String, Object>("closeNodus", true));
-    String scriptFileName = System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
-    ScriptRunner.run(scriptFileName, variables, true);
+    String scriptFileName =
+            System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
+    ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
+    scriptRunner.setVariable("nodusMapPanel", this);
+    scriptRunner.setVariable("startNodus", false);
+    scriptRunner.setVariable("quitNodus", true);
+    scriptRunner.run(true);
+    
 
     dispose();
     getMainFrame().dispose();
