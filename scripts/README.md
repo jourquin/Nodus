@@ -17,4 +17,6 @@ Py4J bridge. As for Groovy, the entry point that is passed from Nodus is the Nod
 
 #Sample R script
 - example.R illustrates how to interact with the Nodus API from your favorite R environment through a 
-J4R bridge. As for Groovy, the entry point that is passed from Nodus is the NodusMapPanel instance of (a running) Nodus.
+J4R bridge. As for Groovy, the entry point that is passed from Nodus is the NodusMapPanel instance of (a running) Nodus. As the 
+J4R R package is not available on CRAN, it is provided is this directory.
+

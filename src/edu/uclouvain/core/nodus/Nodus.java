@@ -26,7 +26,7 @@ import com.bbn.openmap.MapHandler;
 import com.bbn.openmap.gui.OpenMapFrame;
 import edu.uclouvain.core.nodus.gui.Splash;
 import edu.uclouvain.core.nodus.swing.GUIUtils;
-import groovy.lang.GroovyShell;
+import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
@@ -37,6 +37,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.AbstractMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -45,7 +48,6 @@ import javax.swing.InputMap;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.text.DefaultEditorKit;
-import org.codehaus.groovy.control.CompilationFailedException;
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 
@@ -203,27 +205,15 @@ public class Nodus {
             nodusMapPanel.getMainFrame().setAlwaysOnTop(b);
 
             // Run the "nodus.groovy" script if exists
-            Thread thread =
-                new Thread() {
-                  @Override
-                  public void start() {
-
-                    String homeDir = System.getProperty("NODUS_HOME", ".");
-
-                    GroovyShell shell = new GroovyShell();
-                    shell.setVariable("nodusMapPanel", nodusMapPanel);
-                    shell.setVariable("startNodus", true);
-                    shell.setVariable("closeNodus", false);
-                    try {
-                      shell.evaluate(new File(homeDir + "/nodus" + NodusC.TYPE_GROOVY));
-                    } catch (CompilationFailedException e) {
-                      System.err.println(e.getMessage());
-                    } catch (IOException e) {
-                      // Do nothing. the nodus.groovy script is not mandatory
-                    }
-                  }
-                };
-            thread.start();
+            List<AbstractMap.SimpleEntry<String, Object>> variables =
+                new LinkedList<AbstractMap.SimpleEntry<String, Object>>();
+            variables.add(
+                new AbstractMap.SimpleEntry<String, Object>("nodusMapPanel", nodusMapPanel));
+            variables.add(new AbstractMap.SimpleEntry<String, Object>("startNodus", true));
+            variables.add(new AbstractMap.SimpleEntry<String, Object>("closeNodus", false));
+            String scriptFileName =
+                System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
+            ScriptRunner.run(scriptFileName, variables, true);
 
             nodusMapPanel.displayTouchBar(false);
 

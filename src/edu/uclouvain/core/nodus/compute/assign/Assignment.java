@@ -31,8 +31,8 @@ import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
+import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
-import groovy.lang.GroovyShell;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -45,10 +45,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.AbstractMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import javax.swing.JOptionPane;
-import org.codehaus.groovy.control.CompilationFailedException;
 
 /**
  * Base class for all assignments. Defines some basic variables used for each method.
@@ -244,11 +246,13 @@ public abstract class Assignment implements Runnable {
     }
 
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
-    GroovyShell shell = new GroovyShell();
-    shell.setVariable("nodusMapPanel", nodusMapPanel);
-   
+
+    List<AbstractMap.SimpleEntry<String, Object>> variables =
+        new LinkedList<AbstractMap.SimpleEntry<String, Object>>();
+    variables.add(new AbstractMap.SimpleEntry<String, Object>("nodusMapPanel", nodusMapPanel));
+
     // Get absolute script file name
-    String fileName =
+    String scriptFileName =
         nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
             + assignmentParameters.getPostAssignmentScript();
 
@@ -257,22 +261,10 @@ public abstract class Assignment implements Runnable {
         .getPostAssignmentScript()
         .toLowerCase()
         .endsWith(NodusC.TYPE_GROOVY)) {
-      fileName += NodusC.TYPE_GROOVY;
+      scriptFileName += NodusC.TYPE_GROOVY;
     }
 
-    try {
-      shell.evaluate(new File(fileName));
-    } catch (CompilationFailedException e) {
-      JOptionPane.showMessageDialog(
-          null, e.getMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-      return false;
-    } catch (IOException e) {
-      JOptionPane.showMessageDialog(
-          null, e.getMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-      return false;
-    }
-
-    return true;
+    return ScriptRunner.run(scriptFileName, variables, false);
   }
 
   /**

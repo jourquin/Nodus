@@ -240,7 +240,7 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - The "project".groovy script is now also run when a project is closed
 - Improved Python example script
 - The Py4J server is now launched from the nodus.groovy script (not anymore hard coded)
-- Allows R scripting through a J4R bridge (version >= 1.0). The server is launched and stopped via the nodus.groovy script (same as for Py4J)
+- Allows R scripting through a J4R bridge (version >= 1.1). The server is launched and stopped via the nodus.groovy script (same as for Py4J)
 - Add an example R script (the same as for Python)
  
  

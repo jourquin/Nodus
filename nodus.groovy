@@ -43,7 +43,7 @@ if (startNodus) {
 	nodusMapPanel.getMapBean().setScale((float) 1.4E7);
 	nodusMapPanel.getMapBean().setCenter(new LatLonPoint.Double(50.0, 4.0));
 	nodusMapPanel.getMapBean().validate();
-
+	
 	/*
 	 * Launch a J4R server (for R scripting)
 	 */

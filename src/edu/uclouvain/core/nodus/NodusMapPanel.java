@@ -106,8 +106,8 @@ import edu.uclouvain.core.nodus.tools.notepad.NotePad;
 import edu.uclouvain.core.nodus.utils.HardwareUtils;
 import edu.uclouvain.core.nodus.utils.JavaVersionUtil;
 import edu.uclouvain.core.nodus.utils.PluginsLoader;
+import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
-import groovy.lang.GroovyShell;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -140,9 +140,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.AbstractMap;
 import java.util.EventObject;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Vector;
 import javax.swing.BorderFactory;
@@ -162,7 +164,6 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.BevelBorder;
-import org.codehaus.groovy.control.CompilationFailedException;
 
 /**
  * The NodusMapPanel class initialized the Nodus GUI and is the central place where all the menu
@@ -606,27 +607,13 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
 
     // Run the "nodus.groovy" script if exists
-    Thread thread =
-        new Thread() {
-          @Override
-          public void start() {
-
-            String homeDir = System.getProperty("NODUS_HOME", ".");
-
-            GroovyShell shell = new GroovyShell();
-            shell.setVariable("nodusMapPanel", this);
-            shell.setVariable("startNodus", false);
-            shell.setVariable("closeNodus", true);
-            try {
-              shell.evaluate(new File(homeDir + "/nodus" + NodusC.TYPE_GROOVY));
-            } catch (CompilationFailedException e) {
-              System.err.println(e.getMessage());
-            } catch (IOException e) {
-              // Do nothing. the nodus.groovy script is not mandatory
-            }
-          }
-        };
-    thread.start();
+    List<AbstractMap.SimpleEntry<String, Object>> variables =
+        new LinkedList<AbstractMap.SimpleEntry<String, Object>>();
+    variables.add(new AbstractMap.SimpleEntry<String, Object>("nodusMapPanel", this));
+    variables.add(new AbstractMap.SimpleEntry<String, Object>("startNodus", false));
+    variables.add(new AbstractMap.SimpleEntry<String, Object>("closeNodus", true));
+    String scriptFileName = System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
+    ScriptRunner.run(scriptFileName, variables, true);
 
     dispose();
     getMainFrame().dispose();
@@ -2381,12 +2368,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     boolean useGroovyConsole =
         Boolean.parseBoolean(nodusProperties.getProperty(NodusC.PROP_USE_GROOVY_CONSOLE, "false"));
-
-    // Groovy 2.x console doesn't work with Java 9. Disable it for now
-    /*if (System.getProperty("os.name").toLowerCase().startsWith("mac")
-        && JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
-      useGroovyConsole = false;
-    }*/
 
     if (!useGroovyConsole) {
       new NodusGroovyConsole(this, path, "");
