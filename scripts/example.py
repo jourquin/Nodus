@@ -1,5 +1,27 @@
 #!/usr/bin/python3
 
+#
+# Copyright (c) 1991-2021 Université catholique de Louvain
+#
+# <p>Center for Operations Research and Econometrics (CORE)
+#
+# <p>http://www.uclouvain.be
+#
+# <p>This file is part of Nodus.
+#
+# <p>Nodus is free software: you can redistribute it and/or modify it under the terms of the GNU
+# General Public License as published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# <p>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# <p>You should have received a copy of the GNU General Public License along with this program. If
+# not, see http://www.gnu.org/licenses/.
+#
+
+
 from py4j.java_gateway import JavaGateway
 
 def run():
@@ -29,12 +51,12 @@ def run():
     print()
     
     # Don't display the first node layer
-    centroids = nodes[0]
-    centroids.setVisible(False)
+    firstLayer = nodes[0]
+    firstLayer.setVisible(False)
     
     # Display the data associated to the 10 first nodes of the first node layer
     print("Data associated to the 10 first nodes of the first layer:")
-    dbf = centroids.getModel()
+    dbf = firstLayer.getModel()
     c = dbf.getColumnCount()
     for i in range(dbf.getRowCount()):
         if i == 10:
