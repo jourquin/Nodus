@@ -141,6 +141,7 @@ import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.EventObject;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Properties;
@@ -605,14 +606,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
 
     // Run the "nodus.groovy" script if exists
-    String scriptFileName =
-            System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
+    String scriptFileName = System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
     ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
     scriptRunner.setVariable("nodusMapPanel", this);
     scriptRunner.setVariable("startNodus", false);
     scriptRunner.setVariable("quitNodus", true);
     scriptRunner.run(true);
-    
 
     dispose();
     getMainFrame().dispose();
@@ -3145,5 +3144,41 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     for (ActionListener element : al) {
       scenarioComboBox.addActionListener(element);
     }
+  }
+
+  /*
+   * These methods are used to store / retrieve objects set from a Groovy script for instance.
+   * This allows having access to the values of some variables set by a script and used by another.
+   */
+
+  private HashMap<String, Object> store = new HashMap<String, Object>();
+
+  /**
+   * Store an object for future use.
+   *
+   * @param objectName The name of the object to store.
+   * @param value The object to store.
+   */
+  public void storeObject(String objectName, Object value) {
+    store.put(objectName, value);
+  }
+
+  /**
+   * Retrieve a previously stored object.
+   *
+   * @param objectName The name of the object to retrieve.
+   * @return The stored Object or null if it doesn't exist.
+   */
+  public Object retrieveObject(String objectName) {
+    return store.get(objectName);
+  }
+
+  /**
+   * Returns the hash map with the stored objects.
+   *
+   * @return The HashMap with the stored objects.
+   */
+  public HashMap<String, Object> getStoredObjects() {
+    return store;
   }
 }
