@@ -18,6 +18,8 @@ J4R R package is not available on CRAN, it is provided is this directory. Note t
 of both packages are already provided in the Nodus "lib" directory. Nodus must also launch the
 Py4J and/or the J4R server(s). More information about this can be found in the nodus.groovy
 script, which is also available in the Nodus main directory.
+
+_Note: The examples were tested with Groovy 3.0, Python 3.9 and R 4.0._
    
 #Other sample Groovy scripts
 

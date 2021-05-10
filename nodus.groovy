@@ -63,10 +63,6 @@ import py4j.GatewayServer;
  * Example Groovy, Python and R scripts can be found in the script directory. 
  */
 
-// Python and R bridges
-GatewayServer pyGatewayServer = null
-JavaGatewayServer rGatewayServer = null
-
 if (startNodus) {
 
 	/* 
@@ -84,7 +80,7 @@ if (startNodus) {
 	try {
 		ServerConfiguration servConf =
 				new ServerConfiguration(1, 10, new int[] {18000, 18001}, new int[] {50000, 50001}, 212);
-		rGatewayServer = new JavaGatewayServer(servConf, nodusMapPanel);
+		JavaGatewayServer rGatewayServer = new JavaGatewayServer(servConf, nodusMapPanel);
 		rGatewayServer.startApplication();
 		nodusMapPanel.storeObject("rGatewayServer",rGatewayServer);
 	} catch (Exception e) {
@@ -97,7 +93,7 @@ if (startNodus) {
 	 * with a server for each open project.
 	 */
 	try {
-		pyGatewayServer = new GatewayServer(nodusMapPanel);
+		GatewayServer pyGatewayServer = new GatewayServer(nodusMapPanel);
 		pyGatewayServer.start();
 		nodusMapPanel.storeObject("pyGatewayServer",pyGatewayServer);
 	} catch (Exception e) {
@@ -105,11 +101,11 @@ if (startNodus) {
 	}
 
 } else {
-
+	
 	/*
 	 * Close the J4R server
 	 */
-	rGatewayServer = nodusMapPanel.retrieveObject("rGatewayServer");
+	JavaGatewayServer rGatewayServer = nodusMapPanel.retrieveObject("rGatewayServer");
 	if (rGatewayServer != null) {		
 		rGatewayServer.requestShutdown();
 	}
@@ -117,7 +113,7 @@ if (startNodus) {
 	/*
 	 * Close the Py4J server
 	 */
-	pyGatewayServer = nodusMapPanel.retrieveObject("pyGatewayServer");
+	GatewayServer pyGatewayServer = nodusMapPanel.retrieveObject("pyGatewayServer");
 	if (pyGatewayServer != null) {
 		pyGatewayServer.shutdown();
 	}
