@@ -245,5 +245,7 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Add an example R and Groovy script (functionally identical to the Python script)
 - Add more documentation to the nodus.groovy script and rewrite the README.md file of the script lib
 
+## v8.1 - Buildxxxxxxxx
+- Upgrade to latest J4R (fixing UTF problem on Windows)
  
  
