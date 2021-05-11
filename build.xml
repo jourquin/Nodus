@@ -113,7 +113,7 @@
         <pathelement location="jdbcDrivers/sqlite-jdbc-3.34.0.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
         <pathelement location="lib/py4j0.10.9.2.jar"/>
-        <pathelement location="lib/j4r.jar"/>
+        <pathelement location="lib/j4r-1.1.0.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
