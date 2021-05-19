@@ -145,17 +145,17 @@
     </target>
     <target name="Nodus">
         <java classname="edu.uclouvain.core.nodus.Nodus" failonerror="true" fork="yes">
-            <jvmarg line="-Xmx6G -Xms4G"/>
-            <classpath refid="Nodus.classpath"/>
-        </java>
-    </target>
-    <target name="SetDefaultHeapSizes">
-        <java classname="edu.uclouvain.core.nodus.utils.SetDefaultHeapSizes" failonerror="true" fork="yes">
+            <jvmarg line="-Xmx6G -Xms4G -Dfile.encoding=UTF-8"/>
             <classpath refid="Nodus.classpath"/>
         </java>
     </target>
     <target name="Test">
         <java classname="edu.uclouvain.core.nodus.database.gui.Test" failonerror="true" fork="yes">
+            <classpath refid="Nodus.classpath"/>
+        </java>
+    </target>
+    <target name="SetJVMArgs">
+        <java classname="edu.uclouvain.core.nodus.utils.SetJVMArgs" failonerror="true" fork="yes">
             <classpath refid="Nodus.classpath"/>
         </java>
     </target>

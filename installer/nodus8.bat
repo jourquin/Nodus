@@ -15,7 +15,7 @@ rem Set classpath
 set NODUSCP="%NODUSJAR%;%LIBDIR%;%JDBCDIR%;%NODUS8_HOME%;"
 
 rem Set default values for the JVM heap sizes if not yet set
-%JAVABIN% -cp %NODUSCP% -DNODUS_HOME="%NODUS8_HOME%" edu.uclouvain.core.nodus.utils.SetDefaultHeapSizes
+%JAVABIN% -cp %NODUSCP% -DNODUS_HOME="%NODUS8_HOME%" edu.uclouvain.core.nodus.utils.SetJVMArgs
 call jvmargs.bat
 
 start %JAVABIN% -cp %NODUSCP% %JVMARGS% -DNODUS_HOME="%NODUS8_HOME%" edu.uclouvain.core.nodus.Nodus "%~1" 
