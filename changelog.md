@@ -250,6 +250,8 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 
 ## v8.1 - BuildXXXXXXXX
 - Upgrade to latest J4R_1.1.0-222, that fixes an UTF encoding/decoding problem on Windows
+- Delete paths tables on assignment error
+
 
  
  
