@@ -39,12 +39,12 @@ import java.util.Scanner;
  *
  * <p>For 32bits JVM, max heap is set to 1.4Go
  *
- * <p>Since Nodus 8.0, the additional --illegal-access=permit flag is set if JVM version is >= 9.
- * This is not really needed if JVM version < 16, but needed for JAVA 16. This should be tackled
- * more seriously in the Nodus core code as some reflective accesses, such as those called to mimic
- * Mac OS L&F will no longer be allowed is future versions of the JVM.
+ * <p>Since Nodus 8.0, the additional --illegal-access=permit flag is set if JVM version is at least
+ * 9. This is not really needed if JVM version lower than 16, but needed for JAVA 16. This should be
+ * tackled more seriously in the Nodus core code as some reflective accesses, such as those called
+ * to mimic Mac OS PLAF will no longer be allowed is future versions of the JVM.
  *
- * <p>Since Nodus 8.1, the additional -Dfile.encoding=UTF-8 flag is set (needed by J4R)
+ * <p>Since Nodus 8.1, the additional -Dfile.encoding=UTF8 flag is set.
  *
  * @author Bart Jourquin
  */
