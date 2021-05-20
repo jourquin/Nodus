@@ -8,7 +8,7 @@ Nodus 8.0, which first build was released on March 4, 2021, introduced a series 
 - An **increased compatibility** with non legacy .DBF files used by geographic information systems;
 - …
 
-Nodus 8.1 introduces the possibility to use Python and R scripts in addition to Groovy scripts. It also runs on Java 16.
+Nodus 8.1 introduces the possibility to develop Python and R scripts in addition to Groovy scripts. It also runs on Java 16.
 
 The CHANGELOG.MD file contains an exhaustive list of the improvements made to the software.
 
