@@ -127,7 +127,7 @@ for (i in 1:length(groups)) {
   for (j in 1:3) {
     # There is no intercept for the reference mode (1)
     if (j > 1) {
-      coefName <- paste(j, ":(intercept)", sep = "")
+      coefName <- paste("(Intercept):",j , sep = "")
       coefValue <- coef(model)[coefName]
       nodusVarName <- paste("(intercept).", j, ".", group, sep = "")
       cat(nodusVarName, " = ", coef(model)[coefName], "\n")
