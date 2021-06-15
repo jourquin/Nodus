@@ -34,11 +34,11 @@ update tmp1 set qty = qty1;
 drop table biogeme_input if exists;
 create table biogeme_input as (select * from tmp1 union all select * from tmp2 union all select * from  tmp3) with data;
 
-# Clean table
+# Clean data
 update biogeme_input set qty = 0 where qty is null;
-alter table biogeme_input drop column qty1;
-alter table biogeme_input drop column qty2;
-alter table biogeme_input drop column qty3;
+update biogeme_input set qty1 = 0 where qty1 is null;
+update biogeme_input set qty2 = 0 where qty2 is null;
+update biogeme_input set qty3 = 0 where qty3 is null;
 delete from biogeme_input where avail1 = 0 and choice = 1
 delete from biogeme_input where avail2 = 0 and choice = 2
 delete from biogeme_input where avail3 = 0 and choice = 3

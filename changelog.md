@@ -252,7 +252,7 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Upgrade to latest J4R_1.1.0-222, that fixes an UTF encoding/decoding problem on Windows
 - Delete paths tables on assignment error
 
-## v8.1 - BuildXXXXXXXX
+## v8.1 - Build20210615
 - Add an example using Biogeme to solve the logit model in the Demo
 
  
