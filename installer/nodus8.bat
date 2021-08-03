@@ -18,4 +18,4 @@ rem Set default values for the JVM heap sizes if not yet set
 %JAVABIN% -cp %NODUSCP% -DNODUS_HOME="%NODUS8_HOME%" edu.uclouvain.core.nodus.utils.SetDefaultHeapSizes
 call jvmargs.bat
 
-start %JAVABIN% -cp %NODUSCP% %JVMARGS% -DNODUS_HOME="%NODUS8_HOME%" edu.uclouvain.core.nodus.Nodus "%~1" 
+start %JAVABIN% -cp %NODUSCP% %JVMARGS% -DNODUS_HOME="%NODUS8_HOME%" -Dfile.encoding=UTF-8 edu.uclouvain.core.nodus.Nodus "%~1" 
