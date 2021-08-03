@@ -147,6 +147,16 @@ public class PathWriter {
     SingleInstanceMessagePane.reset();
   }
 
+  /** Delete the paths table(s) in the database. */
+  public void deletePathsTables() {
+    if (savePaths) {
+      JDBCUtils.dropTable(pathHeaderTableName);
+      if (saveDetailedPaths) {
+        JDBCUtils.dropTable(pathDetailTableName);
+      }
+    }
+  }
+
   /** Save the SQL batches, create the indexes and close the connection to the database. */
   public void close() {
 
