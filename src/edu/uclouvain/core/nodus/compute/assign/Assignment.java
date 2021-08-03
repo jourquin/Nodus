@@ -224,6 +224,9 @@ public abstract class Assignment implements Runnable {
       nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_OK);
     } else {
       nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
+      
+      // Path tables are create before the assignment starts. Delete them on error.
+      pathWriter.deletePathsTables();
     }
     nodusMapPanel.getAssignmentMenuItem().setEnabled(true);
   }
