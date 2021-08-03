@@ -1,6 +1,6 @@
 # Nodus 8.1
 
-Nodus 8.0, which first build was released on March 4, 2021, introduces a series of new features, among which:
+Nodus 8.0, which first build was released on March 4, 2021, introduced a series of new features, among which:
 
 - The possibility to define **transit time** functions in addition to cost functions;
 - An improved management of **node rules** (operations that are permitted or not at each node of the network);
@@ -8,7 +8,7 @@ Nodus 8.0, which first build was released on March 4, 2021, introduces a series 
 - An **increased compatibility** with non legacy .DBF files used by geographic information systems;
 - …
 
-**Nodus 8.1**, introduces the possibility to use Python and R scripts through a Py4J or J4R bridge. It also runs on Java 16.
+Nodus 8.1 introduces the possibility to develop Python and R scripts in addition to Groovy scripts. It also runs on Java 16.
 
 The CHANGELOG.MD file contains an exhaustive list of the improvements made to the software.
 
