@@ -31,7 +31,7 @@ NODUSJAR="$NODUS8_HOME"/nodus8.jar
 NODUSCP="$NODUSJAR:$LIBDIR:$JDBCDIR:$NODUS8_HOME"
 
 # Set default values for the JVM heap sizes if not yet set
-java -cp "$NODUSCP" -DNODUS_HOME="$NODUS8_HOME" edu.uclouvain.core.nodus.utils.SetDefaultHeapSizes
+java -cp "$NODUSCP" -DNODUS_HOME="$NODUS8_HOME" edu.uclouvain.core.nodus.utils.SetJVMArgs
 source "$NODUS8_HOME"/jvmargs.sh
 
 # Launch Nodus
