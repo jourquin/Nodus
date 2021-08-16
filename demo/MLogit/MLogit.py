@@ -106,7 +106,7 @@ def run():
         logprob = models.loglogit(V, av, choice)
         formulas = {'loglike': logprob, 'weight': qty}
         biogeme = bio.BIOGEME(database, formulas)
-        biogeme.modelName = 'LogCost'
+        biogeme.modelName = 'LogCost-' + str(g)
         results = biogeme.estimate()
         
         if outputType == 1:  

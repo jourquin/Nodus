@@ -248,9 +248,12 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 ## v8.1 - Build20210511
 - Upgrade to latest J4R_1.1.0-220, that fixes an UTF encoding/decoding problem on Windows
 
-## v8.1 - Build20210615
+## v8.1 - Build20210520
 - Upgrade to latest J4R_1.1.0-222, that fixes an UTF encoding/decoding problem on Windows
-- Add the -Dfile.encoding=UTF-8 parameter to the JVM on Windows
-- Add a Biogeme example
+- Delete paths tables on assignment error
+
+## v8.1 - Build20210615
+- Add an example using Biogeme to solve the logit model in the Demo
+
  
  
