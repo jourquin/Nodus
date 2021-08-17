@@ -1,5 +1,7 @@
 package edu.uclouvain.core.nodus.swing.osx;
 
+import edu.uclouvain.core.nodus.NodusMapPanel;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -85,7 +87,11 @@ public class OSXAdapterForJava9 implements InvocationHandler {
                   | IllegalArgumentException
                   | SecurityException
                   | InvocationTargetException ex) {
-                logger.severe("Mac OS X Adapter could not talk to EAWT:");
+
+                // logger.severe("Mac OS X Adapter could not talk to EAWT:");
+                // Quick and dirty workaround...
+                ((NodusMapPanel) target).closeAndSaveState();
+                System.exit(0);
               }
             }
             return true;
@@ -199,10 +205,9 @@ public class OSXAdapterForJava9 implements InvocationHandler {
   /**
    * Pass this method an Object and a Method equipped to display application options. They will be
    * called when the Preferences menu item is selected from the application menu.
-   * 
+   *
    * @param target .
    * @param prefsHandler .
-   * 
    * @hidden
    */
   public static void setPreferencesHandler(Object target, Method prefsHandler) {
@@ -261,15 +266,14 @@ public class OSXAdapterForJava9 implements InvocationHandler {
       logger.severe(ex.toString());
     }
   }
-  
+
   /**
    * Pass this method an Object and a Method equipped to handle document events from the Finder.
    * Documents are registered with the Finder via the CFBundleDocumentTypes dictionary in the
    * application bundle's Info.plist.
-   * 
+   *
    * @param target .
    * @param fileHandler .
-   * 
    * @hidden
    */
   public static void setFileHandler(Object target, Method fileHandler) {
