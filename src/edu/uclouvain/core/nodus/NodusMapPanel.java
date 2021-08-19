@@ -3146,11 +3146,10 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
   }
 
-  /*
+  /**
    * These methods are used to store / retrieve objects set from a Groovy script for instance.
    * This allows having access to the values of some variables set by a script and used by another.
    */
-
   private HashMap<String, Object> store = new HashMap<String, Object>();
 
   /**

@@ -63,7 +63,8 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
   /** . */
   private JComboBox<JComponent> nodusDrawingTool;
 
-  NodusMapPanel nodusMapPanel;
+  /** . */
+  private NodusMapPanel nodusMapPanel;
 
   /**
    * Constructor.
