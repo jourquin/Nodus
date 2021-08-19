@@ -30,8 +30,8 @@ import biogeme.models as models
 from biogeme.expressions import Beta
 from py4j.java_gateway import JavaGateway, Py4JNetworkError
 
-# This Python script estimates the parameters of a condtional logit model
-# based on a single variabls gathered from an uncalibrated assignment using
+# This Python script estimates the parameters of a conditional logit model
+# based on a single variable gathered from an uncalibrated assignment using
 # the Biogeme toolbox (https://biogeme.epfl.ch)
 #
 # The input data is a table created by the "CreateBiogemeInput.sql" script, that transforms
@@ -42,11 +42,6 @@ from py4j.java_gateway import JavaGateway, Py4JNetworkError
 
 
 def run():
-    
-    # Choose the output you want :
-    # 1 : Estimated coefficients that can be cut&pasted in a Nodus costs file.
-    # 2 : Correlation coefficients between observed and estimated quantities per OD pair and mode
-    outputType = 1
     
     # Connect to Nodus (must be running with a Py4J server launched)
     try:
@@ -75,7 +70,7 @@ def run():
         df = pd.read_sql_query("select * from biogeme_input where grp = " + str(g), conn)
         
         # Replace NA values 
-        df = df.fillna(df.max())
+        df = df.fillna(df.max()*1000)
         
         # Convert column names to lower case 
         df.columns = map(str.lower, df.columns)
@@ -88,11 +83,15 @@ def run():
         df['cost1'] = np.log(df['cost1'])
         df['cost2'] = np.log(df['cost2'])
         df['cost3'] = np.log(df['cost3'])
-    
+        
+        # Weights must be relative to sample size in Biogeme
+        total = df['qty'].sum()
+        df['qty'] = database.getSampleSize() * df['qty'] / total
+        
         # Parameters to estimate (use same names as for the R solution) 
-        INTERCEPT1 = Beta('(intercept).1', 0, None, None, 1)
-        INTERCEPT2 = Beta('(intercept).2', 0, None, None, 0)
-        INTERCEPT3 = Beta('(intercept).3', 0, None, None, 0)
+        INTERCEPT1 = Beta('(Intercept).1', 0, None, None, 1)
+        INTERCEPT2 = Beta('(Intercept).2', 0, None, None, 0)
+        INTERCEPT3 = Beta('(Intercept).3', 0, None, None, 0)
         B_COST = Beta('log(cost)', 0, None, None, 0)
     
         # Utility functions
@@ -108,54 +107,7 @@ def run():
         biogeme = bio.BIOGEME(database, formulas)
         biogeme.modelName = 'LogCost-' + str(g)
         results = biogeme.estimate()
+        print(results)
         
-        if outputType == 1:  
-            # Format the results for a cut&paste into a Nodus costs file
-            betas = results.getBetaValues()
-            keys = list(betas.keys())
-            values = list(betas.values())
-            for i in range(len(keys)):
-                k = keys[i]
-                v = values[i]
-                if "intercept" in k:
-                    print (str(k) + "." + str(g) + " = " + str(v))
-                else:
-                    # Repeat the same estimator for the 3 modes
-                    for m in range(3):
-                        print (str(k) + "." + str(m+1) + "." + str(g) + " = " + str(v))
-         
-         
-        if outputType == 2:   
-            # Compute correlation between observed and estimated quantities
-        
-            # 1) Keep only one occurrence for every OD pair
-            df = df[df.choice == 1]
-            
-            # 2) Apply the estimated Logit model to computed the transported quantities per mode
-            
-            # 2.1) Fetch the estimators
-            betas = results.getBetaValues()
-            intercept2 = betas.get('(intercept).2', 0)
-            intercept3 = betas.get('(intercept).3', 0)
-            logCost = betas.get('log(cost)', 0)
-            
-            # 2.2) Compute the utilities
-            pd.options.mode.chained_assignment = None # Avoid the "SettingWithCopyWarning" warning 
-            df['V1']= logCost * df.cost1 # Costs are already log transformed earlier in this script
-            df['V2'] = logCost * df.cost2 + intercept2
-            df['V3'] = logCost * df.cost3 + intercept3
-            
-            # 2.3) Apply the logit
-            df['denominator'] = np.exp(df.V1) + np.exp(df.V2) + np.exp(df.V3)
-            df['est_qty1'] = df.qty * np.exp(df.V1) / df.denominator
-            df['est_qty2'] = df.qty * np.exp(df.V2) / df.denominator
-            df['est_qty3'] = df.qty * np.exp(df.V3) / df.denominator
-            
-            # 3) Compute the correlations for each mode
-            cor1 = np.corrcoef(df.qty1, df.est_qty1)[0,1]
-            cor2 = np.corrcoef(df.qty2, df.est_qty2)[0,1]
-            cor3 = np.corrcoef(df.qty3, df.est_qty3)[0,1]
-            print('Correlations for group', g ,':',cor1, cor2, cor3)
-
 if __name__ == "__main__":
     run()

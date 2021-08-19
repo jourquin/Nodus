@@ -255,5 +255,10 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 ## v8.1 - Build20210615
 - Add an example using Biogeme to solve the logit model in the Demo
 
+## v8.1 - Build20210819
+- Remove deprecated API calls in MLogit.R
+- Properly compute the weights for Biogeme in MLogit.py 
+- Fix some Javadoc missing comments
+- Quick and dirty fix of application closing for Mac OS with Java 15.
  
  

@@ -39,9 +39,11 @@ update biogeme_input set qty = 0 where qty is null;
 update biogeme_input set qty1 = 0 where qty1 is null;
 update biogeme_input set qty2 = 0 where qty2 is null;
 update biogeme_input set qty3 = 0 where qty3 is null;
-delete from biogeme_input where avail1 = 0 and choice = 1
-delete from biogeme_input where avail2 = 0 and choice = 2
-delete from biogeme_input where avail3 = 0 and choice = 3
+
+# This can be done to avoid warnings in the Biogeme log file.
+#delete from biogeme_input where avail1 = 0 and choice = 1
+#delete from biogeme_input where avail2 = 0 and choice = 2
+#delete from biogeme_input where avail3 = 0 and choice = 3
 
 # Delete tmp tables
 drop table if exists tmp1;

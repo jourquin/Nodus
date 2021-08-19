@@ -19,10 +19,11 @@
 #-------------------------------------------------------------------------------
 
 
-# This R script estimates the parameters of a condtional logit model
-# based on a single variabls gathered from an uncalibrated assignment.
+# This R script estimates the parameters of a conditional logit model
+# based on a single variable gathered from an uncalibrated assignment.
 # See https://cran.r-project.org/web/packages/mlogit/vignettes/mlogit.pdf
 
+library(Formula)
 library(mlogit)
 library(foreign)
 
@@ -55,40 +56,40 @@ if (file.exists(txtFile2)) {
 
 for (i in 1:length(groups)) {
   group <- groups[i]
-
+  
   print(paste("Solving model for group", group))
-
-
+  
+  
   # Get the data for current group
   x <- data[data$grp == group, ]
-
+  
   # Replace NA values for quantities
   x$qty1[is.na(x$qty1)] <- 0
   x$qty2[is.na(x$qty2)] <- 0
   x$qty3[is.na(x$qty3)] <- 0
-
+  
   # Replace null quantities with a small one
-  smallQty <- 0.1
+  smallQty <- 0.001
   x$qty1[x$qty1 == 0] <- smallQty
   x$qty2[x$qty2 == 0] <- smallQty
   x$qty3[x$qty3 == 0] <- smallQty
-
+  
   # Replace missing costs with an high value
   highValue <- max(x$cost1, x$cost2, x$cost3, na.rm = TRUE) * 100
   x$cost1[is.na(x$cost1)] <- highValue
   x$cost2[is.na(x$cost2)] <- highValue
   x$cost3[is.na(x$cost3)] <- highValue
-
+  
   # Create wideData data, with one record per mode for each OD pair
   wideData <- data.frame()
   for (mode in 1:3) {
     wd <- data.frame(mode = integer(nrow(x)))
     wd$mode <- mode
-
+    
     wd$cost.1 <- x$cost1
     wd$cost.2 <- x$cost2
     wd$cost.3 <- x$cost3
-
+    
     wd$qtytot <- x$qtytot
     wd$tons <- x$qty1
     if (mode == 2) {
@@ -96,34 +97,35 @@ for (i in 1:length(groups)) {
     } else if (mode == 3) {
       wd$tons <- x$qty3
     }
-
+    
     wideData <- rbind(wideData, wd)
   }
-
+  
+  
   # Create the "long" format data
   longData <-
-    mlogit.data(wideData,
-      choice = "mode",
-      shape = "wide",
-      varying = 2:4
+    dfidx(wideData,
+                choice = "mode",
+                shape = "wide",
+                varying = 2:4
     )
-
+  
   # Define the formula to estimate (logs of costs + intercept)
-  f <- formula(mode ~ log(cost) | 1 | 1)
-
+  f <- Formula(mode ~ log(cost) | 1 | 1)
+  
   # Solve the model
   model <- mlogit(f, longData, weights = tons)
-
+  
   # Retrieve the output of the model for this group and save it
   sink(txtFile1, append = TRUE)
   print(paste("Summary for group", group))
   print(summary(model))
   cat("\n\n\n")
   sink()
-
+  
   # Retrieve the coefficients and save them to be useable the Nodus MLogit plugin.
   sink(txtFile2, append = TRUE)
-
+  
   for (j in 1:3) {
     # There is no intercept for the reference mode (1)
     if (j > 1) {
