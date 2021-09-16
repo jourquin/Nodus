@@ -55,7 +55,6 @@
 	<classpathentry kind="lib" path="lib/groovy/snakeyaml-1.26.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/testng-7.3.0.jar"/>
 	<classpathentry kind="lib" path="devtools/mrjtoolkitstubs-1.0 2.jar"/>
-	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/Users/jourquinb/git/openmap/src/core/src/main/java"/>
 	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-1.10.9.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-antlr-1.10.9.jar"/>
@@ -108,5 +107,6 @@
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.2.19.jar"/>
 	<classpathentry kind="lib" path="lib/py4j0.10.9.2.jar" sourcepath="/Users/jourquinb/git/py4j/py4j-java/src"/>
 	<classpathentry kind="lib" path="lib/j4r-1.1.0.jar"/>
+	<classpathentry kind="lib" path="lib/openmap.jar" sourcepath="/openmap-all/src"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
