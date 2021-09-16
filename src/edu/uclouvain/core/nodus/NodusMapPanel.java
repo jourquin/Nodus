@@ -85,6 +85,7 @@ import com.thizzer.jtouchbar.item.TouchBarItem;
 import com.thizzer.jtouchbar.item.view.TouchBarButton;
 import com.thizzer.jtouchbar.item.view.TouchBarView;
 import com.thizzer.jtouchbar.item.view.action.TouchBarViewAction;
+
 import edu.uclouvain.core.nodus.compute.assign.gui.AssignmentDlg;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.results.gui.ResultsDlg;
@@ -108,6 +109,7 @@ import edu.uclouvain.core.nodus.utils.JavaVersionUtil;
 import edu.uclouvain.core.nodus.utils.PluginsLoader;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -146,6 +148,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Properties;
 import java.util.Vector;
+
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -1603,8 +1606,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     return toolPanel;
   }
 
-  /** Initializes the default XY projection. */
-  private void initDefaultProjection() {
+  /** Initializes the projections menu. */
+  private void initProjections() {
     /*
      * Add a set of possible projections. <br> See OpenMap documentation for more details on the
      * ProjectionLoader mechanism.
@@ -1616,19 +1619,13 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     OrthographicLoader orthol = new OrthographicLoader();
     GnomonicLoader gnomonicl = new GnomonicLoader();
 
-    getMapHandler().add(llxyl);
-    getMapHandler().add(mercatorl);
-    getMapHandler().add(cadrgl);
-    getMapHandler().add(orthol);
-    getMapHandler().add(gnomonicl);
-
     Vector<ProjectionLoader> loaders = new Vector<>();
     loaders.add(llxyl);
     loaders.add(mercatorl);
     loaders.add(cadrgl);
     loaders.add(orthol);
     loaders.add(gnomonicl);
-
+    
     menuProjection.configure(loaders);
 
     menuProjection.findAndInit(mapBean);
@@ -1664,7 +1661,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     initOpenMapComponents();
 
     // Initialize the defaut XY projection
-    initDefaultProjection();
+    initProjections();
 
     // Create all the menus
     initMenus();
