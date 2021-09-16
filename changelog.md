@@ -261,7 +261,7 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Fix some Javadoc missing comments
 - Quick and dirty fix of application closing for Mac OS with Java 15.
  
-## v8.1 - Build20210906
+## v8.1 - Build20210916
 - Upgrade to latest openmap 6b lib, that fixes a bug with projection changes
 
 
