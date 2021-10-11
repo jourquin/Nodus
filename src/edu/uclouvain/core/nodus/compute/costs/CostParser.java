@@ -1025,14 +1025,18 @@ public class CostParser {
         // Try to parse the value
         try {
           expression = Parser.parse(pair.getValue(), scope);
+          // Store the variable if it could be parsed
+          setVariable((String) pair.getKey(), expression.evaluate());
         } catch (ParseException e) {
           // This value probably makes reference to another variable
-
-          continue;
+          // But could also be a scientific notation (Parsii bug)
+          try {
+            double d = Double.valueOf(pair.getValue());
+            setVariable((String) pair.getKey(), d);
+          } catch (NumberFormatException e1) {
+        	  continue;
+          }
         }
-
-        // Store the variable if it could be parsed
-        setVariable((String) pair.getKey(), expression.evaluate());
 
         // Remove this variable from the hashmap as it is resolved
         it.remove();
