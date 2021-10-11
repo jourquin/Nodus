@@ -264,5 +264,8 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 ## v8.1 - Build20210916
 - Upgrade to latest openmap 6b lib, that fixes a bug with projection changes
 
+## v8.1 - BuildXXXXXXXX
+- Upgrade to Parsii 5.0.1 (handles scientific notation)
+ 
 
  
