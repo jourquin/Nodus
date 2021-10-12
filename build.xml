@@ -20,7 +20,6 @@
         <pathelement location="lib/jung-graph-impl-2.1.1.jar"/>
         <pathelement location="lib/jung-visualization-2.1.1.jar"/>
         <pathelement location="lib/groovy/qdox-1.12.1.jar"/>
-        <pathelement location="lib/parsii-4.0.jar"/>
         <pathelement location="lib/xmlbeans-3.1.0.jar"/>
         <pathelement location="lib/jtouchbar-1.0.0.jar"/>
         <pathelement location="lib/derby.jar"/>
@@ -61,7 +60,6 @@
         <pathelement location="lib/groovy/snakeyaml-1.26.jar"/>
         <pathelement location="lib/groovy/testng-7.3.0.jar"/>
         <pathelement location="devtools/mrjtoolkitstubs-1.0 2.jar"/>
-        <pathelement location="lib/openmap.jar"/>
         <pathelement location="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
         <pathelement location="lib/groovy/ant-1.10.9.jar"/>
         <pathelement location="lib/groovy/ant-antlr-1.10.9.jar"/>
@@ -114,6 +112,8 @@
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
         <pathelement location="lib/py4j0.10.9.2.jar"/>
         <pathelement location="lib/j4r-1.1.0.jar"/>
+        <pathelement location="lib/openmap.jar"/>
+        <pathelement location="lib/parsii-5.0.1.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
@@ -143,19 +143,24 @@
             <classpath refid="Nodus.classpath"/>
         </java>
     </target>
+    <target name="SetJVMArgs">
+        <java classname="edu.uclouvain.core.nodus.utils.SetJVMArgs" failonerror="true" fork="yes">
+            <classpath refid="Nodus.classpath"/>
+        </java>
+    </target>
     <target name="Nodus">
         <java classname="edu.uclouvain.core.nodus.Nodus" failonerror="true" fork="yes">
             <jvmarg line="-Xmx6G -Xms4G -Dfile.encoding=UTF-8"/>
             <classpath refid="Nodus.classpath"/>
         </java>
     </target>
-    <target name="Test">
-        <java classname="edu.uclouvain.core.nodus.database.gui.Test" failonerror="true" fork="yes">
+    <target name="Nodus7">
+        <java classname="edu.uclouvain.core.nodus.Nodus7" failonerror="true" fork="yes">
             <classpath refid="Nodus.classpath"/>
         </java>
     </target>
-    <target name="SetJVMArgs">
-        <java classname="edu.uclouvain.core.nodus.utils.SetJVMArgs" failonerror="true" fork="yes">
+    <target name="Test">
+        <java classname="edu.uclouvain.core.nodus.database.gui.Test" failonerror="true" fork="yes">
             <classpath refid="Nodus.classpath"/>
         </java>
     </target>
