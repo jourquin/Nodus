@@ -55,7 +55,7 @@ the [Demo project](https://github.com/jourquin/Nodus/blob/master/demo).
 - 7.2 - February 2020: Upgrade to Groovy 3.x.
 - 8.0 - February 2021: Introduce time functions (in addition to cost functions). Simplified API for modal-choice plugins. 
 Many under the hood improvements.
-- 8.1 - April 2021: Runs on Java 16 and allows Python scripting through a Py4J bridge in addition to Groovy.
+- 8.1 - April 2021: Runs on Java 16 and allows Python scripting through a Py4J bridge and R scripting through a J4R bridge in addition to Groovy.
 
 See the [change log](changelog.md) for a detailed build history.
 
