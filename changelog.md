@@ -270,5 +270,6 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 ## v8.1 - BuildXXXXXXXX
 - Remove support for MacBook touchbar. Not useful and not anymore present on the latest MacBook's
 - Reformat some code to apply latest checkstyle rules.
+- Upgrade to Groovy 3.0.9
 
  
