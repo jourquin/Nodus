@@ -154,7 +154,7 @@ public class ImportXLS {
         }
       }
 
-      //sqlStmt += "\"" + fieldName + "\"";
+      // sqlStmt += "\"" + fieldName + "\"";
       sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(fieldName);
       if (fieldType.equalsIgnoreCase("N")) {
         sqlStmt += " NUMERIC(" + fieldLength + "," + fieldPrecision + ")";
@@ -312,10 +312,7 @@ public class ImportXLS {
       if (!con.getAutoCommit()) {
         con.commit();
       }
-    } catch (IOException e) {
-      JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-      return false;
-    } catch (SQLException e) {
+    } catch (Exception e) {
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
     }

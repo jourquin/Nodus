@@ -276,6 +276,8 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Fix call to a deprecated commons-cvs API
 - Upgrade to latest version of the J4R R package
 - Upgrade to OSHI 5.8.3
+- Upgrade to POI 5.0
+- Upgrade to rsyntaxtextarea 3.1.3
 
 
  
