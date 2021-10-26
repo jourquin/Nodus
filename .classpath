@@ -8,7 +8,6 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/JCheckList.jar"/>
 	<classpathentry kind="lib" path="lib/JResourcesMonitor.jar"/>
-	<classpathentry kind="lib" path="lib/commons-io-2.6.jar"/>
 	<classpathentry kind="lib" path="lib/jung-algorithms-2.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/jung-api-2.1.1.jar" sourcepath="/jung/jung-api/src"/>
 	<classpathentry kind="lib" path="lib/jung-graph-impl-2.1.1.jar"/>
@@ -35,7 +34,6 @@
 	<classpathentry kind="lib" path="lib/groovy/extras-jaxb/jaxb-impl-2.3.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/commons-collections4-4.4.jar"/>
 	<classpathentry kind="lib" path="lib/commons-compress-1.20.jar"/>
-	<classpathentry kind="lib" path="lib/commons-csv-1.8.jar"/>
 	<classpathentry kind="lib" path="lib/poi-4.1.2.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-4.1.2.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-schemas-4.1.2.jar"/>
@@ -108,5 +106,7 @@
 	<classpathentry kind="lib" path="lib/groovy/snakeyaml-1.27.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/testng-7.4.0.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/xstream-1.4.18.jar"/>
+	<classpathentry kind="lib" path="lib/commons-csv-1.9.0.jar"/>
+	<classpathentry kind="lib" path="lib/commons-io-2.11.0.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

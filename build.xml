@@ -14,7 +14,6 @@
         <pathelement location="classes"/>
         <pathelement location="lib/JCheckList.jar"/>
         <pathelement location="lib/JResourcesMonitor.jar"/>
-        <pathelement location="lib/commons-io-2.6.jar"/>
         <pathelement location="lib/jung-algorithms-2.1.1.jar"/>
         <pathelement location="lib/jung-api-2.1.1.jar"/>
         <pathelement location="lib/jung-graph-impl-2.1.1.jar"/>
@@ -41,7 +40,6 @@
         <pathelement location="lib/groovy/extras-jaxb/jaxb-impl-2.3.0.1.jar"/>
         <pathelement location="lib/commons-collections4-4.4.jar"/>
         <pathelement location="lib/commons-compress-1.20.jar"/>
-        <pathelement location="lib/commons-csv-1.8.jar"/>
         <pathelement location="lib/poi-4.1.2.jar"/>
         <pathelement location="lib/poi-ooxml-4.1.2.jar"/>
         <pathelement location="lib/poi-ooxml-schemas-4.1.2.jar"/>
@@ -114,6 +112,8 @@
         <pathelement location="lib/groovy/snakeyaml-1.27.jar"/>
         <pathelement location="lib/groovy/testng-7.4.0.jar"/>
         <pathelement location="lib/groovy/xstream-1.4.18.jar"/>
+        <pathelement location="lib/commons-csv-1.9.0.jar"/>
+        <pathelement location="lib/commons-io-2.11.0.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
