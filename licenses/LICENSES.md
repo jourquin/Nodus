@@ -18,8 +18,6 @@
 
 [JResourcesMonitor](https://github.com/jourquin/JResourcesMonitor), Apache v2
 
-[jtouchbar](https://github.com/Thizzer/jtouchbar), MIT
-
 [jung-\*](https://github.com/jrtom/jung), modified BSD
 
 [openmap](http://openmap-java.org), Openmap

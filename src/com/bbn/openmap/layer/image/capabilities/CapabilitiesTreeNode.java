@@ -52,7 +52,9 @@ public class CapabilitiesTreeNode implements ICapabilitiesNodeInterface {
 
   /**
    * .
-   *  @hidden */
+   *
+   * @hidden
+   */
   @Override
   public String toString() {
     return content.toString();

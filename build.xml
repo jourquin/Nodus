@@ -21,7 +21,6 @@
         <pathelement location="lib/jung-visualization-2.1.1.jar"/>
         <pathelement location="lib/groovy/qdox-1.12.1.jar"/>
         <pathelement location="lib/xmlbeans-3.1.0.jar"/>
-        <pathelement location="lib/jtouchbar-1.0.0.jar"/>
         <pathelement location="lib/derby.jar"/>
         <pathelement location="lib/h2-1.4.200.jar"/>
         <pathelement location="lib/groovy/bsf-2.4.0.jar"/>
@@ -119,7 +118,6 @@
         <mkdir dir="classes"/>
         <copy includeemptydirs="false" todir="classes">
             <fileset dir="src">
-                <exclude name="**/*.launch"/>
                 <exclude name="**/*.java"/>
             </fileset>
         </copy>

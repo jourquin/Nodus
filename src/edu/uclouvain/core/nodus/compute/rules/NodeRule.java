@@ -95,7 +95,7 @@ public class NodeRule {
 
   /**
    * Get the nature of the rule: inclusion or exclusion.
-   * 
+   *
    * @return True if the rule is an exclusion.
    */
   public boolean isExclusion() {

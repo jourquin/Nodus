@@ -479,9 +479,9 @@ public class VirtualLink {
   }
 
   /**
-   * Transform the volumes on the virtual link into vehicles and updates the 
-   * corresponding real link PCU's. 
-   * 
+   * Transform the volumes on the virtual link into vehicles and updates the corresponding real link
+   * PCU's.
+   *
    * @param groupIndex The index of the group of commodities.
    * @param timeSlice The time slice to consider.
    * @param averageLoad The average load for a vehicle using this virtual link.

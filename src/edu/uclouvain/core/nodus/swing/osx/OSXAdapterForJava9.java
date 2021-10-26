@@ -1,7 +1,6 @@
 package edu.uclouvain.core.nodus.swing.osx;
 
 import edu.uclouvain.core.nodus.NodusMapPanel;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

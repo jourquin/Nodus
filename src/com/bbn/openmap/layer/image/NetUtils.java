@@ -34,9 +34,8 @@ import javax.swing.JOptionPane;
 
 /**
  * Convenience class with network utilities.
- * 
- * @author Bart Jourquin
  *
+ * @author Bart Jourquin
  */
 public class NetUtils {
 

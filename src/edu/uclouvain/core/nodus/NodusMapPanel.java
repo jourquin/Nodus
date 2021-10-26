@@ -80,12 +80,6 @@ import com.bbn.openmap.tools.drawing.NodusOMPolyLoader;
 import com.bbn.openmap.tools.drawing.OMDrawingToolMouseMode;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
-import com.thizzer.jtouchbar.JTouchBar;
-import com.thizzer.jtouchbar.item.TouchBarItem;
-import com.thizzer.jtouchbar.item.view.TouchBarButton;
-import com.thizzer.jtouchbar.item.view.TouchBarView;
-import com.thizzer.jtouchbar.item.view.action.TouchBarViewAction;
-
 import edu.uclouvain.core.nodus.compute.assign.gui.AssignmentDlg;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.results.gui.ResultsDlg;
@@ -109,7 +103,6 @@ import edu.uclouvain.core.nodus.utils.JavaVersionUtil;
 import edu.uclouvain.core.nodus.utils.PluginsLoader;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
-
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -148,7 +141,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Properties;
 import java.util.Vector;
-
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -247,9 +239,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** OpenMap component. See OpenMap documentation for more details. */
   private InformationDelegator infoDelegator = new InformationDelegator();
-
-  /** A MacBook Pro touchbar. */
-  private JTouchBar initialTouchBar = null;
 
   /** The browser used for the Nodus API. */
   HelpBrowser javaDocBrowser = null;
@@ -421,9 +410,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** Vector of project specific plugins menu items. */
   private Vector<JMenuItem> projectPluginsMenuItems = new Vector<>();
-
-  /** A MacBook Pro touchbar. */
-  private JTouchBar regularTouchBar = null;
 
   /** Used to know if the scenario is changed in order to reset the displayed results. */
   private int lastScenario = -1;
@@ -1104,138 +1090,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   private void displayScenarioCombo(boolean visible) {
     scenarioLabel.setVisible(visible);
     scenarioComboBox.setVisible(visible);
-  }
-
-  /**
-   * If Nodus runs on a recent Mac with touchbar, this method displays the initial touchbar or a
-   * more complete one once a project is loaded.
-   *
-   * @param isProjectOpen If true, a touchbar with several actions is displayed. Otherwise, only an
-   *     icon and an "Open project" button is shown.
-   */
-  public void displayTouchBar(boolean isProjectOpen) {
-    if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
-
-      if (initialTouchBar == null) {
-
-        // When no project is loaded
-        initialTouchBar = new JTouchBar();
-        initialTouchBar.setCustomizationIdentifier("NodusTouchBar0");
-
-        // Nodus icon
-        TouchBarButton nodusIcon = new TouchBarButton();
-        com.thizzer.jtouchbar.common.Image img =
-            new com.thizzer.jtouchbar.common.Image(
-                NodusMapPanel.class.getResource("nodus.png").getPath(), true);
-        nodusIcon.setImage(img);
-        nodusIcon.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
-        initialTouchBar.addItem(new TouchBarItem("fake_button", nodusIcon, true));
-
-        TouchBarButton openTbB = new TouchBarButton();
-        openTbB.setTitle(i18n.get(NodusMapPanel.class, "Open_project", "Open project"));
-        openTbB.setAction(
-            new TouchBarViewAction() {
-              @Override
-              public void onCall(TouchBarView view) {
-                menuItemFileOpenActionPerformed(null);
-              }
-            });
-        openTbB.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
-        initialTouchBar.addItem(new TouchBarItem("open", openTbB, true));
-
-        // When a project is loaded
-        regularTouchBar = new JTouchBar();
-        regularTouchBar.setCustomizationIdentifier("NodusTouchBar1");
-
-        // F2
-        TouchBarButton f2 = new TouchBarButton();
-        f2.setTitle(i18n.get(NodusMapPanel.class, "Cost_edit", "Cost edit"));
-        f2.setAction(
-            new TouchBarViewAction() {
-              @Override
-              public void onCall(TouchBarView view) {
-                menuItemProjectCostsActionPerformed(null);
-              }
-            });
-        f2.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
-        regularTouchBar.addItem(new TouchBarItem("f2", f2, true));
-
-        // F3
-        if (NodusC.withServices) {
-          TouchBarButton f3 = new TouchBarButton();
-          f3.setTitle(i18n.get(NodusMapPanel.class, "Services", "Services"));
-          f3.setAction(
-              new TouchBarViewAction() {
-                @Override
-                public void onCall(TouchBarView view) {
-                  menuItemProjectServicesActionPerformed(null);
-                }
-              });
-          f3.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
-          regularTouchBar.addItem(new TouchBarItem("f3", f3, true));
-        }
-
-        // F4
-        TouchBarButton f4 = new TouchBarButton();
-        f4.setTitle(i18n.get(NodusMapPanel.class, "Assignment", "Assignment"));
-        f4.setAction(
-            new TouchBarViewAction() {
-              @Override
-              public void onCall(TouchBarView view) {
-                menuItemProjectAssignmentActionPerformed(null);
-              }
-            });
-        f4.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
-        regularTouchBar.addItem(new TouchBarItem("f4", f4, true));
-
-        // F5
-        TouchBarButton f5 = new TouchBarButton();
-        f5.setTitle(i18n.get(NodusMapPanel.class, "Results", "Results"));
-        f5.setAction(
-            new TouchBarViewAction() {
-              @Override
-              public void onCall(TouchBarView view) {
-                menuItemProjectDisplayResultsActionPerformed(null);
-              }
-            });
-        f5.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
-        regularTouchBar.addItem(new TouchBarItem("f5", f5, true));
-
-        // F6
-        TouchBarButton f6 = new TouchBarButton();
-        f6.setTitle(i18n.get(NodusMapPanel.class, "Scenarios", "Scenarios"));
-        f6.setAction(
-            new TouchBarViewAction() {
-              @Override
-              public void onCall(TouchBarView view) {
-                menuItemProjectScenariosActionPerformed(null);
-              }
-            });
-        f6.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
-        regularTouchBar.addItem(new TouchBarItem("f6", f6, true));
-
-        // F7
-        TouchBarButton f7 = new TouchBarButton();
-        f7.setTitle(i18n.get(NodusMapPanel.class, "SQL_console", "SQL console"));
-        f7.setAction(
-            new TouchBarViewAction() {
-              @Override
-              public void onCall(TouchBarView view) {
-                menuItemProjectSQLConsoleActionPerformed(null);
-              }
-            });
-        f7.setBezelColor(com.thizzer.jtouchbar.common.Color.CLEAR);
-        regularTouchBar.addItem(new TouchBarItem("f7", f7, true));
-      }
-
-      if (isProjectOpen) {
-        initialTouchBar.hide(getMainFrame());
-        regularTouchBar.show(getMainFrame());
-      } else {
-        regularTouchBar.hide(getMainFrame());
-        initialTouchBar.show(getMainFrame());
-      }
-    }
   }
 
   /** Sets the MapBean variable to null and removes all children. */
@@ -2276,7 +2130,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       nodusProject.close();
       displayScenarioCombo(false);
       displayPoliticalBoundaries(true, true);
-      displayTouchBar(false);
     }
   }
 
@@ -2581,7 +2434,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         resetText();
         updateScenarioComboBox(true);
         enableMenus(true);
-        displayTouchBar(true);
       }
     }
   }

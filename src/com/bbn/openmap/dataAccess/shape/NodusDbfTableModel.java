@@ -34,17 +34,14 @@ import javax.swing.JFrame;
 
 /**
  * An extended DbfTableModel to be used with NodusMetaDbfTableModel.
- * 
- * @author Bart Jourquin
  *
+ * @author Bart Jourquin
  */
 public class NodusDbfTableModel extends DbfTableModel {
 
   private static final long serialVersionUID = -7993112735644200473L;
 
-  /**
-   * The layer that hold this table model.
-   */
+  /** The layer that hold this table model. */
   protected NodusEsriLayer layer;
 
   /**
@@ -68,6 +65,7 @@ public class NodusDbfTableModel extends DbfTableModel {
 
   /**
    * Creates a DbfTableModel from an input stream.
+   *
    * @param is DbfInputStream.
    */
   public NodusDbfTableModel(DbfInputStream is) {
@@ -125,7 +123,7 @@ public class NodusDbfTableModel extends DbfTableModel {
         }
       }
     }
-    
+
     // Show it on the left of the app
     frame.setLocationRelativeTo(layer.getNodusMapPanel().getNodusLayersPanel());
     frame.setVisible(true);

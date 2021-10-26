@@ -47,7 +47,7 @@ public class PluginsLoader {
 
   /**
    * Returns a list of available plugin's.
-   * 
+   *
    * @return A LinkedList of available pugin's.
    */
   public LinkedList<Class<NodusPlugin>> getAvailablePlugins() {

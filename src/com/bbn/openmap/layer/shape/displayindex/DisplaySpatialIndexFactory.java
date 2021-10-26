@@ -23,6 +23,11 @@ package com.bbn.openmap.layer.shape.displayindex;
 
 import com.bbn.openmap.omGraphics.OMGraphicList;
 
+/**
+ * A specific spatial index intended to fasten the rendering of large shapefiles.
+ *
+ * @author Bart Jourquin, inspired from ???
+ */
 public class DisplaySpatialIndexFactory {
 
   /**

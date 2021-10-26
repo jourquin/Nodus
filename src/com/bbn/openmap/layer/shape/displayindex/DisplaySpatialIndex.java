@@ -31,6 +31,11 @@ import com.bbn.openmap.util.DataBoundsProvider;
 import java.io.IOException;
 import java.util.Iterator;
 
+/**
+ * A specific spatial index intended to fasten the rendering of large shapefiles.
+ *
+ * @author Bart Jourquin, inspired from ???
+ */
 public interface DisplaySpatialIndex extends DataBoundsProvider {
 
   /**
@@ -66,8 +71,8 @@ public interface DisplaySpatialIndex extends DataBoundsProvider {
    * @param drawingAttributes DrawingAttributes to set on the OMGraphics.
    * @param mapProj the Map Projection for the OMGraphics so they can be generated right after
    *     creation.
-   * @param dataProj for preprojected data, the data projection to use to translate the
-   *     coordinates to decimal degree lat/lon. Can be null to leave the coordinates untouched.
+   * @param dataProj for preprojected data, the data projection to use to translate the coordinates
+   *     to decimal degree lat/lon. Can be null to leave the coordinates untouched.
    * @return an OMGraphicList containing OMGraphics that intersect the given rectangle
    * @exception IOException if something goes wrong reading the files
    */
@@ -91,8 +96,8 @@ public interface DisplaySpatialIndex extends DataBoundsProvider {
    * @param drawingAttributes DrawingAttributes to set on the OMGraphics.
    * @param mapProj the Map Projection for the OMGraphics so they can be generated right after
    *     creation.
-   * @param dataProj for preprojected data, the data projection to use to translate the
-   *     coordinates to decimal degree lat/lon. Can be null to leave the coordinates untouched.
+   * @param dataProj for preprojected data, the data projection to use to translate the coordinates
+   *     to decimal degree lat/lon. Can be null to leave the coordinates untouched.
    * @return an OMGraphicList containing OMGraphics that intersect the given rectangle
    * @exception IOException if something goes wrong reading the files
    */

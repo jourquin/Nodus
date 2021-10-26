@@ -51,9 +51,8 @@ import javax.swing.UIManager.LookAndFeelInfo;
 
 /**
  * A dialog that presents the available look and feel's.
- * 
- * @author Bart Jourquin
  *
+ * @author Bart Jourquin
  */
 public class LookAndFeelChooser extends EscapeDialog {
 

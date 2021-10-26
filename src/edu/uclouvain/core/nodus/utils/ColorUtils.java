@@ -33,6 +33,7 @@ public class ColorUtils {
 
   /**
    * Returns a Color given its name or ARGB hex representation.
+   *
    * @param colorString The name of a color or an ARGB hex value
    * @param defaultColor The Color to return if the decoding fails.
    * @return The Color that was decoded or the default value.

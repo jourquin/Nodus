@@ -203,14 +203,12 @@ public class Nodus {
 
             // Run the "nodus.groovy" script if exists
             String scriptFileName =
-                    System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
+                System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
             ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
             scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
             scriptRunner.setVariable("startNodus", true);
             scriptRunner.setVariable("quitNodus", false);
             scriptRunner.run(true);
-
-            nodusMapPanel.displayTouchBar(false);
 
             // Load the project passed as parameter
             if (projectToLoad != null) {

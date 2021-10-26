@@ -71,7 +71,7 @@ public class WmsCapabilitiesXmlParser extends DefaultHandler {
    *
    * @param node Vector
    */
-  @SuppressWarnings({"unchecked","rawtypes"})
+  @SuppressWarnings({"unchecked", "rawtypes"})
   protected void eliminateInnerNodes(Vector node) {
     for (int i = 0; i < node.size(); i++) {
       CapabilitiesInnerTreeNode currChild = (CapabilitiesInnerTreeNode) node.elementAt(i);

@@ -40,7 +40,7 @@ import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.util.Iterator;
 
 /**
- * The Incremental + Frank-Wolfd equilibrium assignment algorithm. See <i> Jourquin B. and Limbourg
+ * The Incremental + Frank-Wolf equilibrium assignment algorithm. See <i> Jourquin B. and Limbourg
  * S., Equilibrium Traffic Assignment on Large Virtual Networks, Implementation issues and limits
  * for Multi-Modal Freight Transport, European Journal of Transport and Infrastructure Research, Vol
  * 6, n°3, pp. 205-228, 2006. </i>
@@ -48,11 +48,9 @@ import java.util.Iterator;
  * <p>This method uses the output of Incremental equilibrium assignment as basic solution for a
  * Frank-Wolfe equilibrium assignment algorithm.
  *
+ * <p>Doesn't work (anymore). Is disabled since Nodus 8.0.
+ *
  * @author Bart Jourquin
- */
-
-/*
- * Doesn't work (anymore). Is disabled since Nodus 8.0. 
  */
 public class IncFrankWolfeAssignment extends Assignment {
 

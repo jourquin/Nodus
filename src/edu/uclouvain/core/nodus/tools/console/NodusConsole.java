@@ -246,9 +246,7 @@ public class NodusConsole extends WindowAdapter
    * @hidden
    */
   @Override
-  public synchronized void actionPerformed(ActionEvent evt) {
-
-  }
+  public synchronized void actionPerformed(ActionEvent evt) {}
 
   /** Clears the console. */
   public void clear() {
@@ -269,10 +267,11 @@ public class NodusConsole extends WindowAdapter
     return input;
   }
 
-  /** 
+  /**
    * .
-   * @hidden 
-   **/
+   *
+   * @hidden
+   */
   @Override
   public synchronized void run() {
     try {
@@ -414,7 +413,7 @@ public class NodusConsole extends WindowAdapter
 
   /**
    * Closes the console.
-   * 
+   *
    * @param evt WindowEvent.
    * @hidden
    */

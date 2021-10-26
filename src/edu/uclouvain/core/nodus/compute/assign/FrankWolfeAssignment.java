@@ -45,11 +45,9 @@ import java.util.Iterator;
  * Implementation issues and limits for Multi-Modal Freight Transport, European Journal of Transport
  * and Infrastructure Research, Vol 6, n°3, pp. 205-228, 2006.</i>
  *
+ * <p>Doesn't work (anymore). Is disabled since Nodus 8.0.
+ *
  * @author Bart Jourquin
- */
-
-/*
- * Doesn't work (anymore). Is disabled since Nodus 8.0.
  */
 public class FrankWolfeAssignment extends Assignment {
 

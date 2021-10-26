@@ -265,7 +265,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
 
   /**
    * Get the name of the field that is used as location label.
-   * 
+   *
    * @return The name of the field.
    */
   public String getLocationFieldName() {

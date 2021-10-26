@@ -28,9 +28,8 @@ import java.util.List;
 
 /**
  * Modal split method skeleton.
- * 
- * @author Bart Jourquin
  *
+ * @author Bart Jourquin
  */
 public abstract class ModalSplitMethod implements Cloneable {
 
@@ -56,7 +55,7 @@ public abstract class ModalSplitMethod implements Cloneable {
    * Returns a copy of this object. Needed a the ModalSpiltMethod is initialized at the assignment
    * level, but also at the assignment worker (thread) level. An instance of the ModalSplitMethod
    * must exist in each worker.
-   * 
+   *
    * @return a clone of the ModalSplitMethod.
    */
   public Object clone() throws CloneNotSupportedException {
@@ -74,7 +73,7 @@ public abstract class ModalSplitMethod implements Cloneable {
 
   /**
    * Returns the group of commodities associated to this modal split method.
-   * 
+   *
    * @return The ID of the group of commodities.
    */
   public int getCurrentGroup() {

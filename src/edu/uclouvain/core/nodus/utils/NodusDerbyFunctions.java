@@ -46,6 +46,7 @@ public class NodusDerbyFunctions {
 
   /**
    * For testing purpose...
+   *
    * @param args .
    * @hidden
    */

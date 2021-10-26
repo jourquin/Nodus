@@ -87,15 +87,16 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
 
   /** . */
   private float upperLeftLon;
-  
+
   /** . */
   private float lowerRightLat;
-  
+
   /** . */
   private float lowerRightLon;
 
   /**
    * Constructs the HighlightedAreaLayer.
+   *
    * @param project The Nodus project
    */
   public HighlightedAreaLayer(NodusProject project) {
@@ -350,7 +351,9 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
 
   /**
    * .
-   *  @hidden */
+   *
+   * @hidden
+   */
   @Override
   public boolean mouseClicked(MouseEvent e) {
     return false;
@@ -358,55 +361,63 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
 
   /**
    * .
-   *  @hidden */
+   *
+   * @hidden
+   */
   @Override
   public boolean mouseDragged(MouseEvent e) {
     return false;
   }
 
-  /** 
+  /**
    * .
-   * @hidden */
+   *
+   * @hidden
+   */
   @Override
-  public void mouseEntered(MouseEvent e) {
+  public void mouseEntered(MouseEvent e) {}
 
-  }
-
-  /** 
+  /**
    * .
-   * @hidden */
+   *
+   * @hidden
+   */
   @Override
-  public void mouseExited(MouseEvent e) {
+  public void mouseExited(MouseEvent e) {}
 
-  }
-
-  /** 
+  /**
    * .
-   * @hidden */
+   *
+   * @hidden
+   */
   @Override
-  public void mouseMoved() {
+  public void mouseMoved() {}
 
-  }
-
-  /** 
+  /**
    * .
-   * @hidden */
+   *
+   * @hidden
+   */
   @Override
   public boolean mouseMoved(MouseEvent e) {
     return false;
   }
 
-  /** 
+  /**
    * .
-   * @hidden */
+   *
+   * @hidden
+   */
   @Override
   public boolean mousePressed(MouseEvent e) {
     return false;
   }
 
-  /** 
+  /**
    * .
-   * @hidden */
+   *
+   * @hidden
+   */
   @Override
   public boolean mouseReleased(MouseEvent e) {
     return false;
