@@ -273,6 +273,9 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Upgrade to Groovy 3.0.9
 - Upgrade to commons-io-2.11.0 and commons-csc-1.9.0
 - Upgrade to HSQLDB 2.6.1
+- Fix call to a deprecated commons-cvs API
+- Upgrade to latest version of the J4R R package
+- Upgrade to OSHI 5.8.3
 
 
  

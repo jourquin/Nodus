@@ -44,17 +44,12 @@
         <pathelement location="lib/poi-ooxml-4.1.2.jar"/>
         <pathelement location="lib/poi-ooxml-schemas-4.1.2.jar"/>
         <pathelement location="lib/guava-19.0.jar"/>
-        <pathelement location="lib/jna-platform-5.6.0.jar"/>
         <pathelement location="lib/javadbf4nodus-1.12.2.jar"/>
         <pathelement location="lib/groovy/jcommander-1.78.jar"/>
         <pathelement location="devtools/mrjtoolkitstubs-1.0 2.jar"/>
         <pathelement location="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
         <pathelement location="lib/groovy/javax.servlet.jsp-api-2.3.3.jar"/>
         <pathelement location="lib/groovy/javax.servlet-api-4.0.1.jar"/>
-        <pathelement location="lib/oshi-core-5.6.0.jar"/>
-        <pathelement location="lib/jna-5.7.0.jar"/>
-        <pathelement location="lib/slf4j-api-1.7.30.jar"/>
-        <pathelement location="lib/slf4j-nop-1.7.30.jar"/>
         <pathelement location="lib/rsyntaxtextarea-3.1.2.jar"/>
         <pathelement location="lib/xchart-3.8.0.jar"/>
         <pathelement location="lib/hsqldb-jdk8.jar"/>
@@ -114,6 +109,11 @@
         <pathelement location="lib/groovy/xstream-1.4.18.jar"/>
         <pathelement location="lib/commons-csv-1.9.0.jar"/>
         <pathelement location="lib/commons-io-2.11.0.jar"/>
+        <pathelement location="lib/oshi-core-5.8.3.jar"/>
+        <pathelement location="lib/slf4j-api-1.7.32.jar"/>
+        <pathelement location="lib/slf4j-nop-1.7.32.jar"/>
+        <pathelement location="lib/jna-5.9.0.jar"/>
+        <pathelement location="lib/jna-platform-5.9.0.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
