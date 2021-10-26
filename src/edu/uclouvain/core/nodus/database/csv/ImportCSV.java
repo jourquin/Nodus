@@ -62,7 +62,7 @@ public class ImportCSV {
    */
   public static boolean importTable(NodusProject project, String tableName, boolean withHeader) {
 
-    //long start = System.currentTimeMillis();
+    // long start = System.currentTimeMillis();
 
     int maxBatchSize =
         project.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
@@ -102,7 +102,8 @@ public class ImportCSV {
       Reader in = new FileReader(fileName);
       Iterable<CSVRecord> records;
       if (withHeader) {
-        records = CSVFormat.RFC4180.withFirstRecordAsHeader().parse(in);
+        records =
+            CSVFormat.RFC4180.builder().setHeader().setSkipHeaderRecord(true).build().parse(in);
       } else {
         records = CSVFormat.RFC4180.parse(in);
       }
@@ -115,9 +116,9 @@ public class ImportCSV {
         }
       }
 
-      //boolean oldAutoCommit = false;
+      // boolean oldAutoCommit = false;
       boolean oldAutoCommit = con.getAutoCommit();
-      //con.setAutoCommit(false);
+      // con.setAutoCommit(false);
 
       PreparedStatement prepStmt = null;
 
@@ -177,8 +178,8 @@ public class ImportCSV {
       return false;
     }
 
-    //long end = System.currentTimeMillis();
-    //System.out.println("Duration : " + ((end - start) / 1000));
+    // long end = System.currentTimeMillis();
+    // System.out.println("Duration : " + ((end - start) / 1000));
 
     return true;
   }
