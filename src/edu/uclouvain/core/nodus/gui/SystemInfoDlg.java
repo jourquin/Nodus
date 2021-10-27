@@ -29,6 +29,8 @@ import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JEditorPane;
@@ -60,35 +62,40 @@ public class SystemInfoDlg extends EscapeDialog {
 
   /** . */
   private String computerInfo = HardwareUtils.getComputerInfo();
-  
+
   /** . */
   private String processorInfo = HardwareUtils.getProcessorInfo();
-  
+
   /** . */
   private String displayInfo = HardwareUtils.getDisplayInfo();
-  
+
   /** . */
   private String graphicCardsInfo = HardwareUtils.getGraphicsCardInfo();
-  
+
   /** . */
   private String osInfo = HardwareUtils.getOsInfo();
-  
+
   /** . */
   private String totalMemoryInfo = HardwareUtils.getTotalMemoryInfo();
-  
+
   /** . */
   private String availableMemoryInfo = HardwareUtils.getAvailableMemoryInfo();
-  
+
   /** . */
   private String htmlDescription;
+
+  /** . */
+  private JDialog aboutDlg;
 
   /**
    * Creates the dialog box.
    *
-   * @param aboutDlg The parent dialog.
+   * @param parent The parent dialog.
    */
-  public SystemInfoDlg(JDialog aboutDlg) {
-    super(aboutDlg, i18n.get(SystemInfoDlg.class, "System_info", "System info"), true);
+  public SystemInfoDlg(JDialog parent) {
+    super(parent, i18n.get(SystemInfoDlg.class, "System_info", "System info"), true);
+
+    aboutDlg = parent;
 
     this.setContentPane(getMainPanel());
     pack();
@@ -99,7 +106,7 @@ public class SystemInfoDlg extends EscapeDialog {
     setSize(width + 20, height + 20);
 
     getRootPane().setDefaultButton(closeButton);
-    setLocationRelativeTo(aboutDlg);
+    setLocationRelativeTo(parent);
   }
 
   /**
@@ -189,6 +196,20 @@ public class SystemInfoDlg extends EscapeDialog {
               + suffix;
 
       systemInfo = new JEditorPane();
+
+      // Display Oshi gui on double-click
+      systemInfo.addMouseListener(
+          new MouseAdapter() {
+
+            public void mouseClicked(MouseEvent e) {
+              if (e.getClickCount() == 2 && !e.isConsumed()) {
+                e.consume();
+                closeButton.doClick();
+                aboutDlg.setVisible(false);
+                new OshiGui();
+              }
+            }
+          });
       systemInfo.setContentType("text/html");
       systemInfo.setEditable(false);
       systemInfo.setText(htmlDescription);

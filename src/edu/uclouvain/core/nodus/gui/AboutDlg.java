@@ -32,7 +32,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import javax.swing.JButton;
-import javax.swing.JDialog;
 import javax.swing.JEditorPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -90,7 +89,7 @@ public class AboutDlg extends EscapeDialog {
       systemInfoButton = new JButton();
       systemInfoButton.setText(i18n.get(AboutDlg.class, "System_info", "System info"));
 
-      final JDialog _this = this;
+      final EscapeDialog _this = this;
       systemInfoButton.addActionListener(
           new java.awt.event.ActionListener() {
             @Override
