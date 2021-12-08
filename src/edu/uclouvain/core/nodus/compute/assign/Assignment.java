@@ -108,6 +108,9 @@ public abstract class Assignment implements Runnable {
   /** A parser and place holder for the vehicles characteristics (average load and PCU. */
   protected VehiclesParser vehiclesParser = null;
 
+  /* TODO Verify coherence between assigned vehicles on virtual network and on
+  labels (even simple ToR) */
+
   /**
    * Initializes the assignment procedure. The effective computation starts calling the run()
    * methode.
@@ -224,7 +227,7 @@ public abstract class Assignment implements Runnable {
       nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_OK);
     } else {
       nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
-      
+
       // Path tables are create before the assignment starts. Delete them on error.
       pathWriter.deletePathsTables();
     }

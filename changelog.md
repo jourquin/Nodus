@@ -278,7 +278,7 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Upgrade to OSHI 5.8.3
 - Upgrade to POI 5.0
 - Upgrade to rsyntaxtextarea 3.1.3
-- A double-click in the System info dialog now launches a OSHI console (hidden gem)
+- A double-click in the System info dialog now launches a OSHI console (easter egg)
 
 
  
