@@ -267,7 +267,7 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 ## v8.1 - Build20211012
 - Upgrade to Parsii 5.0.1 (handles scientific notation)
 
-## v8.1 - BuildXXXXXXXX
+## v8.1 - Build20211223
 - Remove support for MacBook touchbar. Not useful and not anymore present on the latest MacBook's
 - Reformat some code to apply latest checkstyle rules.
 - Upgrade to Groovy 3.0.9
@@ -279,6 +279,8 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Upgrade to POI 5.0
 - Upgrade to rsyntaxtextarea 3.1.3
 - A double-click in the System info dialog now launches a OSHI console (easter egg)
+- Upgrade to openmap 6.0 (non beta release)
+
 
 
  
