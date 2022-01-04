@@ -281,8 +281,10 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - A double-click in the System info dialog now launches a OSHI console (easter egg)
 - Upgrade to openmap 6.0 (non beta release)
 
-## v8.1 - BuildXXXXXXXX
+## v8.1 - Build20220103
 - Update copyright date to 2022
+- Install the "Times" font if needed on Mac OS Monterey machines
+
 
 
  

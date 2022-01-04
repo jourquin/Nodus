@@ -88,6 +88,7 @@
 			</executable>
 
 			<fileset dir="lib" targetdir="${INSTALL_PATH}/lib" />
+			<fileset dir="share" targetdir="${INSTALL_PATH}/share" />
 			<fileset dir="licenses" targetdir="${INSTALL_PATH}/licenses" />
 			<fileset dir="plugins" targetdir="${INSTALL_PATH}/plugins" />
 			<executable targetfile="$INSTALL_PATH/plugins/compile.sh" os="unix" stage="never" />

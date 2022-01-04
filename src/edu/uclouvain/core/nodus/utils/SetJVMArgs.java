@@ -21,11 +21,15 @@
 
 package edu.uclouvain.core.nodus.utils;
 
+import java.awt.GraphicsEnvironment;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Scanner;
+import org.apache.commons.io.FileUtils;
 
 /**
  * This utility is called in order to set reasonable values for the -Xmx and -Xms JVM parameters in
@@ -45,6 +49,9 @@ import java.util.Scanner;
  * to mimic Mac OS PLAF will no longer be allowed is future versions of the JVM.
  *
  * <p>Since Nodus 8.1, the additional -Dfile.encoding=UTF8 flag is set.
+ *
+ * <p>Since Nodus 8.1 Build 20220103, the Times font is also installed on Mac OS Monterey machines
+ * if needed.
  *
  * @author Bart Jourquin
  */
@@ -76,6 +83,9 @@ public class SetJVMArgs {
 
     // Set the --illegal-access=permit flag if needed
     setIllegalAccessFlag(envtFileName);
+    
+    // Install the Times font if needed
+    installTimesFontIfNeeded();
   }
 
   /**
@@ -228,6 +238,48 @@ public class SetJVMArgs {
 
     } catch (IOException e) {
       e.printStackTrace();
+    }
+  }
+
+  private void installTimesFontIfNeeded() {
+
+    if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
+
+      // Test if the Times font is installed
+      boolean isInstalled = false;
+      GraphicsEnvironment g = null;
+
+      try {
+        // Intercept the warning message
+        final PrintStream err = new PrintStream(System.err);
+        System.setErr(new PrintStream("/dev/null"));
+        g = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        System.setErr(err);
+      } catch (FileNotFoundException e1) {
+        e1.printStackTrace();
+      }
+
+      String[] fonts = g.getAvailableFontFamilyNames();
+      for (int i = 0; i < fonts.length; i++) {
+        if (fonts[i].equals("Times")) {
+          isInstalled = true;
+        }
+      }
+
+      // Install if needed
+      if (!isInstalled) {
+        String userDir = System.getProperty("user.home");
+        String fontDir = userDir + "/Library/Fonts/";
+
+        // Copy the font in the dir
+        File source = new File("share/times.ttf");
+        File dest = new File(fontDir + "times.ttf");
+        try {
+          FileUtils.copyFile(source, dest);
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
     }
   }
 }
