@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 #
-# Copyright (c) 1991-2021 Université catholique de Louvain
+# Copyright (c) 1991-2022 Université catholique de Louvain
 #
 # <p>Center for Operations Research and Econometrics (CORE)
 #
