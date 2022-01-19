@@ -93,13 +93,10 @@ import edu.uclouvain.core.nodus.gui.ProjectPreferencesDlg;
 import edu.uclouvain.core.nodus.gui.SplashDlg;
 import edu.uclouvain.core.nodus.helpbrowser.HelpBrowser;
 import edu.uclouvain.core.nodus.swing.OnTopKeeper;
-import edu.uclouvain.core.nodus.swing.osx.OSXAdapter;
-import edu.uclouvain.core.nodus.swing.osx.OSXAdapterForJava9;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NodusGroovyConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NotePad;
 import edu.uclouvain.core.nodus.utils.HardwareUtils;
-import edu.uclouvain.core.nodus.utils.JavaVersionUtil;
 import edu.uclouvain.core.nodus.utils.PluginsLoader;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
@@ -107,6 +104,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.Graphics;
@@ -442,6 +440,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
+  private Desktop desktop = Desktop.getDesktop();
+
   /**
    * Creates all the GUI components needed by Nodus on the application's panel. The application's
    * properties are also passed as a parameter in order to restore and save the application "state".
@@ -704,7 +704,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     menuItemFileOpen.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     menuItemFileOpen.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -724,7 +724,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     menuItemFileSave.setEnabled(false);
     menuItemFileSave.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     menuItemFileSave.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -744,7 +744,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     menuItemFilePrint.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     menuItemFilePrint.setEnabled(false);
     menuItemFilePrint.addActionListener(
         new java.awt.event.ActionListener() {
@@ -756,7 +756,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     menuItemFileExit.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_Q, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_Q, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     menuItemFileExit.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -1100,13 +1100,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     removeAll();
   }
 
-  
   // TODO Assignment menu not always enabled after assignment error.
   /**
    * Enable/Disable the menu items that are accessible only when a project is loaded.
    *
    * @param state boolean
-   * 
    */
   public void enableMenus(boolean state) {
 
@@ -1482,7 +1480,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     loaders.add(cadrgl);
     loaders.add(orthol);
     loaders.add(gnomonicl);
-    
+
     menuProjection.configure(loaders);
 
     menuProjection.findAndInit(mapBean);
@@ -1738,22 +1736,10 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")
         && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
-      // Use the standard Mac exit
-      try {
-        if (JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
-          OSXAdapterForJava9.setQuitHandler(
-              this,
-              getClass()
-                  .getDeclaredMethod(
-                      "menuItemFileExitActionPerformed9", new Class[] {EventObject.class}));
-        } else {
-          OSXAdapter.setQuitHandler(
-              this,
-              getClass().getDeclaredMethod("menuItemFileExitActionPerformed", (Class[]) null));
-        }
-      } catch (NoSuchMethodException | SecurityException e) {
-        e.printStackTrace();
-      }
+      desktop.setQuitHandler(
+          (e, r) -> {
+            menuItemFileExitActionPerformed();
+          });
     } else {
       menuFile.addSeparator();
       menuFile.add(menuItemFileExit);
@@ -1781,23 +1767,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")
         && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
+      desktop.setAboutHandler(e -> menuItemAboutActionPerformed());
 
-      // Use the standard Mac About
-      try {
-        if (JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
-
-          OSXAdapterForJava9.setAboutHandler(
-              this,
-              getClass()
-                  .getDeclaredMethod(
-                      "menuItemAboutActionPerformed9", new Class[] {EventObject.class}));
-        } else {
-          OSXAdapter.setAboutHandler(
-              this, getClass().getDeclaredMethod("menuItemAboutActionPerformed", (Class[]) null));
-        }
-      } catch (NoSuchMethodException | SecurityException e) {
-        e.printStackTrace();
-      }
     } else {
       menuHelp.add(menuItemHelpAbout);
     }
@@ -2059,15 +2030,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /**
-   * Used by the reflection mechanism by OSXAdapter9.
-   *
-   * @param event Event
-   */
-  public void menuItemAboutActionPerformed9(EventObject event) {
-    menuItemAboutActionPerformed();
-  }
-
-  /**
    * Change the MapBean's background color...
    *
    * @param e ActionEvent
@@ -2142,28 +2104,10 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     System.exit(0);
   }
 
-  /**
-   * Used by the reflection mechanism by OSXAdapter9.
-   *
-   * @param event Event
-   */
-  public void menuItemFileExitActionPerformed9(EventObject event) {
-    menuItemFileExitActionPerformed();
-  }
-
   /** Opens the global preferences dialog box. */
   public void menuItemFileGlobalPreferencesActionPerformed() {
     GlobalPreferencesDlg dlg = new GlobalPreferencesDlg(this);
     dlg.setVisible(true);
-  }
-
-  /**
-   * Used by the reflection mechanism by OSXAdapter9.
-   *
-   * @param event Event
-   */
-  public void menuItemFileGlobalPreferencesActionPerformed9(EventObject event) {
-    menuItemFileGlobalPreferencesActionPerformed();
   }
 
   /**
@@ -2683,6 +2627,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   private void setGlobalPreferencesMenu() {
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")
         && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
+      desktop.setPreferencesHandler(e -> menuItemFileGlobalPreferencesActionPerformed());
+
+      /*
       // Use the standard Mac preferences
       try {
         if (JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
@@ -2701,7 +2648,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         }
       } catch (NoSuchMethodException | SecurityException e) {
         e.printStackTrace();
-      }
+      }*/
 
     } else {
       menuFile.add(menuItemSystemProperties);
@@ -2999,8 +2946,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /**
-   * These methods are used to store / retrieve objects set from a Groovy script for instance.
-   * This allows having access to the values of some variables set by a script and used by another.
+   * These methods are used to store / retrieve objects set from a Groovy script for instance. This
+   * allows having access to the values of some variables set by a script and used by another.
    */
   private HashMap<String, Object> store = new HashMap<String, Object>();
 

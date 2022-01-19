@@ -395,37 +395,37 @@ public class NotePad extends JFrame {
 
     newMenuItem.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     openMenuItem.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     saveMenuItem.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     printMenuItem.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     exitMenuItem.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_Q, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_Q, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     cutMenuItem.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_X, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_X, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     copyMenuItem.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_C, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_C, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     pasteMenuItem.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_V, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_V, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     findMenuItem.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_F, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_F, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     findNexT.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_F3, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_F3, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     selectAllMenuItem.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_A, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_A, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
 
     toolBar.add(newButton = new JButton(new ImageIcon(getClass().getResource("images/new.png"))));
     toolBar.add(openBuuton = new JButton(new ImageIcon(getClass().getResource("images/open.png"))));

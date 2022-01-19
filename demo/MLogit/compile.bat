@@ -5,7 +5,7 @@ rem Add the Nodus main jar and libs to the classpath
 set CLASSPATH=../../nodus8.jar;../../lib/*;../../lib/groovy/*;../../lib/groovy/extras-jaxb/*
 
 rem Compile the source code of the plugin
-javac -source 1.8 -target 1.8 MLogit.java 
+javac -source 11 -target 11 MLogit.java 
 
 rem Create the JAR file
 jar cf MLogit.jar MLogit.class

@@ -21,15 +21,9 @@
 
 package edu.uclouvain.core.nodus.swing;
 
-import edu.uclouvain.core.nodus.utils.JavaVersionUtil;
 import java.awt.Dimension;
-import java.awt.Image;
 import java.awt.Toolkit;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import javax.swing.JDialog;
-import sun.misc.Unsafe;
 
 /**
  * A few convenient static methods used in Swing related java code.
@@ -75,62 +69,4 @@ public class GUIUtils {
     }
   }
 
-  /**
-   * Set the dock image when running on Mac OSX. This method uses reflection as the comm.apple.*
-   * classes are not available on Windows and Linux.
-   *
-   * @param icon The icon image to set in the dock.
-   */
-  public static void setMacOSDockImage(Image icon) {
-
-    try {
-      if (JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
-        Class<?> c = Class.forName("java.awt.Taskbar", false, null);
-        Method m = c.getMethod("getTaskbar");
-        Object applicationInstance = m.invoke(null);
-        m = applicationInstance.getClass().getMethod("setIconImage", java.awt.Image.class);
-        m.invoke(applicationInstance, icon);
-      } else {
-        Class<?> c = Class.forName("com.apple.eawt.Application", false, null);
-        Method m = c.getMethod("getApplication");
-        Object applicationInstance = m.invoke(null);
-        m = applicationInstance.getClass().getMethod("setDockIconImage", java.awt.Image.class);
-        m.invoke(applicationInstance, icon);
-      }
-    } catch (ClassNotFoundException e1) {
-      e1.printStackTrace();
-    } catch (NoSuchMethodException e1) {
-      e1.printStackTrace();
-    } catch (SecurityException e1) {
-      e1.printStackTrace();
-    } catch (IllegalAccessException e1) {
-      e1.printStackTrace();
-    } catch (IllegalArgumentException e1) {
-      e1.printStackTrace();
-    } catch (InvocationTargetException e1) {
-      e1.printStackTrace();
-    }
-  }
-
-  /**
-   * Suppress the illegal reflective access operation warnings thrown by JVM 9 and newer when
-   * com.apple.awt classes are used. The Nodus code should be able to call the java.desktop classes
-   * that now natively support the Apple desktop, but this is not supported by JVM 8.
-   */
-  public static void supressIllegalReflectiveAccessOperationWarnings() {
-    if (JavaVersionUtil.isJavaVersionAtLeast(9.0f)
-        && System.getProperty("os.name").toLowerCase().startsWith("mac")) {
-      try {
-        Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
-        theUnsafe.setAccessible(true);
-        Unsafe u = (Unsafe) theUnsafe.get(null);
-
-        Class<?> cls = Class.forName("jdk.internal.module.IllegalAccessLogger");
-        Field logger = cls.getDeclaredField("logger");
-        u.putObjectVolatile(cls, u.staticFieldOffset(logger), null);
-      } catch (Exception e) {
-        // ignore
-      }
-    }
-  }
 }

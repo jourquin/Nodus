@@ -9,5 +9,5 @@ This document is largely inspired by the reference guide that was written for No
 (1999). Even if the later versions of the software are very different from
 version 4.0, the methodological framework remains essentially unchanged.
 
-The LaTeX files for this methodological note (in English ane French) are provided
+The LaTeX files for this methodological note (in English and French) are provided
 in the "latex" sub-directory. 

@@ -1,4 +1,4 @@
-# Nodus 8.1 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
+# Nodus 8.2 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
 
 
 Nodus is a transportation network modeling software especially designed for multimodal and
@@ -56,6 +56,7 @@ the [Demo project](https://github.com/jourquin/Nodus/blob/master/demo).
 - 8.0 - February 2021: Introduce time functions (in addition to cost functions). Simplified API for modal-choice plugins. 
 Many under the hood improvements.
 - 8.1 - April 2021: Runs on Java 16 and allows Python scripting through a Py4J bridge and R scripting through a J4R bridge in addition to Groovy.
+- 8.2 - January 222: Runs on Java 17. Needs Java 11 or above to run.
 
 See the [change log](changelog.md) for a detailed build history.
 
@@ -63,7 +64,7 @@ See the [change log](changelog.md) for a detailed build history.
 
 Download the [Nodus installer](https://github.com/jourquin/Nodus/releases).
 As the software is written in the [Java](https://java.com/en/download/) programming language, the 
-latest must be installed on your computer. Nodus needs Java 8 or later. Depending on your system, either (double) click
+latest must be installed on your computer. Since version 8.2, Nodus needs Java 11 or later. Depending on your system, either (double) click
 on "Nodus8-install.jar" or run "java -jar Nodus8-install.jar" from your shell console.
 
 Once installed, Nodus can be launched using
@@ -107,7 +108,7 @@ of the License, or (at your option) any later version.
 ## Build from sources
 
 The Nodus distribution can be built from the sources. Therefore, you need a Java Development Kit 
-([JDK version 8](http://www.oracle.com/technetwork/java/javase/downloads/index.html)) or above. 
+([JDK version 11](http://www.oracle.com/technetwork/java/javase/downloads/index.html)) or above. 
 You also need Apache [Ant](http://ant.apache.org/). Be sure JAVA_HOME points to your JDK and 
 that ant is in your OS path.
 

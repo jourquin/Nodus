@@ -285,6 +285,10 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Update copyright date to 2022
 - Install the "Times" font if needed on Mac OS Monterey machines
 
+## v8.2 - Build2022xxxx
+- Removal of deprecated API calls needed by the MacOS native Look&feel. Needs Java 11 or above to run.
+
+
 
 
  

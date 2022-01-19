@@ -25,9 +25,9 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.MapHandler;
 import com.bbn.openmap.gui.OpenMapFrame;
 import edu.uclouvain.core.nodus.gui.Splash;
-import edu.uclouvain.core.nodus.swing.GUIUtils;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import java.awt.Image;
+import java.awt.Taskbar;
 import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
@@ -234,14 +234,21 @@ public class Nodus {
       ex.printStackTrace();
     }
 
+    // Set icon for MacOs (and other systems which do support this method)
+    final Taskbar taskbar = Taskbar.getTaskbar();
+
+    try {
+      taskbar.setIconImage(icn);
+    } catch (final UnsupportedOperationException e) {
+      // Ignore
+    } catch (final SecurityException e) {
+      e.printStackTrace();
+    }
+
     // Improve Mac OS experience
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
 
-      GUIUtils.supressIllegalReflectiveAccessOperationWarnings();
-
-      // Set icon in Mac OS Dock
-      GUIUtils.setMacOSDockImage(icn);
-
+      
       if (UIManager.getLookAndFeel().isNativeLookAndFeel()) {
         // use the mac system menu bar
         System.setProperty("apple.laf.useScreenMenuBar", "true");

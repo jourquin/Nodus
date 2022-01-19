@@ -1428,7 +1428,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         new JMenuItem(i18n.get(SQLConsole.class, "Open_script", "Open script"));
     menuOpenScript.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     menuOpenScript.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -1441,7 +1441,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         new JMenuItem(i18n.get(SQLConsole.class, "Save_script", "Save script"));
     menuSaveScript.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     menuSaveScript.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -1483,7 +1483,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     JMenuItem menuExit = new JMenuItem(i18n.get(SQLConsole.class, "Exit", "Exit"));
     menuExit.setAccelerator(
         KeyStroke.getKeyStroke(
-            KeyEvent.VK_Q, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+            KeyEvent.VK_Q, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
     menuExit.addActionListener(
         new java.awt.event.ActionListener() {
           @Override

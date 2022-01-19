@@ -30,10 +30,6 @@
 	    <contains string="${ant.java.version}" substring="1.8" />
     </condition>
 	
-	<target name="ApiDoc" description="Generates the javadoc API html documents."
-	    depends="ApiDoc-old, ApiDoc-new">
-	</target>
-	
 	<target name="PrepareApiDoc" description="Prepare the API doc generation.">
 	    <echo message="Generating the Nodus API documentation" />
 	    <delete dir="${basedir}/api" />
@@ -42,27 +38,14 @@
 	
 	<property name="copyrightString" value="Copyright 1991-2022, Université catholique de Louvain (UCLouvain), Center for Operations Research and Econometrics (CORE)"/>
 	    
-	<target name="ApiDoc-old" description="Makes the javadoc API html documents." if="OldJavadocAPI">
-	    <antcall target="PrepareApiDoc" />
-	    <javadoc sourcepath="${basedir}/src" destdir="${basedir}/api" maxmemory="256m" 
-	        excludepackagenames="com.bbn.openmap.layer.shape.displayindex,com.bbn.openmap.layer.image.capabilities,org.knowm.xchart.internal.*,edu.uclouvain.core.nodus.database.sql,edu.uclouvain.core.nodus.swing.osx" 
-	        encoding="UTF-8" docencoding="UTF-8" charset="UTF-8" 
-	        packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
-	        author="true" version="true" use="true" 
-	        windowtitle="Nodus 8.1 API" 
-	        doctitle="Nodus" bottom="${copyrightString}"
-	        doclet="HiddenDoclet" docletpath="${basedir}/devtools/HiddenDoclet.jar"
-	        classpathref="Nodus.classpath" failonerror="false" />
-    </target>
-	
-	<target name="ApiDoc-new" description="Makes the javadoc API html documents." unless="OldJavadocAPI">
+	<target name="ApiDoc" description="Makes the javadoc API html documents.">
 	    <antcall target="PrepareApiDoc" />
 		<javadoc sourcepath="${basedir}/src" destdir="${basedir}/api" maxmemory="256m" 
 			excludepackagenames="com.bbn.openmap.layer.shape.displayindex,com.bbn.openmap.layer.image.capabilities,org.knowm.xchart.internal.*,edu.uclouvain.core.nodus.database.sql,edu.uclouvain.core.nodus.swing.osx" 
 			encoding="UTF-8" docencoding="UTF-8" charset="UTF-8" 
 			packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
 			author="true" version="true" use="true" 
-			windowtitle="Nodus 8.1 API" 
+			windowtitle="Nodus 8.2 API" 
 			doctitle="Nodus" bottom="${copyrightString}"
 			classpathref="Nodus.classpath" failonerror="false" />
 	</target>
