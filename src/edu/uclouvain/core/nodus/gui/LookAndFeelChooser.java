@@ -33,10 +33,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Properties;
 import javax.swing.ComboBoxModel;
 import javax.swing.DefaultComboBoxModel;
@@ -47,7 +43,6 @@ import javax.swing.JPanel;
 import javax.swing.LookAndFeel;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import javax.swing.UIManager.LookAndFeelInfo;
 
 /**
  * A dialog that presents the available look and feel's.
@@ -59,61 +54,6 @@ public class LookAndFeelChooser extends EscapeDialog {
   private static I18n i18n = Environment.getI18n();
 
   static final long serialVersionUID = 1470446142398349546L;
-
-  /**
-   * This method differs from the original UIManager.getInstalledLookAndFeels() in two different
-   * ways:
-   *
-   * <p>- Only the supported L&F are returned; <br>
-   * - If a L&F is installed more than once, the associated LookAndFeelInfo is only returned once.
-   *
-   * @return LookAndFeelInfo[]
-   */
-  private static UIManager.LookAndFeelInfo[] getInstalledLookAndFeels() {
-
-    HashSet<String> classNames = new HashSet<>();
-    LinkedList<LookAndFeelInfo> lafs = new LinkedList<>();
-    UIManager.LookAndFeelInfo[] info = UIManager.getInstalledLookAndFeels();
-
-    if (info != null) {
-      for (LookAndFeelInfo element : info) {
-        if (classNames.contains(element.getClassName())) {
-          // work around for lafs that were installed twice
-          continue;
-        }
-
-        Object supported = null;
-        try {
-          Class<?> c = ClassLoader.getSystemClassLoader().loadClass(element.getClassName());
-          Object laf = c.getDeclaredConstructor().newInstance();
-
-          Method m = c.getMethod("isSupportedLookAndFeel", (Class[]) null);
-          supported = m.invoke(laf, (Object[]) null);
-        } catch (SecurityException e) {
-          e.printStackTrace();
-        } catch (IllegalArgumentException e) {
-          e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-          e.printStackTrace();
-        } catch (InstantiationException e) {
-          e.printStackTrace();
-        } catch (IllegalAccessException e) {
-          e.printStackTrace();
-        } catch (NoSuchMethodException e) {
-          e.printStackTrace();
-        } catch (InvocationTargetException e) {
-          e.printStackTrace();
-        }
-
-        if (supported != null && ((Boolean) supported).booleanValue()) {
-          lafs.add(element);
-          classNames.add(element.getClassName());
-        }
-      }
-    }
-
-    return lafs.toArray(new UIManager.LookAndFeelInfo[0]);
-  }
 
   /** . */
   private JComboBox<String> availableLookAndFeelsComboBox;
@@ -183,7 +123,7 @@ public class LookAndFeelChooser extends EscapeDialog {
         int currentLookAndFeelIndex = 0;
 
         // Get the available look&feel names
-        info = getInstalledLookAndFeels();
+        info = UIManager.getInstalledLookAndFeels();
 
         // Locate current index
         lfNames = new String[info.length];
