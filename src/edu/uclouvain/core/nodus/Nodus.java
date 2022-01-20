@@ -235,9 +235,8 @@ public class Nodus {
     }
 
     // Set icon for MacOs (and other systems which do support this method)
-    final Taskbar taskbar = Taskbar.getTaskbar();
-
     try {
+      Taskbar taskbar = Taskbar.getTaskbar();
       taskbar.setIconImage(icn);
     } catch (final UnsupportedOperationException e) {
       // Ignore
