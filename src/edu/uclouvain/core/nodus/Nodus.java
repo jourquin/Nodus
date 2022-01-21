@@ -221,7 +221,7 @@ public class Nodus {
   /** Sets the Look and Feel to the system default, but to Nimbus for Linux. */
   public static void setLookAndFeel() {
 
-    // Set Look & Feel (default to system l&f, but Nimbus for Linux)
+    // Set Look & Feel (default to system l&f)
     String lookAndFeel = null;
     lookAndFeel = nodusProperties.getProperty("look&feel", null);
     if (lookAndFeel == null) {
