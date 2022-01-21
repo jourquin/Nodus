@@ -200,7 +200,7 @@ public class Nodus {
             boolean b = nodusMapPanel.getMainFrame().isAlwaysOnTop();
             nodusMapPanel.getMainFrame().setAlwaysOnTop(true);
             nodusMapPanel.getMainFrame().setAlwaysOnTop(b);
-           
+
             // Run the "nodus.groovy" script if exists
             String scriptFileName =
                 System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
@@ -214,7 +214,7 @@ public class Nodus {
             if (projectToLoad != null) {
               nodusMapPanel.openProject(projectToLoad);
             }
-            //nodusMapPanel.repaint(nodusMapPanel.getVisibleRect());            
+            // nodusMapPanel.repaint(nodusMapPanel.getVisibleRect());
           }
         });
   }
@@ -248,7 +248,6 @@ public class Nodus {
     // Improve Mac OS experience
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
 
-      
       if (UIManager.getLookAndFeel().isNativeLookAndFeel()) {
         // use the mac system menu bar
         System.setProperty("apple.laf.useScreenMenuBar", "true");
@@ -304,15 +303,15 @@ public class Nodus {
     MapHandler mapHandler = nodusMapPanel.getMapHandler();
     OpenMapFrame omf = mapHandler.get(com.bbn.openmap.gui.OpenMapFrame.class);
 
-   if (omf == null) {
+    if (omf == null) {
       omf = new OpenMapFrame(NodusC.APPNAME);
       omf.setIconImage(icn);
       mapHandler.add(omf);
     }
-    
+
     nodusMapPanel.restoreSizeAndLocation();
-    //omf.setVisible(true);
-    //nodusMapPanel.getMapBean().showLayerPalettes();
+    // omf.setVisible(true);
+    // nodusMapPanel.getMapBean().showLayerPalettes();
     setWindowListenerOnFrame(omf);
   }
 }
