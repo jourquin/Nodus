@@ -602,8 +602,10 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     scriptRunner.setVariable("quitNodus", true);
     scriptRunner.run(true);
 
-    dispose();
-    getMainFrame().dispose();
+    setVisible(false);
+    //dispose();
+    //getMainFrame().dispose();
+    
     System.gc();
   }
 
