@@ -293,7 +293,7 @@ public class Nodus {
           @Override
           public void windowClosing(WindowEvent e) {
             nodusMapPanel.closeAndSaveState();
-            System.exit(0);
+            //System.exit(0);
           }
         });
   }

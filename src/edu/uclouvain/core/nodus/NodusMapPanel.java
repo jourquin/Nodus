@@ -602,11 +602,17 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     scriptRunner.setVariable("quitNodus", true);
     scriptRunner.run(true);
 
-    setVisible(false);
-    //dispose();
-    //getMainFrame().dispose();
-    
-    System.gc();
+    javax.swing.SwingUtilities.invokeLater(
+        new Runnable() {
+          @Override
+          public void run() {
+            // dispose();
+            // getMainFrame().dispose();
+            System.gc();
+            setVisible(false);
+            System.exit(0);
+          }
+        });
   }
 
   /** Copy the content of the MapBean as an image in the clipboard. */
@@ -2103,7 +2109,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Tasks that must be performed when the application is closed. */
   public void menuItemFileExitActionPerformed() {
     closeAndSaveState();
-    System.exit(0);
+    // System.exit(0);
   }
 
   /** Opens the global preferences dialog box. */
@@ -2371,7 +2377,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             JOptionPane.ERROR_MESSAGE);
 
         nodusProject.getNodusMapPanel().closeAndSaveState();
-        System.exit(0);
+        // System.exit(0);
       }
 
       if (nodusProject.isOpen()) {

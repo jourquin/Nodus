@@ -209,7 +209,7 @@ public abstract class Assignment implements Runnable {
           JOptionPane.ERROR_MESSAGE);
 
       nodusProject.getNodusMapPanel().closeAndSaveState();
-      System.exit(0);
+      //System.exit(0);
     }
 
     if (!success && !errorMessage.isEmpty()) {
