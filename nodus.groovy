@@ -107,7 +107,7 @@ if (startNodus) {
 	 */
 	JavaGatewayServer rGatewayServer = nodusMapPanel.retrieveObject("rGatewayServer");
 	if (rGatewayServer != null) {		
-		rGatewayServer.requestShutdown();
+		rGatewayServer.shutdown(0);
 	}
 
 	/*

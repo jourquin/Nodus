@@ -601,18 +601,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     scriptRunner.setVariable("startNodus", false);
     scriptRunner.setVariable("quitNodus", true);
     scriptRunner.run(true);
-
-    javax.swing.SwingUtilities.invokeLater(
-        new Runnable() {
-          @Override
-          public void run() {
-            // dispose();
-            // getMainFrame().dispose();
-            System.gc();
-            setVisible(false);
-            System.exit(0);
-          }
-        });
+    
+    setVisible(false);
+    System.exit(0);
   }
 
   /** Copy the content of the MapBean as an image in the clipboard. */
