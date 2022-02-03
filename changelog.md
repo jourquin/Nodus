@@ -295,6 +295,7 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Replace HSQLDB jar with the Java 11 version
 - Upgrade to OSHI 6.1
 - Upgrade to POI 5.2
+- Upgrade to rsyntaxtextarea-3.1.6
 
 
 
