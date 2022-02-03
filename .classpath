@@ -32,7 +32,6 @@
 	<classpathentry kind="lib" path="lib/groovy/extras-jaxb/jaxb-core-2.3.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/extras-jaxb/jaxb-impl-2.3.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/commons-collections4-4.4.jar"/>
-	<classpathentry kind="lib" path="lib/commons-compress-1.20.jar"/>
 	<classpathentry kind="lib" path="lib/guava-19.0.jar"/>
 	<classpathentry kind="lib" path="lib/javadbf4nodus-1.12.2.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/jcommander-1.78.jar"/>
@@ -110,5 +109,6 @@
 	<classpathentry kind="lib" path="lib/jfreechart-1.5.3.jar"/>
 	<classpathentry kind="lib" path="lib/openmap-6.0.jar"/>
 	<classpathentry kind="lib" path="lib/j4r-1.1.1.jar"/>
+	<classpathentry kind="lib" path="lib/commons-compress-1.21.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

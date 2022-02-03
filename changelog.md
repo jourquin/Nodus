@@ -291,6 +291,7 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 
 ## v8.2 - BuildXXXXXXXX
 - Upgrade to J4R-1.1.1
+- Upgrade to commons-compress-1.21
 
 
 

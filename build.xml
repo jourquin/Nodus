@@ -38,7 +38,6 @@
         <pathelement location="lib/groovy/extras-jaxb/jaxb-core-2.3.0.1.jar"/>
         <pathelement location="lib/groovy/extras-jaxb/jaxb-impl-2.3.0.1.jar"/>
         <pathelement location="lib/commons-collections4-4.4.jar"/>
-        <pathelement location="lib/commons-compress-1.20.jar"/>
         <pathelement location="lib/guava-19.0.jar"/>
         <pathelement location="lib/javadbf4nodus-1.12.2.jar"/>
         <pathelement location="lib/groovy/jcommander-1.78.jar"/>
@@ -116,6 +115,7 @@
         <pathelement location="lib/jfreechart-1.5.3.jar"/>
         <pathelement location="lib/openmap-6.0.jar"/>
         <pathelement location="lib/j4r-1.1.1.jar"/>
+        <pathelement location="lib/commons-compress-1.21.jar"/>
     </path>
     <path id="run.Nodus.classpath">
         <path refid="Nodus.classpath"/>
@@ -147,7 +147,6 @@
         <pathelement location="lib/groovy/extras-jaxb/jaxb-core-2.3.0.1.jar"/>
         <pathelement location="lib/groovy/extras-jaxb/jaxb-impl-2.3.0.1.jar"/>
         <pathelement location="lib/commons-collections4-4.4.jar"/>
-        <pathelement location="lib/commons-compress-1.20.jar"/>
         <pathelement location="lib/javadbf4nodus-1.12.2.jar"/>
         <pathelement location="lib/groovy/jcommander-1.78.jar"/>
         <pathelement location="devtools/mrjtoolkitstubs-1.0 2.jar"/>
@@ -225,6 +224,7 @@
         <pathelement location="lib/openmap-6.0.jar"/>
         <pathelement location="lib"/>
         <pathelement location="lib/j4r-1.1.1.jar"/>
+        <pathelement location="lib/commons-compress-1.21.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
