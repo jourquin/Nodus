@@ -46,7 +46,6 @@
         <pathelement location="lib/groovy/javax.servlet.jsp-api-2.3.3.jar"/>
         <pathelement location="lib/groovy/javax.servlet-api-4.0.1.jar"/>
         <pathelement location="lib/xchart-3.8.0.jar"/>
-        <pathelement location="lib/hsqldb-jdk8.jar"/>
         <pathelement location="jdbcDrivers/sqlite-jdbc-3.34.0.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
         <pathelement location="lib/py4j0.10.9.2.jar"/>
@@ -116,6 +115,7 @@
         <pathelement location="lib/openmap-6.0.jar"/>
         <pathelement location="lib/j4r-1.1.1.jar"/>
         <pathelement location="lib/commons-compress-1.21.jar"/>
+        <pathelement location="lib/hsqldb.jar"/>
     </path>
     <path id="run.Nodus.classpath">
         <path refid="Nodus.classpath"/>
@@ -154,7 +154,6 @@
         <pathelement location="lib/groovy/javax.servlet.jsp-api-2.3.3.jar"/>
         <pathelement location="lib/groovy/javax.servlet-api-4.0.1.jar"/>
         <pathelement location="lib/xchart-3.8.0.jar"/>
-        <pathelement location="lib/hsqldb-jdk8.jar"/>
         <pathelement location="jdbcDrivers/sqlite-jdbc-3.34.0.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
         <pathelement location="lib/py4j0.10.9.2.jar"/>
@@ -225,6 +224,7 @@
         <pathelement location="lib"/>
         <pathelement location="lib/j4r-1.1.1.jar"/>
         <pathelement location="lib/commons-compress-1.21.jar"/>
+        <pathelement location="lib/hsqldb.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
