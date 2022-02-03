@@ -294,6 +294,8 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Upgrade to commons-compress-1.21
 - Replace HSQLDB jar with the Java 11 version
 - Upgrade to OSHI 6.1
+- Upgrade to POI 5.2
+
 
 
  
