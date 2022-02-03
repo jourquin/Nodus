@@ -45,7 +45,6 @@
 	<classpathentry kind="lib" path="jdbcDrivers/sqlite-jdbc-3.34.0.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.2.19.jar"/>
 	<classpathentry kind="lib" path="lib/py4j0.10.9.2.jar" sourcepath="/Users/jourquinb/git/py4j/py4j-java/src"/>
-	<classpathentry kind="lib" path="lib/j4r-1.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/parsii-5.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-1.10.11.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-antlr-1.10.11.jar"/>
@@ -110,5 +109,6 @@
 	<classpathentry kind="lib" path="lib/oshi-demo-5.8.3.jar"/>
 	<classpathentry kind="lib" path="lib/jfreechart-1.5.3.jar"/>
 	<classpathentry kind="lib" path="lib/openmap-6.0.jar"/>
+	<classpathentry kind="lib" path="lib/j4r-1.1.1.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
