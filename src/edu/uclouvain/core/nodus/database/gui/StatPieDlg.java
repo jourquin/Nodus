@@ -46,7 +46,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
-import java.util.Iterator;
 import java.util.Vector;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -59,11 +58,9 @@ import javax.swing.table.DefaultTableModel;
 import org.knowm.xchart.PieChart;
 import org.knowm.xchart.PieChartBuilder;
 import org.knowm.xchart.XChartPanel;
-import org.knowm.xchart.internal.series.Series.AnnotationsStyle;
-import org.knowm.xchart.style.PieStyler.AnnotationType;
+import org.knowm.xchart.style.PieStyler;
+import org.knowm.xchart.style.PieStyler.LabelType;
 import org.knowm.xchart.style.Styler.ChartTheme;
-
-// TODO Adapt to xchart-3.8.1
 
 /**
  * Displays a series of Pie charts, depending on the selected statistics set in the StatDlg.
@@ -117,10 +114,10 @@ public class StatPieDlg extends EscapeDialog {
 
   /** . */
   private JPanel pane = null;
-  
+
   /** . */
   private JScrollPane scrollPane = null;
-  
+
   /** . */
   private TableSorter sorter = new TableSorter(new DefaultTableModel());
 
@@ -549,45 +546,29 @@ public class StatPieDlg extends EscapeDialog {
     chart.setTitle(title);
 
     // Customize Chart
-    chart.getStyler().setLegendVisible(true);
-    chart.getStyler().setAnnotationType(AnnotationType.Percentage);
-    chart.getStyler().setAnnotationDistance(1.15);
-    chart.getStyler().setPlotContentSize(0.75);
-    chart.getStyler().setDrawAllAnnotations(true);
+    PieStyler styler = chart.getStyler();
+    styler.setLabelType(LabelType.Percentage);
+    styler.setLabelsDistance(1.15);
+    styler.setPlotContentSize(0.75);
+    styler.setLegendVisible(true);
+    styler.setForceAllLabelsVisible(true);
+    styler.setLabelsFontColorAutomaticEnabled(false);
 
-    // Color [] colors = {Color.RED, Color.BLUE, Color.GRAY};
-
+    // Set the colors given ti the modes
     Color[] c = (Color[]) colors[statId].toArray(new Color[colors[statId].size()]);
     chart.getStyler().setSeriesColors(c);
 
     // Reduce font sizes
-    Font font = chart.getStyler().getAnnotationsFont();
+    Font font = chart.getStyler().getAnnotationTextFont();
     float size = 12;
-    chart.getStyler().setAnnotationsFont(font.deriveFont(size));
-
+    chart.getStyler().setAnnotationTextFont(font.deriveFont(size));
     font = chart.getStyler().getLegendFont();
     size = 9;
     chart.getStyler().setLegendFont(font.deriveFont(size));
 
-    // Transform values in percentages
-    float total = 0;
-    Iterator<Float> it = values[statId].iterator();
-    while (it.hasNext()) {
-      total += it.next();
-    }
-    float[] pct = new float[values[statId].size()];
+    // Add the series to the chart
     for (int i = 0; i < values[statId].size(); i++) {
-      pct[i] = values[statId].get(i) / total;
-    }
-
-    /* Force the annotation of values > 1% (only possible with modified "Series"
-     * and "PlotContent_Pie" classes*/
-    for (int i = 0; i < pct.length; i++) {
-      AnnotationsStyle style = AnnotationsStyle.ifFits;
-      if (pct[i] >= 0.01) {
-        style = AnnotationsStyle.always;
-      }
-      chart.addSeries(labels[statId].elementAt(i), pct[i]).setAnnotationsStyle(style);
+      chart.addSeries(labels[statId].elementAt(i), values[statId].elementAt(i));
     }
 
     XChartPanel<PieChart> chartPanel = new XChartPanel<>(chart);

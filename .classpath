@@ -109,6 +109,6 @@
 	<classpathentry kind="lib" path="lib/poi-ooxml-5.2.0.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-full-5.2.0.jar"/>
 	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.1.6.jar"/>
-	<classpathentry kind="lib" path="lib/xchart-3.8.0.jar"/>
+	<classpathentry kind="lib" path="lib/xchart-3.8.1.jar" sourcepath="/XChart/java"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

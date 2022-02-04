@@ -3,7 +3,8 @@
               Any modifications will be overwritten.
               To include a user specific buildfile here, simply create one in the same
               directory with the processing instruction <?eclipse.ant.import?>
-              as the first entry and export the buildfile again. --><project basedir="." default="build" name="Nodus">
+              as the first entry and export the buildfile again. -->
+    <project basedir="." default="build" name="Nodus">
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="11"/>
@@ -44,7 +45,6 @@
         <pathelement location="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
         <pathelement location="lib/groovy/javax.servlet.jsp-api-2.3.3.jar"/>
         <pathelement location="lib/groovy/javax.servlet-api-4.0.1.jar"/>
-        <pathelement location="lib/xchart-3.8.0.jar"/>
         <pathelement location="jdbcDrivers/sqlite-jdbc-3.34.0.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
         <pathelement location="lib/py4j0.10.9.2.jar"/>
@@ -115,6 +115,7 @@
         <pathelement location="lib/poi-ooxml-5.2.0.jar"/>
         <pathelement location="lib/poi-ooxml-full-5.2.0.jar"/>
         <pathelement location="lib/rsyntaxtextarea-3.1.6.jar"/>
+        <pathelement location="lib/xchart-3.8.1.jar"/>
     </path>
     <path id="run.Nodus.classpath">
         <path refid="Nodus.classpath"/>
@@ -152,7 +153,6 @@
         <pathelement location="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
         <pathelement location="lib/groovy/javax.servlet.jsp-api-2.3.3.jar"/>
         <pathelement location="lib/groovy/javax.servlet-api-4.0.1.jar"/>
-        <pathelement location="lib/xchart-3.8.0.jar"/>
         <pathelement location="jdbcDrivers/sqlite-jdbc-3.34.0.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
         <pathelement location="lib/py4j0.10.9.2.jar"/>
@@ -224,6 +224,7 @@
         <pathelement location="lib/poi-ooxml-5.2.0.jar"/>
         <pathelement location="lib/poi-ooxml-full-5.2.0.jar"/>
         <pathelement location="lib/rsyntaxtextarea-3.1.6.jar"/>
+        <pathelement location="lib/xchart-3.8.1.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
