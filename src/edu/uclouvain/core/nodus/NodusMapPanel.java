@@ -595,6 +595,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
 
     // Run the "nodus.groovy" script if exists
+    // TODO Upgrade to Groovy 4
     String scriptFileName = System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
     ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
     scriptRunner.setVariable("nodusMapPanel", this);

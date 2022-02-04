@@ -1516,6 +1516,7 @@ public class NodusProject implements ShapeConstants {
 
     switch (defaultEmbeddedDbms) {
       case JDBCUtils.DB_HSQLDB:
+        // TODO Does a "mixed mode" for HSQLDB exists ?
         defaultDriver = "org.hsqldb.jdbcDriver";
         defaultURL =
             "jdbc:hsqldb:file:"
@@ -1525,6 +1526,7 @@ public class NodusProject implements ShapeConstants {
         defaultUser = "SA";
         break;
       case JDBCUtils.DB_H2:
+        // TODO Try the "mixed" mode in order to connect to a running Nodus project
         defaultDriver = "org.h2.Driver";
         defaultURL =
             "jdbc:h2:" + projectPath + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME);

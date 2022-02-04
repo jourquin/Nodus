@@ -63,6 +63,8 @@ import org.knowm.xchart.internal.series.Series.AnnotationsStyle;
 import org.knowm.xchart.style.PieStyler.AnnotationType;
 import org.knowm.xchart.style.Styler.ChartTheme;
 
+// TODO Adapt to xchart-3.8.1
+
 /**
  * Displays a series of Pie charts, depending on the selected statistics set in the StatDlg.
  *
