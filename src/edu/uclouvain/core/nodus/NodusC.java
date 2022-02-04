@@ -1205,4 +1205,11 @@ public class NodusC {
    * @hidden
    */
   public static final String PROP_DEFAUT_EXCLUSION_RULE = "defaultexclusionrule";
+  
+  /**
+   * Properties strings used in project and/or project local properties.
+   *
+   * @hidden
+   */
+  public static final String PROP_HSQLDB_SERVER_PORT = "hsqldbserverport";
 }

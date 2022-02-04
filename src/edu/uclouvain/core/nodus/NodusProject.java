@@ -87,6 +87,8 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import org.hsqldb.Server;
+import org.hsqldb.persist.HsqlProperties;
 
 /**
  * A Nodus project file is a properties file with a .nodus extension. <br>
@@ -244,6 +246,10 @@ public class NodusProject implements ShapeConstants {
 
   /** Lat/Lon of center point at starting time. */
   private LatLonPoint initialCenterPoint;
+
+  private Server hsqldbServer;
+
+  private int hsqldbPort;
 
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
@@ -444,6 +450,11 @@ public class NodusProject implements ShapeConstants {
 
                 work.start();
                 loop.enter();
+              } else {
+                // Stop the HSQLDB server
+                if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB) {
+                  hsqldbServer.shutdown();
+                }
               }
             }
           }
@@ -785,13 +796,13 @@ public class NodusProject implements ShapeConstants {
    */
   public Connection getMainJDBCConnection() {
     try {
-      // Connection could be closed...
       if (jdbcConnection == null || jdbcConnection.isClosed()) {
         jdbcConnection =
             DriverManager.getConnection(
                 localProperties.getProperty(NodusC.PROP_JDBC_URL),
                 localProperties.getProperty(NodusC.PROP_JDBC_USERNAME),
                 localProperties.getProperty(NodusC.PROP_JDBC_PASSWORD));
+
         jdbcConnection.setAutoCommit(false);
       }
     } catch (SQLException ex) {
@@ -1400,7 +1411,7 @@ public class NodusProject implements ShapeConstants {
 
     if (projectProperties == null) { // File doesn't exist
 
-      // Create a minimalist empty project
+      // Create a minimal empty project
       int answer =
           JOptionPane.showConfirmDialog(
               nodusMapPanel,
@@ -1516,14 +1527,31 @@ public class NodusProject implements ShapeConstants {
 
     switch (defaultEmbeddedDbms) {
       case JDBCUtils.DB_HSQLDB:
-        // TODO Does a "mixed mode" for HSQLDB exists ?
         defaultDriver = "org.hsqldb.jdbcDriver";
-        defaultURL =
-            "jdbc:hsqldb:file:"
-                + projectPath
-                + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
-                + "_hsqldb;shutdown=true";
         defaultUser = "SA";
+
+        // A specific port could have been set in the project file, using the "hsqldbserverport"
+        // property.
+        hsqldbPort = getLocalProperty(NodusC.PROP_HSQLDB_SERVER_PORT, 9001);
+
+        String dbName = localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME);
+        String dbLocation = projectPath + dbName + "_hsqldb;";
+        defaultURL = "jdbc:hsqldb:hsql://localhost:" + hsqldbPort + "/" + dbName;
+
+        // Launch the server
+        HsqlProperties props = new HsqlProperties();
+
+        props.setProperty("server.database.0", "file:" + dbLocation);
+        props.setProperty("server.dbname.0", dbName);
+        props.setProperty("server.port", hsqldbPort);
+        hsqldbServer = new org.hsqldb.Server();
+        try {
+          hsqldbServer.setProperties(props);
+        } catch (Exception e) {
+          return;
+        }
+        hsqldbServer.start();
+
         break;
       case JDBCUtils.DB_H2:
         // TODO Try the "mixed" mode in order to connect to a running Nodus project

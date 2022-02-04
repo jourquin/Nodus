@@ -294,6 +294,9 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Upgrade to OSHI 6.1
 - Upgrade to POI 5.2
 - Upgrade to rsyntaxtextarea-3.1.6
+- Upgrade to XChart 3.8.1 and get rid of hacked classes that are not needed anymore
+- The embedded HSQLDB database engine now runs in server mode, allowing for external connections. The "hsqldbserverport"
+property can be set in the project's file if the server has to listen a specific port (9001 by default).
 
 
 
