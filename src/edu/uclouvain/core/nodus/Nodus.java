@@ -245,11 +245,11 @@ public class Nodus {
       e.printStackTrace();
     }
 
-    // Improve Mac OS experience
+    // Improve macOS experience
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
 
       if (UIManager.getLookAndFeel().isNativeLookAndFeel()) {
-        // use the mac system menu bar
+        // use the macOS system menu bar
         System.setProperty("apple.laf.useScreenMenuBar", "true");
 
         // set the "About" menu item name

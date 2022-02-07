@@ -1108,7 +1108,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   public void enableMenus(boolean state) {
 
-    // Ugly trick to avoid the Mac OS menu items to remain grayed :-(
+    // Ugly trick to avoid the macOS menu items to remain grayed :-(
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")
         && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
       menuProject.setVisible(false);
@@ -2191,7 +2191,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       consoleFrame.setLocationRelativeTo(this);
       consoleFrame.setVisible(true);
 
-      // Reset the preferences menu (overloaded by the Groovy console on OSX with Java 9
+      // Reset the preferences menu
       setGlobalPreferencesMenu();
     }
   }
@@ -2623,33 +2623,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
   }
 
-  /** Set application preferences. Takes OSX specification into account */
+  /** Set application preferences. */
   private void setGlobalPreferencesMenu() {
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")
         && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
       desktop.setPreferencesHandler(e -> menuItemFileGlobalPreferencesActionPerformed());
-
-      /*
-      // Use the standard Mac preferences
-      try {
-        if (JavaVersionUtil.isJavaVersionAtLeast(9.0f)) {
-          OSXAdapterForJava9.setPreferencesHandler(
-              this,
-              getClass()
-                  .getDeclaredMethod(
-                      "menuItemFileGlobalPreferencesActionPerformed9",
-                      new Class[] {EventObject.class}));
-        } else {
-          OSXAdapter.setPreferencesHandler(
-              this,
-              getClass()
-                  .getDeclaredMethod(
-                      "menuItemFileGlobalPreferencesActionPerformed", (Class[]) null));
-        }
-      } catch (NoSuchMethodException | SecurityException e) {
-        e.printStackTrace();
-      }*/
-
     } else {
       menuFile.add(menuItemSystemProperties);
     }
