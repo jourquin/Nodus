@@ -28,7 +28,7 @@ OsmTiles.noCoverageZoom=13
 # A WMS server for Belgium
 WMS.class=com.bbn.openmap.plugin.wms.NodusWMSPlugIn
 WMS.prettyName=Belgian WMS
-WMS.wmsserver=https://wms.ngi.be/cartoweb/service
-WMS.wmsversion=1.1.1
+WMS.wmsserver=https://cartoweb.wms.ngi.be/service
+WMS.wmsversion=1.3.0
 WMS.format=png
 WMS.transparent=true
