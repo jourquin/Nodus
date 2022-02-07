@@ -29,31 +29,13 @@ import py4j.GatewayServer;
  * launch time and also just before exit.
  * 
  * Three variables are set by Nodus when this script is called:
- * - startNodus = true and closeNodus = false at startup
- * - startNodus = false and closeNodus = true at closing
+ * - startNodus = true and quitNodus = false at startup
+ * - startNodus = false and quiteNodus = true at closing
  * - nodusMapPanel, the NodusMapPanel instance of the running Nodus. This is used as entry point 
  *   to the API.
  * 
  * This example shows how to interact with the Nodus API (zoom on the European zone of the 
- * World map). It also launches a Py4J and a J4R bridge server, allowing to connect to Nodus from
- * your favorite Python or R environment, providing that the Python Py4J and the J4R packages are
- * installed (the corresponding jar files are provided with Nodus). Launching these servers is not
- * hardcoded in Nodus, allowing for more flexibility in the way they are used (remote access,
- * used ports...). Please refer to the documentation of both packages for more information.
- * 
- * Launching these servers is not mandatory if you don't plan to use Python or R scripts. 
- * If you use only one of these languages, you obvioulsy can decide to launch only the relevant
- * server. 
- * 
- * Note that the nodus.groovy script is not the best location for starting these servers. If you
- * need to have several instances of Nodus running at the same time (with different projects), 
- * launching the server(s) from the [projectName].groovy scripts (see below) would allow to
- * specify specific ports for the Py4J/J4R servers. 
- * 
- * This script also shows how to store objects for later use in another script (or a subsequent
- * run of the same script. The storeObject(...) and retrieveObject() methods of the Nodud API are
- * here used to store the instances of the Py4J and J4R servers at launch time. Theys are later
- * retrieved for shutdown when Nodus is closed.
+ * World map). 
  * 
  * The same "autoexec" mechanism exists at the projet level: if a [projetname].groovy script is
  * found in the directory that contains the [projetname].nodus file, it is executed when the 
@@ -64,57 +46,10 @@ import py4j.GatewayServer;
  */
 
 if (startNodus) {
-
 	/* 
 	 * Present an European view to the user instead of the World map.
 	 */
 	nodusMapPanel.getMapBean().setScale((float) 1.4E7);
 	nodusMapPanel.getMapBean().setCenter(new LatLonPoint.Double(50.0, 4.0));
 	nodusMapPanel.getMapBean().validate();
-
-	/*
-	 * Launch a J4R server (for R scripting). It could also be launched from the [project].groovy
-	 * script, with alternative ports for each projet, allowing several instance of Nodus to run
-	 * with a server for each open project.
-	 */
-	try {
-		ServerConfiguration servConf =
-				new ServerConfiguration(1, 10, new int[] {18000, 18001}, new int[] {50000, 50001}, 212);
-		JavaGatewayServer rGatewayServer = new JavaGatewayServer(servConf, nodusMapPanel);
-		rGatewayServer.startApplication();
-		nodusMapPanel.storeObject("rGatewayServer",rGatewayServer);
-	} catch (Exception e) {
-		System.err.println("Could not start R4J bridge. Is another instance of Nodus running?");
-	}
-
-	/*
-	 * Launch a Py4J server (for Python scripting). It could also be launched from the [project].groovy
-	 * script, with alternative ports for each projet, allowing several instance of Nodus to run
-	 * with a server for each open project.
-	 */
-	try {
-		GatewayServer pyGatewayServer = new GatewayServer(nodusMapPanel);
-		pyGatewayServer.start();
-		nodusMapPanel.storeObject("pyGatewayServer",pyGatewayServer);
-	} catch (Exception e) {
-		System.err.println("Could not start Py4J bridge. Is another instance of Nodus running?");
-	}
-
-} else {
-	
-	/*
-	 * Close the J4R server
-	 */
-	JavaGatewayServer rGatewayServer = nodusMapPanel.retrieveObject("rGatewayServer");
-	if (rGatewayServer != null) {		
-		rGatewayServer.shutdown(0);
-	}
-
-	/*
-	 * Close the Py4J server
-	 */
-	GatewayServer pyGatewayServer = nodusMapPanel.retrieveObject("pyGatewayServer");
-	if (pyGatewayServer != null) {
-		pyGatewayServer.shutdown();
-	}
 }
