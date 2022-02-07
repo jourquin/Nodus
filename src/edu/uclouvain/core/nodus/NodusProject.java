@@ -251,6 +251,8 @@ public class NodusProject implements ShapeConstants {
 
   private int hsqldbPort;
 
+  private HsqlProperties hsqldbProps = new HsqlProperties();
+
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
   /**
@@ -426,8 +428,9 @@ public class NodusProject implements ShapeConstants {
           if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB
               || JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
 
-            if (Boolean.parseBoolean(getLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, "true"))) {
+            boolean isShutdown = false;
 
+            if (Boolean.parseBoolean(getLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, "true"))) {
               int answer =
                   JOptionPane.showConfirmDialog(
                       null,
@@ -440,6 +443,7 @@ public class NodusProject implements ShapeConstants {
                     i18n.get(NodusProject.class, "Compacting", "Compacting database..."));
 
                 SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+                isShutdown = true;
                 Thread work =
                     new Thread() {
                       public void run() {
@@ -450,11 +454,13 @@ public class NodusProject implements ShapeConstants {
 
                 work.start();
                 loop.enter();
-              } else {
-                // Stop the HSQLDB server
-                if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB) {
-                  hsqldbServer.shutdown();
-                }
+              }
+            }
+
+            if (!isShutdown) {
+              // Stop the HSQLDB server
+              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB) {
+                hsqldbServer.shutdown();
               }
             }
           }
@@ -1535,23 +1541,13 @@ public class NodusProject implements ShapeConstants {
         hsqldbPort = getLocalProperty(NodusC.PROP_HSQLDB_SERVER_PORT, 9001);
 
         String dbName = localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME);
-        String dbLocation = projectPath + dbName + "_hsqldb;";
+        String dbLocation = projectPath + dbName + "_hsqldb;shutdown=true";
         defaultURL = "jdbc:hsqldb:hsql://localhost:" + hsqldbPort + "/" + dbName;
 
         // Launch the server
-        HsqlProperties props = new HsqlProperties();
-
-        props.setProperty("server.database.0", "file:" + dbLocation);
-        props.setProperty("server.dbname.0", dbName);
-        props.setProperty("server.port", hsqldbPort);
-        hsqldbServer = new org.hsqldb.Server();
-        try {
-          hsqldbServer.setProperties(props);
-        } catch (Exception e) {
-          return;
-        }
-        hsqldbServer.start();
-
+        hsqldbProps.setProperty("server.database.0", "file:" + dbLocation);
+        hsqldbProps.setProperty("server.dbname.0", dbName);
+        hsqldbProps.setProperty("server.port", hsqldbPort);
         break;
       case JDBCUtils.DB_H2:
         // TODO Try the "mixed" mode in order to connect to a running Nodus project
@@ -1590,10 +1586,23 @@ public class NodusProject implements ShapeConstants {
     /*
      * Another DB engine can be specified in the project file
      */
+    String jdbcURL = projectProperties.getProperty(NodusC.PROP_JDBC_URL, defaultURL);
+
+    // Start HSQLDB server if needed
+    if (jdbcURL.toLowerCase().contains("hsqldb:hsql")) {
+      hsqldbServer = new org.hsqldb.Server();
+      try {
+        hsqldbServer.setProperties(hsqldbProps);
+        hsqldbServer.setLogWriter(null);
+      } catch (Exception e) {
+        return;
+      }
+      hsqldbServer.start();
+    }
+
     String jdbcDriver = projectProperties.getProperty(NodusC.PROP_JDBC_DRIVER, defaultDriver);
     String userName = projectProperties.getProperty(NodusC.PROP_JDBC_USERNAME, defaultUser);
     String password = projectProperties.getProperty(NodusC.PROP_JDBC_PASSWORD, defaultPassword);
-    String jdbcURL = projectProperties.getProperty(NodusC.PROP_JDBC_URL, defaultURL);
 
     localProperties.setProperty(NodusC.PROP_JDBC_USERNAME, userName);
     localProperties.setProperty(NodusC.PROP_JDBC_PASSWORD, password);

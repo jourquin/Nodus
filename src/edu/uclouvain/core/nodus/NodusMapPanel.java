@@ -602,7 +602,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     scriptRunner.setVariable("startNodus", false);
     scriptRunner.setVariable("quitNodus", true);
     scriptRunner.run(true);
-    
+
     setVisible(false);
     System.exit(0);
   }
@@ -1119,36 +1119,41 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       menuProjection.setVisible(true);
     }
 
-    // Enable some menu items
-    menuItemFileSave.setEnabled(state);
-    menuItemFileClose.setEnabled(state);
-    menuItemFileSaveAs.setEnabled(state);
-    menuItemFilePrint.setEnabled(state);
+    javax.swing.SwingUtilities.invokeLater(
+        new Runnable() {
+          public void run() {
+            // Enable some menu items
+            menuItemFileSave.setEnabled(state);
+            menuItemFileClose.setEnabled(state);
+            menuItemFileSaveAs.setEnabled(state);
+            menuItemFilePrint.setEnabled(state);
 
-    menuProject.setEnabled(state);
-    menuControl.setEnabled(state);
-    menuProjection.setEnabled(state);
+            menuProject.setEnabled(state);
+            menuControl.setEnabled(state);
+            menuProjection.setEnabled(state);
 
-    // Enable/disable user defined menus (plugins)
-    Iterator<JMenuItem> it = userDefinedMenus.iterator();
+            // Enable/disable user defined menus (plugins)
+            Iterator<JMenuItem> it = userDefinedMenus.iterator();
 
-    while (it.hasNext()) {
-      JMenu m = (JMenu) it.next();
-      m.setEnabled(state);
-    }
+            while (it.hasNext()) {
+              JMenu m = (JMenu) it.next();
+              m.setEnabled(state);
+            }
 
-    it = globalPluginsMenuItems.iterator();
+            it = globalPluginsMenuItems.iterator();
 
-    while (it.hasNext()) {
-      JMenuItem m = it.next();
-      m.setEnabled(true);
-    }
+            while (it.hasNext()) {
+              JMenuItem m = it.next();
+              m.setEnabled(true);
+            }
 
-    it = projectPluginsMenuItems.iterator();
-    while (it.hasNext()) {
-      JMenuItem m = it.next();
-      m.setEnabled(state);
-    }
+            it = projectPluginsMenuItems.iterator();
+            while (it.hasNext()) {
+              JMenuItem m = it.next();
+              m.setEnabled(state);
+            }
+          }
+        });
   }
 
   /**

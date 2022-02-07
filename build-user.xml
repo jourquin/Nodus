@@ -41,7 +41,7 @@
 	<target name="ApiDoc" description="Makes the javadoc API html documents.">
 	    <antcall target="PrepareApiDoc" />
 		<javadoc sourcepath="${basedir}/src" destdir="${basedir}/api" maxmemory="256m" 
-			excludepackagenames="com.bbn.openmap.layer.shape.displayindex,com.bbn.openmap.layer.image.capabilities,org.knowm.xchart.internal.*,edu.uclouvain.core.nodus.database.sql,edu.uclouvain.core.nodus.swing.osx" 
+			excludepackagenames="com.bbn.openmap.layer.shape.displayindex,com.bbn.openmap.layer.image.capabilities,edu.uclouvain.core.nodus.database.sql" 
 			encoding="UTF-8" docencoding="UTF-8" charset="UTF-8" 
 			packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
 			author="true" version="true" use="true" 
