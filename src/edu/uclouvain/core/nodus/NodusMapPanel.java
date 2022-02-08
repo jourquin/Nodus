@@ -595,7 +595,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
 
     // Run the "nodus.groovy" script if exists
-    // TODO Upgrade to Groovy 4
     String scriptFileName = System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
     ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
     scriptRunner.setVariable("nodusMapPanel", this);
@@ -1109,51 +1108,49 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   public void enableMenus(boolean state) {
 
     // Ugly trick to avoid the macOS menu items to remain grayed :-(
+    // TODO Fix grayed menus problem on macOS
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")
         && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
+      menuFile.setVisible(false);
       menuProject.setVisible(false);
       menuControl.setVisible(false);
       menuProjection.setVisible(false);
+      menuFile.setVisible(true);
       menuProject.setVisible(true);
       menuControl.setVisible(true);
       menuProjection.setVisible(true);
     }
 
-    javax.swing.SwingUtilities.invokeLater(
-        new Runnable() {
-          public void run() {
-            // Enable some menu items
-            menuItemFileSave.setEnabled(state);
-            menuItemFileClose.setEnabled(state);
-            menuItemFileSaveAs.setEnabled(state);
-            menuItemFilePrint.setEnabled(state);
+    // Enable some menu items
+    menuItemFileSave.setEnabled(state);
+    menuItemFileClose.setEnabled(state);
+    menuItemFileSaveAs.setEnabled(state);
+    menuItemFilePrint.setEnabled(state);
 
-            menuProject.setEnabled(state);
-            menuControl.setEnabled(state);
-            menuProjection.setEnabled(state);
+    menuProject.setEnabled(state);
+    menuControl.setEnabled(state);
+    menuProjection.setEnabled(state);
 
-            // Enable/disable user defined menus (plugins)
-            Iterator<JMenuItem> it = userDefinedMenus.iterator();
+    // Enable/disable user defined menus (plugins)
+    Iterator<JMenuItem> it = userDefinedMenus.iterator();
 
-            while (it.hasNext()) {
-              JMenu m = (JMenu) it.next();
-              m.setEnabled(state);
-            }
+    while (it.hasNext()) {
+      JMenu m = (JMenu) it.next();
+      m.setEnabled(state);
+    }
 
-            it = globalPluginsMenuItems.iterator();
+    it = globalPluginsMenuItems.iterator();
 
-            while (it.hasNext()) {
-              JMenuItem m = it.next();
-              m.setEnabled(true);
-            }
+    while (it.hasNext()) {
+      JMenuItem m = it.next();
+      m.setEnabled(true);
+    }
 
-            it = projectPluginsMenuItems.iterator();
-            while (it.hasNext()) {
-              JMenuItem m = it.next();
-              m.setEnabled(state);
-            }
-          }
-        });
+    it = projectPluginsMenuItems.iterator();
+    while (it.hasNext()) {
+      JMenuItem m = it.next();
+      m.setEnabled(state);
+    }
   }
 
   /**

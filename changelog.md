@@ -287,7 +287,7 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 
 ## v8.2 - BuildXXXXXXXX
 - Removal of deprecated API calls. Nodus now needs Java 11 or above to run.
-- Fix small bug in nodus.groovy script 
+- Launch the Py4J and J4R bridges in in the project's Groovy script 
 - Upgrade to J4R-1.1.1
 - Upgrade to commons-compress-1.21
 - Replace HSQLDB jar with the Java 11 version
