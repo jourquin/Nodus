@@ -1107,18 +1107,16 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   public void enableMenus(boolean state) {
 
-    // Ugly trick to avoid the macOS menu items to remain grayed :-(
-    // TODO Fix grayed menus problem on macOS
+    // Avoid the macOS menu items to remain grayed
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")
         && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
-      menuFile.setVisible(false);
-      menuProject.setVisible(false);
-      menuControl.setVisible(false);
-      menuProjection.setVisible(false);
-      menuFile.setVisible(true);
-      menuProject.setVisible(true);
-      menuControl.setVisible(true);
-      menuProjection.setVisible(true);
+
+      int nbMenus = nodusMenuBar.getMenuCount();
+      for (int i = 0; i < nbMenus; i++) {
+        JMenu menu = nodusMenuBar.getMenu(i);
+        menu.setVisible(false);
+        menu.setVisible(true);
+      }
     }
 
     // Enable some menu items
@@ -1133,14 +1131,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     // Enable/disable user defined menus (plugins)
     Iterator<JMenuItem> it = userDefinedMenus.iterator();
-
     while (it.hasNext()) {
       JMenu m = (JMenu) it.next();
       m.setEnabled(state);
     }
 
     it = globalPluginsMenuItems.iterator();
-
     while (it.hasNext()) {
       JMenuItem m = it.next();
       m.setEnabled(true);
