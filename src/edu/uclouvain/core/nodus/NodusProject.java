@@ -87,7 +87,6 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
-import org.hsqldb.Server;
 import org.hsqldb.persist.HsqlProperties;
 
 /**
@@ -247,13 +246,15 @@ public class NodusProject implements ShapeConstants {
   /** Lat/Lon of center point at starting time. */
   private LatLonPoint initialCenterPoint;
 
-  private Server hsqldbServer;
+  private org.hsqldb.Server hsqldbServer = null;
 
   private int hsqldbPort;
 
   private HsqlProperties hsqldbProps = new HsqlProperties();
 
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
+
+  private org.h2.tools.Server h2Server = null;
 
   /**
    * The constructor just needs to know the frame the project will be displayed on.
@@ -461,6 +462,11 @@ public class NodusProject implements ShapeConstants {
               // Stop the HSQLDB server
               if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB) {
                 hsqldbServer.shutdown();
+              }
+
+              // Stop the H2 server
+              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
+                h2Server.shutdownTcpServer("tcp://localhost:9092", "", true, true);
               }
             }
           }
@@ -1531,6 +1537,7 @@ public class NodusProject implements ShapeConstants {
     String defaultUser = "";
     String defaultPassword = "";
 
+    String dbName = localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME);
     switch (defaultEmbeddedDbms) {
       case JDBCUtils.DB_HSQLDB:
         defaultDriver = "org.hsqldb.jdbcDriver";
@@ -1540,7 +1547,6 @@ public class NodusProject implements ShapeConstants {
         // property.
         hsqldbPort = getLocalProperty(NodusC.PROP_HSQLDB_SERVER_PORT, 9001);
 
-        String dbName = localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME);
         String dbLocation = projectPath + dbName + "_hsqldb;shutdown=true";
         defaultURL = "jdbc:hsqldb:hsql://localhost:" + hsqldbPort + "/" + dbName;
 
@@ -1550,10 +1556,9 @@ public class NodusProject implements ShapeConstants {
         hsqldbProps.setProperty("server.port", hsqldbPort);
         break;
       case JDBCUtils.DB_H2:
-        // TODO Try the "mixed" mode in order to connect to a running Nodus project
+        // TODO specify port, and close server
         defaultDriver = "org.h2.Driver";
-        defaultURL =
-            "jdbc:h2:" + projectPath + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME);
+        defaultURL = "jdbc:h2:tcp://localhost/" + projectPath + dbName;
         break;
       case JDBCUtils.DB_DERBY:
         System.setProperty("derby.system.home", projectPath);
@@ -1595,15 +1600,24 @@ public class NodusProject implements ShapeConstants {
         hsqldbServer.setProperties(hsqldbProps);
         hsqldbServer.setLogWriter(null);
       } catch (Exception e) {
+        e.printStackTrace();
         return;
       }
       hsqldbServer.start();
     }
 
+    // Start H2 server if needed
+    if (jdbcURL.toLowerCase().contains("h2:tcp")) {
+      try {
+        h2Server = org.h2.tools.Server.createTcpServer("-tcpAllowOthers", "-ifNotExists").start();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+
     String jdbcDriver = projectProperties.getProperty(NodusC.PROP_JDBC_DRIVER, defaultDriver);
     String userName = projectProperties.getProperty(NodusC.PROP_JDBC_USERNAME, defaultUser);
     String password = projectProperties.getProperty(NodusC.PROP_JDBC_PASSWORD, defaultPassword);
-
     localProperties.setProperty(NodusC.PROP_JDBC_USERNAME, userName);
     localProperties.setProperty(NodusC.PROP_JDBC_PASSWORD, password);
     localProperties.setProperty(NodusC.PROP_JDBC_DRIVER, jdbcDriver);

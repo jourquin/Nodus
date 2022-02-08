@@ -1935,6 +1935,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
                         nodusProject.getLocalProperty(NodusC.PROP_JDBC_USERNAME, "null"));
               }
 
+              // For H2 (version 2), specify that only the "PUBLIC" schema must be displayed
+              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
+                schema = "PUBLIC";
+              }
+              
               // get metadata about user tables by building a vector of table names
               String[] usertables = {"TABLE", "GLOBAL TEMPORARY", "VIEW"};
               ResultSet result = metaData.getTables(null, schema, null, usertables);

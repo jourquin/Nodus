@@ -13,7 +13,6 @@
 	<classpathentry kind="lib" path="lib/derby.jar"/>
 	<classpathentry kind="lib" path="lib/derbyLocale_fr.jar"/>
 	<classpathentry kind="lib" path="lib/guava-19.0.jar"/>
-	<classpathentry kind="lib" path="lib/h2-1.4.200.jar"/>
 	<classpathentry kind="lib" path="lib/hsqldb.jar"/>
 	<classpathentry kind="lib" path="lib/j4r-1.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/javadbf4nodus-1.12.2.jar"/>
@@ -103,5 +102,6 @@
 	<classpathentry kind="lib" path="lib/groovy/snakeyaml-1.28.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/testng-7.5.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/xstream-1.4.18.jar"/>
+	<classpathentry kind="lib" path="lib/h2-2.1.210.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
