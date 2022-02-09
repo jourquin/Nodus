@@ -107,5 +107,8 @@
 	<classpathentry kind="lib" path="lib/derbytools.jar"/>
 	<classpathentry kind="lib" path="lib/derbyshared.jar"/>
 	<classpathentry kind="lib" path="lib/derby.jar"/>
+	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
+	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.2.19.jar"/>
+	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.36.0.3.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

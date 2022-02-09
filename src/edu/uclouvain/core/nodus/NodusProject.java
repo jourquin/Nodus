@@ -350,6 +350,7 @@ public class NodusProject implements ShapeConstants {
       nodusMapPanel.getMenuFile().setEnabled(false);
 
       // Run the project's Groovy project script if exists
+      // TODO Test requestShutdown of J4R on Linux
       String scriptFileName =
           localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
               + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
@@ -1568,28 +1569,29 @@ public class NodusProject implements ShapeConstants {
         break;
       case JDBCUtils.DB_H2:
         defaultDriver = "org.h2.Driver";
-        
+
         /* A specific port could have been set in the project file, using the "h2serverport"
         property. */
         tcpPort = getLocalProperty(NodusC.PROP_H2_SERVER_PORT, 9092);
-        
+
         defaultURL = "jdbc:h2:tcp://localhost:" + tcpPort + "/" + projectPath + dbName;
         break;
       case JDBCUtils.DB_DERBY:
         System.setProperty("derby.system.home", projectPath);
         System.setProperty("derby.system.durability", "test");
-        
+
         /* A specific port could have been set in the project file, using the "derbyserverport"
         property. */
         tcpPort = getLocalProperty(NodusC.PROP_DERBY_SERVER_PORT, 1527);
-        
+
         defaultDriver = "org.apache.derby.jdbc.ClientDriver";
         defaultURL =
             "jdbc:derby://localhost:"
                 + tcpPort
-                //+ projectPath
+                // + projectPath
                 + "/"
-                + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME) + "_derby"
+                + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
+                + "_derby"
                 + ";create=true";
         defaultUser = "dbuser";
         defaultPassword = "dbuserpwd";

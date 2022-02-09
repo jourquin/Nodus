@@ -34,8 +34,6 @@ import javax.swing.JOptionPane;
  */
 public class ScriptRunner {
 
-  // TODO Test J4R server closing on Linux
-
   private static boolean success;
 
   GroovyShell shell;

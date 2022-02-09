@@ -296,6 +296,7 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Upgrade to rsyntaxtextarea-3.1.6
 - Upgrade to Groovy 4.0.0
 - Upgrade to Derby 10.15.2
+- Upgrade to sqlite-jdbc 3.36.0.3
 - Upgrade to H2 version 2. Existing projects using the H2 database need a migration of the database. 
 See https://www.h2database.com/html/migration-to-v2.html.
 - Upgrade to XChart 3.8.1 and get rid of hacked classes that are not needed anymore
