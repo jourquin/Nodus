@@ -66,6 +66,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -87,6 +88,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import org.apache.derby.drda.NetworkServerControl;
 import org.hsqldb.persist.HsqlProperties;
 
 /**
@@ -246,15 +248,15 @@ public class NodusProject implements ShapeConstants {
   /** Lat/Lon of center point at starting time. */
   private LatLonPoint initialCenterPoint;
 
-  private org.hsqldb.Server hsqldbServer = null;
+  private org.hsqldb.Server hsqldbServer;
 
-  private int hsqldbPort;
+  private NetworkServerControl derbyServer;
+
+  private int tcpPort;
 
   private HsqlProperties hsqldbProps = new HsqlProperties();
 
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
-
-  private org.h2.tools.Server h2Server = null;
 
   /**
    * The constructor just needs to know the frame the project will be displayed on.
@@ -466,8 +468,18 @@ public class NodusProject implements ShapeConstants {
 
               // Stop the H2 server
               if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
-                h2Server.shutdownTcpServer("tcp://localhost:9092", "", true, true);
+                org.h2.tools.Server.shutdownTcpServer(
+                    "tcp://localhost:" + tcpPort, "nodus", false, false);
               }
+            }
+          }
+
+          // Shutdown the Derby server if needed
+          if (JDBCUtils.getDbEngine() == JDBCUtils.DB_DERBY) {
+            try {
+              derbyServer.shutdown();
+            } catch (Exception e) {
+              e.printStackTrace();
             }
           }
 
@@ -1543,32 +1555,41 @@ public class NodusProject implements ShapeConstants {
         defaultDriver = "org.hsqldb.jdbcDriver";
         defaultUser = "SA";
 
-        // A specific port could have been set in the project file, using the "hsqldbserverport"
-        // property.
-        hsqldbPort = getLocalProperty(NodusC.PROP_HSQLDB_SERVER_PORT, 9001);
+        /* A specific port could have been set in the project file, using the "hsqldbserverport"
+        property. */
+        tcpPort = getLocalProperty(NodusC.PROP_HSQLDB_SERVER_PORT, 9001);
 
         String dbLocation = projectPath + dbName + "_hsqldb;shutdown=true";
-        defaultURL = "jdbc:hsqldb:hsql://localhost:" + hsqldbPort + "/" + dbName;
+        defaultURL = "jdbc:hsqldb:hsql://localhost:" + tcpPort + "/" + dbName;
 
-        // Launch the server
         hsqldbProps.setProperty("server.database.0", "file:" + dbLocation);
         hsqldbProps.setProperty("server.dbname.0", dbName);
-        hsqldbProps.setProperty("server.port", hsqldbPort);
+        hsqldbProps.setProperty("server.port", tcpPort);
         break;
       case JDBCUtils.DB_H2:
-        // TODO specify port, and close server
         defaultDriver = "org.h2.Driver";
-        defaultURL = "jdbc:h2:tcp://localhost/" + projectPath + dbName;
+        
+        /* A specific port could have been set in the project file, using the "h2serverport"
+        property. */
+        tcpPort = getLocalProperty(NodusC.PROP_H2_SERVER_PORT, 9092);
+        
+        defaultURL = "jdbc:h2:tcp://localhost:" + tcpPort + "/" + projectPath + dbName;
         break;
       case JDBCUtils.DB_DERBY:
         System.setProperty("derby.system.home", projectPath);
         System.setProperty("derby.system.durability", "test");
-
-        defaultDriver = "org.apache.derby.jdbc.EmbeddedDriver";
+        
+        /* A specific port could have been set in the project file, using the "derbyserverport"
+        property. */
+        tcpPort = getLocalProperty(NodusC.PROP_DERBY_SERVER_PORT, 1527);
+        
+        defaultDriver = "org.apache.derby.jdbc.ClientDriver";
         defaultURL =
-            "jdbc:derby:"
-                + projectPath
-                + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
+            "jdbc:derby://localhost:"
+                + tcpPort
+                //+ projectPath
+                + "/"
+                + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME) + "_derby"
                 + ";create=true";
         defaultUser = "dbuser";
         defaultPassword = "dbuserpwd";
@@ -1609,7 +1630,26 @@ public class NodusProject implements ShapeConstants {
     // Start H2 server if needed
     if (jdbcURL.toLowerCase().contains("h2:tcp")) {
       try {
-        h2Server = org.h2.tools.Server.createTcpServer("-tcpAllowOthers", "-ifNotExists").start();
+        org.h2.tools.Server.createTcpServer(
+                "-tcpAllowOthers",
+                "-ifNotExists",
+                "-tcpPassword",
+                "nodus",
+                "-tcpPort",
+                Integer.toString(tcpPort))
+            .start();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+
+    // Start Derby server if needed
+    if (jdbcURL.toLowerCase().contains("derby://")) {
+      try {
+        derbyServer =
+            new NetworkServerControl(
+                InetAddress.getByName("localhost"), tcpPort, defaultUser, defaultPassword);
+        derbyServer.start(null);
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -1623,7 +1663,6 @@ public class NodusProject implements ShapeConstants {
     localProperties.setProperty(NodusC.PROP_JDBC_DRIVER, jdbcDriver);
     localProperties.setProperty(NodusC.PROP_JDBC_URL, jdbcURL);
     try {
-
       Class.forName(jdbcDriver).getDeclaredConstructor().newInstance();
 
       jdbcConnection = getMainJDBCConnection();
