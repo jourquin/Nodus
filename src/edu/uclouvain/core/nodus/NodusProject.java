@@ -428,11 +428,10 @@ public class NodusProject implements ShapeConstants {
             jdbcConnection.commit();
           }
 
+          boolean isShutdown = false;
           // Ask if a "shutdown compact" must be performed as this can take a while
           if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB
               || JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
-
-            boolean isShutdown = false;
 
             if (Boolean.parseBoolean(getLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, "true"))) {
               int answer =
@@ -460,27 +459,21 @@ public class NodusProject implements ShapeConstants {
                 loop.enter();
               }
             }
-
-            if (!isShutdown) {
-              // Stop the HSQLDB server
-              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB) {
-                hsqldbServer.shutdown();
-              }
-
-              // Stop the H2 server
-              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
-                org.h2.tools.Server.shutdownTcpServer(
-                    "tcp://localhost:" + tcpPort, "nodus", false, false);
-              }
-            }
           }
 
-          // Shutdown the Derby server if needed
-          if (JDBCUtils.getDbEngine() == JDBCUtils.DB_DERBY) {
-            try {
+          // Shutdown the embedded DB server if needed
+          if (!isShutdown) {
+            if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB) {
+              hsqldbServer.shutdown();
+            }
+
+            if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
+              org.h2.tools.Server.shutdownTcpServer(
+                  "tcp://localhost:" + tcpPort, "nodus", false, false);
+            }
+
+            if (JDBCUtils.getDbEngine() == JDBCUtils.DB_DERBY) {
               derbyServer.shutdown();
-            } catch (Exception e) {
-              e.printStackTrace();
             }
           }
 
