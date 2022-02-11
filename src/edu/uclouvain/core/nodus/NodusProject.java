@@ -350,7 +350,7 @@ public class NodusProject implements ShapeConstants {
       nodusMapPanel.getMenuFile().setEnabled(false);
 
       // Run the project's Groovy project script if exists
-      // TODO Test requestShutdown of J4R on Linux
+      // TODO Test requestShutdown of J4R on Linux and demo.groovy on Linux
       String scriptFileName =
           localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
               + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
