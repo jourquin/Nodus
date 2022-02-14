@@ -1581,13 +1581,12 @@ public class NodusProject implements ShapeConstants {
         defaultURL =
             "jdbc:derby://localhost:"
                 + tcpPort
-                // + projectPath
                 + "/"
                 + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
                 + "_derby"
                 + ";create=true";
-        defaultUser = "dbuser";
-        defaultPassword = "dbuserpwd";
+        defaultUser = "nodus";
+        defaultPassword = "nodus";
         break;
       case JDBCUtils.DB_SQLITE:
         defaultDriver = "org.sqlite.JDBC";
