@@ -57,7 +57,7 @@ records = data.frame()
 for (i in 1:dbf$getRowCount()) {
 	record <- callJavaMethod(dbf,"getRecord", as.integer(i))
 	rawData <- getAllValuesFromArray(callJavaMethod(record,"toArray"))
-	records <- rbind(records, rawData)
+	records <- rbind(records, rawData, stringsAsFactors=FALSE)
 	if (i == 10) {
 		break
 	}
