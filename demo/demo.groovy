@@ -97,6 +97,6 @@ if (openProject) {
 	 */
 	GatewayServer pyGatewayServer = nodusMapPanel.retrieveObject("pyGatewayServer");
 	if (pyGatewayServer != null) {
-		pyGatewayServer.Shutdown();
+		pyGatewayServer.shutdown();
 	}
 }
