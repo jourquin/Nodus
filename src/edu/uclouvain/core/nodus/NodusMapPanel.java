@@ -1099,7 +1099,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     removeAll();
   }
 
-  // TODO Assignment menu not always enabled after assignment error.
   /**
    * Enable/Disable the menu items that are accessible only when a project is loaded.
    *
