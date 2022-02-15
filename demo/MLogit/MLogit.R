@@ -25,21 +25,26 @@
 
 library(Formula)
 library(mlogit)
-library(foreign)
+library(RJDBC)
 
 # Groups of commodities to estimate
 groups <- c(0, 1)
-
-# Input table (created by the Groovy script)
-inputTable <- "../mlogit_input.dbf"
 
 # Set working directory to this script location
 this.dir <- dirname(parent.frame(2)$ofile)
 setwd(this.dir)
 
+
+# Create JDBC connection to the HSQLDB database engine. Note that Nodus
+# must run with the "demo" project loaded.
+drv <- JDBC("org.hsqldb.jdbcDriver",
+            "../../lib/hsqldb.jar")
+conn <- dbConnect(drv, "jdbc:hsqldb:hsql://localhost/demo", "SA", "")            
+
 # Load data and transform all column name to lower cases
-data <- read.dbf(inputTable)
+data <- dbReadTable(conn, "MLOGIT_INPUT")
 names(data)[] <- tolower(names(data)[])
+
 
 # Prepare output files : the first will contain the results of the model,
 # the second only the estimated parameters (can be directly copied in the cost function file)

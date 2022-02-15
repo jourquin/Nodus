@@ -243,8 +243,7 @@ public class CreateMLogitInput_ {
         "drop table if exists tmp",\
         "# Rename final table",\
         "drop table if exists @@dstTable",\
-        "alter table tmp2 rename to @@dstTable",\
-        "exportdbf @@dstTable"\
+        "alter table tmp2 rename to @@dstTable"\
       ];
 
       success = sqlConsole.runBatch(sqlCommands2);
