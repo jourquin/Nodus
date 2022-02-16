@@ -11,18 +11,17 @@
 # They are used by a user defined modal-split
 # model embedded in "MLogit.jar"
 
-log(cost).1.0  =  -4.115533 
-(intercept).2.0  =  -6.050085 
-log(cost).2.0  =  -4.115533 
-(intercept).3.0  =  -1.785144 
-log(cost).3.0  =  -4.115533 
+log(cost).1.0  =  -3.374925 
+(intercept).2.0  =  -5.257472 
+log(cost).2.0  =  -3.374925 
+(intercept).3.0  =  -2.264472 
+log(cost).3.0  =  -3.374925 
 
-log(cost).1.1  =  -3.641179 
-(intercept).2.1  =  -6.656268 
-log(cost).2.1  =  -3.641179 
-(intercept).3.1  =  -5.033044 
-log(cost).3.1  =  -3.641179 
-
+log(cost).1.1  =  -3.498142 
+(intercept).2.1  =  -6.482802 
+log(cost).2.1  =  -3.498142 
+(intercept).3.1  =  -4.991339 
+log(cost).3.1  =  -3.498142 
 
 # Average load barges, in tons
 # AVGLOAD is a reserved name by Nodus. It is used to
