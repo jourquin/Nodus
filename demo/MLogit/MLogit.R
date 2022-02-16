@@ -31,9 +31,12 @@ library(RJDBC)
 groups <- c(0, 1)
 
 # Set working directory to this script location
-this.dir <- dirname(parent.frame(2)$ofile)
-setwd(this.dir)
-
+try({
+  this.dir <- dirname(parent.frame(2)$ofile)
+  setwd(this.dir)
+},
+silent = TRUE
+)
 
 # Create JDBC connection to the HSQLDB database engine. Note that Nodus
 # must run with the "demo" project loaded.

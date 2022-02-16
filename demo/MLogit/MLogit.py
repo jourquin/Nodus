@@ -21,14 +21,14 @@
 # not, see http://www.gnu.org/licenses/.
 #
 
-import NodusUtils as nu
+import jaydebeapi as jdbc
 import pandas as pd
 import numpy as np
 import biogeme.biogeme as bio
 import biogeme.database as db
 import biogeme.models as models
+import os
 from biogeme.expressions import Beta
-from py4j.java_gateway import JavaGateway, Py4JNetworkError
 
 # This Python script estimates the parameters of a conditional logit model
 # based on a single variable gathered from an uncalibrated assignment using
@@ -37,35 +37,21 @@ from py4j.java_gateway import JavaGateway, Py4JNetworkError
 # The input data is a table created by the "CreateBiogemeInput.sql" script, that transforms
 # the "wide format" data stored in the "mlogit_input" table created for the R script.
 #
-# This Python script also shows how to connect Python to a running instance of Nodus, from which the
-# input data is fetched through the JDBC connection used by Nodus. 
+# This Python script also shows how to connect Python to a running Nodus database engine (HSQLDB in this case)
+# using a JDBC connection.
 
 
 def run():
     
-    # Connect to Nodus (must be running with a Py4J server launched)
-    try:
-        gateway = JavaGateway(eager_load=True)    
-    except Py4JNetworkError:
-        print("Nodus is not listening.")
-        return
-    except Exception:
-        print("Another type of problem... maybe with the JVM.")
-        return
-    
-    # A Nodus project must be loaded
-    nodusMapPanel = gateway.entry_point
-    nodusProject = nodusMapPanel.getNodusProject()
-    if (not nodusProject.isOpen()):
-        print("No open Nodus project found.")
-        return
-    
-    # Use the Nodus JDBC connection
-    conn = nu.getNodusJDBCConnection(gateway)
+    # Connect to the Nodus HSQLDB server (must be running)
+    conn = jdbc.connect("org.hsqldb.jdbcDriver",
+                           "jdbc:hsqldb:hsql://localhost/demo",
+                           ["SA", ""],
+                           "../../lib/hsqldb.jar",)
       
     # Solve for the two groups present in the input table
     for g in range(2): 
-      
+        
         # Load the data for the current group into a data frame
         df = pd.read_sql_query("select * from biogeme_input where grp = " + str(g), conn)
         
@@ -78,7 +64,7 @@ def run():
         # Use column names as Python variables 
         database = db.Database('data', df)
         globals().update(database.variables)
-            
+        
         # Transform costs to their logs
         df['cost1'] = np.log(df['cost1'])
         df['cost2'] = np.log(df['cost2'])
@@ -106,8 +92,11 @@ def run():
         formulas = {'loglike': logprob, 'weight': qty}
         biogeme = bio.BIOGEME(database, formulas)
         biogeme.modelName = 'LogCost-' + str(g)
+        biogeme.createLogFile(verbosity=3)
         results = biogeme.estimate()
-        print(results)
+        
+        with pd.option_context('expand_frame_repr', False):
+            print(results.getEstimatedParameters())
         
 if __name__ == "__main__":
     run()

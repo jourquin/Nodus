@@ -303,11 +303,6 @@ See https://www.h2database.com/html/migration-to-v2.html.
 - The embedded HSQLDB, H2 and Derby database engines now run in server mode, allowing for external connections. The "hsqldbserverport",
 "h2serverport" or "derbyserverport" properties can be set in the project's file if the server has to listen a specific port. Defaults 
 are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
-- The R script of the demo project now uses a JDBC connection to the HSQLDB server. 
+- The R and Python MNLogit scripts of the demo project now use a JDBC connection to the HSQLDB server. 
 - Update URL of WMS server in demo project
-
-
-
-
-
- 
+- The MNLogit.R script now runs also from the command line
