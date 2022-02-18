@@ -31,8 +31,6 @@
         <pathelement location="lib/jung-graph-impl-2.1.1.jar"/>
         <pathelement location="lib/jung-visualization-2.1.1.jar"/>
         <pathelement location="lib/openmap-6.0.jar"/>
-        <pathelement location="lib/oshi-core-6.1.0.jar"/>
-        <pathelement location="lib/oshi-demo-6.1.0.jar"/>
         <pathelement location="lib/parsii-5.0.1.jar"/>
         <pathelement location="lib/poi-5.2.0.jar"/>
         <pathelement location="lib/poi-ooxml-5.2.0.jar"/>
@@ -116,6 +114,8 @@
         <pathelement location="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
         <pathelement location="lib/sqlite-jdbc-3.36.0.3.jar"/>
+        <pathelement location="lib/oshi-core-java11-6.1.2.jar"/>
+        <pathelement location="lib/oshi-demo-6.1.2.jar"/>
     </path>
     <path id="run.MenuProblemExample (1).classpath">
         <path refid="Nodus.classpath"/>
@@ -139,8 +139,6 @@
         <pathelement location="lib/jung-graph-impl-2.1.1.jar"/>
         <pathelement location="lib/jung-visualization-2.1.1.jar"/>
         <pathelement location="lib/openmap-6.0.jar"/>
-        <pathelement location="lib/oshi-core-6.1.0.jar"/>
-        <pathelement location="lib/oshi-demo-6.1.0.jar"/>
         <pathelement location="lib/parsii-5.0.1.jar"/>
         <pathelement location="lib/poi-5.2.0.jar"/>
         <pathelement location="lib/poi-ooxml-5.2.0.jar"/>
@@ -224,6 +222,8 @@
         <pathelement location="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
         <pathelement location="lib/sqlite-jdbc-3.36.0.3.jar"/>
+        <pathelement location="lib/oshi-core-java11-6.1.2.jar"/>
+        <pathelement location="lib/oshi-demo-6.1.2.jar"/>
     </path>
     <path id="run.Nodus.classpath">
         <path refid="Nodus.classpath"/>
@@ -247,8 +247,6 @@
         <pathelement location="lib/jung-graph-impl-2.1.1.jar"/>
         <pathelement location="lib/jung-visualization-2.1.1.jar"/>
         <pathelement location="lib/openmap-6.0.jar"/>
-        <pathelement location="lib/oshi-core-6.1.0.jar"/>
-        <pathelement location="lib/oshi-demo-6.1.0.jar"/>
         <pathelement location="lib/parsii-5.0.1.jar"/>
         <pathelement location="lib/poi-5.2.0.jar"/>
         <pathelement location="lib/poi-ooxml-5.2.0.jar"/>
@@ -332,6 +330,8 @@
         <pathelement location="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
         <pathelement location="lib/sqlite-jdbc-3.36.0.3.jar"/>
+        <pathelement location="lib/oshi-core-java11-6.1.2.jar"/>
+        <pathelement location="lib/oshi-demo-6.1.2.jar"/>
     </path>
     <path id="run.MenuProblemExample.classpath">
         <path refid="Nodus.classpath"/>
@@ -355,8 +355,6 @@
         <pathelement location="lib/jung-graph-impl-2.1.1.jar"/>
         <pathelement location="lib/jung-visualization-2.1.1.jar"/>
         <pathelement location="lib/openmap-6.0.jar"/>
-        <pathelement location="lib/oshi-core-6.1.0.jar"/>
-        <pathelement location="lib/oshi-demo-6.1.0.jar"/>
         <pathelement location="lib/parsii-5.0.1.jar"/>
         <pathelement location="lib/poi-5.2.0.jar"/>
         <pathelement location="lib/poi-ooxml-5.2.0.jar"/>
@@ -440,6 +438,8 @@
         <pathelement location="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
         <pathelement location="lib/sqlite-jdbc-3.36.0.3.jar"/>
+        <pathelement location="lib/oshi-core-java11-6.1.2.jar"/>
+        <pathelement location="lib/oshi-demo-6.1.2.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>

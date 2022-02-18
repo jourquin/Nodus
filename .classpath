@@ -25,8 +25,6 @@
 	<classpathentry kind="lib" path="lib/jung-graph-impl-2.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/jung-visualization-2.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/openmap-6.0.jar"/>
-	<classpathentry kind="lib" path="lib/oshi-core-6.1.0.jar"/>
-	<classpathentry kind="lib" path="lib/oshi-demo-6.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/parsii-5.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/poi-5.2.0.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-5.2.0.jar"/>
@@ -110,5 +108,7 @@
 	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.2.19.jar"/>
 	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.36.0.3.jar"/>
+	<classpathentry kind="lib" path="lib/oshi-core-java11-6.1.2.jar"/>
+	<classpathentry kind="lib" path="lib/oshi-demo-6.1.2.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

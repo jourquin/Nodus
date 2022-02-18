@@ -291,7 +291,7 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Upgrade to J4R-1.1.1
 - Upgrade to commons-compress-1.21
 - Replace HSQLDB jar with the Java 11 version
-- Upgrade to OSHI 6.1
+- Upgrade to OSHI 6.1.2
 - Upgrade to POI 5.2
 - Upgrade to rsyntaxtextarea-3.1.6
 - Upgrade to Groovy 4.0.0
@@ -306,3 +306,5 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - The R and Python MNLogit scripts of the demo project now use a JDBC connection to the HSQLDB server. 
 - Update URL of WMS server in demo project
 - The MNLogit.R script now runs also from the command line
+- The MNLogit.py script now uses another approach to read JDBC results to avoid a Pandas warning
+
