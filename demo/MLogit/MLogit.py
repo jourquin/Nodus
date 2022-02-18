@@ -57,6 +57,7 @@ def run():
         columns = [desc[0] for desc in curs.description] # Get column headers
         # Convert the list of tuples to a df
         df = pd.DataFrame(curs.fetchall(), columns=columns) 
+        curs.close()
         
         # Replace NA values 
         df = df.fillna(df.max()*1000)
@@ -100,6 +101,8 @@ def run():
         
         with pd.option_context('expand_frame_repr', False):
             print(results.getEstimatedParameters())
+            
+    conn.close()
         
 if __name__ == "__main__":
     run()
