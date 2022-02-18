@@ -12,7 +12,8 @@ Nodus 8.1 introduces the possibility to develop Python and R scripts in addition
 
 Nodus 8.2 runs on Java 17, but now needs Java 11 or above to run. This version also embeds H2 version 2. Existing projects using the H2 database
 will need a migration of the database. See https://www.h2database.com/html/migration-to-v2.html. The embedded HSQLDB, H2 and Derby
-engines now run in server mode, allowing for external connections from another JDBC client. 
+engines now run in server mode, allowing for external connections from another JDBC client. The Python and R scripts of the demo
+project now use a JDBC connection.
 
 
 The CHANGELOG.MD file contains an exhaustive list of the improvements made to the software.
