@@ -28,7 +28,6 @@ import biogeme.biogeme as bio
 import biogeme.database as db
 import biogeme.models as models
 from biogeme.expressions import Beta
-import warnings
 
 # This Python script estimates the parameters of a conditional logit model
 # based on a single variable gathered from an uncalibrated assignment using
@@ -53,10 +52,11 @@ def run():
     for g in range(2): 
         
         # Load the data for the current group into a data frame
-        # Some versions of Pandas throw a warning about the usage of DBAPI2 for non sqlite3 databases
-        warnings.filterwarnings("ignore")
-        df = pd.read_sql_query("select * from biogeme_input where grp = " + str(g), conn)
-        warnings.resetwarnings()
+        curs = conn.cursor()
+        curs.execute("select * from biogeme_input where grp = " + str(g))
+        columns = [desc[0] for desc in curs.description] # Get column headers
+        # Convert the list of tuples to a df
+        df = pd.DataFrame(curs.fetchall(), columns=columns) 
         
         # Replace NA values 
         df = df.fillna(df.max()*1000)
