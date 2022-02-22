@@ -38,10 +38,10 @@ public class VirtualLink {
   /** Virtual link that represent a moving operation. */
   public static final byte TYPE_MOVE = 0;
 
-  /** Virtual link that represents the Stop Service operation. */
+  /** Virtual link that represents the Stop TransportService operation. */
   public static final byte TYPE_STOP = 6;
 
-  /** Virtual link that represents a Change Service operation. */
+  /** Virtual link that represents a Change TransportService operation. */
   public static final byte TYPE_SWITCH = 5;
 
   /** Virtual link that represents a transhipment operation. */

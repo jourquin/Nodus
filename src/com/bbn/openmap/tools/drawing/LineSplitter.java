@@ -131,7 +131,7 @@ class LineSplitter {
   /**
    * Get the Services.
    *
-   * @return Service
+   * @return TransportService
    */
   public LinkedList<String> getServices() {
     return services;

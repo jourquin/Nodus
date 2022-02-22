@@ -47,7 +47,7 @@ import edu.uclouvain.core.nodus.database.ShapeIntegrityTester;
 import edu.uclouvain.core.nodus.database.dbf.DBFException;
 import edu.uclouvain.core.nodus.database.dbf.DBFReader;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
-import edu.uclouvain.core.nodus.services.ServiceEditor;
+import edu.uclouvain.core.nodus.services.ServiceHandler;
 import edu.uclouvain.core.nodus.utils.CheckForOM5;
 import edu.uclouvain.core.nodus.utils.CommentedProperties;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
@@ -237,7 +237,7 @@ public class NodusProject implements ShapeConstants {
   private JCheckBox reImportCheckBox = new JCheckBox();
 
   /** Lines and services editor. */
-  private ServiceEditor serviceEditor;
+  private ServiceHandler serviceEditor;
 
   /** Properties file that contains the styles for the nodes and links. */
   private Properties stylesProperties;
@@ -991,7 +991,7 @@ public class NodusProject implements ShapeConstants {
    *
    * @return The editor.
    */
-  public ServiceEditor getServiceEditor() {
+  public ServiceHandler getServiceEditor() {
     return serviceEditor;
   }
 
@@ -2035,7 +2035,7 @@ public class NodusProject implements ShapeConstants {
     NodeRulesReader.fixExclusionTableIfNeeded(this);
 
     // Load the service lines
-    serviceEditor = new ServiceEditor(this);
+    serviceEditor = new ServiceHandler(this);
 
     // Enable menus
     nodusMapPanel.getMenuFile().setEnabled(true);

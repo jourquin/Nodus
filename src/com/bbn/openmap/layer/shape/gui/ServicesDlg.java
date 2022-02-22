@@ -26,7 +26,7 @@ import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusMapPanel;
-import edu.uclouvain.core.nodus.services.ServiceEditor;
+import edu.uclouvain.core.nodus.services.ServiceHandler;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import edu.uclouvain.core.nodus.swing.TableSorter;
 import edu.uclouvain.swing.DefaultCheckListModel;
@@ -86,7 +86,7 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
   private int objectType;
   
   /** . */
-  private ServiceEditor serviceEditor;
+  private ServiceHandler serviceEditor;
   
   /** . */
   private LinkedList<?> serviceIdxForLink;
@@ -226,7 +226,7 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
     if (servicesTable == null) {
 
       modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Index", "Index"));
-      modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Name", "Service"));
+      modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Name", "TransportService"));
 
       DecimalFormat formatter = new DecimalFormat("0000");
 

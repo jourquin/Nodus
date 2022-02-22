@@ -29,7 +29,7 @@ import java.util.LinkedList;
  *
  * @author Bart Jourquin
  */
-public class Service {
+public class TransportService {
 
   /** The list of OMGraphics along the service. */
   private LinkedList<OMGraphic> links;
@@ -60,7 +60,7 @@ public class Service {
    *
    * @param id The numeric ID of the service.
    */
-  public Service(int id) {
+  public TransportService(int id) {
     this.id = id;
     this.mode = -1;
     this.means = -1;
@@ -78,7 +78,8 @@ public class Service {
    * @param frequency The frequency of the service.
    * @param description The description of the service.
    */
-  public Service(int id, String name, Byte mode, Byte means, int frequency, String description) {
+  public TransportService(
+      int id, String name, Byte mode, Byte means, int frequency, String description) {
     this.id = id;
     this.name = name;
     this.mode = mode;

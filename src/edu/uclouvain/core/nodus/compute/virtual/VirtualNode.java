@@ -54,7 +54,7 @@ public class VirtualNode {
   /** "Real node" element of the virtual node. */
   private int realNodeId;
 
-  /** "Service" element of the virtual node (0-9999). */
+  /** "TransportService" element of the virtual node (0-9999). */
   private int service;
 
   /** Sign of the virtual node. */
@@ -74,7 +74,7 @@ public class VirtualNode {
    * @param realLinkId "real link" element of the virtual node.
    * @param mode "Mode" element of the virtual node.
    * @param means "Means" element of the virtual node.
-   * @param service "Service" element of the virtual node.
+   * @param service "TransportService" element of the virtual node.
    * @param latitude Latitude of the real node.
    * @param longitude Longitude of the real node.
    */
@@ -218,7 +218,7 @@ public class VirtualNode {
   }
 
   /**
-   * Returns the "Service" element ID of the virtual node.
+   * Returns the "TransportService" element ID of the virtual node.
    *
    * @return The "service" ID associated to this virtual node.
    */

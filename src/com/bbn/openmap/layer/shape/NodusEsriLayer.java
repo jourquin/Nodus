@@ -55,7 +55,7 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
-import edu.uclouvain.core.nodus.services.ServiceEditor;
+import edu.uclouvain.core.nodus.services.ServiceHandler;
 import edu.uclouvain.core.nodus.swing.GUIUtils;
 import java.awt.BasicStroke;
 import java.awt.Component;
@@ -1432,7 +1432,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   public void select(OMGraphicList omgl) {
     EsriGraphicList list = getEsriGraphicList();
 
-    ServiceEditor serviceEditor = nodusProject.getServiceEditor();
+    ServiceHandler serviceEditor = nodusProject.getServiceEditor();
     graphicIndex = -1;
 
     MouseEvent me = getMouseEventInterpreter().getCurrentMouseEvent();

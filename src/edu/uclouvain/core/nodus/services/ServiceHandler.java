@@ -32,7 +32,7 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.database.JDBCField;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
-import edu.uclouvain.core.nodus.services.gui.ServiceEditorDlg;
+import edu.uclouvain.core.nodus.services.gui.ServicesDlg;
 import java.awt.Graphics;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -50,15 +50,15 @@ import javax.swing.JOptionPane;
  * @author Galina Iassinovskaia
  */
 // TODO (services) Still buggy. Test in interaction with the drawing tool
-public class ServiceEditor {
+public class ServiceHandler {
 
   private static final int TYPE_LINK = 1;
   private static final int TYPE_NODE = 0;
 
   /** Current service to edit. */
-  private Service currentService;
+  private TransportService currentService;
 
-  private ServiceEditorDlg serviceEditorDlg;
+  private ServicesDlg serviceEditorDlg;
 
   /** The painting environment, that will correspond to the Mapbean. */
   private Graphics graphics;
@@ -80,16 +80,16 @@ public class ServiceEditor {
   private String serviceLinkDetailTableName;
 
   /** TreeMap that contains the services. */
-  private TreeMap<String, Service> services = new TreeMap<>();
+  private TreeMap<String, TransportService> services = new TreeMap<>();
 
   private String serviceStopDetailTableName;
 
   /**
-   * Creates a new ServiceEditor.
+   * Creates a new ServiceHandler.
    *
    * @param nodusProject A Nodus project.
    */
-  public ServiceEditor(NodusProject nodusProject) {
+  public ServiceHandler(NodusProject nodusProject) {
 
     this.nodusProject = nodusProject;
     // nodusMapPanel = nodusProject.getNodusMapPanel();
@@ -112,7 +112,7 @@ public class ServiceEditor {
     loadService();
 
     // Prepare the GUI
-    serviceEditorDlg = new ServiceEditorDlg(this);
+    serviceEditorDlg = new ServicesDlg(this);
   }
 
   /**
@@ -190,7 +190,7 @@ public class ServiceEditor {
     Iterator<String> it = servicesList.iterator();
     while (it.hasNext()) {
       String serviceName = it.next();
-      Service s = services.get(serviceName);
+      TransportService s = services.get(serviceName);
       s.addChunk(omglink);
     }
   }
@@ -237,7 +237,7 @@ public class ServiceEditor {
       while (it1.hasNext()) {
         // Header
         String name = it1.next();
-        Service s = services.get(name);
+        TransportService s = services.get(name);
         pstmt1.setInt(1, s.getId());
         pstmt1.setString(2, name);
         pstmt1.setInt(3, s.getMode());
@@ -307,7 +307,7 @@ public class ServiceEditor {
 
     Iterator<String> it = getServiceNamesIterator();
     while (it.hasNext()) {
-      Service s = getService(it.next());
+      TransportService s = getService(it.next());
       if (s.getId() == serviceId) {
         return s.getFrequency();
       }
@@ -317,11 +317,11 @@ public class ServiceEditor {
   }
 
   /**
-   * Returns the service currently handled by this ServiceEditor.
+   * Returns the service currently handled by this ServiceHandler.
    *
    * @return The current service.
    */
-  public Service getCurrentService() {
+  public TransportService getCurrentService() {
     return currentService;
   }
 
@@ -332,8 +332,8 @@ public class ServiceEditor {
    * @return The transportation means of service.
    */
   public int getMeansForService(int serviceId) {
-    Iterator<Service> it = services.values().iterator();
-    Service s = null;
+    Iterator<TransportService> it = services.values().iterator();
+    TransportService s = null;
     while (it.hasNext()) {
       s = it.next();
       if (s.getId() == serviceId) {
@@ -384,11 +384,11 @@ public class ServiceEditor {
 
     do {
       // Iterate over the values in the map
-      Iterator<Service> it = services.values().iterator();
+      Iterator<TransportService> it = services.values().iterator();
       boolean found = false;
       while (it.hasNext()) {
         // Get value
-        Service line = it.next();
+        TransportService line = it.next();
         if (line.getId() == newId) {
           found = true;
           break;
@@ -474,12 +474,12 @@ public class ServiceEditor {
   }
 
   /**
-   * Returns the Service which name is passed as parameter.
+   * Returns the TransportService which name is passed as parameter.
    *
    * @param serviceName The name of the service.
-   * @return The Service, or null if not found.
+   * @return The TransportService, or null if not found.
    */
-  public Service getService(String serviceName) {
+  public TransportService getService(String serviceName) {
     return services.get(serviceName);
   }
 
@@ -500,7 +500,7 @@ public class ServiceEditor {
    */
   public int getServiceId(String serviceName) {
 
-    Service l = services.get(serviceName);
+    TransportService l = services.get(serviceName);
     if (l == null) {
       return -1;
     }
@@ -521,7 +521,7 @@ public class ServiceEditor {
     Iterator<String> it = getServiceNamesIterator();
     while (it.hasNext()) {
       String currentName = it.next();
-      Service s = services.get(currentName);
+      TransportService s = services.get(currentName);
       if (s.contains(omg)) {
         if (serviceIdx == null) {
           serviceIdx = new LinkedList<>();
@@ -555,7 +555,7 @@ public class ServiceEditor {
     Iterator<String> it = getServiceNamesIterator();
     while (it.hasNext()) {
       String currentName = it.next();
-      Service s = services.get(currentName);
+      TransportService s = services.get(currentName);
       if (s.contains(omg)) {
         serviceNames.add(currentName);
       }
@@ -586,7 +586,7 @@ public class ServiceEditor {
           Iterator<String> it = getServiceNamesIterator();
           while (it.hasNext()) {
             String currentName = it.next();
-            Service s = services.get(currentName);
+            TransportService s = services.get(currentName);
             if (s.contains(omg)) {
               if (s.contains(nodeId)) {
                 if (!serviceNames.containsKey(currentName) || serviceNames.get(currentName)) {
@@ -671,7 +671,7 @@ public class ServiceEditor {
 
     Iterator<String> it = getServiceNamesIterator();
     while (it.hasNext()) {
-      Service s = getService(it.next());
+      TransportService s = getService(it.next());
       if (s.getStopNodes().contains(nodeId) && s.getId() == serviceId) {
         return true;
       }
@@ -709,7 +709,8 @@ public class ServiceEditor {
         int frequency = JDBCUtils.getInt(rs1.getObject(5));
         String type = (String) rs1.getObject(6);
 
-        Service s = new Service(idService, nameService, mode, means, frequency, type);
+        TransportService s =
+            new TransportService(idService, nameService, mode, means, frequency, type);
         // Retrieve the list of chunks for this line
         String sqlStmt2 =
             "SELECT "
@@ -765,9 +766,9 @@ public class ServiceEditor {
     paintService(false);
 
     // Get the line to edit
-    Service s = services.get(serviceName);
+    TransportService s = services.get(serviceName);
     if (s == null) {
-      s = new Service(getNewServiceId());
+      s = new TransportService(getNewServiceId());
       if (serviceName.compareTo("") != 0) {
         services.put(serviceName, s);
       }
@@ -794,9 +795,9 @@ public class ServiceEditor {
     }
 
     /* Load the real links with the list of line id they belong to */
-    Iterator<Service> it = services.values().iterator();
+    Iterator<TransportService> it = services.values().iterator();
     while (it.hasNext()) {
-      Service s = it.next();
+      TransportService s = it.next();
       Iterator<OMGraphic> it2 = s.getLinks().iterator();
       while (it2.hasNext()) {
         OMGraphic omg = it2.next();
@@ -832,7 +833,7 @@ public class ServiceEditor {
   public void removeService(String serviceName) {
 
     // Get the service to edit
-    Service s = services.get(serviceName);
+    TransportService s = services.get(serviceName);
 
     if (s != null) {
       currentService = s;
@@ -887,7 +888,7 @@ public class ServiceEditor {
    *
    * @param service The service to save.
    */
-  public void saveService(Service service) {
+  public void saveService(TransportService service) {
     if (services.get(service.getName()) != null) {
       services.remove(service.getName());
     }
@@ -919,7 +920,7 @@ public class ServiceEditor {
     Iterator<String> it = serviceNames.keySet().iterator();
     while (it.hasNext()) {
       String serviceName = it.next();
-      Service s = services.get(serviceName);
+      TransportService s = services.get(serviceName);
       if (s.contains(nodeId)) {
         s.removeStop(nodeId);
       }

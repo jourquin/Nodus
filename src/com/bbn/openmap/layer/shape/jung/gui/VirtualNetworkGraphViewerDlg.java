@@ -370,7 +370,7 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
                     + mode
                     + "<br>Means&nbsp;&nbsp;&nbsp;: "
                     + means
-                    + "<br>Service&nbsp;: "
+                    + "<br>TransportService&nbsp;: "
                     + service
                     + "<br></html>";
           } else {
