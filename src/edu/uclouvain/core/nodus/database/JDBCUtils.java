@@ -848,10 +848,8 @@ public class JDBCUtils {
 
       // Get result set meta data
       ResultSetMetaData rsmd = rs.getMetaData();
-      rs.close();
-
       int numColumns = rsmd.getColumnCount();
-
+     
       // Get the column names; column indices start from 1
       for (int i = 1; i < numColumns + 1; i++) {
         String columnName = rsmd.getColumnName(i);
@@ -859,7 +857,7 @@ public class JDBCUtils {
           return true;
         }
       }
-
+      rs.close();
     } catch (SQLException e) {
       e.printStackTrace();
     }
