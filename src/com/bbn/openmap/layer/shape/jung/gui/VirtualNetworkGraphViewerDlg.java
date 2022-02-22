@@ -78,7 +78,6 @@ import javax.swing.JPanel;
  *
  * @author Bart Jourquin
  */
-// TODO The "node view" should also handle time dependent results
 public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
 
   private static I18n i18n = Environment.getI18n();
