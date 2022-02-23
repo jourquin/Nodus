@@ -285,7 +285,7 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Update copyright date to 2022
 - Install the "Times" font if needed on Mac OS Monterey machines
 
-## v8.2 - BuildXXXXXXXX
+## v8.2 - Build20220218
 - Removal of deprecated API calls. Nodus now needs Java 11 or above to run.
 - Launch the Py4J and J4R bridges in in the project's Groovy script 
 - Upgrade to J4R-1.1.1
@@ -307,4 +307,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Update URL of WMS server in demo project
 - The MNLogit.R script now runs also from the command line
 - The MNLogit.py script now uses another approach to read JDBC results to avoid a Pandas warning
+
+## v8.2 - BuildXXXXXXXX
+- Fix small bug (wrong JDBC ResultSet closing) in nodes rules reading.
+
 
