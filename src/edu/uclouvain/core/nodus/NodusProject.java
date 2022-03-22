@@ -237,7 +237,7 @@ public class NodusProject implements ShapeConstants {
   private JCheckBox reImportCheckBox = new JCheckBox();
 
   /** Lines and services editor. */
-  private ServiceHandler serviceEditor;
+  private ServiceHandler serviceHandler;
 
   /** Properties file that contains the styles for the nodes and links. */
   private Properties stylesProperties;
@@ -398,7 +398,7 @@ public class NodusProject implements ShapeConstants {
       if (nodeLayers != null && linkLayers != null) {
 
         // Save the Services
-        serviceEditor.close();
+        serviceHandler.close();
 
         if (isDirty()) {
 
@@ -987,12 +987,12 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Returns the lines and services editor.
+   * Returns the lines and services handler.
    *
-   * @return The editor.
+   * @return The ServiceHandler.
    */
-  public ServiceHandler getServiceEditor() {
-    return serviceEditor;
+  public ServiceHandler getServiceHandler() {
+    return serviceHandler;
   }
 
   /**
@@ -2035,7 +2035,7 @@ public class NodusProject implements ShapeConstants {
     NodeRulesReader.fixExclusionTableIfNeeded(this);
 
     // Load the service lines
-    serviceEditor = new ServiceHandler(this);
+    serviceHandler = new ServiceHandler(this);
 
     // Enable menus
     nodusMapPanel.getMenuFile().setEnabled(true);

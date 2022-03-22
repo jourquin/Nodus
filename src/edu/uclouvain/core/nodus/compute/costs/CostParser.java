@@ -723,7 +723,7 @@ public class CostParser {
     if (vl.getBeginVirtualNode().getService() != vl.getEndVirtualNode().getService()) {
       setVariable(
           NodusC.VARNAME_FREQUENCY,
-          project.getServiceEditor().frequencyByService(vl.getEndVirtualNode().getService()));
+          project.getServiceHandler().frequencyByService(vl.getEndVirtualNode().getService()));
     } else {
       setVariable(NodusC.VARNAME_FREQUENCY, 0);
     }

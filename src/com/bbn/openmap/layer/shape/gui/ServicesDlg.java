@@ -39,6 +39,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.TreeMap;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -60,34 +61,34 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
 
   /** . */
   private JButton closeButton = null;
-  
+
   /** . */
   private JPanel contentPane = null;
-  
+
   /** . */
   private JScrollPane scrollPane = null;
-  
+
   /** . */
   private JTable servicesTable = null;
-  
+
   /** . */
   private TreeMap<String, ?> listNameForNode = null;
 
   /** . */
   private DefaultTableModel modeltable = new DefaultTableModel();
-  
+
   /** . */
   private NodusMapPanel nodusMapPanel;
-  
+
   /** . */
   private int objectNum;
-  
+
   /** . */
   private int objectType;
-  
+
   /** . */
-  private ServiceHandler serviceEditor;
-  
+  private ServiceHandler serviceHandler;
+
   /** . */
   private LinkedList<?> serviceIdxForLink;
 
@@ -100,20 +101,21 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
   /**
    * Dialog box that allows edition of lines and services.
    *
+   * @param parent The parent dialog
    * @param nodusEsriLayer The layer the object to edit belongs to
    * @param objectNum Node or Link number
    */
-  public ServicesDlg(NodusEsriLayer nodusEsriLayer, int objectNum) {
+  public ServicesDlg(JDialog parent, NodusEsriLayer nodusEsriLayer, int objectNum) {
     super(nodusEsriLayer.getNodusMapPanel().getMainFrame(), "", true);
     this.nodusMapPanel = nodusEsriLayer.getNodusMapPanel();
-    serviceEditor = nodusMapPanel.getNodusProject().getServiceEditor();
+    serviceHandler = nodusMapPanel.getNodusProject().getServiceHandler();
     this.objectType = nodusEsriLayer.getType();
     this.objectNum = objectNum;
     initialize();
 
     getRootPane().setDefaultButton(getCloseButton());
     setAlwaysOnTop(true);
-    setLocationRelativeTo(nodusMapPanel);
+    setLocationRelativeTo(parent);
   }
 
   /**
@@ -140,7 +142,7 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
                     listNodes.put((String) checkList.getModel().getElementAt(i), false);
                   }
                 }
-                serviceEditor.setStops(objectNum, listNodes);
+                serviceHandler.setStops(objectNum, listNodes);
               }
               setVisible(false);
             }
@@ -208,7 +210,7 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
     if (scrollPane == null) {
       scrollPane = new JScrollPane();
       if (objectType == SHAPE_TYPE_POLYLINE) {
-        scrollPane.setViewportView(getjTable());
+        scrollPane.setViewportView(getServicesTable());
       } else {
         scrollPane.setViewportView(getJCheckList());
       }
@@ -221,7 +223,7 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
    *
    * @return javax.swing.JList
    */
-  private JTable getjTable() {
+  private JTable getServicesTable() {
 
     if (servicesTable == null) {
 
@@ -257,26 +259,34 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
       sorter.setTableHeader(servicesTable.getTableHeader());
 
       /* Intercept the value changed even */
+      // TODO Display selected line
       servicesTable
           .getSelectionModel()
           .addListSelectionListener(
               new javax.swing.event.ListSelectionListener() {
                 @Override
                 public void valueChanged(javax.swing.event.ListSelectionEvent e) {
-                  if (getjTable().getSelectedRow() == -1) {
+
+                	
+
+                  // Reentrance of not yet consumed event ?
+                  if (!e.getValueIsAdjusting()) {
+                    return;
+                  }
+                  if (getServicesTable().getSelectedRow() == -1) {
                     return;
                   }
                   // Get line ID
                   String serviceName =
-                      (String) getjTable().getValueAt(getjTable().getSelectedRow(), 1);
+                      (String) getServicesTable().getValueAt(getServicesTable().getSelectedRow(), 1);
                   if (serviceName == null) {
                     return;
                   }
                   // Hide current line
-                  serviceEditor.paintService(false);
+                  //serviceHandler.paintService(false);
 
                   // Load new line
-                  serviceEditor.displayService(serviceName);
+                  serviceHandler.displayService(serviceName);
                 }
               });
     }
@@ -294,14 +304,14 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
       case SHAPE_TYPE_POINT:
         this.setTitle(
             i18n.get(ServicesDlg.class, "Services_at_this_node", "Services at this node"));
-        listNameForNode = serviceEditor.getServiceNamesForNode(objectNum);
+        listNameForNode = serviceHandler.getServiceNamesForNode(objectNum);
         break;
 
       case SHAPE_TYPE_POLYLINE:
         this.setTitle(
             i18n.get(ServicesDlg.class, "Services_at_this_link", "Services at this link"));
-        serviceIdxForLink = serviceEditor.getServicesForLink(objectNum);
-        serviceNameForLink = serviceEditor.getServiceNamesForLink(objectNum);
+        serviceIdxForLink = serviceHandler.getServicesForLink(objectNum);
+        serviceNameForLink = serviceHandler.getServiceNamesForLink(objectNum);
         break;
 
       default:
@@ -319,8 +329,8 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
   public void setVisible(boolean visible) {
     // Reset line if needed
     if (!visible) {
-      if (!nodusMapPanel.getNodusProject().getServiceEditor().isGUIVisible()) {
-        nodusMapPanel.getNodusProject().getServiceEditor().resetService();
+      if (!nodusMapPanel.getNodusProject().getServiceHandler().isGUIVisible()) {
+        nodusMapPanel.getNodusProject().getServiceHandler().resetService();
       }
     }
     super.setVisible(visible);

@@ -1432,7 +1432,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   public void select(OMGraphicList omgl) {
     EsriGraphicList list = getEsriGraphicList();
 
-    ServiceHandler serviceEditor = nodusProject.getServiceEditor();
+    ServiceHandler serviceEditor = nodusProject.getServiceHandler();
     graphicIndex = -1;
 
     MouseEvent me = getMouseEventInterpreter().getCurrentMouseEvent();
@@ -1465,7 +1465,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
               omg.render(getGraphics());
 
               // Repaint the line that is being edited if there is one
-              nodusProject.getServiceEditor().paintService(true);
+              nodusProject.getServiceHandler().paintService(true);
               repaint();
             }
 

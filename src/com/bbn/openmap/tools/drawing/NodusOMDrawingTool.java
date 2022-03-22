@@ -275,7 +275,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
           // Insert the new link into the same services like the oldest one.
           nodusMapPanel
               .getNodusProject()
-              .getServiceEditor()
+              .getServiceHandler()
               .addServicesToLink(newNumber, lineSplitter.getServices());
         }
 
@@ -756,7 +756,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
 
           if (!nodusMapPanel
               .getNodusProject()
-              .getServiceEditor()
+              .getServiceHandler()
               .getServiceNamesForLink(num)
               .isEmpty()) {
             JOptionPane.showMessageDialog(
@@ -1172,7 +1172,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
       LinkedList<String> services =
           nodusMapPanel
               .getNodusProject()
-              .getServiceEditor()
+              .getServiceHandler()
               .getServiceNamesForLink(
                   JDBCUtils.getInt(
                       linksLayers[layerIndexOfSelectedGraphic]
@@ -1282,7 +1282,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
       // set the end nodes in dbf
       nodusMapPanel
           .getNodusProject()
-          .getServiceEditor()
+          .getServiceHandler()
           .addServicesToLink(
               JDBCUtils.getInt(
                   linksLayers[layerIndexOfSelectedGraphic]

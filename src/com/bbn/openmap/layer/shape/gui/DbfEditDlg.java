@@ -67,6 +67,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -665,7 +666,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
           && nodusEsriLayer
                   .getNodusMapPanel()
                   .getNodusProject()
-                  .getServiceEditor()
+                  .getServiceHandler()
                   .getServiceNamesForLink(objectNum)
                   .size()
               == 0) {
@@ -675,7 +676,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
         if (nodusEsriLayer
                 .getNodusMapPanel()
                 .getNodusProject()
-                .getServiceEditor()
+                .getServiceHandler()
                 .getTranship(objectNum)
             == 0) {
           servicesButton.setEnabled(false);
@@ -683,18 +684,20 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
         if (nodusEsriLayer
                 .getNodusMapPanel()
                 .getNodusProject()
-                .getServiceEditor()
+                .getServiceHandler()
                 .getServiceNamesForNode(objectNum)
                 .size()
             == 0) {
           servicesButton.setEnabled(false);
         }
       }
+      
+      final JDialog _this = this;
       servicesButton.addActionListener(
           new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-              ServicesDlg dlg = new ServicesDlg(nodusEsriLayer, objectNum);
+              ServicesDlg dlg = new ServicesDlg(_this, nodusEsriLayer, objectNum);
               dlg.setVisible(true);
             }
           });

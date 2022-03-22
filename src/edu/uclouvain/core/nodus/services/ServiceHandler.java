@@ -816,6 +816,7 @@ public class ServiceHandler {
     if (currentService == null || currentService.getNbLinks() == 0) {
       return;
     }
+    
     Iterator<OMGraphic> it = currentService.getLinks().iterator();
     while (it.hasNext()) {
       OMGraphic omg = it.next();

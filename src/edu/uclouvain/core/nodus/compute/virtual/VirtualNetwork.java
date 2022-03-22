@@ -259,7 +259,7 @@ public class VirtualNetwork {
     }
 
     // Load the service ID associated to each real link
-    nodusProject.getServiceEditor().loadServicesForVirtualNetwork();
+    nodusProject.getServiceHandler().loadServicesForVirtualNetwork();
 
     // Filter the objects to generate
     if (ap.isLimitedToHighlightedArea()) {
@@ -594,7 +594,7 @@ public class VirtualNetwork {
 
         byte means = JDBCUtils.getByte(values.get(NodusC.DBF_IDX_MEANS));
         LinkedList<Integer> services =
-            nodusMapPanel.getNodusProject().getServiceEditor().getServicesForLink(link);
+            nodusMapPanel.getNodusProject().getServiceHandler().getServicesForLink(link);
 
         /* iterate through all means of the link */
         for (byte k = 1; k <= means; k++) {
@@ -620,7 +620,7 @@ public class VirtualNetwork {
                  */
                 int service = it.next();
                 int meansByService =
-                    nodusMapPanel.getNodusProject().getServiceEditor().getMeansForService(service);
+                    nodusMapPanel.getNodusProject().getServiceHandler().getMeansForService(service);
                 // Virtual nodes
                 if (meansByService == k) {
                   NodeLayerAndRowIndex idx = nodeIndex.get(node1);
@@ -757,7 +757,7 @@ public class VirtualNetwork {
             boolean n1 =
                 nodusMapPanel
                     .getNodusProject()
-                    .getServiceEditor()
+                    .getServiceHandler()
                     .isNodeStopService(beginNode.getRealNodeId(false), beginNode.getService());
             if (beginNode.getService() == 0) {
               n1 = true;
@@ -766,7 +766,7 @@ public class VirtualNetwork {
             boolean n2 =
                 nodusMapPanel
                     .getNodusProject()
-                    .getServiceEditor()
+                    .getServiceHandler()
                     .isNodeStopService(endNode.getRealNodeId(false), endNode.getService());
             if (endNode.getService() == 0) {
               n2 = true;
@@ -786,7 +786,7 @@ public class VirtualNetwork {
               if (beginNode.getModeMeansServiceKey() == endNode.getModeMeansServiceKey()
                   && nodusMapPanel
                       .getNodusProject()
-                      .getServiceEditor()
+                      .getServiceHandler()
                       .isNodeStopService(beginNode.getRealNodeId(false), beginNode.getService())
                   && beginNode.getRealNodeId(false) == endNode.getRealNodeId(false)) {
                 type = VirtualLink.TYPE_STOP;
@@ -879,7 +879,7 @@ public class VirtualNetwork {
           boolean n =
               nodusMapPanel
                   .getNodusProject()
-                  .getServiceEditor()
+                  .getServiceHandler()
                   .isNodeStopService(currentNode.getRealNodeId(false), currentNode.getService());
           if (currentNode.getSign() == VirtualNode.NEGATIVE
               && (n || !isServiceForModeMeans(currentNode.getMode(), currentNode.getMeans()))) {

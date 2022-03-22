@@ -2293,7 +2293,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   private void menuItemProjectServicesActionPerformed(ActionEvent e) {
     if (nodusProject.isOpen()) {
-      getNodusProject().getServiceEditor().showGUI();
+      getNodusProject().getServiceHandler().showGUI();
     }
   }
 

@@ -135,7 +135,7 @@ public class ServicesDlg extends EscapeDialog {
   private String[] period = new String[4];
 
   /** . */
-  private ServiceHandler serviceEditor;
+  private ServiceHandler serviceHandler;
 
   /** . */
   private JTable serviceTable = null;
@@ -152,15 +152,15 @@ public class ServicesDlg extends EscapeDialog {
   /**
    * Creates the service editor dialog.
    *
-   * @param serviceEditor The service editor.
+   * @param serviceHandler The service handler.
    */
-  public ServicesDlg(ServiceHandler serviceEditor) {
+  public ServicesDlg(ServiceHandler serviceHandler) {
     super(
-        serviceEditor.getNodusMapPanel().getMainFrame(),
-        i18n.get(ServicesDlg.class, "Service_editor", "TransportService editor"),
+        serviceHandler.getNodusMapPanel().getMainFrame(),
+        i18n.get(ServicesDlg.class, "Service_editor", "Transport Services editor"),
         false);
-    this.serviceEditor = serviceEditor;
-    nodusMapPanel = serviceEditor.getNodusMapPanel();
+    this.serviceHandler = serviceHandler;
+    nodusMapPanel = serviceHandler.getNodusMapPanel();
     initialize();
   }
 
@@ -198,7 +198,7 @@ public class ServicesDlg extends EscapeDialog {
   /** This method fills the ServiceTable. */
   private void fillInTableService(String nameService) {
     formatter = new DecimalFormat("00000");
-    TransportService s = serviceEditor.getService(nameService);
+    TransportService s = serviceHandler.getService(nameService);
     if (s != null) {
       modeltable.addRow(
           new Object[] {
@@ -226,8 +226,8 @@ public class ServicesDlg extends EscapeDialog {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
 
-              TransportService s = serviceEditor.getCurrentService();
-              serviceEditor.resetService();
+              TransportService s = serviceHandler.getCurrentService();
+              serviceHandler.resetService();
 
               String key = s.getName();
               if (key != null) {
@@ -242,9 +242,9 @@ public class ServicesDlg extends EscapeDialog {
                             getServiceTable().getValueAt(getServiceTable().getSelectedRow(), 1);
                   }
                 }
-                serviceEditor.displayService(key);
+                serviceHandler.displayService(key);
               }
-              serviceEditor.setListening(false);
+              serviceHandler.setListening(false);
               cl.show(panelRoot, "display");
             }
           });
@@ -313,10 +313,10 @@ public class ServicesDlg extends EscapeDialog {
                 }
                 String key =
                     (String) getServiceTable().getValueAt(getServiceTable().getSelectedRow(), 1);
-                TransportService s = serviceEditor.getService(key);
+                TransportService s = serviceHandler.getService(key);
 
-                serviceEditor.displayService(keyCopy);
-                TransportService serviceCopy = serviceEditor.getCurrentService();
+                serviceHandler.displayService(keyCopy);
+                TransportService serviceCopy = serviceHandler.getCurrentService();
                 serviceCopy.setName(keyCopy);
                 serviceCopy.setFrequency(s.getFrequency());
                 serviceCopy.setMode(s.getMode());
@@ -325,13 +325,13 @@ public class ServicesDlg extends EscapeDialog {
                 serviceCopy.setChunks(s.getLinks());
                 serviceCopy.setStops(s.getStopNodes());
 
-                serviceEditor.saveService(serviceCopy);
+                serviceHandler.saveService(serviceCopy);
 
                 fillInTableService(keyCopy);
 
-                serviceEditor.mustBeSaved();
+                serviceHandler.mustBeSaved();
 
-                serviceEditor.resetService();
+                serviceHandler.resetService();
 
                 getServiceTable()
                     .setRowSelectionInterval(
@@ -366,7 +366,7 @@ public class ServicesDlg extends EscapeDialog {
                 return;
               }
 
-              serviceEditor.removeService(serviceName);
+              serviceHandler.removeService(serviceName);
               if (getRowInModelbyService(serviceName) != -1) {
                 modeltable.removeRow(getRowInModelbyService(serviceName));
               }
@@ -503,7 +503,7 @@ public class ServicesDlg extends EscapeDialog {
             public void actionPerformed(java.awt.event.ActionEvent e) {
               formatter = new DecimalFormat("00000");
 
-              TransportService s = serviceEditor.getCurrentService();
+              TransportService s = serviceHandler.getCurrentService();
               nameField.setText(s.getName());
               idxField.setText(s.getId() + "");
               int[] temp = computeFrequencyUnit(s.getFrequency());
@@ -513,7 +513,7 @@ public class ServicesDlg extends EscapeDialog {
               descriptionField.setText(s.getDescription());
 
               nameField.setEditable(false);
-              serviceEditor.setListening(true);
+              serviceHandler.setListening(true);
               cl.show(panelRoot, "edit");
             }
           });
@@ -814,9 +814,9 @@ public class ServicesDlg extends EscapeDialog {
 
               formatter = new DecimalFormat("0000");
 
-              int id = serviceEditor.getNewServiceId();
+              int idx = serviceHandler.getNewServiceId();
 
-              idxField.setText(id + "");
+              idxField.setText(idx + "");
               frequencyField.setText(12 + "");
               time.setSelectedIndex(0);
               descriptionField.setText("");
@@ -828,11 +828,11 @@ public class ServicesDlg extends EscapeDialog {
 
               cl.show(panelRoot, "edit");
 
-              serviceEditor.resetService();
+              serviceHandler.resetService();
 
-              serviceEditor.displayService("");
+              serviceHandler.displayService("");
               // setListening(true);
-              serviceEditor.setListening(true);
+              serviceHandler.setListening(true);
             }
           });
     }
@@ -938,7 +938,7 @@ public class ServicesDlg extends EscapeDialog {
                   return;
                 }
 
-                TransportService s = serviceEditor.getCurrentService();
+                TransportService s = serviceHandler.getCurrentService();
 
                 s.setName(name);
                 s.setFrequency(
@@ -948,7 +948,7 @@ public class ServicesDlg extends EscapeDialog {
                 s.setMeans(Byte.valueOf(meansField.getSelectedItem().toString()));
                 s.setDescription(descriptionField.getText());
 
-                serviceEditor.saveService(s);
+                serviceHandler.saveService(s);
 
                 formatter = new DecimalFormat("00000");
                 if (getRowInModelbyService(name) != -1) {
@@ -957,9 +957,9 @@ public class ServicesDlg extends EscapeDialog {
 
                 fillInTableService(name);
 
-                serviceEditor.mustBeSaved();
+                serviceHandler.mustBeSaved();
                 buttonEnable();
-                serviceEditor.setListening(false);
+                serviceHandler.setListening(false);
                 cl.show(panelRoot, "display");
                 selectService(name);
               } else {
@@ -992,7 +992,7 @@ public class ServicesDlg extends EscapeDialog {
       modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Frequency", "Freqyency"));
       modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Type", "Type"));
 
-      Iterator<String> it = serviceEditor.getServiceNamesIterator();
+      Iterator<String> it = serviceHandler.getServiceNamesIterator();
       formatter = new DecimalFormat("00000");
       while (it.hasNext()) {
         // Get ID
@@ -1038,10 +1038,10 @@ public class ServicesDlg extends EscapeDialog {
                     return;
                   }
                   // Hide current service
-                  serviceEditor.paintService(false);
+                  serviceHandler.paintService(false);
 
                   // Load new service
-                  serviceEditor.displayService(serviceName);
+                  serviceHandler.displayService(serviceName);
                   buttonEnable();
                 }
               });
@@ -1075,8 +1075,8 @@ public class ServicesDlg extends EscapeDialog {
       meansField.setSelectedIndex(0);
     } else {
 
-      if (serviceEditor.getCurrentService().getMeans() != -1
-          && means > serviceEditor.getCurrentService().getMeans()) {
+      if (serviceHandler.getCurrentService().getMeans() != -1
+          && means > serviceHandler.getCurrentService().getMeans()) {
         meansField.removeAllItems();
       }
 
@@ -1153,11 +1153,11 @@ public class ServicesDlg extends EscapeDialog {
           serviceName = (String) getServiceTable().getValueAt(0, 1);
           getServiceTable().setRowSelectionInterval(0, 0);
         }
-        serviceEditor.displayService(serviceName);
+        serviceHandler.displayService(serviceName);
       }
       cl.show(panelRoot, "display");
     } else {
-      serviceEditor.resetService();
+      serviceHandler.resetService();
     }
   }
 }
