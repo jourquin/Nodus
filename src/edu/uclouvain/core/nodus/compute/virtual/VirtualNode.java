@@ -111,7 +111,7 @@ public class VirtualNode {
     if (this.means < 0 || this.means > NodusC.MAXMM) {
       System.err.println("Invalid means");
     }
-    if (this.service < 0 || this.service > NodusC.MAXSERVICE) {
+    if (this.service < 0 || this.service > NodusC.MAXSERVICES) {
       System.err.println("Invalid Line");
     }
     virtualLinks = new LinkedList<>();

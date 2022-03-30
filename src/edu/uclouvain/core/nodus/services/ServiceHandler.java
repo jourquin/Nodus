@@ -75,14 +75,14 @@ public class ServiceHandler {
 
   private NodusProject nodusProject;
 
-  private String serviceHeaderTableName;
+  private String servicesHeaderTableName;
 
-  private String serviceLinkDetailTableName;
+  private String servicesLinksTableName;
 
   /** TreeMap that contains the services. */
   private TreeMap<String, TransportService> services = new TreeMap<>();
 
-  private String serviceStopDetailTableName;
+  private String serviceStopsTableName;
 
   /**
    * Creates a new ServiceHandler.
@@ -101,12 +101,12 @@ public class ServiceHandler {
 
     // Prepare table names
     String defValue =
-        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_SERVICE;
-    String name = nodusProject.getLocalProperty(NodusC.PROP_SERVICE_TABLE_PREFIX, defValue);
+        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_SERVICES;
+    String name = nodusProject.getLocalProperty(NodusC.PROP_SERVICES_TABLE_PREFIX, defValue);
 
-    serviceHeaderTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_HEADER);
-    serviceLinkDetailTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_LINK_DETAIL);
-    serviceStopDetailTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_STOP_DETAIL);
+    servicesHeaderTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_HEADER);
+    servicesLinksTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_SERVICES_LINKS);
+    serviceStopsTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_SERVICES_STOPS);
 
     // Load the stored services
     loadService();
@@ -199,7 +199,7 @@ public class ServiceHandler {
   private void addStopNode(int occurences, int nodeId) {
     if (occurences < 1) {
       if (getTranship(nodeId) == NodusC.HANDLING_ALL
-          || getTranship(nodeId) == NodusC.HANDLING_CHANGE_SERVICE) {
+          || getTranship(nodeId) == NodusC.SERVICE_CHANGE) {
         currentService.addStop(nodeId);
       }
     }
@@ -224,13 +224,13 @@ public class ServiceHandler {
 
       jdbcConnection = nodusProject.getMainJDBCConnection();
       // connect to database and execute query
-      String sqlStmt = "INSERT INTO " + serviceHeaderTableName + " VALUES(?,?,?,?,?,?)";
+      String sqlStmt = "INSERT INTO " + servicesHeaderTableName + " VALUES(?,?,?,?,?,?)";
       PreparedStatement pstmt1 = jdbcConnection.prepareStatement(sqlStmt);
 
-      sqlStmt = "INSERT INTO " + serviceLinkDetailTableName + " VALUES(?,?)";
+      sqlStmt = "INSERT INTO " + servicesLinksTableName + " VALUES(?,?)";
       PreparedStatement pstmt2 = jdbcConnection.prepareStatement(sqlStmt);
 
-      sqlStmt = "INSERT INTO " + serviceStopDetailTableName + " VALUES(?,?)";
+      sqlStmt = "INSERT INTO " + serviceStopsTableName + " VALUES(?,?)";
       PreparedStatement pstmt3 = jdbcConnection.prepareStatement(sqlStmt);
 
       Iterator<String> it1 = getServiceNamesIterator();
@@ -489,7 +489,7 @@ public class ServiceHandler {
    * @return The table name.
    */
   public String getServiceHeaderTableName() {
-    return serviceHeaderTableName;
+    return servicesHeaderTableName;
   }
 
   /**
@@ -514,7 +514,7 @@ public class ServiceHandler {
    * @return Linked list of service ID.
    */
   public LinkedList<Integer> getServicesForLink(int linkId) {
-    LinkedList<Integer> serviceIdx = null;
+    LinkedList<Integer> serviceIds = null;
 
     OMGraphic omg = getOMGraphic(linkId, TYPE_LINK);
 
@@ -523,13 +523,13 @@ public class ServiceHandler {
       String currentName = it.next();
       TransportService s = services.get(currentName);
       if (s.contains(omg)) {
-        if (serviceIdx == null) {
-          serviceIdx = new LinkedList<>();
+        if (serviceIds == null) {
+          serviceIds = new LinkedList<>();
         }
-        serviceIdx.add(s.getId());
+        serviceIds.add(s.getId());
       }
     }
-    return serviceIdx;
+    return serviceIds;
   }
 
   /**
@@ -538,7 +538,7 @@ public class ServiceHandler {
    * @return The name of the details detable.
    */
   public String getServiceLinkDetailTableName() {
-    return serviceLinkDetailTableName;
+    return servicesLinksTableName;
   }
 
   /**
@@ -618,7 +618,7 @@ public class ServiceHandler {
    * @return The name of the table that contains the details of the stop nodes.
    */
   public String getServiceStopDetailTableName() {
-    return serviceStopDetailTableName;
+    return serviceStopsTableName;
   }
 
   /**
@@ -684,7 +684,7 @@ public class ServiceHandler {
   private void loadService() {
 
     // Tables must exists
-    if (!JDBCUtils.tableExists(serviceHeaderTableName)) {
+    if (!JDBCUtils.tableExists(servicesHeaderTableName)) {
       return;
     }
 
@@ -696,7 +696,7 @@ public class ServiceHandler {
       Statement stmt1 = jdbcConnection.createStatement();
       Statement stmt2 = jdbcConnection.createStatement();
       Statement stmt3 = jdbcConnection.createStatement();
-      String sqlStmt = "SELECT * FROM " + serviceHeaderTableName;
+      String sqlStmt = "SELECT * FROM " + servicesHeaderTableName;
       ResultSet rs1 = stmt1.executeQuery(sqlStmt);
 
       // Retrieve result of query : header
@@ -716,9 +716,9 @@ public class ServiceHandler {
             "SELECT "
                 + NodusC.DBF_LINK
                 + " FROM "
-                + serviceLinkDetailTableName
+                + servicesLinksTableName
                 + " WHERE "
-                + NodusC.DBF_SERVICE_INDEX
+                + NodusC.DBF_ID
                 + " = "
                 + idService;
         ResultSet rs2 = stmt2.executeQuery(sqlStmt2);
@@ -732,9 +732,9 @@ public class ServiceHandler {
             "SELECT "
                 + NodusC.DBF_STOP
                 + " FROM "
-                + serviceStopDetailTableName
+                + serviceStopsTableName
                 + " WHERE "
-                + NodusC.DBF_SERVICE_INDEX
+                + NodusC.DBF_ID
                 + " = "
                 + idService;
         ResultSet rs3 = stmt3.executeQuery(sqlStmt3);
@@ -863,25 +863,25 @@ public class ServiceHandler {
 
     // Create header tables
     JDBCField[] fields = new JDBCField[6];
-    fields[0] = new JDBCField(NodusC.DBF_SERVICE_INDEX, "NUMERIC(4,0)");
-    fields[1] = new JDBCField(NodusC.DBF_SERVICE, "VARCHAR(30)");
+    fields[0] = new JDBCField(NodusC.DBF_ID, "NUMERIC(4,0)");
+    fields[1] = new JDBCField(NodusC.DBF_SERVICE_NAME, "VARCHAR(30)");
     fields[2] = new JDBCField(NodusC.DBF_MODE, "NUMERIC(2,0)");
     fields[3] = new JDBCField(NodusC.DBF_MEANS, "NUMERIC(2,0)");
     fields[4] = new JDBCField(NodusC.DBF_FREQUENCY, "NUMERIC(5,0)");
-    fields[5] = new JDBCField(NodusC.DBF_TYPE, "VARCHAR(30)");
-    JDBCUtils.createTable(serviceHeaderTableName, fields);
+    fields[5] = new JDBCField(NodusC.DBF_DESCRIPTION, "VARCHAR(30)");
+    JDBCUtils.createTable(servicesHeaderTableName, fields);
 
     // Create details table
     fields = new JDBCField[2];
-    fields[0] = new JDBCField(NodusC.DBF_SERVICE_INDEX, "NUMERIC(4,0)");
+    fields[0] = new JDBCField(NodusC.DBF_ID, "NUMERIC(4,0)");
     fields[1] = new JDBCField(NodusC.DBF_LINK, "NUMERIC(10,0)");
-    JDBCUtils.createTable(serviceLinkDetailTableName, fields);
+    JDBCUtils.createTable(servicesLinksTableName, fields);
 
     // Create details table
     fields = new JDBCField[2];
-    fields[0] = new JDBCField(NodusC.DBF_SERVICE_INDEX, "NUMERIC(4,0)");
+    fields[0] = new JDBCField(NodusC.DBF_ID, "NUMERIC(4,0)");
     fields[1] = new JDBCField(NodusC.DBF_STOP, "NUMERIC(10,0)");
-    JDBCUtils.createTable(serviceStopDetailTableName, fields);
+    JDBCUtils.createTable(serviceStopsTableName, fields);
   }
 
   /**

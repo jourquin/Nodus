@@ -75,7 +75,7 @@ public class NodusC {
   public static final int MAXSCENARIOS = 1000;
 
   /** Max number of services. */
-  public static final short MAXSERVICE = 10000;
+  public static final short MAXSERVICES = 10000;
 
   /** Maximum radius that can be used to display nodes. Can be changed here only. */
   public static final int MAX_RADIUS = 50;
@@ -227,8 +227,8 @@ public class NodusC {
   /** Name of the "path index" field in the database tables. */
   public static final String DBF_PATH_INDEX = "pathidx";
 
-  /** Name of the "service index" field in the database tables. */
-  public static final String DBF_SERVICE_INDEX = "serviceidx";
+  /** Name of the "service id" field in the database tables. */
+  public static final String DBF_ID = "id";
 
   /** Name of the "nbtrans" field in the database tables. */
   public static final String DBF_NBTRANS = "nbtrans";
@@ -236,14 +236,14 @@ public class NodusC {
   /** Name of the "link" field in the database tables. */
   public static final String DBF_LINK = "link";
 
-  /** Name of the "service" field in the database tables. */
-  public static final String DBF_SERVICE = "service";
+  /** Name of the "service name" field in the database tables. */
+  public static final String DBF_SERVICE_NAME = "name";
 
   /** Name of the "frequency" field in the database tables. */
   public static final String DBF_FREQUENCY = "frequency";
 
   /** Name of the "type" field in the database tables. */
-  public static final String DBF_TYPE = "type";
+  public static final String DBF_DESCRIPTION = "description";
 
   /** Name of the "stop" field in the database tables. */
   public static final String DBF_STOP = "stop";
@@ -361,7 +361,7 @@ public class NodusC {
   public static final byte HANDLING_LOAD_UNLOAD = 3;
 
   /** Transfer to another service is possible at the node. */
-  public static final byte HANDLING_CHANGE_SERVICE = 4;
+  public static final byte SERVICE_CHANGE = 4;
 
   /*
    * *********************************************************************************************
@@ -408,6 +408,7 @@ public class NodusC {
    * Name of the variable that must be used in cost functions to generate service lines for a
    * mode/means combination.
    */
+  // TODO (services) Change variable name ? 
   public static final String VARNAME_SERVICELINES = "SERVICELINES";
 
   /**
@@ -504,7 +505,7 @@ public class NodusC {
   public static final String SUFFIX_PATH = "_path";
 
   /** Default table name extension used for services. */
-  public static final String SUFFIX_SERVICE = "_service";
+  public static final String SUFFIX_SERVICES = "_services";
 
   /** Default table name extension used for results output files. */
   public static final String SUFFIX_RESULTS = "_results";
@@ -516,10 +517,10 @@ public class NodusC {
   public static final String SUFFIX_DETAIL = "_detail";
 
   /** Default table name extension used for path details. */
-  public static final String SUFFIX_LINK_DETAIL = "_link_detail";
+  public static final String SUFFIX_SERVICES_LINKS = "_links";
 
   /** Default table name extension used for path details. */
-  public static final String SUFFIX_STOP_DETAIL = "_stop_detail";
+  public static final String SUFFIX_SERVICES_STOPS = "_stops";
 
   /** Default table name extension used for O-D matrixes. */
   public static final String SUFFIX_OD = "_od";
@@ -714,7 +715,7 @@ public class NodusC {
    *
    * @hidden
    */
-  public static final String PROP_SERVICE_TABLE_PREFIX = "servicetableprefix";
+  public static final String PROP_SERVICES_TABLE_PREFIX = "servicestableprefix";
 
   /**
    * Properties strings used in project and/or project local properties.

@@ -90,10 +90,10 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
   private ServiceHandler serviceHandler;
 
   /** . */
-  private LinkedList<?> serviceIdxForLink;
+  private LinkedList<?> serviceIdsForLink;
 
   /** . */
-  private LinkedList<?> serviceNameForLink;
+  private LinkedList<?> serviceNamesForLink;
 
   /** . */
   private TableSorter sorter = null;
@@ -232,9 +232,9 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
 
       DecimalFormat formatter = new DecimalFormat("0000");
 
-      for (int i = 0; i < serviceIdxForLink.size(); i++) {
+      for (int i = 0; i < serviceIdsForLink.size(); i++) {
         modeltable.addRow(
-            new Object[] {formatter.format(serviceIdxForLink.get(i)), serviceNameForLink.get(i)});
+            new Object[] {formatter.format(serviceIdsForLink.get(i)), serviceNamesForLink.get(i)});
       }
 
       // Make the component editable
@@ -259,15 +259,13 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
       sorter.setTableHeader(servicesTable.getTableHeader());
 
       /* Intercept the value changed even */
-      // TODO Display selected line
+      // TODO (services) Display selected line
       servicesTable
           .getSelectionModel()
           .addListSelectionListener(
               new javax.swing.event.ListSelectionListener() {
                 @Override
                 public void valueChanged(javax.swing.event.ListSelectionEvent e) {
-
-                	
 
                   // Reentrance of not yet consumed event ?
                   if (!e.getValueIsAdjusting()) {
@@ -278,12 +276,13 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
                   }
                   // Get line ID
                   String serviceName =
-                      (String) getServicesTable().getValueAt(getServicesTable().getSelectedRow(), 1);
+                      (String)
+                          getServicesTable().getValueAt(getServicesTable().getSelectedRow(), 1);
                   if (serviceName == null) {
                     return;
                   }
                   // Hide current line
-                  //serviceHandler.paintService(false);
+                  // serviceHandler.paintService(false);
 
                   // Load new line
                   serviceHandler.displayService(serviceName);
@@ -310,8 +309,8 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
       case SHAPE_TYPE_POLYLINE:
         this.setTitle(
             i18n.get(ServicesDlg.class, "Services_at_this_link", "Services at this link"));
-        serviceIdxForLink = serviceHandler.getServicesForLink(objectNum);
-        serviceNameForLink = serviceHandler.getServiceNamesForLink(objectNum);
+        serviceIdsForLink = serviceHandler.getServicesForLink(objectNum);
+        serviceNamesForLink = serviceHandler.getServiceNamesForLink(objectNum);
         break;
 
       default:

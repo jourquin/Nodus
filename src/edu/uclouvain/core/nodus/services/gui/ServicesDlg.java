@@ -54,7 +54,7 @@ import javax.swing.table.DefaultTableModel;
  *
  * @author Bart Jourquin
  */
-//TODO (services) Referesh UI
+// TODO (services) Referesh UI
 public class ServicesDlg extends EscapeDialog {
 
   private static I18n i18n = Environment.getI18n();
@@ -65,17 +65,21 @@ public class ServicesDlg extends EscapeDialog {
   private static final Insets TYPE_INSETS = new Insets(5, 5, 5, 5);
   private static final Insets LABEL_INSETS = new Insets(5, 15, 5, 5);
 
+  private static final String MAINCOMPONENTS = "mainComponents";
+  private static final String EDITOR = "editor";
+
   /** . */
-  private CardLayout cl = new CardLayout();
+  // private GridBagLayout layout = new GridBagLayout();
+  CardLayout cl = new CardLayout();
 
   /** . */
   private int[] constPeriod = {1, 12, 52, 365};
 
   /** . */
-  private JPanel displayPanel = null;
+  private JPanel mainComponentsPanel = null;
 
   /** . */
-  private JPanel editPanel = null;
+  private JPanel editorPanel = null;
 
   /** . */
   private NumberFormat formatter;
@@ -129,7 +133,7 @@ public class ServicesDlg extends EscapeDialog {
   private NodusMapPanel nodusMapPanel;
 
   /** . */
-  private JPanel panelRoot = null;
+  private JPanel rootPanel = null;
 
   /** . */
   private String[] period = new String[4];
@@ -245,7 +249,8 @@ public class ServicesDlg extends EscapeDialog {
                 serviceHandler.displayService(key);
               }
               serviceHandler.setListening(false);
-              cl.show(panelRoot, "display");
+
+              cl.show(rootPanel, MAINCOMPONENTS);
             }
           });
     }
@@ -289,9 +294,7 @@ public class ServicesDlg extends EscapeDialog {
                   JOptionPane.showInputDialog(
                       nodusMapPanel,
                       i18n.get(
-                          ServicesDlg.class,
-                          "Enter_new_service_name",
-                          "Enter new service name"));
+                          ServicesDlg.class, "Enter_new_service_name", "Enter new service name"));
 
               if (keyCopy != null) {
                 if (keyCopy.length() > 30) {
@@ -387,14 +390,14 @@ public class ServicesDlg extends EscapeDialog {
    *
    * @return javax.swing.JPanel
    */
-  private JPanel getDisplayPanel() {
-    if (displayPanel == null) {
+  private JPanel getMainComponentsPanel() {
+    if (mainComponentsPanel == null) {
 
-      displayPanel = new JPanel();
+      mainComponentsPanel = new JPanel();
 
-      displayPanel.setLayout(new GridBagLayout());
+      mainComponentsPanel.setLayout(new GridBagLayout());
 
-      displayPanel.add(
+      mainComponentsPanel.add(
           getJScrollPane(),
           setContraints(
               0,
@@ -409,7 +412,7 @@ public class ServicesDlg extends EscapeDialog {
               200,
               0));
 
-      displayPanel.add(
+      mainComponentsPanel.add(
           getNewButton(),
           setContraints(
               0,
@@ -424,7 +427,7 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      displayPanel.add(
+      mainComponentsPanel.add(
           getEditButton(),
           setContraints(
               1,
@@ -439,7 +442,7 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      displayPanel.add(
+      mainComponentsPanel.add(
           getCopyButton(),
           setContraints(
               2,
@@ -454,7 +457,7 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      displayPanel.add(
+      mainComponentsPanel.add(
           getDeleteButton(),
           setContraints(
               3,
@@ -469,7 +472,7 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      displayPanel.add(
+      mainComponentsPanel.add(
           getCloseButton(),
           setContraints(
               4,
@@ -485,7 +488,7 @@ public class ServicesDlg extends EscapeDialog {
               0));
       buttonEnable();
     }
-    return displayPanel;
+    return mainComponentsPanel;
   }
 
   /**
@@ -514,7 +517,7 @@ public class ServicesDlg extends EscapeDialog {
 
               nameField.setEditable(false);
               serviceHandler.setListening(true);
-              cl.show(panelRoot, "edit");
+              cl.show(rootPanel, EDITOR);
             }
           });
     }
@@ -526,13 +529,13 @@ public class ServicesDlg extends EscapeDialog {
    *
    * @return javax.swing.JPanel
    */
-  private JPanel getEditPanel() {
-    if (editPanel == null) {
+  private JPanel getEditorPanel() {
+    if (editorPanel == null) {
 
       GridBagLayout editLayout = new GridBagLayout();
 
-      editPanel = new JPanel();
-      editPanel.setLayout(editLayout);
+      editorPanel = new JPanel();
+      editorPanel.setLayout(editLayout);
 
       JPanel panelFreq = new JPanel();
       panelFreq.setLayout(new FlowLayout(FlowLayout.LEFT));
@@ -540,7 +543,7 @@ public class ServicesDlg extends EscapeDialog {
       panelFreq.add(new JLabel(" per "));
       panelFreq.add(time);
 
-      editPanel.add(
+      editorPanel.add(
           new JLabel(i18n.get(ServicesDlg.class, "Service_Name", "Name")),
           setContraints(
               0,
@@ -554,7 +557,7 @@ public class ServicesDlg extends EscapeDialog {
               LABEL_INSETS,
               0,
               0));
-      editPanel.add(
+      editorPanel.add(
           nameField,
           setContraints(
               1,
@@ -569,8 +572,8 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      editPanel.add(
-          new JLabel(i18n.get(ServicesDlg.class, "Service_Index", "Index")),
+      editorPanel.add(
+          new JLabel(i18n.get(ServicesDlg.class, "Service_Index", "ID")),
           setContraints(
               2,
               0,
@@ -583,7 +586,7 @@ public class ServicesDlg extends EscapeDialog {
               LABEL_INSETS,
               0,
               0));
-      editPanel.add(
+      editorPanel.add(
           idxField,
           setContraints(
               3,
@@ -598,7 +601,7 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      editPanel.add(
+      editorPanel.add(
           new JLabel(i18n.get(ServicesDlg.class, "Service_Mode", "Mode")),
           setContraints(
               0,
@@ -612,7 +615,7 @@ public class ServicesDlg extends EscapeDialog {
               LABEL_INSETS,
               0,
               0));
-      editPanel.add(
+      editorPanel.add(
           modeField,
           setContraints(
               1,
@@ -626,7 +629,7 @@ public class ServicesDlg extends EscapeDialog {
               TYPE_INSETS,
               0,
               0));
-      editPanel.add(
+      editorPanel.add(
           modeField,
           setContraints(
               1,
@@ -641,7 +644,7 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      editPanel.add(
+      editorPanel.add(
           new JLabel(i18n.get(ServicesDlg.class, "Service_Means", "Means")),
           setContraints(
               2,
@@ -655,7 +658,7 @@ public class ServicesDlg extends EscapeDialog {
               LABEL_INSETS,
               0,
               0));
-      editPanel.add(
+      editorPanel.add(
           meansField,
           setContraints(
               3,
@@ -670,7 +673,7 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      editPanel.add(
+      editorPanel.add(
           new JLabel(i18n.get(ServicesDlg.class, "Service_Frequency", "Frequency")),
           setContraints(
               0,
@@ -684,7 +687,7 @@ public class ServicesDlg extends EscapeDialog {
               LABEL_INSETS,
               0,
               0));
-      editPanel.add(
+      editorPanel.add(
           panelFreq,
           setContraints(
               1,
@@ -699,7 +702,7 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      editPanel.add(
+      editorPanel.add(
           new JLabel(i18n.get(ServicesDlg.class, "Service_Description", "Description")),
           setContraints(
               0,
@@ -713,7 +716,7 @@ public class ServicesDlg extends EscapeDialog {
               LABEL_INSETS,
               0,
               0));
-      editPanel.add(
+      editorPanel.add(
           descriptionField,
           setContraints(
               1,
@@ -728,7 +731,7 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      editPanel.add(
+      editorPanel.add(
           getCancelButton(),
           setContraints(
               1,
@@ -742,7 +745,7 @@ public class ServicesDlg extends EscapeDialog {
               TYPE_INSETS,
               0,
               0));
-      editPanel.add(
+      editorPanel.add(
           getSaveButton(),
           setContraints(
               2,
@@ -766,7 +769,7 @@ public class ServicesDlg extends EscapeDialog {
         time.addItem(element);
       }
     }
-    return editPanel;
+    return editorPanel;
   }
 
   /**
@@ -775,14 +778,14 @@ public class ServicesDlg extends EscapeDialog {
    * @return javax.swing.JPanel
    */
   private JPanel getJContentPane() {
-    if (panelRoot == null) {
-      panelRoot = new JPanel();
-      ;
-      panelRoot.setLayout(cl);
-      panelRoot.add(getDisplayPanel(), "display");
-      panelRoot.add(getEditPanel(), "edit");
+    if (rootPanel == null) {
+      rootPanel = new JPanel();
+
+      rootPanel.setLayout(cl);
+      rootPanel.add(getMainComponentsPanel(), MAINCOMPONENTS);
+      rootPanel.add(getEditorPanel(), EDITOR);
     }
-    return panelRoot;
+    return rootPanel;
   }
 
   /**
@@ -826,7 +829,7 @@ public class ServicesDlg extends EscapeDialog {
 
               nameField.setEditable(true);
 
-              cl.show(panelRoot, "edit");
+              cl.show(rootPanel, EDITOR);
 
               serviceHandler.resetService();
 
@@ -960,7 +963,7 @@ public class ServicesDlg extends EscapeDialog {
                 serviceHandler.mustBeSaved();
                 buttonEnable();
                 serviceHandler.setListening(false);
-                cl.show(panelRoot, "display");
+                cl.show(rootPanel, MAINCOMPONENTS);
                 selectService(name);
               } else {
                 JOptionPane.showMessageDialog(
@@ -985,12 +988,13 @@ public class ServicesDlg extends EscapeDialog {
   private JTable getServiceTable() {
 
     if (serviceTable == null) {
-      modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Index", "Index"));
+      // TODO (services) Change column widths
+      modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_ID", "ID"));
       modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Name", "Name"));
       modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Mode", "Mode"));
       modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Means", "Means"));
-      modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Frequency", "Freqyency"));
-      modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Type", "Type"));
+      modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Frequency", "Frequency"));
+      modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Description", "Description"));
 
       Iterator<String> it = serviceHandler.getServiceNamesIterator();
       formatter = new DecimalFormat("00000");
@@ -1058,7 +1062,7 @@ public class ServicesDlg extends EscapeDialog {
     this.setSize(500, 300);
 
     this.setContentPane(getJContentPane());
-    cl.show(panelRoot, "display");
+    cl.show(rootPanel, MAINCOMPONENTS);
   }
 
   /**
@@ -1134,7 +1138,7 @@ public class ServicesDlg extends EscapeDialog {
 
     return gridBagConstraints;
   }
-  
+
   /**
    * .
    *
@@ -1155,7 +1159,7 @@ public class ServicesDlg extends EscapeDialog {
         }
         serviceHandler.displayService(serviceName);
       }
-      cl.show(panelRoot, "display");
+      cl.show(rootPanel, MAINCOMPONENTS);
     } else {
       serviceHandler.resetService();
     }

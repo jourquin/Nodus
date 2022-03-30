@@ -1170,7 +1170,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
           i18n.get(DbfEditDlg.class, "Loading_Unloading_only", "3 - Loading/Unloading only");
 
       if (NodusC.withServices) {
-        handling[NodusC.HANDLING_CHANGE_SERVICE] =
+        handling[NodusC.SERVICE_CHANGE] =
             i18n.get(DbfEditDlg.class, "Change_Service_only", "4 - Change Line only");
       }
 

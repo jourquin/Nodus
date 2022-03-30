@@ -738,8 +738,8 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     pathTextField.setText(stringValue);
 
     stringDefValue =
-        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_SERVICE;
-    stringValue = nodusProject.getLocalProperty(NodusC.PROP_SERVICE_TABLE_PREFIX, stringDefValue);
+        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_SERVICES;
+    stringValue = nodusProject.getLocalProperty(NodusC.PROP_SERVICES_TABLE_PREFIX, stringDefValue);
     servicesTextField.setText(stringValue);
 
     /*
@@ -817,7 +817,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     }
 
     if (serviceTablePrefix.length() > 0) {
-      nodusProject.setLocalProperty(NodusC.PROP_SERVICE_TABLE_PREFIX, serviceTablePrefix);
+      nodusProject.setLocalProperty(NodusC.PROP_SERVICES_TABLE_PREFIX, serviceTablePrefix);
     }
 
     // Update the displayed boundaries layer if needed

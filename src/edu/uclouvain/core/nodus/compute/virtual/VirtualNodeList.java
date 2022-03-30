@@ -120,7 +120,7 @@ public class VirtualNodeList {
         isLoadingUnloading = true;
       }
 
-      if (handling == NodusC.HANDLING_ALL || handling == NodusC.HANDLING_CHANGE_SERVICE) {
+      if (handling == NodusC.HANDLING_ALL || handling == NodusC.SERVICE_CHANGE) {
         isChangingService = true;
       }
     }

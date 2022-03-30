@@ -87,10 +87,10 @@ public class ODReader {
         nodusProject.getLocalProperty(NodusC.PROP_EXC_TABLE, excTablePrefix).toLowerCase();
 
     String serviceTablePrefix =
-        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_SERVICE;
+        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_SERVICES;
     serviceTablePrefix =
         nodusProject
-            .getLocalProperty(NodusC.PROP_SERVICE_TABLE_PREFIX, serviceTablePrefix)
+            .getLocalProperty(NodusC.PROP_SERVICES_TABLE_PREFIX, serviceTablePrefix)
             .toLowerCase();
 
     try {
