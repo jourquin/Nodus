@@ -310,5 +310,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 
 ## v8.2 - BuildXXXXXXXX
 - Fix small bug (wrong JDBC ResultSet closing) in nodes rules reading.
+- Tested with Java 18.
 
 

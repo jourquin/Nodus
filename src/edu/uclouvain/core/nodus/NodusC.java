@@ -242,9 +242,6 @@ public class NodusC {
   /** Name of the "frequency" field in the database tables. */
   public static final String DBF_FREQUENCY = "frequency";
 
-  /** Name of the "type" field in the database tables. */
-  public static final String DBF_DESCRIPTION = "description";
-
   /** Name of the "stop" field in the database tables. */
   public static final String DBF_STOP = "stop";
 

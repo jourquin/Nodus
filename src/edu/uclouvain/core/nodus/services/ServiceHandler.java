@@ -862,13 +862,13 @@ public class ServiceHandler {
   public void resetServicesTables() {
 
     // Create header tables
-    JDBCField[] fields = new JDBCField[6];
+    JDBCField[] fields = new JDBCField[5];
     fields[0] = new JDBCField(NodusC.DBF_ID, "NUMERIC(4,0)");
     fields[1] = new JDBCField(NodusC.DBF_SERVICE_NAME, "VARCHAR(30)");
     fields[2] = new JDBCField(NodusC.DBF_MODE, "NUMERIC(2,0)");
     fields[3] = new JDBCField(NodusC.DBF_MEANS, "NUMERIC(2,0)");
     fields[4] = new JDBCField(NodusC.DBF_FREQUENCY, "NUMERIC(5,0)");
-    fields[5] = new JDBCField(NodusC.DBF_DESCRIPTION, "VARCHAR(30)");
+    //fields[5] = new JDBCField(NodusC.DBF_DESCRIPTION, "VARCHAR(30)");
     JDBCUtils.createTable(servicesHeaderTableName, fields);
 
     // Create details table
