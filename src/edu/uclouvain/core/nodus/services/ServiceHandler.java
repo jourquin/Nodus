@@ -224,7 +224,7 @@ public class ServiceHandler {
 
       jdbcConnection = nodusProject.getMainJDBCConnection();
       // connect to database and execute query
-      String sqlStmt = "INSERT INTO " + servicesHeaderTableName + " VALUES(?,?,?,?,?,?)";
+      String sqlStmt = "INSERT INTO " + servicesHeaderTableName + " VALUES(?,?,?,?,?)";
       PreparedStatement pstmt1 = jdbcConnection.prepareStatement(sqlStmt);
 
       sqlStmt = "INSERT INTO " + servicesLinksTableName + " VALUES(?,?)";
@@ -243,12 +243,8 @@ public class ServiceHandler {
         pstmt1.setInt(3, s.getMode());
         pstmt1.setInt(4, s.getMeans());
         pstmt1.setInt(5, s.getFrequency());
-        String description = s.getDescription();
-        if (description != null && description.length() > 40) {
-          description = description.substring(0, 40);
-        }
-        pstmt1.setString(6, description);
         pstmt1.executeUpdate();
+        
         // Stops
         try {
           Iterator<Integer> it = s.getStopNodes().iterator();
@@ -707,10 +703,9 @@ public class ServiceHandler {
         byte mode = (byte) JDBCUtils.getInt(rs1.getObject(3));
         byte means = (byte) JDBCUtils.getInt(rs1.getObject(4));
         int frequency = JDBCUtils.getInt(rs1.getObject(5));
-        String type = (String) rs1.getObject(6);
-
+      
         TransportService s =
-            new TransportService(idService, nameService, mode, means, frequency, type);
+            new TransportService(idService, nameService, mode, means, frequency);
         // Retrieve the list of chunks for this line
         String sqlStmt2 =
             "SELECT "

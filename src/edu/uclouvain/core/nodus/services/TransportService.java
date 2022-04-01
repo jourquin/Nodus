@@ -52,9 +52,6 @@ public class TransportService {
   /** The list of the stopNodes that composes a service. */
   private LinkedList<Integer> stopNodes;
 
-  /** Transportation description on the service. */
-  private String description;
-
   /**
    * Creates a new service.
    *
@@ -76,16 +73,13 @@ public class TransportService {
    * @param mode The mode used for this service.
    * @param means The means used along the service.
    * @param frequency The frequency of the service.
-   * @param description The description of the service.
    */
-  public TransportService(
-      int id, String name, Byte mode, Byte means, int frequency, String description) {
+  public TransportService(int id, String name, Byte mode, Byte means, int frequency) {
     this.id = id;
     this.name = name;
     this.mode = mode;
     this.means = means;
     this.frequency = frequency;
-    this.description = description;
     links = new LinkedList<>();
     stopNodes = new LinkedList<>();
   }
@@ -215,15 +209,7 @@ public class TransportService {
     return stopNodes;
   }
 
-  /**
-   * Gets the description of the service.
-   *
-   * @return The description of the service.
-   */
-  public String getDescription() {
-    return description;
-  }
-
+  
   /**
    * Removes a given link from the service.
    *
@@ -294,14 +280,5 @@ public class TransportService {
    */
   public void setStops(LinkedList<Integer> stopNodes) {
     this.stopNodes = stopNodes;
-  }
-
-  /**
-   * Sets the description of the service.
-   *
-   * @param description The description of the service.
-   */
-  public void setDescription(String description) {
-    this.description = description;
   }
 }

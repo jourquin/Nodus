@@ -38,7 +38,6 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
-import java.text.NumberFormat;
 import java.util.Iterator;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -50,12 +49,13 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 
+// TODO Load and save on id, not on name
+
 /**
  * The service editor allows editing the lines and services.
  *
  * @author Bart Jourquin
  */
-// TODO (services) Referesh UI
 public class ServicesDlg extends EscapeDialog {
 
   private static final long serialVersionUID = 1L;
@@ -92,9 +92,6 @@ public class ServicesDlg extends EscapeDialog {
 
   /** . */
   private JPanel editorCard = null;
-
-  /** . */
-  private NumberFormat formatter;
 
   /** . */
   private JTextField frequencyField = new JTextField(10);
@@ -198,17 +195,17 @@ public class ServicesDlg extends EscapeDialog {
 
   /** Fill the ServicesTable. */
   private void fillServicesTable(String nameService) {
-    formatter = new DecimalFormat("00000");
+    DecimalFormat f1 = new DecimalFormat("0000");
+    DecimalFormat f2 = new DecimalFormat("00");
     TransportService s = serviceHandler.getService(nameService);
     if (s != null) {
       servicesTableModel.addRow(
           new Object[] {
-            formatter.format(s.getId()),
+            f1.format(s.getId()),
             nameService,
-            formatter.format(s.getMode()),
-            formatter.format(s.getMeans()),
-            formatter.format(s.getFrequency()),
-            s.getDescription()
+            f2.format(s.getMode()),
+            f2.format(s.getMeans()),
+            f1.format(s.getFrequency())
           });
     }
   }
@@ -321,7 +318,6 @@ public class ServicesDlg extends EscapeDialog {
                 serviceCopy.setFrequency(s.getFrequency());
                 serviceCopy.setMode(s.getMode());
                 serviceCopy.setMeans(s.getMeans());
-                serviceCopy.setDescription(s.getDescription());
                 serviceCopy.setChunks(s.getLinks());
                 serviceCopy.setStops(s.getStopNodes());
 
@@ -395,7 +391,6 @@ public class ServicesDlg extends EscapeDialog {
           new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-              formatter = new DecimalFormat("00000");
 
               TransportService s = serviceHandler.getCurrentService();
               nameField.setText(s.getName());
@@ -404,9 +399,7 @@ public class ServicesDlg extends EscapeDialog {
               frequencyField.setText(temp[0] + "");
               time.setSelectedIndex(temp[1]);
               loadModeMeans(s.getMode(), s.getMeans());
-              descriptionField.setText(s.getDescription());
 
-              // nameField.setEditable(false);
               serviceHandler.setListening(true);
               showCard(EDITOR_CARD);
             }
@@ -551,7 +544,6 @@ public class ServicesDlg extends EscapeDialog {
               new Insets(0, 0, 5, 0),
               0,
               0));
-
 
       period[0] = i18n.get(ServicesDlg.class, "year", "year");
       period[1] = i18n.get(ServicesDlg.class, "month", "month");
@@ -702,8 +694,6 @@ public class ServicesDlg extends EscapeDialog {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
 
-              formatter = new DecimalFormat("0000");
-
               int idx = serviceHandler.getNewServiceId();
 
               idxField.setText(idx + "");
@@ -836,11 +826,9 @@ public class ServicesDlg extends EscapeDialog {
                         * constPeriod[time.getSelectedIndex()]);
                 s.setMode(Byte.valueOf(modeField.getText()));
                 s.setMeans(Byte.valueOf(meansField.getSelectedItem().toString()));
-                s.setDescription(descriptionField.getText());
 
                 serviceHandler.saveService(s);
 
-                formatter = new DecimalFormat("00000");
                 if (getRowInModelbyService(name) != -1) {
                   servicesTableModel.removeRow(getRowInModelbyService(name));
                 }
@@ -888,17 +876,14 @@ public class ServicesDlg extends EscapeDialog {
   private JTable getServiceTable() {
 
     if (serviceTable == null) {
-      // TODO (services) Change column widths
       servicesTableModel.addColumn(i18n.get(ServicesDlg.class, "Service_ID", "ID"));
       servicesTableModel.addColumn(i18n.get(ServicesDlg.class, "Service_Name", "Name"));
       servicesTableModel.addColumn(i18n.get(ServicesDlg.class, "Service_Mode", "Mode"));
       servicesTableModel.addColumn(i18n.get(ServicesDlg.class, "Service_Means", "Means"));
       servicesTableModel.addColumn(i18n.get(ServicesDlg.class, "Service_Frequency", "Frequency"));
-      servicesTableModel.addColumn(
-          i18n.get(ServicesDlg.class, "Service_Description", "Description"));
 
       Iterator<String> it = serviceHandler.getServiceNamesIterator();
-      formatter = new DecimalFormat("00000");
+
       while (it.hasNext()) {
         // Get ID
         String key = it.next();
@@ -925,6 +910,8 @@ public class ServicesDlg extends EscapeDialog {
           };
 
       sorter.setTableHeader(serviceTable.getTableHeader());
+
+      serviceTable.getColumnModel().getColumn(1).setPreferredWidth(300);
 
       /* Intercept the value changed even */
       serviceTable
