@@ -306,7 +306,7 @@ public class PathWriter {
     fields[idx++] = new JDBCField(NodusC.DBF_ULCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_TRCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_TPCOST, "NUMERIC(10,3)");
-    fields[idx++] = new JDBCField(NodusC.DBF_STPCOST, "NUMERIC(10,3)");
+    fields[idx++] = new JDBCField(NodusC.DBF_STCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_SWCOST, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_MVCOST, "NUMERIC(10,3)");
 
@@ -314,7 +314,7 @@ public class PathWriter {
     fields[idx++] = new JDBCField(NodusC.DBF_ULDURATION, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_TRDURATION, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_TPDURATION, "NUMERIC(10,3)");
-    fields[idx++] = new JDBCField(NodusC.DBF_STPDURATION, "NUMERIC(10,3)");
+    fields[idx++] = new JDBCField(NodusC.DBF_STDURATION, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_SWDURATION, "NUMERIC(10,3)");
     fields[idx++] = new JDBCField(NodusC.DBF_MVDURATION, "NUMERIC(10,3)");
 

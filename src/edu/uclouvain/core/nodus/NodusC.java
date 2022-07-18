@@ -270,7 +270,7 @@ public class NodusC {
   public static final String DBF_TPCOST = "tpcost";
 
   /** Name of the stop cost field in the database tables. */
-  public static final String DBF_STPCOST = "stpcost";
+  public static final String DBF_STCOST = "stcost";
 
   /** Name of the switch cost field in the database tables. */
   public static final String DBF_SWCOST = "swcost";
@@ -291,7 +291,7 @@ public class NodusC {
   public static final String DBF_TPDURATION = "tpduration";
 
   /** Name of the stop duration field in the database tables. */
-  public static final String DBF_STPDURATION = "stpduration";
+  public static final String DBF_STDURATION = "stduration";
 
   /** Name of the switch duration field in the database tables. */
   public static final String DBF_SWDURATION = "swduration";
