@@ -26,15 +26,11 @@
 	<classpathentry kind="lib" path="lib/jung-visualization-2.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/openmap-6.0.jar"/>
 	<classpathentry kind="lib" path="lib/parsii-5.0.1.jar"/>
-	<classpathentry kind="lib" path="lib/poi-5.2.0.jar"/>
-	<classpathentry kind="lib" path="lib/poi-ooxml-5.2.0.jar"/>
-	<classpathentry kind="lib" path="lib/poi-ooxml-full-5.2.0.jar"/>
 	<classpathentry kind="lib" path="lib/py4j0.10.9.2.jar"/>
 	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.1.6.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-api-1.7.35.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-nop-1.7.35.jar"/>
 	<classpathentry kind="lib" path="lib/xchart-3.8.1.jar"/>
-	<classpathentry kind="lib" path="lib/xmlbeans-4.0.0.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-1.10.12.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-antlr-1.10.12.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-junit-1.10.12.jar"/>
@@ -110,5 +106,11 @@
 	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.36.0.3.jar"/>
 	<classpathentry kind="lib" path="lib/oshi-core-java11-6.1.2.jar"/>
 	<classpathentry kind="lib" path="lib/oshi-demo-6.1.2.jar"/>
+	<classpathentry kind="lib" path="lib/poi-ooxml-5.2.2.jar" sourcepath="/Users/jourquinb/Downloads/poi-src-5.2.2-20220312"/>
+	<classpathentry kind="lib" path="lib/poi-5.2.2.jar"/>
+	<classpathentry kind="lib" path="lib/poi-ooxml-full-5.2.2.jar"/>
+	<classpathentry kind="lib" path="lib/xmlbeans-5.0.3.jar"/>
+	<classpathentry kind="lib" path="lib/log4j-api-2.17.2.jar"/>
+	<classpathentry kind="lib" path="lib/log4j-to-slf4j-2.18.0.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

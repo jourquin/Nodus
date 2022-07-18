@@ -4,8 +4,9 @@
               To include a user specific buildfile here, simply create one in the same
               directory with the processing instruction <?eclipse.ant.import?>
               as the first entry and export the buildfile again. -->
-    <project basedir="." default="build" name="Nodus">
+<project basedir="." default="build" name="Nodus">
     <property environment="env"/>
+    <property name="MLogit.location" value="../../workspace/MLogit"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="11"/>
     <property name="source" value="11"/>
@@ -32,15 +33,11 @@
         <pathelement location="lib/jung-visualization-2.1.1.jar"/>
         <pathelement location="lib/openmap-6.0.jar"/>
         <pathelement location="lib/parsii-5.0.1.jar"/>
-        <pathelement location="lib/poi-5.2.0.jar"/>
-        <pathelement location="lib/poi-ooxml-5.2.0.jar"/>
-        <pathelement location="lib/poi-ooxml-full-5.2.0.jar"/>
         <pathelement location="lib/py4j0.10.9.2.jar"/>
         <pathelement location="lib/rsyntaxtextarea-3.1.6.jar"/>
         <pathelement location="lib/slf4j-api-1.7.35.jar"/>
         <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
         <pathelement location="lib/xchart-3.8.1.jar"/>
-        <pathelement location="lib/xmlbeans-4.0.0.jar"/>
         <pathelement location="lib/groovy/ant-1.10.12.jar"/>
         <pathelement location="lib/groovy/ant-antlr-1.10.12.jar"/>
         <pathelement location="lib/groovy/ant-junit-1.10.12.jar"/>
@@ -116,6 +113,12 @@
         <pathelement location="lib/sqlite-jdbc-3.36.0.3.jar"/>
         <pathelement location="lib/oshi-core-java11-6.1.2.jar"/>
         <pathelement location="lib/oshi-demo-6.1.2.jar"/>
+        <pathelement location="lib/poi-ooxml-5.2.2.jar"/>
+        <pathelement location="lib/poi-5.2.2.jar"/>
+        <pathelement location="lib/poi-ooxml-full-5.2.2.jar"/>
+        <pathelement location="lib/xmlbeans-5.0.3.jar"/>
+        <pathelement location="lib/log4j-api-2.17.2.jar"/>
+        <pathelement location="lib/log4j-to-slf4j-2.18.0.jar"/>
     </path>
     <path id="run.MenuProblemExample (1).classpath">
         <path refid="Nodus.classpath"/>
@@ -140,15 +143,11 @@
         <pathelement location="lib/jung-visualization-2.1.1.jar"/>
         <pathelement location="lib/openmap-6.0.jar"/>
         <pathelement location="lib/parsii-5.0.1.jar"/>
-        <pathelement location="lib/poi-5.2.0.jar"/>
-        <pathelement location="lib/poi-ooxml-5.2.0.jar"/>
-        <pathelement location="lib/poi-ooxml-full-5.2.0.jar"/>
         <pathelement location="lib/py4j0.10.9.2.jar"/>
         <pathelement location="lib/rsyntaxtextarea-3.1.6.jar"/>
         <pathelement location="lib/slf4j-api-1.7.35.jar"/>
         <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
         <pathelement location="lib/xchart-3.8.1.jar"/>
-        <pathelement location="lib/xmlbeans-4.0.0.jar"/>
         <pathelement location="lib/groovy/ant-1.10.12.jar"/>
         <pathelement location="lib/groovy/ant-antlr-1.10.12.jar"/>
         <pathelement location="lib/groovy/ant-junit-1.10.12.jar"/>
@@ -224,6 +223,12 @@
         <pathelement location="lib/sqlite-jdbc-3.36.0.3.jar"/>
         <pathelement location="lib/oshi-core-java11-6.1.2.jar"/>
         <pathelement location="lib/oshi-demo-6.1.2.jar"/>
+        <pathelement location="lib/poi-ooxml-5.2.2.jar"/>
+        <pathelement location="lib/poi-5.2.2.jar"/>
+        <pathelement location="lib/poi-ooxml-full-5.2.2.jar"/>
+        <pathelement location="lib/xmlbeans-5.0.3.jar"/>
+        <pathelement location="lib/log4j-api-2.17.2.jar"/>
+        <pathelement location="lib/log4j-to-slf4j-2.18.0.jar"/>
     </path>
     <path id="run.Nodus.classpath">
         <path refid="Nodus.classpath"/>
@@ -248,15 +253,11 @@
         <pathelement location="lib/jung-visualization-2.1.1.jar"/>
         <pathelement location="lib/openmap-6.0.jar"/>
         <pathelement location="lib/parsii-5.0.1.jar"/>
-        <pathelement location="lib/poi-5.2.0.jar"/>
-        <pathelement location="lib/poi-ooxml-5.2.0.jar"/>
-        <pathelement location="lib/poi-ooxml-full-5.2.0.jar"/>
         <pathelement location="lib/py4j0.10.9.2.jar"/>
         <pathelement location="lib/rsyntaxtextarea-3.1.6.jar"/>
         <pathelement location="lib/slf4j-api-1.7.35.jar"/>
         <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
         <pathelement location="lib/xchart-3.8.1.jar"/>
-        <pathelement location="lib/xmlbeans-4.0.0.jar"/>
         <pathelement location="lib/groovy/ant-1.10.12.jar"/>
         <pathelement location="lib/groovy/ant-antlr-1.10.12.jar"/>
         <pathelement location="lib/groovy/ant-junit-1.10.12.jar"/>
@@ -332,6 +333,12 @@
         <pathelement location="lib/sqlite-jdbc-3.36.0.3.jar"/>
         <pathelement location="lib/oshi-core-java11-6.1.2.jar"/>
         <pathelement location="lib/oshi-demo-6.1.2.jar"/>
+        <pathelement location="lib/poi-ooxml-5.2.2.jar"/>
+        <pathelement location="lib/poi-5.2.2.jar"/>
+        <pathelement location="lib/poi-ooxml-full-5.2.2.jar"/>
+        <pathelement location="lib/xmlbeans-5.0.3.jar"/>
+        <pathelement location="lib/log4j-api-2.17.2.jar"/>
+        <pathelement location="lib/log4j-to-slf4j-2.18.0.jar"/>
     </path>
     <path id="run.MenuProblemExample.classpath">
         <path refid="Nodus.classpath"/>
@@ -356,15 +363,11 @@
         <pathelement location="lib/jung-visualization-2.1.1.jar"/>
         <pathelement location="lib/openmap-6.0.jar"/>
         <pathelement location="lib/parsii-5.0.1.jar"/>
-        <pathelement location="lib/poi-5.2.0.jar"/>
-        <pathelement location="lib/poi-ooxml-5.2.0.jar"/>
-        <pathelement location="lib/poi-ooxml-full-5.2.0.jar"/>
         <pathelement location="lib/py4j0.10.9.2.jar"/>
         <pathelement location="lib/rsyntaxtextarea-3.1.6.jar"/>
         <pathelement location="lib/slf4j-api-1.7.35.jar"/>
         <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
         <pathelement location="lib/xchart-3.8.1.jar"/>
-        <pathelement location="lib/xmlbeans-4.0.0.jar"/>
         <pathelement location="lib/groovy/ant-1.10.12.jar"/>
         <pathelement location="lib/groovy/ant-antlr-1.10.12.jar"/>
         <pathelement location="lib/groovy/ant-junit-1.10.12.jar"/>
@@ -440,6 +443,12 @@
         <pathelement location="lib/sqlite-jdbc-3.36.0.3.jar"/>
         <pathelement location="lib/oshi-core-java11-6.1.2.jar"/>
         <pathelement location="lib/oshi-demo-6.1.2.jar"/>
+        <pathelement location="lib/poi-ooxml-5.2.2.jar"/>
+        <pathelement location="lib/poi-5.2.2.jar"/>
+        <pathelement location="lib/poi-ooxml-full-5.2.2.jar"/>
+        <pathelement location="lib/xmlbeans-5.0.3.jar"/>
+        <pathelement location="lib/log4j-api-2.17.2.jar"/>
+        <pathelement location="lib/log4j-to-slf4j-2.18.0.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
@@ -463,7 +472,10 @@
             <classpath refid="Nodus.classpath"/>
         </javac>
     </target>
-    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
+    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects">
+        <ant antfile="build.xml" dir="${MLogit.location}" inheritAll="false" target="clean"/>
+        <ant antfile="build.xml" dir="${MLogit.location}" inheritAll="false" target="build"/>
+    </target>
     <target name="MenuProblemExample (1)">
         <java classname="MenuProblemExample" failonerror="true" fork="yes">
             <classpath refid="run.MenuProblemExample (1).classpath"/>
