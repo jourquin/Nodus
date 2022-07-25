@@ -314,3 +314,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Rename "stpduration" field to "stduration" to comply the maximum allowed length of DBF fields.
 - Rename "stpcost" field to "stcost" to keep variable names consistent.
 - Upgrade to POI 5.2.2 and use a log4j to slf4j bridge
+
+## v8.2 - BuildXXXXXXXX
+- Upgrade to Groovy 4.0.4
+
