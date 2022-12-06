@@ -910,6 +910,7 @@ public class ResultsDlg extends EscapeDialog {
       }
 
       element.setDisplayResults(false);
+      // TODO If a result concerns a subset of links, the labels are displayed only on these links after a reset 
       element.getLocationHandler().setDisplayResults(false);
       element.getLocationHandler().reloadData();
       element.applyWhereFilter(element.getWhereStmt());
