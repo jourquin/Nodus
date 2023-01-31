@@ -36,7 +36,7 @@
 	    <mkdir dir="${basedir}/api" />
 	</target>
 	
-	<property name="copyrightString" value="Copyright 1991-2022, Université catholique de Louvain (UCLouvain), Center for Operations Research and Econometrics (CORE)"/>
+	<property name="copyrightString" value="Copyright 1991-2023, Université catholique de Louvain (UCLouvain), Center for Operations Research and Econometrics (CORE)"/>
 	    
 	<target name="ApiDoc" description="Makes the javadoc API html documents.">
 	    <antcall target="PrepareApiDoc" />
