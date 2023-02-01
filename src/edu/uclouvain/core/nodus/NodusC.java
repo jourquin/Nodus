@@ -42,7 +42,7 @@ public class NodusC {
 
   /** Copyright. */
   public static final String COPYRIGHT =
-      "(c) Université catholique de Louvain (UCLouvain)," + " 1991-2023";
+      "(c) Université catholique de Louvain (UCLouvain), " + "1991-2023";
 
   /*
    * *********************************************************************************************

@@ -440,6 +440,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
+  /** Current desktop context. */
   private Desktop desktop = Desktop.getDesktop();
 
   /**
