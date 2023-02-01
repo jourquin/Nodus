@@ -42,9 +42,6 @@
         <pathelement location="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
         <pathelement location="lib/sqlite-jdbc-3.36.0.3.jar"/>
-        <pathelement location="lib/poi-ooxml-5.2.2.jar"/>
-        <pathelement location="lib/poi-5.2.2.jar"/>
-        <pathelement location="lib/poi-ooxml-full-5.2.2.jar"/>
         <pathelement location="lib/xmlbeans-5.0.3.jar"/>
         <pathelement location="lib/log4j-api-2.17.2.jar"/>
         <pathelement location="lib/log4j-to-slf4j-2.18.0.jar"/>
@@ -103,6 +100,9 @@
         <pathelement location="lib/oshi-demo-6.4.0.jar"/>
         <pathelement location="lib/jna-5.13.0.jar"/>
         <pathelement location="lib/jna-platform-5.13.0.jar"/>
+        <pathelement location="lib/poi-5.2.3.jar"/>
+        <pathelement location="lib/poi-ooxml-5.2.3.jar"/>
+        <pathelement location="lib/poi-ooxml-full-5.2.3.jar"/>
     </path>
     <path id="run.Nodus (1).classpath">
         <path refid="Nodus.classpath"/>
@@ -137,9 +137,6 @@
         <pathelement location="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
         <pathelement location="lib/sqlite-jdbc-3.36.0.3.jar"/>
-        <pathelement location="lib/poi-ooxml-5.2.2.jar"/>
-        <pathelement location="lib/poi-5.2.2.jar"/>
-        <pathelement location="lib/poi-ooxml-full-5.2.2.jar"/>
         <pathelement location="lib/xmlbeans-5.0.3.jar"/>
         <pathelement location="lib/log4j-api-2.17.2.jar"/>
         <pathelement location="lib/log4j-to-slf4j-2.18.0.jar"/>
@@ -198,6 +195,9 @@
         <pathelement location="lib/oshi-demo-6.4.0.jar"/>
         <pathelement location="lib/jna-5.13.0.jar"/>
         <pathelement location="lib/jna-platform-5.13.0.jar"/>
+        <pathelement location="lib/poi-5.2.3.jar"/>
+        <pathelement location="lib/poi-ooxml-5.2.3.jar"/>
+        <pathelement location="lib/poi-ooxml-full-5.2.3.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>

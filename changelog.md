@@ -321,4 +321,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Upgrade to H2 2.2.214
 - Upgrade to HSQLDB 2.7.1
 - Upgrade to OSHI 6.4.0
+- Upgrade to POI 5.2.3
+
 
