@@ -31,7 +31,6 @@
 	<classpathentry kind="lib" path="lib/slf4j-api-1.7.35.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-nop-1.7.35.jar"/>
 	<classpathentry kind="lib" path="lib/xchart-3.8.1.jar"/>
-	<classpathentry kind="lib" path="lib/h2-2.1.210.jar"/>
 	<classpathentry kind="lib" path="lib/derbyclient.jar"/>
 	<classpathentry kind="lib" path="lib/derbynet.jar" sourcepath="/Users/jourquinb/Downloads/db-derby-10.15.2.0-src.zip"/>
 	<classpathentry kind="lib" path="lib/derbytools.jar"/>
@@ -97,5 +96,6 @@
 	<classpathentry kind="lib" path="lib/groovy/slf4j-api-2.0.6.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/snakeyaml-1.33.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/xstream-1.4.20.jar"/>
+	<classpathentry kind="lib" path="lib/h2-2.1.214.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

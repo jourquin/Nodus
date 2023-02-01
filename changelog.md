@@ -318,5 +318,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 ## v8.2 - BuildXXXXXXXX
 - Upgrade to Groovy 4.0.8
 - Update copyright to 1991-2023
+- Upgrade to H2 2.2.214
+
 
 
