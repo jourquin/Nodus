@@ -319,6 +319,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Upgrade to Groovy 4.0.8
 - Update copyright to 1991-2023
 - Upgrade to H2 2.2.214
-
-
+- Upgrade to HSQLDB 2.7.1
+- Upgrade to OSHI 6.4.0
 

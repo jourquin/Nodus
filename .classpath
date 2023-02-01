@@ -7,7 +7,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/commons-collections4-4.4.jar"/>
-	<classpathentry kind="lib" path="lib/commons-compress-1.21.jar"/>
 	<classpathentry kind="lib" path="lib/commons-csv-1.9.0.jar"/>
 	<classpathentry kind="lib" path="lib/commons-io-2.11.0.jar"/>
 	<classpathentry kind="lib" path="lib/derbyLocale_fr.jar"/>
@@ -17,8 +16,6 @@
 	<classpathentry kind="lib" path="lib/javadbf4nodus-1.12.2.jar"/>
 	<classpathentry kind="lib" path="lib/JCheckList.jar"/>
 	<classpathentry kind="lib" path="lib/jfreechart-1.5.3.jar"/>
-	<classpathentry kind="lib" path="lib/jna-5.10.0.jar"/>
-	<classpathentry kind="lib" path="lib/jna-platform-5.10.0.jar"/>
 	<classpathentry kind="lib" path="lib/JResourcesMonitor.jar"/>
 	<classpathentry kind="lib" path="lib/jung-algorithms-2.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/jung-api-2.1.1.jar"/>
@@ -39,8 +36,6 @@
 	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.2.19.jar"/>
 	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.36.0.3.jar"/>
-	<classpathentry kind="lib" path="lib/oshi-core-java11-6.1.2.jar"/>
-	<classpathentry kind="lib" path="lib/oshi-demo-6.1.2.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-5.2.2.jar" sourcepath="/Users/jourquinb/Downloads/poi-src-5.2.2-20220312"/>
 	<classpathentry kind="lib" path="lib/poi-5.2.2.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-full-5.2.2.jar"/>
@@ -97,5 +92,10 @@
 	<classpathentry kind="lib" path="lib/groovy/snakeyaml-1.33.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/xstream-1.4.20.jar"/>
 	<classpathentry kind="lib" path="lib/h2-2.1.214.jar"/>
+	<classpathentry kind="lib" path="lib/commons-compress-1.22.jar"/>
+	<classpathentry kind="lib" path="lib/oshi-core-java11-6.4.0.jar"/>
+	<classpathentry kind="lib" path="lib/oshi-demo-6.4.0.jar"/>
+	<classpathentry kind="lib" path="lib/jna-5.13.0.jar"/>
+	<classpathentry kind="lib" path="lib/jna-platform-5.13.0.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

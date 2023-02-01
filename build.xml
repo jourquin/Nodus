@@ -13,7 +13,6 @@
     <path id="Nodus.classpath">
         <pathelement location="classes"/>
         <pathelement location="lib/commons-collections4-4.4.jar"/>
-        <pathelement location="lib/commons-compress-1.21.jar"/>
         <pathelement location="lib/commons-csv-1.9.0.jar"/>
         <pathelement location="lib/commons-io-2.11.0.jar"/>
         <pathelement location="lib/derbyLocale_fr.jar"/>
@@ -23,8 +22,6 @@
         <pathelement location="lib/javadbf4nodus-1.12.2.jar"/>
         <pathelement location="lib/JCheckList.jar"/>
         <pathelement location="lib/jfreechart-1.5.3.jar"/>
-        <pathelement location="lib/jna-5.10.0.jar"/>
-        <pathelement location="lib/jna-platform-5.10.0.jar"/>
         <pathelement location="lib/JResourcesMonitor.jar"/>
         <pathelement location="lib/jung-algorithms-2.1.1.jar"/>
         <pathelement location="lib/jung-api-2.1.1.jar"/>
@@ -37,7 +34,6 @@
         <pathelement location="lib/slf4j-api-1.7.35.jar"/>
         <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
         <pathelement location="lib/xchart-3.8.1.jar"/>
-        <pathelement location="lib/h2-2.1.214.jar"/>
         <pathelement location="lib/derbyclient.jar"/>
         <pathelement location="lib/derbynet.jar"/>
         <pathelement location="lib/derbytools.jar"/>
@@ -46,8 +42,6 @@
         <pathelement location="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
         <pathelement location="lib/sqlite-jdbc-3.36.0.3.jar"/>
-        <pathelement location="lib/oshi-core-java11-6.1.2.jar"/>
-        <pathelement location="lib/oshi-demo-6.1.2.jar"/>
         <pathelement location="lib/poi-ooxml-5.2.2.jar"/>
         <pathelement location="lib/poi-5.2.2.jar"/>
         <pathelement location="lib/poi-ooxml-full-5.2.2.jar"/>
@@ -103,11 +97,113 @@
         <pathelement location="lib/groovy/slf4j-api-2.0.6.jar"/>
         <pathelement location="lib/groovy/snakeyaml-1.33.jar"/>
         <pathelement location="lib/groovy/xstream-1.4.20.jar"/>
+        <pathelement location="lib/h2-2.1.214.jar"/>
+        <pathelement location="lib/commons-compress-1.22.jar"/>
+        <pathelement location="lib/oshi-core-java11-6.4.0.jar"/>
+        <pathelement location="lib/oshi-demo-6.4.0.jar"/>
+        <pathelement location="lib/jna-5.13.0.jar"/>
+        <pathelement location="lib/jna-platform-5.13.0.jar"/>
+    </path>
+    <path id="run.Nodus (1).classpath">
+        <path refid="Nodus.classpath"/>
+        <pathelement location="lib/commons-collections4-4.4.jar"/>
+        <pathelement location="lib/commons-csv-1.9.0.jar"/>
+        <pathelement location="lib/commons-io-2.11.0.jar"/>
+        <pathelement location="lib/derbyLocale_fr.jar"/>
+        <pathelement location="lib/guava-19.0.jar"/>
+        <pathelement location="lib/hsqldb.jar"/>
+        <pathelement location="lib"/>
+        <pathelement location="lib/j4r-1.1.1.jar"/>
+        <pathelement location="lib/javadbf4nodus-1.12.2.jar"/>
+        <pathelement location="lib/JCheckList.jar"/>
+        <pathelement location="lib/jfreechart-1.5.3.jar"/>
+        <pathelement location="lib/JResourcesMonitor.jar"/>
+        <pathelement location="lib/jung-api-2.1.1.jar"/>
+        <pathelement location="lib/jung-algorithms-2.1.1.jar"/>
+        <pathelement location="lib/jung-graph-impl-2.1.1.jar"/>
+        <pathelement location="lib/jung-visualization-2.1.1.jar"/>
+        <pathelement location="lib/openmap-6.0.jar"/>
+        <pathelement location="lib/parsii-5.0.1.jar"/>
+        <pathelement location="lib/py4j0.10.9.2.jar"/>
+        <pathelement location="lib/rsyntaxtextarea-3.1.6.jar"/>
+        <pathelement location="lib/slf4j-api-1.7.35.jar"/>
+        <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
+        <pathelement location="lib/xchart-3.8.1.jar"/>
+        <pathelement location="lib/derbyshared.jar"/>
+        <pathelement location="lib/derbyclient.jar"/>
+        <pathelement location="lib/derby.jar"/>
+        <pathelement location="lib/derbytools.jar"/>
+        <pathelement location="lib/derbynet.jar"/>
+        <pathelement location="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
+        <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
+        <pathelement location="lib/sqlite-jdbc-3.36.0.3.jar"/>
+        <pathelement location="lib/poi-ooxml-5.2.2.jar"/>
+        <pathelement location="lib/poi-5.2.2.jar"/>
+        <pathelement location="lib/poi-ooxml-full-5.2.2.jar"/>
+        <pathelement location="lib/xmlbeans-5.0.3.jar"/>
+        <pathelement location="lib/log4j-api-2.17.2.jar"/>
+        <pathelement location="lib/log4j-to-slf4j-2.18.0.jar"/>
+        <pathelement location="lib/groovy/ant-1.10.13.jar"/>
+        <pathelement location="lib/groovy/ant-antlr-1.10.13.jar"/>
+        <pathelement location="lib/groovy/ant-junit-1.10.13.jar"/>
+        <pathelement location="lib/groovy/ant-launcher-1.10.13.jar"/>
+        <pathelement location="lib/groovy/groovy-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-ant-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-astbuilder-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-cli-commons-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-cli-picocli-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-console-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-contracts-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-datetime-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-dateutil-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-docgenerator-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-ginq-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-groovydoc-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-groovysh-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-jmx-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-json-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-jsr223-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-macro-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-macro-library-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-nio-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-servlet-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-sql-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-swing-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-templates-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-test-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-test-junit5-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-testng-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-toml-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-typecheckers-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-xml-4.0.8.jar"/>
+        <pathelement location="lib/groovy/groovy-yaml-4.0.8.jar"/>
+        <pathelement location="lib/groovy/ivy-2.5.1.jar"/>
+        <pathelement location="lib/groovy/jackson-annotations-2.14.1.jar"/>
+        <pathelement location="lib/groovy/jackson-core-2.14.1.jar"/>
+        <pathelement location="lib/groovy/jackson-databind-2.14.1.jar"/>
+        <pathelement location="lib/groovy/jackson-dataformat-toml-2.14.1.jar"/>
+        <pathelement location="lib/groovy/jackson-dataformat-yaml-2.14.1.jar"/>
+        <pathelement location="lib/groovy/javaparser-core-3.24.10.jar"/>
+        <pathelement location="lib/groovy/junit-jupiter-api-5.9.2.jar"/>
+        <pathelement location="lib/groovy/junit-jupiter-engine-5.9.2.jar"/>
+        <pathelement location="lib/groovy/junit-platform-commons-1.9.2.jar"/>
+        <pathelement location="lib/groovy/junit-platform-engine-1.9.2.jar"/>
+        <pathelement location="lib/groovy/junit-platform-launcher-1.9.2.jar"/>
+        <pathelement location="lib/groovy/slf4j-api-2.0.6.jar"/>
+        <pathelement location="lib/groovy/snakeyaml-1.33.jar"/>
+        <pathelement location="lib/groovy/xstream-1.4.20.jar"/>
+        <pathelement location="lib/h2-2.1.214.jar"/>
+        <pathelement location="lib/commons-compress-1.22.jar"/>
+        <pathelement location="lib/oshi-core-java11-6.4.0.jar"/>
+        <pathelement location="lib/oshi-demo-6.4.0.jar"/>
+        <pathelement location="lib/jna-5.13.0.jar"/>
+        <pathelement location="lib/jna-platform-5.13.0.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
         <copy includeemptydirs="false" todir="classes">
             <fileset dir="src">
+                <exclude name="**/*.launch"/>
                 <exclude name="**/*.java"/>
             </fileset>
         </copy>
@@ -126,4 +222,10 @@
         </javac>
     </target>
     <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
+    <target name="Nodus (1)">
+        <java classname="edu.uclouvain.core.nodus.Nodus" failonerror="true" fork="yes">
+            <jvmarg line="-Xmx6144m -Xms2048m -Dfile.encoding=UTF8"/>
+            <classpath refid="run.Nodus (1).classpath"/>
+        </java>
+    </target>
 </project>
