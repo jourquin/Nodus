@@ -316,11 +316,13 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Upgrade to POI 5.2.2 and use a log4j to slf4j bridge
 
 ## v8.2 - BuildXXXXXXXX
-- Upgrade to Groovy 4.0.8
 - Update copyright to 1991-2023
+- Upgrade to Groovy 4.0.8
 - Upgrade to H2 2.2.214
 - Upgrade to HSQLDB 2.7.1
 - Upgrade to OSHI 6.4.0
 - Upgrade to POI 5.2.3
+- Upgrade to sqlite-jdbc 3.40.0
+- Upgrade to xchart 3.8.3
 
 

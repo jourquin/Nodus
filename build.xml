@@ -3,8 +3,7 @@
               Any modifications will be overwritten.
               To include a user specific buildfile here, simply create one in the same
               directory with the processing instruction <?eclipse.ant.import?>
-              as the first entry and export the buildfile again. -->
-    <project basedir="." default="build" name="Nodus">
+              as the first entry and export the buildfile again. --><project basedir="." default="build" name="Nodus">
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="11"/>
@@ -33,7 +32,6 @@
         <pathelement location="lib/rsyntaxtextarea-3.1.6.jar"/>
         <pathelement location="lib/slf4j-api-1.7.35.jar"/>
         <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
-        <pathelement location="lib/xchart-3.8.1.jar"/>
         <pathelement location="lib/derbyclient.jar"/>
         <pathelement location="lib/derbynet.jar"/>
         <pathelement location="lib/derbytools.jar"/>
@@ -41,8 +39,6 @@
         <pathelement location="lib/derby.jar"/>
         <pathelement location="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
-        <pathelement location="lib/sqlite-jdbc-3.36.0.3.jar"/>
-        <pathelement location="lib/xmlbeans-5.0.3.jar"/>
         <pathelement location="lib/log4j-api-2.17.2.jar"/>
         <pathelement location="lib/log4j-to-slf4j-2.18.0.jar"/>
         <pathelement location="lib/groovy/ant-1.10.13.jar"/>
@@ -103,6 +99,9 @@
         <pathelement location="lib/poi-5.2.3.jar"/>
         <pathelement location="lib/poi-ooxml-5.2.3.jar"/>
         <pathelement location="lib/poi-ooxml-full-5.2.3.jar"/>
+        <pathelement location="lib/sqlite-jdbc-3.40.0.0.jar"/>
+        <pathelement location="lib/xchart-3.8.3.jar"/>
+        <pathelement location="lib/xmlbeans-5.1.1.jar"/>
     </path>
     <path id="run.Nodus (1).classpath">
         <path refid="Nodus.classpath"/>
@@ -112,14 +111,13 @@
         <pathelement location="lib/derbyLocale_fr.jar"/>
         <pathelement location="lib/guava-19.0.jar"/>
         <pathelement location="lib/hsqldb.jar"/>
-        <pathelement location="lib"/>
         <pathelement location="lib/j4r-1.1.1.jar"/>
         <pathelement location="lib/javadbf4nodus-1.12.2.jar"/>
         <pathelement location="lib/JCheckList.jar"/>
         <pathelement location="lib/jfreechart-1.5.3.jar"/>
         <pathelement location="lib/JResourcesMonitor.jar"/>
-        <pathelement location="lib/jung-api-2.1.1.jar"/>
         <pathelement location="lib/jung-algorithms-2.1.1.jar"/>
+        <pathelement location="lib/jung-api-2.1.1.jar"/>
         <pathelement location="lib/jung-graph-impl-2.1.1.jar"/>
         <pathelement location="lib/jung-visualization-2.1.1.jar"/>
         <pathelement location="lib/openmap-6.0.jar"/>
@@ -128,16 +126,13 @@
         <pathelement location="lib/rsyntaxtextarea-3.1.6.jar"/>
         <pathelement location="lib/slf4j-api-1.7.35.jar"/>
         <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
-        <pathelement location="lib/xchart-3.8.1.jar"/>
-        <pathelement location="lib/derbyshared.jar"/>
         <pathelement location="lib/derbyclient.jar"/>
-        <pathelement location="lib/derby.jar"/>
-        <pathelement location="lib/derbytools.jar"/>
         <pathelement location="lib/derbynet.jar"/>
+        <pathelement location="lib/derbytools.jar"/>
+        <pathelement location="lib/derbyshared.jar"/>
+        <pathelement location="lib/derby.jar"/>
         <pathelement location="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.2.19.jar"/>
-        <pathelement location="lib/sqlite-jdbc-3.36.0.3.jar"/>
-        <pathelement location="lib/xmlbeans-5.0.3.jar"/>
         <pathelement location="lib/log4j-api-2.17.2.jar"/>
         <pathelement location="lib/log4j-to-slf4j-2.18.0.jar"/>
         <pathelement location="lib/groovy/ant-1.10.13.jar"/>
@@ -198,12 +193,14 @@
         <pathelement location="lib/poi-5.2.3.jar"/>
         <pathelement location="lib/poi-ooxml-5.2.3.jar"/>
         <pathelement location="lib/poi-ooxml-full-5.2.3.jar"/>
+        <pathelement location="lib/sqlite-jdbc-3.40.0.0.jar"/>
+        <pathelement location="lib/xchart-3.8.3.jar"/>
+        <pathelement location="lib/xmlbeans-5.1.1.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
         <copy includeemptydirs="false" todir="classes">
             <fileset dir="src">
-                <exclude name="**/*.launch"/>
                 <exclude name="**/*.java"/>
             </fileset>
         </copy>

@@ -27,7 +27,6 @@
 	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.1.6.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-api-1.7.35.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-nop-1.7.35.jar"/>
-	<classpathentry kind="lib" path="lib/xchart-3.8.1.jar"/>
 	<classpathentry kind="lib" path="lib/derbyclient.jar"/>
 	<classpathentry kind="lib" path="lib/derbynet.jar" sourcepath="/Users/jourquinb/Downloads/db-derby-10.15.2.0-src.zip"/>
 	<classpathentry kind="lib" path="lib/derbytools.jar"/>
@@ -35,8 +34,6 @@
 	<classpathentry kind="lib" path="lib/derby.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.2.19.jar"/>
-	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.36.0.3.jar"/>
-	<classpathentry kind="lib" path="lib/xmlbeans-5.0.3.jar"/>
 	<classpathentry kind="lib" path="lib/log4j-api-2.17.2.jar"/>
 	<classpathentry kind="lib" path="lib/log4j-to-slf4j-2.18.0.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-1.10.13.jar"/>
@@ -97,5 +94,8 @@
 	<classpathentry kind="lib" path="lib/poi-5.2.3.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-5.2.3.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-full-5.2.3.jar"/>
+	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.40.0.0.jar"/>
+	<classpathentry kind="lib" path="lib/xchart-3.8.3.jar"/>
+	<classpathentry kind="lib" path="lib/xmlbeans-5.1.1.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
