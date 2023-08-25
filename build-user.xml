@@ -1,5 +1,6 @@
 <?eclipse.ant.import?>
-<project>
+<project basedir=".">
+	<import file="build.xml"/>
 
 	<!-- Launches the i18n tool -->
 	<target name="I18Nedit" description="Runs the i18n translation tool.">

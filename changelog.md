@@ -325,4 +325,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Upgrade to sqlite-jdbc 3.40.0
 - Upgrade to xchart 3.8.3
 
+## v8.3 - BuildXXXXXXXX
+- Allow ant targets from within the build-user.xml file
+
+
 
