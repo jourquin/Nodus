@@ -250,7 +250,9 @@ public class Nodus {
 
       if (UIManager.getLookAndFeel().isNativeLookAndFeel()) {
         // use the macOS system menu bar
-        System.setProperty("apple.laf.useScreenMenuBar", "true");
+        if (!isSonomaAndHomebrewOpenJDK()) {
+          System.setProperty("apple.laf.useScreenMenuBar", "true");
+        }
 
         // set the "About" menu item name
         System.setProperty("com.apple.mrj.application.apple.menu.about.name", NodusC.APPNAME);
@@ -293,7 +295,7 @@ public class Nodus {
           @Override
           public void windowClosing(WindowEvent e) {
             nodusMapPanel.closeAndSaveState();
-            //System.exit(0);
+            // System.exit(0);
           }
         });
   }
@@ -313,5 +315,28 @@ public class Nodus {
     // omf.setVisible(true);
     // nodusMapPanel.getMapBean().showLayerPalettes();
     setWindowListenerOnFrame(omf);
+  }
+
+  /**
+   * Nodus crashes on macOS Sonoma if it runs with an OpenJDK VM provided by Homebrew. The problem
+   * is related to the use of screen menu bars. It is unsure for now if the bug is in this OpenJDK
+   * implementation and/or in MacOS AppKit. This method identifies if Nodus runs on MacOS Sonoma
+   * with a Homebrew OpenJDK.
+   *
+   * @return True if Nodus runs on such a system.
+   */
+  public static boolean isSonomaAndHomebrewOpenJDK() {
+
+    if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
+      if (System.getProperty("os.version").startsWith("14")) {
+        if (System.getProperty("java.vendor").toLowerCase().startsWith("homebrew")) {
+          if (System.getProperty("java.vm.name").toLowerCase().startsWith("openjdk")) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 }

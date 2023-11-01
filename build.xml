@@ -203,6 +203,7 @@
         <mkdir dir="classes"/>
         <copy includeemptydirs="false" todir="classes">
             <fileset dir="src">
+                <exclude name="**/*.launch"/>
                 <exclude name="**/*.java"/>
             </fileset>
         </copy>
@@ -223,7 +224,7 @@
     <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
     <target name="Nodus">
         <java classname="edu.uclouvain.core.nodus.Nodus" failonerror="true" fork="yes">
-            <jvmarg line="-Xmx6144m -Xms2048m -Dfile.encoding=UTF8"/>
+            <jvmarg line="-Xmx6G -Xms4G -Dfile.encoding=UTF-8"/>
             <classpath refid="run.Nodus.classpath"/>
         </java>
     </target>
