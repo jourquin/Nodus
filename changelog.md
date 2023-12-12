@@ -325,9 +325,11 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Upgrade to sqlite-jdbc 3.40.0
 - Upgrade to xchart 3.8.3
 
-## v8.3 - Build20231101
+## v8.2 - Build20231101
 - Allow ant targets from within the build-user.xml file
 - Workaround to avoid crash when Nodus runs on MacOS Sonoma with Homebrew OpenJDK
 
+## v8.2 - BuildXXXXXXXX
+- Improved workaround to avoid crash when Nodus runs on MacOS Sonoma with Homebrew OpenJDK as MacOS 14.2 partially solves the problem.
 
 
