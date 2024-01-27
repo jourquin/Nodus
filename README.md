@@ -45,7 +45,7 @@ or plugins (in Java jar files).
 [H2](http://h2database.com/) and [Apache Derby](https://db.apache.org/derby/).  
 - Flexible: user defined database fields, variables, cost functions, mode choice models…
 
-See also the [documentation](http://htmlpreview.github.com/?https://github.com/jourquin/Nodus/blob/master/doc/help.html) and
+See also the [documentation](http://htmlpreview.github.io/?https://github.com/jourquin/Nodus/blob/master/doc/help.html) and
 the [Demo project](https://github.com/jourquin/Nodus/blob/master/demo).
 
 ## History of the releases
