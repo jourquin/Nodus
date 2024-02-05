@@ -4,7 +4,7 @@
               To include a user specific buildfile here, simply create one in the same
               directory with the processing instruction <?eclipse.ant.import?>
               as the first entry and export the buildfile again. -->
-    <project basedir="." default="build" name="Nodus">
+<project basedir="." default="build" name="Nodus">
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="11"/>
@@ -224,7 +224,7 @@
     <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
     <target name="Nodus">
         <java classname="edu.uclouvain.core.nodus.Nodus" failonerror="true" fork="yes">
-            <jvmarg line="-Xmx6G -Xms4G -Dfile.encoding=UTF-8"/>
+            <jvmarg line="-Xmx6144m -Xms2048m -Dfile.encoding=UTF8"/>
             <classpath refid="run.Nodus.classpath"/>
         </java>
     </target>

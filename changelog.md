@@ -329,8 +329,10 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Allow ant targets from within the build-user.xml file
 - Workaround to avoid crash when Nodus runs on MacOS Sonoma with Homebrew OpenJDK
 
-## v8.2 - BuildXXXXXXXX
+## v8.2 - Build20240205
 - Improved workaround to avoid crash when Nodus runs on MacOS Sonoma with Homebrew OpenJDK as MacOS 14.2 partially solves the problem.
 - Update "htmlpreview" API calls to new URL.
+- Update copyright to 1991-2024
+
 
 
