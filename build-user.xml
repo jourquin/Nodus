@@ -1,7 +1,7 @@
 <?eclipse.ant.import?>
 <project basedir=".">
-	<import file="build.xml"/>
-
+	<!--import file="build.xml"/-->
+	
 	<!-- Launches the i18n tool -->
 	<target name="I18Nedit" description="Runs the i18n translation tool.">
 		<java classname="i18nedit" classpath="${basedir}/devtools/i18nedit.jar:${basedir}/devtools/qjcc.jar:${basedir}/devtools/jhall.jar" failonerror="true" fork="yes">
@@ -70,6 +70,21 @@
 	<!-- Create jar -->
 	<target name="Jar" description="Builds the Nodus jar file.">
 		<echo message="Creating Nodus jar file" />
+		
+		<!-- Override build.xml to use the "release" javac option instead of "source" and "target" -->
+		<mkdir dir="classes"/>
+		<copy includeemptydirs="false" todir="classes">
+			<fileset dir="src">
+				<exclude name="**/*.launch"/>
+		    	<exclude name="**/*.java"/>
+		    </fileset>
+		</copy>
+		<javac debug="true" debuglevel="${debuglevel}" destdir="classes" includeantruntime="false" release="${target}">
+			<src path="src"/>
+		    <classpath refid="Nodus.classpath"/>
+		</javac>
+		
+		
 		<antcall target="BuildId" />
 		<antcall target="build" />
 		<jar destfile="${basedir}/nodus8.jar" basedir="${basedir}/classes" manifest="${basedir}/src/MANIFEST.MF" index="true" />
