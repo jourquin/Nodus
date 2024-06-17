@@ -4,7 +4,7 @@
 export CLASSPATH=../../nodus8.jar:../../lib/*:../../lib/groovy/*:../../lib/groovy/extras-jaxb/*
 
 # Compile the source code of the plugin
-javac -source 11 -target 11 MLogit.java
+javac --release 11 MLogit.java
 
 # Create the JAR file
 jar cf MLogit.jar MLogit.class

@@ -336,6 +336,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 
 ## v8.2 - BuildXXXXXXXX
 - Use the "--release" javac option in the ant file instead of the "target" / "source" pair.
-
+- Use the "--release" javac option in the compile.bat and compile.sh scripts in the demo project.
 
 
