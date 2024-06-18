@@ -10,7 +10,7 @@ Nodus 8.0, which first build was released on March 4, 2021, introduced a series 
 
 Nodus 8.1 introduced the possibility to develop Python and R scripts in addition to Groovy scripts. It also runs on Java 16.
 
-Nodus 8.2 runs also on Java 17, but needs Java 11 or above to run. This version also embeds H2 version 2. Existing projects using the H2 database
+Nodus 8.2 runs also on Java 17+, but needs Java 11 or above to run. This version also embeds H2 version 2. Existing projects using the H2 database
 will need a migration of the database : https://www.h2database.com/html/migration-to-v2.html. The embedded HSQLDB, H2 and Derby
 engines now run in server mode, allowing for external connections from another JDBC client. 
 
