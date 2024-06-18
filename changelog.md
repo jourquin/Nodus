@@ -334,8 +334,9 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Update "htmlpreview" API calls to new URL.
 - Update copyright to 1991-2024
 
-## v8.2 - BuildXXXXXXXX
+## v8.2 - Build20240618
 - Use the "--release" javac option in the ant file instead of the "target" / "source" pair.
 - Use the "--release" javac option in the compile.bat and compile.sh scripts in the demo project.
+- Upgrade to Groovy 4.0.21
 
 
