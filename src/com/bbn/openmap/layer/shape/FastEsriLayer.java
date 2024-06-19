@@ -55,6 +55,11 @@ public class FastEsriLayer extends EsriLayer {
   /** Spatial index for faster drawing. */
   private DisplaySpatialIndexLinear spatialIndex = null;
 
+  /** Default constructor. */
+  public FastEsriLayer() {
+    super();
+  }
+
   /**
    * Sets the properties for the <code>Layer</code>.
    *

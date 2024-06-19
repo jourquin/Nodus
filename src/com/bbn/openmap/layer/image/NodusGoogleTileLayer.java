@@ -69,6 +69,11 @@ public class NodusGoogleTileLayer extends NodusMapTileLayer {
   
   /** . */
   private JRadioButton[] typeRadioButtons;
+  
+  /** Default constructor. */
+  public NodusGoogleTileLayer() {
+    super();
+  }
 
   /** New GUI with the possibility to choose the map type to display. */
   @Override

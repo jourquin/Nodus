@@ -40,6 +40,9 @@ public abstract class RealNetworkObject {
   private float size = 0;
 
   private int rowIndex;
+  
+  /** Default constructor. */
+  public RealNetworkObject() {}
 
   /**
    * Returns the row index in the DBF table for this object.

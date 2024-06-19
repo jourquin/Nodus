@@ -41,6 +41,9 @@ public class NetUtils {
 
   private static I18n i18n = Environment.getI18n();
 
+  /** Default constructor. */
+  public NetUtils() {}
+
   /**
    * Tests if a given server is reachable.
    *

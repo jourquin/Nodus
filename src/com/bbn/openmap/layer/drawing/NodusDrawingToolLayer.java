@@ -28,13 +28,18 @@ import com.bbn.openmap.layer.DrawingToolLayer;
  * associated to the nodes and links has no utility for the user. So, it is best to hide it.
  *
  * <p>In order to do that, a call to setVisible(false) is not enough, because the layer still
- * appears as grayed in the layer panel. So a subclass of the LayersPanel is created, which
- * tests the presence of a NodusDrawingToolLayer. The instances of this class are not displayed in
- * the panel.
+ * appears as grayed in the layer panel. So a subclass of the LayersPanel is created, which tests
+ * the presence of a NodusDrawingToolLayer. The instances of this class are not displayed in the
+ * panel.
  *
  * @author Bart Jourquin
  */
 public class NodusDrawingToolLayer extends DrawingToolLayer {
+
+  /** Default constructor. */
+  public NodusDrawingToolLayer() {
+    super();
+  }
 
   private static final long serialVersionUID = 151840316366117657L;
 }

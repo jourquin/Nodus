@@ -60,6 +60,9 @@ public class ImportXLS {
 
   private static I18n i18n = Environment.getI18n();
 
+  /** Default constructor. */
+  public ImportXLS() {}
+
   /**
    * Creates a database table using the field descriptions found in the first row of the Excel
    * sheet.

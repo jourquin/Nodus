@@ -53,6 +53,11 @@ public class RealLink extends RealNetworkObject {
 
   private float speed = -1;
 
+  /** Default constructor. */
+  public RealLink() {
+    super();
+  }
+
   /**
    * Adds a number of auxiliary passenger car units to this real link.
    *

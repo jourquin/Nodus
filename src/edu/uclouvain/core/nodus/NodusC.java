@@ -28,6 +28,9 @@ package edu.uclouvain.core.nodus;
  */
 public class NodusC {
 
+  /** Default constructor. */
+  public NodusC() {}
+
   /*
    * *********************************************************************************************
    * Application name, version and copyright
@@ -405,7 +408,7 @@ public class NodusC {
    * Name of the variable that must be used in cost functions to generate service lines for a
    * mode/means combination.
    */
-  // TODO (services) Change variable name ? 
+  // TODO (services) Change variable name ?
   public static final String VARNAME_SERVICELINES = "SERVICELINES";
 
   /**
@@ -993,7 +996,7 @@ public class NodusC {
    * @hidden
    */
   public static final String PROP_PY4J_PORT = "py4j.port";
-  
+
   /**
    * Properties strings used in project and/or project local properties.
    *
@@ -1126,7 +1129,7 @@ public class NodusC {
    * @hidden
    */
   public static final String PROP_DYNAMIC_QUANTITIES_QUERY = "dynamicflowquery";
-  
+
   /**
    * Properties strings used in project and/or project local properties.
    *
@@ -1203,26 +1206,25 @@ public class NodusC {
    * @hidden
    */
   public static final String PROP_DEFAUT_EXCLUSION_RULE = "defaultexclusionrule";
-  
+
   /**
    * Properties strings used in project and/or project local properties.
    *
    * @hidden
    */
   public static final String PROP_HSQLDB_SERVER_PORT = "hsqldbserverport";
-  
+
   /**
    * Properties strings used in project and/or project local properties.
    *
    * @hidden
    */
   public static final String PROP_H2_SERVER_PORT = "h2serverport";
-  
+
   /**
    * Properties strings used in project and/or project local properties.
    *
    * @hidden
    */
   public static final String PROP_DERBY_SERVER_PORT = "derbyserverport";
-  
 }

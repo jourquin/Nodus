@@ -73,6 +73,9 @@ public class PathWeights {
   /** Length of the path. */
   public float length;
 
+  /** Default constructor. */
+  public PathWeights() {}
+
   /**
    * Return the total cost of the path, computed as the sum of loading, unloading, transit,
    * transhipment, moving costs, stop and switch costs.

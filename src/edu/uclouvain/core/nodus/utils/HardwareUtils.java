@@ -45,6 +45,9 @@ public class HardwareUtils {
 
   static SystemInfo si = new SystemInfo();
 
+  /** Default constructor. */
+  public HardwareUtils() {}
+
   /** Display the resources monitor. */
   public static void displayRessourcesMonitor() {
     // Only create a instance if none exists
@@ -192,7 +195,7 @@ public class HardwareUtils {
   public static String getTotalMemoryInfo() {
     return FormatUtil.formatBytes(getTotalMemory());
   }
-  
+
   /**
    * Returns the available amount of RAM of the computer system.
    *

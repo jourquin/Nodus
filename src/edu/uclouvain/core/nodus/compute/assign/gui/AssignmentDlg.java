@@ -525,7 +525,7 @@ public class AssignmentDlg extends EscapeDialog {
 
     File dir =
         new File(nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
-    FileFilter fileFilter = new WildcardFileFilter("*.costs");
+    FileFilter fileFilter = WildcardFileFilter.builder().setWildcards("*.costs").get();
 
     File[] files = dir.listFiles(fileFilter);
     if (files == null) {

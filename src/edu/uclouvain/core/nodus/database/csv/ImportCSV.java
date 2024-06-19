@@ -48,6 +48,9 @@ import org.apache.commons.csv.CSVRecord;
 public class ImportCSV {
   static I18n i18n = Environment.getI18n();
 
+  /** Default constructor. */
+  public ImportCSV() {}
+
   /**
    * Imports the table which name is passed as parameter. The CSV file must be located in the
    * project directory. The correspondent table structure (empty table) must exist in the database.

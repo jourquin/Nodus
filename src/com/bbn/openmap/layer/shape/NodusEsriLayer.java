@@ -169,7 +169,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
   /** Previous rendering scale threshold. */
   private float previousRenderingScaleThreshold;
-  
+
   /** Indicates if the styles must be refreshed. */
   private boolean stylesMustBeRefreshed = true;
 
@@ -184,6 +184,11 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
   /** Query string used to filter EsriGraphics. */
   private String whereStmt = "";
+
+  /** Default constructor. */
+  public NodusEsriLayer() {
+    super();
+  }
 
   /**
    * Used by the integrity tester to store links which have same origin and destination.

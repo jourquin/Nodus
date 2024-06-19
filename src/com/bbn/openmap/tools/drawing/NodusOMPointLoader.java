@@ -32,6 +32,11 @@ import com.bbn.openmap.util.I18n;
  */
 public class NodusOMPointLoader extends OMPointLoader {
   private static I18n i18n = Environment.getI18n();
+  
+  /** Default constructor. */
+  public NodusOMPointLoader() {
+    super();
+  }
 
   /** Initializes the class wrapper. */
   @Override

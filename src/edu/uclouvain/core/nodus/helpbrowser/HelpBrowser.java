@@ -36,11 +36,14 @@ import java.util.Locale;
  *
  * @author Bart Jourquin
  */
-public class HelpBrowser  {
+public class HelpBrowser {
 
   private URI uri;
   private URL url;
   private static I18n i18n = Environment.getI18n();
+
+  /** Default constructor. */
+  public HelpBrowser() {}
 
   /**
    * Launches the system default web browser.

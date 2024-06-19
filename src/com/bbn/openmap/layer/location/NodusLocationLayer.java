@@ -48,6 +48,11 @@ public class NodusLocationLayer extends LocationLayer {
   //      setMouseModeIDsForEvents(new String[] {"Gestures"});
   //    }
 
+  /** Default constructor. */
+  public NodusLocationLayer() {
+    super();
+  }
+  
   /**
    * Initializes the location handler with all the nodes and link layers of the project.
    *

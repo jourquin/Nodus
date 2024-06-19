@@ -18,7 +18,6 @@
  * <p>You should have received a copy of the GNU General Public License along with this program. If
  * not, see http://www.gnu.org/licenses/.
  */
-
 package edu.uclouvain.core.nodus.utils;
 
 import java.io.File;
@@ -34,6 +33,9 @@ import java.text.ParseException;
  * @author Bart Jourquin
  */
 public class FileUtils {
+
+  /** Default constructor. */
+  public FileUtils() {}
 
   /**
    * Copy a file to another.
@@ -88,7 +90,7 @@ public class FileUtils {
       if (fileList == null) {
         return;
       }
-      
+
       if (fileList.length == 0) {
         file.delete();
 

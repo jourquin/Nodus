@@ -192,6 +192,11 @@ public class ScaleAndCompassLayer extends OMGraphicHandlerLayer {
   /** . */
   private Font scaleTextFont = defaultFont;
 
+  /** Default constructor. */
+  public ScaleAndCompassLayer() {
+    super();
+  }
+
   /**
    * Creates the GUI.
    *

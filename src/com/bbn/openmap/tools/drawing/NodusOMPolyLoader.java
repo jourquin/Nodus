@@ -32,6 +32,11 @@ import com.bbn.openmap.util.I18n;
  */
 public class NodusOMPolyLoader extends OMPolyLoader {
   private static I18n i18n = Environment.getI18n();
+  
+  /** Default constructor. */
+  public NodusOMPolyLoader() {
+    super();
+  }
 
   /** Initializes the class wrapper. */
   @Override

@@ -871,7 +871,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     // Fill cost functions combo
     if (costsFilesNames == null) {
       File dir = new File(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
-      FileFilter fileFilter = new WildcardFileFilter("*.costs");
+      FileFilter fileFilter = WildcardFileFilter.builder().setWildcards("*.costs").get();
       File[] costsFilesNames = dir.listFiles(fileFilter);
       if (costsFilesNames == null) {
         return;

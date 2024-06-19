@@ -28,6 +28,9 @@ package edu.uclouvain.core.nodus.utils;
  */
 public class MacUtils {
 
+  /** Default constructor. */
+  public MacUtils() {}
+
   /**
    * Nodus crashes on macOS Sonoma prior to version 14.2 if it runs with an OpenJDK VM provided by
    * Homebrew. The problem is related to the use of screen menu bars.

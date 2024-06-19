@@ -32,6 +32,9 @@ import javax.swing.JDialog;
  */
 public class GUIUtils {
 
+  /** Default constructor. */
+  public GUIUtils() {}
+
   /**
    * Recompute a new position of a dialog in order to keep it entirely in the screen.
    *
@@ -68,5 +71,4 @@ public class GUIUtils {
       dialog.setLocation(x, y);
     }
   }
-
 }

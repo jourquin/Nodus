@@ -63,4 +63,7 @@ public class Path {
    * detailed costs are asked for the assignment.
    */
   public PathWeights weights;
+  
+  /** Default constructor. */
+  public Path() {}
 }

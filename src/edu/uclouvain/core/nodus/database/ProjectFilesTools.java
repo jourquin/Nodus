@@ -66,6 +66,9 @@ public class ProjectFilesTools implements ShapeConstants {
   private static boolean result;
 
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
+  
+  /** Default constructor. */
+  public ProjectFilesTools() {}
 
   /**
    * Add the "enabled" field to the dbf file of a link layer. This is a convenient method added in

@@ -76,6 +76,11 @@ public class NodusMapTileLayer extends MapTileLayer {
 
   /** . */
   private JPanel transparencyPanel = null;
+  
+  /** Default constructor. */
+  public NodusMapTileLayer() {
+    super();
+  }
 
   /** Tells the factory to clean up resources, including the physical cache. */
   @Override

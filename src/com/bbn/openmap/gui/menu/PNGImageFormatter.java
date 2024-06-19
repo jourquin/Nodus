@@ -31,6 +31,11 @@ import com.bbn.openmap.image.WMTConstants;
  */
 public class PNGImageFormatter extends PNG8ImageFormatter {
 
+  /** Default constructor. */
+  public PNGImageFormatter() {
+    super();
+  }
+
   @Override
   public String getFormatLabel() {
     return WMTConstants.IMAGEFORMAT_PNG;

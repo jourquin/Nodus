@@ -31,8 +31,8 @@ import java.util.Properties;
  * set of properties which control where and how the menu item relative to the plugin must be added.
  * - Start real work of the plugin in the "execute" member function To use the plugin, just put a
  * copy (or a link) to the plugin jar into the "plugins" directory of your Nodus installation. When
- * launched, Nodus will detect all the jar's in this directory which contain a valid
- * NodusPlugin and will create a relevant "plugins" menu.
+ * launched, Nodus will detect all the jar's in this directory which contain a valid NodusPlugin and
+ * will create a relevant "plugins" menu.
  *
  * <p>If a plugin is developed for a given project, it can be put in a "projectname_plugins" dir of
  * the project directory. Such project dependent plugins will only appear when the project is
@@ -94,6 +94,9 @@ public class NodusPlugin {
 
   /** Main variable that will give access to the complete Nodus API and variables. */
   private NodusMapPanel nodusMapPanel = null;
+
+  /** Default constructor. */
+  public NodusPlugin() {}
 
   /** Is called when the Ok button is pressed if the GenericPluginConsole is used. */
   public void doStart() {

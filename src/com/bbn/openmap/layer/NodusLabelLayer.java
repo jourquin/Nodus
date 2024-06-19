@@ -39,6 +39,11 @@ public class NodusLabelLayer extends LabelLayer {
 
   /** The used properties. */
   private Properties props;
+  
+  /** Default constructor. */
+  public NodusLabelLayer() {
+    super();
+  }
 
   /**
    * Invites the user to enter a text label to display. The new text is stored in the properties for

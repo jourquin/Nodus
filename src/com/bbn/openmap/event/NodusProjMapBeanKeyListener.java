@@ -42,6 +42,11 @@ import java.awt.event.KeyEvent;
  * @author Bart Jourquin
  */
 public class NodusProjMapBeanKeyListener extends ProjMapBeanKeyListener {
+    
+    /** Default constructor. */
+    public NodusProjMapBeanKeyListener() {
+      super();
+    }
 
   /** Add additional key codes to the key listener. */
   @Override

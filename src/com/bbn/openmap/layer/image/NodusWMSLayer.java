@@ -94,6 +94,11 @@ public class NodusWMSLayer extends WMSLayer {
   /** Stores the available layers on the server. */
   private Vector<Object> treeData = null;
 
+  /** Default constructor. */
+  public NodusWMSLayer() {
+    super();
+  }
+
   /**
    * Intercepts the original OpenMap method in order to reject Gnomonic projections.
    *

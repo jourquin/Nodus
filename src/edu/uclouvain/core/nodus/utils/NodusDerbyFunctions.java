@@ -31,6 +31,9 @@ import java.math.RoundingMode;
  */
 public class NodusDerbyFunctions {
 
+  /** Default constructor. */
+  public NodusDerbyFunctions() {}
+
   /**
    * Equivalent of SQL ROUND function.
    *

@@ -59,6 +59,11 @@ public class NodusOMGraphic extends OMGraphicAdapter {
 
   /** . */
   private int radius = DEFAULT_RADIUS;
+  
+  /** Default constructor. */
+  public NodusOMGraphic() {
+    super();
+  }
 
   /**
    * The NodusOMGraphic is not intended to be rendered, but is only a placeholder for the graphic

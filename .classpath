@@ -18,7 +18,7 @@
 	<classpathentry kind="lib" path="lib/jung-api-2.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/jung-graph-impl-2.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/jung-visualization-2.1.1.jar"/>
-	<classpathentry kind="lib" path="lib/openmap-6.0.jar"/>
+	<classpathentry kind="lib" path="lib/openmap-6.0.jar" sourcepath="/Users/jourquinb/git/openmap"/>
 	<classpathentry kind="lib" path="lib/parsii-5.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/py4j0.10.9.2.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-api-1.7.35.jar"/>

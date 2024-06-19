@@ -45,6 +45,9 @@ public class ImportDBF {
 
   private static boolean hasBatchSupport = false;
 
+  /** Default constructor. */
+  public ImportDBF() {}
+
   /**
    * Creates a new table, based on the structure of the dbfReader. Returns true on success.
    *

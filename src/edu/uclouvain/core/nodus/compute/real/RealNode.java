@@ -29,4 +29,8 @@ package edu.uclouvain.core.nodus.compute.real;
  */
 public class RealNode extends RealNetworkObject {
 
+  /** Default constructor. */
+  public RealNode() {
+    super();
+  }
 }

@@ -44,6 +44,9 @@ public class ProjectLocker {
   private static FileLock lock = null;
 
   private static String lockerFileName;
+  
+  /** Default constructor. */
+  public ProjectLocker() {}
 
   /**
    * Creates a lock in the project'directory if possible.

@@ -46,6 +46,11 @@ public class PoliticalBoundariesLayer extends ShapeLayer {
 
   private static final long serialVersionUID = 7432485460581937500L;
 
+  /** Default constructor. */
+  public PoliticalBoundariesLayer() {
+    super();
+  }
+
   /**
    * Static method that returns a layer, initialized using the embedded ShapeFile.
    *
