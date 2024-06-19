@@ -47,6 +47,9 @@ public class CommentedProperties extends java.util.Properties {
   /** Use a Vector to keep a copy of lines containing a key, i.e. they are a property. */
   public Vector<String> keyData = new Vector<String>(0, 1);
 
+  /** Default constructor. */
+  public CommentedProperties() {}
+
   /**
    * Load properties from the specified InputStream. Overload the load method in Properties so we
    * can keep comment and blank lines.

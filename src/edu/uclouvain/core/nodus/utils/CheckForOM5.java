@@ -59,6 +59,9 @@ public class CheckForOM5 {
     "com.bbn.openmap.layer.image.NodusGoogleTileLayer"
   };
 
+  /** Default constructor. */
+  public CheckForOM5() {}
+
   /**
    * Checks if the properties contain old API names and converts them to new names.
    *

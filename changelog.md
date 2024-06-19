@@ -339,4 +339,26 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Use the "--release" javac option in the compile.bat and compile.sh scripts in the demo project.
 - Upgrade to Groovy 4.0.21
 
+## v8.2 - BuildXXXXXXXX
+- Upgrade MariaDB JDBC driver to version 3.4.0
+- Upgrade Postgresql JDBC driver to version 42.7.3
+- Upgrade H2 database ton version 2.2.224
+- Upgrade HSQLDB database to version 2.7.3
+- Upgrade to JNA 5.14.0
+- Upgrade to OSHI 6.6.1
+- Upgrade to POI 5.2.5
+- Upgrade to commons-io 2.16.1
+- Upgrade to commons-compress 126.2
+- Upgrade to commons-csv 1.11.0
+- Upgrade to commons-collection4-4.5.0
+- Better exception handling for the exportxls(x) command
+- Upgrade rsyntaxtextarea to version 3.4.0
+- Upgrade to sqlite-jdbc 3.46.0.0
+- Upgrade to xchart 3.8.8
+
+.
+
+
+
+
 

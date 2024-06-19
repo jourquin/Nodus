@@ -43,6 +43,14 @@ public class BuildIdGenerator {
   private static final String key = "buildid";
 
   private static final String propFile = "buildid.properties";
+  
+  /**
+   * Default constructor.
+   */
+  public BuildIdGenerator() {
+      
+  }
+  
 
   /**
    * Called from the ant task.

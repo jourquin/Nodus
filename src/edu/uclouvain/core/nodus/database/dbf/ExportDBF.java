@@ -46,6 +46,9 @@ import java.util.Vector;
  */
 public class ExportDBF implements ShapeConstants {
 
+  /** Default constructor. */
+  public ExportDBF() {}
+
   /**
    * Creates a .dbf table. Then name of the file will be the name of the exported table. It will be
    * located in the Nodus project directory.

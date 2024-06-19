@@ -6,9 +6,6 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="lib/commons-collections4-4.4.jar"/>
-	<classpathentry kind="lib" path="lib/commons-csv-1.9.0.jar"/>
-	<classpathentry kind="lib" path="lib/commons-io-2.11.0.jar"/>
 	<classpathentry kind="lib" path="lib/derbyLocale_fr.jar"/>
 	<classpathentry kind="lib" path="lib/guava-19.0.jar"/>
 	<classpathentry kind="lib" path="lib/hsqldb.jar"/>
@@ -24,7 +21,6 @@
 	<classpathentry kind="lib" path="lib/openmap-6.0.jar"/>
 	<classpathentry kind="lib" path="lib/parsii-5.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/py4j0.10.9.2.jar"/>
-	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.1.6.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-api-1.7.35.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-nop-1.7.35.jar"/>
 	<classpathentry kind="lib" path="lib/derbyclient.jar"/>
@@ -32,21 +28,8 @@
 	<classpathentry kind="lib" path="lib/derbytools.jar"/>
 	<classpathentry kind="lib" path="lib/derbyshared.jar"/>
 	<classpathentry kind="lib" path="lib/derby.jar"/>
-	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-2.7.2.jar"/>
-	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.2.19.jar"/>
 	<classpathentry kind="lib" path="lib/log4j-api-2.17.2.jar"/>
 	<classpathentry kind="lib" path="lib/log4j-to-slf4j-2.18.0.jar"/>
-	<classpathentry kind="lib" path="lib/h2-2.1.214.jar"/>
-	<classpathentry kind="lib" path="lib/commons-compress-1.22.jar"/>
-	<classpathentry kind="lib" path="lib/oshi-core-java11-6.4.0.jar"/>
-	<classpathentry kind="lib" path="lib/oshi-demo-6.4.0.jar"/>
-	<classpathentry kind="lib" path="lib/jna-5.13.0.jar"/>
-	<classpathentry kind="lib" path="lib/jna-platform-5.13.0.jar"/>
-	<classpathentry kind="lib" path="lib/poi-5.2.3.jar"/>
-	<classpathentry kind="lib" path="lib/poi-ooxml-5.2.3.jar"/>
-	<classpathentry kind="lib" path="lib/poi-ooxml-full-5.2.3.jar"/>
-	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.40.0.0.jar"/>
-	<classpathentry kind="lib" path="lib/xchart-3.8.3.jar"/>
 	<classpathentry kind="lib" path="lib/xmlbeans-5.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-1.10.14.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/ant-antlr-1.10.14.jar"/>
@@ -112,5 +95,22 @@
 	<classpathentry kind="lib" path="lib/groovy/slf4j-api-2.0.12.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/snakeyaml-2.2.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/testng-7.5.1.jar"/>
+	<classpathentry kind="lib" path="jdbcDrivers/mariadb-java-client-3.4.0.jar"/>
+	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.7.3.jar"/>
+	<classpathentry kind="lib" path="lib/h2-2.2.224.jar"/>
+	<classpathentry kind="lib" path="lib/jna-5.14.0.jar"/>
+	<classpathentry kind="lib" path="lib/jna-platform-5.14.0.jar"/>
+	<classpathentry kind="lib" path="lib/oshi-core-java11-6.6.1.jar"/>
+	<classpathentry kind="lib" path="lib/oshi-demo-6.6.1.jar"/>
+	<classpathentry kind="lib" path="lib/poi-5.2.5.jar"/>
+	<classpathentry kind="lib" path="lib/poi-ooxml-5.2.5.jar"/>
+	<classpathentry kind="lib" path="lib/poi-ooxml-full-5.2.5.jar"/>
+	<classpathentry kind="lib" path="lib/commons-io-2.16.1.jar"/>
+	<classpathentry kind="lib" path="lib/commons-collections4-4.5.0-M2.jar"/>
+	<classpathentry kind="lib" path="lib/commons-compress-1.26.2.jar"/>
+	<classpathentry kind="lib" path="lib/commons-csv-1.11.0.jar"/>
+	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.4.0.jar"/>
+	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.46.0.0.jar"/>
+	<classpathentry kind="lib" path="lib/xchart-3.8.8.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

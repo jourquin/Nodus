@@ -31,6 +31,9 @@ import java.awt.Color;
  */
 public class ColorUtils {
 
+  /** Default constructor. */
+  public ColorUtils() {}
+
   /**
    * Returns a Color given its name or ARGB hex representation.
    *

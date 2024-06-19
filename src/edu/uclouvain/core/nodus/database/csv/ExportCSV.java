@@ -37,6 +37,9 @@ import java.sql.Statement;
  */
 public class ExportCSV {
 
+  /** Default constructor. */
+  public ExportCSV() {}
+
   /**
    * Exports the table which name is given as parameter in the directory of the project. Returns
    * true if the table is successfully exported.

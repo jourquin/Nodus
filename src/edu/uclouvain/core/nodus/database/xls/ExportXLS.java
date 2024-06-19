@@ -24,6 +24,7 @@ package edu.uclouvain.core.nodus.database.xls;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -46,6 +47,9 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
  * @author Bart Jourquin
  */
 public class ExportXLS {
+
+  /** Default constructor. */
+  public ExportXLS() {}
 
   /**
    * Export a database table of the Nodus project in a Excel sheet format.
@@ -136,13 +140,9 @@ public class ExportXLS {
       wbs.write(out);
       out.close();
       wbs.close();
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-      return false;
-    } catch (SQLException e) {
-      e.printStackTrace();
-      return false;
-    } catch (IOException e) {
+    } catch (Exception e) {
+      new NodusConsole();
+      // nodusProject.getNodusMapPanel().setBusy(false);
       e.printStackTrace();
       return false;
     }
