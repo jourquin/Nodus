@@ -32,6 +32,9 @@ public class StringUtils {
 
   private static NumberFormat nf = NumberFormat.getInstance();
 
+  /** Default constructor. */
+  public StringUtils() {}
+
   /**
    * Returns a string that represents the given numeric value with a given length and precision.
    *

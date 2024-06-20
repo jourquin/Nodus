@@ -99,6 +99,11 @@ public class Splash extends JWindow {
   /** . */
   private int width = 0;
 
+  /** Default constructor. */
+  public Splash() {
+    super();
+  }
+
   /**
    * Creates a Splash that will appear until another frame hides it, but at least during "delay"
    * milliseconds.

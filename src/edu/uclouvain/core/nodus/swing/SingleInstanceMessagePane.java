@@ -37,6 +37,9 @@ public class SingleInstanceMessagePane {
   static JOptionPane pane = null;
   static JDialog dialog = null;
 
+  /** Default constructor. */
+  public SingleInstanceMessagePane() {}
+
   /** Resets the dialog so that it will be displayed on the next call to "display". */
   public static void reset() {
     pane = null;

@@ -97,10 +97,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
   @Override
   boolean doAssignment() {
 
-    double costMarkup = 1 + assignmentParameters.getCostMarkup();
-
-    LinkedList<MFPathHeader> pathHeaders = new LinkedList<>();
-
     // Initialize the adjacency list for current group
     graph = virtualNet.generateAdjacencyList(groupIndex);
 
@@ -156,6 +152,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
           /*
            * Compute "iteration" alternative paths for each mode/means combination
            */
+          LinkedList<MFPathHeader> pathHeaders = new LinkedList<>();
           for (int availableModeMean : availableModeMeans) {
 
             /*
@@ -218,6 +215,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
                * Increase the costs in the adjacency list to make the already used links more
                *  expensive (not for last iteration).
                */
+              double costMarkup = 1 + assignmentParameters.getCostMarkup();
               if (alternativePath < assignmentParameters.getNbIterations() - 1) {
                 for (int i = 1; i < graph.length; i++) {
                   AdjacencyNode current = graph[i];
@@ -458,15 +456,8 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
       ODCell demand,
       LinkedList<MFPathHeader> pathHeaders) {
     VirtualNodeList[] virtualNodeList = virtualNet.getVirtualNodeLists();
-    int[] pi = shortestPath.getPredecessors();
-
     String key = null;
 
-    Path path = new Path();
-
-    int mode = -1;
-
-    PathODCell pathODCell = new PathODCell(iteration, demand.getQuantity());
     // double weight = 0.0;
     // float length = 0;
 
@@ -496,8 +487,11 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     if (assignmentParameters.isLogLostPaths()) {
       key = demand.getOriginNodeId() + "-" + demand.getDestinationNodeId();
     }
-
+    
+    int mode = -1;
     int beginNode = virtualNodeList[nodeIndex].getLoadingVirtualNodeId();
+    Path path = new Path();
+    int[] pi = shortestPath.getPredecessors();
     while (currentNode != beginNode) {
       // Predecessor
       int predecessor = pi[currentNode];
@@ -529,7 +523,8 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
          * Performance issue: all the used virtual links are put in a list in order not to need a
          * browse through the complete virtual network to find them when needed
          */
-        vl.addCell(groupIndex, pathODCell);
+        //PathODCell pathODCell = new PathODCell(iteration, demand.getQuantity());
+        vl.addCell(groupIndex, new PathODCell(iteration, demand.getQuantity()));
 
         if (vl.getType() == VirtualLink.TYPE_TRANSHIP) {
           intermodalModeKey *=

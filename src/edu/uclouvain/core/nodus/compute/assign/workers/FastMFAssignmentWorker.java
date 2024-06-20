@@ -92,10 +92,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
   @Override
   boolean doAssignment() {
 
-    LinkedList<MFPathHeader> pathHeaders = new LinkedList<>();
-
-    double costMarkup = 1 + assignmentParameters.getCostMarkup();
-
     // Initialize
     graph = virtualNet.generateAdjacencyList(groupIndex);
     shortestPath = new BinaryHeapDijkstra(graph, virtualNet);
@@ -149,6 +145,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         /*
          * Compute "iteration" alternative paths for each mode/means combination
          */
+        LinkedList<MFPathHeader> pathHeaders = new LinkedList<>();
         for (int availableModeMean : availableModeMeans) {
 
           /*
@@ -219,6 +216,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
                * Increase the costs in the adjacency list to make the already used links more
                * expensive (not for last iteration).
                */
+              double costMarkup = 1 + assignmentParameters.getCostMarkup();
               if (alternativePath < assignmentParameters.getNbIterations() - 1) {
                 for (int i = 1; i < graph.length; i++) {
                   AdjacencyNode current = graph[i];
@@ -496,10 +494,8 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
     while (it.hasNext()) {
       ODCell demand = it.next();
-      PathODCell pathODCell = new PathODCell(iteration, indexInODRow, demand.getQuantity());
       // double weight = 0.0;
       // float length = 0;
-      int intermodalModeKey = 1;
 
       int currentPathIndex = 0;
       if (pathWriter.isSavePaths()) {
@@ -528,6 +524,8 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         key = demand.getOriginNodeId() + "-" + demand.getDestinationNodeId();
       }
 
+      int intermodalModeKey = 1;
+      PathODCell pathODCell = new PathODCell(iteration, indexInODRow, demand.getQuantity());
       while (currentNode != beginNode) {
         // Predecessor
         int predecessor = pi[currentNode];
@@ -558,7 +556,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
           vl.addCell(groupIndex, pathODCell);
 
-          // Detect if this is an intermodal path
+          // Detect if this is an intermodal path          
           if (vl.getType() == VirtualLink.TYPE_TRANSHIP) {
             intermodalModeKey *=
                 NodusC.MAXMM * vl.getBeginVirtualNode().getMode()

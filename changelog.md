@@ -356,6 +356,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Upgrade to sqlite-jdbc 3.46.0.0
 - Upgrade to xchart 3.8.8
 - Add default constructor in several classes to avoid Javadoc warningd
+- Code refactoring (some variables were declared too far from their first use)
 
 .
 

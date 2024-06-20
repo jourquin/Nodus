@@ -935,9 +935,6 @@ public class VirtualNetwork {
   public synchronized AdjacencyNode[] generateAdjacencyList(byte groupIndex) {
     // Compute number of virtual nodes
     int nbNodes = 0;
-    int nbAvailableModeMeans = 0;
-
-    byte[][] mm = new byte[NodusC.MAXMM][NodusC.MAXMM];
 
     for (VirtualNodeList element : vnl) {
       nbNodes += element.getVirtualNodeList().size();
@@ -953,6 +950,8 @@ public class VirtualNetwork {
     // Create the adjacency vector
     graph[groupIndex] = new AdjacencyNode[nbNodes + 1];
 
+    byte[][] mm = new byte[NodusC.MAXMM][NodusC.MAXMM];
+    int nbAvailableModeMeans = 0;
     for (VirtualNodeList element : vnl) {
       // Iterate through all the virtual nodes generated for this real
       // node

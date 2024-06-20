@@ -133,7 +133,6 @@ public class ShapeIntegrityTester {
     integrityTestTimer.cancel();
 
     HashMap<Integer, String> nodes;
-    HashMap<Integer, String> links;
     HashMap<Integer, Integer> otherObjects;
     boolean error = false;
     String errorMessage = null;
@@ -212,6 +211,7 @@ public class ShapeIntegrityTester {
       // testOverlap(nodeLayers[i]);
     }
 
+    HashMap<Integer, String> links;
     if (!error) {
       // Test if each link number occurs only one time and is linked to
       // two existent nodes

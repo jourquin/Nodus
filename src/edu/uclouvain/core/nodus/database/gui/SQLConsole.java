@@ -950,8 +950,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       return false;
     }
 
-    String fromShapefile = s.substring(0, index);
-
     // Get the destination file name
     token = " to ";
 
@@ -999,6 +997,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     // Test if it is a valid link layer
     NodusEsriLayer[] layers = nodusProject.getLinkLayers();
+    String fromShapefile = s.substring(0, index);
 
     for (NodusEsriLayer element : layers) {
       if (element.getTableName().equals(fromShapefile)) {
@@ -1172,10 +1171,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     boolean isBatchFile = false;
 
-    // The names of the variables are stored and sorted by length from longest to shortest.
-    // This is needed for this simple parser
-    Map<String, String> variables = new TreeMap<String, String>(new LengthComparator());
-
     // Remove block comments
     boolean hasBlockComment = true;
     while (hasBlockComment) {
@@ -1223,6 +1218,10 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       parsedCommands.add(currentCommand);
       return parsedCommands;
     }
+
+    // The names of the variables are stored and sorted by length from longest to shortest.
+    // This is needed for this simple parser
+    Map<String, String> variables = new TreeMap<String, String>(new LengthComparator());
 
     for (int i = 0; i < commandsToParse.size(); i++) {
 
@@ -1939,7 +1938,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
               if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
                 schema = "PUBLIC";
               }
-              
+
               // get metadata about user tables by building a vector of table names
               String[] usertables = {"TABLE", "GLOBAL TEMPORARY", "VIEW"};
               ResultSet result = metaData.getTables(null, schema, null, usertables);

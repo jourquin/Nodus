@@ -689,12 +689,7 @@ public class CostParser {
       return UNDEFINED_FUNCTION;
     }
 
-    int layerIndex = vl.getLayerIndex();
-    int indexInLayer = vl.getIndexInLayer();
-
     // Set shp/dbf related variables in parser
-    Vector<?> fieldName = null;
-    List<Object> values = null;
 
     // Try to minimize the number of variables to update in the parser
     boolean reloadVariables = false;
@@ -728,7 +723,11 @@ public class CostParser {
       setVariable(NodusC.VARNAME_FREQUENCY, 0);
     }
 
+    List<Object> values = null;
     if (reloadVariables) {
+      int layerIndex = vl.getLayerIndex();
+      Vector<?> fieldName = null;
+      int indexInLayer = vl.getIndexInLayer();
       if (type == VirtualLink.TYPE_MOVE) {
         fieldName = linkFieldName[layerIndex];
         values = linksDbf[layerIndex].getRecord(indexInLayer);

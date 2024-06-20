@@ -406,7 +406,6 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
    */
   private boolean addNode(EsriPoint ep) {
 
-    boolean isSuccessfullyAdded;
     // Add the graphic to a visible node layer
     int n = 0;
 
@@ -458,7 +457,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
          */
         // lineSplitter.setInsertedNode(getNewNumber(nodesLayers));
         lineSplitter.setInsertedNode(nodusMapPanel.getNodusProject().getNewNodeId());
-        isSuccessfullyAdded =
+        boolean isSuccessfullyAdded =
             nodesLayers[index].addRecord(ep, lineSplitter.getInsertedNode(), true);
         // System.out.println(isSuccessfullyAdded);
         if (isSuccessfullyAdded) {
@@ -1487,9 +1486,6 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
       OMPoly link = (OMPoly) omg;
       double[] pts = link.getLatLonArrayCopy();
 
-      double[] pts1;
-      double[] pts2;
-
       // We transform the points of the polyline in Degrees.
       for (k = 0; k < pts.length; k++) {
         pts[k] = ProjMath.radToDeg(pts[k]);
@@ -1579,10 +1575,9 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
         }
 
         // the new first link
-        pts1 = new double[cutflag + 3];
+        double[] pts1 = new double[cutflag + 3];
         // the new second link
-        pts2 = new double[pts.length - cutflag + 1];
-
+        
         int i = 0;
         // the new points for the first link
         do {
@@ -1595,6 +1590,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
 
         k = 2;
         // the new points for the second link
+        double[] pts2 = new double[pts.length - cutflag + 1];
         pts2[0] = y;
         pts2[1] = x;
         do {

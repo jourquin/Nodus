@@ -203,7 +203,7 @@ public class StatDlg extends EscapeDialog {
 
   /** Generates the queries for the selected statistics. */
   private void generateQueries() {
-    String batchSqlStmt = "";
+    
 
     // Fetch scenario
     virtualNetTableName = (String) scenarioComboBox.getSelectedItem();
@@ -232,6 +232,7 @@ public class StatDlg extends EscapeDialog {
      * - select count() from od<br>
      * select count() from od where grp = 1<br>
      */
+    String batchSqlStmt = "";
     if (nbODCheckBox.isSelected()) {
       String defTable = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + " _od";
       String odTableName = nodusProject.getLocalProperty(NodusC.PROP_OD_TABLE, defTable);

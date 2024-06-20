@@ -1671,7 +1671,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     try {
       Connection con = nodusProject.getMainJDBCConnection();
       Statement stmt = con.createStatement();
-      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
 
       DatabaseMetaData dbmd = con.getMetaData();
 
@@ -1795,6 +1794,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         }
 
         // Update the record in the dbftableModel
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
         for (int i = 0; i < model.getColumnCount(); i++) {
           // Transform Date into String with YYYYMMDD format
           if (model.getType(i) == DBF_TYPE_DATE.byteValue()) {

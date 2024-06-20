@@ -39,6 +39,9 @@ public class WorkQueue {
   /** The list of workers to run. */
   private LinkedList<Object> queue = new LinkedList<Object>();
 
+  /** Default constructor. */
+  public WorkQueue() {}
+
   /**
    * Adds a work to the queue.
    *

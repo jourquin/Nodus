@@ -1797,9 +1797,6 @@ public class NodusProject implements ShapeConstants {
     labelsLayer.setName(i18n.get(NodusProject.class, "Labels", "Labels"));
     // labelsLayer.setRemovable(false);
 
-    // Position of the layer
-    int layerPosition = 0;
-
     // Create new ESRI layer for the nodes
     name = projectProperties.getProperty(NodusC.PROP_NETWORK_NODES);
 
@@ -1810,6 +1807,8 @@ public class NodusProject implements ShapeConstants {
     nodesLocationHandler = new NodusLocationHandler[n];
     n = 0;
 
+    // Position of the layer
+    int layerPosition = 0;
     while (st.hasMoreTokens()) {
       final String currentName = st.nextToken();
 

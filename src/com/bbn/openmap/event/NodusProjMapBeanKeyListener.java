@@ -25,28 +25,20 @@ import com.bbn.openmap.proj.ProjectionStack;
 import java.awt.event.KeyEvent;
 
 /**
- * Add keyboard shortcuts to the ProjMapBeanKeyListener.
- *
- * <br>
- * "+" to zoom in
- *
- * <br>
- * "-" to zoom out
- *
- * <br>
- *  "Left arrow" for previous view in stack
- *
- * <br> 
+ * Add keyboard shortcuts to the ProjMapBeanKeyListener. <br>
+ * "+" to zoom in <br>
+ * "-" to zoom out <br>
+ * "Left arrow" for previous view in stack <br>
  * "Right arrow" for next view in stack
  *
  * @author Bart Jourquin
  */
 public class NodusProjMapBeanKeyListener extends ProjMapBeanKeyListener {
-    
-    /** Default constructor. */
-    public NodusProjMapBeanKeyListener() {
-      super();
-    }
+
+  /** Default constructor. */
+  public NodusProjMapBeanKeyListener() {
+    super();
+  }
 
   /** Add additional key codes to the key listener. */
   @Override

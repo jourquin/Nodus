@@ -231,7 +231,6 @@ public class VirtualNodeList {
     }
 
     int scenario = exclusion.getScenario();
-    int group = exclusion.getGroup();
 
     if (scenario == -1 && scenarioExclusions[0] == null) {
       scenarioExclusions[0] = new LinkedList<GroupExclusions>();
@@ -250,6 +249,7 @@ public class VirtualNodeList {
     LinkedList<GroupExclusions> groupExclusions = scenarioExclusions[scenarioIndex];
     Iterator<GroupExclusions> it = groupExclusions.iterator();
     boolean found = false;
+    int group = exclusion.getGroup();
     while (it.hasNext()) {
       GroupExclusions ge = it.next();
       if (ge.group == group) {
