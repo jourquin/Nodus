@@ -69,7 +69,7 @@ public class SetJVMArgs {
     if (!file.exists()) {
 
       // Get the heap settings and add UTF8 encoding flag
-      String parameters = getDefaultHeapSettings() + " -Dfile.encoding=UTF8";
+      String parameters = getDefaultHeapSettings() + " -Dfile.encoding=UTF8 --illegal-access=deny";
 
       // Update the script
       createScript(envtFileName, parameters);

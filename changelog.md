@@ -358,7 +358,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Add default constructor in several classes to avoid Javadoc warningd
 - Code refactoring (some variables were declared too far from their first use)
 
-.
+##v8.2 - BuildXXXXXXXX
+- Add --illegal-access=deny to the Java parameters to hide Groovy console warning
 
 
 
