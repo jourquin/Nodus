@@ -37,6 +37,7 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
+import org.fife.ui.rsyntaxtextarea.Theme;
 
 /**
  * This class extends the Notepad in order to handle Groovy scripts. The scripts are run in a
@@ -157,9 +158,20 @@ public class NodusGroovyConsole extends NotePad {
 
     this.nodusMapPanel = nodusMapPanel;
 
-    getTextPane().setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JAVA);
+    getTextPane().setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_GROOVY);
     getTextPane().setCodeFoldingEnabled(true);
     getTextPane().setHighlightCurrentLine(true);
+    getTextPane().setAntiAliasingEnabled(true);
+    getTextPane().setMarkOccurrences(true);
+    try {
+      Theme theme =
+          Theme.load(
+              getClass().getResourceAsStream("/org/fife/ui/rsyntaxtextarea/themes/idea.xml"));
+      theme.apply(getTextPane());
+    } catch (IOException ioe) {
+      ioe.printStackTrace();
+    }
+
     nodusFileFilter.setExtension(NodusC.TYPE_GROOVY);
     nodusFileFilter.setDescription(
         i18n.get(NodusGroovyConsole.class, "Groovy_scripts", "Groovy scripts"));

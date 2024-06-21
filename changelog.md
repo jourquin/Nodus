@@ -360,6 +360,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 
 ##v8.2 - BuildXXXXXXXX
 - Add --illegal-access=deny to the Java parameters to hide Groovy console warning
+- Change the theme of the Nodus Groovy console and add some imorovements
 
 
 
