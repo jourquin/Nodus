@@ -580,10 +580,14 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     int frameWidth = getMainFrame().getWidth();
     int frameHeight = getMainFrame().getHeight();
     Point p = getMainFrame().getLocationOnScreen();
-    nodusProperties.setProperty(NodusC.PROP_FRAME_WIDTH, String.valueOf(frameWidth));
-    nodusProperties.setProperty(NodusC.PROP_FRAME_HEIGTH, String.valueOf(frameHeight));
-    nodusProperties.setProperty(NodusC.PROP_FRAME_X, String.valueOf(p.x));
-    nodusProperties.setProperty(NodusC.PROP_FRAME_Y, String.valueOf(p.y));
+    
+    // Avoid saving minimized state values (Windows only)
+    if (p.x != -32000) {
+      nodusProperties.setProperty(NodusC.PROP_FRAME_X, String.valueOf(p.x));
+      nodusProperties.setProperty(NodusC.PROP_FRAME_Y, String.valueOf(p.y));
+      nodusProperties.setProperty(NodusC.PROP_FRAME_WIDTH, String.valueOf(frameWidth));
+      nodusProperties.setProperty(NodusC.PROP_FRAME_HEIGTH, String.valueOf(frameHeight));
+    }
 
     String defaultDbEngine = nodusProperties.getProperty(NodusC.PROP_EMBEDDED_DB, "h2");
     nodusProperties.setProperty(NodusC.PROP_EMBEDDED_DB, defaultDbEngine);
