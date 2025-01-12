@@ -105,6 +105,25 @@ public class VirtualNetworkWriter {
     return true;
   }
 
+  /**
+   * Creates a new empty table in the database.
+   *
+   * @return True on success.
+   */
+  private boolean initTable() {
+
+    if (tablesAreReady) {
+      return true;
+    }
+
+    boolean result = initTable(nodusProject, scenario, virtualNet.getGroups());
+
+    if (result) {
+      tablesAreReady = true;
+    }
+    return result;
+  }
+
   private NodusProject nodusProject;
 
   private int scenario;
@@ -128,25 +147,6 @@ public class VirtualNetworkWriter {
     nodusMapPanel = nodusProject.getNodusMapPanel();
     scenario = ap.getScenario();
     SingleInstanceMessagePane.reset();
-  }
-
-  /**
-   * Creates a new empty table in the database.
-   *
-   * @return True on success.
-   */
-  private boolean initTable() {
-
-    if (tablesAreReady) {
-      return true;
-    }
-
-    boolean result = initTable(nodusProject, scenario, virtualNet.getGroups());
-
-    if (result) {
-      tablesAreReady = true;
-    }
-    return result;
   }
 
   /**

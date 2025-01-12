@@ -66,8 +66,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Vector;
@@ -1939,22 +1941,28 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
                 schema = "PUBLIC";
               }
 
+              String catalog = null;
+              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
+                catalog = "";
+              }
+
               // get metadata about user tables by building a vector of table names
               String[] usertables = {"TABLE", "GLOBAL TEMPORARY", "VIEW"};
-              ResultSet result = metaData.getTables(null, schema, null, usertables);
+              ResultSet result = metaData.getTables(catalog, schema, null, usertables);
 
               Vector<String> tables = new Vector<>();
 
               // sqlbob@users Added remarks.
               Vector<String> remarks = new Vector<>();
 
+              String s;
               while (result.next()) {
-                if (result.getString(3).indexOf("$") == -1) {
-                  tables.addElement(result.getString(3));
+                s = result.getString(3);
+                if (s.indexOf("$") == -1) {
+                  tables.addElement(s);
                   remarks.addElement(result.getString(5));
                 }
               }
-
               result.close();
 
               // For each table, build a tree node with interesting info
@@ -2289,7 +2297,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
   }
 
-  /** .@hidden */
+  /**
+   * .
+   *
+   * @hidden
+   */
   @Override
   public void windowActivated(WindowEvent e) {
     // Must be overridden

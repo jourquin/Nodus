@@ -339,7 +339,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Use the "--release" javac option in the compile.bat and compile.sh scripts in the demo project.
 - Upgrade to Groovy 4.0.21
 
-## v8.2 - BuildXXXXXXXX
+## v8.2 - Build20240701
 - Upgrade MariaDB JDBC driver to version 3.4.0
 - Upgrade Postgresql JDBC driver to version 42.7.3
 - Upgrade H2 database ton version 2.2.224
@@ -362,6 +362,9 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Add --illegal-access=deny to the Java parameters to hide Groovy console warning
 - Change the theme of the Nodus Groovy console and add some improvements
 - Avoid saving window location if Nodus is closed when the main window is minimized. 
+- The list of tables in the SQL console was wrong with some versions of MySQL/MAriaDB : fixed
+- Update Copyright year
+
 
 
 

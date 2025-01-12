@@ -40,7 +40,7 @@ import java.util.Date;
 import java.util.Vector;
 
 /**
- * Exports a database table in a .dbf table
+ * Exports a database table in a .dbf table.
  *
  * @author Bart Jourquin
  */

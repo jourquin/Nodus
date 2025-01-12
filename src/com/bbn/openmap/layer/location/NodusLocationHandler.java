@@ -105,7 +105,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
 
   private Connection con;
 
-  /** Type of labels to display : regular (.dbf related) or results elsewhere computed? */
+  /** Type of labels to display : regular (.dbf related) or results elsewhere computed?. */
   private boolean displayResults = false;
 
   /** Font name. */

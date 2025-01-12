@@ -423,7 +423,7 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
     return false;
   }
 
-  /** Parse the coordinates from a string like "45.0;8.0;42.2;10.7" */
+  /** Parse the coordinates from a string like "45.0;8.0;42.2;10.7". */
   private void parseCoordinates(String coordinates) {
 
     upperLeftLat = 90;

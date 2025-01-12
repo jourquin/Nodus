@@ -261,7 +261,7 @@ public class CommentedProperties extends java.util.Properties {
 
   /**
    * Need this method from Properties because original code has StringBuilder, which is an element
-   * of Java 1.5, used StringBuffer instead (because this code was written for Java 1.4)
+   * of Java 1.5, used StringBuffer instead (because this code was written for Java 1.4).
    *
    * @param str - the string to format
    * @param buffer - buffer to hold the string

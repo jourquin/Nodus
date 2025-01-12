@@ -511,8 +511,7 @@ public class AssignmentDlg extends EscapeDialog {
   }
 
   /**
-   * Enables the GUI components relevant for the fast multi-flow assignment method
-   * probabilisticSpreadRadioButton.setText( "Multinomial Logit");
+   * Enables the GUI components relevant for the fast multi-flow assignment method.
    *
    * @param e ChangeEvent
    */
