@@ -358,7 +358,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Add default constructor in several classes to avoid Javadoc warnings
 - Code refactoring (some variables were declared too far from their first use)
 
-##v8.2 - BuildXXXXXXXX
+##v8.2 - Build20250112
 - Add --illegal-access=deny to the Java parameters to hide Groovy console warning
 - Change the theme of the Nodus Groovy console and add some improvements
 - Avoid saving window location if Nodus is closed when the main window is minimized. 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1991-2024 Université catholique de Louvain
+ * Copyright (c) 1991-2025 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
  *
@@ -66,10 +66,8 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Vector;
