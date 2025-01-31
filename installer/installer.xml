@@ -27,18 +27,24 @@
 
 
 	<variables>
-		<variable name="TargetPanel.dir.windows" value="${ENV[USERPROFILE]}\Nodus8" />
-		<variable name="TargetPanel.dir.mac" value="${ENV[HOME]}/Nodus8" />
-		<variable name="TargetPanel.dir.linux" value="${ENV[HOME]}/Nodus8" />
+		<variable name="TargetPanel.dir.windows"
+			value="${ENV[USERPROFILE]}\Nodus8" />
+		<variable name="TargetPanel.dir.mac"
+			value="${ENV[HOME]}/Nodus8" />
+		<variable name="TargetPanel.dir.linux"
+			value="${ENV[HOME]}/Nodus8" />
 	</variables>
 
 	<!-- The resources section -->
 	<resources>
-		<res id="HTMLLicencePanel.licence_eng" src="installer/license_eng.html" />
-		<res id="HTMLLicencePanel.licence_fra" src="installer/license_fra.html" />
+		<res id="HTMLLicencePanel.licence_eng"
+			src="installer/license_eng.html" />
+		<res id="HTMLLicencePanel.licence_fra"
+			src="installer/license_fra.html" />
 		<res id="HTMLInfoPanel.info_eng" src="installer/info_eng.html" />
 		<res id="HTMLInfoPanel.info_fra" src="installer/info_fra.html" />
-		<res id="installer.langsel.img" src="src/edu/uclouvain/core/nodus/gui/NodusSplash8_2.png" />
+		<res id="installer.langsel.img"
+			src="src/edu/uclouvain/core/nodus/gui/NodusSplash8_2.png" />
 		<res id="Installer.image" src="installer/uclouvain-vertical.png" />
 		<res id="packsLang.xml_fra" src="installer/packsLang_fra.xml" />
 		<res id="packsLang.xml_eng" src="installer/packsLang_eng.xml" />
@@ -64,40 +70,61 @@
 			<file src="changelog.md" targetdir="$INSTALL_PATH" />
 			<file src="LICENSE" targetdir="$INSTALL_PATH" />
 			<file src="gpl-french.pdf" targetdir="$INSTALL_PATH" />
-			<file src="installer/nodus8.bat" os="windows" targetdir="$INSTALL_PATH" />
-			<file src="installer/MakeLnk.bat" os="windows" targetdir="$INSTALL_PATH" />
-			<file src="installer/nodus8.sh" os="unix" targetdir="$INSTALL_PATH" />
+			<file src="installer/nodus8.bat" os="windows"
+				targetdir="$INSTALL_PATH" />
+			<file src="installer/MakeLnk.bat" os="windows"
+				targetdir="$INSTALL_PATH" />
+			<file src="installer/nodus8.sh" os="unix"
+				targetdir="$INSTALL_PATH" />
 			<file src="nodus8.jar" targetdir="$INSTALL_PATH" />
 			<file src="nodus.groovy" targetdir="$INSTALL_PATH" />
-			
+
 			<!-- Copy the right version of the icon -->
-			<file src="installer/nodus.png" os="unix" targetdir="$INSTALL_PATH" />
-			<file src="installer/nodus.ico" os="windows" targetdir="$INSTALL_PATH" />
-			<file src="installer/nodus.icns" os="mac" targetdir="$INSTALL_PATH" />
-		
+			<file src="installer/nodus.png" os="unix"
+				targetdir="$INSTALL_PATH" />
+			<file src="installer/nodus.ico" os="windows"
+				targetdir="$INSTALL_PATH" />
+			<file src="installer/nodus.icns" os="mac"
+				targetdir="$INSTALL_PATH" />
+
 			<!-- make sh script executable for Linux -->
-			<executable targetfile="$INSTALL_PATH/nodus8.sh" os="unix" stage="never" />
-            	
+			<executable targetfile="$INSTALL_PATH/nodus8.sh" os="unix"
+				stage="never" />
+
 			<!-- Create Mac app -->
-			<file src="installer/AppifyNodus.sh" os="mac" targetdir="$INSTALL_PATH" />
-			<parsable targetfile="$INSTALL_PATH/AppifyNodus.sh" os="mac" type="plain" />
-			<executable targetfile="$INSTALL_PATH/AppifyNodus.sh" os="mac" stage="postinstall" />
-			
+			<file src="installer/AppifyNodus.sh" os="mac"
+				targetdir="$INSTALL_PATH" />
+			<parsable targetfile="$INSTALL_PATH/AppifyNodus.sh" os="mac"
+				type="plain" />
+			<executable targetfile="$INSTALL_PATH/AppifyNodus.sh"
+				os="mac" stage="postinstall" />
+
 			<!-- Create Windows shortcut -->
-			<executable targetfile="$INSTALL_PATH/MakeLnk.bat" os="windows" stage="postinstall" keep="false">
+			<executable targetfile="$INSTALL_PATH/MakeLnk.bat"
+				os="windows" stage="postinstall" keep="false">
 			</executable>
 
 			<fileset dir="lib" targetdir="${INSTALL_PATH}/lib" />
 			<fileset dir="share" targetdir="${INSTALL_PATH}/share" />
 			<fileset dir="licenses" targetdir="${INSTALL_PATH}/licenses" />
 			<fileset dir="plugins" targetdir="${INSTALL_PATH}/plugins" />
-			<executable targetfile="$INSTALL_PATH/plugins/compile.sh" os="unix" stage="never" />
+			<executable targetfile="$INSTALL_PATH/plugins/compile.sh"
+				os="unix" stage="never" />
+
+			<updatecheck>
+				<include name="lib/**" />
+				<include name="share/**" />
+				<include name="licenses/**" />
+			</updatecheck>
 		</pack>
 		<pack name="Help" id="help.package" required="no">
 			<description>Documentation files.</description>
 			<fileset dir="doc" targetdir="${INSTALL_PATH}/doc">
-			    <exclude name="methodology/latex/**" />
+				<exclude name="methodology/latex/**" />
 			</fileset>
+			<updatecheck>
+				<include name="doc/**" />
+			</updatecheck>
 		</pack>
 		<pack name="Demo" id="demo.package" required="no">
 			<description>Some Nodus demo projects.</description>
@@ -114,13 +141,19 @@
 		<pack name="Javadoc" id="javadoc.package" required="no">
 			<description>Javadoc documentation for the Nodus API.</description>
 			<fileset dir="api" targetdir="${INSTALL_PATH}/api" />
+			<updatecheck>
+				<include name="api/**" />
+			</updatecheck>
 		</pack>
 		<pack name="JDBC drivers" id="jdbc.package" required="no">
 			<description>Several embedded databases and JDBC drivers.
 			</description>
 			<fileset dir="jdbcDrivers"
 				targetdir="${INSTALL_PATH}/jdbcDrivers" />
+				<updatecheck>
+				<include name="jdbcDrivers/**" />
+			</updatecheck>
 		</pack>
-		
+
 	</packs>
 </installation>

@@ -96,6 +96,7 @@ import edu.uclouvain.core.nodus.swing.OnTopKeeper;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NodusGroovyConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NotePad;
+import edu.uclouvain.core.nodus.utils.CheckForNewerReleaseOnGitHub;
 import edu.uclouvain.core.nodus.utils.HardwareUtils;
 import edu.uclouvain.core.nodus.utils.PluginsLoader;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
@@ -457,6 +458,18 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     nodusProperties = properties;
 
     create();
+
+    // Check if a newer version is available
+    String value = getNodusProperties().getProperty(NodusC.PROP_CHECK_FOR_UPDATES, "true");
+    if (Boolean.parseBoolean(value)) {
+      javax.swing.SwingUtilities.invokeLater(
+          new Runnable() {
+            @Override
+            public void run() {
+              new CheckForNewerReleaseOnGitHub();
+            }
+          });
+    }
   }
 
   /**
@@ -580,7 +593,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     int frameWidth = getMainFrame().getWidth();
     int frameHeight = getMainFrame().getHeight();
     Point p = getMainFrame().getLocationOnScreen();
-    
+
     // Avoid saving minimized state values (Windows only)
     if (p.x != -32000) {
       nodusProperties.setProperty(NodusC.PROP_FRAME_X, String.valueOf(p.x));
@@ -1770,7 +1783,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")
         && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
       desktop.setAboutHandler(e -> menuItemAboutActionPerformed());
-
     } else {
       menuHelp.add(menuItemHelpAbout);
     }

@@ -43,14 +43,9 @@ public class BuildIdGenerator {
   private static final String key = "buildid";
 
   private static final String propFile = "buildid.properties";
-  
-  /**
-   * Default constructor.
-   */
-  public BuildIdGenerator() {
-      
-  }
-  
+
+  /** Default constructor. */
+  public BuildIdGenerator() {}
 
   /**
    * Called from the ant task.
@@ -112,5 +107,29 @@ public class BuildIdGenerator {
     Date date = new Date();
     Format formatter = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
     return formatter.format(date);
+  }
+
+  /**
+   * Returns the date stamp of the jar.
+   *
+   * @return A string with the yyyyMMdd format, or null on error.
+   */
+  public String getJarBuildId() {
+    Properties properties = new Properties();
+
+    try {
+      InputStream is = getClass().getResourceAsStream(propFile);
+      if (is == null) {
+        return null;
+      }
+      properties.load(is);
+      String s = properties.getProperty(key);
+      s = s.replace(".", "");
+      s = s.substring(0, 8);
+      return s;
+
+    } catch (IOException ex) {
+      return null;
+    }
   }
 }

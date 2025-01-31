@@ -367,7 +367,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 
 ##v8.2 - BuildXXXXXXXX
 - Upgrade MariaDB JDBC driver
- 
+- Test the availability of a newer version or build of Nodus on GitHub
+- The install now removes old file from a previous installation
 
 
 

@@ -61,34 +61,34 @@ public class GlobalPreferencesDlg extends EscapeDialog {
 
   /** . */
   private JPanel contentPanel = new JPanel();
-  
+
   /** . */
   private JPanel dbPanel;
-  
+
   /** . */
   private JRadioButton derbyRadioButton;
-  
+
   /** . */
   private JCheckBox displayFullPathCheckBox;
-  
+
   /** . */
   private JTextField gcIntervalTextField;
-  
+
   /** . */
   private JRadioButton h2RadioButton;
-  
+
   /** . */
   private JRadioButton hsqldbRadioButton;
-  
+
   /** . */
   private JTextField maxSqlRowsTextField;
-  
+
   /** . */
   private JCheckBox navMouseModeCheckBox;
-  
+
   /** . */
   private NodusMapPanel nodusMapPanel;
-  
+
   /** . */
   private ButtonGroup sgdbGroup;
   /** . */
@@ -99,18 +99,21 @@ public class GlobalPreferencesDlg extends EscapeDialog {
 
   /** . */
   private JCheckBox reloadLastProjectCheckBox;
-  
+
   /** . */
   private JCheckBox subframesAlwaysOnCheckBox;
-  
+
   /** . */
   private JCheckBox useNativeGroovyConsoleCheckBox;
-  
+
   /** . */
   private JCheckBox antialiasingCheckBox;
-  
+
   /** . */
   private boolean oldAntialiasing;
+
+  /** . */
+  private JCheckBox checkForUpdatesCheckBox;
 
   /**
    * Creates the system preferences dialog box.
@@ -129,7 +132,7 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     getContentPane().add(contentPanel, gbcContentPanel);
     GridBagLayout gblContentPanel = new GridBagLayout();
     gblContentPanel.columnWeights = new double[] {0.0, 1.0};
-    gblContentPanel.rowWeights = new double[] {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0};
+    gblContentPanel.rowWeights = new double[] {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     contentPanel.setLayout(gblContentPanel);
 
     final JLabel forcedGcIntervalLabel =
@@ -273,7 +276,7 @@ public class GlobalPreferencesDlg extends EscapeDialog {
 
     GridBagConstraints gbcPanel = new GridBagConstraints();
     gbcPanel.gridheight = 5;
-    gbcPanel.insets = new Insets(5, 5, 0, 0);
+    gbcPanel.insets = new Insets(5, 5, 5, 0);
     gbcPanel.fill = GridBagConstraints.BOTH;
     gbcPanel.gridx = 1;
     gbcPanel.gridy = 2;
@@ -342,6 +345,17 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     gbcChckbxUseAntialiasing.gridx = 0;
     gbcChckbxUseAntialiasing.gridy = 8;
     contentPanel.add(antialiasingCheckBox, gbcChckbxUseAntialiasing);
+
+    checkForUpdatesCheckBox =
+        new JCheckBox(
+            i18n.get(
+                GlobalPreferencesDlg.class, "CheckForUpdates", "Check for updates at startup"));
+    GridBagConstraints gbcChckbxCheckForUpdates = new GridBagConstraints();
+    gbcChckbxCheckForUpdates.anchor = GridBagConstraints.WEST;
+    gbcChckbxCheckForUpdates.insets = new Insets(5, 5, 5, 5);
+    gbcChckbxCheckForUpdates.gridx = 0;
+    gbcChckbxCheckForUpdates.gridy = 9;
+    contentPanel.add(checkForUpdatesCheckBox, gbcChckbxCheckForUpdates);
 
     final JPanel buttonPane = new JPanel();
     GridBagConstraints gbcButtonPane = new GridBagConstraints();
@@ -432,6 +446,9 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_DISPLAY_FULL_PATH, FALSE);
     displayFullPathCheckBox.setSelected(Boolean.parseBoolean(value));
 
+    value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_CHECK_FOR_UPDATES, TRUE);
+    checkForUpdatesCheckBox.setSelected(Boolean.parseBoolean(value));
+
     value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_USE_GROOVY_CONSOLE, FALSE);
 
     useNativeGroovyConsoleCheckBox.setSelected(Boolean.parseBoolean(value));
@@ -510,6 +527,13 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     }
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_USE_GROOVY_CONSOLE, value);
 
+    // Check for updates
+    value = FALSE;
+    if (checkForUpdatesCheckBox.isSelected()) {
+      value = TRUE;
+    }
+    nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_CHECK_FOR_UPDATES, value);
+
     // Nav mouse mode
     String navType = "1";
     if (navMouseModeCheckBox.isSelected()) {
@@ -547,14 +571,6 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_ANTIALIASING, value);
 
     if (Boolean.parseBoolean(value) != oldAntialiasing) {
-      /*JOptionPane.showMessageDialog(
-      nodusMapPanel,
-      i18n.get(
-          GlobalPreferencesDlg.class,
-          "Antialiasing_needs_restart",
-          "Antialiasing setting will be applied at next restart"),
-      NodusC.APPNAME,
-      JOptionPane.INFORMATION_MESSAGE);*/
       nodusMapPanel.setAntialising();
     }
   }

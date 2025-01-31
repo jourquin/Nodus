@@ -104,12 +104,13 @@ public class Nodus {
 
     // Prepare i18n mechanism
     String locale = nodusProperties.getProperty(NodusC.PROP_LOCALE, null);
+    
     if (locale != null) {
       Locale.setDefault(new Locale(locale.toLowerCase(), locale.toUpperCase()));
     } else {
       Locale.setDefault(Locale.ENGLISH);
     }
-
+    
     setLookAndFeel();
 
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {

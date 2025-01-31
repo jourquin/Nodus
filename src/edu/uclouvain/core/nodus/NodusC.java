@@ -47,6 +47,13 @@ public class NodusC {
   public static final String COPYRIGHT =
       "(c) Université catholique de Louvain (UCLouvain), " + "1991-2025";
 
+  /** URL to check for new releases. */
+  public static final String gitHubUrlString =
+      "https://api.github.com/repos/jourquin/Nodus/releases/latest";
+  
+  /** URL of the Nodus web site. */ 
+  public static String nodusUrl = "http://nodus.uclouvain.be";
+
   /*
    * *********************************************************************************************
    * Control functionalities. Useful to enable/disable experimental stuff
@@ -870,7 +877,14 @@ public class NodusC {
    * @hidden
    */
   public static final String PROP_DISPLAY_FULL_PATH = "displayfullpath";
-
+  
+  /**
+   * Properties strings used in project and/or project local properties.
+   *
+   * @hidden
+   */
+  public static final String PROP_CHECK_FOR_UPDATES = "checkforupdates";
+  
   /**
    * Properties strings used in project and/or project local properties.
    *

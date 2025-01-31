@@ -2,13 +2,17 @@
 
 ## Nodus core code
 
-[commons-\*](http://commons.apache.org), Apache v2
+[commons-*](http://commons.apache.org), Apache v2
 
-[groovy\*](http://groovy-lang.org), Apache v2                                
+[httpclient](https://hc.apache.org), Apache v2
+
+[groovy-*](http://groovy-lang.org), Apache v2                                
 
 [guava](https://github.com/google/guava), Apache v2
 
 [J4R-server](https://sourceforge.net/p/repiceasource/wiki/J4R/), LGPL v3
+
+[json-simple](https://github.com/fangyidong/json-simple), Apache v2
 
 [JavaDBF4Nodus](https://github.com/jourquin/javadbf), LGPL v3
 
@@ -18,7 +22,7 @@
 
 [JResourcesMonitor](https://github.com/jourquin/JResourcesMonitor), Apache v2
 
-[jung-\*](https://github.com/jrtom/jung), modified BSD
+[jung-*](https://github.com/jrtom/jung), modified BSD
 
 [openmap](http://openmap-java.org), Openmap
 
@@ -28,7 +32,7 @@
 
 [Py4J](https://www.py4j.org/index.html), modified BSD
 
-[poi\*](https://poi.apache.org), Apache v2
+[poi*](https://poi.apache.org), Apache v2
 
 [rsyntaxtextarea](https://github.com/bobbylight/RSyntaxTextArea), modified BSD
 
