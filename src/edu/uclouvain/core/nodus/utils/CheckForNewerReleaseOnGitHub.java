@@ -53,8 +53,6 @@ public class CheckForNewerReleaseOnGitHub {
 
   private static I18n i18n = Environment.getI18n();
 
-  // TODO Add a "check for updates" checkbox in the preferences
-
   /** Check for new release after being sure an Internet connection is available. */
   public CheckForNewerReleaseOnGitHub() {
 
