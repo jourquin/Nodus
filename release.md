@@ -16,4 +16,4 @@ engines now run in server mode, allowing for external connections from another J
 
 The CHANGELOG.MD file contains an exhaustive list of the improvements made to the software.
 
-This version is **compatible with projects developed with Nodus 7.x**. However, specific modal choice plugins need to be adapted to the new API.
+Nodus 8.x is **compatible** with projects developed for Nodus 7.x. However, specific modal choice plugins need to be adapted to the new API.
