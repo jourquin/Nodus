@@ -365,7 +365,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - The list of tables in the SQL console was wrong with some versions of MySQL/MAriaDB : fixed
 - Update Copyright year
 
-##v8.2 - BuildXXXXXXXX
+##v8.2 - Build20250203
 - Upgrade MariaDB JDBC driver
 - Test the availability of a newer version or build of Nodus on GitHub
 - The install now removes old file from a previous installation
