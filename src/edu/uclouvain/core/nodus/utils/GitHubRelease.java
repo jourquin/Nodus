@@ -108,7 +108,9 @@ public class GitHubRelease {
       // Get version of running app
       String currentVersion = NodusC.VERSION;
 
+      boolean newReleaseAvailable = false;
       if (!remoteVersion.equals(currentVersion)) {
+        newReleaseAvailable = true;
         String message =
             MessageFormat.format(
                 i18n.get(
@@ -124,6 +126,7 @@ public class GitHubRelease {
         int remoteBuild = Integer.parseInt(name);
 
         if (Integer.parseInt(jarBuildId) < remoteBuild) {
+          newReleaseAvailable = true;
           String message =
               MessageFormat.format(
                   i18n.get(
@@ -134,6 +137,12 @@ public class GitHubRelease {
                   name);
           displayInformationMessage(message, NodusC.nodusUrl, autoCheck);
         }
+      }
+
+      if (!newReleaseAvailable && !autoCheck) {
+        JOptionPane.showMessageDialog(
+            parent,
+            i18n.get(GitHubRelease.class, "UpToDate", "Nodus is up-to-date"));
       }
 
     } catch (Exception e) {
