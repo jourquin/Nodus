@@ -370,6 +370,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Test the availability of a newer version or build of Nodus on GitHub
 - The install now removes old file from a previous installation
 
-
+##v8.2 - Build20250224
+- Add a "manual" check for update in the preferences dialog
 
 

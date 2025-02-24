@@ -96,7 +96,7 @@ import edu.uclouvain.core.nodus.swing.OnTopKeeper;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NodusGroovyConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NotePad;
-import edu.uclouvain.core.nodus.utils.CheckForNewerReleaseOnGitHub;
+import edu.uclouvain.core.nodus.utils.GitHubRelease;
 import edu.uclouvain.core.nodus.utils.HardwareUtils;
 import edu.uclouvain.core.nodus.utils.PluginsLoader;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
@@ -466,7 +466,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           new Runnable() {
             @Override
             public void run() {
-              new CheckForNewerReleaseOnGitHub();
+              GitHubRelease.checkForNewerRelease();
             }
           });
     }

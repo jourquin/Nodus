@@ -49,21 +49,53 @@ import org.json.simple.parser.JSONParser;
  *
  * @author Bart Jourquin
  */
-public class CheckForNewerReleaseOnGitHub {
+public class GitHubRelease {
 
   private static I18n i18n = Environment.getI18n();
 
+  /** . */
+  public GitHubRelease() {}
+
   /** Check for new release after being sure an Internet connection is available. */
-  public CheckForNewerReleaseOnGitHub() {
+  public static void checkForNewerRelease() {
+    checkForNewerRelease(null, true);
+  }
+
+  /**
+   * Check for new release after being sure an Internet connection is available.
+   *
+   * @param parent Parent dialog.
+   */
+  public static void checkForNewerRelease(JDialog parent) {
+    checkForNewerRelease(parent, false);
+  }
+
+  /**
+   * Check for new release after being sure an Internet connection is available.
+   *
+   * @param parent Parent dialog.
+   */
+  private static void checkForNewerRelease(JDialog parent, boolean autoCheck) {
 
     // Don't test a IDE build
     BuildIdGenerator generator = new BuildIdGenerator();
     String jarBuildId = generator.getJarBuildId();
     if (jarBuildId == null) {
+      if (!autoCheck) {
+        JOptionPane.showMessageDialog(
+            parent,
+            i18n.get(
+                GitHubRelease.class, "IDEBuild", "The current running instance is an IDE build"));
+      }
       return;
     }
 
     if (!isConnectedToInternet()) {
+      if (!autoCheck) {
+        JOptionPane.showMessageDialog(
+            parent,
+            i18n.get(GitHubRelease.class, "NoInternetConnection", "No Internet connection"));
+      }
       return;
     }
 
@@ -80,11 +112,11 @@ public class CheckForNewerReleaseOnGitHub {
         String message =
             MessageFormat.format(
                 i18n.get(
-                    CheckForNewerReleaseOnGitHub.class,
+                    GitHubRelease.class,
                     "NewVersionAvailable",
                     "Nodus version {0} is available on"),
                 remoteVersion);
-        displayInformationMessage(message, NodusC.nodusUrl);
+        displayInformationMessage(message, NodusC.nodusUrl, autoCheck);
       } else { // A new build may be available
         // Get latest BuildID
         String name = ((String) gitHubInfo.get("name")).toLowerCase();
@@ -95,12 +127,12 @@ public class CheckForNewerReleaseOnGitHub {
           String message =
               MessageFormat.format(
                   i18n.get(
-                      CheckForNewerReleaseOnGitHub.class,
+                      GitHubRelease.class,
                       "NewBuildAvailabe",
                       "Nodus version {0} build {1} is available on"),
                   remoteVersion,
                   name);
-          displayInformationMessage(message, NodusC.nodusUrl);
+          displayInformationMessage(message, NodusC.nodusUrl, autoCheck);
         }
       }
 
@@ -115,7 +147,7 @@ public class CheckForNewerReleaseOnGitHub {
    * @param message The message to display
    * @param url The URL
    */
-  private void displayInformationMessage(String message, String url) {
+  private static void displayInformationMessage(String message, String url, boolean inBackground) {
     // Information message must be non modal
     message = "<html>" + message + " <a href=\"" + url + "\">" + url + "</a></html>";
     JLabel label = new JLabel(message);
@@ -139,7 +171,11 @@ public class CheckForNewerReleaseOnGitHub {
         new JOptionPane(
             label, JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, null, null);
     JDialog dialog = pane.createDialog(null, NodusC.APPNAME);
-    dialog.setModal(false);
+    if (inBackground) {
+      dialog.setModal(false);
+    } else {
+      dialog.setModal(true);
+    }
     dialog.setVisible(true);
   }
 
@@ -149,7 +185,7 @@ public class CheckForNewerReleaseOnGitHub {
    * @return A JSON object with all the info returned by GitHub.
    * @throws Exception If something went wrong while fetching the info.
    */
-  private JSONObject getLatestBuildInfoFromGitHub() throws Exception {
+  private static JSONObject getLatestBuildInfoFromGitHub() throws Exception {
 
     URL url = new URL(NodusC.gitHubUrlString);
     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -177,7 +213,7 @@ public class CheckForNewerReleaseOnGitHub {
    *
    * @return True if GitHub is reachable.
    */
-  private boolean isConnectedToInternet() {
+  private static boolean isConnectedToInternet() {
     try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
       HttpGet request = new HttpGet(NodusC.gitHubUrlString);
       ClassicHttpResponse response = httpClient.execute(request, response1 -> response1);

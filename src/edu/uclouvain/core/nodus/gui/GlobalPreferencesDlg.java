@@ -27,6 +27,7 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
+import edu.uclouvain.core.nodus.utils.GitHubRelease;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -349,13 +350,29 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     checkForUpdatesCheckBox =
         new JCheckBox(
             i18n.get(
-                GlobalPreferencesDlg.class, "CheckForUpdates", "Check for updates at startup"));
+                GlobalPreferencesDlg.class, "AutoCheckForUpdates", "Check for updates at startup"));
     GridBagConstraints gbcChckbxCheckForUpdates = new GridBagConstraints();
     gbcChckbxCheckForUpdates.anchor = GridBagConstraints.WEST;
-    gbcChckbxCheckForUpdates.insets = new Insets(5, 5, 5, 5);
+    gbcChckbxCheckForUpdates.insets = new Insets(5, 5, 0, 5);
     gbcChckbxCheckForUpdates.gridx = 0;
     gbcChckbxCheckForUpdates.gridy = 9;
     contentPanel.add(checkForUpdatesCheckBox, gbcChckbxCheckForUpdates);
+
+    final JButton checkForUpdateButton =
+        new JButton(i18n.get(GlobalPreferencesDlg.class, "CheckForUpdates", "Check for updates"));
+    GridBagConstraints gbcCheckForUpdateButton = new GridBagConstraints();
+    gbcCheckForUpdateButton.gridx = 1;
+    gbcCheckForUpdateButton.gridy = 9;
+    gbcCheckForUpdateButton.insets = new Insets(5, 5, 5, 5);
+    contentPanel.add(checkForUpdateButton, gbcCheckForUpdateButton);
+    EscapeDialog parent = this;
+    checkForUpdateButton.addActionListener(
+        new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            GitHubRelease.checkForNewerRelease(parent);
+          }
+        });
 
     final JPanel buttonPane = new JPanel();
     GridBagConstraints gbcButtonPane = new GridBagConstraints();
