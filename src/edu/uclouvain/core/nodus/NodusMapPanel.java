@@ -1125,13 +1125,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   public void enableMenus(boolean state) {
 
     // Enable some menu items
-
-    menuItemFileSave.setEnabled(state);
-    menuItemFileClose.setEnabled(state);
-    menuItemFileSaveAs.setEnabled(state);
-    menuItemFilePrint.setEnabled(state);
-    menuFile.setVisible(true);
-
     menuProject.setEnabled(state);
     menuProject.setVisible(state);
     Iterator<JMenuItem> it = projectPluginsMenuItems.iterator();
@@ -1158,6 +1151,13 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       JMenuItem m = it.next();
       m.setEnabled(true);
     }
+
+    menuFile.setVisible(true);
+    menuItemFileSave.setEnabled(state);
+    menuItemFileClose.setEnabled(state);
+    menuItemFileSaveAs.setEnabled(state);
+    menuItemFilePrint.setEnabled(state);
+   
 
     // Avoid the macOS menu items to remain grayed
     /* if (System.getProperty("os.name").toLowerCase().startsWith("mac")
