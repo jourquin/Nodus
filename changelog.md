@@ -373,4 +373,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 ##v8.2 - Build20250224
 - Add a "manual" check for update in the preferences dialog
 
+##v8.2 - BuildXXXXXXXX
+- Detailed path's are now displayed with a variable with, depending on the traffic.
+- Fix a "freeze" problem with the menu's that sometimes occured on MacOS. 
+
 

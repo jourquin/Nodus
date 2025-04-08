@@ -1124,33 +1124,33 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   public void enableMenus(boolean state) {
 
-    // Avoid the macOS menu items to remain grayed
-    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
-        && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
-
-      int nbMenus = nodusMenuBar.getMenuCount();
-      for (int i = 0; i < nbMenus; i++) {
-        JMenu menu = nodusMenuBar.getMenu(i);
-        menu.setVisible(false);
-        menu.setVisible(true);
-      }
-    }
-
     // Enable some menu items
+
     menuItemFileSave.setEnabled(state);
     menuItemFileClose.setEnabled(state);
     menuItemFileSaveAs.setEnabled(state);
     menuItemFilePrint.setEnabled(state);
+    menuFile.setVisible(true);
 
     menuProject.setEnabled(state);
+    menuProject.setVisible(state);
+    Iterator<JMenuItem> it = projectPluginsMenuItems.iterator();
+    while (it.hasNext()) {
+      JMenuItem m = it.next();
+      m.setEnabled(state);
+    }
+
     menuControl.setEnabled(state);
+    menuControl.setVisible(state);
     menuProjection.setEnabled(state);
+    menuProjection.setVisible(state);
 
     // Enable/disable user defined menus (plugins)
-    Iterator<JMenuItem> it = userDefinedMenus.iterator();
+    it = userDefinedMenus.iterator();
     while (it.hasNext()) {
       JMenu m = (JMenu) it.next();
       m.setEnabled(state);
+      m.setVisible(state);
     }
 
     it = globalPluginsMenuItems.iterator();
@@ -1159,11 +1159,17 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       m.setEnabled(true);
     }
 
-    it = projectPluginsMenuItems.iterator();
-    while (it.hasNext()) {
-      JMenuItem m = it.next();
-      m.setEnabled(state);
-    }
+    // Avoid the macOS menu items to remain grayed
+    /* if (System.getProperty("os.name").toLowerCase().startsWith("mac")
+        && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
+
+      int nbMenus = nodusMenuBar.getMenuCount();
+      for (int i = 0; i < nbMenus; i++) {
+        JMenu menu = nodusMenuBar.getMenu(i);
+        menu.setVisible(false);
+        menu.setVisible(true);
+      }
+    }*/
   }
 
   /**
