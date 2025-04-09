@@ -41,7 +41,6 @@ import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.results.gui.ResultsDlg;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
-import java.awt.BasicStroke;
 import java.awt.SecondaryLoop;
 import java.awt.Toolkit;
 import java.awt.event.KeyAdapter;
@@ -97,10 +96,6 @@ public class LinkResults implements ShapeConstants {
   private boolean export;
 
   private boolean isTimeDependent = false;
-
-  private double maxResult = Double.MIN_VALUE;
-
-  private double minResult = Double.MAX_VALUE;
 
   private NodusMapPanel nodusMapPanel;
 
@@ -218,6 +213,9 @@ public class LinkResults implements ShapeConstants {
    * @return boolean True on success.
    */
   boolean displayVolumes(String sqlStmt, int time) {
+
+    double maxResult = Double.MIN_VALUE;
+    double minResult = Double.MAX_VALUE;
 
     nodusMapPanel.setBusy(true);
 
@@ -385,7 +383,15 @@ public class LinkResults implements ShapeConstants {
    */
   public boolean displayPath(String sqlStmt) {
 
+    double maxResult = Double.MIN_VALUE;
+    double minResult = Double.MAX_VALUE;
+
     nodusMapPanel.setBusy(true);
+
+    // Get the average loads per vehicle
+    int currentScenario = nodusProject.getLocalProperty(NodusC.PROP_SCENARIO, 0);
+
+    // TODO retrieve cost functions file name and fetch relevant data in it
 
     Connection jdbcConnection = nodusProject.getMainJDBCConnection();
     NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
@@ -397,15 +403,24 @@ public class LinkResults implements ShapeConstants {
       ResultSet rs = stmt.executeQuery(sqlStmt);
 
       // Retrieve result of query
+
       while (rs.next()) {
         RealLink rl = getRealLink(linkLayers, JDBCUtils.getInt(rs.getObject(1)));
 
         if (rl != null) {
           double d = rl.getResult();
-
+          
           // Add volume to current volume
           d += JDBCUtils.getDouble(rs.getObject(2));
           rl.setResult(d);
+
+          if (d > maxResult) {
+            maxResult = d;
+          }
+
+          if (d < minResult) {
+            minResult = d;
+          }
         }
       }
 
@@ -426,6 +441,7 @@ public class LinkResults implements ShapeConstants {
     NodusEsriLayer[] layers = nodusProject.getLinkLayers();
     DbfTableModel resultModel = null;
 
+    int maxWidth = nodusProject.getLocalProperty(NodusC.PROP_MAX_WIDTH, NodusC.MAX_WIDTH);
     for (int i = 0; i < layers.length; i++) {
 
       if (layers[i].isVisible()) {
@@ -465,8 +481,24 @@ public class LinkResults implements ShapeConstants {
 
           if (rl.getResult() != 0) {
             // Get the original width of the link
-            BasicStroke bs = (BasicStroke) layers[i].getStyle(omg, index).getStroke();
-            rl.setSize(bs.getLineWidth());
+            // BasicStroke bs = (BasicStroke) layers[i].getStyle(omg, index).getStroke();
+            // rl.setSize(bs.getLineWidth());
+
+            // Compute stroke width
+            double width;
+            if (maxResult > minResult) {
+        	width = rl.getResult() / ((maxResult - minResult) / (double) maxWidth);
+            } else {
+        	width = maxWidth;
+            }
+
+            if (width > 0) {
+        	width++;
+            } else {
+        	width--;
+            }
+
+            rl.setSize(java.lang.Math.round(width));
 
           } else {
             rl.setSize(0);
@@ -504,6 +536,9 @@ public class LinkResults implements ShapeConstants {
    * @return True on success.
    */
   public boolean displayTimeDependentFlows(String sqlStmt) {
+
+    double maxResult = Double.MIN_VALUE;
+    double minResult = Double.MAX_VALUE;
 
     // Automatic or manual display ?
     Integer answer = askForDisplayInterval();
