@@ -1152,24 +1152,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       m.setEnabled(true);
     }
 
+    // In the "File" menu, not all items must be disables/enabled 
     menuFile.setVisible(true);
     menuItemFileSave.setEnabled(state);
     menuItemFileClose.setEnabled(state);
     menuItemFileSaveAs.setEnabled(state);
     menuItemFilePrint.setEnabled(state);
-   
-
-    // Avoid the macOS menu items to remain grayed
-    /* if (System.getProperty("os.name").toLowerCase().startsWith("mac")
-        && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
-
-      int nbMenus = nodusMenuBar.getMenuCount();
-      for (int i = 0; i < nbMenus; i++) {
-        JMenu menu = nodusMenuBar.getMenu(i);
-        menu.setVisible(false);
-        menu.setVisible(true);
-      }
-    }*/
   }
 
   /**
