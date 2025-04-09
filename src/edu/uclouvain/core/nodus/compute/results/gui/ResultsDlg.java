@@ -508,10 +508,11 @@ public class ResultsDlg extends EscapeDialog {
         + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_DESTINATION)
         + " = ???"
         + timeWhereClause
-        + " GROUP BY "
+        + " GROUP BY ABS("
         + detailTableName
         + "."
-        + JDBCUtils.getCompliantIdentifier(NodusC.DBF_LINK);
+        + JDBCUtils.getCompliantIdentifier(NodusC.DBF_LINK)
+        + ")";
   }
 
   /** Initializes the GUI components of the dialog box. */
