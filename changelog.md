@@ -375,6 +375,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 
 ##v8.2 - BuildXXXXXXXX
 - Detailed path's are now displayed with a variable with, depending on the traffic.
-- Fix a "freeze" problem with the menu's that sometimes occured on MacOS. 
-
+- Tentative fix of a "freeze" problem with the menu's that sometimes occured on MacOS. 
+- Fix a bug that resulted in an incorrect display of the transported quantities along a detailed path obtained with the MSA algorithm. 
 

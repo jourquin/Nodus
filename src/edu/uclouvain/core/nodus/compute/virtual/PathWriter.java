@@ -213,7 +213,7 @@ public class PathWriter {
   /**
    * Execute batch if max batch size is reached.
    *
-   * @param force If true, the batch is exectured even if its max size is not reached.
+   * @param force If true, the batch is executed even if its max size is not reached.
    * @return True on success
    */
   private boolean executeDetailsBatch(boolean force) {
@@ -249,7 +249,7 @@ public class PathWriter {
   /**
    * Execute batch if max batch size is reached.
    *
-   * @param force If true, the batch is exectured even if its max size is not reached.
+   * @param force If true, the batch is executed even if its max size is not reached.
    * @return True on success
    */
   private boolean executeHeaderBatch(boolean force) {
@@ -576,6 +576,11 @@ public class PathWriter {
       return;
     }
 
+    // Be sure header table is updated
+    if (hasBatchSupport) {
+      executeHeaderBatch(true);
+    }
+
     try {
 
       Statement stmt = con.createStatement();
@@ -598,7 +603,7 @@ public class PathWriter {
               + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ITERATION)
               + " < "
               + iteration;
-      stmt.execute(sqlStmt);
+      stmt.executeUpdate(sqlStmt);
 
       /*
        * Update records relative to current iterations Example: UPDATE HeaderTable set QTY =
@@ -617,8 +622,7 @@ public class PathWriter {
               + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ITERATION)
               + " = "
               + iteration;
-      stmt.execute(sqlStmt);
-
+      stmt.executeUpdate(sqlStmt);
       stmt.close();
 
       if (!con.getAutoCommit()) {
