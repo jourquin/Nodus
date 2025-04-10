@@ -214,9 +214,6 @@ public class LinkResults implements ShapeConstants {
    */
   boolean displayVolumes(String sqlStmt, int time) {
 
-    double maxResult = Double.MIN_VALUE;
-    double minResult = Double.MAX_VALUE;
-
     nodusMapPanel.setBusy(true);
 
     Connection jdbcConnection = nodusProject.getMainJDBCConnection();
@@ -264,6 +261,8 @@ public class LinkResults implements ShapeConstants {
     }
 
     // Retain extreme values if not yet set and delete old export files
+    double maxResult = Double.MIN_VALUE;
+    double minResult = Double.MAX_VALUE;
     if (!isTimeDependent) {
       for (NodusEsriLayer element : linkLayers) {
 
@@ -409,7 +408,7 @@ public class LinkResults implements ShapeConstants {
 
         if (rl != null) {
           double d = rl.getResult();
-          
+
           // Add volume to current volume
           d += JDBCUtils.getDouble(rs.getObject(2));
           rl.setResult(d);
@@ -487,15 +486,15 @@ public class LinkResults implements ShapeConstants {
             // Compute stroke width
             double width;
             if (maxResult > minResult) {
-        	width = rl.getResult() / ((maxResult - minResult) / (double) maxWidth);
+              width = rl.getResult() / ((maxResult - minResult) / (double) maxWidth);
             } else {
-        	width = maxWidth;
+              width = maxWidth;
             }
 
             if (width > 0) {
-        	width++;
+              width++;
             } else {
-        	width--;
+              width--;
             }
 
             rl.setSize(java.lang.Math.round(width));
