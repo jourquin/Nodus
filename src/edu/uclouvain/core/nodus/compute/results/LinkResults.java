@@ -382,6 +382,9 @@ public class LinkResults implements ShapeConstants {
    */
   public boolean displayPath(String sqlStmt) {
 
+      // TODO new SQL query to generate
+      // SELECT ABS(DEMO_PATH6_DETAIL.LINK),QTY, grp FROM DEMO_PATH6_HEADER INNER JOIN DEMO_PATH6_DETAIL ON DEMO_PATH6_HEADER.PATHIDX = DEMO_PATH6_DETAIL.PATHIDX WHERE "GRP" = 0 AND "ORG" = 1020201 AND "DST" = 1020303
+      
     double maxResult = Double.MIN_VALUE;
     double minResult = Double.MAX_VALUE;
 

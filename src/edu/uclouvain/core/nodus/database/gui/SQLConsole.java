@@ -1921,6 +1921,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
             Cursor oldC = treeScrollPane.getCursor();
             treeScrollPane.setCursor(new Cursor(Cursor.WAIT_CURSOR));
 
+            // TODO A same field appears several times in the table structure with MariaDB
             // Now rebuild the tree below its root
             try {
               // Start by naming the root node from its URL:
