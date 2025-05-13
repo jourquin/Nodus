@@ -746,17 +746,18 @@ public class JDBCUtils {
       return;
     }
 
+    Statement stmt = null;
     try {
-      // Only drop existent tables
-      ResultSet rs = dmd.getTables(null, null, getCompliantIdentifier(tableName), null);
-      if (rs.next()) {
-        rs.close();
-        Statement stmt = jdbcConnection.createStatement();
-        stmt.execute("DROP TABLE " + getCompliantIdentifier(tableName));
-      }
+      stmt = jdbcConnection.createStatement();
+      stmt.execute("DROP TABLE " + getCompliantIdentifier(tableName));
+      stmt.close();
 
     } catch (SQLException ex) {
-      ex.printStackTrace();
+      try {
+        stmt.close();
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
     }
   }
 
@@ -849,7 +850,7 @@ public class JDBCUtils {
       // Get result set meta data
       ResultSetMetaData rsmd = rs.getMetaData();
       int numColumns = rsmd.getColumnCount();
-     
+
       // Get the column names; column indices start from 1
       for (int i = 1; i < numColumns + 1; i++) {
         String columnName = rsmd.getColumnName(i);
