@@ -380,3 +380,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Fix a bug in the "importcsv" command (missing Apache commons-codec lib)
 - Improve the JDBCUtils.dropTable method
  
+ ##v8.2 - BuildXXXXXXXX
+ - Upgrade MariaDB JDBC driver
+ - Improved tableExists method in JDBCUtils
+  

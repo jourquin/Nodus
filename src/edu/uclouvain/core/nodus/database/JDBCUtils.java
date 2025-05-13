@@ -956,7 +956,19 @@ public class JDBCUtils {
    */
   public static boolean tableExists(String tableName) {
     try {
-      ResultSet tables = dmd.getTables(null, null, getCompliantIdentifier(tableName), null);
+
+      // For H2 (version 2), specify that only the "PUBLIC" schema must be displayed
+      String schema = null;
+      if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
+        schema = "PUBLIC";
+      }
+      
+      String catalog = null;
+      if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
+        catalog = "";
+      }
+
+      ResultSet tables = dmd.getTables(catalog, schema, getCompliantIdentifier(tableName), null);
       if (tables.next()) {
         return true;
       }
