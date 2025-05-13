@@ -104,10 +104,8 @@
 	<classpathentry kind="lib" path="lib/poi-5.2.5.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-5.2.5.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-full-5.2.5.jar"/>
-	<classpathentry kind="lib" path="lib/commons-io-2.16.1.jar"/>
 	<classpathentry kind="lib" path="lib/commons-collections4-4.5.0-M2.jar"/>
 	<classpathentry kind="lib" path="lib/commons-compress-1.26.2.jar"/>
-	<classpathentry kind="lib" path="lib/commons-csv-1.11.0.jar"/>
 	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.4.0.jar"/>
 	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.46.0.0.jar"/>
 	<classpathentry kind="lib" path="lib/xchart-3.8.8.jar"/>
@@ -116,5 +114,8 @@
 	<classpathentry kind="lib" path="lib/httpclient5-5.4.1.jar"/>
 	<classpathentry kind="lib" path="lib/httpcore5-5.3.1.jar"/>
 	<classpathentry kind="lib" path="lib/httpcore5-h2-5.3.1.jar"/>
+	<classpathentry kind="lib" path="lib/commons-csv-1.14.0.jar"/>
+	<classpathentry kind="lib" path="lib/commons-codec-1.18.0.jar"/>
+	<classpathentry kind="lib" path="lib/commons-io-2.19.0.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
