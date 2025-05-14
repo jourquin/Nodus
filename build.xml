@@ -6,6 +6,7 @@
               as the first entry and export the buildfile again. -->
     <project basedir="." default="build" name="Nodus">
     <property environment="env"/>
+    <property name="MLogit.location" value="../../eclipse-workspace/MLogit"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="11"/>
     <property name="source" value="11"/>
@@ -606,7 +607,10 @@
             <classpath refid="Nodus.classpath"/>
         </javac>
     </target>
-    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
+    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects">
+        <ant antfile="build.xml" dir="${MLogit.location}" inheritAll="false" target="clean"/>
+        <ant antfile="build.xml" dir="${MLogit.location}" inheritAll="false" target="build"/>
+    </target>
     <target name="SortVectors">
         <java classname="edu.uclouvain.core.nodus.database.gui.SortVectors" failonerror="true" fork="yes">
             <classpath refid="run.SortVectors.classpath"/>

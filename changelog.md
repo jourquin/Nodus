@@ -383,4 +383,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
  ##v8.2 - BuildXXXXXXXX
  - Upgrade MariaDB JDBC driver
  - Improved tableExists method in JDBCUtils
+ - Improved list of OD tables in the Assignment dialog
+ - Fix a bug with MySQL that incorrectly listed the fields of a table in the SQL console 
+ 
   

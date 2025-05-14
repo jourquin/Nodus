@@ -1921,7 +1921,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
             Cursor oldC = treeScrollPane.getCursor();
             treeScrollPane.setCursor(new Cursor(Cursor.WAIT_CURSOR));
 
-            // TODO A same field appears several times in the table structure with MariaDB
             // Now rebuild the tree below its root
             try {
               // Start by naming the root node from its URL:
@@ -1950,8 +1949,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
               ResultSet result = metaData.getTables(catalog, schema, null, usertables);
 
               Vector<String> tables = new Vector<>();
-
-              // sqlbob@users Added remarks.
               Vector<String> remarks = new Vector<>();
 
               String s;
@@ -1968,9 +1965,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
               for (int i = 0; i < tables.size(); i++) {
                 String name = tables.elementAt(i);
                 DefaultMutableTreeNode tableNode = makeNode(name, rootNode);
-                ResultSet col = metaData.getColumns(null, null, name, null);
+                ResultSet col = metaData.getColumns(catalog, schema, name, null);
 
-                // sqlbob@users Added remarks.
+                // Add remarks.
                 String remark = remarks.elementAt(i);
 
                 if (remark != null && !remark.trim().equals("")) {
@@ -1999,7 +1996,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
                 DefaultMutableTreeNode indexesNode =
                     makeNode(i18n.get(SQLConsole.class, "Indices", "Indices"), tableNode);
-                ResultSet ind = metaData.getIndexInfo(null, schema, name, false, false);
+                ResultSet ind = metaData.getIndexInfo(catalog, schema, name, false, false);
 
                 String oldiname = null;
 

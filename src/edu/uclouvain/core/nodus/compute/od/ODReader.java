@@ -70,6 +70,11 @@ public class ODReader {
           JDBCUtils.getCompliantIdentifier(
               nodusProject.getLocalProperty(NodusC.PROP_JDBC_USERNAME, "null"));
     }
+    
+    String catalog = null;
+    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
+      catalog = "";
+    }
 
     String vnetTablePrefix =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
@@ -97,7 +102,7 @@ public class ODReader {
       // Get metadata about user tables by building a vector of table names
       String[] usertables = {"TABLE"};
       metaData = jdbcConnection.getMetaData();
-      ResultSet result = metaData.getTables(null, shema, null, usertables);
+      ResultSet result = metaData.getTables(catalog, shema, null, usertables);
 
       while (result.next()) {
         // if (result.getString(3).indexOf("$") == -1) {

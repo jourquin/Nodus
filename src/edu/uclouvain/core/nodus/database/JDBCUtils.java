@@ -930,10 +930,16 @@ public class JDBCUtils {
       default:
         sqlStmt = "alter table " + currentTableName + " rename to " + newTableName;
     }
+    
+    String catalog = null;
+    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
+      catalog = "";
+    }
+    
 
     try {
       // Only rename existing tables
-      ResultSet rs = dmd.getTables(null, null, getCompliantIdentifier(currentTableName), null);
+      ResultSet rs = dmd.getTables(catalog, null, getCompliantIdentifier(currentTableName), null);
       if (rs.next()) {
         Statement stmt = jdbcConnection.createStatement();
         stmt.execute(sqlStmt);
