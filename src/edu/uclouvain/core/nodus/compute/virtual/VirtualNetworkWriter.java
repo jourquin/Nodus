@@ -31,7 +31,6 @@ import edu.uclouvain.core.nodus.database.JDBCField;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.SingleInstanceMessagePane;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.util.Iterator;
 import javax.swing.JOptionPane;
@@ -46,6 +45,10 @@ public class VirtualNetworkWriter {
   private static I18n i18n = Environment.getI18n();
 
   private NodusMapPanel nodusMapPanel;
+  
+  private boolean hasBatchSupport;
+  
+  private Connection jdbcConnection;
 
   /**
    * Initializes the database table used to store the virtual network that contains an assignment.
@@ -180,16 +183,10 @@ public class VirtualNetworkWriter {
 
     try {
       // Fill it
-      Connection jdbcConnection = nodusProject.getMainJDBCConnection();
+      jdbcConnection = nodusProject.getMainJDBCConnection();
 
-      DatabaseMetaData dbmd = jdbcConnection.getMetaData();
-      boolean hasBatchSupport = false;
-      if (dbmd != null) {
-        if (dbmd.supportsBatchUpdates()) {
-          hasBatchSupport = true;
-        }
-      }
-
+      hasBatchSupport = JDBCUtils.hasBatchSupport();
+      
       /* Prepared statement */
       String sqlStmt = "INSERT INTO " + vNetTableName + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,";
 

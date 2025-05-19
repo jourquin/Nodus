@@ -26,7 +26,6 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -174,16 +173,14 @@ public class Scenarios {
     Connection con = nodusProject.getMainJDBCConnection();
 
     try {
-      DatabaseMetaData metaData = con.getMetaData();
-
+      
       // First table
       String tableName =
           nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
       tableName =
           nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + referenceScenario;
-      tableName = JDBCUtils.getCompliantIdentifier(tableName);
-
-      ResultSet col = metaData.getColumns(null, null, tableName, null);
+      
+      ResultSet col = JDBCUtils.getColumns(tableName);
 
       while (col.next()) {
         String c = col.getString(4).toLowerCase();
@@ -202,8 +199,8 @@ public class Scenarios {
       tableName = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
       tableName =
           nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenarioToCompare;
-      tableName = JDBCUtils.getCompliantIdentifier(tableName);
-      col = metaData.getColumns(null, null, tableName, null);
+      //col = metaData.getColumns(null, null, tableName, null);
+      col = JDBCUtils.getColumns(tableName);
 
       while (col.next()) {
         String c = col.getString(4).toLowerCase();

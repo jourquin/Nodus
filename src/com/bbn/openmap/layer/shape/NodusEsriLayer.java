@@ -73,7 +73,6 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.net.URL;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
@@ -1672,10 +1671,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
       Connection con = nodusProject.getMainJDBCConnection();
       Statement stmt = con.createStatement();
 
-      DatabaseMetaData dbmd = con.getMetaData();
-
-      // Specify the type of object; in this case we want tables
-      ResultSet rs = dbmd.getColumns(null, null, JDBCUtils.getCompliantIdentifier(tableName), null);
+      ResultSet rs = JDBCUtils.getColumns(tableName);
 
       Vector<String> names = new Vector<>();
       // Vector<String> types = new Vector<>();

@@ -33,7 +33,6 @@ import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -61,20 +60,8 @@ public class ODReader {
   public static Vector<String> getValidODTables(NodusProject nodusProject) {
 
     Connection jdbcConnection = nodusProject.getMainJDBCConnection();
-    DatabaseMetaData metaData;
-    Vector<String> tables = new Vector<>();
 
-    String shema = null;
-    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_ORACLE) {
-      shema =
-          JDBCUtils.getCompliantIdentifier(
-              nodusProject.getLocalProperty(NodusC.PROP_JDBC_USERNAME, "null"));
-    }
-    
-    String catalog = null;
-    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
-      catalog = "";
-    }
+    Vector<String> tables = new Vector<>();
 
     String vnetTablePrefix =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
@@ -99,11 +86,7 @@ public class ODReader {
             .toLowerCase();
 
     try {
-      // Get metadata about user tables by building a vector of table names
-      String[] usertables = {"TABLE"};
-      metaData = jdbcConnection.getMetaData();
-      ResultSet result = metaData.getTables(catalog, shema, null, usertables);
-
+      ResultSet result = JDBCUtils.getTables();
       while (result.next()) {
         // if (result.getString(3).indexOf("$") == -1) {
         // Keep only valid OD tables

@@ -54,17 +54,14 @@ public class JDBCUtils {
   /** MySQL - MariaDB. */
   public static final int DB_MYSQL = 1;
 
-  /** Oracle (not fully tested). */
-  public static final int DB_ORACLE = 4;
+  /* Oracle (not fully tested). */
+  // public static final int DB_ORACLE = 4;
 
   /** PostgreSQL. */
   public static final int DB_POSTGRESQL = 3;
 
   /** SQLite. */
   public static final int DB_SQLITE = 7;
-
-  /** Firebird (doesn't work yet on 20161223). */
-  public static final int DB_FIREBIRD = 8;
 
   /** Any other DBMS - Could work with Nodus or not, as not tested. */
   public static final int DB_UNKNOWN = -1;
@@ -74,6 +71,10 @@ public class JDBCUtils {
   private static DatabaseMetaData dmd;
 
   private static Connection jdbcConnection = null;
+
+  private static String catalog = null;
+
+  private static String schema = null;
 
   /**
    * This constructor is maintained for backward compatibility (before Nodus 8).
@@ -292,9 +293,9 @@ public class JDBCUtils {
         return DB_POSTGRESQL;
       }
 
-      if (productName.toLowerCase().indexOf("oracle") != -1) {
+      /*if (productName.toLowerCase().indexOf("oracle") != -1) {
         return DB_ORACLE;
-      }
+      }*/
 
       if (productName.toLowerCase().indexOf("h2") != -1) {
         return DB_H2;
@@ -306,10 +307,6 @@ public class JDBCUtils {
 
       if (productName.toLowerCase().indexOf("sqlite") != -1) {
         return DB_SQLITE;
-      }
-
-      if (productName.toLowerCase().indexOf("firebird") != -1) {
-        return DB_FIREBIRD;
       }
 
     } catch (SQLException e) {
@@ -616,7 +613,7 @@ public class JDBCUtils {
   }
 
   /**
-   * Constructor.
+   * Set the JDBC connection.
    *
    * @param con JDBC connection
    * @return False on error.
@@ -633,6 +630,18 @@ public class JDBCUtils {
       e.printStackTrace();
       return false;
     }
+
+    // For H2 (version 2), specify that only the "PUBLIC" schema
+    schema = null;
+    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
+      schema = "PUBLIC";
+    }
+
+    catalog = null;
+    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
+      catalog = "";
+    }
+
     return true;
   }
 
@@ -746,14 +755,10 @@ public class JDBCUtils {
       return;
     }
 
-    Statement stmt = null;
-    try {
-      stmt = jdbcConnection.createStatement();
-      stmt.execute("DROP TABLE " + getCompliantIdentifier(tableName));
-      stmt.close();
-
-    } catch (SQLException ex) {
+    if (tableExists(tableName)) {
       try {
+        Statement stmt = jdbcConnection.createStatement();
+        stmt.execute("DROP TABLE " + getCompliantIdentifier(tableName));
         stmt.close();
       } catch (SQLException e) {
         e.printStackTrace();
@@ -774,6 +779,10 @@ public class JDBCUtils {
 
   /** Returns a compliant identifier, with or without quotes. */
   private static String getIdentifier(String identifier, boolean quoted) {
+
+    if (identifier == null) {
+      return null;
+    }
 
     if (jdbcConnection == null) {
       return identifier;
@@ -921,37 +930,80 @@ public class JDBCUtils {
     currentTableName = getCompliantIdentifier(currentTableName);
     newTableName = getCompliantIdentifier(newTableName);
 
-    String sqlStmt;
-    switch (dbEngine) {
-      case DB_DERBY:
-      case DB_ORACLE:
-        sqlStmt = "rename table " + currentTableName + " to " + newTableName;
-        break;
-      default:
-        sqlStmt = "alter table " + currentTableName + " rename to " + newTableName;
-    }
-    
-    String catalog = null;
-    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
-      catalog = "";
-    }
-    
+    if (tableExists(currentTableName)) {
+      String sqlStmt;
+      switch (dbEngine) {
+        case DB_DERBY:
+          sqlStmt = "rename table " + currentTableName + " to " + newTableName;
+          break;
+        default:
+          sqlStmt = "alter table " + currentTableName + " rename to " + newTableName;
+      }
 
-    try {
-      // Only rename existing tables
-      ResultSet rs = dmd.getTables(catalog, null, getCompliantIdentifier(currentTableName), null);
-      if (rs.next()) {
+      try {
         Statement stmt = jdbcConnection.createStatement();
         stmt.execute(sqlStmt);
         stmt.close();
-        rs.close();
+      } catch (SQLException e) {
+        e.printStackTrace();
+        return false;
       }
-
-    } catch (SQLException ex) {
-      ex.printStackTrace();
-      return false;
     }
+
     return true;
+  }
+
+  /**
+   * Tests if the DB engine supports batch processing.
+   *
+   * @return True if batch is supported.
+   */
+  public static boolean hasBatchSupport() {
+
+    boolean hasBatchSupport = false;
+
+    try {
+      if (dmd.supportsBatchUpdates()) {
+        hasBatchSupport = true;
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    return hasBatchSupport;
+  }
+
+  /**
+   * Returns the list of columns of a table.
+   *
+   * @param tableName The table name.
+   * @return A result set with the columns.
+   * @throws SQLException on error.
+   */
+  public static ResultSet getColumns(String tableName) throws SQLException {
+
+    return dmd.getColumns(catalog, schema, JDBCUtils.getCompliantIdentifier(tableName), null);
+  }
+
+  /**
+   * Returns the list of tables in the database.
+   *
+   * @return A result set with the table names.
+   * @throws SQLException on error.
+   */
+  public static ResultSet getTables() throws SQLException {
+    return getTables(null);
+  }
+
+  /**
+   * Tests if the given table name exists.
+   *
+   * @return A non-empyu result set if table exits.
+   * @throws SQLException on error.
+   */
+  public static ResultSet getTables(String tableName) throws SQLException {
+    String[] userTables = {"TABLE"};
+    ResultSet rs = dmd.getTables(catalog, schema, getCompliantIdentifier(tableName), userTables);
+    return rs;
   }
 
   /**
@@ -963,19 +1015,9 @@ public class JDBCUtils {
   public static boolean tableExists(String tableName) {
     try {
 
-      // For H2 (version 2), specify that only the "PUBLIC" schema must be displayed
-      String schema = null;
-      if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
-        schema = "PUBLIC";
-      }
-      
-      String catalog = null;
-      if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
-        catalog = "";
-      }
-
-      ResultSet tables = dmd.getTables(catalog, schema, getCompliantIdentifier(tableName), null);
+      ResultSet tables = getTables(getCompliantIdentifier(tableName));
       if (tables.next()) {
+        tables.close();
         return true;
       }
     } catch (SQLException e) {

@@ -27,7 +27,6 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import java.io.FileOutputStream;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Vector;
@@ -73,9 +72,7 @@ public class ExportXLS {
       Statement stmt = con.createStatement();
 
       // Insert table structure in first row
-      DatabaseMetaData dbmd = con.getMetaData();
-      ResultSet col =
-          dbmd.getColumns(null, null, JDBCUtils.getCompliantIdentifier(tableName), null);
+      ResultSet col = JDBCUtils.getColumns(tableName);
 
       int nbColumns = 0;
       Vector<Boolean> numerical = new Vector<>();

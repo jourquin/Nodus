@@ -29,7 +29,6 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.Statement;
 import javax.swing.JOptionPane;
 
@@ -176,7 +175,7 @@ public class ImportDBF {
       }
 
       // Flush remaining records in batch
-      if (hasBatchSupport) {
+      if (hasBatchSupport && batchSize > 0) {
         jdbcConnection.setAutoCommit(false);
         prepStmt.executeBatch();
         jdbcConnection.commit();
@@ -211,19 +210,8 @@ public class ImportDBF {
     String path = project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
 
     maxBatchSize = project.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
-
-    // Test if database engine has batch support
-    try {
-      DatabaseMetaData dbmd = jdbcConnection.getMetaData();
-      hasBatchSupport = false;
-      if (dbmd != null) {
-        if (dbmd.supportsBatchUpdates()) {
-          hasBatchSupport = true;
-        }
-      }
-    } catch (SQLException e1) {
-      e1.printStackTrace();
-    }
+    
+    hasBatchSupport = JDBCUtils.hasBatchSupport();
 
     // Uppercases? Lowercases?, Mixed? Depends on database capabilities ...
     String jdbcTableName = JDBCUtils.getCompliantIdentifier(tableName);

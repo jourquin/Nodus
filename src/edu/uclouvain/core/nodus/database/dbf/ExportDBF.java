@@ -29,7 +29,6 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -58,19 +57,13 @@ public class ExportDBF implements ShapeConstants {
    * @return A DBFWriter
    */
   private static DBFWriter createTable(NodusProject nodusProject, String tableName) {
-    Connection con = nodusProject.getMainJDBCConnection();
     DBFField[] field = null;
     DBFWriter dbf = null;
 
     int fieldNum = 0;
 
     try {
-      // Create a result set
-      DatabaseMetaData dbmd = con.getMetaData();
-
-      // Specify the type of object; in this case we want tables
-      ResultSet col =
-          dbmd.getColumns(null, null, JDBCUtils.getCompliantIdentifier(tableName), null);
+      ResultSet col = JDBCUtils.getColumns(tableName);
 
       Vector<String> names = new Vector<>();
       Vector<String> types = new Vector<>();

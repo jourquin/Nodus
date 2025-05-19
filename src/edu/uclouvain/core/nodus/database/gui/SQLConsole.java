@@ -1928,11 +1928,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
               // In Oracle, limit to the schema of the user
               String schema = null;
-              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_ORACLE) {
+              /*if (JDBCUtils.getDbEngine() == JDBCUtils.DB_ORACLE) {
                 schema =
                     JDBCUtils.getCompliantIdentifier(
                         nodusProject.getLocalProperty(NodusC.PROP_JDBC_USERNAME, "null"));
-              }
+              }*/
 
               // For H2 (version 2), specify that only the "PUBLIC" schema must be displayed
               if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
@@ -1945,8 +1945,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
               }
 
               // get metadata about user tables by building a vector of table names
-              String[] usertables = {"TABLE", "GLOBAL TEMPORARY", "VIEW"};
-              ResultSet result = metaData.getTables(catalog, schema, null, usertables);
+              //String[] usertables = {"TABLE", "GLOBAL TEMPORARY", "VIEW"};
+              //ResultSet result = metaData.getTables(catalog, schema, null, usertables);
+              ResultSet result = JDBCUtils.getTables();
 
               Vector<String> tables = new Vector<>();
               Vector<String> remarks = new Vector<>();

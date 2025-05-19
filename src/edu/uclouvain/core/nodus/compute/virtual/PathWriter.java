@@ -34,7 +34,6 @@ import edu.uclouvain.core.nodus.database.JDBCIndex;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.SingleInstanceMessagePane;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -113,18 +112,8 @@ public class PathWriter {
     con = nodusProject.getMainJDBCConnection();
 
     // Does the used DB support batch processing ?
-    try {
-      DatabaseMetaData dbmd = con.getMetaData();
-      hasBatchSupport = false;
-      if (dbmd != null) {
-        if (dbmd.supportsBatchUpdates()) {
-          hasBatchSupport = true;
-        }
-      }
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-
+    hasBatchSupport = JDBCUtils.hasBatchSupport();
+    
     // Prepare tables
     String defValue = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME);
     String name = nodusProject.getLocalProperty(NodusC.PROP_PATH_TABLE_PREFIX, defValue);

@@ -31,7 +31,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -111,14 +110,9 @@ public class ImportCSV {
         records = CSVFormat.RFC4180.parse(in);
       }
 
-      DatabaseMetaData dbmd = con.getMetaData();
-      boolean hasBatchSupport = false;
-      if (dbmd != null) {
-        if (dbmd.supportsBatchUpdates()) {
-          hasBatchSupport = true;
-        }
-      }
-
+     
+      boolean hasBatchSupport = JDBCUtils.hasBatchSupport();
+      
       // boolean oldAutoCommit = false;
       boolean oldAutoCommit = con.getAutoCommit();
       // con.setAutoCommit(false);
