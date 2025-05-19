@@ -77,52 +77,125 @@ public class JDBCUtils {
   private static String schema = null;
 
   /**
-   * This constructor is maintained for backward compatibility (before Nodus 8).
+   * Create an index on a table.
    *
-   * @param jdbcConnection The connection to the database @Deprecated Use JDBCUtils in a pure static
-   *     way.
+   * @param index A JDBCIndex object.
+   * @return True on success.
    */
-  @Deprecated
-  public JDBCUtils(Connection jdbcConnection) {
-    setConnection(jdbcConnection);
+  public static boolean createIndex(JDBCIndex index) {
+
+    if (jdbcConnection == null) {
+      return false;
+    }
+
+    try {
+      Statement stmt = jdbcConnection.createStatement();
+      String sqlStmt =
+          "CREATE INDEX "
+              + getQuotedCompliantIdentifier(index.getIndexName())
+              + " ON "
+              + index.getTableName()
+              + "("
+              + getQuotedCompliantIdentifier(index.getIndexFieldName())
+              + ")";
+      stmt.execute(sqlStmt);
+      stmt.close();
+    } catch (SQLException e) {
+      JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+      return false;
+    }
+    return true;
   }
 
   /**
-   * H2 and HSQLDB databases can be compacted at shutdown time.
+   * Create table without index.
    *
-   * @param jdbcConnection An open JDBC connection. @Deprecated Replaced by {@link
-   *     JDBCUtils#shutdownCompact()}
+   * @param tableName The name of the table.
+   * @param fields An array of fields.
+   * @return True on success.
    */
-  @Deprecated
-  public static void shutdownCompact(Connection jdbcConnection) {
-    if (getDbEngine(jdbcConnection) == DB_HSQLDB || getDbEngine(jdbcConnection) == DB_H2) {
-
-      // Compact database
-      try {
-        Statement stmt = jdbcConnection.createStatement();
-        stmt.execute("SHUTDOWN COMPACT");
-        stmt.close();
-      } catch (SQLException e) {
-        e.printStackTrace();
-      }
-    }
-    jdbcConnection = null;
+  public static boolean createTable(String tableName, JDBCField[] fields) {
+    return createTable(tableName, fields, null);
   }
 
-  /** H2 and HSQLDB databases can be compacted at shutdown time. */
-  public static void shutdownCompact() {
-    if (dbEngine == DB_HSQLDB || dbEngine == DB_H2) {
+  /**
+   * Create a table with index(es).
+   *
+   * @param tableName The name of the table.
+   * @param fields An array of fields.
+   * @param indexes An array of indexes.
+   * @return True on success.
+   */
+  public static boolean createTable(String tableName, JDBCField[] fields, JDBCIndex[] indexes) {
 
-      // Compact database
+    if (jdbcConnection == null) {
+      return false;
+    }
+
+    try {
+      final Statement stmt = jdbcConnection.createStatement();
+      String sqlStmt = null;
+
+      dropTable(tableName);
+
+      // Create a new table
+      sqlStmt = "CREATE TABLE " + getCompliantIdentifier(tableName) + " (";
+
+      for (int i = 0; i < fields.length; i++) {
+        String fieldType = fields[i].getFieldType();
+
+        if (fieldType == null) {
+          return false;
+        }
+
+        sqlStmt += getQuotedCompliantIdentifier(fields[i].getFieldName()) + " " + fieldType;
+
+        if (i < fields.length - 1) {
+          sqlStmt += ", ";
+        } else {
+          sqlStmt += ")";
+        }
+      }
+
+      stmt.execute(sqlStmt);
+      stmt.close();
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      JOptionPane.showMessageDialog(null, ex.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+
+      return false;
+    }
+
+    // Create the indexes
+    if (indexes != null) {
+      for (int i = 0; i < indexes.length; i++) {
+        if (!createIndex(indexes[i])) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Drops a table from the database.
+   *
+   * @param tableName The name of the table to drop.
+   */
+  public static void dropTable(String tableName) {
+    if (jdbcConnection == null) {
+      return;
+    }
+
+    if (tableExists(tableName)) {
       try {
         Statement stmt = jdbcConnection.createStatement();
-        stmt.execute("SHUTDOWN COMPACT");
+        stmt.execute("DROP TABLE " + getCompliantIdentifier(tableName));
         stmt.close();
       } catch (SQLException e) {
         e.printStackTrace();
       }
     }
-    jdbcConnection = null;
   }
 
   /**
@@ -180,84 +253,58 @@ public class JDBCUtils {
   }
 
   /**
-   * There is no reliable way to obtain a usable column width for numerical values in a SQL table.
-   * This method returns a width based on the maximum/minimum values stored in the column. This is
-   * useful when a SQL table must be exported as a DBF file.
+   * Returns the list of columns of a table.
    *
-   * @param tableName The name of the table that contains the column to check.
-   * @param fieldName The field name representing the column.
-   * @param decimalDigits The number of digits to keep after the decimal point.
-   * @return The width of the numerical field.
+   * @param tableName The table name.
+   * @return A result set with the columns.
+   * @throws SQLException on error.
    */
-  public static int getNumWidth(String tableName, String fieldName, int decimalDigits) {
+  public static ResultSet getColumns(String tableName) throws SQLException {
 
-    int width = -1;
-
-    if (jdbcConnection == null) {
-      return width;
-    }
-
-    try {
-      Statement stmt = jdbcConnection.createStatement();
-
-      // Force decimal places
-      String dp = "";
-      if (decimalDigits > 0) {
-        dp = ".";
-        for (int i = 0; i < decimalDigits; i++) {
-          dp += "0";
-        }
-      }
-      DecimalFormat df = new DecimalFormat("#" + dp);
-      df.setMaximumFractionDigits(decimalDigits);
-
-      // Get width of max value
-      String sqlStmt =
-          "SELECT MAX("
-              + getQuotedCompliantIdentifier(fieldName)
-              + ") FROM "
-              + getQuotedCompliantIdentifier(tableName);
-      ResultSet rs = stmt.executeQuery(sqlStmt);
-      rs.next();
-      String valueString = df.format(rs.getDouble(1));
-      width = valueString.length();
-
-      // Get width of min value
-      sqlStmt =
-          "SELECT MIN("
-              + getQuotedCompliantIdentifier(fieldName)
-              + ") FROM "
-              + getQuotedCompliantIdentifier(tableName);
-
-      rs = stmt.executeQuery(sqlStmt);
-      rs.next();
-      valueString = df.format(rs.getDouble(1));
-      int w2 = valueString.length();
-      if (w2 > width) {
-        width = w2;
-      }
-
-      rs.close();
-      stmt.close();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-
-    return width;
+    return dmd.getColumns(catalog, schema, JDBCUtils.getCompliantIdentifier(tableName), null);
   }
 
   /**
-   * Returns the ID of the DBMS.
+   * Returns an identifier (table or field name) that complies with the constraints of the DBMS,
+   * i.e. change to lower of upper cases if needed.
    *
-   * @param jdbcConnection A Connection to a database.
-   * @return The ID of the database. @Deprecated Use {@link JDBCUtils#setConnection(Connection)} and
-   *     {@link JDBCUtils#getDbEngine()}
+   * @param identifier The identifier to test.
+   * @return The compliant identifier.
    */
-  @Deprecated
-  public static int getDbEngine(Connection jdbcConnection) {
+  public static String getCompliantIdentifier(String identifier) {
+    return getIdentifier(identifier, false);
+  }
 
-    setConnection(jdbcConnection);
-    return getDbEngine();
+  /**
+   * Returns the SQL expression needed to properly insert a date in a row.
+   *
+   * @param date String in the YYYYMMDD format (8 numeric characters).
+   * @return A string in the YYYY-MM-DD format or null on error.
+   */
+  public static String getDate(String date) {
+
+    if (jdbcConnection == null) {
+      return null;
+    }
+
+    // Test length must be 8.
+    if (date.length() != 8) {
+      System.err.println("Invalid date format:" + date);
+      return null;
+    }
+
+    // All characters must be digits
+    for (int i = 0; i < date.length(); i++) {
+      if (!Character.isDigit(date.charAt(i))) {
+        System.err.println("Invalid date format:" + date);
+        return null;
+      }
+    }
+
+    // Convert in "YYYY-MM-DD" format
+    String date2 = date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6, 8);
+
+    return "'" + date2 + "'";
   }
 
   /**
@@ -293,10 +340,6 @@ public class JDBCUtils {
         return DB_POSTGRESQL;
       }
 
-      /*if (productName.toLowerCase().indexOf("oracle") != -1) {
-        return DB_ORACLE;
-      }*/
-
       if (productName.toLowerCase().indexOf("h2") != -1) {
         return DB_H2;
       }
@@ -317,16 +360,17 @@ public class JDBCUtils {
   }
 
   /**
-   * Returns the name of the DB engine.
+   * Returns the ID of the DBMS.
    *
    * @param jdbcConnection A Connection to a database.
-   * @return The product name of the DBMS. @Deprecated Use {@link
-   *     JDBCUtils#setConnection(Connection)} and {@link JDBCUtils#getDbEngineName()}
+   * @return The ID of the database. @Deprecated Use {@link JDBCUtils#setConnection(Connection)} and
+   *     {@link JDBCUtils#getDbEngine()}
    */
   @Deprecated
-  public static String getDbEngineName(Connection jdbcConnection) {
+  public static int getDbEngine(Connection jdbcConnection) {
+
     setConnection(jdbcConnection);
-    return getDbEngineName();
+    return getDbEngine();
   }
 
   /**
@@ -353,35 +397,16 @@ public class JDBCUtils {
   }
 
   /**
-   * Returns the SQL expression needed to properly insert a date in a row.
+   * Returns the name of the DB engine.
    *
-   * @param date String in the YYYYMMDD format (8 numeric characters).
-   * @return A string in the YYYY-MM-DD format or null on error.
+   * @param jdbcConnection A Connection to a database.
+   * @return The product name of the DBMS. @Deprecated Use {@link
+   *     JDBCUtils#setConnection(Connection)} and {@link JDBCUtils#getDbEngineName()}
    */
-  public static String getDate(String date) {
-
-    if (jdbcConnection == null) {
-      return null;
-    }
-
-    // Test length must be 8.
-    if (date.length() != 8) {
-      System.err.println("Invalid date format:" + date);
-      return null;
-    }
-
-    // All characters must be digits
-    for (int i = 0; i < date.length(); i++) {
-      if (!Character.isDigit(date.charAt(i))) {
-        System.err.println("Invalid date format:" + date);
-        return null;
-      }
-    }
-
-    // Convert in "YYYY-MM-DD" format
-    String date2 = date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6, 8);
-
-    return "'" + date2 + "'";
+  @Deprecated
+  public static String getDbEngineName(Connection jdbcConnection) {
+    setConnection(jdbcConnection);
+    return getDbEngineName();
   }
 
   /**
@@ -451,6 +476,55 @@ public class JDBCUtils {
       return Float.MIN_VALUE;
     } else {
       return (float) d;
+    }
+  }
+
+  /** Returns a compliant identifier, with or without quotes. */
+  private static String getIdentifier(String identifier, boolean quoted) {
+
+    if (identifier == null) {
+      return null;
+    }
+
+    if (jdbcConnection == null) {
+      return identifier;
+    }
+
+    String formattedIdentifier = identifier;
+    if (jdbcConnection == null) {
+      return identifier;
+    } else {
+
+      try {
+
+        // Lower or Upper case?
+        if (dmd.storesMixedCaseIdentifiers()) {
+          formattedIdentifier = identifier;
+        } else if (dmd.storesLowerCaseIdentifiers()) {
+          formattedIdentifier = identifier.toLowerCase();
+        } else if (dmd.storesUpperCaseIdentifiers()) {
+          formattedIdentifier = identifier.toUpperCase();
+        }
+
+        if (quoted) {
+          String quotes = dmd.getIdentifierQuoteString();
+          if (!quotes.equals(" ")) {
+            // Could already be quoted...
+            if (!formattedIdentifier.startsWith(quotes)) {
+              formattedIdentifier = quotes + formattedIdentifier;
+            }
+            if (!formattedIdentifier.endsWith(quotes)) {
+              formattedIdentifier = formattedIdentifier + quotes;
+            }
+          }
+        }
+
+      } catch (Exception e) {
+        System.err.println(e.toString());
+        return null;
+      }
+
+      return formattedIdentifier;
     }
   }
 
@@ -575,255 +649,70 @@ public class JDBCUtils {
   }
 
   /**
-   * Tests if SQLite is installed on the computer.
+   * There is no reliable way to obtain a usable column width for numerical values in a SQL table.
+   * This method returns a width based on the maximum/minimum values stored in the column. This is
+   * useful when a SQL table must be exported as a DBF file.
    *
-   * @return True if SQLite is installed on the computer.
+   * @param tableName The name of the table that contains the column to check.
+   * @param fieldName The field name representing the column.
+   * @param decimalDigits The number of digits to keep after the decimal point.
+   * @return The width of the numerical field.
    */
-  public static boolean isSQliteInstalled() {
+  public static int getNumWidth(String tableName, String fieldName, int decimalDigits) {
 
-    try {
-      try {
-        Class.forName("org.sqlite.JDBC").getDeclaredConstructor().newInstance();
-      } catch (IllegalArgumentException e) {
-        e.printStackTrace();
-      } catch (InvocationTargetException e) {
-        e.printStackTrace();
-      } catch (NoSuchMethodException e) {
-        e.printStackTrace();
-      } catch (SecurityException e) {
-        e.printStackTrace();
-      }
-
-      Connection jdbcConnection = DriverManager.getConnection("jdbc:sqlite::memory:");
-      if (jdbcConnection == null) {
-        return false;
-      } else {
-        jdbcConnection.close();
-        return true;
-      }
-    } catch (InstantiationException e) {
-      return false;
-    } catch (IllegalAccessException e) {
-      return false;
-    } catch (ClassNotFoundException e) {
-      return false;
-    } catch (SQLException e) {
-      return false;
-    }
-  }
-
-  /**
-   * Set the JDBC connection.
-   *
-   * @param con JDBC connection
-   * @return False on error.
-   */
-  public static boolean setConnection(Connection con) {
-    jdbcConnection = con;
-    if (con == null) {
-      return true;
-    }
-    dbEngine = getDbEngine();
-    try {
-      dmd = jdbcConnection.getMetaData();
-    } catch (SQLException e) {
-      e.printStackTrace();
-      return false;
-    }
-
-    // For H2 (version 2), specify that only the "PUBLIC" schema
-    schema = null;
-    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
-      schema = "PUBLIC";
-    }
-
-    catalog = null;
-    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
-      catalog = "";
-    }
-
-    return true;
-  }
-
-  /**
-   * Create an index on a table.
-   *
-   * @param index A JDBCIndex object.
-   * @return True on success.
-   */
-  public static boolean createIndex(JDBCIndex index) {
+    int width = -1;
 
     if (jdbcConnection == null) {
-      return false;
+      return width;
     }
 
     try {
       Statement stmt = jdbcConnection.createStatement();
+
+      // Force decimal places
+      String dp = "";
+      if (decimalDigits > 0) {
+        dp = ".";
+        for (int i = 0; i < decimalDigits; i++) {
+          dp += "0";
+        }
+      }
+      DecimalFormat df = new DecimalFormat("#" + dp);
+      df.setMaximumFractionDigits(decimalDigits);
+
+      // Get width of max value
       String sqlStmt =
-          "CREATE INDEX "
-              + getQuotedCompliantIdentifier(index.getIndexName())
-              + " ON "
-              + index.getTableName()
-              + "("
-              + getQuotedCompliantIdentifier(index.getIndexFieldName())
-              + ")";
-      stmt.execute(sqlStmt);
-    } catch (SQLException e) {
-      JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-      return false;
-    }
-    return true;
-  }
+          "SELECT MAX("
+              + getQuotedCompliantIdentifier(fieldName)
+              + ") FROM "
+              + getQuotedCompliantIdentifier(tableName);
+      ResultSet rs = stmt.executeQuery(sqlStmt);
+      rs.next();
+      String valueString = df.format(rs.getDouble(1));
+      width = valueString.length();
 
-  /**
-   * Create table without index.
-   *
-   * @param tableName The name of the table.
-   * @param fields An array of fields.
-   * @return True on success.
-   */
-  public static boolean createTable(String tableName, JDBCField[] fields) {
-    return createTable(tableName, fields, null);
-  }
+      // Get width of min value
+      sqlStmt =
+          "SELECT MIN("
+              + getQuotedCompliantIdentifier(fieldName)
+              + ") FROM "
+              + getQuotedCompliantIdentifier(tableName);
 
-  /**
-   * Create a table with index(es).
-   *
-   * @param tableName The name of the table.
-   * @param fields An array of fields.
-   * @param indexes An array of indexes.
-   * @return True on success.
-   */
-  public static boolean createTable(String tableName, JDBCField[] fields, JDBCIndex[] indexes) {
-
-    if (jdbcConnection == null) {
-      return false;
-    }
-
-    try {
-      final Statement stmt = jdbcConnection.createStatement();
-      String sqlStmt = null;
-
-      dropTable(tableName);
-
-      // Create a new table
-      sqlStmt = "CREATE TABLE " + getCompliantIdentifier(tableName) + " (";
-
-      for (int i = 0; i < fields.length; i++) {
-        String fieldType = fields[i].getFieldType();
-
-        if (fieldType == null) {
-          return false;
-        }
-
-        sqlStmt += getQuotedCompliantIdentifier(fields[i].getFieldName()) + " " + fieldType;
-
-        if (i < fields.length - 1) {
-          sqlStmt += ", ";
-        } else {
-          sqlStmt += ")";
-        }
+      rs = stmt.executeQuery(sqlStmt);
+      rs.next();
+      valueString = df.format(rs.getDouble(1));
+      int w2 = valueString.length();
+      if (w2 > width) {
+        width = w2;
       }
 
-      stmt.execute(sqlStmt);
+      rs.close();
       stmt.close();
-    } catch (Exception ex) {
-      ex.printStackTrace();
-      JOptionPane.showMessageDialog(null, ex.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-
-      return false;
+    } catch (SQLException e) {
+      e.printStackTrace();
     }
 
-    // Create the indexes
-    if (indexes != null) {
-      for (int i = 0; i < indexes.length; i++) {
-        if (!createIndex(indexes[i])) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Drops a table from the database.
-   *
-   * @param tableName The name of the table to drop.
-   */
-  public static void dropTable(String tableName) {
-    if (jdbcConnection == null) {
-      return;
-    }
-
-    if (tableExists(tableName)) {
-      try {
-        Statement stmt = jdbcConnection.createStatement();
-        stmt.execute("DROP TABLE " + getCompliantIdentifier(tableName));
-        stmt.close();
-      } catch (SQLException e) {
-        e.printStackTrace();
-      }
-    }
-  }
-
-  /**
-   * Returns an identifier (table or field name) that complies with the constraints of the DBMS,
-   * i.e. change to lower of upper cases if needed.
-   *
-   * @param identifier The identifier to test.
-   * @return The compliant identifier.
-   */
-  public static String getCompliantIdentifier(String identifier) {
-    return getIdentifier(identifier, false);
-  }
-
-  /** Returns a compliant identifier, with or without quotes. */
-  private static String getIdentifier(String identifier, boolean quoted) {
-
-    if (identifier == null) {
-      return null;
-    }
-
-    if (jdbcConnection == null) {
-      return identifier;
-    }
-
-    String formattedIdentifier = identifier;
-    if (jdbcConnection == null) {
-      return identifier;
-    } else {
-
-      try {
-
-        // Lower or Upper case?
-        if (dmd.storesMixedCaseIdentifiers()) {
-          formattedIdentifier = identifier;
-        } else if (dmd.storesLowerCaseIdentifiers()) {
-          formattedIdentifier = identifier.toLowerCase();
-        } else if (dmd.storesUpperCaseIdentifiers()) {
-          formattedIdentifier = identifier.toUpperCase();
-        }
-
-        if (quoted) {
-          String quotes = dmd.getIdentifierQuoteString();
-          if (!quotes.equals(" ")) {
-            // Could already be quoted...
-            if (!formattedIdentifier.startsWith(quotes)) {
-              formattedIdentifier = quotes + formattedIdentifier;
-            }
-            if (!formattedIdentifier.endsWith(quotes)) {
-              formattedIdentifier = formattedIdentifier + quotes;
-            }
-          }
-        }
-
-      } catch (Exception e) {
-        System.err.println(e.toString());
-        return null;
-      }
-
-      return formattedIdentifier;
-    }
+    return width;
   }
 
   /**
@@ -836,6 +725,47 @@ public class JDBCUtils {
    */
   public static String getQuotedCompliantIdentifier(String identifier) {
     return getIdentifier(identifier, true);
+  }
+
+  /**
+   * Returns the list of tables in the database.
+   *
+   * @return A result set with the table names.
+   * @throws SQLException on error.
+   */
+  public static ResultSet getTables() throws SQLException {
+    return getTables(null);
+  }
+
+  /**
+   * Tests if the given table name exists.
+   *
+   * @return A non-empyu result set if table exits.
+   * @throws SQLException on error.
+   */
+  public static ResultSet getTables(String tableName) throws SQLException {
+    String[] userTables = {"TABLE"};
+    ResultSet rs = dmd.getTables(catalog, schema, getCompliantIdentifier(tableName), userTables);
+    return rs;
+  }
+
+  /**
+   * Tests if the DB engine supports batch processing.
+   *
+   * @return True if batch is supported.
+   */
+  public static boolean hasBatchSupport() {
+
+    boolean hasBatchSupport = false;
+
+    try {
+      if (dmd.supportsBatchUpdates()) {
+        hasBatchSupport = true;
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    return hasBatchSupport;
   }
 
   /**
@@ -868,6 +798,7 @@ public class JDBCUtils {
         }
       }
       rs.close();
+      stmt.close();
     } catch (SQLException e) {
       e.printStackTrace();
     }
@@ -915,6 +846,44 @@ public class JDBCUtils {
   }
 
   /**
+   * Tests if SQLite is installed on the computer.
+   *
+   * @return True if SQLite is installed on the computer.
+   */
+  public static boolean isSQliteInstalled() {
+
+    try {
+      try {
+        Class.forName("org.sqlite.JDBC").getDeclaredConstructor().newInstance();
+      } catch (IllegalArgumentException e) {
+        e.printStackTrace();
+      } catch (InvocationTargetException e) {
+        e.printStackTrace();
+      } catch (NoSuchMethodException e) {
+        e.printStackTrace();
+      } catch (SecurityException e) {
+        e.printStackTrace();
+      }
+
+      Connection jdbcConnection = DriverManager.getConnection("jdbc:sqlite::memory:");
+      if (jdbcConnection == null) {
+        return false;
+      } else {
+        jdbcConnection.close();
+        return true;
+      }
+    } catch (InstantiationException e) {
+      return false;
+    } catch (IllegalAccessException e) {
+      return false;
+    } catch (ClassNotFoundException e) {
+      return false;
+    } catch (SQLException e) {
+      return false;
+    }
+  }
+
+  /**
    * Renames a table in the database.
    *
    * @param currentTableName The current table name.
@@ -954,56 +923,74 @@ public class JDBCUtils {
   }
 
   /**
-   * Tests if the DB engine supports batch processing.
+   * Set the JDBC connection.
    *
-   * @return True if batch is supported.
+   * @param con JDBC connection
+   * @return False on error.
    */
-  public static boolean hasBatchSupport() {
-
-    boolean hasBatchSupport = false;
-
+  public static boolean setConnection(Connection con) {
+    jdbcConnection = con;
+    if (con == null) {
+      return true;
+    }
+    dbEngine = getDbEngine();
     try {
-      if (dmd.supportsBatchUpdates()) {
-        hasBatchSupport = true;
-      }
+      dmd = jdbcConnection.getMetaData();
     } catch (SQLException e) {
       e.printStackTrace();
+      return false;
     }
-    return hasBatchSupport;
+
+    // For H2 (version 2), specify that only the "PUBLIC" schema
+    schema = null;
+    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
+      schema = "PUBLIC";
+    }
+
+    catalog = null;
+    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
+      catalog = "";
+    }
+
+    return true;
+  }
+
+  /** H2 and HSQLDB databases can be compacted at shutdown time. */
+  public static void shutdownCompact() {
+    if (dbEngine == DB_HSQLDB || dbEngine == DB_H2) {
+
+      // Compact database
+      try {
+        Statement stmt = jdbcConnection.createStatement();
+        stmt.execute("SHUTDOWN COMPACT");
+        stmt.close();
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    }
+    jdbcConnection = null;
   }
 
   /**
-   * Returns the list of columns of a table.
+   * H2 and HSQLDB databases can be compacted at shutdown time.
    *
-   * @param tableName The table name.
-   * @return A result set with the columns.
-   * @throws SQLException on error.
+   * @param jdbcConnection An open JDBC connection. @Deprecated Replaced by {@link
+   *     JDBCUtils#shutdownCompact()}
    */
-  public static ResultSet getColumns(String tableName) throws SQLException {
+  @Deprecated
+  public static void shutdownCompact(Connection jdbcConnection) {
+    if (getDbEngine(jdbcConnection) == DB_HSQLDB || getDbEngine(jdbcConnection) == DB_H2) {
 
-    return dmd.getColumns(catalog, schema, JDBCUtils.getCompliantIdentifier(tableName), null);
-  }
-
-  /**
-   * Returns the list of tables in the database.
-   *
-   * @return A result set with the table names.
-   * @throws SQLException on error.
-   */
-  public static ResultSet getTables() throws SQLException {
-    return getTables(null);
-  }
-
-  /**
-   * Tests if the given table name exists.
-   *
-   * @return A non-empyu result set if table exits.
-   * @throws SQLException on error.
-   */
-  public static ResultSet getTables(String tableName) throws SQLException {
-    String[] userTables = {"TABLE"};
-    ResultSet rs = dmd.getTables(catalog, schema, getCompliantIdentifier(tableName), userTables);
-    return rs;
+      // Compact database
+      try {
+        Statement stmt = jdbcConnection.createStatement();
+        stmt.execute("SHUTDOWN COMPACT");
+        stmt.close();
+      } catch (SQLException e) {
+        e.printStackTrace();
+      }
+    }
+    jdbcConnection = null;
   }
 
   /**
@@ -1015,14 +1002,25 @@ public class JDBCUtils {
   public static boolean tableExists(String tableName) {
     try {
 
-      ResultSet tables = getTables(getCompliantIdentifier(tableName));
-      if (tables.next()) {
-        tables.close();
+      ResultSet rs = getTables(getCompliantIdentifier(tableName));
+      if (rs.next()) {
+        rs.close();
         return true;
       }
     } catch (SQLException e) {
       e.printStackTrace();
     }
     return false;
+  }
+
+  /**
+   * This constructor is maintained for backward compatibility (before Nodus 8).
+   *
+   * @param jdbcConnection The connection to the database @Deprecated Use JDBCUtils in a pure static
+   *     way.
+   */
+  @Deprecated
+  public JDBCUtils(Connection jdbcConnection) {
+    setConnection(jdbcConnection);
   }
 }
