@@ -79,7 +79,6 @@ public class ImportDBF {
 
     } catch (Exception e) {
       e.printStackTrace();
-      System.out.println(e.toString());
       return false;
     }
 
@@ -170,8 +169,6 @@ public class ImportDBF {
         } else {
           prepStmt.executeUpdate();
         }
-
-        // prepStmt.execute();
       }
 
       // Flush remaining records in batch
