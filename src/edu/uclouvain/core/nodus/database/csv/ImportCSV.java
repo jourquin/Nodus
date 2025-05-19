@@ -105,7 +105,7 @@ public class ImportCSV {
       Iterable<CSVRecord> records;
       if (withHeader) {
         records =
-            CSVFormat.RFC4180.builder().setHeader().setSkipHeaderRecord(true).build().parse(in);
+            CSVFormat.RFC4180.builder().setHeader().setSkipHeaderRecord(true).get().parse(in);
       } else {
         records = CSVFormat.RFC4180.parse(in);
       }
