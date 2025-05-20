@@ -743,7 +743,7 @@ public class JDBCUtils {
    * @return A non-empyu result set if table exits.
    * @throws SQLException on error.
    */
-  public static ResultSet getTables(String tableName) throws SQLException {
+  private static ResultSet getTables(String tableName) throws SQLException {
     String[] userTables = {"TABLE"};
     ResultSet rs = dmd.getTables(catalog, schema, getCompliantIdentifier(tableName), userTables);
     return rs;

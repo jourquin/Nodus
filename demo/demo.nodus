@@ -6,6 +6,12 @@
 #jdbc.password=nodus
 #jdbc.url=jdbc:mysql://localhost/demo?sessionVariables=default_storage_engine=MYISAM
 
+# Another example using Postgresql (driver also provided with Nodus
+#jdbc.driver=org.postgresql.Driver
+#jdbc.user=nodus
+#jdbc.password=nodus
+#jdbc.url=jdbc:postgresql://localhost:5432/demo
+
 # These two properties are mandatory. They contain a list of node and link layers
 network.nodes= centroids road_points iww_points rail_points terminals
 network.links= road_polylines iww_polylines rail_polylines road_con iww_con rail_con
