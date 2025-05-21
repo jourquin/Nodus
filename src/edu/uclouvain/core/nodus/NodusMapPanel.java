@@ -139,6 +139,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Properties;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.Vector;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -1124,42 +1126,48 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   public void enableMenus(boolean state) {
 
-    // In the "File" menu, not all items must be disables/enabled
-    menuItemFileSave.setEnabled(state);
-    menuItemFileClose.setEnabled(state);
-    menuItemFileSaveAs.setEnabled(state);
-    menuItemFilePrint.setEnabled(state);
+    javax.swing.SwingUtilities.invokeLater(
+        new Runnable() {
+          @Override
+          public void run() {
+            // Enable some menu items
+            menuProject.setEnabled(state);
+            menuProject.setVisible(state);
+            Iterator<JMenuItem> it = projectPluginsMenuItems.iterator();
+            while (it.hasNext()) {
+              JMenuItem m = it.next();
+              m.setEnabled(state);
+            }
 
-    // Enable some menu items
-    menuProject.setEnabled(state);
-    menuProject.setVisible(state);
-    Iterator<JMenuItem> it = projectPluginsMenuItems.iterator();
-    while (it.hasNext()) {
-      JMenuItem m = it.next();
-      m.setEnabled(state);
-    }
+            menuControl.setEnabled(state);
+            menuControl.setVisible(state);
+            menuProjection.setEnabled(state);
+            menuProjection.setVisible(state);
 
-    menuControl.setEnabled(state);
-    menuControl.setVisible(state);
-    menuProjection.setEnabled(state);
-    menuProjection.setVisible(state);
+            // Enable/disable user defined menus (plugins)
+            it = userDefinedMenus.iterator();
+            while (it.hasNext()) {
+              JMenu m = (JMenu) it.next();
+              m.setEnabled(state);
+              m.setVisible(state);
+            }
 
-    // Enable/disable user defined menus (plugins)
-    it = userDefinedMenus.iterator();
-    while (it.hasNext()) {
-      JMenu m = (JMenu) it.next();
-      m.setEnabled(state);
-      m.setVisible(state);
-    }
+            it = globalPluginsMenuItems.iterator();
+            while (it.hasNext()) {
+              JMenuItem m = it.next();
+              m.setEnabled(true);
+            }
 
-    it = globalPluginsMenuItems.iterator();
-    while (it.hasNext()) {
-      JMenuItem m = it.next();
-      m.setEnabled(true);
-    }
+            // In the "File" menu, not all items must be disables/enabled
+            menuItemFileSave.setEnabled(state);
+            menuItemFileClose.setEnabled(state);
+            menuItemFileSaveAs.setEnabled(state);
+            menuItemFilePrint.setEnabled(state);
 
-    menuFile.setVisible(true);
-    
+            menuFile.setEnabled(true);
+            menuFile.setVisible(true);
+          }
+        });
   }
 
   /**
@@ -1275,31 +1283,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
       setMapBean(mapBean);
       setAntialising();
-
-      /* String value = getNodusProperties().getProperty(NodusC.PROP_ANTIALIASING, "true");
-      boolean antialisaing = Boolean.parseBoolean(value);
-
-      if (antialisaing) {
-        RenderingHints rh =
-            new RenderingHints(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        RenderingHintsRenderPolicy hints = new RenderingHintsRenderPolicy();
-        hints.setRenderingHints(rh);
-        HintsMapBeanRepaintPolicy hmbrp = new HintsMapBeanRepaintPolicy(mapBean);
-        hmbrp.setHints(hints);
-        mapBean.setMapBeanRepaintPolicy(hmbrp);
-      }
-
-      // Repaint all layers that can be affected by antialising
-      Layer[] layers = layerHandler.getLayers();
-      for (int i = 0; i < layers.length; i++) {
-
-        if (layers[i] instanceof OMGraphicHandlerLayer) {
-          OMGraphicHandlerLayer l = (OMGraphicHandlerLayer) layers[i];
-          if (l.isEnabled() && l.isVisible()) {
-            l.doPrepare();
-          }
-        }
-      }*/
     }
 
     return mapBean;

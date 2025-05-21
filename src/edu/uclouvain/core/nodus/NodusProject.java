@@ -2036,10 +2036,6 @@ public class NodusProject implements ShapeConstants {
     // Load the service lines
     serviceHandler = new ServiceHandler(this);
 
-    // Enable menus
-    nodusMapPanel.getMenuFile().setEnabled(true);
-    nodusMapPanel.getNodusLayersPanel().enableButtons(true);
-
     // Initialize the user defined modal split methods for this project
     new ModalSplitMethodsLoader(this);
 
@@ -2055,6 +2051,9 @@ public class NodusProject implements ShapeConstants {
 
     nodusMapPanel.setBusy(false);
     isOpen = true;
+
+    // Enable layers panel
+    nodusMapPanel.getNodusLayersPanel().enableButtons(true);
   }
 
   /** Reload the project. Can be used when new node/link layers are added/removed to the project. */

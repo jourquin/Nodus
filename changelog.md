@@ -388,4 +388,5 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
  - Code refactoring of JDBC stuff
  - Detailed path can now display nb vehicles or quantities
   
-  
+##v8.2 - BuildXXXXXXXX 
+- New tentative fix of a "freeze" problem with the menu's that sometimes occurred on MacOS.
