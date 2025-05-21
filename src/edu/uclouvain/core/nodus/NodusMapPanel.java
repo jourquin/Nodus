@@ -1124,6 +1124,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   public void enableMenus(boolean state) {
 
+    // In the "File" menu, not all items must be disables/enabled
+    menuItemFileSave.setEnabled(state);
+    menuItemFileClose.setEnabled(state);
+    menuItemFileSaveAs.setEnabled(state);
+    menuItemFilePrint.setEnabled(state);
+
     // Enable some menu items
     menuProject.setEnabled(state);
     menuProject.setVisible(state);
@@ -1152,12 +1158,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       m.setEnabled(true);
     }
 
-    // In the "File" menu, not all items must be disables/enabled 
     menuFile.setVisible(true);
-    menuItemFileSave.setEnabled(state);
-    menuItemFileClose.setEnabled(state);
-    menuItemFileSaveAs.setEnabled(state);
-    menuItemFilePrint.setEnabled(state);
+    
   }
 
   /**
