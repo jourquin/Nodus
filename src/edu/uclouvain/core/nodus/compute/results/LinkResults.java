@@ -36,6 +36,7 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.results.gui.ResultsDlg;
@@ -110,6 +111,8 @@ public class LinkResults implements ShapeConstants {
   private float ulLon;
 
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
+
+  private static int currentScenario = -1;
 
   /**
    * Initializes the class.
@@ -190,6 +193,45 @@ public class LinkResults implements ShapeConstants {
       default:
         return 0;
     }
+  }
+
+  /**
+   * Ask the user if he wants quantities or vehicles.
+   *
+   * @return 0 for quantities, 1 for vehicles.
+   */
+  private Integer askForDisplayUnits() {
+    String[] units = {
+      i18n.get(LinkResults.class, "Quantities", "Quantities"),
+      i18n.get(LinkResults.class, "Vehicles", "Vehicles"),
+    };
+
+    String choice =
+        (String)
+            JOptionPane.showInputDialog(
+                null,
+                i18n.get(LinkResults.class, "Display_units", "Display units ?"),
+                i18n.get(ResultsDlg.class, "Display_results", "Display results"),
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                units,
+                units[0]);
+
+    // Canceled
+    if (choice == null) {
+      return null;
+    }
+
+    // Get the index of the choice
+    int index = 0;
+    for (int i = 0; i < units.length; i++) {
+      if (choice.equals(units[i])) {
+        index = i;
+        break;
+      }
+    }
+
+    return index;
   }
 
   /**
@@ -382,18 +424,57 @@ public class LinkResults implements ShapeConstants {
    */
   public boolean displayPath(String sqlStmt) {
 
-    // TODO new SQL query to generate
-    // SELECT ABS(DEMO_PATH6_DETAIL.LINK),QTY, grp FROM DEMO_PATH6_HEADER INNER JOIN DEMO_PATH6_DETAIL ON DEMO_PATH6_HEADER.PATHIDX = DEMO_PATH6_DETAIL.PATHIDX WHERE "GRP" = 0 AND "ORG" = 1020201 AND "DST" = 1020303
-      
     double maxResult = Double.MIN_VALUE;
     double minResult = Double.MAX_VALUE;
 
+    // Ask the use which units he wants to display 
+    Integer unit = askForDisplayUnits();
+    if (unit == null) {
+      return false;
+    }
+    
+    boolean displayVehicles = false;
+    if (unit == 1) {
+      displayVehicles = true;
+    }
+
     nodusMapPanel.setBusy(true);
 
-    // Get the average loads per vehicle
-    int currentScenario = nodusProject.getLocalProperty(NodusC.PROP_SCENARIO, 0);
+    int scenario = nodusProject.getLocalProperty(NodusC.PROP_SCENARIO, 0);
+    VehiclesParser vehiclesParser = null;
 
-    // TODO retrieve cost functions file name and fetch relevant data in it
+    // Load the average loads of each type of vehicle from the cost functions file
+    if (displayVehicles) {
+      if (scenario != currentScenario) {
+        currentScenario = scenario;
+
+        // Load cost functions
+        String costFunctionsFileName = nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS);
+
+        costFunctionsFileName =
+            nodusProject.getLocalProperty(
+                NodusC.PROP_COST_FUNCTIONS + currentScenario, costFunctionsFileName);
+        costFunctionsFileName =
+            nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + costFunctionsFileName;
+
+        Properties costFunctions = new Properties();
+        try {
+          costFunctions.load(new FileInputStream(costFunctionsFileName.trim()));
+        } catch (IOException ex) {
+          ex.printStackTrace();
+          return false;
+        }
+
+        // Initialize the vehicles parser and load the vehicle characteristics for all groups.
+        vehiclesParser = new VehiclesParser(currentScenario);
+
+        for (byte group = 0; group < NodusC.MAXGROUPS; group++) {
+          if (!vehiclesParser.loadVehicleCharacteristics(costFunctions, group)) {
+            return false;
+          }
+        }
+      }
+    }
 
     Connection jdbcConnection = nodusProject.getMainJDBCConnection();
     NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
@@ -405,15 +486,25 @@ public class LinkResults implements ShapeConstants {
       ResultSet rs = stmt.executeQuery(sqlStmt);
 
       // Retrieve result of query
-
       while (rs.next()) {
         RealLink rl = getRealLink(linkLayers, JDBCUtils.getInt(rs.getObject(1)));
 
         if (rl != null) {
-          double d = rl.getResult();
+          double qty = JDBCUtils.getDouble(rs.getObject(2));
+          int group = JDBCUtils.getInt(rs.getObject(3));
+          int mode = JDBCUtils.getInt(rs.getObject(4));
+          int means = JDBCUtils.getInt(rs.getObject(5));
 
-          // Add volume to current volume
-          d += JDBCUtils.getDouble(rs.getObject(2));
+          double d = rl.getResult();
+          if (displayVehicles) {
+            // Compute the number of vehicles needed
+            double nbVehicles = Math.ceil(qty / vehiclesParser.getAverageLoad(group, mode, means));
+            d += nbVehicles;
+          } else {
+            // Add volume to current volume
+            d += qty;
+          }
+
           rl.setResult(d);
 
           if (d > maxResult) {

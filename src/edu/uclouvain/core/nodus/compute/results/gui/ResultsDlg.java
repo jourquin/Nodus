@@ -475,18 +475,26 @@ public class ResultsDlg extends EscapeDialog {
     }
 
     /*
-     * Example : SELECT ABS(miniproject_path0_detail.link), Sum(qty) FROM miniproject_path0_header
-     * INNER JOIN miniproject_path0_detail ON miniproject_path0_header.pathidx =
-     * miniproject_path0_detail.pathidx where org=11 and dst=3352 GROUP BY
-     * miniproject_path0_detail.link
+     * Example :
+     * SELECT ABS(DEMO_PATH6_DETAIL.LINK),QTY, GRP, MODE, MEANS
+     * FROM DEMO_PATH6_HEADER
+     * INNER JOIN DEMO_PATH6_DETAIL ON DEMO_PATH6_HEADER.PATHIDX = DEMO_PATH6_DETAIL.PATHIDX
+     * WHERE "GRP" = 0 AND "ORG" = 1020201 AND "DST" = 1020303
      */
+
     return "SELECT ABS("
         + detailTableName
         + "."
         + JDBCUtils.getCompliantIdentifier(NodusC.DBF_LINK)
-        + "), SUM("
+        + ") AS " + NodusC.DBF_LINK
+        + ", "
         + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
-        + ")"
+        + ", "
+        + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
+        + ", "
+        + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE)
+        + ", "
+        + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS)
         + " FROM "
         + headerTableName
         + " INNER JOIN "
@@ -507,12 +515,7 @@ public class ResultsDlg extends EscapeDialog {
         + " = ??? AND "
         + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_DESTINATION)
         + " = ???"
-        + timeWhereClause
-        + " GROUP BY ABS("
-        + detailTableName
-        + "."
-        + JDBCUtils.getCompliantIdentifier(NodusC.DBF_LINK)
-        + ")";
+        + timeWhereClause;
   }
 
   /** Initializes the GUI components of the dialog box. */
@@ -911,8 +914,8 @@ public class ResultsDlg extends EscapeDialog {
       }
 
       element.setDisplayResults(false);
-      // TODO If a result concerns a subset of links, the labels are displayed only 
-      // on these links after a reset 
+      // TODO If a result concerns a subset of links, the labels are displayed only
+      // on these links after a reset
       element.getLocationHandler().setDisplayResults(false);
       element.getLocationHandler().reloadData();
       element.applyWhereFilter(element.getWhereStmt());
