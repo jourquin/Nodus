@@ -139,8 +139,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Properties;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.Vector;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
