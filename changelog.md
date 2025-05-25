@@ -390,3 +390,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
   
 ##v8.2 - Build20250522 
 - New tentative fix of a "freeze" problem with the menu's that sometimes occurred on MacOS.
+
+##v8.2 - Build202505205
+- Upgrade to latest Groovy libs for compatibility with Java 24.
+
