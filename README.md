@@ -81,7 +81,10 @@ A documented sample Nodus project can be found in the "[demo](https://github.com
 shows that the choice of the JDK used can have a significant impact on calculation times. On average, 
 [GraalVM](https://www.graalvm.org) performs an assignment 25% faster than a “classic” OpenJDK virtual machine.  
 
-> **Note for macOS users**: recent releases of macOS (Catalina and later) introduce more access control to disks. If you want to use
+> **Note for macOS users**: recent releases of macOS (Catalina and later) introduce more security controls via Gatekeeper. MacOS may complain 
+> about the fact that the "Nodus8-installer.jar" is not developed by
+> a recognized developer. A simple workaround is to run the installer from a terminal 
+> (``java -jar Nodus8-Installer.jar``). Moreover, if you want to use
 > Nodus projects that are stored in "special" folders, such as the Desktop for instance, 
 > **full disk access must be granted to the /bin/sh shell** at the OS level 
 > (add entry in Preferences > Security & Privacy > Privacy > Full Disk Access).
