@@ -873,7 +873,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   }
 
   /**
-   * Creates at Foxtrot thread in which the SQL statements are executed. Refresh the tree if needed
+   * Creates at thread in which the SQL statements are executed. Refresh the tree if needed
    * and play a sound if the query execution time was a longer than 5 seconds.
    */
   private void executeSQLStatements() {
