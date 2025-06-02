@@ -234,6 +234,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     if (list != null) {
       synchronized (list) {
         point.generate(getProjection());
+        point.putAttribute(0, new RealNode());
         list.add(point);
 
         getModel().addBlankRecord();
@@ -315,6 +316,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   public boolean addRecord(
       EsriPolyline link, int newNumber, int numNode1, int numNode2, boolean displayGUI) {
 
+    link.putAttribute(0, new RealLink());
     OMGraphicList list = getEsriGraphicList();
     if (list != null) {
       synchronized (list) {

@@ -2362,17 +2362,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         nodusProject.getNodusMapPanel().closeAndSaveState();
         // System.exit(0);
       }
-
-      if (nodusProject.isOpen()) {
-        // Reset mouse mode
-        String mouseModeId = nodusProject.getLocalProperty(NodusC.PROP_ACTIVE_MOUSE_MODE, null);
-        if (mouseModeId != null) {
-          setActiveMouseMode(mouseModeId);
-        }
-        resetText();
-        updateScenarioComboBox(true);
-        enableMenus(true);
-      }
     }
   }
 

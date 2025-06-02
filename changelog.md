@@ -394,3 +394,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 ##v8.2 - Build202505205
 - Upgrade to latest Groovy libs for compatibility with Java 24.
 
+##v8.2 - Build 20250601
+- Code refactoring and fix some minor bugs.
+

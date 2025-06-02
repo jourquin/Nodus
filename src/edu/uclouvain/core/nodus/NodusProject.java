@@ -2049,21 +2049,34 @@ public class NodusProject implements ShapeConstants {
     scriptRunner.setVariable("closeProject", false);
     scriptRunner.run(true);
 
-    nodusMapPanel.setBusy(false);
-    isOpen = true;
-
     // Enable layers panel
     nodusMapPanel.getNodusLayersPanel().enableButtons(true);
+
+    // Reset mouse mode
+    String mouseModeId = getLocalProperty(NodusC.PROP_ACTIVE_MOUSE_MODE, null);
+    if (mouseModeId != null) {
+      getNodusMapPanel().setActiveMouseMode(mouseModeId);
+    }
+    getNodusMapPanel().resetText();
+    getNodusMapPanel().updateScenarioComboBox(true);
+    getNodusMapPanel().enableMenus(true);
+
+    nodusMapPanel.setBusy(false);
+    isOpen = true;
   }
 
   /** Reload the project. Can be used when new node/link layers are added/removed to the project. */
   public void reload() {
-    saveProperties();
+    NodusMapPanel nmp = getNodusMapPanel();
+    // saveProperties();
+
     String fileNameAndPath =
         localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
             + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
             + NodusC.TYPE_NODUS;
+
     close();
+
     openProject(fileNameAndPath);
   }
 
