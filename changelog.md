@@ -358,29 +358,29 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Add default constructor in several classes to avoid Javadoc warnings
 - Code refactoring (some variables were declared too far from their first use)
 
-##v8.2 - Build20250112
+## v8.2 - Build20250112
 - Add --illegal-access=deny to the Java parameters to hide Groovy console warning
 - Change the theme of the Nodus Groovy console and add some improvements
 - Avoid saving window location if Nodus is closed when the main window is minimized. 
 - The list of tables in the SQL console was wrong with some versions of MySQL/MAriaDB : fixed
 - Update Copyright year
 
-##v8.2 - Build20250203
+## v8.2 - Build20250203
 - Upgrade MariaDB JDBC driver
 - Test the availability of a newer version or build of Nodus on GitHub
 - The install now removes old file from a previous installation
 
-##v8.2 - Build20250224
+## v8.2 - Build20250224
 - Add a "manual" check for update in the preferences dialog
 
-##v8.2 - Build20250513
+## v8.2 - Build20250513
 - Detailed path's are now displayed with a variable with, depending on the traffic.
 - Tentative fix of a "freeze" problem with the menu's that sometimes occurred on MacOS. 
 - Fix a bug that resulted in an incorrect display of the transported quantities along a detailed path obtained with the MSA algorithm. 
 - Fix a bug in the "importcsv" command (missing Apache commons-codec lib)
 - Improve the JDBCUtils.dropTable method
  
-##v8.2 - Build20250521
+## v8.2 - Build20250521
  - Upgrade MariaDB and MySQL JDBC drivers to latest version
  - Improved tableExists method in JDBCUtils
  - Improved list of OD tables in the Assignment dialog
@@ -388,12 +388,12 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
  - Code refactoring of JDBC stuff
  - Detailed path can now display nb vehicles or quantities
   
-##v8.2 - Build20250522 
+## v8.2 - Build20250522 
 - New tentative fix of a "freeze" problem with the menu's that sometimes occurred on MacOS.
 
-##v8.2 - Build202505205
+## v8.2 - Build202505205
 - Upgrade to latest Groovy libs for compatibility with Java 24.
 
-##v8.2 - Build 20250601
+## v8.2 - Build 20250601
 - Code refactoring and fix some minor bugs.
 
