@@ -113,6 +113,10 @@ public class LinkResults implements ShapeConstants {
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
   private static int currentScenario = -1;
+ 
+  double maxResult = Double.MIN_VALUE;
+ 
+  double minResult = Double.MAX_VALUE;
 
   /**
    * Initializes the class.
@@ -302,9 +306,6 @@ public class LinkResults implements ShapeConstants {
       export = false;
     }
 
-    // Retain extreme values if not yet set and delete old export files
-    double maxResult = Double.MIN_VALUE;
-    double minResult = Double.MAX_VALUE;
     if (!isTimeDependent) {
       for (NodusEsriLayer element : linkLayers) {
 
@@ -630,8 +631,8 @@ public class LinkResults implements ShapeConstants {
    */
   public boolean displayTimeDependentFlows(String sqlStmt) {
 
-    double maxResult = Double.MIN_VALUE;
-    double minResult = Double.MAX_VALUE;
+    //double maxResult = Double.MIN_VALUE;
+    //double minResult = Double.MAX_VALUE;
 
     // Automatic or manual display ?
     Integer answer = askForDisplayInterval();

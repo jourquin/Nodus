@@ -39,7 +39,7 @@ import javax.swing.JOptionPane;
 
 /**
  * The DynamicTimeDependentAssignment assigns a time dependent OD matrix. It is based on an
- * All-Or-Nothing assignment. At the end of each period (time slice), the algorithm compute the
+ * All-Or-Nothing assignment. At the end of each period (time slice), the algorithm computes the
  * location of each route at the end of the period and relocated the associated demand to this
  * location. At the beginning of the following period, the assignment starts the assignment of the
  * demand that starts at that time, plus the "relocated" demands which are not yet at their final

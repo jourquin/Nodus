@@ -2049,6 +2049,8 @@ public class NodusProject implements ShapeConstants {
     scriptRunner.setVariable("closeProject", false);
     scriptRunner.run(true);
 
+    isOpen = true;
+    
     // Enable layers panel
     nodusMapPanel.getNodusLayersPanel().enableButtons(true);
 
@@ -2062,7 +2064,7 @@ public class NodusProject implements ShapeConstants {
     getNodusMapPanel().enableMenus(true);
 
     nodusMapPanel.setBusy(false);
-    isOpen = true;
+   
   }
 
   /** Reload the project. Can be used when new node/link layers are added/removed to the project. */
