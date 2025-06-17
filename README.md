@@ -113,6 +113,9 @@ You can redistribute it and/or modify Nodus 8.x under the terms of the GNU Gener
 as published by the Free Software Foundation, either [version 3](https://www.gnu.org/licenses/gpl-3.0.html)
 of the License, or (at your option) any later version. 
 
+Note that the NODUS name and logo are trademarks of UCLouvain and are **not** covered by the GPL license. 
+Use of the trademark is governed by this [Trademark Policy](https://github.com/jourquin/Nodus/blob/master/Trademark%20Policy.md).
+
 ## Build from sources
 
 The Nodus distribution can be built from the sources. Therefore, you need a Java Development Kit 
