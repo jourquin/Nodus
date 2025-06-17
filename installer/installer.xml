@@ -70,6 +70,7 @@
 			<file src="changelog.md" targetdir="$INSTALL_PATH" />
 			<file src="LICENSE" targetdir="$INSTALL_PATH" />
 			<file src="gpl-french.pdf" targetdir="$INSTALL_PATH" />
+			<file src="Trademark Policy.md" targetdir="$INSTALL_PATH" />
 			<file src="installer/nodus8.bat" os="windows"
 				targetdir="$INSTALL_PATH" />
 			<file src="installer/MakeLnk.bat" os="windows"
