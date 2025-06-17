@@ -401,4 +401,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Fix display of scenario combo
 - Fix small bug in display of dynamic assignments
 
+## v8.2 - Build20250617
+- Add Trademark Policy
+
 
