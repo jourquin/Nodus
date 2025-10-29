@@ -2069,9 +2069,7 @@ public class NodusProject implements ShapeConstants {
 
   /** Reload the project. Can be used when new node/link layers are added/removed to the project. */
   public void reload() {
-    NodusMapPanel nmp = getNodusMapPanel();
-    // saveProperties();
-
+    
     String fileNameAndPath =
         localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
             + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
