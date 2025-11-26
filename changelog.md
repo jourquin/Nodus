@@ -404,4 +404,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 ## v8.2 - Build20250617
 - Add Trademark Policy
 
+## v8.3 - Build20251126
+- Nodus now embeds Groovy 5.x. Some existing scripts could need some minor changes. 
 

@@ -1,4 +1,4 @@
-# Nodus 8.2
+# Nodus 8.3
 
 Nodus 8.0, which first build was released on March 4, 2021, introduced a series of new features, among which:
 
@@ -13,6 +13,9 @@ Nodus 8.1 (first build on April 26, 2021) introduced the possibility to develop 
 Nodus 8.2 (first build on February 18, 2022) needs Java 11 or above to run. This version also embeds H2 version 2. Existing projects using the H2 database
 will need a migration of the database : https://www.h2database.com/html/migration-to-v2.html. The embedded HSQLDB, H2 and Derby
 engines now run in server mode, allowing for external connections from another JDBC client. 
+
+Nodus 8.3 (first build on November 26, 2025) embeds Groovy 5.x. The version change is justified by the fact that, although unlikely, some scripts written 
+in this language may need to be slightly adapted.
 
 The CHANGELOG.MD file contains an exhaustive list of the improvements made to the software.
 

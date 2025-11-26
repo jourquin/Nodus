@@ -1,4 +1,4 @@
-# Nodus 8.2 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
+# Nodus 8.3 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
 
 
 Nodus is a transportation network modeling software especially designed for multimodal and
@@ -58,6 +58,7 @@ Many under the hood improvements.
 - 8.1 - April 2021: Runs on Java 16 and allows Python scripting through a Py4J bridge and R scripting through a J4R bridge in addition to Groovy.
 - 8.2 - February 2022: Runs on Java 17, but now needs Java 11 or above to run. Runs HSQLDB, H2 and Derby in server mode to allow for
 external connections. Upgrade to Groovy 4.
+- 8.3 - November 2025: Runs on Java 25 and Groovy is upgraded to version 5.
 
 See the [change log](changelog.md) for a detailed build history.
 
