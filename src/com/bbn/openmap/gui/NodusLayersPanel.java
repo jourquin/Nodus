@@ -188,13 +188,13 @@ public class NodusLayersPanel extends LayersPanel {
       Layer layer = (Layer) obj;
       if (layer instanceof NodusEsriLayer) {
         NodusEsriLayer nes = (NodusEsriLayer) layer;
-        nes.getLocationHandler().setVisible(!nes.isVisible());
-        /*javax.swing.SwingUtilities.invokeLater(
-        new Runnable() {
-          public void run() {
-            nes.getLocationHandler().setVisible(nes.isVisible());
-          }
-        });*/
+        // nes.getLocationHandler().setVisible(!nes.isVisible());
+        javax.swing.SwingUtilities.invokeLater(
+            new Runnable() {
+              public void run() {
+                nes.getLocationHandler().setVisible(nes.isVisible());
+              }
+            });
       }
     }
   }

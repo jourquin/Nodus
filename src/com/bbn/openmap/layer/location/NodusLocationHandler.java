@@ -386,8 +386,9 @@ public class NodusLocationHandler extends AbstractLocationHandler
 
     int locationFieldIndex = getLocationFieldIndex();
 
+    // TODO 20251203 label display bug 
     // If there is nothing to display
-    if (!isDisplayResults() && (!isVisible || locationFieldIndex == -1)) {
+    if (!displayResults && (!isVisible || locationFieldIndex == -1)) {
       graphicList.clear();
       getLayer().doPrepare();
       return;
@@ -631,7 +632,6 @@ public class NodusLocationHandler extends AbstractLocationHandler
     if (this.isVisible != visible) {
       this.isVisible = visible;
       reloadData();
-      getLayer().doPrepare();
     }
   }
 

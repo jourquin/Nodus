@@ -407,3 +407,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 ## v8.3 - Build20251126
 - Nodus now embeds Groovy 5.x. Some existing scripts could need some minor changes. 
 
+## v8.3 - Build20251203
+- Small bug fix in the location handler.
+ 
