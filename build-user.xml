@@ -70,7 +70,7 @@
 	<!-- Create jar -->
 	<target name="Jar" description="Builds the Nodus jar file.">
 		<echo message="Creating Nodus jar file" />
-		
+		<antcall target="clean" />
 		<!-- Override build.xml to use the "release" javac option instead of "source" and "target" -->
 		<mkdir dir="classes"/>
 		<copy includeemptydirs="false" todir="classes">
