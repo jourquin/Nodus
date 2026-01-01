@@ -410,7 +410,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 ## v8.3 - Build20251203
 - Small bug fix in the location handler.
 
-## v8.3 - Buildxxxxxxxx
+## v8.3 - Build20260101
 - Force a clean before jar build in ant file.
+- Upgrade copyright year
 
  
