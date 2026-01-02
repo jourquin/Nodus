@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 1991-2026 Université catholique de Louvain
  *
  * <p>Center for Operations Research and Econometrics (CORE)
