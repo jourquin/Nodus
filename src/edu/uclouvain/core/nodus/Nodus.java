@@ -202,7 +202,8 @@ public class Nodus {
             boolean b = nodusMapPanel.getMainFrame().isAlwaysOnTop();
             nodusMapPanel.getMainFrame().setAlwaysOnTop(true);
             nodusMapPanel.getMainFrame().setAlwaysOnTop(b);
-
+            nodusMapPanel.requestFocus();
+            
             // Run the "nodus.groovy" script if exists
             String scriptFileName =
                 System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
