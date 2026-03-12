@@ -99,7 +99,7 @@ public class NodusC {
   /** Quality ratio used for the generated JPEG images from displayed map. */
   public static final float JPEG_QUALITY = 0.8f;
 
-  /** Maximum size of the SQL batch for the path writer. */
+  /** Maximum size of the SQL batch while writing tables. */
   public static final int MAXBATCHSIZE = 1000;
 
   /** Maximum number of groups of commodities. */

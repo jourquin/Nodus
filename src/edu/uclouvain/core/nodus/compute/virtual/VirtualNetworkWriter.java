@@ -45,9 +45,9 @@ public class VirtualNetworkWriter {
   private static I18n i18n = Environment.getI18n();
 
   private NodusMapPanel nodusMapPanel;
-  
+
   private boolean hasBatchSupport;
-  
+
   private Connection jdbcConnection;
 
   /**
@@ -186,7 +186,7 @@ public class VirtualNetworkWriter {
       jdbcConnection = nodusProject.getMainJDBCConnection();
 
       hasBatchSupport = JDBCUtils.hasBatchSupport();
-      
+
       /* Prepared statement */
       String sqlStmt = "INSERT INTO " + vNetTableName + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,";
 
@@ -279,11 +279,7 @@ public class VirtualNetworkWriter {
                   batchSize++;
                   prepStmt.addBatch();
                   if (batchSize >= maxBatchSize) {
-                    final boolean oldAutoCommit = jdbcConnection.getAutoCommit();
-                    jdbcConnection.setAutoCommit(false);
                     prepStmt.executeBatch();
-                    jdbcConnection.commit();
-                    jdbcConnection.setAutoCommit(oldAutoCommit);
                     batchSize = 0;
                   }
                 } else {
@@ -297,21 +293,13 @@ public class VirtualNetworkWriter {
 
       // Flush remaining records in batch
       if (hasBatchSupport) {
-        final boolean oldAutoCommit = jdbcConnection.getAutoCommit();
-        jdbcConnection.setAutoCommit(false);
-        try {
-          prepStmt.executeBatch();
-        } catch (Exception e) {
-          // If not in batch mode because there is nothing to write in table
-        }
-        jdbcConnection.commit();
-        jdbcConnection.setAutoCommit(oldAutoCommit);
+        prepStmt.executeBatch();
       }
 
-      prepStmt.close();
       if (!jdbcConnection.getAutoCommit()) {
         jdbcConnection.commit();
       }
+      prepStmt.close();
 
     } catch (Exception e) {
       nodusMapPanel.stopProgress();

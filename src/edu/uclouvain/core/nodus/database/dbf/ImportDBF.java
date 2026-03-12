@@ -160,10 +160,7 @@ public class ImportDBF {
           batchSize++;
           prepStmt.addBatch();
           if (batchSize >= maxBatchSize) {
-            jdbcConnection.setAutoCommit(false);
             prepStmt.executeBatch();
-            jdbcConnection.commit();
-            jdbcConnection.setAutoCommit(oldAutoCommit);
             batchSize = 0;
           }
         } else {
@@ -172,11 +169,8 @@ public class ImportDBF {
       }
 
       // Flush remaining records in batch
-      if (hasBatchSupport && batchSize > 0) {
-        jdbcConnection.setAutoCommit(false);
+      if (hasBatchSupport) {
         prepStmt.executeBatch();
-        jdbcConnection.commit();
-        jdbcConnection.setAutoCommit(oldAutoCommit);
       }
 
       prepStmt.close();

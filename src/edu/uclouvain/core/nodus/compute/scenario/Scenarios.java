@@ -121,6 +121,7 @@ public class Scenarios {
   }
 
   private NodusProject nodusProject;
+  private boolean hasBatchSupport = false;
 
   /**
    * Initializes the class.
@@ -129,6 +130,9 @@ public class Scenarios {
    */
   public Scenarios(NodusProject nodusProject) {
     this.nodusProject = nodusProject;
+
+    // Does the used DB support batch processing ?
+    hasBatchSupport = JDBCUtils.hasBatchSupport();
   }
 
   /**
@@ -173,13 +177,13 @@ public class Scenarios {
     Connection con = nodusProject.getMainJDBCConnection();
 
     try {
-      
+
       // First table
       String tableName =
           nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
       tableName =
           nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + referenceScenario;
-      
+
       ResultSet col = JDBCUtils.getColumns(tableName);
 
       while (col.next()) {
@@ -199,7 +203,7 @@ public class Scenarios {
       tableName = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
       tableName =
           nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenarioToCompare;
-      //col = metaData.getColumns(null, null, tableName, null);
+      // col = metaData.getColumns(null, null, tableName, null);
       col = JDBCUtils.getColumns(tableName);
 
       while (col.next()) {
@@ -413,6 +417,14 @@ public class Scenarios {
     }
 
     /* Now create the result table and save the data into it */
+    int maxBatchSize =
+        nodusProject.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
+
+    // Reduce max batch size as a vnet record is much larger that a path header / detail record
+    if (maxBatchSize > NodusC.MAXBATCHSIZE) {
+      maxBatchSize /= 5;
+    }
+
     try {
 
       // Create result table
@@ -435,6 +447,7 @@ public class Scenarios {
       // Save the data from the hashtable.
       Statement stmt = con.createStatement();
 
+      int batchSize = 0;
       Iterator<VnetRecord> it = hashMap.values().iterator();
       while (it.hasNext()) {
         VnetRecord vnr = it.next();
@@ -481,9 +494,22 @@ public class Scenarios {
         prepStmt.setDouble(idx++, totalQty);
         prepStmt.setInt(idx++, totalVehicles);
 
-        prepStmt.executeUpdate();
+        // Save into table according to batch policy;
+        if (hasBatchSupport) {
+          batchSize++;
+          prepStmt.addBatch();
+          if (batchSize >= maxBatchSize) {
+            prepStmt.executeBatch();
+            batchSize = 0;
+          }
+        } else {
+          prepStmt.executeUpdate();
+        }
       }
 
+      if (hasBatchSupport) {
+        prepStmt.addBatch();
+      }
       stmt.close();
       if (!con.getAutoCommit()) {
         con.commit();

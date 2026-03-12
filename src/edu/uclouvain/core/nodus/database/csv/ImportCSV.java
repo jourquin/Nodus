@@ -104,18 +104,12 @@ public class ImportCSV {
       Reader in = new FileReader(fileName);
       Iterable<CSVRecord> records;
       if (withHeader) {
-        records =
-            CSVFormat.RFC4180.builder().setHeader().setSkipHeaderRecord(true).get().parse(in);
+        records = CSVFormat.RFC4180.builder().setHeader().setSkipHeaderRecord(true).get().parse(in);
       } else {
         records = CSVFormat.RFC4180.parse(in);
       }
 
-     
       boolean hasBatchSupport = JDBCUtils.hasBatchSupport();
-      
-      // boolean oldAutoCommit = false;
-      boolean oldAutoCommit = con.getAutoCommit();
-      // con.setAutoCommit(false);
 
       PreparedStatement prepStmt = null;
 
@@ -147,10 +141,7 @@ public class ImportCSV {
           batchSize++;
           prepStmt.addBatch();
           if (batchSize >= maxBatchSize) {
-            con.setAutoCommit(false);
             prepStmt.executeBatch();
-            con.commit();
-            con.setAutoCommit(oldAutoCommit);
             batchSize = 0;
           }
         } else {
@@ -160,16 +151,15 @@ public class ImportCSV {
 
       // Flush remaining records in batch
       if (hasBatchSupport) {
-        con.setAutoCommit(false);
         prepStmt.executeBatch();
-        con.commit();
       }
 
-      prepStmt.close();
-      if (oldAutoCommit == false) {
+      if (!con.getAutoCommit()) {
         con.commit();
       }
-      con.setAutoCommit(oldAutoCommit);
+      
+      prepStmt.close();
+
     } catch (SQLException | IOException e) {
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
