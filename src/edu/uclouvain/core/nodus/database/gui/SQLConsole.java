@@ -1349,6 +1349,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     // resultPanel = new JPanel();
     nsSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, commandPanel, resultPanel);
+    nsSplitPane.setContinuousLayout(true);
 
     commandPanel.setLayout(new BorderLayout());
     resultPanel.setLayout(new BorderLayout());
@@ -1403,6 +1404,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     resultScrollPane.setPreferredSize(new Dimension(460, 300));
 
     ewSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScrollPane, nsSplitPane);
+    ewSplitPane.setContinuousLayout(true);
 
     frame.getContentPane().add(ewSplitPane, BorderLayout.CENTER);
     frame.doLayout();
