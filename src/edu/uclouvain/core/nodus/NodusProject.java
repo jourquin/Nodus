@@ -542,6 +542,7 @@ public class NodusProject implements ShapeConstants {
 
             localProperties.store(
                 new FileOutputStream(projectResourceFileNameAndPath + NodusC.TYPE_LOCAL), null);
+            localProperties.clear();
             localProperties = null;
           } catch (IOException ex) {
             System.err.println(
@@ -618,6 +619,10 @@ public class NodusProject implements ShapeConstants {
       // Reset view to initial values
       getNodusMapPanel().getMapBean().setScale(initialScale);
       getNodusMapPanel().getMapBean().setCenter(initialCenterPoint);
+      
+      projectProperties.clear();
+      projectProperties = null;
+      
     }
   }
 
