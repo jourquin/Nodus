@@ -414,7 +414,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Force a clean before jar build in ant file.
 - Upgrade copyright year
 
-## v8.3 - BuildXXXXXXXX
+## v8.3 - Build20260318
 - Set focus to main window at startup
 - Some JDBC performance improvements 
 - Improve the project closing operations
