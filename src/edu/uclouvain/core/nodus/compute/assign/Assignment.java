@@ -262,7 +262,7 @@ public abstract class Assignment implements Runnable {
 
     ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
     scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
-    scriptRunner.run(true);
+    //scriptRunner.run(true);
 
     return scriptRunner.run(false);
   }
