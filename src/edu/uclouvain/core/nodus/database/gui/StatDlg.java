@@ -172,7 +172,7 @@ public class StatDlg extends EscapeDialog {
 
     this.nodusProject = nodusProject;
     this.sqlConsole = sqlConsole;
-    
+
     initialize();
     setModal(true);
     getRootPane().setDefaultButton(closeButton);
@@ -203,7 +203,6 @@ public class StatDlg extends EscapeDialog {
 
   /** Generates the queries for the selected statistics. */
   private void generateQueries() {
-    
 
     // Fetch scenario
     virtualNetTableName = (String) scenarioComboBox.getSelectedItem();
@@ -236,7 +235,7 @@ public class StatDlg extends EscapeDialog {
     if (nbODCheckBox.isSelected()) {
       String defTable = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + " _od";
       String odTableName = nodusProject.getLocalProperty(NodusC.PROP_OD_TABLE, defTable);
-      
+
       odTableName = JDBCUtils.getCompliantIdentifier(odTableName);
 
       header =
@@ -811,7 +810,7 @@ public class StatDlg extends EscapeDialog {
             deselectAllButton_actionPerformed(e);
           }
         });
-   
+
     scenarioLabel.setText(i18n.get(StatDlg.class, "Scenario", "Scenario"));
 
     setContentPane(mainPanel);
@@ -1136,6 +1135,7 @@ public class StatDlg extends EscapeDialog {
 
   @Override
   public void keyPressed(KeyEvent e) {
+    saveState();
     super.keyPressed(e);
   }
 
