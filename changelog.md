@@ -422,4 +422,5 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 
 ## v8.3 - Build2026XXXX
 - Bug fix : the post assignment script, if any, was run twice.
+- Improved "save state" of checkboxes in StatDlg
 
