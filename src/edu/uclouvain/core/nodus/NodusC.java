@@ -399,6 +399,9 @@ public class NodusC {
 
   /** Name of the variable that must be used in cost functions to use the capacity on a link. */
   public static final String VARNAME_CAPACITY = "CAPACITY";
+  
+  /** Variable that can be used in cost functions to specify the max detour reference mode. */
+  public static final String VARNAME_MAX_DETOUR_REF_MODE = "MAX_DETOUR_REF_MODE";
 
   /**
    * Name of the variable that must be used in cost functions to use the average load of a vehicle.

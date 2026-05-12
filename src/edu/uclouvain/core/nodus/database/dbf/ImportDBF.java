@@ -115,7 +115,6 @@ public class ImportDBF {
     try {
       PreparedStatement prepStmt = jdbcConnection.prepareStatement(sqlStmt);
 
-      boolean oldAutoCommit = jdbcConnection.getAutoCommit();
       int batchSize = 0;
 
       while (dbfReader.hasNextRecord()) {

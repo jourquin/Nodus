@@ -104,6 +104,13 @@ public class AssignmentParameters {
   private boolean withDurationFunction = false;
 
   /**
+   * If -1 (default), maxDetour is computed considering the shortest path, all modes includes.
+   * Otherwise, the value corresponds to the ID of a "reference" mode, to which the other modes must
+   * be compared. The value can be set in the .costs file, using the MAX_DETOUR_REF_MODE variable.
+   */
+  private byte maxDetourReferenceMode = -1;
+
+  /**
    * Initializes the assignment parameters.
    *
    * @param nodusProject NodusProject
@@ -383,7 +390,7 @@ public class AssignmentParameters {
   public void setDurationFunctions(boolean withDurationFunctions) {
     this.withDurationFunction = withDurationFunctions;
   }
-  
+
   /**
    * If true, all the computed intermodal routes will be used, even if they are more expensive than
    * unimodal alternatives.
@@ -561,5 +568,23 @@ public class AssignmentParameters {
     s += "\n";
 
     return s;
+  }
+
+  /**
+   * Returns the maxDetourReferenceMode.
+   *
+   * @return maxDetourReferenceMode
+   */
+  public byte getMaxDetourReferenceMode() {
+    return maxDetourReferenceMode;
+  }
+
+  /**
+   * Set the maxDetourReferenceMode .
+   *
+   * @param maxDetourReferenceMode byte
+   */
+  public void setMaxDetourReferenceMode(byte maxDetourReferenceMode) {
+    this.maxDetourReferenceMode = maxDetourReferenceMode;
   }
 }

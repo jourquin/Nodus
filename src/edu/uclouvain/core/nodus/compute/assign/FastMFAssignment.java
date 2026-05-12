@@ -71,6 +71,9 @@ public class FastMFAssignment extends Assignment {
     if (hasDurationFunctions()) {
       assignmentParameters.setDurationFunctions(true);
     }
+    
+    // Get the max detour reference mode
+    getMaxDetourReferenceMode();
 
     // Generate a virtual network
     virtualNet = new VirtualNetwork(assignmentParameters);

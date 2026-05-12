@@ -59,6 +59,8 @@ import java.util.List;
  */
 public class ExactMFAssignmentWorker extends AssignmentWorker {
 
+  byte maxDetourReferenceMode = -1;
+
   /** This value is used when the "force modal split is used". */
   static final double forcedCostPerIteration = Integer.MAX_VALUE;
 
@@ -103,6 +105,11 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     shortestPath = new BinaryHeapAStar(graph);
     availableModeMeans = virtualNet.getAvailableModeMeans(groupIndex);
     paths = new Path[assignmentParameters.getNbIterations() * availableModeMeans.length];
+
+    maxDetourReferenceMode = assignmentParameters.getMaxDetourReferenceMode();
+    if (maxDetourReferenceMode != -1) {
+      System.out.println("Max detour reference mode: " + maxDetourReferenceMode);
+    }
 
     // Use a copy of the already initialized method
     ModalSplitMethod msp =
@@ -346,9 +353,13 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
         }
 
         // Keep info about shortest and cheapest paths
-        if (paths[index].weights.getCost() < cheapestPathWeight) {
-          cheapestPathWeight = paths[index].weights.getCost();
-          cheapestPathLength = paths[index].weights.getLength();
+        Path path = paths[index];
+        boolean matchesReferenceMode =  maxDetourReferenceMode == -1
+                || (path.loadingMode == maxDetourReferenceMode && !path.intermodal);
+
+        if (matchesReferenceMode && path.weights.getCost() < cheapestPathWeight) {
+          cheapestPathWeight = path.weights.getCost();
+          cheapestPathLength = path.weights.getLength();
         }
       }
     }
@@ -487,7 +498,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     if (assignmentParameters.isLogLostPaths()) {
       key = demand.getOriginNodeId() + "-" + demand.getDestinationNodeId();
     }
-    
+
     int mode = -1;
     int beginNode = virtualNodeList[nodeIndex].getLoadingVirtualNodeId();
     Path path = new Path();
@@ -523,7 +534,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
          * Performance issue: all the used virtual links are put in a list in order not to need a
          * browse through the complete virtual network to find them when needed
          */
-        //PathODCell pathODCell = new PathODCell(iteration, demand.getQuantity());
+        // PathODCell pathODCell = new PathODCell(iteration, demand.getQuantity());
         vl.addCell(groupIndex, new PathODCell(iteration, demand.getQuantity()));
 
         if (vl.getType() == VirtualLink.TYPE_TRANSHIP) {

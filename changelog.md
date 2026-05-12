@@ -420,7 +420,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Improve the project closing operations
 - Improve the refresh of the "split panes" in the SQL console
 
-## v8.3 - Build2026XXXX
-- Bug fix : the post assignment script, if any, was run twice.
+## v8.3 - Build20260512
+- Bug fix : the post assignment script, if any, was run twice
 - Improved "save state" of checkboxes in StatDlg
-
+- Introduce the "MAX_DETOUR_REF_MODE" mechanism (see Demo.pdf)

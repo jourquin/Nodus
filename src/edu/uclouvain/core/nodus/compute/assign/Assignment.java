@@ -206,7 +206,7 @@ public abstract class Assignment implements Runnable {
           JOptionPane.ERROR_MESSAGE);
 
       nodusProject.getNodusMapPanel().closeAndSaveState();
-      //System.exit(0);
+      // System.exit(0);
     }
 
     if (!success && !errorMessage.isEmpty()) {
@@ -262,7 +262,7 @@ public abstract class Assignment implements Runnable {
 
     ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
     scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
-    //scriptRunner.run(true);
+    // scriptRunner.run(true);
 
     return scriptRunner.run(false);
   }
@@ -304,6 +304,14 @@ public abstract class Assignment implements Runnable {
       }
     }
     return false;
+  }
+
+  /** Get the maxDetourReferenceMode, if any. */
+  protected void getMaxDetourReferenceMode() {
+    Properties costFunctions = assignmentParameters.getCostFunctions();
+
+    assignmentParameters.setMaxDetourReferenceMode(
+        Byte.parseByte(costFunctions.getProperty(NodusC.VARNAME_MAX_DETOUR_REF_MODE, "-1")));
   }
 
   /**

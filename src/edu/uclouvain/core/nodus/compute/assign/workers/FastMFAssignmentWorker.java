@@ -55,6 +55,8 @@ import java.util.List;
  */
 public class FastMFAssignmentWorker extends AssignmentWorker {
 
+  byte maxDetourReferenceMode = -1;
+
   private BinaryHeapDijkstra shortestPath;
 
   private int[] availableModeMeans;
@@ -96,6 +98,11 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     graph = virtualNet.generateAdjacencyList(groupIndex);
     shortestPath = new BinaryHeapDijkstra(graph, virtualNet);
     availableModeMeans = virtualNet.getAvailableModeMeans(groupIndex);
+
+    maxDetourReferenceMode = assignmentParameters.getMaxDetourReferenceMode();
+    if (maxDetourReferenceMode != -1) {
+      System.out.println("Max detour reference mode: " + maxDetourReferenceMode);
+    }
 
     paths = new Path[assignmentParameters.getNbIterations() * availableModeMeans.length][];
 
@@ -367,9 +374,13 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         }
 
         // Keep info about shortest and cheapest paths
-        if (paths[index][currentPath].weights.getCost() < cheapestPathWeight) {
-          cheapestPathWeight = paths[index][currentPath].weights.getCost();
-          cheapestPathLength = paths[index][currentPath].weights.getLength();
+        Path path = paths[index][currentPath];
+        boolean matchesReferenceMode = maxDetourReferenceMode == -1
+                || (path.loadingMode == maxDetourReferenceMode && !path.intermodal);
+
+        if (matchesReferenceMode && path.weights.getCost() < cheapestPathWeight) {
+          cheapestPathWeight = path.weights.getCost();
+          cheapestPathLength = path.weights.getLength();
         }
       }
     }
@@ -556,7 +567,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
           vl.addCell(groupIndex, pathODCell);
 
-          // Detect if this is an intermodal path          
+          // Detect if this is an intermodal path
           if (vl.getType() == VirtualLink.TYPE_TRANSHIP) {
             intermodalModeKey *=
                 NodusC.MAXMM * vl.getBeginVirtualNode().getMode()
