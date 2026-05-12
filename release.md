@@ -2,8 +2,8 @@
 
 Nodus 8.0, which first build was released on March 4, 2021, introduced a series of new features, among which:
 
-- The possibility to define **transit time** functions in addition to cost functions;
-- An improved management of **node rules** (operations that are permitted or not at each node of the network);
+- The possibility of defining **transit time** functions in addition to cost functions;
+- An improved management of **node rules** (operations that are permitted (or not) at each node of the network);
 - An improved **graphics rendering** mode;
 - An **increased compatibility** with non legacy .DBF files used by geographic information systems;
 - …
