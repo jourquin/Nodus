@@ -309,9 +309,14 @@ public abstract class Assignment implements Runnable {
   /** Get the maxDetourReferenceMode, if any. */
   protected void getMaxDetourReferenceMode() {
     Properties costFunctions = assignmentParameters.getCostFunctions();
-
-    assignmentParameters.setMaxDetourReferenceMode(
-        Byte.parseByte(costFunctions.getProperty(NodusC.VARNAME_MAX_DETOUR_REF_MODE, "-1")));
+    
+    byte maxDetourReferenceMode =
+        Byte.parseByte(costFunctions.getProperty(NodusC.VARNAME_MAX_DETOUR_REF_MODE, "-1"));
+    assignmentParameters.setMaxDetourReferenceMode(maxDetourReferenceMode);
+    
+    if (maxDetourReferenceMode != -1) {
+      System.out.println("Max detour reference mode: " + maxDetourReferenceMode);
+    }
   }
 
   /**

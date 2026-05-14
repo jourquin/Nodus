@@ -107,10 +107,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     paths = new Path[assignmentParameters.getNbIterations() * availableModeMeans.length];
 
     maxDetourReferenceMode = assignmentParameters.getMaxDetourReferenceMode();
-    if (maxDetourReferenceMode != -1) {
-      System.out.println("Max detour reference mode: " + maxDetourReferenceMode);
-    }
-
+    
     // Use a copy of the already initialized method
     ModalSplitMethod msp =
         ModalSplitMethodsLoader.getModalSplitMethod(assignmentParameters.getModalSplitMethodName());

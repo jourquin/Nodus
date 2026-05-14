@@ -100,9 +100,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     availableModeMeans = virtualNet.getAvailableModeMeans(groupIndex);
 
     maxDetourReferenceMode = assignmentParameters.getMaxDetourReferenceMode();
-    if (maxDetourReferenceMode != -1) {
-      System.out.println("Max detour reference mode: " + maxDetourReferenceMode);
-    }
 
     paths = new Path[assignmentParameters.getNbIterations() * availableModeMeans.length][];
 
