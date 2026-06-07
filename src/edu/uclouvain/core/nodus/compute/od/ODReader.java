@@ -153,6 +153,7 @@ public class ODReader {
       boolean orgField = false;
       boolean dstField = false;
       boolean qtyField = false;
+      boolean hasIterationField = false;
       for (int i = 1; i < numColumns + 1; i++) {
         String columnName = rsmd.getColumnName(i);
         if (columnName.equalsIgnoreCase(NodusC.DBF_GROUP)) {
@@ -167,11 +168,17 @@ public class ODReader {
         if (columnName.equalsIgnoreCase(NodusC.DBF_QUANTITY)) {
           qtyField = true;
         }
+
+        // The path header tables contain the same fields has an OD matrix, but also other fields.
+        if (columnName.equalsIgnoreCase(NodusC.DBF_ITERATION)) {
+          hasIterationField = true;
+          break;
+        }
       }
       stmt.close();
       rs.close();
 
-      if (!grpField || !orgField || !dstField || !qtyField) {
+      if (!grpField || !orgField || !dstField || !qtyField || hasIterationField) {
         return false;
       }
 

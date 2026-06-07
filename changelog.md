@@ -424,3 +424,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Bug fix : the post assignment script, if any, was run twice
 - Improved "save state" of checkboxes in StatDlg
 - Introduce the "MAX_DETOUR_REF_MODE" mechanism (see Demo.pdf)
+
+## v8.3 - BuildXXXXXXXX
+- Add the NetworkSimplifier.groovy script.
+- Better recognition of OD table structure (path header tables were sometimes recognized as OD matrixes). 
