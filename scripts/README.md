@@ -34,7 +34,8 @@ _Note: The examples were tested with Groovy 3.0, Python 3.9 and R 4.0._
 - ARGB-Converter : Generates the ARGB string for a chosen color.
 - NetworkSimplifier: A Nodus-native Groovy script for simplifying loaded freight transport
   network layers by removing unnecessary intermediate transit nodes and merging the two
-  connected line objects when the merge is topologically safe. See NetworkSimplifier.md
+  connected line objects when the merge is topologically safe. See 
+  [NetworkSimplifier.md](https://github.com/jourquin/Nodus/blob/master/scripts/NetworkSimplifier.md)
   for a complete description.
  
 
