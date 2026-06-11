@@ -111,7 +111,7 @@ public class FrankWolfeAssignment extends Assignment {
 
     // Variables that are used to split current and auxiliary volumes
     double lambda = 1.0;
-    double lambdaPrecisionThreshold = 0.01;
+    double lambdaPrecisionThreshold = 1.0e-4;
 
     // Create a path writer
     pathWriter = new PathWriter(assignmentParameters);
@@ -206,43 +206,11 @@ public class FrankWolfeAssignment extends Assignment {
 
       // Compute optimal Lambda
       if (iteration > 1) {
-        // Transform the volumes into vehicles
-        if (!virtualNet.volumesToVehicles(vehiclesParser)) {
+        lambda = lineSearchLambda(iteration, threads, lambdaPrecisionThreshold);
+
+        if (Double.isNaN(lambda)) {
           return false;
         }
-
-        double li = 0.0;
-        double ls = 1.0;
-        double m = 0.5;
-        double firstDerivativeValue = 0.0;
-        double currentLambdaPrecision = ls;
-
-        while (currentLambdaPrecision > lambdaPrecisionThreshold) {
-          firstDerivativeValue = virtualNet.objectiveFunctionFirstDerivative(iteration, m, threads);
-
-          // If task was aborted
-          if (Double.isNaN(firstDerivativeValue)) {
-            return false;
-          }
-
-          if (firstDerivativeValue == 0.0) {
-            lambda = m;
-            break;
-          }
-
-          if (firstDerivativeValue < 0.0) {
-            li = m;
-          }
-
-          if (firstDerivativeValue > 0.0) {
-            ls = m;
-          }
-
-          m = (li + ls) / 2.0f;
-          currentLambdaPrecision = ls - li;
-        }
-
-        lambda = m;
 
         // Now combine the auxiliary volumes with the current volume
         splitVolumes(lambda);
@@ -279,27 +247,99 @@ public class FrankWolfeAssignment extends Assignment {
   }
 
   /**
+   * Computes the Frank-Wolfe first derivative at a trial lambda.
+   *
+   * <p>The derivative must be evaluated at the trial flow x + lambda * (y - x), not at the
+   * currently committed flow x. VirtualNetwork.projectedVolumesToVehicles(...) is expected to
+   * convert that projected trial flow into temporary PCUs before costs are evaluated.
+   *
+   * @param iteration Current iteration.
+   * @param lambda Trial lambda in [0, 1].
+   * @param threads Number of worker threads to use for cost evaluation.
+   * @return First derivative value, or NaN if the computation was aborted.
+   */
+  private double firstDerivativeAt(int iteration, double lambda, int threads) {
+    if (!virtualNet.projectedVolumesToVehicles(vehiclesParser, lambda)) {
+      return Double.NaN;
+    }
+
+    return virtualNet.objectiveFunctionFirstDerivative(iteration, lambda, threads);
+  }
+
+  /**
+   * Computes the optimal Frank-Wolfe lambda by bisection on the objective first derivative.
+   *
+   * @param iteration Current iteration.
+   * @param threads Number of worker threads to use for cost evaluation.
+   * @param precision Lambda precision threshold.
+   * @return Optimal lambda in [0, 1], or NaN if the computation was aborted.
+   */
+  private double lineSearchLambda(int iteration, int threads, double precision) {
+    double li = 0.0;
+    double ls = 1.0;
+
+    double dLi = firstDerivativeAt(iteration, li, threads);
+    if (Double.isNaN(dLi)) {
+      return Double.NaN;
+    }
+
+    // Objective already increasing at lambda = 0.
+    if (dLi >= 0.0) {
+      return 0.0;
+    }
+
+    double dLs = firstDerivativeAt(iteration, ls, threads);
+    if (Double.isNaN(dLs)) {
+      return Double.NaN;
+    }
+
+    // Objective still decreasing at lambda = 1.
+    if (dLs <= 0.0) {
+      return 1.0;
+    }
+
+    while (ls - li > precision) {
+      double m = (li + ls) / 2.0;
+      double dM = firstDerivativeAt(iteration, m, threads);
+      
+      // Debug log
+      System.out.println("lambda=" + m + " derivative=" + dM);
+
+      if (Double.isNaN(dM)) {
+        return Double.NaN;
+      }
+
+      if (Math.abs(dM) < 1.0e-12) {
+        return m;
+      }
+
+      if (dM < 0.0) {
+        li = m;
+      } else {
+        ls = m;
+      }
+    }
+
+    return (li + ls) / 2.0;
+  }
+
+  /**
    * Updates the volumes, combining the current volume and the auxiliarry volume.
    *
    * <p>New current volume = (1-lambda) x current volume + lambda x auxilliary volume
    *
    * @param lambda double
    */
-  private void splitVolumes(double lambda) {
+  private boolean splitVolumes(double lambda) {
 
     byte[] groups = virtualNet.getGroups();
-
-    // Update current volumes on virtual links
     VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();
 
     for (VirtualNodeList element : vnl) {
-      // Iterate through all the virtual nodes generated for this real node
       Iterator<VirtualNode> nodeLit = element.getVirtualNodeList().iterator();
 
       while (nodeLit.hasNext()) {
         VirtualNode vn = nodeLit.next();
-
-        // Iterate through all the virtual links that start from this virtual node
         Iterator<VirtualLink> linkLit = vn.getVirtualLinkList().iterator();
 
         while (linkLit.hasNext()) {
@@ -311,6 +351,8 @@ public class FrankWolfeAssignment extends Assignment {
         }
       }
     }
+
+    return virtualNet.volumesToVehicles(vehiclesParser);
   }
 
   /**

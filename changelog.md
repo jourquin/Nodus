@@ -428,3 +428,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 ## v8.3 - Build20260607
 - Add the NetworkSimplifier.groovy script.
 - Better recognition of OD table structure (path header tables were sometimes recognized as OD matrixes). 
+
+## v9.0 - BuildXXXXXXXX
+- Reintroduce the Frank-Wolfe based assignments algorithms after bug fixes

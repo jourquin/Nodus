@@ -234,9 +234,9 @@ public class VirtualLink {
    *     volume.
    */
   public void combineVolumes(byte groupIndex, double lambda) {
-    if (lambda != 1.0) {
+    //if (lambda != 1.0) {
       previousVolume[groupIndex] = currentVolume[groupIndex][0];
-    }
+    //}
 
     currentVolume[groupIndex][0] =
         (1 - lambda) * currentVolume[groupIndex][0] + lambda * auxiliaryVolume[groupIndex];
@@ -641,5 +641,30 @@ public class VirtualLink {
         + endVirtualNode.getMode()
         + "."
         + endVirtualNode.getMeans();
+  }
+  
+  /**
+   * Temporarily converts the projected Frank-Wolfe volume
+   * (1-lambda) * current + lambda * auxiliary into PCUs.
+   *
+   * This does not modify currentVolume or auxiliaryVolume.
+   */
+  public void projectedVolumesToVehicles(
+      byte groupIndex,
+      byte timeSlice,
+      double averageLoad,
+      double passengerCarUnits,
+      double lambda) {
+
+    if (virtualLinkType != TYPE_MOVE) {
+      return;
+    }
+
+    double projectedVolume =
+        (1.0 - lambda) * currentVolume[groupIndex][timeSlice]
+            + lambda * auxiliaryVolume[groupIndex];
+
+    int nbVehicles = (int) Math.ceil(projectedVolume / averageLoad);
+    realLink.addPassengerCarUnits(this, (int) Math.ceil(nbVehicles * passengerCarUnits));
   }
 }

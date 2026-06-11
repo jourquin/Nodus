@@ -1423,4 +1423,55 @@ public class VirtualNetwork {
       }
     }
   }
+  
+  /**
+   * Computes temporary real-link PCUs for the Frank-Wolfe line search.
+   * The virtual-link volumes themselves are not modified.
+   */
+  public boolean projectedVolumesToVehicles(VehiclesParser vehiclesParser, double lambda) {
+    return projectedVolumesToVehicles(vehiclesParser, (byte) 0, lambda);
+  }
+
+  public boolean projectedVolumesToVehicles(
+      VehiclesParser vehiclesParser, byte timeSlice, double lambda) {
+
+    resetPassengerCarUnits();
+
+    for (byte groupIndex = 0; groupIndex < getNbGroups(); groupIndex++) {
+      int group = groups[groupIndex];
+
+      for (VirtualNodeList element : vnl) {
+        Iterator<VirtualNode> nodeLit = element.getVirtualNodeList().iterator();
+
+        while (nodeLit.hasNext()) {
+          VirtualNode vn = (VirtualNode) nodeLit.next();
+          Iterator<VirtualLink> linkLit = vn.getVirtualLinkList().iterator();
+
+          while (linkLit.hasNext()) {
+            VirtualLink vl = (VirtualLink) linkLit.next();
+
+            if (vl.getType() != VirtualLink.TYPE_MOVE) {
+              continue;
+            }
+
+            double averageLoad =
+                vehiclesParser.getAverageLoad(
+                    group,
+                    vl.getBeginVirtualNode().getMode(),
+                    vl.getBeginVirtualNode().getMeans());
+
+            double pcu =
+                vehiclesParser.getPassengerCarUnits(
+                    group,
+                    vl.getBeginVirtualNode().getMode(),
+                    vl.getBeginVirtualNode().getMeans());
+
+            vl.projectedVolumesToVehicles(groupIndex, timeSlice, averageLoad, pcu, lambda);
+          }
+        }
+      }
+    }
+
+    return true;
+  }
 }
