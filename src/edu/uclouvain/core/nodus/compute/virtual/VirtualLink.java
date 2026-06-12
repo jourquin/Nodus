@@ -234,9 +234,7 @@ public class VirtualLink {
    *     volume.
    */
   public void combineVolumes(byte groupIndex, double lambda) {
-    //if (lambda != 1.0) {
-      previousVolume[groupIndex] = currentVolume[groupIndex][0];
-    //}
+    previousVolume[groupIndex] = currentVolume[groupIndex][0];
 
     currentVolume[groupIndex][0] =
         (1 - lambda) * currentVolume[groupIndex][0] + lambda * auxiliaryVolume[groupIndex];
@@ -642,12 +640,12 @@ public class VirtualLink {
         + "."
         + endVirtualNode.getMeans();
   }
-  
+
   /**
-   * Temporarily converts the projected Frank-Wolfe volume
-   * (1-lambda) * current + lambda * auxiliary into PCUs.
+   * Temporarily converts the projected Frank-Wolfe volume (1-lambda) * current + lambda * auxiliary
+   * into PCUs.
    *
-   * This does not modify currentVolume or auxiliaryVolume.
+   * <p>This does not modify currentVolume or auxiliaryVolume.
    */
   public void projectedVolumesToVehicles(
       byte groupIndex,
