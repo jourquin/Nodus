@@ -25,6 +25,7 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.MapHandler;
 import com.bbn.openmap.gui.OpenMapFrame;
 import edu.uclouvain.core.nodus.gui.Splash;
+import edu.uclouvain.core.nodus.utils.LocaleUtils;
 import edu.uclouvain.core.nodus.utils.MacUtils;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import java.awt.Image;
@@ -106,7 +107,7 @@ public class Nodus {
     String localeString = nodusProperties.getProperty(NodusC.PROP_LOCALE, null);
 
     if (localeString != null) {
-      Locale locale = parseLocale(localeString);
+      Locale locale = LocaleUtils.parseLocale(localeString);
       Locale.setDefault(locale);
 
       // Locale.setDefault(new Locale(locale.toLowerCase(), locale.toUpperCase()));
@@ -328,46 +329,5 @@ public class Nodus {
     setWindowListenerOnFrame(omf);
   }
 
-  /**
-   * Parses a locale string and returns the corresponding {@link Locale}.
-   *
-   * <p>The input may use either a simple language code such as {@code "fr"}, the older Java-style
-   * underscore format such as {@code "fr_BE"}, or the standard BCP 47 language tag format such as
-   * {@code "fr-BE"}.
-   *
-   * <p>For backward compatibility with the previous Nodus behavior, a simple two-letter language
-   * code such as {@code "fr"} is interpreted as both language and country, producing {@code fr_FR}.
-   * For example, {@code "fr"} becomes {@code new Locale("fr", "FR")}.
-   *
-   * <p>If the supplied string is {@code null}, blank, or cannot be parsed into a valid locale with
-   * a language code, the JVM default locale is returned.
-   *
-   * @param localeString the locale string to parse, for example {@code "fr"}, {@code "fr_BE"}, or
-   *     {@code "fr-BE"}
-   * @return the parsed {@link Locale}, or {@link Locale#getDefault()} if the input is missing or
-   *     invalid
-   */
-  private static Locale parseLocale(String localeString) {
-    if (localeString == null || localeString.isBlank()) {
-      return Locale.getDefault();
-    }
-
-    String trimmedLocale = localeString.trim();
-
-    // Backward compatibility with the previous implementation:
-    // "fr" used to become new Locale("fr", "FR").
-    if (trimmedLocale.matches("[a-zA-Z]{2}")) {
-      return new Locale(trimmedLocale.toLowerCase(), trimmedLocale.toUpperCase());
-    }
-
-    String normalizedLocale = trimmedLocale.replace('_', '-');
-
-    Locale parsedLocale = Locale.forLanguageTag(normalizedLocale);
-
-    if (parsedLocale.getLanguage() == null || parsedLocale.getLanguage().isEmpty()) {
-      return Locale.getDefault();
-    }
-
-    return parsedLocale;
-  }
+  
 }
