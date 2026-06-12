@@ -88,18 +88,17 @@ public class JDBCUtils {
       return false;
     }
 
-    try {
-      Statement stmt = jdbcConnection.createStatement();
-      String sqlStmt =
-          "CREATE INDEX "
-              + getQuotedCompliantIdentifier(index.getIndexName())
-              + " ON "
-              + index.getTableName()
-              + "("
-              + getQuotedCompliantIdentifier(index.getIndexFieldName())
-              + ")";
+    String sqlStmt =
+        "CREATE INDEX "
+            + getQuotedCompliantIdentifier(index.getIndexName())
+            + " ON "
+            + getQuotedCompliantIdentifier(index.getTableName())
+            + "("
+            + getQuotedCompliantIdentifier(index.getIndexFieldName())
+            + ")";
+
+    try (Statement stmt = jdbcConnection.createStatement()) {
       stmt.execute(sqlStmt);
-      stmt.close();
     } catch (SQLException e) {
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
@@ -132,14 +131,13 @@ public class JDBCUtils {
       return false;
     }
 
-    try {
-      final Statement stmt = jdbcConnection.createStatement();
+    try (Statement stmt = jdbcConnection.createStatement()) {
       String sqlStmt = null;
 
       dropTable(tableName);
 
       // Create a new table
-      sqlStmt = "CREATE TABLE " + getCompliantIdentifier(tableName) + " (";
+      sqlStmt = "CREATE TABLE " + getQuotedCompliantIdentifier(tableName) + " (";
 
       for (int i = 0; i < fields.length; i++) {
         String fieldType = fields[i].getFieldType();
@@ -158,7 +156,6 @@ public class JDBCUtils {
       }
 
       stmt.execute(sqlStmt);
-      stmt.close();
     } catch (Exception ex) {
       ex.printStackTrace();
       JOptionPane.showMessageDialog(null, ex.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
@@ -188,10 +185,8 @@ public class JDBCUtils {
     }
 
     if (tableExists(tableName)) {
-      try {
-        Statement stmt = jdbcConnection.createStatement();
-        stmt.execute("DROP TABLE " + getCompliantIdentifier(tableName));
-        stmt.close();
+      try (Statement stmt = jdbcConnection.createStatement()) {
+        stmt.execute("DROP TABLE " + getQuotedCompliantIdentifier(tableName));
       } catch (SQLException e) {
         e.printStackTrace();
       }
@@ -510,11 +505,9 @@ public class JDBCUtils {
           String quotes = dmd.getIdentifierQuoteString();
           if (!quotes.equals(" ")) {
             // Could already be quoted...
-            if (!formattedIdentifier.startsWith(quotes)) {
-              formattedIdentifier = quotes + formattedIdentifier;
-            }
-            if (!formattedIdentifier.endsWith(quotes)) {
-              formattedIdentifier = formattedIdentifier + quotes;
+            if (!formattedIdentifier.startsWith(quotes) || !formattedIdentifier.endsWith(quotes)) {
+              formattedIdentifier =
+                  quotes + formattedIdentifier.replace(quotes, quotes + quotes) + quotes;
             }
           }
         }
@@ -781,10 +774,10 @@ public class JDBCUtils {
       return false;
     }
 
-    try {
-      // Create a result set
-      Statement stmt = jdbcConnection.createStatement();
-      ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
+    String sqlStmt = "SELECT * FROM " + getQuotedCompliantIdentifier(tableName) + " WHERE 1 = 0";
+
+    try (Statement stmt = jdbcConnection.createStatement();
+        ResultSet rs = stmt.executeQuery(sqlStmt)) {
 
       // Get result set meta data
       ResultSetMetaData rsmd = rs.getMetaData();
@@ -797,8 +790,6 @@ public class JDBCUtils {
           return true;
         }
       }
-      rs.close();
-      stmt.close();
     } catch (SQLException e) {
       e.printStackTrace();
     }
@@ -819,11 +810,14 @@ public class JDBCUtils {
       return false;
     }
 
-    try {
-      // Create a result set
-      Statement stmt = jdbcConnection.createStatement();
-      ResultSet rs =
-          stmt.executeQuery("SELECT COUNT(*) FROM " + tableName + " GROUP BY " + fieldName);
+    String sqlStmt =
+        "SELECT COUNT(*) FROM "
+            + getQuotedCompliantIdentifier(tableName)
+            + " GROUP BY "
+            + getQuotedCompliantIdentifier(fieldName);
+
+    try (Statement stmt = jdbcConnection.createStatement();
+        ResultSet rs = stmt.executeQuery(sqlStmt)) {
 
       int rowCount = 0;
       while (rs.next()) {
@@ -833,8 +827,6 @@ public class JDBCUtils {
         }
       }
 
-      rs.close();
-      stmt.close();
       if (rowCount > 1) {
         return true;
       }
@@ -896,23 +888,21 @@ public class JDBCUtils {
       return false;
     }
 
-    currentTableName = getCompliantIdentifier(currentTableName);
-    newTableName = getCompliantIdentifier(newTableName);
+    String currentTableIdentifier = getQuotedCompliantIdentifier(currentTableName);
+    String newTableIdentifier = getQuotedCompliantIdentifier(newTableName);
 
     if (tableExists(currentTableName)) {
       String sqlStmt;
       switch (dbEngine) {
         case DB_DERBY:
-          sqlStmt = "rename table " + currentTableName + " to " + newTableName;
+          sqlStmt = "rename table " + currentTableIdentifier + " to " + newTableIdentifier;
           break;
         default:
-          sqlStmt = "alter table " + currentTableName + " rename to " + newTableName;
+          sqlStmt = "alter table " + currentTableIdentifier + " rename to " + newTableIdentifier;
       }
 
-      try {
-        Statement stmt = jdbcConnection.createStatement();
+      try (Statement stmt = jdbcConnection.createStatement()) {
         stmt.execute(sqlStmt);
-        stmt.close();
       } catch (SQLException e) {
         e.printStackTrace();
         return false;
@@ -1000,13 +990,12 @@ public class JDBCUtils {
    * @return True on success.
    */
   public static boolean tableExists(String tableName) {
-    try {
+    if (jdbcConnection == null || dmd == null) {
+      return false;
+    }
 
-      ResultSet rs = getTables(getCompliantIdentifier(tableName));
-      if (rs.next()) {
-        rs.close();
-        return true;
-      }
+    try (ResultSet rs = getTables(tableName)) {
+      return rs.next();
     } catch (SQLException e) {
       e.printStackTrace();
     }

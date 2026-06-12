@@ -431,9 +431,9 @@ public abstract class Assignment implements Runnable {
 
           try {
             String content = new String(Files.readAllBytes(path), charset);
-            content = content.replaceAll("LD_DURATION.", "ld@");
-            content = content.replaceAll("UL_DURATION.", "ul@");
-            content = content.replaceAll("TP_DURATION.", "tp@");
+            content = content.replace("LD_DURATION.", "ld@");
+            content = content.replace("UL_DURATION.", "ul@");
+            content = content.replace("TP_DURATION.", "tp@");
 
             for (int mode = 0; mode < NodusC.MAXMM; mode++) {
               for (int means = 0; means < NodusC.MAXMM; means++) {
@@ -475,8 +475,8 @@ public abstract class Assignment implements Runnable {
 
           try {
             String content = new String(Files.readAllBytes(path), charset);
-            content = content.replaceAll("ESV.", "PCU.");
-            content = content.replaceAll("FLOW", "VOLUME");
+            content = content.replace("ESV.", "PCU.");
+            content = content.replace("FLOW", "VOLUME");
             Files.write(path, content.getBytes(charset));
           } catch (IOException e) {
             e.printStackTrace();

@@ -25,7 +25,9 @@ import edu.uclouvain.core.nodus.NodusC;
 import groovy.lang.GroovyShell;
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 /**
  * Runs a Groovy script, passing a list of variables.
@@ -33,8 +35,6 @@ import javax.swing.JOptionPane;
  * @author Bart Jourquin
  */
 public class ScriptRunner {
-
-  private static boolean success;
 
   GroovyShell shell;
   String scriptFileName;
@@ -67,29 +67,49 @@ public class ScriptRunner {
    */
   public boolean run(boolean ignoreMissingScript) {
 
-    success = true;
+    AtomicBoolean success = new AtomicBoolean(true);
 
     Thread thread =
-        new Thread() {
-          @Override
-          public void start() {
+        new Thread(
+            () -> {
+              try {
+                shell.evaluate(new File(scriptFileName));
 
-            try {
-              shell.evaluate(new File(scriptFileName));
-            } catch (IOException e) {
-              if (!ignoreMissingScript) {
-                success = false;
-                JOptionPane.showMessageDialog(
-                    null, e.getMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+              } catch (IOException e) {
+                if (!ignoreMissingScript) {
+                  success.set(false);
+                  showError(e);
+                }
+
+              } catch (Exception e) {
+                success.set(false);
+                showError(e);
               }
-            } catch (Exception e) {
-              success = false;
-              JOptionPane.showMessageDialog(
-                  null, e.getMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-            }
-          }
-        };
+            },
+            "Nodus-ScriptRunner");
+
     thread.start();
-    return success;
+
+    try {
+      thread.join();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      success.set(false);
+      showError(e);
+    }
+
+    return success.get();
+  }
+
+  /**
+   * Display the error if something went wrong.
+   *
+   * @param e The exception that was catched.
+   */
+  private void showError(Exception e) {
+    SwingUtilities.invokeLater(
+        () ->
+            JOptionPane.showMessageDialog(
+                null, e.getMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE));
   }
 }

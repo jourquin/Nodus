@@ -424,7 +424,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         }
       } else {
         String s = cell.toString();
-        sqlStmt += '\'' + s.replaceAll("'", "''") + '\'';
+        sqlStmt += '\'' + s.replace("'", "''") + '\'';
       }
 
       if (i < getModel().getColumnCount() - 1) {

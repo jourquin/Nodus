@@ -35,8 +35,9 @@ import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.Vector;
+import java.util.List;
 
 /**
  * Exports a database table in a .dbf table.
@@ -49,84 +50,74 @@ public class ExportDBF implements ShapeConstants {
   public ExportDBF() {}
 
   /**
-   * Creates a .dbf table. Then name of the file will be the name of the exported table. It will be
+   * Creates a .dbf table. The name of the file will be the name of the exported table. It will be
    * located in the Nodus project directory.
    *
    * @param nodusProject The Nodus project.
-   * @param tableName Tha name of the table to export
-   * @return A DBFWriter
+   * @param tableName The name of the table to export.
+   * @return A DBFWriter, or {@code null} on error.
    */
   private static DBFWriter createTable(NodusProject nodusProject, String tableName) {
-    DBFField[] field = null;
-    DBFWriter dbf = null;
-
+    DBFField[] field;
     int fieldNum = 0;
 
-    try {
-      ResultSet col = JDBCUtils.getColumns(tableName);
-
-      Vector<String> names = new Vector<>();
-      Vector<String> types = new Vector<>();
-      Vector<Integer> sizes = new Vector<>();
-      Vector<Integer> decimalDigits = new Vector<>();
+    try (ResultSet col = JDBCUtils.getColumns(tableName)) {
+      List<String> names = new ArrayList<>();
+      List<String> types = new ArrayList<>();
+      List<Integer> sizes = new ArrayList<>();
+      List<Integer> decimalDigits = new ArrayList<>();
 
       while (col.next()) {
-        names.add(col.getString("COLUMN_NAME"));
+        String columnName = col.getString("COLUMN_NAME");
         String typeName = col.getString("TYPE_NAME").toUpperCase();
+        int decimalDigit = col.getInt("DECIMAL_DIGITS");
+
+        names.add(columnName);
         types.add(typeName);
-        decimalDigits.add(col.getInt("DECIMAL_DIGITS"));
+        decimalDigits.add(decimalDigit);
 
         if (typeName.contains("CHAR")) {
           sizes.add(col.getInt("COLUMN_SIZE"));
-        } else if (!typeName.contains("DATE")) {
-          // As the metadata doesn't contain a usable width for numerical values, estimate it
-          int w =
-              JDBCUtils.getNumWidth(
-                  tableName, col.getString("COLUMN_NAME"), col.getInt("DECIMAL_DIGITS"));
-          sizes.add(w);
         } else if (typeName.contains("DATE")) {
           sizes.add(8);
+        } else {
+          // As the metadata doesn't contain a usable width for numerical values, estimate it.
+          sizes.add(JDBCUtils.getNumWidth(tableName, columnName, decimalDigit));
         }
       }
-      col.close();
 
-      if (names.size() == 0) {
+      if (names.isEmpty()) {
         return null;
       }
 
       field = new DBFField[names.size()];
 
-      // Transform into dbf fields
+      // Transform into dbf fields.
       for (int i = 0; i < names.size(); i++) {
         fieldNum = i;
 
         char columnType = 'N';
         if (types.get(i).contains("CHAR")) {
           columnType = 'C';
-        }
-
-        if (types.get(i).contains("DATE")) {
+        } else if (types.get(i).contains("DATE")) {
           columnType = 'D';
         }
 
-        int columnSize = sizes.get(i);
         int decimalDigit = 0;
         if (columnType == 'N') {
           decimalDigit = decimalDigits.get(i);
         }
 
-        field[i] = new DBFField(names.get(i), columnType, columnSize, decimalDigit);
+        field[i] = new DBFField(names.get(i), columnType, sizes.get(i), decimalDigit);
       }
 
       String path = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
-      dbf = new DBFWriter(path + tableName + NodusC.TYPE_DBF, field);
+      return new DBFWriter(path + tableName + NodusC.TYPE_DBF, field);
+
     } catch (Exception e) {
       System.out.println("Field " + fieldNum + ": " + e.toString());
-
       return null;
     }
-
-    return dbf;
   }
 
   /**
@@ -135,38 +126,40 @@ public class ExportDBF implements ShapeConstants {
    * @param path The path to the directory in which the file must be saved.
    * @param tableName The name of the table to export.
    * @param model The DbfTableModel that contains the data to export.
-   * @return JDBFWriter
+   * @return A DBFWriter, or {@code null} on error.
    */
   private static DBFWriter createTable(String path, String tableName, DbfTableModel model) {
     DBFField[] field = new DBFField[model.getColumnCount()];
-    DBFWriter dbf = null;
 
-    for (int i = 0; i < model.getColumnCount(); i++) {
-      Byte byteType = Byte.valueOf(model.getType(i));
+    try {
+      for (int i = 0; i < model.getColumnCount(); i++) {
+        byte byteType = model.getType(i);
 
-      char charType = 'N';
-      if (byteType.equals(DBF_TYPE_CHARACTER)) {
-        charType = 'C';
-      } else if (byteType.equals(DBF_TYPE_DATE)) {
-        charType = 'D';
+        char charType = 'N';
+        if (byteType == DBF_TYPE_CHARACTER.byteValue()) {
+          charType = 'C';
+        } else if (byteType == DBF_TYPE_DATE.byteValue()) {
+          charType = 'D';
+        }
+
+        field[i] =
+            new DBFField(
+                model.getColumnName(i), charType, model.getLength(i), model.getDecimalCount(i));
       }
 
-      field[i] =
-          new DBFField(
-              model.getColumnName(i), charType, model.getLength(i), model.getDecimalCount(i));
+      return new DBFWriter(path + tableName, field);
+    } catch (Exception e) {
+      System.out.println(e.toString());
+      return null;
     }
-
-    dbf = new DBFWriter(path + tableName, field);
-
-    return dbf;
   }
 
   /**
-   * Creates a temporary table with two fields : recno and num. This table will be used to ensure
+   * Creates a temporary table with two fields: recno and num. This table will be used to ensure
    * that the export of the Esri linked DBF file is in the same order than the original one. This
-   * will be done using the following sql statement
+   * will be done using the following sql statement:
    *
-   * <p>"select table. from table, tmp where table.num = tmp.num order by tmp.recno"
+   * <p>"select table.* from table, tmp where table.num = tmp.num order by tmp.recno"
    *
    * <p>Returns true if the table was successfully created.
    *
@@ -181,51 +174,57 @@ public class ExportDBF implements ShapeConstants {
 
     JDBCUtils.dropTable(tmpTable);
 
+    DBFReader dbfReader = null;
+
     try {
+      String quotedTmpTable = JDBCUtils.getQuotedCompliantIdentifier(tmpTable);
       String sqlStmt =
           "CREATE TABLE "
-              + tmpTable
+              + quotedTmpTable
               + " ("
               + JDBCUtils.getQuotedCompliantIdentifier("recno")
               + " INTEGER, "
               + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
               + " NUMERIC(5,0))";
 
-      Statement stmt = jdbcConnection.createStatement();
-      stmt.execute(sqlStmt);
-      stmt.close();
-
-      sqlStmt = "INSERT INTO " + tmpTable + " VALUES(?, ?)";
-      PreparedStatement ps = jdbcConnection.prepareStatement(sqlStmt);
-
-      DBFReader dbfReader = new DBFReader(path + tableName + NodusC.TYPE_DBF);
-      int n = 0;
-
-      while (dbfReader.hasNextRecord()) {
-        Object[] o = dbfReader.nextRecord();
-        ps.setInt(1, ++n);
-        ps.setInt(2, Integer.parseInt(o[NodusC.DBF_IDX_NUM].toString()));
-        ps.execute();
+      try (Statement stmt = jdbcConnection.createStatement()) {
+        stmt.execute(sqlStmt);
       }
-      dbfReader.close();
-      ps.close();
+
+      sqlStmt = "INSERT INTO " + quotedTmpTable + " VALUES(?, ?)";
+
+      try (PreparedStatement ps = jdbcConnection.prepareStatement(sqlStmt)) {
+        dbfReader = new DBFReader(path + tableName + NodusC.TYPE_DBF);
+        int n = 0;
+
+        while (dbfReader.hasNextRecord()) {
+          Object[] o = dbfReader.nextRecord();
+          ps.setInt(1, ++n);
+          ps.setInt(2, Integer.parseInt(o[NodusC.DBF_IDX_NUM].toString()));
+          ps.execute();
+        }
+      }
+
       if (!jdbcConnection.getAutoCommit()) {
         jdbcConnection.commit();
       }
 
+      return true;
+
     } catch (Exception ex) {
       ex.printStackTrace();
       return false;
-    }
 
-    return true;
+    } finally {
+      closeDbfReader(dbfReader);
+    }
   }
 
   /**
    * This method exports the records of a table into a .dbf file. It is not to be used with Esri
    * shape files. Use exportEsriDbf instead.
    *
-   * <p>Returns true if file was successfully exported
+   * <p>Returns true if file was successfully exported.
    *
    * @param nodusProject NodusProject
    * @param tableName String
@@ -240,7 +239,7 @@ public class ExportDBF implements ShapeConstants {
       return false;
     }
 
-    String sqlStmt = "SELECT * FROM " + JDBCUtils.getCompliantIdentifier(tableName);
+    String sqlStmt = "SELECT * FROM " + JDBCUtils.getQuotedCompliantIdentifier(tableName);
 
     return fillTable(nodusProject, dbf, sqlStmt);
   }
@@ -258,46 +257,24 @@ public class ExportDBF implements ShapeConstants {
 
     // System.out.println("exportEsriDbf...");
 
-    // Get the layer that corresponds to this table
-    NodusEsriLayer layer = null;
-    NodusEsriLayer[] layers = nodusProject.getNodeLayers();
-
-    for (NodusEsriLayer element : layers) {
-      if (element.getTableName().equals(tableName)) {
-        layer = element;
-
-        break;
-      }
-    }
+    NodusEsriLayer layer = getLayerByTableName(nodusProject.getNodeLayers(), tableName);
 
     if (layer == null) {
-      layers = nodusProject.getLinkLayers();
-
-      for (NodusEsriLayer element : layers) {
-        if (element.getTableName().equals(tableName)) {
-          layer = element;
-
-          break;
-        }
-      }
+      layer = getLayerByTableName(nodusProject.getLinkLayers(), tableName);
     }
 
-    // If the table is not associated with a loaded layer
+    // If the table is not associated with a loaded layer.
     if (layer == null) {
       return exportGenericEsriDbf(nodusProject, tableName);
     }
 
-    // Update the dbftableModel of the layer
+    // Update the dbftableModel of the layer.
     if (!layer.updateDbfTableModel()) {
       return false;
     }
 
-    // Write the dbf file
-    if (!ExportDBF.exportTable(nodusProject, tableName + NodusC.TYPE_DBF, layer.getModel())) {
-      return false;
-    }
-
-    return true;
+    // Write the dbf file.
+    return ExportDBF.exportTable(nodusProject, tableName + NodusC.TYPE_DBF, layer.getModel());
   }
 
   /**
@@ -311,52 +288,43 @@ public class ExportDBF implements ShapeConstants {
    * @return boolean
    */
   private static boolean exportGenericEsriDbf(NodusProject nodusProject, String tableName) {
+
     System.out.println("exportGenericEsriDbf ...");
 
-    String table = JDBCUtils.getCompliantIdentifier(tableName);
-    String tmp = JDBCUtils.getCompliantIdentifier("tmp");
-
-    // We need to know in which order to store the records. Create a
-    // temporary table for that purpose
+    String table = JDBCUtils.getQuotedCompliantIdentifier(tableName);
+    String tmp = JDBCUtils.getQuotedCompliantIdentifier("tmp");
     String path = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
-    if (!createTmpTable(path, tableName, nodusProject.getMainJDBCConnection(), tmp)) {
+
+    if (!createTmpTable(path, tableName, nodusProject.getMainJDBCConnection(), "tmp")) {
       return false;
     }
 
-    DBFWriter dbf = createTable(nodusProject, tableName);
+    try {
+      DBFWriter dbf = createTable(nodusProject, tableName);
 
-    if (dbf == null) {
-      return false;
+      if (dbf == null) {
+        return false;
+      }
+
+      String num = JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM);
+      String recno = JDBCUtils.getQuotedCompliantIdentifier("recno");
+      String sqlStmt =
+          "SELECT t.* FROM "
+              + table
+              + " t, "
+              + tmp
+              + " tmp WHERE t."
+              + num
+              + " = tmp."
+              + num
+              + " ORDER BY tmp."
+              + recno;
+
+      return fillTable(nodusProject, dbf, sqlStmt);
+
+    } finally {
+      JDBCUtils.dropTable("tmp");
     }
-
-    // Create an SQL statement that ensures the correct order of records
-    String sqlStmt =
-        "SELECT "
-            + table
-            + ".* FROM "
-            + table
-            + ", "
-            + tmp
-            + " WHERE "
-            + table
-            + "."
-            + JDBCUtils.getCompliantIdentifier(NodusC.DBF_NUM)
-            + " = "
-            + tmp
-            + "."
-            + JDBCUtils.getCompliantIdentifier(NodusC.DBF_NUM)
-            + " ORDER BY "
-            + tmp
-            + "."
-            + JDBCUtils.getCompliantIdentifier("recno");
-
-    // OK, now fill the table
-    boolean result = fillTable(nodusProject, dbf, sqlStmt);
-
-    // Remove tmp table
-    JDBCUtils.dropTable(tmp);
-
-    return result;
   }
 
   /**
@@ -373,9 +341,7 @@ public class ExportDBF implements ShapeConstants {
     String path = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
 
     if (ProjectFilesTools.isValidLayer(path, tableName)) {
-      boolean success = exportEsriDbf(nodusProject, tableName);
-
-      return success;
+      return exportEsriDbf(nodusProject, tableName);
     } else {
       return exportDbf(nodusProject, tableName);
     }
@@ -414,52 +380,28 @@ public class ExportDBF implements ShapeConstants {
 
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
     String defaultDate = dateFormat.format(new Date(0));
-
-    Object[] o = new Object[model.getColumnCount()];
+    boolean success = true;
 
     try {
       for (int i = 0; i < model.getRowCount(); i++) {
+        Object[] o = new Object[model.getColumnCount()];
+
         for (int j = 0; j < model.getColumnCount(); j++) {
-          o[j] = model.getValueAt(i, j);
-
-          // Avoid empty numerical values
-          if (model.getType(j) == DBF_TYPE_NUMERIC.byteValue()) {
-            if (o[j].equals("")) {
-              o[j] = Double.valueOf(0);
-            }
-          }
-
-          // Transform date string into Date
-          if (model.getType(j) == DBF_TYPE_DATE.byteValue() && !(o[j] instanceof Date)) {
-            try {
-              String date = (String) o[j];
-              if (date == null || date.equals("")) {
-                date = defaultDate;
-              }
-              Date d = dateFormat.parse(date);
-              o[j] = d;
-            } catch (ParseException e) {
-              // Should never happen...
-              e.printStackTrace();
-            }
-          }
+          o[j] = getDbfValue(model, i, j, dateFormat, defaultDate);
         }
 
         dbfWriter.addRecord(o);
       }
 
-      dbfWriter.close();
-
-      /*if (!dbfWriter.isExportedWithSuccess()) {
-        return false;
-      }*/
     } catch (DBFException e) {
       System.out.println(e);
+      success = false;
 
-      return false;
+    } finally {
+      success = closeDbfWriter(dbfWriter) && success;
     }
 
-    return true;
+    return success;
   }
 
   /**
@@ -467,17 +409,18 @@ public class ExportDBF implements ShapeConstants {
    * the table was successfully filled.
    */
   private static boolean fillTable(NodusProject nodusProject, DBFWriter dbfWriter, String sqlStmt) {
-    try {
-      Connection con = nodusProject.getMainJDBCConnection();
-      Statement stmt = con.createStatement();
 
-      ResultSet rs = stmt.executeQuery(sqlStmt);
+    Connection con = nodusProject.getMainJDBCConnection();
+    boolean success = true;
+
+    try (Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery(sqlStmt)) {
+
       ResultSetMetaData rsmd = rs.getMetaData();
       int nbColumns = rsmd.getColumnCount();
-      Object[] o = new Object[nbColumns];
 
-      // Retrieve result of query
       while (rs.next()) {
+        Object[] o = new Object[nbColumns];
         for (int i = 0; i < nbColumns; i++) {
           o[i] = rs.getObject(i + 1);
         }
@@ -485,24 +428,100 @@ public class ExportDBF implements ShapeConstants {
         dbfWriter.addRecord(o);
       }
 
-      rs.close();
-      stmt.close();
-
       if (!con.getAutoCommit()) {
         con.commit();
       }
 
-      dbfWriter.close();
-
-      /*if (!dbfWriter.isExportedWithSuccess()) {
-        return false;
-      }*/
     } catch (Exception ex) {
       System.out.println(ex.toString());
+      success = false;
 
-      return false;
+    } finally {
+      success = closeDbfWriter(dbfWriter) && success;
     }
 
-    return true;
+    return success;
+  }
+
+  /** Returns the layer whose table name matches {@code tableName}. */
+  private static NodusEsriLayer getLayerByTableName(NodusEsriLayer[] layers, String tableName) {
+    if (layers == null || tableName == null) {
+      return null;
+    }
+
+    for (NodusEsriLayer layer : layers) {
+      if (layer == null || layer.getTableName() == null) {
+        continue;
+      }
+
+      if (layer.getTableName().equals(tableName)) {
+        return layer;
+      }
+    }
+
+    return null;
+  }
+
+  /** Converts a DbfTableModel cell value to the value expected by the DBF writer. */
+  private static Object getDbfValue(
+      DbfTableModel model, int row, int column, SimpleDateFormat dateFormat, String defaultDate) {
+
+    Object value = model.getValueAt(row, column);
+
+    // Avoid empty numerical values.
+    if (model.getType(column) == DBF_TYPE_NUMERIC.byteValue()
+        && (value == null || value.equals(""))) {
+      return Double.valueOf(0);
+    }
+
+    // Transform date string into Date.
+    if (model.getType(column) == DBF_TYPE_DATE.byteValue() && !(value instanceof Date)) {
+      String date = value == null ? defaultDate : value.toString();
+      if (date.isEmpty()) {
+        date = defaultDate;
+      }
+
+      try {
+        return dateFormat.parse(date);
+      } catch (ParseException e) {
+        // Should never happen, but keep the legacy behavior and let DBFWriter reject the value if
+        // needed.
+        e.printStackTrace();
+      }
+    }
+
+    return value;
+  }
+
+  /** Closes a DBFReader, ignoring secondary close errors. */
+  private static void closeDbfReader(DBFReader dbfReader) {
+    if (dbfReader == null) {
+      return;
+    }
+
+    try {
+      dbfReader.close();
+    } catch (Exception ex) {
+      System.out.println(ex.toString());
+    }
+  }
+
+  /**
+   * Closes a DBFWriter.
+   *
+   * @return {@code true} if the writer was closed without error.
+   */
+  private static boolean closeDbfWriter(DBFWriter dbfWriter) {
+    if (dbfWriter == null) {
+      return true;
+    }
+
+    try {
+      dbfWriter.close();
+      return true;
+    } catch (Exception ex) {
+      System.out.println(ex.toString());
+      return false;
+    }
   }
 }

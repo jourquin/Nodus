@@ -138,7 +138,7 @@ public class AboutDlg extends EscapeDialog {
     String imgSrc = getClass().getResource("uclouvain.png").toString();
 
     String openMapCopyright = MapBean.getCopyrightMessage();
-    openMapCopyright = openMapCopyright.replaceAll("\r\n", "<br>");
+    openMapCopyright = openMapCopyright.replace("\r\n", "<br>");
 
     String content =
         prefix

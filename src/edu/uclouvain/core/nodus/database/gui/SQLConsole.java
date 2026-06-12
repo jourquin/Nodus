@@ -66,8 +66,9 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Vector;
@@ -809,7 +810,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       gridResultArea.clear();
 
       String[] g = new String[1];
-      
+
       try {
         statement.execute(sqlCommand);
 
@@ -873,8 +874,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   }
 
   /**
-   * Creates at thread in which the SQL statements are executed. Refresh the tree if needed
-   * and play a sound if the query execution time was a longer than 5 seconds.
+   * Creates at thread in which the SQL statements are executed. Refresh the tree if needed and play
+   * a sound if the query execution time was a longer than 5 seconds.
    */
   private void executeSQLStatements() {
 
@@ -1243,12 +1244,33 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       // Replace all the user defined variables by their value
-      Iterator<String> it = variables.keySet().iterator();
+      //      Iterator<String> it = variables.keySet().iterator();
+      //
+      //      while (it.hasNext()) {
+      //        String varName = it.next();
+      //        String varValue = variables.get(varName) + " ";
+      //        currentCommand = currentCommand.replace(varName, varValue);
+      //      }
+      //
 
-      while (it.hasNext()) {
-        String varName = it.next();
+      // Replace all the user defined variables by their value.
+      // Longer variable names must be replaced first to avoid partial replacements.
+      List<String> varNames = new ArrayList<>(variables.keySet());
+
+      varNames.sort(
+          (varName1, varName2) -> {
+            int lengthComparison = Integer.compare(varName2.length(), varName1.length());
+
+            if (lengthComparison != 0) {
+              return lengthComparison;
+            }
+
+            return varName1.compareTo(varName2);
+          });
+
+      for (String varName : varNames) {
         String varValue = variables.get(varName) + " ";
-        currentCommand = currentCommand.replaceAll(varName, varValue);
+        currentCommand = currentCommand.replace(varName, varValue);
       }
 
       // Store the parsed command command
@@ -1947,8 +1969,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
               }
 
               // get metadata about user tables by building a vector of table names
-              //String[] usertables = {"TABLE", "GLOBAL TEMPORARY", "VIEW"};
-              //ResultSet result = metaData.getTables(catalog, schema, null, usertables);
+              // String[] usertables = {"TABLE", "GLOBAL TEMPORARY", "VIEW"};
+              // ResultSet result = metaData.getTables(catalog, schema, null, usertables);
               ResultSet result = JDBCUtils.getTables();
 
               Vector<String> tables = new Vector<>();

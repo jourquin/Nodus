@@ -67,6 +67,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -285,22 +287,30 @@ public class NodusProject implements ShapeConstants {
     // Fetch the path to the project
     String projectPath = localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH);
 
+    Path projectDir = null;
+    if (projectPath != null && !projectPath.isBlank()) {
+      projectDir = Paths.get(projectPath).toAbsolutePath().normalize();
+    }
+
     // Upgrade layer class names
     props = CheckForOM5.upgradeApiNames(props);
 
     // Merge this property file with the local property
     Enumeration<?> enumerator = props.propertyNames();
 
-    for (; enumerator.hasMoreElements(); ) {
+    while (enumerator.hasMoreElements()) {
       String propName = (String) enumerator.nextElement();
-      String propValue = (String) props.get(propName);
+      String propValue = props.getProperty(propName);
 
       // Add project path to resource file name that starts with "./" (project's directory)
-
-      if (propValue.startsWith(".")) {
-        propValue = projectPath + propValue.substring(2, propValue.length());
+      if (propValue != null && propValue.startsWith("./") && projectDir != null) {
+        String relativePath = propValue.substring(2);
+        propValue = projectDir.resolve(relativePath).normalize().toString();
       }
-      localProperties.setProperty(propName, propValue);
+
+      if (propValue != null) {
+        localProperties.setProperty(propName, propValue);
+      }
     }
 
     List<String> startuplayers;
@@ -540,13 +550,17 @@ public class NodusProject implements ShapeConstants {
                 NodusC.PROP_ADD_POLITICAL_BOUNDARIES,
                 Boolean.toString(nodusMapPanel.isPoliticalBoundariesAdded()));
 
-            localProperties.store(
-                new FileOutputStream(projectResourceFileNameAndPath + NodusC.TYPE_LOCAL), null);
+            try (FileOutputStream outputStream =
+                new FileOutputStream(projectResourceFileNameAndPath + NodusC.TYPE_LOCAL)) {
+              localProperties.store(outputStream, null);
+            }
+
             localProperties.clear();
             localProperties = null;
           } catch (IOException ex) {
             System.err.println(
                 "Caught IOException saving resources: " + projectResourceFileNameAndPath);
+            ex.printStackTrace();
           }
         }
       }
@@ -619,10 +633,9 @@ public class NodusProject implements ShapeConstants {
       // Reset view to initial values
       getNodusMapPanel().getMapBean().setScale(initialScale);
       getNodusMapPanel().getMapBean().setCenter(initialCenterPoint);
-      
+
       projectProperties.clear();
       projectProperties = null;
-      
     }
   }
 
@@ -681,20 +694,49 @@ public class NodusProject implements ShapeConstants {
    * @return The corresponding layer or null if not found.
    */
   public NodusEsriLayer getLayer(String name) {
-    for (NodusEsriLayer element : nodeLayers) {
-      if (element.getName().equalsIgnoreCase(name)) {
-        return element;
-      }
-      if (element.getTableName().equalsIgnoreCase(name)) {
-        return element;
-      }
+
+    if (name == null) {
+      return null;
     }
 
-    for (NodusEsriLayer element : linkLayers) {
-      if (element.getName().equalsIgnoreCase(name)) {
+    NodusEsriLayer layer = getLayerFromArray(nodeLayers, name);
+
+    if (layer != null) {
+      return layer;
+    }
+
+    return getLayerFromArray(linkLayers, name);
+  }
+
+  /**
+   * Returns the first layer in the given array whose layer name or table name matches the given
+   * name.
+   *
+   * @param layers the array of layers to search, may be {@code null}
+   * @param name the layer or table name to look for
+   * @return the matching layer, or {@code null} if none is found
+   */
+  private NodusEsriLayer getLayerFromArray(NodusEsriLayer[] layers, String name) {
+
+    if (layers == null) {
+      return null;
+    }
+
+    for (NodusEsriLayer element : layers) {
+
+      if (element == null) {
+        continue;
+      }
+
+      String layerName = element.getName();
+
+      if (layerName != null && layerName.equalsIgnoreCase(name)) {
         return element;
       }
-      if (element.getTableName().equalsIgnoreCase(name)) {
+
+      String tableName = element.getTableName();
+
+      if (tableName != null && tableName.equalsIgnoreCase(name)) {
         return element;
       }
     }
@@ -1119,11 +1161,18 @@ public class NodusProject implements ShapeConstants {
     }
 
     File f = new File(getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + layerName + NodusC.TYPE_DBF);
-    if (f.lastModified() == Long.parseLong(value)) {
-      return false;
+
+    long storedLastModified;
+
+    try {
+      storedLastModified = Long.parseLong(value);
+    } catch (NumberFormatException e) {
+      // The value stored in the .local file is invalid.
+      // Consider the DBF as modified so it can be refreshed/reprocessed.
+      return true;
     }
 
-    return true;
+    return f.lastModified() != storedLastModified;
   }
 
   /**
@@ -1432,7 +1481,6 @@ public class NodusProject implements ShapeConstants {
     }
 
     if (projectProperties == null) { // File doesn't exist
-
       // Create a minimal empty project
       int answer =
           JOptionPane.showConfirmDialog(
@@ -1451,9 +1499,14 @@ public class NodusProject implements ShapeConstants {
           projectProperties = new CommentedProperties();
           projectProperties.setProperty(NodusC.PROP_NETWORK_NODES, "");
           projectProperties.setProperty(NodusC.PROP_NETWORK_LINKS, "");
-          projectProperties.store(new FileOutputStream(projectResourceFileNameAndPath), null);
+
+          try (FileOutputStream outputStream =
+              new FileOutputStream(projectResourceFileNameAndPath)) {
+            projectProperties.store(outputStream, null);
+          }
         } catch (IOException e) {
           System.err.println("Caught IOException creating " + projectResourceFileNameAndPath);
+          e.printStackTrace();
         }
       } else {
         return;
@@ -2055,7 +2108,7 @@ public class NodusProject implements ShapeConstants {
     scriptRunner.run(true);
 
     isOpen = true;
-    
+
     // Enable layers panel
     nodusMapPanel.getNodusLayersPanel().enableButtons(true);
 
@@ -2069,12 +2122,11 @@ public class NodusProject implements ShapeConstants {
     getNodusMapPanel().enableMenus(true);
 
     nodusMapPanel.setBusy(false);
-   
   }
 
   /** Reload the project. Can be used when new node/link layers are added/removed to the project. */
   public void reload() {
-    
+
     String fileNameAndPath =
         localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
             + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
@@ -2292,10 +2344,11 @@ public class NodusProject implements ShapeConstants {
   /** Saves the project's properties on disk. */
   public void saveProperties() {
 
-    try {
-      projectProperties.store(new FileOutputStream(projectResourceFileNameAndPath), null);
+    try (FileOutputStream outputStream = new FileOutputStream(projectResourceFileNameAndPath)) {
+      projectProperties.store(outputStream, null);
     } catch (IOException e) {
       System.err.println("Caught IOException saving resources: " + projectResourceFileNameAndPath);
+      e.printStackTrace();
     }
   }
 
