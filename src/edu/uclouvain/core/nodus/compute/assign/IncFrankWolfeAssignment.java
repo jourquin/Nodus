@@ -356,49 +356,49 @@ public class IncFrankWolfeAssignment extends Assignment {
    * @return Optimal lambda in [0, 1], or NaN if the computation was aborted.
    */
   private double lineSearchLambda(int iteration, int threads, double precision) {
-    double li = 0.0;
-    double ls = 1.0;
+    double lowerLambda = 0.0;
+    double upperLambda = 1.0;
 
-    double dLi = firstDerivativeAt(iteration, li, threads);
-    if (Double.isNaN(dLi)) {
+    double derivativeAtLowerLambda = firstDerivativeAt(iteration, lowerLambda, threads);
+    if (Double.isNaN(derivativeAtLowerLambda)) {
       return Double.NaN;
     }
 
     // Objective already increasing at lambda = 0.
-    if (dLi >= 0.0) {
+    if (derivativeAtLowerLambda >= 0.0) {
       return 0.0;
     }
 
-    double dLs = firstDerivativeAt(iteration, ls, threads);
-    if (Double.isNaN(dLs)) {
+    double derivativeAtUpperLambda = firstDerivativeAt(iteration, upperLambda, threads);
+    if (Double.isNaN(derivativeAtUpperLambda)) {
       return Double.NaN;
     }
 
     // Objective still decreasing at lambda = 1.
-    if (dLs <= 0.0) {
+    if (derivativeAtUpperLambda <= 0.0) {
       return 1.0;
     }
 
-    while (ls - li > precision) {
-      double m = (li + ls) / 2.0;
-      double dM = firstDerivativeAt(iteration, m, threads);
+    while (upperLambda - lowerLambda > precision) {
+      double middleLambda = (lowerLambda + upperLambda) / 2.0;
+      double derivativeAtMiddleLambda = firstDerivativeAt(iteration, middleLambda, threads);
 
-      if (Double.isNaN(dM)) {
+      if (Double.isNaN(derivativeAtMiddleLambda)) {
         return Double.NaN;
       }
 
-      if (Math.abs(dM) < 1.0e-12) {
-        return m;
+      if (Math.abs(derivativeAtMiddleLambda) < 1.0e-12) {
+        return middleLambda;
       }
 
-      if (dM < 0.0) {
-        li = m;
+      if (derivativeAtMiddleLambda < 0.0) {
+        lowerLambda = middleLambda;
       } else {
-        ls = m;
+        upperLambda = middleLambda;
       }
     }
 
-    return (li + ls) / 2.0;
+    return (lowerLambda + upperLambda) / 2.0;
   }
 
   /**

@@ -1432,6 +1432,27 @@ public class VirtualNetwork {
     return projectedVolumesToVehicles(vehiclesParser, (byte) 0, lambda);
   }
 
+  /**
+   * Converts the projected Frank-Wolfe volumes into passenger-car units for a given time slice.
+   *
+   * <p>The projected volume is computed as:
+   *
+   * <pre>
+   * projectedVolume = (1 - lambda) * currentVolume + lambda * auxiliaryVolume
+   * </pre>
+   *
+   * <p>This method is used during the Frank-Wolfe line search to evaluate costs at a trial point
+   * without permanently modifying the current or auxiliary volumes stored on the virtual links.
+   * It resets the passenger-car-unit loads on the real links, then reloads them using the projected
+   * volumes and the vehicle characteristics supplied by the {@link VehiclesParser}.
+   *
+   * @param vehiclesParser parser providing vehicle characteristics, including average load and
+   *     passenger-car-unit factors, for each group/mode/means combination
+   * @param timeSlice the time slice for which the projected volumes must be converted
+   * @param lambda the Frank-Wolfe trial step size, normally in the interval {@code [0, 1]}
+   * @return {@code true} if the projected volumes were successfully converted into passenger-car
+   *     units; {@code false} otherwise
+   */
   public boolean projectedVolumesToVehicles(
       VehiclesParser vehiclesParser, byte timeSlice, double lambda) {
 
