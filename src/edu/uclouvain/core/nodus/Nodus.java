@@ -95,22 +95,25 @@ public class Nodus {
     nodusLogger.setLevel(Level.ALL);
 
     // Open the properties file
-    try {
-      String home = System.getProperty("user.home") + "/";
-      nodusProperties.load(new FileInputStream(home + ".nodus8.properties"));
+    String home = System.getProperty("user.home") + "/";
+    try (FileInputStream in = new FileInputStream(home + ".nodus8.properties")) {
+      nodusProperties.load(in);
     } catch (IOException ex) {
       // Nothing to do. The properties file will be created later.
     }
 
     // Prepare i18n mechanism
-    String locale = nodusProperties.getProperty(NodusC.PROP_LOCALE, null);
-    
-    if (locale != null) {
-      Locale.setDefault(new Locale(locale.toLowerCase(), locale.toUpperCase()));
+    String localeString = nodusProperties.getProperty(NodusC.PROP_LOCALE, null);
+
+    if (localeString != null) {
+      Locale locale = parseLocale(localeString);
+      Locale.setDefault(locale);
+
+      // Locale.setDefault(new Locale(locale.toLowerCase(), locale.toUpperCase()));
     } else {
       Locale.setDefault(Locale.ENGLISH);
     }
-    
+
     setLookAndFeel();
 
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
@@ -156,10 +159,15 @@ public class Nodus {
       String value = nodusProperties.getProperty(NodusC.PROP_REOPEN_LATST_PROJECT, "false");
       if (value.equalsIgnoreCase("true")) {
         // Try to load last project
-        projectToLoad =
-            nodusProperties.getProperty(NodusC.PROP_LAST_PATH)
-                // + File.separator
-                + nodusProperties.getProperty(NodusC.PROP_LAST_PROJECT);
+        String lastPath = nodusProperties.getProperty(NodusC.PROP_LAST_PATH);
+        String lastProject = nodusProperties.getProperty(NodusC.PROP_LAST_PROJECT);
+
+        if (lastPath != null && lastProject != null) {
+          if (!lastPath.endsWith("/") && !lastPath.endsWith("\\")) {
+            lastPath += File.separator;
+          }
+          projectToLoad = lastPath + lastProject;
+        }
 
         // Test if the file exists
         File f = new File(projectToLoad);
@@ -203,7 +211,7 @@ public class Nodus {
             nodusMapPanel.getMainFrame().setAlwaysOnTop(true);
             nodusMapPanel.getMainFrame().setAlwaysOnTop(b);
             nodusMapPanel.requestFocus();
-            
+
             // Run the "nodus.groovy" script if exists
             String scriptFileName =
                 System.getProperty("NODUS_HOME", ".") + "/nodus" + NodusC.TYPE_GROOVY;
@@ -318,5 +326,48 @@ public class Nodus {
     // omf.setVisible(true);
     // nodusMapPanel.getMapBean().showLayerPalettes();
     setWindowListenerOnFrame(omf);
+  }
+
+  /**
+   * Parses a locale string and returns the corresponding {@link Locale}.
+   *
+   * <p>The input may use either a simple language code such as {@code "fr"}, the older Java-style
+   * underscore format such as {@code "fr_BE"}, or the standard BCP 47 language tag format such as
+   * {@code "fr-BE"}.
+   *
+   * <p>For backward compatibility with the previous Nodus behavior, a simple two-letter language
+   * code such as {@code "fr"} is interpreted as both language and country, producing {@code fr_FR}.
+   * For example, {@code "fr"} becomes {@code new Locale("fr", "FR")}.
+   *
+   * <p>If the supplied string is {@code null}, blank, or cannot be parsed into a valid locale with
+   * a language code, the JVM default locale is returned.
+   *
+   * @param localeString the locale string to parse, for example {@code "fr"}, {@code "fr_BE"}, or
+   *     {@code "fr-BE"}
+   * @return the parsed {@link Locale}, or {@link Locale#getDefault()} if the input is missing or
+   *     invalid
+   */
+  private static Locale parseLocale(String localeString) {
+    if (localeString == null || localeString.isBlank()) {
+      return Locale.getDefault();
+    }
+
+    String trimmedLocale = localeString.trim();
+
+    // Backward compatibility with the previous implementation:
+    // "fr" used to become new Locale("fr", "FR").
+    if (trimmedLocale.matches("[a-zA-Z]{2}")) {
+      return new Locale(trimmedLocale.toLowerCase(), trimmedLocale.toUpperCase());
+    }
+
+    String normalizedLocale = trimmedLocale.replace('_', '-');
+
+    Locale parsedLocale = Locale.forLanguageTag(normalizedLocale);
+
+    if (parsedLocale.getLanguage() == null || parsedLocale.getLanguage().isEmpty()) {
+      return Locale.getDefault();
+    }
+
+    return parsedLocale;
   }
 }

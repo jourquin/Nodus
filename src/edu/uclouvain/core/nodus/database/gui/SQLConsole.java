@@ -579,8 +579,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         break;
       }
 
-      String[] g = new String[1];
-
       String sync = sqlCommand.toUpperCase();
 
       if (sync.indexOf(ENABLEECHO) != -1) {
@@ -810,6 +808,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
       gridResultArea.clear();
 
+      String[] g = new String[1];
+      
       try {
         statement.execute(sqlCommand);
 

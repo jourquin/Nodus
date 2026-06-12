@@ -49,7 +49,7 @@ public class WorkQueue {
    */
   public synchronized void addWork(Object work) {
     queue.addLast(work);
-    notify();
+    notifyAll();
   }
 
   /**

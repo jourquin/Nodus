@@ -59,10 +59,6 @@ public class ODReader {
    */
   public static Vector<String> getValidODTables(NodusProject nodusProject) {
 
-    Connection jdbcConnection = nodusProject.getMainJDBCConnection();
-
-    Vector<String> tables = new Vector<>();
-
     String vnetTablePrefix =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
     vnetTablePrefix =
@@ -84,6 +80,9 @@ public class ODReader {
         nodusProject
             .getLocalProperty(NodusC.PROP_SERVICES_TABLE_PREFIX, serviceTablePrefix)
             .toLowerCase();
+
+    Connection jdbcConnection = nodusProject.getMainJDBCConnection();
+    Vector<String> tables = new Vector<>();
 
     try {
       ResultSet result = JDBCUtils.getTables();

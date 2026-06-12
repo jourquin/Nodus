@@ -220,7 +220,6 @@ public class ImportXLS {
 
     Connection con = nodusProject.getMainJDBCConnection();
     Statement stmt;
-    PreparedStatement prepStmt;
 
     // Clean table
     String sqlStmt;
@@ -281,7 +280,7 @@ public class ImportXLS {
         }
       }
       sqlStmt += ")";
-      prepStmt = con.prepareStatement(sqlStmt);
+      PreparedStatement prepStmt = con.prepareStatement(sqlStmt);
 
       while (rows.hasNext()) {
         Row row = rows.next();

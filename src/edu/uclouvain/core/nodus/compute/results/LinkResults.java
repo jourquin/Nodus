@@ -115,7 +115,6 @@ public class LinkResults implements ShapeConstants {
   private static int currentScenario = -1;
  
   double maxResult = Double.MIN_VALUE;
- 
   double minResult = Double.MAX_VALUE;
 
   /**
@@ -425,9 +424,6 @@ public class LinkResults implements ShapeConstants {
    */
   public boolean displayPath(String sqlStmt) {
 
-    double maxResult = Double.MIN_VALUE;
-    double minResult = Double.MAX_VALUE;
-
     // Ask the use which units he wants to display 
     Integer unit = askForDisplayUnits();
     if (unit == null) {
@@ -487,6 +483,9 @@ public class LinkResults implements ShapeConstants {
       ResultSet rs = stmt.executeQuery(sqlStmt);
 
       // Retrieve result of query
+      double maxResult = Double.MIN_VALUE;
+      double minResult = Double.MAX_VALUE;
+
       while (rs.next()) {
         RealLink rl = getRealLink(linkLayers, JDBCUtils.getInt(rs.getObject(1)));
 

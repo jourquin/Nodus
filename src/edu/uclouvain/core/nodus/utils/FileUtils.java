@@ -22,10 +22,14 @@
 package edu.uclouvain.core.nodus.utils;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.channels.FileChannel;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.text.ParseException;
 
 /**
@@ -47,29 +51,16 @@ public class FileUtils {
    */
   public static boolean copyFile(String from, String to) {
     try {
-      // Create channel on the source
-      FileInputStream srcFis = new FileInputStream(from);
-      FileChannel srcChannel = srcFis.getChannel();
-
-      // Create channel on the destination
-      FileOutputStream dstFis = new FileOutputStream(to);
-      FileChannel dstChannel = dstFis.getChannel();
-
-      // Copy file contents from source to destination
-      dstChannel.transferFrom(srcChannel, 0, srcChannel.size());
-
-      // Close the channels
-      srcChannel.close();
-      dstChannel.close();
-      srcFis.close();
-      dstFis.close();
+      Files.copy(
+          Path.of(from),
+          Path.of(to),
+          StandardCopyOption.REPLACE_EXISTING,
+          StandardCopyOption.COPY_ATTRIBUTES);
+      return true;
     } catch (IOException e) {
       System.out.println(e.toString());
-
       return false;
     }
-
-    return true;
   }
 
   /**
@@ -84,44 +75,35 @@ public class FileUtils {
       return;
     }
 
-    if (file.isDirectory()) {
+    Path root = file.toPath();
 
-      // directory is empty, then delete it
-      String[] fileList = file.list();
-      if (fileList == null) {
-        return;
-      }
-
-      if (fileList.length == 0) {
-        file.delete();
-
-      } else {
-
-        // list all the directory contents
-        String[] files = file.list();
-        if (files == null) {
-          return;
-        }
-
-        for (String temp : files) {
-          // construct the file structure
-          File fileDelete = new File(file, temp);
-
-          // recursive delete
-          deleteFile(fileDelete);
-        }
-
-        // check the directory again, if empty then delete it
-        fileList = file.list();
-        if (fileList != null && fileList.length == 0) {
-          file.delete();
-        }
-      }
-
-    } else {
-      // if file, then delete it
-      file.delete();
+    // Keep the previous behavior: deleting a non-existing file is a no-op.
+    if (Files.notExists(root, LinkOption.NOFOLLOW_LINKS)) {
+      return;
     }
+
+    Files.walkFileTree(
+        root,
+        new SimpleFileVisitor<Path>() {
+
+          @Override
+          public FileVisitResult visitFile(Path path, BasicFileAttributes attrs)
+              throws IOException {
+            Files.delete(path);
+            return FileVisitResult.CONTINUE;
+          }
+
+          @Override
+          public FileVisitResult postVisitDirectory(Path directory, IOException exception)
+              throws IOException {
+            if (exception != null) {
+              throw exception;
+            }
+
+            Files.delete(directory);
+            return FileVisitResult.CONTINUE;
+          }
+        });
   }
 
   /**

@@ -24,11 +24,12 @@ package edu.uclouvain.core.nodus.utils;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 
 /**
  * This small utility is used to handle concurrent access to a project.
@@ -44,7 +45,7 @@ public class ProjectLocker {
   private static FileLock lock = null;
 
   private static String lockerFileName;
-  
+
   /** Default constructor. */
   public ProjectLocker() {}
 
@@ -54,55 +55,82 @@ public class ProjectLocker {
    * @param project A Nodus project.
    * @return False on error.
    */
-  @SuppressWarnings("resource")
   public static boolean createLock(NodusProject project) {
 
-    // Is there a lock file?
     lockerFileName =
         project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
             + project.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME)
             + NodusC.TYPE_LOCK;
-    File f = new File(lockerFileName);
-    if (f.exists()) {
-      // Is project locked?
-      try {
 
-        RandomAccessFile rf = new RandomAccessFile(lockerFileName, "rw");
-        FileChannel channel = rf.getChannel();
-        if (channel.tryLock() == null) {
-          if (debug) {
-            System.out.println("Project already locked");
-          }
-          channel.close();
-          rf.close();
-          return false;
-        }
-        channel.close();
-        rf.close();
+    FileChannel newChannel = null;
+    FileLock newLock = null;
 
-      } catch (FileNotFoundException e) {
-        // If lock belongs to another user (permission denied)
+    try {
+      newChannel =
+          FileChannel.open(
+              Path.of(lockerFileName), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+
+      // Non-blocking lock attempt.
+      // Returns null if another process already holds the lock.
+      newLock = newChannel.tryLock();
+
+      if (newLock == null) {
         if (debug) {
-          System.out.println("Permission denied");
+          System.out.println("Project already locked");
         }
-        return false;
-      } catch (IOException e) {
-        e.printStackTrace();
+
+        newChannel.close();
         return false;
       }
-    }
 
-    // Try to create a new lock
-    try {
-      channel = new RandomAccessFile(lockerFileName, "rw").getChannel();
-      lock = channel.lock();
+      // Store only after successful locking.
+      channel = newChannel;
+      lock = newLock;
+
       if (debug) {
         System.out.println("Project locked");
       }
+
       return true;
-    } catch (IOException e) {
-      e.printStackTrace();
+
+    } catch (OverlappingFileLockException e) {
+      // The same JVM already holds a lock on this file.
+      if (debug) {
+        System.out.println("Project already locked by this application");
+      }
+
+      closeQuietly(newLock);
+      closeQuietly(newChannel);
       return false;
+
+    } catch (IOException | SecurityException e) {
+      if (debug) {
+        e.printStackTrace();
+      }
+
+      closeQuietly(newLock);
+      closeQuietly(newChannel);
+      return false;
+    }
+  }
+
+  private static void closeQuietly(FileLock lock) {
+    if (lock != null) {
+      try {
+        lock.close();
+      } catch (IOException ignored) {
+        // Ignore cleanup failure
+      }
+    }
+  }
+
+  private static void closeQuietly(FileChannel channel) {
+    if (channel != null) {
+      try {
+        channel.close();
+      } catch (IOException ignored) {
+        // Ignore cleanup failure
+      }
     }
   }
 
@@ -114,7 +142,7 @@ public class ProjectLocker {
         lock.release();
         lock = null;
         channel.close();
-        
+
         File f = new File(lockerFileName);
         f.delete();
 

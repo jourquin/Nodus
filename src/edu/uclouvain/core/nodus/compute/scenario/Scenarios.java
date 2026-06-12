@@ -174,8 +174,6 @@ public class Scenarios {
     LinkedList<Byte> groupList1 = new LinkedList<>();
     LinkedList<Byte> groupList2 = new LinkedList<>();
 
-    Connection con = nodusProject.getMainJDBCConnection();
-
     try {
 
       // First table
@@ -283,8 +281,7 @@ public class Scenarios {
     }
 
     /* Read the first table and create an hashtable with all the records */
-    HashMap<String, VnetRecord> hashMap = null;
-
+   
     String tableName =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
     tableName =
@@ -297,6 +294,9 @@ public class Scenarios {
       sqlStmt += " WHERE " + whereString;
     }
 
+    Connection con = nodusProject.getMainJDBCConnection();
+    HashMap<String, VnetRecord> hashMap = null;
+    
     try {
       Statement stmt = con.createStatement();
       ResultSet rs = stmt.executeQuery(sqlStmt);
