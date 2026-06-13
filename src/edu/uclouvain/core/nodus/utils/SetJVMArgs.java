@@ -28,6 +28,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Locale;
 import org.apache.commons.io.FileUtils;
 
 /**
@@ -68,8 +69,14 @@ public class SetJVMArgs {
     File file = new File(envtFileName);
     if (!file.exists()) {
 
-      // Get the heap settings and add UTF8 encoding flag
-      String parameters = getDefaultHeapSettings() + " -Dfile.encoding=UTF8 --illegal-access=deny";
+      // Get the heap settings and add UTF-8 encoding flag
+      String parameters = getDefaultHeapSettings() + " -Dfile.encoding=UTF-8";
+
+      int javaFeature = Runtime.version().feature();
+
+      if (javaFeature >= 9 && javaFeature <= 16) {
+        parameters += " --illegal-access=deny";
+      }
 
       // Update the script
       createScript(envtFileName, parameters);
@@ -173,45 +180,66 @@ public class SetJVMArgs {
     }
   }
 
-  
+  /**
+   * The Times font is not always installed on MacOS.
+   */
   private void installTimesFontIfNeeded() {
 
-    if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
+    if (!System.getProperty("os.name", "").toLowerCase(Locale.ROOT).startsWith("mac")) {
+      return;
+    }
 
-      // Test if the Times font is installed
-      boolean isInstalled = false;
-      GraphicsEnvironment g = null;
+    // Test if the Times font is installed
+    GraphicsEnvironment g = null;
+    PrintStream originalErr = System.err;
+
+    try (PrintStream devNull = new PrintStream("/dev/null")) {
+      // Intercept the macOS/font warning message
+      System.setErr(devNull);
+      g = GraphicsEnvironment.getLocalGraphicsEnvironment();
+    } catch (FileNotFoundException e) {
+      // If /dev/null cannot be opened, try without redirecting System.err
+      try {
+        g = GraphicsEnvironment.getLocalGraphicsEnvironment();
+      } catch (RuntimeException e2) {
+        e2.printStackTrace();
+        return;
+      }
+    } finally {
+      System.setErr(originalErr);
+    }
+
+    if (g == null) {
+      return;
+    }
+
+    boolean isInstalled = false;
+    String[] fonts = g.getAvailableFontFamilyNames();
+
+    for (String font : fonts) {
+      if ("Times".equals(font)) {
+        isInstalled = true;
+        break;
+      }
+    }
+
+    // Install if needed
+    if (!isInstalled) {
+      String userDir = System.getProperty("user.home");
+      File fontDir = new File(userDir + "/Library/Fonts/");
+
+      if (!fontDir.exists() && !fontDir.mkdirs()) {
+        System.err.println("Could not create font directory: " + fontDir);
+        return;
+      }
+
+      File source = new File("share/times.ttf");
+      File dest = new File(fontDir, "times.ttf");
 
       try {
-        // Intercept the warning message
-        final PrintStream err = new PrintStream(System.err);
-        System.setErr(new PrintStream("/dev/null"));
-        g = GraphicsEnvironment.getLocalGraphicsEnvironment();
-        System.setErr(err);
-      } catch (FileNotFoundException e1) {
-        e1.printStackTrace();
-      }
-
-      String[] fonts = g.getAvailableFontFamilyNames();
-      for (int i = 0; i < fonts.length; i++) {
-        if (fonts[i].equals("Times")) {
-          isInstalled = true;
-        }
-      }
-
-      // Install if needed
-      if (!isInstalled) {
-        String userDir = System.getProperty("user.home");
-        String fontDir = userDir + "/Library/Fonts/";
-
-        // Copy the font in the dir
-        File source = new File("share/times.ttf");
-        File dest = new File(fontDir + "times.ttf");
-        try {
-          FileUtils.copyFile(source, dest);
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
+        FileUtils.copyFile(source, dest);
+      } catch (IOException e) {
+        e.printStackTrace();
       }
     }
   }

@@ -34,6 +34,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.MessageFormat;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -77,7 +79,7 @@ public class GitHubRelease {
    */
   private static void checkForNewerRelease(JDialog parent, boolean autoCheck) {
 
-    // Don't test a IDE build
+    // Don't test an IDE build
     BuildIdGenerator generator = new BuildIdGenerator();
     String jarBuildId = generator.getJarBuildId();
     if (jarBuildId == null) {
@@ -103,12 +105,13 @@ public class GitHubRelease {
       JSONObject gitHubInfo = getLatestBuildInfoFromGitHub();
 
       // Get latest version
-      String remoteVersion = ((String) gitHubInfo.get("tag_name")).replace("v", "");
+      String remoteVersion = ((String) gitHubInfo.get("tag_name")).replaceFirst("^v", "");
 
       // Get version of running app
       String currentVersion = NodusC.VERSION;
 
       boolean newReleaseAvailable = false;
+
       if (!remoteVersion.equals(currentVersion)) {
         newReleaseAvailable = true;
         String message =
@@ -119,30 +122,47 @@ public class GitHubRelease {
                     "Nodus version {0} is available on"),
                 remoteVersion);
         displayInformationMessage(message, NodusC.nodusUrl, autoCheck);
-      } else { // A new build may be available
-        // Get latest BuildID
-        String name = ((String) gitHubInfo.get("name")).toLowerCase();
-        name = name.replace("build", "");
-        int remoteBuild = Integer.parseInt(name);
 
-        if (Integer.parseInt(jarBuildId) < remoteBuild) {
-          newReleaseAvailable = true;
-          String message =
+      } else {
+        // A new build may be available.
+        // Accept release names such as:
+        // "Build20260607", "Build 20260607", "Nodus Build20260607", etc.
+        String releaseName = (String) gitHubInfo.get("name");
+
+        Pattern buildPattern = Pattern.compile("(?i)\\bbuild\\s*(\\d+)\\b");
+        Matcher matcher = buildPattern.matcher(releaseName);
+
+        if (matcher.find()) {
+          String remoteBuildId = matcher.group(1);
+          int remoteBuild = Integer.parseInt(remoteBuildId);
+
+          if (Integer.parseInt(jarBuildId) < remoteBuild) {
+            newReleaseAvailable = true;
+            String message =
+                MessageFormat.format(
+                    i18n.get(
+                        GitHubRelease.class,
+                        "NewBuildAvailabe",
+                        "Nodus version {0} build {1} is available on"),
+                    remoteVersion,
+                    remoteBuildId);
+            displayInformationMessage(message, NodusC.nodusUrl, autoCheck);
+          }
+        } else if (!autoCheck) {
+          JOptionPane.showMessageDialog(
+              parent,
               MessageFormat.format(
                   i18n.get(
                       GitHubRelease.class,
-                      "NewBuildAvailabe",
-                      "Nodus version {0} build {1} is available on"),
-                  remoteVersion,
-                  name);
-          displayInformationMessage(message, NodusC.nodusUrl, autoCheck);
+                      "CannotParseBuildId",
+                      "Could not determine the latest build id from release name \"{0}\""),
+                  releaseName));
         }
       }
 
       if (!newReleaseAvailable && !autoCheck) {
         JOptionPane.showMessageDialog(
-            parent,
-            i18n.get(GitHubRelease.class, "UpToDate", "Nodus is up-to-date"));
+            parent, i18n.get(GitHubRelease.class, "UpToDate", "Nodus is up-to-date"));
       }
 
     } catch (Exception e) {

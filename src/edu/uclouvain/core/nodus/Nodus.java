@@ -171,9 +171,11 @@ public class Nodus {
         }
 
         // Test if the file exists
-        File f = new File(projectToLoad);
-        if (!f.exists() || f.isDirectory()) {
-          projectToLoad = null;
+        if (projectToLoad != null) {
+          File f = new File(projectToLoad);
+          if (!f.exists() || f.isDirectory()) {
+            projectToLoad = null;
+          }
         }
       }
     }
@@ -328,6 +330,4 @@ public class Nodus {
     // nodusMapPanel.getMapBean().showLayerPalettes();
     setWindowListenerOnFrame(omf);
   }
-
-  
 }
