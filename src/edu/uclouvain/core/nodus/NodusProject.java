@@ -457,12 +457,25 @@ public class NodusProject implements ShapeConstants {
                 SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
                 isShutdown = true;
                 Thread work =
-                    new Thread() {
-                      public void run() {
-                        JDBCUtils.shutdownCompact();
-                        loop.exit();
-                      }
-                    };
+                    new Thread(
+                        () -> {
+                          try {
+                            JDBCUtils.shutdownCompact();
+                          } catch (Exception ex) {
+                            ex.printStackTrace();
+
+                            SwingUtilities.invokeLater(
+                                () ->
+                                    JOptionPane.showMessageDialog(
+                                        null,
+                                        ex.toString(),
+                                        NodusC.APPNAME,
+                                        JOptionPane.ERROR_MESSAGE));
+                          } finally {
+                            loop.exit();
+                          }
+                        },
+                        "Nodus-Database-Compactor");
 
                 work.start();
                 loop.enter();
@@ -677,14 +690,20 @@ public class NodusProject implements ShapeConstants {
    */
   private Properties getDefaultStyle() {
     Properties p = new Properties();
-    try {
-      InputStream in = NodusMapPanel.class.getResource("shapes.properties").openStream();
+
+    try (InputStream in = NodusMapPanel.class.getResourceAsStream("shapes.properties")) {
+      if (in == null) {
+        System.err.println("Resource not found: shapes.properties");
+        return null;
+      }
+
       p.load(in);
+      return p;
+
     } catch (IOException ioe) { // Should never happen
       ioe.printStackTrace();
       return null;
     }
-    return p;
   }
 
   /**

@@ -131,46 +131,67 @@ public class JDBCUtils {
       return false;
     }
 
-    try (Statement stmt = jdbcConnection.createStatement()) {
-      String sqlStmt = null;
-
-      dropTable(tableName);
-
-      // Create a new table
-      sqlStmt = "CREATE TABLE " + getQuotedCompliantIdentifier(tableName) + " (";
-
-      for (int i = 0; i < fields.length; i++) {
-        String fieldType = fields[i].getFieldType();
-
-        if (fieldType == null) {
-          return false;
-        }
-
-        sqlStmt += getQuotedCompliantIdentifier(fields[i].getFieldName()) + " " + fieldType;
-
-        if (i < fields.length - 1) {
-          sqlStmt += ", ";
-        } else {
-          sqlStmt += ")";
-        }
-      }
-
-      stmt.execute(sqlStmt);
-    } catch (Exception ex) {
-      ex.printStackTrace();
-      JOptionPane.showMessageDialog(null, ex.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-
+    if (tableName == null || tableName.isBlank() || fields == null || fields.length == 0) {
       return false;
     }
 
-    // Create the indexes
+    final String sqlStmt;
+
+    try {
+      StringBuilder sql = new StringBuilder();
+
+      sql.append("CREATE TABLE ").append(getQuotedCompliantIdentifier(tableName)).append(" (");
+
+      for (int i = 0; i < fields.length; i++) {
+        if (fields[i] == null) {
+          return false;
+        }
+
+        String fieldName = fields[i].getFieldName();
+        String fieldType = fields[i].getFieldType();
+
+        if (fieldName == null || fieldName.isBlank() || fieldType == null || fieldType.isBlank()) {
+          return false;
+        }
+
+        sql.append(getQuotedCompliantIdentifier(fieldName)).append(" ").append(fieldType);
+
+        if (i < fields.length - 1) {
+          sql.append(", ");
+        }
+      }
+
+      sql.append(")");
+      sqlStmt = sql.toString();
+
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      JOptionPane.showMessageDialog(null, ex.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+      return false;
+    }
+
+    try (Statement stmt = jdbcConnection.createStatement()) {
+
+      // Only drop the old table after the new SQL has been fully validated and built.
+      dropTable(tableName);
+
+      stmt.execute(sqlStmt);
+
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      JOptionPane.showMessageDialog(null, ex.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+      return false;
+    }
+
+    // Create the indexes after the table has been successfully created.
     if (indexes != null) {
-      for (int i = 0; i < indexes.length; i++) {
-        if (!createIndex(indexes[i])) {
+      for (JDBCIndex index : indexes) {
+        if (index == null || !createIndex(index)) {
           return false;
         }
       }
     }
+
     return true;
   }
 
@@ -947,18 +968,24 @@ public class JDBCUtils {
 
   /** H2 and HSQLDB databases can be compacted at shutdown time. */
   public static void shutdownCompact() {
-    if (dbEngine == DB_HSQLDB || dbEngine == DB_H2) {
+    Connection connection = jdbcConnection;
 
-      // Compact database
-      try {
-        Statement stmt = jdbcConnection.createStatement();
-        stmt.execute("SHUTDOWN COMPACT");
-        stmt.close();
-      } catch (SQLException e) {
-        e.printStackTrace();
-      }
+    if (connection == null) {
+      return;
     }
-    jdbcConnection = null;
+
+    try {
+      if (dbEngine == DB_HSQLDB || dbEngine == DB_H2) {
+        // Compact database
+        try (Statement stmt = connection.createStatement()) {
+          stmt.execute("SHUTDOWN COMPACT");
+        }
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+    } finally {
+      jdbcConnection = null;
+    }
   }
 
   /**

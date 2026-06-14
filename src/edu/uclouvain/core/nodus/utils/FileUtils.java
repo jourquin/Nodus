@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
@@ -50,6 +51,10 @@ public class FileUtils {
    * @return True on success.
    */
   public static boolean copyFile(String from, String to) {
+    if (from == null || from.isBlank() || to == null || to.isBlank()) {
+      return false;
+    }
+
     try {
       Files.copy(
           Path.of(from),
@@ -57,7 +62,8 @@ public class FileUtils {
           StandardCopyOption.REPLACE_EXISTING,
           StandardCopyOption.COPY_ATTRIBUTES);
       return true;
-    } catch (IOException e) {
+
+    } catch (IOException | InvalidPathException | SecurityException e) {
       System.out.println(e.toString());
       return false;
     }

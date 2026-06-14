@@ -56,9 +56,9 @@ the [Demo project](https://github.com/jourquin/Nodus/blob/master/demo).
 - 8.0 - February 2021: Introduce time functions (in addition to cost functions). Simplified API for modal-choice plugins. 
 Many under the hood improvements.
 - 8.1 - April 2021: Runs on Java 16 and allows Python scripting through a Py4J bridge and R scripting through a J4R bridge in addition to Groovy.
-- 8.2 - February 2022: Runs on Java 17, but now needs Java 11 or above to run. Runs HSQLDB, H2 and Derby in server mode to allow for
+- 8.2 - February 2022: Tested on Java 17, but now needs Java 11 or above to run. Runs HSQLDB, H2 and Derby in server mode to allow for
 external connections. Upgrade to Groovy 4.
-- 8.3 - November 2025: Runs on Java 25 and Groovy is upgraded to version 5.
+- 8.3 - November 2025: Tested with Java 25, but still runs on Java 11 and Groovy is upgraded to version 5.
 
 See the [change log](changelog.md) for a detailed build history.
 

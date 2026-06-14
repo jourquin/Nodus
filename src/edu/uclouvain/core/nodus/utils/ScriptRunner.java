@@ -104,12 +104,18 @@ public class ScriptRunner {
   /**
    * Display the error if something went wrong.
    *
-   * @param e The exception that was catched.
+   * @param e The exception that was caught.
    */
   private void showError(Exception e) {
-    SwingUtilities.invokeLater(
+    Runnable showDialog =
         () ->
             JOptionPane.showMessageDialog(
-                null, e.getMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE));
+                null, e.getMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+
+    if (SwingUtilities.isEventDispatchThread()) {
+      showDialog.run();
+    } else {
+      SwingUtilities.invokeLater(showDialog);
+    }
   }
 }
