@@ -213,9 +213,43 @@ public class ServiceHandler {
   /** Closes the service manager and saves the service in tha database if needed. */
   public void close() {
 
-    if (!mustBeSaved) {
-      return;
+    try {
+      if (mustBeSaved) {
+        saveServices();
+      }
+    } finally {
+      dispose();
     }
+  }
+
+  /** Releases references held by the service manager. */
+  public void dispose() {
+    listening = false;
+    mustBeSaved = false;
+    currentService = null;
+
+    if (serviceEditorDlg != null) {
+      serviceEditorDlg.setVisible(false);
+      serviceEditorDlg.dispose();
+      serviceEditorDlg = null;
+    }
+
+    if (services != null) {
+      services.clear();
+    }
+
+    graphics = null;
+    jdbcConnection = null;
+    linkLayer = null;
+    nodeLayer = null;
+    nodusProject = null;
+    servicesHeaderTableName = null;
+    servicesLinksTableName = null;
+    serviceStopsTableName = null;
+  }
+
+  /** Saves the services in the database. */
+  private void saveServices() {
 
     // Create new tables if needed
     resetServicesTables();
@@ -223,65 +257,60 @@ public class ServiceHandler {
     try {
 
       jdbcConnection = nodusProject.getMainJDBCConnection();
-      // connect to database and execute query
-      String sqlStmt = "INSERT INTO " + servicesHeaderTableName + " VALUES(?,?,?,?,?)";
-      PreparedStatement pstmt1 = jdbcConnection.prepareStatement(sqlStmt);
 
-      sqlStmt = "INSERT INTO " + servicesLinksTableName + " VALUES(?,?)";
-      PreparedStatement pstmt2 = jdbcConnection.prepareStatement(sqlStmt);
+      String servicesHeaderSql = "INSERT INTO " + servicesHeaderTableName + " VALUES(?,?,?,?,?)";
+      String servicesLinksSql = "INSERT INTO " + servicesLinksTableName + " VALUES(?,?)";
+      String serviceStopsSql = "INSERT INTO " + serviceStopsTableName + " VALUES(?,?)";
 
-      sqlStmt = "INSERT INTO " + serviceStopsTableName + " VALUES(?,?)";
-      PreparedStatement pstmt3 = jdbcConnection.prepareStatement(sqlStmt);
+      try (PreparedStatement pstmt1 = jdbcConnection.prepareStatement(servicesHeaderSql);
+          PreparedStatement pstmt2 = jdbcConnection.prepareStatement(servicesLinksSql);
+          PreparedStatement pstmt3 = jdbcConnection.prepareStatement(serviceStopsSql)) {
 
-      Iterator<String> it1 = getServiceNamesIterator();
-      while (it1.hasNext()) {
-        // Header
-        String name = it1.next();
-        TransportService s = services.get(name);
-        pstmt1.setInt(1, s.getId());
-        pstmt1.setString(2, name);
-        pstmt1.setInt(3, s.getMode());
-        pstmt1.setInt(4, s.getMeans());
-        pstmt1.setInt(5, s.getFrequency());
-        pstmt1.executeUpdate();
-        
-        // Stops
-        try {
-          Iterator<Integer> it = s.getStopNodes().iterator();
-          while (it.hasNext()) {
-            pstmt3.setInt(1, s.getId());
-            pstmt3.setInt(2, it.next());
-            pstmt3.executeUpdate();
+        Iterator<String> it1 = getServiceNamesIterator();
+        while (it1.hasNext()) {
+          // Header
+          String name = it1.next();
+          TransportService s = services.get(name);
+          pstmt1.setInt(1, s.getId());
+          pstmt1.setString(2, name);
+          pstmt1.setInt(3, s.getMode());
+          pstmt1.setInt(4, s.getMeans());
+          pstmt1.setInt(5, s.getFrequency());
+          pstmt1.executeUpdate();
+
+          // Stops
+          try {
+            Iterator<Integer> it = s.getStopNodes().iterator();
+            while (it.hasNext()) {
+              pstmt3.setInt(1, s.getId());
+              pstmt3.setInt(2, it.next());
+              pstmt3.executeUpdate();
+            }
+          } catch (Exception e) {
+            e.printStackTrace();
           }
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
 
-        // Chunks
-        Iterator<OMGraphic> it2 = s.getLinks().iterator();
-        while (it2.hasNext()) {
-          // Get the num of the graphic
-          int num = getOMGraphicID(it2.next(), TYPE_LINK);
+          // Chunks
+          Iterator<OMGraphic> it2 = s.getLinks().iterator();
+          while (it2.hasNext()) {
+            // Get the num of the graphic
+            int num = getOMGraphicID(it2.next(), TYPE_LINK);
 
-          if (num != -1) {
-            pstmt2.setInt(1, s.getId());
-            pstmt2.setInt(2, num);
-            pstmt2.executeUpdate();
+            if (num != -1) {
+              pstmt2.setInt(1, s.getId());
+              pstmt2.setInt(2, num);
+              pstmt2.executeUpdate();
+            }
           }
         }
       }
 
-      pstmt1.close();
-      pstmt2.close();
-      pstmt3.close();
       if (!jdbcConnection.getAutoCommit()) {
         jdbcConnection.commit();
       }
     } catch (Exception ex) {
       JOptionPane.showMessageDialog(null, ex.getMessage(), "SQL error", JOptionPane.ERROR_MESSAGE);
     }
-
-    services.clear();
   }
 
   /**
@@ -689,62 +718,57 @@ public class ServiceHandler {
       // connect to database and execute query
       jdbcConnection = nodusProject.getMainJDBCConnection();
 
-      Statement stmt1 = jdbcConnection.createStatement();
-      Statement stmt2 = jdbcConnection.createStatement();
-      Statement stmt3 = jdbcConnection.createStatement();
-      String sqlStmt = "SELECT * FROM " + servicesHeaderTableName;
-      ResultSet rs1 = stmt1.executeQuery(sqlStmt);
+      try (Statement stmt1 = jdbcConnection.createStatement();
+          Statement stmt2 = jdbcConnection.createStatement();
+          Statement stmt3 = jdbcConnection.createStatement();
+          ResultSet rs1 = stmt1.executeQuery("SELECT * FROM " + servicesHeaderTableName)) {
 
-      // Retrieve result of query : header
-      while (rs1.next()) {
+        // Retrieve result of query : header
+        while (rs1.next()) {
 
-        int idService = JDBCUtils.getInt(rs1.getObject(1));
-        String nameService = (String) rs1.getObject(2);
-        byte mode = (byte) JDBCUtils.getInt(rs1.getObject(3));
-        byte means = (byte) JDBCUtils.getInt(rs1.getObject(4));
-        int frequency = JDBCUtils.getInt(rs1.getObject(5));
-      
-        TransportService s =
-            new TransportService(idService, nameService, mode, means, frequency);
-        // Retrieve the list of chunks for this line
-        String sqlStmt2 =
-            "SELECT "
-                + NodusC.DBF_LINK
-                + " FROM "
-                + servicesLinksTableName
-                + " WHERE "
-                + NodusC.DBF_ID
-                + " = "
-                + idService;
-        ResultSet rs2 = stmt2.executeQuery(sqlStmt2);
-        while (rs2.next()) {
-          OMGraphic omg = getOMGraphic(JDBCUtils.getInt(rs2.getObject(1)), TYPE_LINK);
-          s.addChunk(omg);
+          int idService = JDBCUtils.getInt(rs1.getObject(1));
+          String nameService = (String) rs1.getObject(2);
+          byte mode = (byte) JDBCUtils.getInt(rs1.getObject(3));
+          byte means = (byte) JDBCUtils.getInt(rs1.getObject(4));
+          int frequency = JDBCUtils.getInt(rs1.getObject(5));
+
+          TransportService s = new TransportService(idService, nameService, mode, means, frequency);
+          // Retrieve the list of chunks for this line
+          String sqlStmt2 =
+              "SELECT "
+                  + NodusC.DBF_LINK
+                  + " FROM "
+                  + servicesLinksTableName
+                  + " WHERE "
+                  + NodusC.DBF_ID
+                  + " = "
+                  + idService;
+          try (ResultSet rs2 = stmt2.executeQuery(sqlStmt2)) {
+            while (rs2.next()) {
+              OMGraphic omg = getOMGraphic(JDBCUtils.getInt(rs2.getObject(1)), TYPE_LINK);
+              s.addChunk(omg);
+            }
+          }
+
+          String sqlStmt3 =
+              "SELECT "
+                  + NodusC.DBF_STOP
+                  + " FROM "
+                  + serviceStopsTableName
+                  + " WHERE "
+                  + NodusC.DBF_ID
+                  + " = "
+                  + idService;
+          try (ResultSet rs3 = stmt3.executeQuery(sqlStmt3)) {
+            while (rs3.next()) {
+              s.addStop(JDBCUtils.getInt(rs3.getObject(1)));
+            }
+          }
+
+          // Put loaded line in hashmap
+          services.put(nameService, s);
         }
-        rs2.close();
-
-        String sqlStmt3 =
-            "SELECT "
-                + NodusC.DBF_STOP
-                + " FROM "
-                + serviceStopsTableName
-                + " WHERE "
-                + NodusC.DBF_ID
-                + " = "
-                + idService;
-        ResultSet rs3 = stmt3.executeQuery(sqlStmt3);
-        while (rs3.next()) {
-          s.addStop(JDBCUtils.getInt(rs3.getObject(1)));
-        }
-        rs3.close();
-
-        // Put loaded line in hashmap
-        services.put(nameService, s);
       }
-      rs1.close();
-      stmt1.close();
-      stmt2.close();
-      stmt3.close();
 
     } catch (Exception ex) {
       JOptionPane.showMessageDialog(null, ex.getMessage(), "SQL error", JOptionPane.ERROR_MESSAGE);
@@ -811,7 +835,7 @@ public class ServiceHandler {
     if (currentService == null || currentService.getNbLinks() == 0) {
       return;
     }
-    
+
     Iterator<OMGraphic> it = currentService.getLinks().iterator();
     while (it.hasNext()) {
       OMGraphic omg = it.next();
@@ -863,7 +887,7 @@ public class ServiceHandler {
     fields[2] = new JDBCField(NodusC.DBF_MODE, "NUMERIC(2,0)");
     fields[3] = new JDBCField(NodusC.DBF_MEANS, "NUMERIC(2,0)");
     fields[4] = new JDBCField(NodusC.DBF_FREQUENCY, "NUMERIC(5,0)");
-    //fields[5] = new JDBCField(NodusC.DBF_DESCRIPTION, "VARCHAR(30)");
+    // fields[5] = new JDBCField(NodusC.DBF_DESCRIPTION, "VARCHAR(30)");
     JDBCUtils.createTable(servicesHeaderTableName, fields);
 
     // Create details table

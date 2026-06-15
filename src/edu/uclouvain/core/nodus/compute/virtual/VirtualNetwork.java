@@ -270,6 +270,102 @@ public class VirtualNetwork {
   }
 
   /**
+   * Releases the memory held by this virtual network.
+   *
+   * <p>The project, ESRI layers and DBF table models are owned by {@link NodusProject}; this method
+   * only clears data structures owned by this virtual network and drops references to project-owned
+   * objects.
+   */
+  public void dispose() {
+    if (vnl != null) {
+      for (VirtualNodeList virtualNodeList : vnl) {
+        if (virtualNodeList == null) {
+          continue;
+        }
+
+        LinkedList<VirtualNode> virtualNodes = virtualNodeList.getVirtualNodeList();
+        if (virtualNodes != null) {
+          for (VirtualNode virtualNode : virtualNodes) {
+            if (virtualNode == null) {
+              continue;
+            }
+
+            LinkedList<VirtualLink> virtualLinks = virtualNode.getVirtualLinkList();
+            if (virtualLinks != null) {
+              virtualLinks.clear();
+            }
+          }
+
+          virtualNodes.clear();
+        }
+
+        LinkedList<ODCell> initialDemand = virtualNodeList.getInitialDemandList();
+        if (initialDemand != null) {
+          initialDemand.clear();
+        }
+      }
+
+      vnl = null;
+    }
+
+    if (nodeIndex != null) {
+      nodeIndex.clear();
+      nodeIndex = null;
+    }
+
+    if (linksDbf != null) {
+      for (int i = 0; i < linksDbf.length; i++) {
+        linksDbf[i] = null;
+      }
+      linksDbf = null;
+    }
+
+    if (nodesDbf != null) {
+      for (int i = 0; i < nodesDbf.length; i++) {
+        nodesDbf[i] = null;
+      }
+      nodesDbf = null;
+    }
+
+    if (linksEsriLayer != null) {
+      for (int i = 0; i < linksEsriLayer.length; i++) {
+        linksEsriLayer[i] = null;
+      }
+      linksEsriLayer = null;
+    }
+
+    if (nodesEsriLayer != null) {
+      for (int i = 0; i < nodesEsriLayer.length; i++) {
+        nodesEsriLayer[i] = null;
+      }
+      nodesEsriLayer = null;
+    }
+
+    availableModeMeans = null;
+    costFunctions = null;
+    formatter = null;
+    graph = null;
+    groups = null;
+    linesForModeMeans = null;
+    nodusMapPanel = null;
+    nodusProject = null;
+    odClassHasDemand = null;
+
+    assignmentEndTime = -1;
+    assignmentStartTime = -1;
+    lengthOfTask = 0;
+    nbLinkLayers = 0;
+    nbODClasses = 0;
+    nbRealLinks = 0;
+    nbRealNodes = 0;
+    nbTimeSlices = 1;
+    nbVirtualLinks = 0;
+    nbVirtualNodes = 0;
+    scenario = 0;
+    timeSliceDuration = 0;
+  }
+
+  /**
    * Creates a queue of cost parser workers and a pool of threads that will handle these workers.
    *
    * @param iteration The iteration for which the costs must be computed.
@@ -1423,10 +1519,10 @@ public class VirtualNetwork {
       }
     }
   }
-  
+
   /**
-   * Computes temporary real-link PCUs for the Frank-Wolfe line search.
-   * The virtual-link volumes themselves are not modified.
+   * Computes temporary real-link PCUs for the Frank-Wolfe line search. The virtual-link volumes
+   * themselves are not modified.
    */
   public boolean projectedVolumesToVehicles(VehiclesParser vehiclesParser, double lambda) {
     return projectedVolumesToVehicles(vehiclesParser, (byte) 0, lambda);
@@ -1442,8 +1538,8 @@ public class VirtualNetwork {
    * </pre>
    *
    * <p>This method is used during the Frank-Wolfe line search to evaluate costs at a trial point
-   * without permanently modifying the current or auxiliary volumes stored on the virtual links.
-   * It resets the passenger-car-unit loads on the real links, then reloads them using the projected
+   * without permanently modifying the current or auxiliary volumes stored on the virtual links. It
+   * resets the passenger-car-unit loads on the real links, then reloads them using the projected
    * volumes and the vehicle characteristics supplied by the {@link VehiclesParser}.
    *
    * @param vehiclesParser parser providing vehicle characteristics, including average load and
@@ -1477,15 +1573,11 @@ public class VirtualNetwork {
 
             double averageLoad =
                 vehiclesParser.getAverageLoad(
-                    group,
-                    vl.getBeginVirtualNode().getMode(),
-                    vl.getBeginVirtualNode().getMeans());
+                    group, vl.getBeginVirtualNode().getMode(), vl.getBeginVirtualNode().getMeans());
 
             double pcu =
                 vehiclesParser.getPassengerCarUnits(
-                    group,
-                    vl.getBeginVirtualNode().getMode(),
-                    vl.getBeginVirtualNode().getMeans());
+                    group, vl.getBeginVirtualNode().getMode(), vl.getBeginVirtualNode().getMeans());
 
             vl.projectedVolumesToVehicles(groupIndex, timeSlice, averageLoad, pcu, lambda);
           }

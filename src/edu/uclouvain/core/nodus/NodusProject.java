@@ -407,8 +407,8 @@ public class NodusProject implements ShapeConstants {
 
       if (nodeLayers != null && linkLayers != null) {
 
-        // Save the Services
-        serviceHandler.close();
+        // Save the Services and release the service editor object graph.
+        closeServiceHandler();
 
         if (isDirty()) {
 
@@ -648,8 +648,70 @@ public class NodusProject implements ShapeConstants {
 
       projectProperties.clear();
       projectProperties = null;
+
+      disposeProjectObjectGraph();
     }
   }
+
+
+  /** Saves and releases the lines and services handler. */
+  private void closeServiceHandler() {
+    if (serviceHandler != null) {
+      serviceHandler.close();
+      serviceHandler = null;
+    }
+  }
+
+  /** Releases project-specific object graphs after all project state has been saved. */
+  private void disposeProjectObjectGraph() {
+    disposeLocationHandlers(nodesLocationHandler);
+    nodesLocationHandler = null;
+
+    disposeLocationHandlers(linksLocationHandler);
+    linksLocationHandler = null;
+
+    disposeEsriLayers(nodeLayers);
+    nodeLayers = null;
+
+    disposeEsriLayers(linkLayers);
+    linkLayers = null;
+
+    labelsLayer = null;
+    nodeStyle = null;
+    linkStyle = null;
+    stylesProperties = null;
+    loggerHandler = null;
+    hsqldbServer = null;
+    derbyServer = null;
+    projectResourceFileNameAndPath = null;
+  }
+
+  /** Calls dispose() on each location handler before the handler array is nulled. */
+  private void disposeLocationHandlers(NodusLocationHandler[] handlers) {
+    if (handlers == null) {
+      return;
+    }
+
+    for (NodusLocationHandler handler : handlers) {
+      if (handler != null) {
+        handler.dispose();
+      }
+    }
+  }
+
+  /** Calls dispose() on each ESRI layer before the layer array is nulled. */
+  private void disposeEsriLayers(NodusEsriLayer[] layers) {
+    if (layers == null) {
+      return;
+    }
+
+    for (NodusEsriLayer layer : layers) {
+      if (layer != null) {
+        layer.dispose();
+      }
+    }
+  }
+
 
   /**
    * Returns the full path to the cost functions for the current scenario.

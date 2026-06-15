@@ -212,6 +212,44 @@ public class NodusLocationHandler extends AbstractLocationHandler
     return graphicList;
   }
 
+  /** Releases references held by this location handler. */
+  public void dispose() {
+    if (nodusEsriLayer != null && nodusEsriLayer.getEsriGraphicList() != null) {
+      Iterator<OMGraphic> it = nodusEsriLayer.getEsriGraphicList().iterator();
+      while (it.hasNext()) {
+        OMGraphic omg = it.next();
+        Object o = omg.getAttribute(0);
+
+        if (o instanceof RealNetworkObject) {
+          ((RealNetworkObject) o).setLocation(null);
+        }
+      }
+    }
+
+    if (graphicList != null) {
+      graphicList.clear();
+      graphicList = null;
+    }
+
+    if (box != null) {
+      for (Component component : box.getComponents()) {
+        if (component instanceof javax.swing.AbstractButton) {
+          ((javax.swing.AbstractButton) component).removeActionListener(this);
+        }
+      }
+
+      box.removeAll();
+      box = null;
+    }
+
+    con = null;
+    nodusEsriLayer = null;
+    projectProperties = null;
+    locationFieldName = "";
+    locationWhereStmt = "";
+    oldLocationQueryString = "";
+  }
+
   /**
    * Computes the "center" of a polyline as the center of the chunk that contains the location at
    * the half of its total length.

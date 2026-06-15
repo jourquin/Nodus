@@ -61,7 +61,7 @@ public class DynamicTimeDependentAssignment extends Assignment {
 
   /** Computation thread that does the real assignment work. */
   @Override
-  public boolean assign() {
+  public boolean assign(VirtualNetwork vn) {
 
     // Test if cost functions contain deprecated XX_Duration variables
     if (costsContainDeprecatedVariables()) {
@@ -100,7 +100,8 @@ public class DynamicTimeDependentAssignment extends Assignment {
     }
 
     // Generate a virtual network
-    virtualNet = new VirtualNetwork(assignmentParameters);
+    //virtualNet = new VirtualNetwork(assignmentParameters);
+    virtualNet = vn;
     virtualNet.setAssignmentTimeParameters(
         assignmentStartTime, assignmentEndTime, timeSliceDuration);
 

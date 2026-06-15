@@ -64,7 +64,7 @@ public class ExactMFAssignment extends Assignment {
 
   /** Thread that does the assignment work. */
   @Override
-  public boolean assign() {
+  public boolean assign(VirtualNetwork vn) {
 
     // Test if cost functions contain deprecated XX_Duration variables
     if (costsContainDeprecatedVariables()) {
@@ -80,8 +80,8 @@ public class ExactMFAssignment extends Assignment {
     getMaxDetourReferenceMode();
 
     // Generate a virtual network
-    virtualNet = new VirtualNetwork(assignmentParameters);
-
+    //virtualNet = new VirtualNetwork(assignmentParameters);
+    virtualNet = vn;
     if (!virtualNet.generate()) {
       return false;
     }

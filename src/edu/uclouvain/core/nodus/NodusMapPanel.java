@@ -1908,109 +1908,129 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     PluginsLoader nodusPluginLoader = new PluginsLoader(dir);
     LinkedList<Class<NodusPlugin>> availableClasses = nodusPluginLoader.getAvailablePlugins();
 
-    // Global plugins must not be removed when a project is closed
-    if (!projectPlugin) {
-      nbNodusPlugins = availableClasses.size();
+    if (availableClasses.isEmpty()) {
+      if (!projectPlugin) {
+        nbNodusPlugins = 0;
+      }
+      return;
     }
 
-    if (availableClasses.size() > 0) {
-      NodusPlugin[] plugins;
-      plugins = new NodusPlugin[availableClasses.size()];
+    Vector<NodusPlugin> loadedPlugins = new Vector<>();
 
-      int index = 0;
-      Iterator<Class<NodusPlugin>> classIterator = availableClasses.iterator();
-      while (classIterator.hasNext()) {
-        Class<NodusPlugin> loadableClass = classIterator.next();
-        try {
+    Iterator<Class<NodusPlugin>> classIterator = availableClasses.iterator();
+    while (classIterator.hasNext()) {
+      Class<NodusPlugin> loadableClass = classIterator.next();
+      NodusPlugin plugin = null;
 
-          plugins[index] = loadableClass.getConstructor().newInstance();
-          plugins[index].setNodusMapPanel(this);
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-
-        // Where must the plugin be inserted?
-        JMenu menu = null;
-        JMenuItem menuItem = null;
-        Properties pluginProp = plugins[index].getProperties();
-
-        // Is it a new menu in the menubar?
-        String text = pluginProp.getProperty(NodusPlugin.USER_DEFINED_MENUBAR_TEXT);
-
-        if (text != null) {
-          // Does this user-defined menu already exists?
-          boolean found = false;
-          Iterator<JMenuItem> it = userDefinedMenus.iterator();
-
-          while (it.hasNext()) {
-            JMenu m = (JMenu) it.next();
-
-            if (m.getText().equals(text)) {
-              found = true;
-              menu = m;
-
-              break;
-            }
-          }
-
-          // No. Add it, just before the "help" menu!
-          if (!found) {
-            menu = new JMenu(text);
-            userDefinedMenus.add(menu);
-            nodusMenuBar.add(menu, nodusMenuBar.getMenuCount() - 1);
-            menu.setEnabled(false);
-          }
-        } else {
-          // Menu item must be added to a Nodus menu
-          text = pluginProp.getProperty(NodusPlugin.MENUBAR_ID);
-
-          if (text != null) {
-            int n = Integer.parseInt(text);
-            menu = getPluginMenu(plugins[index], n);
-          } else {
-            System.err.println(
-                "Plugin "
-                    + plugins[index].getClass().toString()
-                    + " doesn't define a MenuBarID "
-                    + "or a UserDefinedMenubarText");
-          }
-        }
-
-        // Create the relevant menu item and associate a actionCommand to it
-        int commandId = index;
-
-        if (projectPlugin) {
-          commandId = nbNodusPlugins + index;
-        }
-
-        menuItem = createPluginMenuItem(plugins[index], commandId, menu, pluginProp);
-
-        // Store the menu in a vector in order to enable/disable/remove
-        // them easily
-        if (!projectPlugin) {
-          globalPluginsMenuItems.add(menuItem);
-        } else {
-          projectPluginsMenuItems.add(menuItem);
-        }
-
-        index++;
+      try {
+        plugin = loadableClass.getConstructor().newInstance();
+        plugin.setNodusMapPanel(this);
+      } catch (Exception e) {
+        e.printStackTrace();
+        continue;
       }
 
-      /* Add project plugins to global plugins */
-      if (!projectPlugin || nodusPlugins == null) {
-        nodusPlugins = plugins;
+      Properties pluginProp = plugin.getProperties();
+      if (pluginProp == null) {
+        System.err.println("Plugin " + plugin.getClass().toString() + " returns no properties");
+        detachPlugin(plugin);
+        continue;
+      }
+
+      // Where must the plugin be inserted?
+      JMenu menu = null;
+      String text = pluginProp.getProperty(NodusPlugin.USER_DEFINED_MENUBAR_TEXT);
+
+      if (text != null) {
+        // Does this user-defined menu already exists?
+        boolean found = false;
+        Iterator<JMenuItem> it = userDefinedMenus.iterator();
+
+        while (it.hasNext()) {
+          JMenu m = (JMenu) it.next();
+
+          if (m.getText().equals(text)) {
+            found = true;
+            menu = m;
+
+            break;
+          }
+        }
+
+        // No. Add it, just before the "help" menu!
+        if (!found) {
+          menu = new JMenu(text);
+          userDefinedMenus.add(menu);
+          nodusMenuBar.add(menu, nodusMenuBar.getMenuCount() - 1);
+          menu.setEnabled(false);
+        }
       } else {
-        NodusPlugin[] tmp = nodusPlugins.clone();
-        int newSize = nodusPlugins.length + plugins.length;
-        nodusPlugins = new NodusPlugin[newSize];
+        // Menu item must be added to a Nodus menu
+        text = pluginProp.getProperty(NodusPlugin.MENUBAR_ID);
 
-        for (int i = 0; i < tmp.length; i++) {
-          nodusPlugins[i] = tmp[i];
+        if (text != null) {
+          int n = Integer.parseInt(text);
+          menu = getPluginMenu(plugin, n);
+        } else {
+          System.err.println(
+              "Plugin "
+                  + plugin.getClass().toString()
+                  + " doesn't define a MenuBarID "
+                  + "or a UserDefinedMenubarText");
         }
+      }
 
-        for (int i = 0; i < plugins.length; i++) {
-          nodusPlugins[tmp.length + i] = plugins[i];
-        }
+      // Create the relevant menu item and associate an actionCommand to it.
+      int commandId = loadedPlugins.size();
+
+      if (projectPlugin) {
+        commandId += nbNodusPlugins;
+      }
+
+      JMenuItem menuItem = createPluginMenuItem(plugin, commandId, menu, pluginProp);
+
+      if (menuItem == null) {
+        detachPlugin(plugin);
+        removeEmptyUserDefinedPluginMenus();
+        continue;
+      }
+
+      // Store the menu in a vector in order to enable/disable/remove it easily.
+      if (!projectPlugin) {
+        globalPluginsMenuItems.add(menuItem);
+      } else {
+        projectPluginsMenuItems.add(menuItem);
+      }
+
+      loadedPlugins.add(plugin);
+    }
+
+    if (loadedPlugins.isEmpty()) {
+      if (!projectPlugin) {
+        nbNodusPlugins = 0;
+      }
+      return;
+    }
+
+    NodusPlugin[] plugins = loadedPlugins.toArray(new NodusPlugin[loadedPlugins.size()]);
+
+    // Add project plugins after global plugins. They will be removed again on project close.
+    if (!projectPlugin) {
+      nodusPlugins = plugins;
+      nbNodusPlugins = plugins.length;
+    } else if (nodusPlugins == null) {
+      nodusPlugins = plugins;
+    } else {
+      NodusPlugin[] tmp = nodusPlugins.clone();
+      int newSize = nodusPlugins.length + plugins.length;
+      nodusPlugins = new NodusPlugin[newSize];
+
+      for (int i = 0; i < tmp.length; i++) {
+        nodusPlugins[i] = tmp[i];
+      }
+
+      for (int i = 0; i < plugins.length; i++) {
+        nodusPlugins[tmp.length + i] = plugins[i];
       }
     }
   }
@@ -2374,52 +2394,120 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   private void pluginMenuActionPerformed(ActionEvent e) {
     int n = Integer.parseInt(e.getActionCommand());
+
+    if (nodusPlugins == null || n < 0 || n >= nodusPlugins.length || nodusPlugins[n] == null) {
+      return;
+    }
+
     nodusPlugins[n].execute();
   }
 
   /** Removes the menu items relative to the project plugins. */
   public void removeProjectPlugins() {
-    // Remove all the project menu items
+    // Remove all project plugin menu items and detach their listeners.
     Iterator<JMenuItem> it = projectPluginsMenuItems.iterator();
 
     while (it.hasNext()) {
       JMenuItem searchedMenuItem = it.next();
 
-      // find it in the menus and remove it
-      int nbMenus = nodusMenuBar.getMenuCount();
-
-      for (int i = 0; i < nbMenus; i++) {
-        JMenu menu = nodusMenuBar.getMenu(i);
-        int nbItems = menu.getMenuComponentCount();
-
-        // Go through the menus, starting from the end
-        for (int j = nbItems - 1; j >= 0; j--) {
-          JMenuItem menuItem = menu.getItem(j);
-
-          // Could be a separator...
-          if (menuItem == null) {
-            continue;
-          }
-
-          // Remove if found
-          if (menuItem.equals(searchedMenuItem)) {
-            menu.remove(menuItem);
-            userDefinedMenus.remove(menu);
-          }
-        }
+      if (searchedMenuItem == null) {
+        continue;
       }
+
+      removeActionListeners(searchedMenuItem);
+      removePluginMenuItem(searchedMenuItem);
     }
 
     projectPluginsMenuItems.clear();
 
-    // Remove empty menus in the menubar
+    removeProjectPluginInstances();
+    removeEmptyUserDefinedPluginMenus();
+  }
+
+  /** Detaches a plugin from this panel before the plugin instance is released. */
+  private void detachPlugin(NodusPlugin plugin) {
+    if (plugin == null) {
+      return;
+    }
+
+    try {
+      plugin.setNodusMapPanel(null);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  /** Removes all action listeners from a plugin menu item. */
+  private void removeActionListeners(JMenuItem menuItem) {
+    ActionListener[] listeners = menuItem.getActionListeners();
+
+    for (ActionListener listener : listeners) {
+      menuItem.removeActionListener(listener);
+    }
+  }
+
+  /** Removes a plugin menu item from any top-level menu in the menu bar. */
+  private void removePluginMenuItem(JMenuItem searchedMenuItem) {
     int nbMenus = nodusMenuBar.getMenuCount();
 
-    for (int i = nbMenus - 1; i >= 0; i--) {
+    for (int i = 0; i < nbMenus; i++) {
       JMenu menu = nodusMenuBar.getMenu(i);
+
+      if (menu == null) {
+        continue;
+      }
+
+      int nbItems = menu.getMenuComponentCount();
+
+      // Go through the menu from the end because items may be removed.
+      for (int j = nbItems - 1; j >= 0; j--) {
+        JMenuItem menuItem = menu.getItem(j);
+
+        // Could be a separator...
+        if (menuItem == null) {
+          continue;
+        }
+
+        if (menuItem.equals(searchedMenuItem)) {
+          menu.remove(menuItem);
+        }
+      }
+    }
+  }
+
+  /** Removes project-specific plugins from the plugin dispatch array. */
+  private void removeProjectPluginInstances() {
+    if (nodusPlugins == null || nodusPlugins.length <= nbNodusPlugins) {
+      return;
+    }
+
+    for (int i = nbNodusPlugins; i < nodusPlugins.length; i++) {
+      detachPlugin(nodusPlugins[i]);
+      nodusPlugins[i] = null;
+    }
+
+    if (nbNodusPlugins == 0) {
+      nodusPlugins = null;
+      return;
+    }
+
+    NodusPlugin[] globalPlugins = new NodusPlugin[nbNodusPlugins];
+
+    for (int i = 0; i < nbNodusPlugins; i++) {
+      globalPlugins[i] = nodusPlugins[i];
+    }
+
+    nodusPlugins = globalPlugins;
+  }
+
+  /** Removes empty user-defined plugin menus from the menu bar. */
+  private void removeEmptyUserDefinedPluginMenus() {
+    for (int i = userDefinedMenus.size() - 1; i >= 0; i--) {
+      JMenu menu = (JMenu) userDefinedMenus.get(i);
 
       if (menu.getItemCount() == 0) {
         nodusMenuBar.remove(menu);
+        userDefinedMenus.remove(i);
       }
     }
   }

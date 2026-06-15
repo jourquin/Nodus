@@ -56,7 +56,7 @@ public class AllOrNothingAssignment extends Assignment {
    * @return True on success.
    */
   @Override
-  public boolean assign() {
+  public boolean assign(VirtualNetwork vn) {
 
     // Test if cost functions contain deprecated XX_Duration variables
     if (costsContainDeprecatedVariables()) {
@@ -71,8 +71,9 @@ public class AllOrNothingAssignment extends Assignment {
     // long start = System.currentTimeMillis();
 
     // Generate a virtual network
-    virtualNet = new VirtualNetwork(assignmentParameters);
+    // virtualNet = new VirtualNetwork(assignmentParameters);
 
+    virtualNet = vn;
     if (!virtualNet.generate()) {
       return false;
     }

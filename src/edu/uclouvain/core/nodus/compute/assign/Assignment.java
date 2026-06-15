@@ -46,7 +46,6 @@ import java.util.Properties;
 import java.util.Set;
 import javax.swing.JOptionPane;
 
-
 /**
  * Base class for all assignments. Defines some basic variables used for each method.
  *
@@ -120,9 +119,11 @@ public abstract class Assignment implements Runnable {
   /**
    * Must be implemented for each particular assignment method.
    *
-   * @return True on success.
+   * @param vn The Virtual network.
+   * @return true on success
+   * @throws OutOfMemoryError when not enough heap space is available.
    */
-  public abstract boolean assign() throws OutOfMemoryError;
+  public abstract boolean assign(VirtualNetwork vn) throws OutOfMemoryError;
 
   void displayConsoleIfNeeded() {
     if (isFirstLostPath) {
@@ -188,7 +189,16 @@ public abstract class Assignment implements Runnable {
     nodusMapPanel.updateScenarioComboBox(true);
 
     try {
-      success = assign();
+      VirtualNetwork virtualNetwork = null;
+
+      try {
+        virtualNetwork = new VirtualNetwork(assignmentParameters);
+        success = assign(virtualNetwork);
+      } finally {
+        if (virtualNetwork != null) {
+          virtualNetwork.dispose();
+        }
+      }
     } catch (OutOfMemoryError e) {
       // Free memory and force garbage collection
       virtualNet = null;
