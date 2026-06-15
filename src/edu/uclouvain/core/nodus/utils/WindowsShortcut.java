@@ -87,11 +87,12 @@ public class WindowsShortcut {
    *     InputStream
    */
   private static byte[] getBytes(InputStream in, Integer max) throws IOException {
-    // read the entire file into a byte buffer
+    // read the requested bytes into a byte buffer. The caller owns and closes the stream.
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
     byte[] buff = new byte[256];
     while (max == null || max > 0) {
-      int n = in.read(buff);
+      int bytesToRead = max == null ? buff.length : Math.min(buff.length, max);
+      int n = in.read(buff, 0, bytesToRead);
       if (n == -1) {
         break;
       }
@@ -100,7 +101,6 @@ public class WindowsShortcut {
         max -= n;
       }
     }
-    in.close();
     return bout.toByteArray();
   }
 
@@ -147,18 +147,14 @@ public class WindowsShortcut {
    */
   public static boolean isPotentialValidLink(File file) throws IOException {
     final int minimumLength = 0x64;
-    InputStream fis = new FileInputStream(file);
-    boolean isPotentiallyValid = false;
-    try {
-      isPotentiallyValid =
-          file.isFile()
-              && file.getName().toLowerCase().endsWith(".lnk")
-              && fis.available() >= minimumLength
-              && isMagicPresent(getBytes(fis, 32));
-    } finally {
-      fis.close();
+
+    if (!file.isFile() || !file.getName().toLowerCase().endsWith(".lnk")) {
+      return false;
     }
-    return isPotentiallyValid;
+
+    try (InputStream fis = new FileInputStream(file)) {
+      return fis.available() >= minimumLength && isMagicPresent(getBytes(fis, 32));
+    }
   }
 
   /**
@@ -169,11 +165,8 @@ public class WindowsShortcut {
    * @throws ParseException On error
    */
   public WindowsShortcut(File file) throws IOException, ParseException {
-    InputStream in = new FileInputStream(file);
-    try {
+    try (InputStream in = new FileInputStream(file)) {
       parseLink(getBytes(in));
-    } finally {
-      in.close();
     }
   }
 

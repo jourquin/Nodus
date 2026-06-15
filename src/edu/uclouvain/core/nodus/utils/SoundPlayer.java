@@ -22,12 +22,13 @@
 package edu.uclouvain.core.nodus.utils;
 
 import java.io.IOException;
-import java.util.TimerTask;
+import java.net.URL;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.sound.sampled.DataLine;
+import javax.sound.sampled.LineEvent;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
@@ -46,8 +47,6 @@ public class SoundPlayer {
 
   /** Played if an assignment succeeds. */
   public static final int SOUND_OK = 1;
-
-  private AudioInputStream stream;
 
   private boolean withSound;
 
@@ -96,73 +95,99 @@ public class SoundPlayer {
         return;
     }
 
-    // From file
-    try {
-      stream = AudioSystem.getAudioInputStream(getClass().getResource(soundFile));
+    URL soundUrl = getClass().getResource(soundFile);
+    if (soundUrl == null) {
+      System.err.println("Sound resource not found: " + soundFile);
+      return;
+    }
+
+    try (AudioInputStream audioStream = AudioSystem.getAudioInputStream(soundUrl)) {
+      playSound(audioStream);
     } catch (UnsupportedAudioFileException e) {
       e.printStackTrace();
+    } catch (LineUnavailableException e) {
+      // Sound is optional. Keep the previous behavior and do not display an error dialog.
     } catch (IOException e) {
       e.printStackTrace();
     }
-    playSound();
   }
 
-  /** Plays the sound. */
-  private void playSound() {
+  /**
+   * Plays the sound.
+   *
+   * @param sourceStream Audio stream to load in a clip.
+   * @throws IOException On I/O error.
+   * @throws LineUnavailableException If no clip line is available.
+   */
+  private void playSound(AudioInputStream sourceStream)
+      throws IOException, LineUnavailableException {
 
-    try { // At present, ALAW and ULAW encodings must be converted
-      // to PCM_SIGNED before it can be played
-      AudioFormat format = stream.getFormat();
-      if (format.getEncoding() != AudioFormat.Encoding.PCM_SIGNED) {
-        format =
-            new AudioFormat(
-                AudioFormat.Encoding.PCM_SIGNED,
-                format.getSampleRate(),
-                format.getSampleSizeInBits() * 2,
-                format.getChannels(),
-                format.getFrameSize() * 2,
-                format.getFrameRate(),
-                true); // big
-        // endian
-        stream = AudioSystem.getAudioInputStream(format, stream);
-      }
+    // At present, ALAW and ULAW encodings must be converted to PCM_SIGNED before they can be
+    // played.
+    AudioFormat format = sourceStream.getFormat();
+    AudioInputStream playbackStream = sourceStream;
 
-      // Create the clip
-      DataLine.Info info =
-          new DataLine.Info(
-              Clip.class,
-              stream.getFormat(),
-              (int) stream.getFrameLength() * format.getFrameSize());
-
-      final Clip clip;
-
-      clip = (Clip) AudioSystem.getLine(info);
-
-      // This method does not return until the audio file is completely
-      // loaded
-      clip.open(stream);
-
-      // Length of clip in milliseconds
-      long length = clip.getMicrosecondLength() / 1000;
-
-      // Start playing
-      clip.start();
-
-      // Release the resource one second after the sound is played
-      java.util.Timer closeTimer;
-      closeTimer = new java.util.Timer();
-      closeTimer.schedule(
-          new TimerTask() {
-            @Override
-            public void run() {
-              clip.close();
-            }
-          },
-          length + 1000);
-    } catch (LineUnavailableException e) { 
-      //e.printStackTrace();
-    } catch (IOException e) { 
-      e.printStackTrace();
+    if (format.getEncoding() != AudioFormat.Encoding.PCM_SIGNED) {
+      format =
+          new AudioFormat(
+              AudioFormat.Encoding.PCM_SIGNED,
+              format.getSampleRate(),
+              format.getSampleSizeInBits() * 2,
+              format.getChannels(),
+              format.getFrameSize() * 2,
+              format.getFrameRate(),
+              true); // big endian
+      playbackStream = AudioSystem.getAudioInputStream(format, sourceStream);
     }
+
+    // Create the clip
+    DataLine.Info info =
+        new DataLine.Info(
+            Clip.class, playbackStream.getFormat(), getClipBufferSize(playbackStream, format));
+
+    final Clip clip = (Clip) AudioSystem.getLine(info);
+
+    try {
+      // This method does not return until the audio file is completely loaded.
+      clip.open(playbackStream);
+    } catch (IOException | LineUnavailableException e) {
+      clip.close();
+      throw e;
+    } finally {
+      if (playbackStream != sourceStream) {
+        playbackStream.close();
+      }
+    }
+
+    clip.addLineListener(
+        event -> {
+          if (event.getType() == LineEvent.Type.STOP) {
+            event.getLine().close();
+          }
+        });
+
+    // Start playing. The line listener releases the clip when playback stops.
+    clip.start();
+  }
+
+  /**
+   * Returns the clip buffer size when it is known.
+   *
+   * @param stream Audio stream.
+   * @param format Audio format.
+   * @return Buffer size in bytes, or {@link AudioSystem#NOT_SPECIFIED}.
+   */
+  private int getClipBufferSize(AudioInputStream stream, AudioFormat format) {
+    long frameLength = stream.getFrameLength();
+    if (frameLength == AudioSystem.NOT_SPECIFIED) {
+      return AudioSystem.NOT_SPECIFIED;
+    }
+
+    long bufferSize = frameLength * format.getFrameSize();
+    if (bufferSize > Integer.MAX_VALUE) {
+      return AudioSystem.NOT_SPECIFIED;
+    }
+
+    return (int) bufferSize;
   }
 }
