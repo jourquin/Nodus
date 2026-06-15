@@ -405,9 +405,9 @@ public class ExportDBF implements ShapeConstants {
     Connection con = nodusProject.getMainJDBCConnection();
     boolean success = true;
 
-    try (Statement stmt = con.createStatement();
-        ResultSet rs = stmt.executeQuery(sqlStmt);
-        DBFWriter dbf = dbfWriter) {
+    try (DBFWriter dbf = dbfWriter;
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery(sqlStmt)) {
 
       ResultSetMetaData rsmd = rs.getMetaData();
       int nbColumns = rsmd.getColumnCount();

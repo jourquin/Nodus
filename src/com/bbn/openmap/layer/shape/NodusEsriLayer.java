@@ -482,21 +482,21 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     try {
       // connect to database and execute query
       Connection con = nodusProject.getMainJDBCConnection();
-      Statement stmt = con.createStatement();
-      ResultSet rs = stmt.executeQuery(sqlstmt);
 
-      // Retrieve result of query
-      EsriGraphicList list = getEsriGraphicList();
+      try (Statement stmt = con.createStatement();
+          ResultSet rs = stmt.executeQuery(sqlstmt)) {
 
-      while (rs.next()) {
-        // Index for 'num' in graphicList
-        int index = getNumIndex(JDBCUtils.getInt(rs.getObject(1)));
+        // Retrieve result of query
+        EsriGraphicList list = getEsriGraphicList();
 
-        OMGraphic omGraphic = list.getOMGraphicAt(index);
-        omGraphic.setVisible(true);
+        while (rs.next()) {
+          // Index for 'num' in graphicList
+          int index = getNumIndex(JDBCUtils.getInt(rs.getObject(1)));
+
+          OMGraphic omGraphic = list.getOMGraphicAt(index);
+          omGraphic.setVisible(true);
+        }
       }
-      rs.close();
-      stmt.close();
 
     } catch (Exception ex) {
       JOptionPane.showMessageDialog(
@@ -704,9 +704,10 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   public void executeUpdateSqlStmt(final String sqlStmt) {
     try {
       Connection con = nodusProject.getMainJDBCConnection();
-      Statement stmt = con.createStatement();
-      stmt.executeUpdate(sqlStmt);
-      stmt.close();
+
+      try (Statement stmt = con.createStatement()) {
+        stmt.executeUpdate(sqlStmt);
+      }
     } catch (Exception ex) {
       System.out.println(ex.toString());
     }
@@ -746,26 +747,25 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     try {
       // connect to database and execute query
       Connection con = nodusProject.getMainJDBCConnection();
-      Statement stmt = con.createStatement();
-      ResultSet rs = stmt.executeQuery(sqlstmt);
 
-      // Retrieve result of query
-      EsriGraphicList list = getEsriGraphicList();
+      try (Statement stmt = con.createStatement();
+          ResultSet rs = stmt.executeQuery(sqlstmt)) {
 
-      while (rs.next()) {
-        // Index for 'num' in graphicList
-        int index = getNumIndex(JDBCUtils.getInt(rs.getObject(1)));
+        // Retrieve result of query
+        EsriGraphicList list = getEsriGraphicList();
 
-        // Get graphic and save it in list
-        OMGraphic omGraphic = list.getOMGraphicAt(index);
-        egl.add(omGraphic);
+        while (rs.next()) {
+          // Index for 'num' in graphicList
+          int index = getNumIndex(JDBCUtils.getInt(rs.getObject(1)));
 
-        // Get dbf record and save it in table
-        tableModel.addRecord(getModel().getRecord(index));
+          // Get graphic and save it in list
+          OMGraphic omGraphic = list.getOMGraphicAt(index);
+          egl.add(omGraphic);
+
+          // Get dbf record and save it in table
+          tableModel.addRecord(getModel().getRecord(index));
+        }
       }
-
-      rs.close();
-      stmt.close();
     } catch (Exception ex) {
       JOptionPane.showMessageDialog(
           null,
@@ -865,27 +865,29 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     try {
       URL shx = PropUtils.getResourceOrFileOrURL(shapeFileName + ".shx");
-      InputStream is = shx.openStream();
-      ShxInputStream pis = new ShxInputStream(is);
-      int[][] index = pis.getIndex();
-      is.close();
+      int[][] index;
+
+      try (InputStream is = shx.openStream()) {
+        ShxInputStream pis = new ShxInputStream(is);
+        index = pis.getIndex();
+      }
 
       // Do not test empty shapefiles
       if (index[0].length == 0) {
         return;
       }
 
-      RandomAccessFile raf = new RandomAccessFile(shapeFileName + ".shp", "rw");
-      raf.seek(24);
-      int contentLength = raf.readInt();
-
-      int indexedContentLength = index[0][index[0].length - 1] + index[1][index[1].length - 1];
-
-      if (contentLength != indexedContentLength) {
+      try (RandomAccessFile raf = new RandomAccessFile(shapeFileName + ".shp", "rw")) {
         raf.seek(24);
-        raf.writeInt(indexedContentLength);
+        int contentLength = raf.readInt();
+
+        int indexedContentLength = index[0][index[0].length - 1] + index[1][index[1].length - 1];
+
+        if (contentLength != indexedContentLength) {
+          raf.seek(24);
+          raf.writeInt(indexedContentLength);
+        }
       }
-      raf.close();
 
     } catch (Exception e) {
       e.printStackTrace();
@@ -1346,10 +1348,12 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         String filePath = path + tableName;
         File shpFile = new File(filePath + NodusC.TYPE_SHP);
         File shxFile = new File(filePath + NodusC.TYPE_SHX);
-        try {
-          ShpOutputStream pos = new ShpOutputStream(new FileOutputStream(shpFile));
+        try (FileOutputStream shpOutputStream = new FileOutputStream(shpFile);
+            FileOutputStream shxOutputStream = new FileOutputStream(shxFile)) {
+          ShpOutputStream pos = new ShpOutputStream(shpOutputStream);
           int[][] indexData = pos.writeGeometry(getEsriGraphicList());
-          ShxOutputStream xos = new ShxOutputStream(new FileOutputStream(shxFile));
+
+          ShxOutputStream xos = new ShxOutputStream(shxOutputStream);
           xos.writeIndex(indexData, getEsriGraphicList().getType());
         } catch (IOException ex) {
           System.out.println(ex.toString());
@@ -1671,146 +1675,152 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   public boolean updateDbfTableModel() {
     try {
       Connection con = nodusProject.getMainJDBCConnection();
-      Statement stmt = con.createStatement();
-
-      ResultSet rs = JDBCUtils.getColumns(tableName);
 
       Vector<String> names = new Vector<>();
       // Vector<String> types = new Vector<>();
       Vector<Integer> sizes = new Vector<>();
       Vector<Integer> decimalDigits = new Vector<>();
 
-      while (rs.next()) {
-        names.add(rs.getString("COLUMN_NAME"));
-        String typeName = rs.getString("TYPE_NAME").toUpperCase();
-        // types.add(typeName);
-        decimalDigits.add(rs.getInt("DECIMAL_DIGITS"));
+      try (ResultSet rs = JDBCUtils.getColumns(tableName)) {
+        while (rs.next()) {
+          names.add(rs.getString("COLUMN_NAME"));
+          String typeName = rs.getString("TYPE_NAME").toUpperCase();
+          // types.add(typeName);
+          decimalDigits.add(rs.getInt("DECIMAL_DIGITS"));
 
-        if (typeName.contains("CHAR")) {
-          sizes.add(rs.getInt("COLUMN_SIZE"));
-        } else if (!typeName.contains("DATE")) {
-          // As the metadata doesn't contain a usable width for numerical values, estimate it
-          int w =
-              JDBCUtils.getNumWidth(
-                  tableName, rs.getString("COLUMN_NAME"), rs.getInt("DECIMAL_DIGITS"));
-          sizes.add(w);
-        } else if (typeName.contains("DATE")) {
-          sizes.add(8);
+          if (typeName.contains("CHAR")) {
+            sizes.add(rs.getInt("COLUMN_SIZE"));
+          } else if (!typeName.contains("DATE")) {
+            // As the metadata doesn't contain a usable width for numerical values, estimate it
+            int w =
+                JDBCUtils.getNumWidth(
+                    tableName, rs.getString("COLUMN_NAME"), rs.getInt("DECIMAL_DIGITS"));
+            sizes.add(w);
+          } else if (typeName.contains("DATE")) {
+            sizes.add(8);
+          }
         }
       }
 
-      // The SQL table and the DbfTable model must have the same structure
-      boolean error = false;
-
-      // Must have same number of rows
-      rs = stmt.executeQuery("select count(*) from " + tableName);
-      rs.next();
-      int nbRows = rs.getInt(1);
       DbfTableModel model = getModel();
-      if (model.getRowCount() != nbRows) {
-        error = true;
-      }
 
-      // Must have the same number of columns
-      int nbColumns = model.getColumnCount();
-      if (names.size() != model.getColumnCount()) {
-        error = true;
-      }
+      try (Statement stmt = con.createStatement()) {
+        // The SQL table and the DbfTable model must have the same structure
+        boolean error = false;
 
-      // Test the columns
-      if (!error) {
-        for (int i = 0; i < nbColumns; i++) {
-          // Test field name
-          if (!names.elementAt(i).equalsIgnoreCase(model.getColumnName(i))) {
+        // Must have same number of rows
+        try (ResultSet rs = stmt.executeQuery("select count(*) from " + tableName)) {
+          rs.next();
+          int nbRows = rs.getInt(1);
+          if (model.getRowCount() != nbRows) {
             error = true;
-            break;
-          }
-
-          // Test field type ?
-
-          // Test field length
-          if (sizes.elementAt(i) > model.getLength(i)) {
-            error = true;
-            break;
-          }
-
-          // Test decimal count
-          if (decimalDigits.elementAt(i) > model.getDecimalCount(i)) {
-            error = true;
-            break;
           }
         }
 
-        String sqlStmt = "SELECT * FROM " + tableName;
-        rs = stmt.executeQuery(sqlStmt);
-        ResultSetMetaData rsmd = rs.getMetaData();
-        nbColumns = rsmd.getColumnCount();
-
-        // Must have same number of columns
-        if (nbColumns != model.getColumnCount()) {
+        // Must have the same number of columns
+        int nbColumns = model.getColumnCount();
+        if (names.size() != model.getColumnCount()) {
           error = true;
         }
-      }
 
-      if (error) {
-        System.err.println(
-            i18n.get(
-                NodusEsriLayer.class,
-                "Incompatible_table_structure",
-                "Incompatible table structure."));
-        return false;
-      }
+        // Test the columns
+        if (!error) {
+          for (int i = 0; i < nbColumns; i++) {
+            // Test field name
+            if (!names.elementAt(i).equalsIgnoreCase(model.getColumnName(i))) {
+              error = true;
+              break;
+            }
 
-      // Read the records
-      String sqlStmt = "SELECT * FROM " + tableName;
-      rs = stmt.executeQuery(sqlStmt);
-      Object[] o = new Object[nbColumns];
+            // Test field type ?
 
-      // Retrieve result of query
-      while (rs.next()) {
-        int num = -1;
+            // Test field length
+            if (sizes.elementAt(i) > model.getLength(i)) {
+              error = true;
+              break;
+            }
 
-        for (int i = 0; i < nbColumns; i++) {
-          o[i] = rs.getObject(i + 1);
-
-          if (i == 0) {
-            num = JDBCUtils.getInt(o[i]);
+            // Test decimal count
+            if (decimalDigits.elementAt(i) > model.getDecimalCount(i)) {
+              error = true;
+              break;
+            }
           }
         }
 
-        // Get record that corresponds to this num
-        int index = getNumIndex(num);
-
-        if (index == -1) {
+        if (error) {
           System.err.println(
-              MessageFormat.format(
-                  i18n.get(NodusEsriLayer.class, "Record_not_found", "Record {0} not found in {1}"),
-                  num,
-                  tableName));
-
+              i18n.get(
+                  NodusEsriLayer.class,
+                  "Incompatible_table_structure",
+                  "Incompatible table structure."));
           return false;
         }
 
-        // Update the record in the dbftableModel
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
-        for (int i = 0; i < model.getColumnCount(); i++) {
-          // Transform Date into String with YYYYMMDD format
-          if (model.getType(i) == DBF_TYPE_DATE.byteValue()) {
-            if (o[i] instanceof Date) {
-              String s = dateFormat.format(o[i]);
-              o[i] = s;
-            } else {
-              System.err.println(
-                  "NodusEsriLayer:updateDbfTableModel - Not a Date ? Should never happen...");
-            }
+        // Read the records
+        String sqlStmt = "SELECT * FROM " + tableName;
+
+        try (ResultSet rs = stmt.executeQuery(sqlStmt)) {
+          ResultSetMetaData rsmd = rs.getMetaData();
+          nbColumns = rsmd.getColumnCount();
+
+          // Must have same number of columns
+          if (nbColumns != model.getColumnCount()) {
+            System.err.println(
+                i18n.get(
+                    NodusEsriLayer.class,
+                    "Incompatible_table_structure",
+                    "Incompatible table structure."));
+            return false;
           }
 
-          model.setValueAt(o[i], index, i);
+          Object[] o = new Object[nbColumns];
+          SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+
+          // Retrieve result of query
+          while (rs.next()) {
+            int num = -1;
+
+            for (int i = 0; i < nbColumns; i++) {
+              o[i] = rs.getObject(i + 1);
+
+              if (i == 0) {
+                num = JDBCUtils.getInt(o[i]);
+              }
+            }
+
+            // Get record that corresponds to this num
+            int index = getNumIndex(num);
+
+            if (index == -1) {
+              System.err.println(
+                  MessageFormat.format(
+                      i18n.get(
+                          NodusEsriLayer.class, "Record_not_found", "Record {0} not found in {1}"),
+                      num,
+                      tableName));
+
+              return false;
+            }
+
+            // Update the record in the dbftableModel
+            for (int i = 0; i < model.getColumnCount(); i++) {
+              // Transform Date into String with YYYYMMDD format
+              if (model.getType(i) == DBF_TYPE_DATE.byteValue()) {
+                if (o[i] instanceof Date) {
+                  String s = dateFormat.format(o[i]);
+                  o[i] = s;
+                } else {
+                  System.err.println(
+                      "NodusEsriLayer:updateDbfTableModel - Not a Date ? Should never happen...");
+                }
+              }
+
+              model.setValueAt(o[i], index, i);
+            }
+          }
         }
       }
-
-      rs.close();
-      stmt.close();
 
       // Reload labels
       getLocationHandler().reloadData();

@@ -386,7 +386,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
 
     int locationFieldIndex = getLocationFieldIndex();
 
-    // TODO 20251203 label display bug 
+    // TODO 20251203 label display bug
     // If there is nothing to display
     if (!displayResults && (!isVisible || locationFieldIndex == -1)) {
       graphicList.clear();
@@ -424,10 +424,8 @@ public class NodusLocationHandler extends AbstractLocationHandler
       }
 
       // Execute query
-      try {
-
-        Statement stmt = con.createStatement();
-        ResultSet rs = stmt.executeQuery(locationQueryString);
+      try (Statement stmt = con.createStatement();
+          ResultSet rs = stmt.executeQuery(locationQueryString)) {
 
         OMGraphic omGraphic = null;
 
@@ -478,9 +476,6 @@ public class NodusLocationHandler extends AbstractLocationHandler
           rn.setLocation(loc);
           rn.setRowIndex(index);
         }
-
-        rs.close();
-        stmt.close();
 
       } catch (SQLException e) {
         if (e.getClass() != java.sql.SQLNonTransientConnectionException.class) {
