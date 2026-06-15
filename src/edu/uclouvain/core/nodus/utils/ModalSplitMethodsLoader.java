@@ -166,12 +166,10 @@ public class ModalSplitMethodsLoader {
   private void loadUserDefinedModalSplitMethods(String pathToJar) {
 
     String className;
-    try {
-      JarFile jarFile = new JarFile(pathToJar);
+    try (JarFile jarFile = new JarFile(pathToJar);
+        URLClassLoader cl =
+            URLClassLoader.newInstance(new URL[] {new URL("jar:file:" + pathToJar + "!/")})) {
       Enumeration<JarEntry> e = jarFile.entries();
-
-      URL[] urls = {new URL("jar:file:" + pathToJar + "!/")};
-      URLClassLoader cl = URLClassLoader.newInstance(urls);
 
       while (e.hasMoreElements()) {
         JarEntry je = (JarEntry) e.nextElement();
@@ -233,7 +231,6 @@ public class ModalSplitMethodsLoader {
           availableModalSplitMethods.add((ModalSplitMethod) o);
         }
       }
-      jarFile.close();
     } catch (MalformedURLException e) {
       e.printStackTrace();
     } catch (ClassNotFoundException e) {

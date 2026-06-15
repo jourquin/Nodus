@@ -160,9 +160,7 @@ public class SetJVMArgs {
    */
   private void createScript(String scriptFileName, String parameters) {
 
-    try {
-      FileWriter fileWriter = new FileWriter(scriptFileName);
-      BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+    try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(scriptFileName))) {
 
       String line;
       if (isRunningOnWindows()) {
@@ -172,17 +170,13 @@ public class SetJVMArgs {
       }
 
       bufferedWriter.write(line);
-      bufferedWriter.close();
-      fileWriter.close();
 
     } catch (IOException e) {
       e.printStackTrace();
     }
   }
 
-  /**
-   * The Times font is not always installed on MacOS.
-   */
+  /** The Times font is not always installed on MacOS. */
   private void installTimesFontIfNeeded() {
 
     if (!System.getProperty("os.name", "").toLowerCase(Locale.ROOT).startsWith("mac")) {

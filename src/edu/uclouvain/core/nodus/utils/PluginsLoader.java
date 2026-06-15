@@ -139,12 +139,10 @@ public class PluginsLoader {
   @SuppressWarnings("unchecked")
   private void loadPlugins(String pathToJar) {
 
-    try {
-      JarFile jarFile = new JarFile(pathToJar);
+    try (JarFile jarFile = new JarFile(pathToJar);
+        URLClassLoader cl =
+            URLClassLoader.newInstance(new URL[] {new URL("jar:file:" + pathToJar + "!/")})) {
       Enumeration<JarEntry> e = jarFile.entries();
-
-      URL[] urls = {new URL("jar:file:" + pathToJar + "!/")};
-      URLClassLoader cl = URLClassLoader.newInstance(urls);
 
       while (e.hasMoreElements()) {
         JarEntry je = (JarEntry) e.nextElement();
@@ -179,7 +177,6 @@ public class PluginsLoader {
           }
         }
       }
-      jarFile.close();
     } catch (MalformedURLException e) {
       e.printStackTrace();
     } catch (IOException e) {

@@ -35,19 +35,17 @@ import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Properties;
 import java.util.Set;
 import javax.swing.JOptionPane;
+
 
 /**
  * Base class for all assignments. Defines some basic variables used for each method.
@@ -309,11 +307,11 @@ public abstract class Assignment implements Runnable {
   /** Get the maxDetourReferenceMode, if any. */
   protected void getMaxDetourReferenceMode() {
     Properties costFunctions = assignmentParameters.getCostFunctions();
-    
+
     byte maxDetourReferenceMode =
         Byte.parseByte(costFunctions.getProperty(NodusC.VARNAME_MAX_DETOUR_REF_MODE, "-1"));
     assignmentParameters.setMaxDetourReferenceMode(maxDetourReferenceMode);
-    
+
     if (maxDetourReferenceMode != -1) {
       System.out.println("Max detour reference mode: " + maxDetourReferenceMode);
     }
@@ -338,7 +336,7 @@ public abstract class Assignment implements Runnable {
     boolean hasDeprecatedDurations = false;
     boolean hasDeprecatedVariables = false;
 
-    // Scan the costs function to detect the presence of old xx_DURATUION, ESV or FLOW variables
+    // Scan the costs function to detect the presence of old xx_DURATION, ESV or FLOW variables
     Set<Object> keys = costFunctions.keySet();
     for (Object key : keys) {
       if (((String) key).contains("LD_DURATION")) {
@@ -387,46 +385,42 @@ public abstract class Assignment implements Runnable {
             nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
                 + nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS);
 
+        Path path = Paths.get(costFunctionsFileName);
+        Charset charset = StandardCharsets.UTF_8;
+
         // Upgrade : replace old variables with new cost functions
         if (hasDeprecatedDurations) {
           // Express the times in seconds instead of hours
-          BufferedWriter output;
-          try {
-            File file = new File(costFunctionsFileName);
-            File tmpFile = new File(costFunctionsFileName + ".tmp");
-            if (tmpFile.exists()) {
-              tmpFile.delete();
-            }
-            file.renameTo(tmpFile);
-            FileReader input = new FileReader(tmpFile);
-            BufferedReader br = new BufferedReader(input);
-            output = new BufferedWriter(new FileWriter(costFunctionsFileName));
+          Path tmpPath = Paths.get(costFunctionsFileName + ".tmp");
 
-            String line;
-            while ((line = br.readLine()) != null) {
-              if (line.contains("LD_DURATION")
-                  || line.contains("UL_DURATION")
-                  || line.contains("TP_DURATION")) {
-                line += "*3600";
+          try {
+            Files.deleteIfExists(tmpPath);
+            Files.move(path, tmpPath);
+
+            try (BufferedReader br = Files.newBufferedReader(tmpPath, charset);
+                BufferedWriter output = Files.newBufferedWriter(path, charset)) {
+
+              String line;
+              while ((line = br.readLine()) != null) {
+                if (line.contains("LD_DURATION")
+                    || line.contains("UL_DURATION")
+                    || line.contains("TP_DURATION")) {
+                  line += "*3600";
+                }
+
+                output.append(line);
+                output.newLine();
               }
-              output.append(line);
-              output.newLine();
             }
-            input.close();
-            output.close();
-            tmpFile.delete();
-          } catch (FileNotFoundException e1) {
-            e1.printStackTrace();
-            return true;
+
+            Files.deleteIfExists(tmpPath);
+
           } catch (IOException e1) {
             e1.printStackTrace();
             return true;
           }
 
           // Replace the deprecated variables
-          Path path = Paths.get(costFunctionsFileName);
-          Charset charset = StandardCharsets.UTF_8;
-
           boolean[][] availableModeMeans = new boolean[NodusC.MAXMM][NodusC.MAXMM];
 
           try {
@@ -448,19 +442,20 @@ public abstract class Assignment implements Runnable {
 
             // Add the default moving durations for available mode-means
             // expressed in seconds, as in Nodus <= 7.2
-            output = new BufferedWriter(new FileWriter(costFunctionsFileName, true));
-            for (int mode = 0; mode < NodusC.MAXMM; mode++) {
-              for (int means = 0; means < NodusC.MAXMM; means++) {
-                if (availableModeMeans[mode][means]) {
-                  String newFunction = "mv@" + mode + "," + means + " = 3600*LENGTH/SPEED";
-                  if ((!content.contains(newFunction))) {
-                    output.append(newFunction);
-                    output.newLine();
+            try (BufferedWriter output =
+                Files.newBufferedWriter(path, charset, StandardOpenOption.APPEND)) {
+              for (int mode = 0; mode < NodusC.MAXMM; mode++) {
+                for (int means = 0; means < NodusC.MAXMM; means++) {
+                  if (availableModeMeans[mode][means]) {
+                    String newFunction = "mv@" + mode + "," + means + " = 3600*LENGTH/SPEED";
+                    if (!content.contains(newFunction)) {
+                      output.append(newFunction);
+                      output.newLine();
+                    }
                   }
                 }
               }
             }
-            output.close();
 
           } catch (IOException e) {
             e.printStackTrace();
@@ -470,9 +465,6 @@ public abstract class Assignment implements Runnable {
 
         // Replace the ESV and FLOW variables, if any
         if (hasDeprecatedVariables) {
-          Path path = Paths.get(costFunctionsFileName);
-          Charset charset = StandardCharsets.UTF_8;
-
           try {
             String content = new String(Files.readAllBytes(path), charset);
             content = content.replace("ESV.", "PCU.");
@@ -494,6 +486,7 @@ public abstract class Assignment implements Runnable {
         return true;
       }
     }
+
     return false;
   }
 }

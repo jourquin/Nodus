@@ -138,10 +138,8 @@ public class NodeResults implements ShapeConstants {
     Connection jdbcConnection = nodusProject.getMainJDBCConnection();
     NodusEsriLayer[] nodeLayers = nodusProject.getNodeLayers();
 
-    try {
-      // connect to database and execute query
-      Statement stmt = jdbcConnection.createStatement();
-      ResultSet rs = stmt.executeQuery(sqlStmt);
+    try (Statement stmt = jdbcConnection.createStatement();
+        ResultSet rs = stmt.executeQuery(sqlStmt)) {
 
       // Retrieve result of query
       while (rs.next()) {
@@ -151,9 +149,6 @@ public class NodeResults implements ShapeConstants {
           rn.setResult(JDBCUtils.getDouble(rs.getObject(2)));
         }
       }
-
-      rs.close();
-      stmt.close();
 
     } catch (Exception ex) {
       nodusMapPanel.setBusy(false);

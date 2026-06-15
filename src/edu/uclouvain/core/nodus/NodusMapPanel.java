@@ -607,7 +607,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     try {
       String home = System.getProperty("user.home") + "/";
-      nodusProperties.store(new FileOutputStream(home + ".nodus8.properties"), null);
+      try (FileOutputStream fos = new FileOutputStream(home + ".nodus8.properties")) {
+        nodusProperties.store(fos, null);
+      }
     } catch (IOException ex) {
       System.err.println("Caught IOException saving nodus8.properties");
     }

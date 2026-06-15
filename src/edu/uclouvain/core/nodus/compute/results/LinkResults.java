@@ -113,7 +113,7 @@ public class LinkResults implements ShapeConstants {
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
   private static int currentScenario = -1;
- 
+
   double maxResult = Double.MIN_VALUE;
   double minResult = Double.MAX_VALUE;
 
@@ -276,10 +276,8 @@ public class LinkResults implements ShapeConstants {
               + sqlStmt.substring(index + 1, sqlStmt.length());
     }
 
-    try {
-      // connect to database and execute query
-      Statement stmt = jdbcConnection.createStatement();
-      ResultSet rs = stmt.executeQuery(sqlStmt);
+    try (Statement stmt = jdbcConnection.createStatement();
+        ResultSet rs = stmt.executeQuery(sqlStmt)) {
 
       // Retrieve result of query
       while (rs.next()) {
@@ -290,9 +288,6 @@ public class LinkResults implements ShapeConstants {
           rl.setResult(JDBCUtils.getDouble(rs.getObject(2)));
         }
       }
-
-      rs.close();
-      stmt.close();
 
     } catch (Exception ex) {
       nodusMapPanel.setBusy(false);
@@ -424,12 +419,12 @@ public class LinkResults implements ShapeConstants {
    */
   public boolean displayPath(String sqlStmt) {
 
-    // Ask the use which units he wants to display 
+    // Ask the use which units he wants to display
     Integer unit = askForDisplayUnits();
     if (unit == null) {
       return false;
     }
-    
+
     boolean displayVehicles = false;
     if (unit == 1) {
       displayVehicles = true;
@@ -455,8 +450,8 @@ public class LinkResults implements ShapeConstants {
             nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + costFunctionsFileName;
 
         Properties costFunctions = new Properties();
-        try {
-          costFunctions.load(new FileInputStream(costFunctionsFileName.trim()));
+        try (FileInputStream inputStream = new FileInputStream(costFunctionsFileName.trim())) {
+          costFunctions.load(inputStream);
         } catch (IOException ex) {
           ex.printStackTrace();
           return false;
@@ -476,11 +471,8 @@ public class LinkResults implements ShapeConstants {
     Connection jdbcConnection = nodusProject.getMainJDBCConnection();
     NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
 
-    try {
-      Statement stmt = jdbcConnection.createStatement();
-
-      // Execute query
-      ResultSet rs = stmt.executeQuery(sqlStmt);
+    try (Statement stmt = jdbcConnection.createStatement();
+        ResultSet rs = stmt.executeQuery(sqlStmt)) {
 
       // Retrieve result of query
       double maxResult = Double.MIN_VALUE;
@@ -516,9 +508,6 @@ public class LinkResults implements ShapeConstants {
           }
         }
       }
-
-      rs.close();
-      stmt.close();
 
     } catch (Exception ex) {
       nodusMapPanel.setBusy(false);
@@ -630,8 +619,8 @@ public class LinkResults implements ShapeConstants {
    */
   public boolean displayTimeDependentFlows(String sqlStmt) {
 
-    //double maxResult = Double.MIN_VALUE;
-    //double minResult = Double.MAX_VALUE;
+    // double maxResult = Double.MIN_VALUE;
+    // double minResult = Double.MAX_VALUE;
 
     // Automatic or manual display ?
     Integer answer = askForDisplayInterval();
@@ -676,8 +665,8 @@ public class LinkResults implements ShapeConstants {
     String costFunctionsFileName = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + s;
 
     costFunctions = new Properties();
-    try {
-      costFunctions.load(new FileInputStream(costFunctionsFileName.trim()));
+    try (FileInputStream inputStream = new FileInputStream(costFunctionsFileName.trim())) {
+      costFunctions.load(inputStream);
     } catch (IOException ex) {
       JOptionPane.showMessageDialog(
           null, "Cost functions not found", NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
@@ -702,10 +691,8 @@ public class LinkResults implements ShapeConstants {
 
     // Compute min and max values
     Connection jdbcConnection = nodusProject.getMainJDBCConnection();
-    try {
-      // connect to database and execute query
-      Statement stmt = jdbcConnection.createStatement();
-      ResultSet rs = stmt.executeQuery(sqlStmt);
+    try (Statement stmt = jdbcConnection.createStatement();
+        ResultSet rs = stmt.executeQuery(sqlStmt)) {
 
       // Retrieve min and max values
       while (rs.next()) {
@@ -718,9 +705,6 @@ public class LinkResults implements ShapeConstants {
           minResult = result;
         }
       }
-
-      rs.close();
-      stmt.close();
 
     } catch (Exception ex) {
       nodusMapPanel.setBusy(false);

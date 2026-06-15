@@ -432,12 +432,13 @@ public class NodusProject implements ShapeConstants {
         }
 
         // Close JDBC connection. Compact it if needed
-        try {
-          if (!jdbcConnection.getAutoCommit()) {
-            jdbcConnection.commit();
+        try (Connection connection = jdbcConnection) {
+          if (!connection.getAutoCommit()) {
+            connection.commit();
           }
 
           boolean isShutdown = false;
+
           // Ask if a "shutdown compact" must be performed as this can take a while
           if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB
               || JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
@@ -498,14 +499,12 @@ public class NodusProject implements ShapeConstants {
               derbyServer.shutdown();
             }
           }
-
-          jdbcConnection.close();
         } catch (Exception e) {
           e.printStackTrace();
+        } finally {
+          JDBCUtils.setConnection(null);
+          jdbcConnection = null;
         }
-
-        // Reset JDBCUtils
-        JDBCUtils.setConnection(null);
 
         // Save time stamps of dbf files
         for (NodusEsriLayer nodeLayer : nodeLayers) {
@@ -691,7 +690,7 @@ public class NodusProject implements ShapeConstants {
   private Properties getDefaultStyle() {
     Properties p = new Properties();
 
-    try (InputStream in = NodusMapPanel.class.getResourceAsStream("shapes.properties")) {
+    try (InputStream in = NodusProject.class.getResourceAsStream("shapes.properties")) {
       if (in == null) {
         System.err.println("Resource not found: shapes.properties");
         return null;
@@ -1328,10 +1327,9 @@ public class NodusProject implements ShapeConstants {
    */
   private void loadObjectIDs(String layerName, HashMap<Integer, Integer> map) {
 
-    try {
-      DBFReader dbfReader =
-          new DBFReader(
-              getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + layerName + NodusC.TYPE_DBF);
+    try (DBFReader dbfReader =
+        new DBFReader(
+            getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + layerName + NodusC.TYPE_DBF)) {
       Object[] o;
       if (dbfReader.isOpen()) {
         while (dbfReader.hasNextRecord()) {
@@ -1340,7 +1338,6 @@ public class NodusProject implements ShapeConstants {
           map.put(num, num);
         }
       }
-      dbfReader.close();
     } catch (DBFException ex) {
       ex.printStackTrace();
     }
@@ -1764,11 +1761,9 @@ public class NodusProject implements ShapeConstants {
 
     // Set some defaults for HSQLDB
     if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB) {
-      try {
-        Statement stmt = jdbcConnection.createStatement();
+      try (Statement stmt = jdbcConnection.createStatement()) {
         stmt.execute("SET DEFAULT TABLE TYPE CACHED");
         stmt.execute("SET PROPERTY \"sql.enforce_size\" true");
-        stmt.close();
       } catch (SQLException ex) {
         System.err.println(ex.toString());
         nodusMapPanel.setBusy(false);
@@ -1780,15 +1775,12 @@ public class NodusProject implements ShapeConstants {
 
     /* Derby hasn't a ROUND function. Add it */
     if (JDBCUtils.getDbEngine() == JDBCUtils.DB_DERBY) {
-      try {
-        Statement stmt = jdbcConnection.createStatement();
-
+      try (Statement stmt = jdbcConnection.createStatement()) {
         String s =
             "create function ROUND (value DOUBLE, precision INTEGER) "
                 + "returns DOUBLE language java parameter style java no sql "
                 + "external name 'edu.uclouvain.core.nodus.utils.NodusDerbyFunctions.round'";
         stmt.execute(s);
-        stmt.close();
       } catch (SQLException ex) {
         // Probably because the function was already added
       }

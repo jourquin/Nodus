@@ -71,54 +71,6 @@ public class ProjectFilesTools implements ShapeConstants {
   public ProjectFilesTools() {}
 
   /**
-   * Closes a DBF reader and reports whether the close operation succeeded.
-   *
-   * <p>The Nodus DBF classes expose a {@code close()} method but are not assumed to implement
-   * {@code AutoCloseable}; therefore they cannot safely be used directly in try-with-resources
-   * here.
-   *
-   * @param dbfReader The reader to close.
-   * @return True if the reader was null or closed successfully.
-   */
-  private static boolean closeDbfReader(DBFReader dbfReader) {
-    if (dbfReader == null) {
-      return true;
-    }
-
-    try {
-      dbfReader.close();
-      return true;
-    } catch (DBFException ex) {
-      ex.printStackTrace();
-      return false;
-    }
-  }
-
-  /**
-   * Closes a DBF writer and reports whether the close operation succeeded.
-   *
-   * <p>The Nodus DBF classes expose a {@code close()} method but are not assumed to implement
-   * {@code AutoCloseable}; therefore they cannot safely be used directly in try-with-resources
-   * here.
-   *
-   * @param dbfWriter The writer to close.
-   * @return True if the writer was null or closed successfully.
-   */
-  private static boolean closeDbfWriter(DBFWriter dbfWriter) {
-    if (dbfWriter == null) {
-      return true;
-    }
-
-    try {
-      dbfWriter.close();
-      return true;
-    } catch (DBFException ex) {
-      ex.printStackTrace();
-      return false;
-    }
-  }
-
-  /**
    * Add the "enabled" field to the dbf file of a link layer. This is a convenient method added in
    * order to upgrade the DBF files transparently (no end user action requested).
    *
@@ -141,9 +93,7 @@ public class ProjectFilesTools implements ShapeConstants {
             List<Object[]> data = new LinkedList<Object[]>();
 
             DBFField[] fields = null;
-            DBFReader dbfReader = null;
-            try {
-              dbfReader = new DBFReader(path + layerName + NodusC.TYPE_DBF);
+            try (DBFReader dbfReader = new DBFReader(path + layerName + NodusC.TYPE_DBF)) {
 
               // Retain structure
               fields = new DBFField[dbfReader.getFieldCount() + 1];
@@ -181,10 +131,6 @@ public class ProjectFilesTools implements ShapeConstants {
               result = false;
               loop.exit();
               return;
-            } finally {
-              if (!closeDbfReader(dbfReader)) {
-                result = false;
-              }
             }
 
             if (!result) {
@@ -193,9 +139,7 @@ public class ProjectFilesTools implements ShapeConstants {
             }
 
             // Write the upgraded DBF file
-            DBFWriter dbfWriter = null;
-            try {
-              dbfWriter = new DBFWriter(path + layerName + NodusC.TYPE_DBF, fields);
+            try (DBFWriter dbfWriter = new DBFWriter(path + layerName + NodusC.TYPE_DBF, fields)) {
               ListIterator<Object[]> it = data.listIterator();
               while (it.hasNext()) {
                 dbfWriter.addRecord(it.next());
@@ -203,10 +147,6 @@ public class ProjectFilesTools implements ShapeConstants {
             } catch (DBFException e) {
               e.printStackTrace();
               result = false;
-            } finally {
-              if (!closeDbfWriter(dbfWriter)) {
-                result = false;
-              }
             }
 
             loop.exit();
@@ -252,8 +192,6 @@ public class ProjectFilesTools implements ShapeConstants {
     }
 
     DBFField[] field = new DBFField[mandatoryNames.length];
-    DBFWriter dbf = null;
-    boolean success = true;
 
     try {
       for (int i = 0; i < mandatoryNames.length; i++) {
@@ -265,15 +203,15 @@ public class ProjectFilesTools implements ShapeConstants {
                 mandatoryDecimalCounts[i]);
       }
 
-      dbf = new DBFWriter(path + layerName + NodusC.TYPE_DBF, field);
+      try (DBFWriter dbf = new DBFWriter(path + layerName + NodusC.TYPE_DBF, field)) {
+        // Empty DBF file: closing the writer writes the header/footer.
+      }
     } catch (DBFException ex) {
       System.out.println(ex.toString());
-      success = false;
-    } finally {
-      success &= closeDbfWriter(dbf);
+      return false;
     }
 
-    return success;
+    return true;
   }
 
   /**
@@ -298,14 +236,8 @@ public class ProjectFilesTools implements ShapeConstants {
     }
 
     // Create the .dbf file
-    DBFReader dbfReader = null;
-    DBFWriter dbf = null;
-    boolean success = true;
-
-    try {
+    try (DBFReader dbfReader = new DBFReader(path + modelTable + NodusC.TYPE_DBF)) {
       // Get the structure of the table model
-      dbfReader = new DBFReader(path + modelTable + NodusC.TYPE_DBF);
-
       if (dbfReader.isOpen()) {
         int nbFields = dbfReader.getFieldCount();
         DBFField[] field = new DBFField[nbFields];
@@ -315,17 +247,16 @@ public class ProjectFilesTools implements ShapeConstants {
         }
 
         // Create an empty dbf file with the given structure
-        dbf = new DBFWriter(path + layerName + NodusC.TYPE_DBF, field);
+        try (DBFWriter dbf = new DBFWriter(path + layerName + NodusC.TYPE_DBF, field)) {
+          // Empty DBF file: closing the writer writes the header/footer.
+        }
       }
     } catch (DBFException ex) {
       errorMessage = ex.toString();
-      success = false;
-    } finally {
-      success &= closeDbfWriter(dbf);
-      success &= closeDbfReader(dbfReader);
+      return false;
     }
 
-    return success;
+    return true;
   }
 
   /**
@@ -572,14 +503,10 @@ public class ProjectFilesTools implements ShapeConstants {
     }
 
     // Test dbf files
-    DBFReader dbfReader = null;
     DBFField[] field = null;
     boolean dbfIsOpen = false;
-    boolean closeOk = true;
 
-    try {
-      dbfReader = new DBFReader(path + layerName + NodusC.TYPE_DBF);
-
+    try (DBFReader dbfReader = new DBFReader(path + layerName + NodusC.TYPE_DBF)) {
       if (dbfReader.isOpen()) {
         dbfIsOpen = true;
         int nbFields = dbfReader.getFieldCount();
@@ -591,13 +518,6 @@ public class ProjectFilesTools implements ShapeConstants {
       }
     } catch (DBFException ex) {
       errorMessage = ex.toString();
-      return false;
-    } finally {
-      closeOk = closeDbfReader(dbfReader);
-    }
-
-    if (!closeOk) {
-      errorMessage = "Could not close " + layerName + NodusC.TYPE_DBF;
       return false;
     }
 

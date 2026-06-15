@@ -174,8 +174,6 @@ public class ExportDBF implements ShapeConstants {
 
     JDBCUtils.dropTable(tmpTable);
 
-    DBFReader dbfReader = null;
-
     try {
       String quotedTmpTable = JDBCUtils.getQuotedCompliantIdentifier(tmpTable);
       String sqlStmt =
@@ -193,8 +191,8 @@ public class ExportDBF implements ShapeConstants {
 
       sqlStmt = "INSERT INTO " + quotedTmpTable + " VALUES(?, ?)";
 
-      try (PreparedStatement ps = jdbcConnection.prepareStatement(sqlStmt)) {
-        dbfReader = new DBFReader(path + tableName + NodusC.TYPE_DBF);
+      try (PreparedStatement ps = jdbcConnection.prepareStatement(sqlStmt);
+          DBFReader dbfReader = new DBFReader(path + tableName + NodusC.TYPE_DBF)) {
         int n = 0;
 
         while (dbfReader.hasNextRecord()) {
@@ -214,9 +212,6 @@ public class ExportDBF implements ShapeConstants {
     } catch (Exception ex) {
       ex.printStackTrace();
       return false;
-
-    } finally {
-      closeDbfReader(dbfReader);
     }
   }
 
@@ -382,7 +377,7 @@ public class ExportDBF implements ShapeConstants {
     String defaultDate = dateFormat.format(new Date(0));
     boolean success = true;
 
-    try {
+    try (DBFWriter dbf = dbfWriter) {
       for (int i = 0; i < model.getRowCount(); i++) {
         Object[] o = new Object[model.getColumnCount()];
 
@@ -390,15 +385,12 @@ public class ExportDBF implements ShapeConstants {
           o[j] = getDbfValue(model, i, j, dateFormat, defaultDate);
         }
 
-        dbfWriter.addRecord(o);
+        dbf.addRecord(o);
       }
 
-    } catch (DBFException e) {
+    } catch (Exception e) {
       System.out.println(e);
       success = false;
-
-    } finally {
-      success = closeDbfWriter(dbfWriter) && success;
     }
 
     return success;
@@ -414,7 +406,8 @@ public class ExportDBF implements ShapeConstants {
     boolean success = true;
 
     try (Statement stmt = con.createStatement();
-        ResultSet rs = stmt.executeQuery(sqlStmt)) {
+        ResultSet rs = stmt.executeQuery(sqlStmt);
+        DBFWriter dbf = dbfWriter) {
 
       ResultSetMetaData rsmd = rs.getMetaData();
       int nbColumns = rsmd.getColumnCount();
@@ -425,7 +418,7 @@ public class ExportDBF implements ShapeConstants {
           o[i] = rs.getObject(i + 1);
         }
 
-        dbfWriter.addRecord(o);
+        dbf.addRecord(o);
       }
 
       if (!con.getAutoCommit()) {
@@ -435,9 +428,6 @@ public class ExportDBF implements ShapeConstants {
     } catch (Exception ex) {
       System.out.println(ex.toString());
       success = false;
-
-    } finally {
-      success = closeDbfWriter(dbfWriter) && success;
     }
 
     return success;
@@ -491,37 +481,5 @@ public class ExportDBF implements ShapeConstants {
     }
 
     return value;
-  }
-
-  /** Closes a DBFReader, ignoring secondary close errors. */
-  private static void closeDbfReader(DBFReader dbfReader) {
-    if (dbfReader == null) {
-      return;
-    }
-
-    try {
-      dbfReader.close();
-    } catch (Exception ex) {
-      System.out.println(ex.toString());
-    }
-  }
-
-  /**
-   * Closes a DBFWriter.
-   *
-   * @return {@code true} if the writer was closed without error.
-   */
-  private static boolean closeDbfWriter(DBFWriter dbfWriter) {
-    if (dbfWriter == null) {
-      return true;
-    }
-
-    try {
-      dbfWriter.close();
-      return true;
-    } catch (Exception ex) {
-      System.out.println(ex.toString());
-      return false;
-    }
   }
 }

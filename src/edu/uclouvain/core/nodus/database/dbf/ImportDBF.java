@@ -72,10 +72,8 @@ public class ImportDBF {
     }
 
     sqlStmt += ")";
-    try {
-      Statement stmt = jdbcConnection.createStatement();
+    try (Statement stmt = jdbcConnection.createStatement()) {
       stmt.execute(sqlStmt);
-      stmt.close();
 
     } catch (Exception e) {
       e.printStackTrace();
@@ -112,8 +110,7 @@ public class ImportDBF {
       fields[i] = dbfReader.getField(i);
     }
 
-    try {
-      PreparedStatement prepStmt = jdbcConnection.prepareStatement(sqlStmt);
+    try (PreparedStatement prepStmt = jdbcConnection.prepareStatement(sqlStmt)) {
 
       int batchSize = 0;
 
@@ -172,8 +169,6 @@ public class ImportDBF {
         prepStmt.executeBatch();
       }
 
-      prepStmt.close();
-
       if (!jdbcConnection.getAutoCommit()) {
         jdbcConnection.commit();
       }
@@ -200,19 +195,16 @@ public class ImportDBF {
     String path = project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
 
     maxBatchSize = project.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
-    
+
     hasBatchSupport = JDBCUtils.hasBatchSupport();
 
     // Uppercases? Lowercases?, Mixed? Depends on database capabilities ...
     String jdbcTableName = JDBCUtils.getCompliantIdentifier(tableName);
 
     // Create table
-    try {
+    try (DBFReader dbfReader = new DBFReader(path + tableName + NodusC.TYPE_DBF)) {
       // Create new table and drop existent one
       JDBCUtils.dropTable(jdbcTableName);
-
-      // Open .dbf file
-      DBFReader dbfReader = new DBFReader(path + tableName + NodusC.TYPE_DBF);
 
       if (dbfReader.isOpen()) {
         if (!createTable(jdbcTableName, dbfReader)) {

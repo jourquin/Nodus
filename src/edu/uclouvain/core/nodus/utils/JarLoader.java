@@ -29,6 +29,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Vector;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -42,7 +45,7 @@ public class JarLoader {
 
   private Vector<String> classList = new Vector<>();
 
-  private InputStream jarStream = null;
+  private String jarName = null;
 
   private NodusClassLoader classLoader = null;
 
@@ -95,26 +98,30 @@ public class JarLoader {
    */
   public JarLoader(String jarName) throws FileNotFoundException {
 
-    InputStream is = new FileInputStream(jarName);
-    jarStream = new BufferedInputStream(is);
+    Path jarPath = Paths.get(jarName);
+    if (!Files.isRegularFile(jarPath) || !Files.isReadable(jarPath)) {
+      throw new FileNotFoundException(jarName);
+    }
+
+    this.jarName = jarName;
     classLoader = NodusClassLoader.classLoader;
   }
 
   /** Loads the classes that are in the jar into a list. */
   public void loadJarClasses() {
-    ZipInputStream zis = null;
 
-    try {
-      zis = new ZipInputStream(jarStream);
+    try (FileInputStream fileInputStream = new FileInputStream(jarName);
+        BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
+        ZipInputStream zis = new ZipInputStream(bufferedInputStream)) {
 
       for (ZipEntry ent = null; (ent = zis.getNextEntry()) != null; ) {
         String name = ent.getName();
         String type = null;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        BufferedInputStream bufis = new BufferedInputStream(zis);
+        byte[] data = new byte[8192];
 
-        for (int i = bufis.read(); i != -1; i = bufis.read()) {
-          baos.write(i);
+        for (int bytesRead = zis.read(data); bytesRead != -1; bytesRead = zis.read(data)) {
+          baos.write(data, 0, bytesRead);
         }
 
         byte[] buf = baos.toByteArray();
@@ -124,9 +131,9 @@ public class JarLoader {
         }
 
         if (type == null) {
-          InputStream tmpStream = new ByteArrayInputStream(buf);
-          type = getContentType(tmpStream);
-          tmpStream.close();
+          try (InputStream tmpStream = new ByteArrayInputStream(buf)) {
+            type = getContentType(tmpStream);
+          }
         }
 
         if (type == null) {
@@ -160,14 +167,6 @@ public class JarLoader {
     } catch (Throwable ex) {
       System.err.println("Caught " + ex + " in loadit()");
       ex.printStackTrace();
-    } finally {
-      if (zis != null) {
-        try {
-          zis.close();
-        } catch (Exception ex) {
-          ex.printStackTrace();
-        }
-      }
     }
 
     classLoader.applyDefinitions(classList);
