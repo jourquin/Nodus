@@ -66,9 +66,57 @@ public class ProjectFilesTools implements ShapeConstants {
   private static boolean result;
 
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
-  
+
   /** Default constructor. */
   public ProjectFilesTools() {}
+
+  /**
+   * Closes a DBF reader and reports whether the close operation succeeded.
+   *
+   * <p>The Nodus DBF classes expose a {@code close()} method but are not assumed to implement
+   * {@code AutoCloseable}; therefore they cannot safely be used directly in try-with-resources
+   * here.
+   *
+   * @param dbfReader The reader to close.
+   * @return True if the reader was null or closed successfully.
+   */
+  private static boolean closeDbfReader(DBFReader dbfReader) {
+    if (dbfReader == null) {
+      return true;
+    }
+
+    try {
+      dbfReader.close();
+      return true;
+    } catch (DBFException ex) {
+      ex.printStackTrace();
+      return false;
+    }
+  }
+
+  /**
+   * Closes a DBF writer and reports whether the close operation succeeded.
+   *
+   * <p>The Nodus DBF classes expose a {@code close()} method but are not assumed to implement
+   * {@code AutoCloseable}; therefore they cannot safely be used directly in try-with-resources
+   * here.
+   *
+   * @param dbfWriter The writer to close.
+   * @return True if the writer was null or closed successfully.
+   */
+  private static boolean closeDbfWriter(DBFWriter dbfWriter) {
+    if (dbfWriter == null) {
+      return true;
+    }
+
+    try {
+      dbfWriter.close();
+      return true;
+    } catch (DBFException ex) {
+      ex.printStackTrace();
+      return false;
+    }
+  }
 
   /**
    * Add the "enabled" field to the dbf file of a link layer. This is a convenient method added in
@@ -93,8 +141,9 @@ public class ProjectFilesTools implements ShapeConstants {
             List<Object[]> data = new LinkedList<Object[]>();
 
             DBFField[] fields = null;
+            DBFReader dbfReader = null;
             try {
-              DBFReader dbfReader = new DBFReader(path + layerName + NodusC.TYPE_DBF);
+              dbfReader = new DBFReader(path + layerName + NodusC.TYPE_DBF);
 
               // Retain structure
               fields = new DBFField[dbfReader.getFieldCount() + 1];
@@ -127,25 +176,37 @@ public class ProjectFilesTools implements ShapeConstants {
                 }
                 data.add(newRecord);
               }
-              dbfReader.close();
             } catch (DBFException e) {
               e.printStackTrace();
               result = false;
               loop.exit();
+              return;
+            } finally {
+              if (!closeDbfReader(dbfReader)) {
+                result = false;
+              }
+            }
+
+            if (!result) {
+              loop.exit();
+              return;
             }
 
             // Write the upgraded DBF file
+            DBFWriter dbfWriter = null;
             try {
-              DBFWriter dbfWriter = new DBFWriter(path + layerName + NodusC.TYPE_DBF, fields);
+              dbfWriter = new DBFWriter(path + layerName + NodusC.TYPE_DBF, fields);
               ListIterator<Object[]> it = data.listIterator();
               while (it.hasNext()) {
                 dbfWriter.addRecord(it.next());
               }
-              dbfWriter.close();
             } catch (DBFException e) {
               e.printStackTrace();
               result = false;
-              loop.exit();
+            } finally {
+              if (!closeDbfWriter(dbfWriter)) {
+                result = false;
+              }
             }
 
             loop.exit();
@@ -191,6 +252,8 @@ public class ProjectFilesTools implements ShapeConstants {
     }
 
     DBFField[] field = new DBFField[mandatoryNames.length];
+    DBFWriter dbf = null;
+    boolean success = true;
 
     try {
       for (int i = 0; i < mandatoryNames.length; i++) {
@@ -202,15 +265,15 @@ public class ProjectFilesTools implements ShapeConstants {
                 mandatoryDecimalCounts[i]);
       }
 
-      DBFWriter dbf = new DBFWriter(path + layerName + NodusC.TYPE_DBF, field);
-      dbf.close();
+      dbf = new DBFWriter(path + layerName + NodusC.TYPE_DBF, field);
     } catch (DBFException ex) {
       System.out.println(ex.toString());
-
-      return false;
+      success = false;
+    } finally {
+      success &= closeDbfWriter(dbf);
     }
 
-    return true;
+    return success;
   }
 
   /**
@@ -235,9 +298,13 @@ public class ProjectFilesTools implements ShapeConstants {
     }
 
     // Create the .dbf file
+    DBFReader dbfReader = null;
+    DBFWriter dbf = null;
+    boolean success = true;
+
     try {
       // Get the structure of the table model
-      DBFReader dbfReader = new DBFReader(path + modelTable + NodusC.TYPE_DBF);
+      dbfReader = new DBFReader(path + modelTable + NodusC.TYPE_DBF);
 
       if (dbfReader.isOpen()) {
         int nbFields = dbfReader.getFieldCount();
@@ -248,17 +315,17 @@ public class ProjectFilesTools implements ShapeConstants {
         }
 
         // Create an empty dbf file with the given structure
-        DBFWriter dbf = new DBFWriter(path + layerName + NodusC.TYPE_DBF, field);
-        dbf.close();
+        dbf = new DBFWriter(path + layerName + NodusC.TYPE_DBF, field);
       }
-      dbfReader.close();
     } catch (DBFException ex) {
       errorMessage = ex.toString();
-
-      return false;
+      success = false;
+    } finally {
+      success &= closeDbfWriter(dbf);
+      success &= closeDbfReader(dbfReader);
     }
 
-    return true;
+    return success;
   }
 
   /**
@@ -279,13 +346,14 @@ public class ProjectFilesTools implements ShapeConstants {
     }
 
     // Create an empty layer
-    try {
-      ShpOutputStream pos =
-          new ShpOutputStream(new FileOutputStream(path + layerName + NodusC.TYPE_SHP));
+    try (FileOutputStream shpOutputStream =
+            new FileOutputStream(path + layerName + NodusC.TYPE_SHP);
+        FileOutputStream shxOutputStream =
+            new FileOutputStream(path + layerName + NodusC.TYPE_SHX)) {
+      ShpOutputStream pos = new ShpOutputStream(shpOutputStream);
       int[][] indexData = pos.writeGeometry(list);
 
-      ShxOutputStream xos =
-          new ShxOutputStream(new FileOutputStream(path + layerName + NodusC.TYPE_SHX));
+      ShxOutputStream xos = new ShxOutputStream(shxOutputStream);
       xos.writeIndex(indexData, list.getType());
     } catch (IOException ex) {
       System.out.println(ex.toString());
@@ -477,60 +545,68 @@ public class ProjectFilesTools implements ShapeConstants {
 
     // Test the shape file
     try {
-      BufferedInputStream bis =
-          new BufferedInputStream(new FileInputStream(path + layerName + NodusC.TYPE_SHP));
+      try (BufferedInputStream bis =
+          new BufferedInputStream(new FileInputStream(path + layerName + NodusC.TYPE_SHP))) {
+        Header header = new EsriGraphicFactory.Header(new LittleEndianInputStream(bis));
 
-      Header header = new EsriGraphicFactory.Header(new LittleEndianInputStream(bis));
+        if (layerType == SHAPE_TYPE_POINT && header.shapeType != SHAPE_TYPE_POINT) {
+          errorMessage = layerName + NodusC.TYPE_SHP + " is not a valid POINT shapefile";
+          return false;
+        }
 
-      if (layerType == SHAPE_TYPE_POINT && header.shapeType != SHAPE_TYPE_POINT) {
-        errorMessage = layerName + NodusC.TYPE_SHP + " is not a valid POINT shapefile";
-        return false;
-      }
+        if (layerType == SHAPE_TYPE_POLYLINE && header.shapeType != SHAPE_TYPE_POLYLINE) {
+          errorMessage = layerName + NodusC.TYPE_SHP + "is not a valid POLYLINE shapefile";
 
-      if (layerType == SHAPE_TYPE_POLYLINE && header.shapeType != SHAPE_TYPE_POLYLINE) {
-        errorMessage = layerName + NodusC.TYPE_SHP + "is not a valid POLYLINE shapefile";
-
-        return false;
+          return false;
+        }
       }
 
       // Try index file
-      new ShpInputStream(new FileInputStream(path + layerName + NodusC.TYPE_SHX));
+      try (FileInputStream shxInputStream =
+          new FileInputStream(path + layerName + NodusC.TYPE_SHX)) {
+        new ShpInputStream(shxInputStream);
+      }
     } catch (IOException ex) {
       errorMessage = ex.toString();
       return false;
     }
 
     // Test dbf files
-    try {
-      DBFReader dbfReader = new DBFReader(path + layerName + NodusC.TYPE_DBF);
+    DBFReader dbfReader = null;
+    DBFField[] field = null;
+    boolean dbfIsOpen = false;
+    boolean closeOk = true;
 
-      boolean error = true;
+    try {
+      dbfReader = new DBFReader(path + layerName + NodusC.TYPE_DBF);
+
       if (dbfReader.isOpen()) {
-        error = false;
+        dbfIsOpen = true;
         int nbFields = dbfReader.getFieldCount();
-        DBFField[] field = new DBFField[nbFields];
+        field = new DBFField[nbFields];
 
         for (int i = 0; i < nbFields; i++) {
           field[i] = dbfReader.getField(i);
         }
-        dbfReader.close();
-
-        if (!isValidDbfFile(layerName, field, layerType)) {
-          return false;
-        }
-      }
-
-      if (error) {
-        errorMessage = "Invalid or inexistant " + layerName + NodusC.TYPE_DBF + "  file";
-        return false;
       }
     } catch (DBFException ex) {
       errorMessage = ex.toString();
+      return false;
+    } finally {
+      closeOk = closeDbfReader(dbfReader);
+    }
 
+    if (!closeOk) {
+      errorMessage = "Could not close " + layerName + NodusC.TYPE_DBF;
       return false;
     }
 
-    return true;
+    if (!dbfIsOpen) {
+      errorMessage = "Invalid or inexistant " + layerName + NodusC.TYPE_DBF + "  file";
+      return false;
+    }
+
+    return isValidDbfFile(layerName, field, layerType);
   }
 
   /**

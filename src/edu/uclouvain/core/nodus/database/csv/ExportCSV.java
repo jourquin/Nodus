@@ -50,16 +50,15 @@ public class ExportCSV {
    * @return boolean True on success.
    */
   public static boolean exportTable(NodusProject project, String tableName, boolean withHeader) {
-    try {
-      // Create output file
-      String fileName =
-          project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_CSV;
-      BufferedWriter bw = new BufferedWriter(new FileWriter(fileName));
+    // Create output file
+    String fileName =
+        project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_CSV;
 
-      Connection con = project.getMainJDBCConnection();
-      Statement stmt = con.createStatement();
+    Connection con = project.getMainJDBCConnection();
+    try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName));
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
 
-      ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName);
       ResultSetMetaData rsmd = rs.getMetaData();
       int nbColumns = rsmd.getColumnCount();
 
@@ -90,10 +89,6 @@ public class ExportCSV {
 
         bw.newLine();
       }
-
-      bw.close();
-      rs.close();
-      stmt.close();
     } catch (Exception ex) {
       System.out.println(ex.toString());
 

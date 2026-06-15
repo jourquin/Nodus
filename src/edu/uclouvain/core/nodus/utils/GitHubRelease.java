@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,7 +43,6 @@ import javax.swing.JOptionPane;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -216,25 +216,35 @@ public class GitHubRelease {
    */
   private static JSONObject getLatestBuildInfoFromGitHub() throws Exception {
 
-    URL url = new URL(NodusC.gitHubUrlString);
-    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-    conn.setRequestMethod("GET");
-    conn.setRequestProperty("Accept", "application/vnd.github.v3+json");
+    HttpURLConnection conn = null;
+    try {
+      URL url = new URL(NodusC.gitHubUrlString);
+      conn = (HttpURLConnection) url.openConnection();
+      conn.setRequestMethod("GET");
+      conn.setRequestProperty("Accept", "application/vnd.github.v3+json");
 
-    if (conn.getResponseCode() != 200) {
-      throw new RuntimeException("Erreur HTTP : " + conn.getResponseCode());
+      int responseCode = conn.getResponseCode();
+      if (responseCode != HttpURLConnection.HTTP_OK) {
+        throw new RuntimeException("Erreur HTTP : " + responseCode);
+      }
+
+      StringBuilder response = new StringBuilder();
+      try (BufferedReader br =
+          new BufferedReader(
+              new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+        String line;
+        while ((line = br.readLine()) != null) {
+          response.append(line);
+        }
+      }
+
+      JSONParser parser = new JSONParser();
+      return (JSONObject) parser.parse(response.toString());
+    } finally {
+      if (conn != null) {
+        conn.disconnect();
+      }
     }
-
-    BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-    StringBuilder response = new StringBuilder();
-    String line;
-    while ((line = br.readLine()) != null) {
-      response.append(line);
-    }
-    br.close();
-
-    JSONParser parser = new JSONParser();
-    return (JSONObject) parser.parse(response.toString());
   }
 
   /**
@@ -245,10 +255,12 @@ public class GitHubRelease {
   private static boolean isConnectedToInternet() {
     try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
       HttpGet request = new HttpGet(NodusC.gitHubUrlString);
-      ClassicHttpResponse response = httpClient.execute(request, response1 -> response1);
-      int statusCode = response.getCode();
-
-      return statusCode >= 200 && statusCode < 300;
+      return httpClient.execute(
+          request,
+          response -> {
+            int statusCode = response.getCode();
+            return statusCode >= 200 && statusCode < 300;
+          });
     } catch (IOException e) {
       return false;
     }

@@ -1110,8 +1110,8 @@ public class NodusProject implements ShapeConstants {
 
     // Load the project specific styles
     Properties prop = new Properties();
-    try {
-      prop.load(new FileInputStream(fileName));
+    try (FileInputStream inputStream = new FileInputStream(fileName)) {
+      prop.load(inputStream);
     } catch (FileNotFoundException ex) {
       ex.printStackTrace();
       return null;
@@ -1474,8 +1474,8 @@ public class NodusProject implements ShapeConstants {
 
     projectProperties = new CommentedProperties();
 
-    try {
-      projectProperties.load(new FileInputStream(projectResourceFileNameAndPath));
+    try (FileInputStream inputStream = new FileInputStream(projectResourceFileNameAndPath)) {
+      projectProperties.load(inputStream);
     } catch (FileNotFoundException e) {
       // Nodus may not have access to some folders on Mac...
       if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
@@ -1543,8 +1543,9 @@ public class NodusProject implements ShapeConstants {
     // Try to add the ".local" properties that contain previous saved values
     localProperties = new Properties();
 
-    try {
-      localProperties.load(new FileInputStream(projectResourceFileNameAndPath + NodusC.TYPE_LOCAL));
+    try (FileInputStream inputStream =
+        new FileInputStream(projectResourceFileNameAndPath + NodusC.TYPE_LOCAL)) {
+      localProperties.load(inputStream);
     } catch (IOException ex) {
       // Nothing to do. The .nodus.local is not mandatory.
     }
@@ -2071,7 +2072,9 @@ public class NodusProject implements ShapeConstants {
       try {
         String fileName =
             localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH) + name + NodusC.TYPE_OPENMAP;
-        props.load(new FileInputStream(fileName));
+        try (FileInputStream inputStream = new FileInputStream(fileName)) {
+          props.load(inputStream);
+        }
       } catch (IOException ex) {
         System.out.println(ex.toString());
       }

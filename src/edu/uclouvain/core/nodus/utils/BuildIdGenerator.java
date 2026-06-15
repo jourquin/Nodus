@@ -69,7 +69,9 @@ public class BuildIdGenerator {
     try {
       String f = this.getClass().getPackage().getName();
       String fileName = "classes/" + f.replace('.', '/') + "/" + propFile;
-      properties.store(new FileOutputStream(fileName), null);
+      try (FileOutputStream outputStream = new FileOutputStream(fileName)) {
+        properties.store(outputStream, null);
+      }
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -84,8 +86,7 @@ public class BuildIdGenerator {
   public String getBuildId() {
     Properties properties = new Properties();
 
-    try {
-      InputStream is = getClass().getResourceAsStream(propFile);
+    try (InputStream is = getClass().getResourceAsStream(propFile)) {
       if (is == null) {
         return "IDE Build " + getStamp();
       }
@@ -117,8 +118,7 @@ public class BuildIdGenerator {
   public String getJarBuildId() {
     Properties properties = new Properties();
 
-    try {
-      InputStream is = getClass().getResourceAsStream(propFile);
+    try (InputStream is = getClass().getResourceAsStream(propFile)) {
       if (is == null) {
         return null;
       }

@@ -22,7 +22,6 @@
 package edu.uclouvain.core.nodus.database;
 
 import edu.uclouvain.core.nodus.NodusC;
-import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Connection;
@@ -680,19 +679,19 @@ public class JDBCUtils {
       return width;
     }
 
-    try {
-      Statement stmt = jdbcConnection.createStatement();
-
-      // Force decimal places
-      String dp = "";
-      if (decimalDigits > 0) {
-        dp = ".";
-        for (int i = 0; i < decimalDigits; i++) {
-          dp += "0";
-        }
+    // Force decimal places
+    StringBuilder dp = new StringBuilder();
+    if (decimalDigits > 0) {
+      dp.append(".");
+      for (int i = 0; i < decimalDigits; i++) {
+        dp.append("0");
       }
-      DecimalFormat df = new DecimalFormat("#" + dp);
-      df.setMaximumFractionDigits(decimalDigits);
+    }
+
+    DecimalFormat df = new DecimalFormat("#" + dp);
+    df.setMaximumFractionDigits(decimalDigits);
+
+    try (Statement stmt = jdbcConnection.createStatement()) {
 
       // Get width of max value
       String sqlStmt =
@@ -700,10 +699,13 @@ public class JDBCUtils {
               + getQuotedCompliantIdentifier(fieldName)
               + ") FROM "
               + getQuotedCompliantIdentifier(tableName);
-      ResultSet rs = stmt.executeQuery(sqlStmt);
-      rs.next();
-      String valueString = df.format(rs.getDouble(1));
-      width = valueString.length();
+
+      try (ResultSet rs = stmt.executeQuery(sqlStmt)) {
+        if (rs.next()) {
+          String valueString = df.format(rs.getDouble(1));
+          width = valueString.length();
+        }
+      }
 
       // Get width of min value
       sqlStmt =
@@ -712,16 +714,16 @@ public class JDBCUtils {
               + ") FROM "
               + getQuotedCompliantIdentifier(tableName);
 
-      rs = stmt.executeQuery(sqlStmt);
-      rs.next();
-      valueString = df.format(rs.getDouble(1));
-      int w2 = valueString.length();
-      if (w2 > width) {
-        width = w2;
+      try (ResultSet rs = stmt.executeQuery(sqlStmt)) {
+        if (rs.next()) {
+          String valueString = df.format(rs.getDouble(1));
+          int w2 = valueString.length();
+          if (w2 > width) {
+            width = w2;
+          }
+        }
       }
 
-      rs.close();
-      stmt.close();
     } catch (SQLException e) {
       e.printStackTrace();
     }
@@ -866,31 +868,14 @@ public class JDBCUtils {
   public static boolean isSQliteInstalled() {
 
     try {
-      try {
-        Class.forName("org.sqlite.JDBC").getDeclaredConstructor().newInstance();
-      } catch (IllegalArgumentException e) {
-        e.printStackTrace();
-      } catch (InvocationTargetException e) {
-        e.printStackTrace();
-      } catch (NoSuchMethodException e) {
-        e.printStackTrace();
-      } catch (SecurityException e) {
-        e.printStackTrace();
-      }
+      Class.forName("org.sqlite.JDBC").getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException | IllegalArgumentException | SecurityException e) {
+      e.printStackTrace();
+      return false;
+    }
 
-      Connection jdbcConnection = DriverManager.getConnection("jdbc:sqlite::memory:");
-      if (jdbcConnection == null) {
-        return false;
-      } else {
-        jdbcConnection.close();
-        return true;
-      }
-    } catch (InstantiationException e) {
-      return false;
-    } catch (IllegalAccessException e) {
-      return false;
-    } catch (ClassNotFoundException e) {
-      return false;
+    try (Connection sqliteConnection = DriverManager.getConnection("jdbc:sqlite::memory:")) {
+      return sqliteConnection != null;
     } catch (SQLException e) {
       return false;
     }
@@ -996,18 +981,22 @@ public class JDBCUtils {
    */
   @Deprecated
   public static void shutdownCompact(Connection jdbcConnection) {
-    if (getDbEngine(jdbcConnection) == DB_HSQLDB || getDbEngine(jdbcConnection) == DB_H2) {
-
-      // Compact database
-      try {
-        Statement stmt = jdbcConnection.createStatement();
-        stmt.execute("SHUTDOWN COMPACT");
-        stmt.close();
-      } catch (SQLException e) {
-        e.printStackTrace();
-      }
+    if (jdbcConnection == null) {
+      return;
     }
-    jdbcConnection = null;
+
+    try {
+      String productName = jdbcConnection.getMetaData().getDatabaseProductName().toLowerCase();
+      if (productName.contains("hsql") || productName.contains("h2")) {
+
+        // Compact database
+        try (Statement stmt = jdbcConnection.createStatement()) {
+          stmt.execute("SHUTDOWN COMPACT");
+        }
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
   }
 
   /**

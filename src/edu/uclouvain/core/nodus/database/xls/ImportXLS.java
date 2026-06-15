@@ -27,7 +27,6 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
@@ -68,6 +67,8 @@ public class ImportXLS {
    * sheet.
    */
   private static boolean createTable(NodusProject nodusProject, String tableName, boolean isXLSX) {
+    couldCreateTable = false;
+
     // Open a reader for the xls file
     String fileName =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_XLS;
@@ -76,115 +77,107 @@ public class ImportXLS {
           nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_XLSX;
     }
 
-    InputStream inp;
-    try {
-      inp = new FileInputStream(fileName);
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-      return false;
-    }
+    try (InputStream inp = new FileInputStream(fileName);
+        Workbook wb = WorkbookFactory.create(inp)) {
 
-    Workbook wb;
+      // Get the first sheet
+      Sheet sheet = wb.getSheetAt(0);
 
-    try {
-      wb = WorkbookFactory.create(inp);
-    } catch (EncryptedDocumentException e1) {
-      e1.printStackTrace();
-      return false;
-    } catch (IOException e1) {
-      e1.printStackTrace();
-      return false;
-    }
-
-    // Get the first sheet
-    Sheet sheet = wb.getSheetAt(0);
-
-    Iterator<Row> rows = sheet.rowIterator();
-    Row row = rows.next();
-    if (row == null) {
-      return false;
-    }
-
-    // Parse first row
-    String sqlStmt = "CREATE TABLE " + tableName + " (";
-    Iterator<Cell> cells = row.cellIterator();
-
-    while (cells.hasNext()) {
-      Cell cell = cells.next();
-      if (cell.getCellType() != CellType.STRING) {
+      Iterator<Row> rows = sheet.rowIterator();
+      if (!rows.hasNext()) {
         return false;
       }
 
-      String content = cell.getStringCellValue();
-      // The content must have 3 or four tokens
-      StringTokenizer st = new StringTokenizer(content, ",");
-      int nbTokens = st.countTokens();
-      if (nbTokens != 3 && nbTokens != 4) {
+      Row row = rows.next();
+      if (row == null) {
         return false;
       }
 
-      // First token is the name of the field
-      final String fieldName = st.nextToken().trim();
+      // Parse first row
+      String sqlStmt = "CREATE TABLE " + tableName + " (";
+      Iterator<Cell> cells = row.cellIterator();
 
-      // Second is the type of data. Must be N(umeric) or C(haracters)
-      String fieldType = st.nextToken().trim();
-      if (!fieldType.equalsIgnoreCase("N") && !fieldType.equalsIgnoreCase("C")) {
-        return false;
-      }
-
-      if (fieldType.equalsIgnoreCase("N") && nbTokens == 3) {
-        return false;
-      }
-
-      if (fieldType.equalsIgnoreCase("C") && nbTokens == 4) {
-        return false;
-      }
-      // static boolean oldAutoCommit = false;
-      // static boolean result = true;
-
-      // Third is length. Must be a strictly positive number
-      int fieldLength = Integer.parseInt(st.nextToken());
-      if (fieldLength <= 0) {
-        return false;
-      }
-
-      // Fourth is precision
-      int fieldPrecision = 0;
-      if (nbTokens == 4) {
-        fieldPrecision = Integer.parseInt(st.nextToken());
-        if (fieldPrecision < 0) {
+      while (cells.hasNext()) {
+        Cell cell = cells.next();
+        if (cell.getCellType() != CellType.STRING) {
           return false;
+        }
+
+        String content = cell.getStringCellValue();
+        // The content must have 3 or four tokens
+        StringTokenizer st = new StringTokenizer(content, ",");
+        int nbTokens = st.countTokens();
+        if (nbTokens != 3 && nbTokens != 4) {
+          return false;
+        }
+
+        // First token is the name of the field
+        final String fieldName = st.nextToken().trim();
+
+        // Second is the type of data. Must be N(umeric) or C(haracters)
+        String fieldType = st.nextToken().trim();
+        if (!fieldType.equalsIgnoreCase("N") && !fieldType.equalsIgnoreCase("C")) {
+          return false;
+        }
+
+        if (fieldType.equalsIgnoreCase("N") && nbTokens == 3) {
+          return false;
+        }
+
+        if (fieldType.equalsIgnoreCase("C") && nbTokens == 4) {
+          return false;
+        }
+        // static boolean oldAutoCommit = false;
+        // static boolean result = true;
+
+        // Third is length. Must be a strictly positive number
+        int fieldLength = Integer.parseInt(st.nextToken());
+        if (fieldLength <= 0) {
+          return false;
+        }
+
+        // Fourth is precision
+        int fieldPrecision = 0;
+        if (nbTokens == 4) {
+          fieldPrecision = Integer.parseInt(st.nextToken());
+          if (fieldPrecision < 0) {
+            return false;
+          }
+        }
+
+        // sqlStmt += "\"" + fieldName + "\"";
+        sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(fieldName);
+        if (fieldType.equalsIgnoreCase("N")) {
+          sqlStmt += " NUMERIC(" + fieldLength + "," + fieldPrecision + ")";
+        } else {
+          sqlStmt += " VARCHAR(" + fieldLength + ")";
+        }
+
+        if (cells.hasNext()) {
+          sqlStmt += ",";
+        } else {
+          sqlStmt += ")";
         }
       }
 
-      // sqlStmt += "\"" + fieldName + "\"";
-      sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(fieldName);
-      if (fieldType.equalsIgnoreCase("N")) {
-        sqlStmt += " NUMERIC(" + fieldLength + "," + fieldPrecision + ")";
-      } else {
-        sqlStmt += " VARCHAR(" + fieldLength + ")";
-      }
-
-      if (cells.hasNext()) {
-        sqlStmt += ",";
-      } else {
-        sqlStmt += ")";
-      }
-    }
-    // Now create the table
-    try {
+      // Now create the table. Do not close the project-owned JDBC connection here.
       Connection con = nodusProject.getMainJDBCConnection();
       JDBCUtils.dropTable(tableName);
-      Statement stmt = con.createStatement();
-      stmt.execute(sqlStmt);
-      stmt.close();
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute(sqlStmt);
+      }
+
+      couldCreateTable = true;
+      return true;
+    } catch (NumberFormatException e) {
+      return false;
+    } catch (EncryptedDocumentException | IOException e) {
+      e.printStackTrace();
+      return false;
     } catch (Exception e) {
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
     }
-
-    couldCreateTable = true;
-    return true;
   }
 
   /**
@@ -218,23 +211,28 @@ public class ImportXLS {
       }
     }
 
+    // Do not close the project-owned JDBC connection here.
     Connection con = nodusProject.getMainJDBCConnection();
-    Statement stmt;
 
-    // Clean table
+    // Clean table and read table structure
     String sqlStmt;
-    ResultSetMetaData metaData;
-    ResultSet rs;
+    int nbCols;
+    int[] columnTypes;
 
-    try {
-      stmt = con.createStatement();
+    try (Statement stmt = con.createStatement()) {
       sqlStmt = "delete from " + JDBCUtils.getCompliantIdentifier(tableName);
       stmt.executeUpdate(sqlStmt);
 
       // Get table structure
       sqlStmt = "select * from " + JDBCUtils.getCompliantIdentifier(tableName);
-      rs = stmt.executeQuery(sqlStmt);
-      metaData = rs.getMetaData();
+      try (ResultSet rs = stmt.executeQuery(sqlStmt)) {
+        ResultSetMetaData metaData = rs.getMetaData();
+        nbCols = metaData.getColumnCount();
+        columnTypes = new int[nbCols];
+        for (int i = 0; i < nbCols; i++) {
+          columnTypes[i] = metaData.getColumnType(i + 1);
+        }
+      }
     } catch (SQLException e) {
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
@@ -248,28 +246,18 @@ public class ImportXLS {
           nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_XLSX;
     }
 
-    InputStream inp;
-    try {
-      inp = new FileInputStream(fileName);
-    } catch (FileNotFoundException e) {
-      JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-      return false;
-    }
-
     // Read records and import them in SQL database
-    try {
-      Workbook wb = WorkbookFactory.create(inp);
+    try (InputStream inp = new FileInputStream(fileName);
+        Workbook wb = WorkbookFactory.create(inp)) {
 
       // Get the first sheet
       Sheet sheet = wb.getSheetAt(0);
 
       // Loop over the rows to import data in table
       Iterator<Row> rows = sheet.rowIterator();
-      if (couldCreateTable) {
+      if (couldCreateTable && rows.hasNext()) {
         rows.next();
       }
-
-      int nbCols = metaData.getColumnCount();
 
       // Use a prepared statement to increase insert speed
       sqlStmt = "INSERT INTO " + tableName + " VALUES (";
@@ -280,36 +268,32 @@ public class ImportXLS {
         }
       }
       sqlStmt += ")";
-      PreparedStatement prepStmt = con.prepareStatement(sqlStmt);
 
-      while (rows.hasNext()) {
-        Row row = rows.next();
+      try (PreparedStatement prepStmt = con.prepareStatement(sqlStmt)) {
+        while (rows.hasNext()) {
+          Row row = rows.next();
 
-        for (int i = 0; i < nbCols; i++) {
-          Cell cell = row.getCell(i, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+          for (int i = 0; i < nbCols; i++) {
+            Cell cell = row.getCell(i, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
 
-          if (metaData.getColumnType(i + 1) == java.sql.Types.CHAR
-              || metaData.getColumnType(i + 1) == java.sql.Types.VARCHAR) {
-            String s = "";
-            if (cell != null) {
-              s = cell.getStringCellValue();
+            if (columnTypes[i] == java.sql.Types.CHAR || columnTypes[i] == java.sql.Types.VARCHAR) {
+              String s = "";
+              if (cell != null) {
+                s = cell.getStringCellValue();
+              }
+              prepStmt.setString(i + 1, s);
+
+            } else {
+              double d = 0;
+              if (cell != null) {
+                d = cell.getNumericCellValue();
+              }
+              prepStmt.setDouble(i + 1, d);
             }
-            prepStmt.setString(i + 1, s);
-
-          } else {
-            double d = 0;
-            if (cell != null) {
-              d = cell.getNumericCellValue();
-            }
-            prepStmt.setDouble(i + 1, d);
           }
+          prepStmt.execute();
         }
-        prepStmt.execute();
       }
-
-      stmt.close();
-      prepStmt.close();
-      rs.close();
 
       if (!con.getAutoCommit()) {
         con.commit();

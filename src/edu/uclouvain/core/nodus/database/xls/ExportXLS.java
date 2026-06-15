@@ -57,69 +57,54 @@ public class ExportXLS {
    */
   public static boolean exportTable(NodusProject nodusProject, String tableName, boolean isXLSX) {
 
-    Workbook wbs;
-    if (isXLSX) {
-      wbs = new XSSFWorkbook();
-    } else {
-      wbs = new HSSFWorkbook();
-    }
-
-    try {
+    try (Workbook wbs = isXLSX ? new XSSFWorkbook() : new HSSFWorkbook()) {
       Sheet sheet = wbs.createSheet(tableName);
 
-      // Browse table
+      // Browse table. Do not close the project-owned JDBC connection here.
       Connection con = nodusProject.getMainJDBCConnection();
-      Statement stmt = con.createStatement();
 
       // Insert table structure in first row
-      ResultSet col = JDBCUtils.getColumns(tableName);
-
       int nbColumns = 0;
       Vector<Boolean> numerical = new Vector<>();
       Row row = sheet.createRow(0);
-      while (col.next()) {
+      try (ResultSet col = JDBCUtils.getColumns(tableName)) {
+        while (col.next()) {
 
-        String s = col.getString(4) + ",";
-        String type = col.getString(6).toUpperCase();
-        if (type.equals("VARCHAR") || type.equals("CHAR")) {
-          s += "C," + col.getString(7);
-          numerical.add(Boolean.FALSE);
-        } else {
-          s += "C," + col.getString(7) + "," + col.getString(9);
-          numerical.add(Boolean.TRUE);
-        }
-        Cell cell = row.createCell(nbColumns);
-        cell.setCellValue(s);
-        nbColumns++;
-      }
-      col.close();
-
-      // Loop over the rows to import data in table
-      String sqlStmt = "select * from " + JDBCUtils.getCompliantIdentifier(tableName);
-      ResultSet rs = null;
-
-      try {
-        rs = stmt.executeQuery(sqlStmt);
-      } catch (Exception e) {
-        return false;
-      }
-
-      int currentRow = 1;
-      while (rs.next()) {
-        row = sheet.createRow(currentRow);
-
-        for (int column = 0; column < nbColumns; column++) {
-          Cell cell = row.createCell(column);
-          if (numerical.elementAt(column) == true) {
-            cell.setCellValue(rs.getDouble(column + 1));
+          String s = col.getString(4) + ",";
+          String type = col.getString(6).toUpperCase();
+          if (type.equals("VARCHAR") || type.equals("CHAR")) {
+            s += "C," + col.getString(7);
+            numerical.add(Boolean.FALSE);
           } else {
-            cell.setCellValue(rs.getString(column + 1));
+            s += "C," + col.getString(7) + "," + col.getString(9);
+            numerical.add(Boolean.TRUE);
           }
+          Cell cell = row.createCell(nbColumns);
+          cell.setCellValue(s);
+          nbColumns++;
         }
-        currentRow++;
       }
-      rs.close();
-      stmt.close();
+
+      // Loop over the rows to export data from table
+      String sqlStmt = "select * from " + JDBCUtils.getCompliantIdentifier(tableName);
+
+      try (Statement stmt = con.createStatement();
+          ResultSet rs = stmt.executeQuery(sqlStmt)) {
+        int currentRow = 1;
+        while (rs.next()) {
+          row = sheet.createRow(currentRow);
+
+          for (int column = 0; column < nbColumns; column++) {
+            Cell cell = row.createCell(column);
+            if (Boolean.TRUE.equals(numerical.elementAt(column))) {
+              cell.setCellValue(rs.getDouble(column + 1));
+            } else {
+              cell.setCellValue(rs.getString(column + 1));
+            }
+          }
+          currentRow++;
+        }
+      }
 
       // Write file
       String fileName =
@@ -130,10 +115,9 @@ public class ExportXLS {
                 + tableName
                 + NodusC.TYPE_XLSX;
       }
-      FileOutputStream out = new FileOutputStream(fileName);
-      wbs.write(out);
-      out.close();
-      wbs.close();
+      try (FileOutputStream out = new FileOutputStream(fileName)) {
+        wbs.write(out);
+      }
     } catch (Exception e) {
       new NodusConsole();
       // nodusProject.getNodusMapPanel().setBusy(false);

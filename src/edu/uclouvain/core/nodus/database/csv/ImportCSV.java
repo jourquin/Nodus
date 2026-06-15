@@ -36,6 +36,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import javax.swing.JOptionPane;
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
 /**
@@ -86,10 +87,10 @@ public class ImportCSV {
       Connection con = project.getMainJDBCConnection();
 
       // Clean table
-      Statement stmt = con.createStatement();
-      String sqlStmt = "delete from " + JDBCUtils.getCompliantIdentifier(tableName);
-      stmt.executeUpdate(sqlStmt);
-      stmt.close();
+      try (Statement stmt = con.createStatement()) {
+        String sqlStmt = "delete from " + JDBCUtils.getCompliantIdentifier(tableName);
+        stmt.executeUpdate(sqlStmt);
+      }
 
       // Open a reader for the csv file
       String fileName =
@@ -101,64 +102,71 @@ public class ImportCSV {
         return false;
       }
 
-      Reader in = new FileReader(fileName);
-      Iterable<CSVRecord> records;
-      if (withHeader) {
-        records = CSVFormat.RFC4180.builder().setHeader().setSkipHeaderRecord(true).get().parse(in);
-      } else {
-        records = CSVFormat.RFC4180.parse(in);
-      }
+      try (Reader in = new FileReader(fileName);
+          CSVParser records =
+              withHeader
+                  ? CSVFormat.RFC4180
+                      .builder()
+                      .setHeader()
+                      .setSkipHeaderRecord(true)
+                      .get()
+                      .parse(in)
+                  : CSVFormat.RFC4180.parse(in)) {
 
-      boolean hasBatchSupport = JDBCUtils.hasBatchSupport();
+        boolean hasBatchSupport = JDBCUtils.hasBatchSupport();
 
-      PreparedStatement prepStmt = null;
+        PreparedStatement prepStmt = null;
+        try {
+          int nbFields = -1;
 
-      int nbFields = -1;
+          int batchSize = 0;
+          for (CSVRecord record : records) {
+            // Initialize the prepared statement if not yet done
+            if (nbFields == -1) {
+              nbFields = record.size();
+              String psqlStmt = "INSERT INTO " + tableName + " VALUES (";
+              for (int i = 0; i < nbFields; i++) {
+                psqlStmt += "?";
+                if (i < nbFields - 1) {
+                  psqlStmt += ",";
+                }
+              }
+              psqlStmt += ")";
+              prepStmt = con.prepareStatement(psqlStmt);
+            }
 
-      int batchSize = 0;
-      for (CSVRecord record : records) {
-        // Initialize the prepared statement if not yet done
-        if (nbFields == -1) {
-          nbFields = record.size();
-          String psqlStmt = "INSERT INTO " + tableName + " VALUES (";
-          for (int i = 0; i < nbFields; i++) {
-            psqlStmt += "?";
-            if (i < nbFields - 1) {
-              psqlStmt += ",";
+            // Handle record
+            for (int i = 0; i < nbFields; i++) {
+              prepStmt.setString(i + 1, record.get(i));
+            }
+
+            // Save into table according to batch policy;
+            if (hasBatchSupport) {
+              batchSize++;
+              prepStmt.addBatch();
+              if (batchSize >= maxBatchSize) {
+                prepStmt.executeBatch();
+                batchSize = 0;
+              }
+            } else {
+              prepStmt.executeUpdate();
             }
           }
-          psqlStmt += ")";
-          prepStmt = con.prepareStatement(psqlStmt);
-        }
 
-        // Handle record
-        for (int i = 0; i < nbFields; i++) {
-          prepStmt.setString(i + 1, record.get(i));
-        }
-
-        // Save into table according to batch policy;
-        if (hasBatchSupport) {
-          batchSize++;
-          prepStmt.addBatch();
-          if (batchSize >= maxBatchSize) {
+          // Flush remaining records in batch
+          if (hasBatchSupport && prepStmt != null) {
             prepStmt.executeBatch();
-            batchSize = 0;
           }
-        } else {
-          prepStmt.executeUpdate();
+        } finally {
+          if (prepStmt != null) {
+            prepStmt.close();
+          }
         }
-      }
-
-      // Flush remaining records in batch
-      if (hasBatchSupport) {
-        prepStmt.executeBatch();
       }
 
       if (!con.getAutoCommit()) {
         con.commit();
       }
-      
-      prepStmt.close();
 
     } catch (SQLException | IOException e) {
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
