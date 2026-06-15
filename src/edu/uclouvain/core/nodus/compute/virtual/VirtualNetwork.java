@@ -313,6 +313,8 @@ public class VirtualNetwork {
       nodeIndex = null;
     }
 
+    // These arrays are owned by VirtualNetwork, but their elements are project-owned DBF models.
+    // Clearing the local arrays is safe.
     if (linksDbf != null) {
       for (int i = 0; i < linksDbf.length; i++) {
         linksDbf[i] = null;
@@ -327,19 +329,14 @@ public class VirtualNetwork {
       nodesDbf = null;
     }
 
-    if (linksEsriLayer != null) {
-      for (int i = 0; i < linksEsriLayer.length; i++) {
-        linksEsriLayer[i] = null;
-      }
-      linksEsriLayer = null;
-    }
-
-    if (nodesEsriLayer != null) {
-      for (int i = 0; i < nodesEsriLayer.length; i++) {
-        nodesEsriLayer[i] = null;
-      }
-      nodesEsriLayer = null;
-    }
+    /*
+     * Do NOT clear the contents of these arrays.
+     *
+     * linksEsriLayer and nodesEsriLayer reference the arrays owned by NodusProject.
+     * Nulling their elements here would corrupt the open project and break result display.
+     */
+    linksEsriLayer = null;
+    nodesEsriLayer = null;
 
     availableModeMeans = null;
     costFunctions = null;
@@ -364,7 +361,6 @@ public class VirtualNetwork {
     scenario = 0;
     timeSliceDuration = 0;
   }
-
   /**
    * Creates a queue of cost parser workers and a pool of threads that will handle these workers.
    *

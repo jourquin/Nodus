@@ -291,6 +291,7 @@ public class LinkResults implements ShapeConstants {
 
     } catch (Exception ex) {
       nodusMapPanel.setBusy(false);
+      ex.printStackTrace();
       JOptionPane.showMessageDialog(null, ex.getMessage(), "SQL error", JOptionPane.ERROR_MESSAGE);
 
       return false;

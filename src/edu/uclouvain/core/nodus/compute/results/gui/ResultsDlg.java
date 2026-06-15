@@ -486,7 +486,8 @@ public class ResultsDlg extends EscapeDialog {
         + detailTableName
         + "."
         + JDBCUtils.getCompliantIdentifier(NodusC.DBF_LINK)
-        + ") AS " + NodusC.DBF_LINK
+        + ") AS "
+        + NodusC.DBF_LINK
         + ", "
         + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
         + ", "
@@ -891,7 +892,6 @@ public class ResultsDlg extends EscapeDialog {
 
   /** Resets the "display results" state of the layers. */
   public void resetLayers() {
-
     NodusEsriLayer[] layers;
 
     if (nodeRadioButton.isSelected()) {
@@ -900,24 +900,37 @@ public class ResultsDlg extends EscapeDialog {
       layers = nodusProject.getLinkLayers();
     }
 
+    if (layers == null) {
+      return;
+    }
+
     for (NodusEsriLayer element : layers) {
+      if (element == null) {
+        continue;
+      }
 
       // Reset the user defined attribute of each graphic
       EsriGraphicList egl = element.getEsriGraphicList();
-      Iterator<OMGraphic> it = egl.iterator();
-      while (it.hasNext()) {
-        OMGraphic omg = it.next();
-        RealNetworkObject rn = (RealNetworkObject) omg.getAttribute(0);
-        if (rn != null) {
-          rn.setResult(0.0);
+      if (egl != null) {
+        Iterator<?> it = egl.iterator();
+        while (it.hasNext()) {
+          OMGraphic omg = (OMGraphic) it.next();
+          RealNetworkObject rn = (RealNetworkObject) omg.getAttribute(0);
+          if (rn != null) {
+            rn.setResult(0.0);
+          }
         }
       }
 
       element.setDisplayResults(false);
-      // TODO If a result concerns a subset of links, the labels are displayed only
-      // on these links after a reset
-      element.getLocationHandler().setDisplayResults(false);
-      element.getLocationHandler().reloadData();
+
+      // A layer can temporarily or permanently have no location handler,
+      // especially during/after disposal.
+      if (element.getLocationHandler() != null) {
+        element.getLocationHandler().setDisplayResults(false);
+        element.getLocationHandler().reloadData();
+      }
+
       element.applyWhereFilter(element.getWhereStmt());
       element.attachStyles();
       element.doPrepare();
@@ -927,11 +940,12 @@ public class ResultsDlg extends EscapeDialog {
     LabelLayer labelLayer = null;
     Layer[] l = nodusMapPanel.getLayerHandler().getLayers();
     for (Layer element : l) {
-      if (element.getClass().getName() == "com.bbn.openmap.layer.LabelLayer") {
+      if ("com.bbn.openmap.layer.LabelLayer".equals(element.getClass().getName())) {
         labelLayer = (LabelLayer) element;
         break;
       }
     }
+
     if (labelLayer != null) {
       labelLayer.setLabelText("");
       labelLayer.doPrepare();
