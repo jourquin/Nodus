@@ -197,19 +197,14 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @return String
    */
   private static String readFile(String file) {
-    try {
-      FileReader reader = new FileReader(file);
-      BufferedReader read = new BufferedReader(reader);
-      StringBuffer b = new StringBuffer();
-      String s = null;
+    try (BufferedReader read = new BufferedReader(new FileReader(file))) {
+      StringBuilder b = new StringBuilder();
+      String s;
 
       while ((s = read.readLine()) != null) {
         b.append(s);
         b.append(NL);
       }
-
-      read.close();
-      reader.close();
 
       return b.toString();
     } catch (IOException e) {
@@ -224,11 +219,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @param text String
    */
   private static void writeFile(String file, String text) {
-    try {
-      FileWriter write = new FileWriter(file);
-
-      write.write(text.toCharArray());
-      write.close();
+    try (FileWriter write = new FileWriter(file)) {
+      write.write(text);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -1097,42 +1089,42 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         return;
       }
 
-      ResultSetMetaData m = r.getMetaData();
+      try (ResultSet result = r) {
+        ResultSetMetaData m = result.getMetaData();
 
-      int col = m.getColumnCount();
-      String[] h = new String[col];
-
-      for (int i = 1; i <= col; i++) {
-        h[i - 1] = m.getColumnLabel(i);
-      }
-
-      gridResultArea.setHead(h);
-
-      sorter.setTableHeader(resultTable.getTableHeader());
-
-      int counter = 0;
-      jbuttonExecute.setForeground(colorButton);
-      while (r.next()) {
-
-        // The result set may be larger that the max rows set. In such a case, change
-        // the color of the text in the query button in order to warn the user.
-        counter++;
-        if (counter == maxRows) {
-          jbuttonExecute.setForeground(Color.RED);
-        }
+        int col = m.getColumnCount();
+        String[] h = new String[col];
 
         for (int i = 1; i <= col; i++) {
-          h[i - 1] = r.getString(i);
-
-          if (r.wasNull()) {
-            h[i - 1] = "(null)";
-          }
+          h[i - 1] = m.getColumnLabel(i);
         }
 
-        gridResultArea.addRow(h);
-      }
+        gridResultArea.setHead(h);
 
-      r.close();
+        sorter.setTableHeader(resultTable.getTableHeader());
+
+        int counter = 0;
+        jbuttonExecute.setForeground(colorButton);
+        while (result.next()) {
+
+          // The result set may be larger that the max rows set. In such a case, change
+          // the color of the text in the query button in order to warn the user.
+          counter++;
+          if (counter == maxRows) {
+            jbuttonExecute.setForeground(Color.RED);
+          }
+
+          for (int i = 1; i <= col; i++) {
+            h[i - 1] = result.getString(i);
+
+            if (result.wasNull()) {
+              h[i - 1] = "(null)";
+            }
+          }
+
+          gridResultArea.addRow(h);
+        }
+      }
     } catch (SQLException e) {
       e.printStackTrace();
     }
@@ -1398,10 +1390,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     style = txtResultArea.addStyle("SQL result", null);
 
     // Apply theme
-    try {
-      InputStream in = NodusMapPanel.class.getResource("eclipse.xml").openStream();
-      Theme theme = Theme.load(in);
-      theme.apply(sqlCommandsArea);
+    try (InputStream in = NodusMapPanel.class.getResourceAsStream("eclipse.xml")) {
+      if (in != null) {
+        Theme theme = Theme.load(in);
+        theme.apply(sqlCommandsArea);
+      }
     } catch (IOException ioe) { // Should never happen
       ioe.printStackTrace();
     }
@@ -1971,27 +1964,24 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
               // get metadata about user tables by building a vector of table names
               // String[] usertables = {"TABLE", "GLOBAL TEMPORARY", "VIEW"};
               // ResultSet result = metaData.getTables(catalog, schema, null, usertables);
-              ResultSet result = JDBCUtils.getTables();
-
               Vector<String> tables = new Vector<>();
               Vector<String> remarks = new Vector<>();
 
-              String s;
-              while (result.next()) {
-                s = result.getString(3);
-                if (s.indexOf("$") == -1) {
-                  tables.addElement(s);
-                  remarks.addElement(result.getString(5));
+              try (ResultSet result = JDBCUtils.getTables()) {
+                String s;
+                while (result.next()) {
+                  s = result.getString(3);
+                  if (s.indexOf("$") == -1) {
+                    tables.addElement(s);
+                    remarks.addElement(result.getString(5));
+                  }
                 }
               }
-              result.close();
 
               // For each table, build a tree node with interesting info
               for (int i = 0; i < tables.size(); i++) {
                 String name = tables.elementAt(i);
                 DefaultMutableTreeNode tableNode = makeNode(name, rootNode);
-                ResultSet col = metaData.getColumns(catalog, schema, name, null);
-
                 // Add remarks.
                 String remark = remarks.elementAt(i);
 
@@ -2000,51 +1990,50 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
                 }
 
                 // With a child for each column containing pertinent attributes
-                while (col.next()) {
-                  String c = col.getString(4);
-                  DefaultMutableTreeNode columnNode = makeNode(c, tableNode);
-                  String type = col.getString(6);
+                try (ResultSet col = metaData.getColumns(catalog, schema, name, null)) {
+                  while (col.next()) {
+                    String c = col.getString(4);
+                    DefaultMutableTreeNode columnNode = makeNode(c, tableNode);
+                    String type = col.getString(6);
 
-                  makeNode(
-                      MessageFormat.format(i18n.get(SQLConsole.class, "Type", "Type: {0}"), type),
-                      columnNode);
+                    makeNode(
+                        MessageFormat.format(i18n.get(SQLConsole.class, "Type", "Type: {0}"), type),
+                        columnNode);
 
-                  boolean nullable = col.getInt(11) != DatabaseMetaData.columnNoNulls;
+                    boolean nullable = col.getInt(11) != DatabaseMetaData.columnNoNulls;
 
-                  makeNode(
-                      MessageFormat.format(
-                          i18n.get(SQLConsole.class, "Nullable", "Nullable: {0}"), nullable),
-                      columnNode);
+                    makeNode(
+                        MessageFormat.format(
+                            i18n.get(SQLConsole.class, "Nullable", "Nullable: {0}"), nullable),
+                        columnNode);
+                  }
                 }
-
-                col.close();
 
                 DefaultMutableTreeNode indexesNode =
                     makeNode(i18n.get(SQLConsole.class, "Indices", "Indices"), tableNode);
-                ResultSet ind = metaData.getIndexInfo(catalog, schema, name, false, false);
 
-                String oldiname = null;
+                try (ResultSet ind = metaData.getIndexInfo(catalog, schema, name, false, false)) {
+                  String oldiname = null;
 
-                // A child node to contain each index - and its attributes
-                while (ind.next()) {
-                  DefaultMutableTreeNode indexNode = null;
-                  boolean nonunique = ind.getBoolean(4);
-                  String iname = ind.getString(6);
+                  // A child node to contain each index - and its attributes
+                  while (ind.next()) {
+                    DefaultMutableTreeNode indexNode = null;
+                    boolean nonunique = ind.getBoolean(4);
+                    String iname = ind.getString(6);
 
-                  if (oldiname == null || !oldiname.equals(iname)) {
-                    indexNode = makeNode(iname, indexesNode);
-                    makeNode(
-                        MessageFormat.format(
-                            i18n.get(SQLConsole.class, "Unique", "Unique: {0}"), !nonunique),
-                        indexNode);
-                    oldiname = iname;
+                    if (oldiname == null || !oldiname.equals(iname)) {
+                      indexNode = makeNode(iname, indexesNode);
+                      makeNode(
+                          MessageFormat.format(
+                              i18n.get(SQLConsole.class, "Unique", "Unique: {0}"), !nonunique),
+                          indexNode);
+                      oldiname = iname;
+                    }
+
+                    // And the ordered column list for index components
+                    makeNode(ind.getString(9), indexNode);
                   }
-
-                  // And the ordered column list for index components
-                  makeNode(ind.getString(9), indexNode);
                 }
-
-                ind.close();
               }
 
               // Finally - a little additional metadata on this connection

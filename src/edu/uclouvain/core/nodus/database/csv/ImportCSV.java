@@ -34,6 +34,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Iterator;
 import javax.swing.JOptionPane;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -50,6 +51,67 @@ public class ImportCSV {
 
   /** Default constructor. */
   public ImportCSV() {}
+
+  /**
+   * Builds the SQL insert statement once the number of CSV fields is known.
+   *
+   * @param tableName The destination table name.
+   * @param nbFields The number of fields in the CSV records.
+   * @return The parameterized SQL insert statement.
+   */
+  private static String buildInsertStatement(String tableName, int nbFields) {
+    StringBuilder sqlStmt = new StringBuilder("INSERT INTO ");
+    sqlStmt.append(tableName).append(" VALUES (");
+
+    for (int i = 0; i < nbFields; i++) {
+      if (i > 0) {
+        sqlStmt.append(',');
+      }
+      sqlStmt.append('?');
+    }
+
+    sqlStmt.append(')');
+    return sqlStmt.toString();
+  }
+
+  /**
+   * Saves one CSV record using the configured batch policy.
+   *
+   * @param prepStmt The prepared insert statement.
+   * @param record The CSV record to save.
+   * @param nbFields The number of fields to bind.
+   * @param hasBatchSupport True if JDBC batch updates are supported.
+   * @param batchSize The current batch size.
+   * @param maxBatchSize The maximum batch size before flushing.
+   * @return The updated batch size.
+   * @throws SQLException If the record cannot be saved.
+   */
+  private static int saveRecord(
+      PreparedStatement prepStmt,
+      CSVRecord record,
+      int nbFields,
+      boolean hasBatchSupport,
+      int batchSize,
+      int maxBatchSize)
+      throws SQLException {
+
+    for (int i = 0; i < nbFields; i++) {
+      prepStmt.setString(i + 1, record.get(i));
+    }
+
+    if (hasBatchSupport) {
+      batchSize++;
+      prepStmt.addBatch();
+      if (batchSize >= maxBatchSize) {
+        prepStmt.executeBatch();
+        return 0;
+      }
+      return batchSize;
+    }
+
+    prepStmt.executeUpdate();
+    return batchSize;
+  }
 
   /**
    * Imports the table which name is passed as parameter. The CSV file must be located in the
@@ -114,52 +176,35 @@ public class ImportCSV {
                   : CSVFormat.RFC4180.parse(in)) {
 
         boolean hasBatchSupport = JDBCUtils.hasBatchSupport();
+        Iterator<CSVRecord> recordIterator = records.iterator();
 
-        PreparedStatement prepStmt = null;
-        try {
-          int nbFields = -1;
+        if (recordIterator.hasNext()) {
+          CSVRecord firstRecord = recordIterator.next();
+          int nbFields = firstRecord.size();
+          String psqlStmt = buildInsertStatement(tableName, nbFields);
 
-          int batchSize = 0;
-          for (CSVRecord record : records) {
-            // Initialize the prepared statement if not yet done
-            if (nbFields == -1) {
-              nbFields = record.size();
-              String psqlStmt = "INSERT INTO " + tableName + " VALUES (";
-              for (int i = 0; i < nbFields; i++) {
-                psqlStmt += "?";
-                if (i < nbFields - 1) {
-                  psqlStmt += ",";
-                }
-              }
-              psqlStmt += ")";
-              prepStmt = con.prepareStatement(psqlStmt);
+          try (PreparedStatement prepStmt = con.prepareStatement(psqlStmt)) {
+            int batchSize = 0;
+
+            batchSize =
+                saveRecord(
+                    prepStmt, firstRecord, nbFields, hasBatchSupport, batchSize, maxBatchSize);
+
+            while (recordIterator.hasNext()) {
+              batchSize =
+                  saveRecord(
+                      prepStmt,
+                      recordIterator.next(),
+                      nbFields,
+                      hasBatchSupport,
+                      batchSize,
+                      maxBatchSize);
             }
 
-            // Handle record
-            for (int i = 0; i < nbFields; i++) {
-              prepStmt.setString(i + 1, record.get(i));
-            }
-
-            // Save into table according to batch policy;
+            // Flush remaining records in batch
             if (hasBatchSupport) {
-              batchSize++;
-              prepStmt.addBatch();
-              if (batchSize >= maxBatchSize) {
-                prepStmt.executeBatch();
-                batchSize = 0;
-              }
-            } else {
-              prepStmt.executeUpdate();
+              prepStmt.executeBatch();
             }
-          }
-
-          // Flush remaining records in batch
-          if (hasBatchSupport && prepStmt != null) {
-            prepStmt.executeBatch();
-          }
-        } finally {
-          if (prepStmt != null) {
-            prepStmt.close();
           }
         }
       }

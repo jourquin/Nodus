@@ -300,58 +300,56 @@ public class StatPieDlg extends EscapeDialog {
       Connection jdbcConnection = nodusProject.getMainJDBCConnection();
 
       // Connect to database and execute query
-      Statement stmt = jdbcConnection.createStatement();
-      ResultSet rs = stmt.executeQuery(sqlQuery[index]);
+      try (Statement stmt = jdbcConnection.createStatement();
+          ResultSet rs = stmt.executeQuery(sqlQuery[index])) {
 
-      ResultSetMetaData m = rs.getMetaData();
+        ResultSetMetaData m = rs.getMetaData();
 
-      /* col will be equal to 2 for "mode" related stats and 3 for "mode-means" stats. */
-      int col = m.getColumnCount();
+        /* col will be equal to 2 for "mode" related stats and 3 for "mode-means" stats. */
+        int col = m.getColumnCount();
 
-      labels[index] = new Vector<String>();
-      values[index] = new Vector<Float>();
+        labels[index] = new Vector<String>();
+        values[index] = new Vector<Float>();
 
-      // Track all the mode-means combinations that are used
-      boolean[][] usedModeMeans = new boolean[NodusC.MAXMM][NodusC.MAXMM];
+        // Track all the mode-means combinations that are used
+        boolean[][] usedModeMeans = new boolean[NodusC.MAXMM][NodusC.MAXMM];
 
-      while (rs.next()) {
+        while (rs.next()) {
 
-        if (col == 2) {
-          // Mode stats
-          int mode = rs.getInt(1);
-          labels[index].add(
-              MessageFormat.format(i18n.get(StatPieDlg.class, "Mode", "Mode {0}"), mode));
-          values[index].add(Float.valueOf(rs.getFloat(2)));
-          colors[index].add(modeColors[mode]);
-        } else {
-          // Mode-Means stats
-          int mode = rs.getInt(1);
-          int means = rs.getInt(2);
-          labels[index].add(
-              MessageFormat.format(
-                  i18n.get(StatPieDlg.class, "ModeMeans", "Mode {0}, Means {1}"), mode, means));
-          values[index].add(Float.valueOf(rs.getFloat(3)));
+          if (col == 2) {
+            // Mode stats
+            int mode = rs.getInt(1);
+            labels[index].add(
+                MessageFormat.format(i18n.get(StatPieDlg.class, "Mode", "Mode {0}"), mode));
+            values[index].add(Float.valueOf(rs.getFloat(2)));
+            colors[index].add(modeColors[mode]);
+          } else {
+            // Mode-Means stats
+            int mode = rs.getInt(1);
+            int means = rs.getInt(2);
+            labels[index].add(
+                MessageFormat.format(
+                    i18n.get(StatPieDlg.class, "ModeMeans", "Mode {0}, Means {1}"), mode, means));
+            values[index].add(Float.valueOf(rs.getFloat(3)));
 
-          // Collect all the means for this mode
-          usedModeMeans[mode][means] = true;
+            // Collect all the means for this mode
+            usedModeMeans[mode][means] = true;
+          }
+        }
+
+        // Get the color shades for the mode-means stats
+        if (col == 3) {
+          colors[index].addAll(getShades(usedModeMeans));
         }
       }
-
-      // Get the color shades for the mode-means stats
-      if (col == 3) {
-        colors[index].addAll(getShades(usedModeMeans));
-      }
-
-      rs.close();
-      stmt.close();
 
     } catch (Exception ex) {
       // Probably because one tries to gather info for a group which was not assigned
       // ex.printStackTrace();
+    } finally {
+      nodusProject.getNodusMapPanel().setBusy(false);
+      setCursor(oldCursor);
     }
-
-    nodusProject.getNodusMapPanel().setBusy(false);
-    setCursor(oldCursor);
   }
 
   /** Fill the table with labels and values. Compute market shares. */
