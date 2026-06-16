@@ -119,6 +119,8 @@ import java.awt.Point;
 import java.awt.RenderingHints;
 import java.awt.SecondaryLoop;
 import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.ClipboardOwner;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -167,14 +169,14 @@ import javax.swing.border.BevelBorder;
 public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** This class is used to hold an image while on the clipboard. */
-  private static class ImageSelection implements Transferable {
+  private static class ImageSelection implements Transferable, ClipboardOwner {
+
     private Image image;
 
     public ImageSelection(Image image) {
       this.image = image;
     }
 
-    // Returns image
     @Override
     public Object getTransferData(DataFlavor flavor)
         throws UnsupportedFlavorException, IOException {
@@ -184,16 +186,19 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       return image;
     }
 
-    // Returns supported flavors
     @Override
     public DataFlavor[] getTransferDataFlavors() {
       return new DataFlavor[] {DataFlavor.imageFlavor};
     }
 
-    // Returns true if flavor is supported
     @Override
     public boolean isDataFlavorSupported(DataFlavor flavor) {
       return DataFlavor.imageFlavor.equals(flavor);
+    }
+
+    @Override
+    public void lostOwnership(Clipboard clipboard, Transferable contents) {
+      image = null;
     }
   }
 
@@ -521,28 +526,21 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * target class must be available on the application classpath and must expose a public
    * constructor accepting one {@link NodusMapPanel} argument.
    *
-   * <p><strong>Lifecycle contract for F8/F9 extension classes:</strong> the {@code NodusMapPanel}
-   * argument gives access to the current project, map, layers, menus, database connection and GUI
-   * object graph. Extension classes must therefore treat this reference as temporary unless they
-   * explicitly manage their own lifecycle.
+   * <p><strong>Lifecycle contract:</strong> F8/F9 classes should be short-lived. They must not keep
+   * long-lived strong references to {@code NodusMapPanel}, {@code NodusProject}, layers, Swing
+   * components, JDBC objects, timers, threads, or listeners. If such a class creates windows,
+   * starts threads, installs listeners, opens resources, or keeps caches, it is responsible for
+   * cleaning them up.
    *
-   * <p>In particular, F8/F9 classes must not keep long-lived strong references to {@code
-   * NodusMapPanel}, {@code NodusProject}, layers, Swing components or database objects in static
-   * fields, background threads, timers or listeners. If an extension creates windows, starts
-   * threads, installs listeners, opens streams, or keeps caches, it is responsible for disposing
-   * windows, stopping threads/timers, removing listeners and closing resources before the project
-   * is closed.
-   *
-   * <p>There is currently no automatic project-close callback for these ad-hoc classes. Therefore,
-   * F8/F9 extensions should preferably perform short-lived actions and return. Long-lived tools
-   * should be implemented as normal Nodus plugins with an explicit cleanup path instead of using
-   * this function-key hook.
+   * <p>There is no automatic project-close callback for these hooks. Long-lived tools should be
+   * implemented as normal Nodus plugins instead.
    *
    * @param functionKey the programmable key name, normally {@code "F8"} or {@code "F9"}
    */
   private void callFunctionKey(String functionKey) {
     String className = null;
-    if (nodusProject.isOpen()) {
+
+    if (nodusProject != null && nodusProject.isOpen()) {
       className = nodusProject.getProperty(functionKey);
     }
 
@@ -550,42 +548,35 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       className = nodusProperties.getProperty(functionKey, null);
     }
 
-    if (className == null) {
+    if (className == null || className.isBlank()) {
       return;
     }
 
-    // Entry point for test features... callable by F8 or F9
-    final NodusMapPanel _this = this;
-    final String _className = className;
+    final NodusMapPanel mapPanel = this;
+    final String hookClassName = className;
 
     SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+
     Thread work =
-        new Thread() {
-          public void run() {
-            if (_className != null) {
+        new Thread(
+            () -> {
               try {
-                Class<?> testClass = Class.forName(_className);
-                Constructor<?> ctor = testClass.getConstructor(NodusMapPanel.class);
-                ctor.newInstance(new Object[] {_this});
-              } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-              } catch (NoSuchMethodException e) {
-                e.printStackTrace();
-              } catch (SecurityException e) {
-                e.printStackTrace();
-              } catch (InstantiationException e) {
-                e.printStackTrace();
-              } catch (IllegalAccessException e) {
-                e.printStackTrace();
-              } catch (IllegalArgumentException e) {
-                e.printStackTrace();
-              } catch (InvocationTargetException e) {
-                e.printStackTrace();
+                Class<?> hookClass = Class.forName(hookClassName);
+                Constructor<?> ctor = hookClass.getConstructor(NodusMapPanel.class);
+                ctor.newInstance(mapPanel);
+              } catch (ClassNotFoundException
+                  | NoSuchMethodException
+                  | SecurityException
+                  | InstantiationException
+                  | IllegalAccessException
+                  | IllegalArgumentException
+                  | InvocationTargetException ex) {
+                ex.printStackTrace();
+              } finally {
+                loop.exit();
               }
-            }
-            loop.exit();
-          }
-        };
+            },
+            "Nodus-" + functionKey + "-Hook");
 
     work.start();
     loop.enter();
@@ -649,16 +640,22 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** Copy the content of the MapBean as an image in the clipboard. */
   private void copyMapToClipboard() {
-    // Get image from mapBean
     int width = getMapBean().getWidth();
     int height = getMapBean().getHeight();
+
     BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
     GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
     Graphics g = ge.createGraphics(image);
-    g.setClip(0, 0, width, height);
-    getMapBean().paintAll(g);
+
+    try {
+      g.setClip(0, 0, width, height);
+      getMapBean().paintAll(g);
+    } finally {
+      g.dispose();
+    }
+
     ImageSelection imgSel = new ImageSelection(image);
-    Toolkit.getDefaultToolkit().getSystemClipboard().setContents(imgSel, null);
+    Toolkit.getDefaultToolkit().getSystemClipboard().setContents(imgSel, imgSel);
     Toolkit.getDefaultToolkit().beep();
   }
 
@@ -1137,6 +1134,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Sets the MapBean variable to null and removes all children. */
   @Override
   public void dispose() {
+    if (onTopKeeper != null) {
+      onTopKeeper.stop();
+      onTopKeeper = null;
+    }
+
     setMapBean(null);
     setLayout(null);
     removeAll();

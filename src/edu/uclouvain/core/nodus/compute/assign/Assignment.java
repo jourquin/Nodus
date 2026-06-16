@@ -31,6 +31,7 @@ import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
+import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
 import java.io.BufferedReader;
@@ -99,6 +100,9 @@ public abstract class Assignment implements Runnable {
   VirtualNetwork virtualNet;
 
   AssignmentWorker[] assignmentWorkers = null;
+
+  /** Periodic garbage collector runner used during long assignments. */
+  private GarbageCollectionRunner garbageCollectionRunner = null;
 
   private String errorMessage = "";
 
@@ -177,10 +181,61 @@ public abstract class Assignment implements Runnable {
     return assignmentWorkers;
   }
 
+  /**
+   * Creates the PathWriter for concrete assignment classes. The base run() method owns the final
+   * close/discard lifecycle of this writer.
+   *
+   * @return the PathWriter created for this assignment
+   */
+  protected PathWriter createPathWriter() {
+    if (pathWriter != null) {
+      discardPathWriter();
+    }
+
+    pathWriter = new PathWriter(assignmentParameters);
+    return pathWriter;
+  }
+
+  /** Finalizes path tables after a successful assignment. */
+  private void closePathWriter() {
+    if (pathWriter != null) {
+      pathWriter.close();
+    }
+  }
+
+  /** Releases and deletes path tables after a failed or cancelled assignment. */
+  private void discardPathWriter() {
+    if (pathWriter != null) {
+      pathWriter.discard();
+    }
+  }
+
+  /**
+   * Starts the periodic garbage collector runner. Concrete assignment classes should call this
+   * instead of creating their own GarbageCollectionRunner instance. The base run() method stops it
+   * automatically.
+   */
+  protected void startGarbageCollectionRunner() {
+    stopGarbageCollectionRunner();
+
+    NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
+    int gcInterval = nodusMapPanel.getGarbageCollectorInterval();
+    garbageCollectionRunner = new GarbageCollectionRunner(gcInterval);
+  }
+
+  /** Stops and releases the periodic garbage collector runner, if one was started. */
+  private void stopGarbageCollectionRunner() {
+    if (garbageCollectionRunner != null) {
+      garbageCollectionRunner.stop();
+      garbageCollectionRunner = null;
+    }
+  }
+
   /** Main routine that calls the actual assignment algorithm in the derived classes. */
   @Override
   public void run() {
     boolean success = false;
+    boolean outOfMemory = false;
 
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
     nodusMapPanel.getAssignmentMenuItem().setEnabled(false);
@@ -199,9 +254,37 @@ public abstract class Assignment implements Runnable {
           virtualNetwork.dispose();
         }
       }
+
+      if (success) {
+        closePathWriter();
+      }
+
+      if (!success && !errorMessage.isEmpty()) {
+        JOptionPane.showMessageDialog(
+            nodusProject.getNodusMapPanel(),
+            errorMessage,
+            NodusC.APPNAME,
+            JOptionPane.ERROR_MESSAGE);
+      }
+
+      // Run the post assignment script, if any
+      if (success) {
+        success = runPostAssignmentScript();
+      }
+
+      // Play a sound
+      if (success) {
+        nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_OK);
+      } else {
+        nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
+        discardPathWriter();
+      }
     } catch (OutOfMemoryError e) {
+      outOfMemory = true;
+
       // Free memory and force garbage collection
       virtualNet = null;
+      discardPathWriter();
       System.gc();
 
       JOptionPane.showMessageDialog(
@@ -215,28 +298,15 @@ public abstract class Assignment implements Runnable {
 
       nodusProject.getNodusMapPanel().closeAndSaveState();
       // System.exit(0);
-    }
+    } finally {
+      stopGarbageCollectionRunner();
+      assignmentWorkers = null;
+      pathWriter = null;
 
-    if (!success && !errorMessage.isEmpty()) {
-      JOptionPane.showMessageDialog(
-          nodusProject.getNodusMapPanel(), errorMessage, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+      if (!outOfMemory) {
+        nodusMapPanel.getAssignmentMenuItem().setEnabled(true);
+      }
     }
-
-    // Run the post assignment script, if any
-    if (success) {
-      success = runPostAssignmentScript();
-    }
-
-    // Play a sound
-    if (success) {
-      nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_OK);
-    } else {
-      nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
-
-      // Path tables are create before the assignment starts. Delete them on error.
-      pathWriter.deletePathsTables();
-    }
-    nodusMapPanel.getAssignmentMenuItem().setEnabled(true);
   }
 
   /**

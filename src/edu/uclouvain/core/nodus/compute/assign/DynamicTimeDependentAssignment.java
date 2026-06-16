@@ -29,10 +29,8 @@ import edu.uclouvain.core.nodus.compute.assign.workers.DynamicTimeDependentAssig
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
-import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
-import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.util.Properties;
 import javax.swing.JOptionPane;
@@ -100,7 +98,7 @@ public class DynamicTimeDependentAssignment extends Assignment {
     }
 
     // Generate a virtual network
-    //virtualNet = new VirtualNetwork(assignmentParameters);
+    // virtualNet = new VirtualNetwork(assignmentParameters);
     virtualNet = vn;
     virtualNet.setAssignmentTimeParameters(
         assignmentStartTime, assignmentEndTime, timeSliceDuration);
@@ -136,7 +134,7 @@ public class DynamicTimeDependentAssignment extends Assignment {
     }
 
     // Create a path writer
-    pathWriter = new PathWriter(assignmentParameters);
+    createPathWriter();
 
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {
@@ -155,8 +153,7 @@ public class DynamicTimeDependentAssignment extends Assignment {
 
     // Force Garbage collector?
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
-    int gcInterval = nodusMapPanel.getGarbageCollectorInterval();
-    GarbageCollectionRunner gcr = new GarbageCollectionRunner(gcInterval);
+    startGarbageCollectionRunner();
 
     // Assign each time slice
     for (byte currentTimeSlice = 0; currentTimeSlice < nbTimeSlices; currentTimeSlice++) {
@@ -238,13 +235,8 @@ public class DynamicTimeDependentAssignment extends Assignment {
       } // Next odClass
     } // Next time slice
 
-    gcr.stop();
-
     // long end = System.currentTimeMillis();
     // System.out.println("Duration : " + ((end - start) / 1000));
-
-    // Close the detailed path writer
-    pathWriter.close();
 
     // Transform the volumes in vehicles
     for (byte i = 0; i < virtualNet.getNbTimeSlices(); i++) {

@@ -84,6 +84,9 @@ public class PathWriter {
 
   private boolean hasDurationFunctions = false;
 
+  /** True once this writer has been finalized or discarded. */
+  private boolean closed = false;
+
   /**
    * Initializes the different tables needed to store the paths.
    *
@@ -113,7 +116,7 @@ public class PathWriter {
 
     // Does the used DB support batch processing ?
     hasBatchSupport = JDBCUtils.hasBatchSupport();
-    
+
     // Prepare tables
     String defValue = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME);
     String name = nodusProject.getLocalProperty(NodusC.PROP_PATH_TABLE_PREFIX, defValue);
@@ -146,56 +149,109 @@ public class PathWriter {
     }
   }
 
-  /** Save the SQL batches, create the indexes and close the connection to the database. */
-  public void close() {
+  /** Closes the prepared statements used by this writer. */
+  private void closePreparedStatements() {
+    if (prepStmtHeaders != null) {
+      try {
+        prepStmtHeaders.close();
+      } catch (SQLException ex) {
+        ex.printStackTrace();
+      } finally {
+        prepStmtHeaders = null;
+      }
+    }
 
-    if (!savePaths) {
+    if (prepStmtDetails != null) {
+      try {
+        prepStmtDetails.close();
+      } catch (SQLException ex) {
+        ex.printStackTrace();
+      } finally {
+        prepStmtDetails = null;
+      }
+    }
+  }
+
+  /** Commits the current JDBC connection if it is not in auto-commit mode. */
+  private void commitIfNeeded() {
+    try {
+      if (con != null && !con.getAutoCommit()) {
+        con.commit();
+      }
+    } catch (SQLException ex) {
+      ex.printStackTrace();
+    }
+  }
+
+  /** Save the SQL batches, create the indexes and close the prepared statements. */
+  public synchronized void close() {
+
+    if (closed) {
       return;
     }
 
-    nodusProject
-        .getNodusMapPanel()
-        .setText(i18n.get(PathWriter.class, "Creating_indexes", "Creating indexes..."));
+    try {
+      if (savePaths) {
+        nodusProject
+            .getNodusMapPanel()
+            .setText(i18n.get(PathWriter.class, "Creating_indexes", "Creating indexes..."));
 
-    if (hasBatchSupport) {
-      executeHeaderBatch(true);
-    }
+        if (hasBatchSupport) {
+          executeHeaderBatch(true);
+        }
 
-    // Create index on origin node
-    JDBCIndex index =
-        new JDBCIndex(pathHeaderTableName, NodusC.DBF_ORIGIN + scenario, NodusC.DBF_ORIGIN);
-    JDBCUtils.createIndex(index);
+        // Create index on origin node
+        JDBCIndex index =
+            new JDBCIndex(pathHeaderTableName, NodusC.DBF_ORIGIN + scenario, NodusC.DBF_ORIGIN);
+        JDBCUtils.createIndex(index);
 
-    // Create index on path index
-    index =
-        new JDBCIndex(
-            pathHeaderTableName, NodusC.DBF_PATH_INDEX + "H" + scenario, NodusC.DBF_PATH_INDEX);
-    JDBCUtils.createIndex(index);
+        // Create index on path index
+        index =
+            new JDBCIndex(
+                pathHeaderTableName, NodusC.DBF_PATH_INDEX + "H" + scenario, NodusC.DBF_PATH_INDEX);
+        JDBCUtils.createIndex(index);
 
-    if (saveDetailedPaths) {
-      if (hasBatchSupport) {
-        executeDetailsBatch(true);
+        if (saveDetailedPaths) {
+          if (hasBatchSupport) {
+            executeDetailsBatch(true);
+          }
+
+          // Create index on path index
+          index =
+              new JDBCIndex(
+                  pathDetailTableName,
+                  NodusC.DBF_PATH_INDEX + "D" + scenario,
+                  NodusC.DBF_PATH_INDEX);
+          JDBCUtils.createIndex(index);
+        }
+
+        commitIfNeeded();
       }
+    } finally {
+      closePreparedStatements();
+      closed = true;
+    }
+  }
 
-      // Create index on path index
-      index =
-          new JDBCIndex(
-              pathDetailTableName, NodusC.DBF_PATH_INDEX + "D" + scenario, NodusC.DBF_PATH_INDEX);
-      JDBCUtils.createIndex(index);
+  /**
+   * Abandons path output after a failed or cancelled assignment.
+   *
+   * <p>This method closes the prepared statements without flushing or indexing pending rows, then
+   * drops the path tables created for this assignment scenario.
+   */
+  public synchronized void discard() {
+
+    if (closed) {
+      deletePathsTables();
+      return;
     }
 
     try {
-      if (!con.getAutoCommit()) {
-        con.commit();
-      }
-
-      prepStmtHeaders.close();
-      if (saveDetailedPaths) {
-        prepStmtDetails.close();
-      }
-
-    } catch (SQLException ex) {
-      ex.printStackTrace();
+      closePreparedStatements();
+      deletePathsTables();
+      commitIfNeeded();
+    } finally {
+      closed = true;
     }
   }
 
@@ -365,7 +421,7 @@ public class PathWriter {
    * @param pathIndex The index of the path.
    */
   public synchronized void savePathLink(VirtualLink virtualLink, int pathIndex) {
-    if (!saveDetailedPaths) {
+    if (closed || !saveDetailedPaths) {
       return;
     }
 
@@ -422,7 +478,7 @@ public class PathWriter {
       byte ulMeans,
       int nbTranshipments) {
 
-    if (canceled) {
+    if (closed || canceled) {
       return false;
     }
 
@@ -481,7 +537,7 @@ public class PathWriter {
       int nbTranshipments,
       int pathIndex) {
 
-    if (canceled) {
+    if (closed || canceled) {
       return false;
     }
 
@@ -561,7 +617,7 @@ public class PathWriter {
    * @param lambda The balance factor : (1-lambda) * previous volume + lambda * current volume.
    */
   public void splitPaths(int iteration, double lambda) {
-    if (iteration <= 1) {
+    if (closed || iteration <= 1) {
       return;
     }
 
@@ -570,9 +626,7 @@ public class PathWriter {
       executeHeaderBatch(true);
     }
 
-    try {
-
-      Statement stmt = con.createStatement();
+    try (Statement stmt = con.createStatement()) {
 
       /*
        * Update records relative to previous iterations Example: UPDATE HeaderTable set QTY =
@@ -612,11 +666,8 @@ public class PathWriter {
               + " = "
               + iteration;
       stmt.executeUpdate(sqlStmt);
-      stmt.close();
 
-      if (!con.getAutoCommit()) {
-        con.commit();
-      }
+      commitIfNeeded();
     } catch (Exception e) {
       System.err.println(e.toString());
     }

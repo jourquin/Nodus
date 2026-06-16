@@ -28,10 +28,8 @@ import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorkerParameter
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
-import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
-import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 
 /**
@@ -105,7 +103,7 @@ public class AllOrNothingAssignment extends Assignment {
     }
 
     // Create a path writer
-    pathWriter = new PathWriter(assignmentParameters);
+    createPathWriter();
 
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {
@@ -124,8 +122,7 @@ public class AllOrNothingAssignment extends Assignment {
 
     // Force Garbage collector?
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
-    int gcInterval = nodusMapPanel.getGarbageCollectorInterval();
-    GarbageCollectionRunner gcr = new GarbageCollectionRunner(gcInterval);
+    startGarbageCollectionRunner();
 
     // Assign per class
     for (byte odClass = 0; odClass < virtualNet.getNbODClasses(); odClass++) {
@@ -195,11 +192,6 @@ public class AllOrNothingAssignment extends Assignment {
         }
       }
     } // Next odClass
-
-    gcr.stop();
-
-    // Close the detailed path writer
-    pathWriter.close();
 
     // long end = System.currentTimeMillis();
     // System.out.println("Duration : " + ((end - start) / 1000));

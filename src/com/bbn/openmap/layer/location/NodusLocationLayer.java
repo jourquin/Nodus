@@ -52,7 +52,7 @@ public class NodusLocationLayer extends LocationLayer {
   public NodusLocationLayer() {
     super();
   }
-  
+
   /**
    * Initializes the location handler with all the nodes and link layers of the project.
    *
@@ -89,6 +89,12 @@ public class NodusLocationLayer extends LocationLayer {
     setLocationHandlers(lh);
   }
 
+  @Override
+  public void dispose() {
+    setLocationHandlers(new LocationHandler[0]);
+    super.dispose();
+  }
+
   /**
    * Returns the original GUI, but limits its display size, as it can contain a long list of layers.
    *
@@ -112,5 +118,4 @@ public class NodusLocationLayer extends LocationLayer {
 
     return false;
   }
-
 }

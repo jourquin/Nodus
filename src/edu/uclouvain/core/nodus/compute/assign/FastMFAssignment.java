@@ -29,10 +29,8 @@ import edu.uclouvain.core.nodus.compute.assign.workers.FastMFAssignmentWorker;
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
-import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
-import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 
@@ -71,12 +69,12 @@ public class FastMFAssignment extends Assignment {
     if (hasDurationFunctions()) {
       assignmentParameters.setDurationFunctions(true);
     }
-    
+
     // Get the max detour reference mode
     getMaxDetourReferenceMode();
 
     // Generate a virtual network
-    //virtualNet = new VirtualNetwork(assignmentParameters);
+    // virtualNet = new VirtualNetwork(assignmentParameters);
     virtualNet = vn;
     if (!virtualNet.generate()) {
       return false;
@@ -109,7 +107,7 @@ public class FastMFAssignment extends Assignment {
     }
 
     // Create a path writer
-    pathWriter = new PathWriter(assignmentParameters);
+    createPathWriter();
 
     // Initialize the modal split method from the name found in the assignment parameters
     ModalSplitMethod modalSplitMethod =
@@ -136,9 +134,7 @@ public class FastMFAssignment extends Assignment {
 
     // Force Garbage collector?
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
-    int gcInterval = nodusMapPanel.getGarbageCollectorInterval();
-    final GarbageCollectionRunner gcr = new GarbageCollectionRunner(gcInterval);
-
+    startGarbageCollectionRunner();
     // long start = System.currentTimeMillis();
 
     /*
@@ -232,11 +228,6 @@ public class FastMFAssignment extends Assignment {
     if (!virtualNet.volumesToVehicles(vehiclesParser)) {
       return false;
     }
-
-    gcr.stop();
-
-    // Close path writer
-    pathWriter.close();
 
     // Create a Virtual Network writer
     VirtualNetworkWriter vnw = new VirtualNetworkWriter(assignmentParameters, virtualNet);

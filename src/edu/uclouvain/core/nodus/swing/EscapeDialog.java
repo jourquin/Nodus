@@ -150,15 +150,11 @@ public class EscapeDialog extends JDialog implements ContainerListener, KeyListe
 
   /** We need the following functions to complete implementation of KeyListener. */
   @Override
-  public void keyReleased(KeyEvent e) {
-
-  }
+  public void keyReleased(KeyEvent e) {}
 
   /** We need the following functions to complete implementation of KeyListener. */
   @Override
-  public void keyTyped(KeyEvent e) {
-
-  }
+  public void keyTyped(KeyEvent e) {}
 
   /**
    * Default response to ENTER key pressed goes here Redefine this function in subclasses to respond
@@ -166,9 +162,7 @@ public class EscapeDialog extends JDialog implements ContainerListener, KeyListe
    *
    * @param e Event to handle
    */
-  void performEnterAction(KeyEvent e) {
-
-  }
+  void performEnterAction(KeyEvent e) {}
 
   /**
    * The following function is the same as the function above with the exception that it does
@@ -190,5 +184,14 @@ public class EscapeDialog extends JDialog implements ContainerListener, KeyListe
         removeKeyAndContainerListenerRecursively(element);
       }
     }
+  }
+
+  /**
+   * Clean at closing time.
+   */
+  @Override
+  public void dispose() {
+    removeKeyAndContainerListenerRecursively(this);
+    super.dispose();
   }
 }

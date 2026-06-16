@@ -675,7 +675,11 @@ public class NodusProject implements ShapeConstants {
     disposeEsriLayers(linkLayers);
     linkLayers = null;
 
-    labelsLayer = null;
+    if (labelsLayer != null) {
+      labelsLayer.dispose();
+      labelsLayer = null;
+    }
+
     nodeStyle = null;
     linkStyle = null;
     stylesProperties = null;

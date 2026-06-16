@@ -28,13 +28,11 @@ import edu.uclouvain.core.nodus.compute.assign.workers.FrankWolfeAssignmentWorke
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
-import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
-import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.util.Iterator;
 
@@ -75,7 +73,7 @@ public class FrankWolfeAssignment extends Assignment {
     }
 
     // Generate a virtual network
-    //virtualNet = new VirtualNetwork(assignmentParameters);
+    // virtualNet = new VirtualNetwork(assignmentParameters);
     virtualNet = vn;
     if (!virtualNet.generate()) {
       return false;
@@ -109,12 +107,8 @@ public class FrankWolfeAssignment extends Assignment {
 
     // long Start=System.currentTimeMillis() ;
 
-    // Variables that are used to split current and auxiliary volumes
-    double lambda = 1.0;
-    double lambdaPrecisionThreshold = 1.0e-4;
-
     // Create a path writer
-    pathWriter = new PathWriter(assignmentParameters);
+    createPathWriter();
 
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {
@@ -123,8 +117,7 @@ public class FrankWolfeAssignment extends Assignment {
 
     // Force Garbage collector?
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
-    int gcInterval = nodusMapPanel.getGarbageCollectorInterval();
-    GarbageCollectionRunner gcr = new GarbageCollectionRunner(gcInterval);
+    startGarbageCollectionRunner();
 
     // Get the number of threads
     int threads = assignmentParameters.getThreads();
@@ -204,6 +197,10 @@ public class FrankWolfeAssignment extends Assignment {
         }
       } // Next od class
 
+      // Variables that are used to split current and auxiliary volumes
+      double lambda = 1.0;
+      double lambdaPrecisionThreshold = 1.0e-4;
+
       // Compute optimal Lambda
       if (iteration > 1) {
         lambda = lineSearchLambda(iteration, threads, lambdaPrecisionThreshold);
@@ -235,11 +232,6 @@ public class FrankWolfeAssignment extends Assignment {
         break;
       }
     }
-
-    // Close the path writer
-    pathWriter.close();
-
-    gcr.stop();
 
     // Save the volumes
     VirtualNetworkWriter vnw = new VirtualNetworkWriter(assignmentParameters, virtualNet);
@@ -301,7 +293,7 @@ public class FrankWolfeAssignment extends Assignment {
     while (upperLambda - lowerLambda > precision) {
       double middleLambda = (lowerLambda + upperLambda) / 2.0;
       double derivativeAtMiddleLambda = firstDerivativeAt(iteration, middleLambda, threads);
-      
+
       // Debug log
       System.out.println("lambda=" + middleLambda + " derivative=" + derivativeAtMiddleLambda);
 

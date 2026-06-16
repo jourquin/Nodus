@@ -29,13 +29,11 @@ import edu.uclouvain.core.nodus.compute.assign.workers.IncrementalAssignmentWork
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
-import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
-import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.util.Iterator;
 
@@ -78,7 +76,7 @@ public class IncFrankWolfeAssignment extends Assignment {
     }
 
     // Generate a virtual network
-    //virtualNet = new VirtualNetwork(assignmentParameters);
+    // virtualNet = new VirtualNetwork(assignmentParameters);
     virtualNet = vn;
     if (!virtualNet.generate()) {
       return false;
@@ -111,7 +109,7 @@ public class IncFrankWolfeAssignment extends Assignment {
     }
 
     // Create a path writer
-    pathWriter = new PathWriter(assignmentParameters);
+    createPathWriter();
 
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {
@@ -120,8 +118,7 @@ public class IncFrankWolfeAssignment extends Assignment {
 
     // Force Garbage collector?
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
-    int gcInterval = nodusMapPanel.getGarbageCollectorInterval();
-    final GarbageCollectionRunner gcr = new GarbageCollectionRunner(gcInterval);
+    startGarbageCollectionRunner();
 
     // Perform an incremental assignment with four iterations
     byte nbIterationsInc = 4;
@@ -316,11 +313,6 @@ public class IncFrankWolfeAssignment extends Assignment {
         break;
       }
     }
-
-    // Close the path writer
-    pathWriter.close();
-
-    gcr.stop();
 
     // Save the volumes
     VirtualNetworkWriter vnw = new VirtualNetworkWriter(assignmentParameters, virtualNet);

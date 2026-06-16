@@ -208,7 +208,15 @@ public class NodusLocationHandler extends AbstractLocationHandler
   @Override
   public synchronized OMGraphicList get(
       double nwLat, double nwLon, double seLat, double seLon, OMGraphicList graphicList) {
-    graphicList.addAll(this.graphicList);
+
+    if (graphicList == null) {
+      graphicList = new OMGraphicList();
+    }
+
+    if (this.graphicList != null) {
+      graphicList.addAll(this.graphicList);
+    }
+
     return graphicList;
   }
 

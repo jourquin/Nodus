@@ -66,7 +66,7 @@ public class OnTopKeeper {
       stop();
     }
 
-    timer = new java.util.Timer();
+    timer = new java.util.Timer("Nodus-OnTopKeeper", true);
     timer.scheduleAtFixedRate(
         new TimerTask() {
           @Override
@@ -93,7 +93,7 @@ public class OnTopKeeper {
           if (!jf.isAlwaysOnTop()) {
             jf.setAlwaysOnTop(true);
           }
-
+          
           // Keep the drawing tool on bottom left...
           if (stickyDrawingTool) {
             if (jf.getTitle()
@@ -114,10 +114,11 @@ public class OnTopKeeper {
 
   /** Stops the timer. */
   public void stop() {
-    if (!running) {
-      return;
+    if (timer != null) {
+      timer.cancel();
+      timer.purge();
+      timer = null;
     }
-    timer.cancel();
     running = false;
   }
 }

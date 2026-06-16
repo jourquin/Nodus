@@ -28,13 +28,11 @@ import edu.uclouvain.core.nodus.compute.assign.workers.MSAAssignmentWorker;
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
-import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
-import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.util.Iterator;
 
@@ -74,7 +72,7 @@ public class MSAAssignment extends Assignment {
     // long Start = System.currentTimeMillis();
 
     // Generate a virtual network
-    //virtualNet = new VirtualNetwork(assignmentParameters);
+    // virtualNet = new VirtualNetwork(assignmentParameters);
     virtualNet = vn;
     if (!virtualNet.generate()) {
       return false;
@@ -107,7 +105,7 @@ public class MSAAssignment extends Assignment {
     }
 
     // Create a path writer
-    pathWriter = new PathWriter(assignmentParameters);
+    createPathWriter();
 
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {
@@ -126,8 +124,7 @@ public class MSAAssignment extends Assignment {
 
     // Force Garbage collector?
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
-    int gcInterval = nodusMapPanel.getGarbageCollectorInterval();
-    GarbageCollectionRunner gcr = new GarbageCollectionRunner(gcInterval);
+    startGarbageCollectionRunner();
 
     for (byte iteration = 1; iteration < assignmentParameters.getNbIterations() + 1; iteration++) {
       double split = 1.0 / iteration;
@@ -219,11 +216,6 @@ public class MSAAssignment extends Assignment {
         break;
       }
     }
-
-    // Close the path writer
-    pathWriter.close();
-
-    gcr.stop();
 
     // Save the volumes
     VirtualNetworkWriter vnw = new VirtualNetworkWriter(assignmentParameters, virtualNet);

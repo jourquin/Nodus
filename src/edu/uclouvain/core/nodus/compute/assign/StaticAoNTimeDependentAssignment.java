@@ -29,10 +29,8 @@ import edu.uclouvain.core.nodus.compute.assign.workers.StaticAoNTimeDependentAss
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
-import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
-import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.util.Properties;
 import javax.swing.JOptionPane;
@@ -95,7 +93,7 @@ public class StaticAoNTimeDependentAssignment extends Assignment {
     }
 
     // Generate a virtual network
-    //virtualNet = new VirtualNetwork(assignmentParameters);
+    // virtualNet = new VirtualNetwork(assignmentParameters);
     virtualNet = vn;
     virtualNet.setAssignmentTimeParameters(
         assignmentStartTime, assignmentEndTime, timeSliceDuration);
@@ -131,7 +129,7 @@ public class StaticAoNTimeDependentAssignment extends Assignment {
     }
 
     // Create a path writer
-    pathWriter = new PathWriter(assignmentParameters);
+    createPathWriter();
 
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {
@@ -140,8 +138,7 @@ public class StaticAoNTimeDependentAssignment extends Assignment {
 
     // Force Garbage collector?
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
-    int gcInterval = nodusMapPanel.getGarbageCollectorInterval();
-    GarbageCollectionRunner gcr = new GarbageCollectionRunner(gcInterval);
+    startGarbageCollectionRunner();
 
     // Assign per class
     for (byte odClass = 0; odClass < virtualNet.getNbODClasses(); odClass++) {
@@ -215,13 +212,8 @@ public class StaticAoNTimeDependentAssignment extends Assignment {
       }
     } // Next odClass
 
-    gcr.stop();
-
     // long end = System.currentTimeMillis();
     // System.out.println("Duration : " + ((end - start) / 1000));
-
-    // Close the detailed path writer
-    pathWriter.close();
 
     // Transform the volumes into vehicles
     for (byte i = 0; i < virtualNet.getNbTimeSlices(); i++) {

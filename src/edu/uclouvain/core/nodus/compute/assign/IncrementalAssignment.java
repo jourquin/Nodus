@@ -28,10 +28,8 @@ import edu.uclouvain.core.nodus.compute.assign.workers.IncrementalAssignmentWork
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
-import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
-import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 
 /**
@@ -68,7 +66,7 @@ public class IncrementalAssignment extends Assignment {
     }
 
     // Generate a virtual network
-    //virtualNet = new VirtualNetwork(assignmentParameters);
+    // virtualNet = new VirtualNetwork(assignmentParameters);
     virtualNet = vn;
     if (!virtualNet.generate()) {
       return false;
@@ -101,7 +99,7 @@ public class IncrementalAssignment extends Assignment {
     }
 
     // Create a path writer
-    pathWriter = new PathWriter(assignmentParameters);
+    createPathWriter();
 
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {
@@ -120,8 +118,7 @@ public class IncrementalAssignment extends Assignment {
 
     // Force Garbage collector?
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
-    int gcInterval = nodusMapPanel.getGarbageCollectorInterval();
-    GarbageCollectionRunner gcr = new GarbageCollectionRunner(gcInterval);
+    startGarbageCollectionRunner();
 
     for (byte iteration = 1; iteration <= assignmentParameters.getNbIterations(); iteration++) {
       // Compute the load factor for the current iteration
@@ -130,7 +127,7 @@ public class IncrementalAssignment extends Assignment {
               * (assignmentParameters.getNbIterations() + 1)
               / 2.0;
       double loadFactor = (assignmentParameters.getNbIterations() - iteration + 1) / denominator;
-      
+
       for (byte odClass = 0; odClass < virtualNet.getNbODClasses(); odClass++) {
 
         if (!virtualNet.odClassHasDemand(odClass)) {
@@ -211,11 +208,6 @@ public class IncrementalAssignment extends Assignment {
         return false;
       }
     }
-
-    // Close the detailed paths writer
-    pathWriter.close();
-
-    gcr.stop();
 
     // Now save virtual network
     VirtualNetworkWriter vnw = new VirtualNetworkWriter(assignmentParameters, virtualNet);

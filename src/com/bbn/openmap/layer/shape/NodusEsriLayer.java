@@ -184,6 +184,8 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   /** Query string used to filter EsriGraphics. */
   private String whereStmt = "";
 
+  private boolean disposed = false;
+
   /** Default constructor. */
   public NodusEsriLayer() {
     super();
@@ -647,6 +649,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   /** Releases layer-specific references and collections when the project is closed. */
   @Override
   public synchronized void dispose() {
+    disposed = true;
     isReady = false;
     dirtyDbf = false;
     dirtyShp = false;
@@ -681,6 +684,10 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   @Override
   public void doPrepare() {
     isReady = false;
+
+    if (disposed || nodusProject == null) {
+      return;
+    }
 
     float currentScale = getNodusMapPanel().getMapBean().getScale();
     float renderingScaleThreshold = getNodusMapPanel().getRenderingScaleThreshold();

@@ -29,10 +29,8 @@ import edu.uclouvain.core.nodus.compute.assign.workers.ExactMFAssignmentWorker;
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
-import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
-import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 
@@ -80,7 +78,7 @@ public class ExactMFAssignment extends Assignment {
     getMaxDetourReferenceMode();
 
     // Generate a virtual network
-    //virtualNet = new VirtualNetwork(assignmentParameters);
+    // virtualNet = new VirtualNetwork(assignmentParameters);
     virtualNet = vn;
     if (!virtualNet.generate()) {
       return false;
@@ -116,7 +114,7 @@ public class ExactMFAssignment extends Assignment {
     // VirtualNodeList[] vnl = virtualNet.getVirtualNetworkStructure();
 
     // Create a path writer
-    pathWriter = new PathWriter(assignmentParameters);
+    createPathWriter();
 
     // Initialize the modal split method from the name found in the assignment parameters
     ModalSplitMethod modalSplitMethod =
@@ -145,8 +143,7 @@ public class ExactMFAssignment extends Assignment {
 
     // Force Garbage collector?
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
-    int gcInterval = nodusMapPanel.getGarbageCollectorInterval();
-    GarbageCollectionRunner gcr = new GarbageCollectionRunner(gcInterval);
+    startGarbageCollectionRunner();
 
     /*
      * Here, the assignment must be performed cell per cell in the O-D matrix. For each cell,
@@ -235,12 +232,8 @@ public class ExactMFAssignment extends Assignment {
       return false;
     }
 
-    gcr.stop();
     // long end = System.currentTimeMillis();
     // System.out.println("Duration : " + ((end - start) / 1000));
-
-    // Close path writer
-    pathWriter.close();
 
     // Create a Virtual Network writer
     VirtualNetworkWriter vnw = new VirtualNetworkWriter(assignmentParameters, virtualNet);
