@@ -935,8 +935,10 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     // Create the overview layer, with defaults values (dcwpo-browse)
     Properties p = new Properties();
-    try {
-      InputStream in = this.getClass().getResource("overviewMap.properties").openStream();
+    try (InputStream in = getClass().getResourceAsStream("overviewMap.properties")) {
+      if (in == null) {
+        throw new IOException("overviewMap.properties not found");
+      }
       p.load(in);
     } catch (IOException ioe) { // Should never happen
       ioe.printStackTrace();

@@ -371,10 +371,10 @@ public class NodusProject implements ShapeConstants {
       scriptRunner.run(true);
 
       // Close all the open children frames
-      Frame[] frame = Frame.getFrames();
-      for (Frame element : frame) {
+      for (Frame element : Frame.getFrames()) {
         if (element != nodusMapPanel.getMainFrame()) {
           element.setVisible(false);
+          element.dispose();
         }
       }
 
@@ -653,7 +653,6 @@ public class NodusProject implements ShapeConstants {
     }
   }
 
-
   /** Saves and releases the lines and services handler. */
   private void closeServiceHandler() {
     if (serviceHandler != null) {
@@ -711,7 +710,6 @@ public class NodusProject implements ShapeConstants {
       }
     }
   }
-
 
   /**
    * Returns the full path to the cost functions for the current scenario.
