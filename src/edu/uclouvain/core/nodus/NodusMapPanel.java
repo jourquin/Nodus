@@ -503,23 +503,44 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
   }
 
-  /** Undocumented property: class to call when F8 is pressed. */
+  /** Developer/test hook: calls the class configured with the F8 property. */
   private void callF8() {
     callFunctionKey("F8");
   }
 
-  /** Undocumented property: class to call when F9 is pressed. */
+  /** Developer/test hook: calls the class configured with the F9 property. */
   private void callF9() {
     callFunctionKey("F9");
   }
 
   /**
-   * Call the class for programmable Fx (F8 or F9) key.
+   * Calls a developer/test extension associated with a programmable function key.
    *
-   * @param functionKey Can be "F8" or "F9"
+   * <p>The class name is read from the open project properties first, using the key {@code F8} or
+   * {@code F9}. If no project-specific value is found, the global Nodus properties are checked. The
+   * target class must be available on the application classpath and must expose a public
+   * constructor accepting one {@link NodusMapPanel} argument.
+   *
+   * <p><strong>Lifecycle contract for F8/F9 extension classes:</strong> the {@code NodusMapPanel}
+   * argument gives access to the current project, map, layers, menus, database connection and GUI
+   * object graph. Extension classes must therefore treat this reference as temporary unless they
+   * explicitly manage their own lifecycle.
+   *
+   * <p>In particular, F8/F9 classes must not keep long-lived strong references to {@code
+   * NodusMapPanel}, {@code NodusProject}, layers, Swing components or database objects in static
+   * fields, background threads, timers or listeners. If an extension creates windows, starts
+   * threads, installs listeners, opens streams, or keeps caches, it is responsible for disposing
+   * windows, stopping threads/timers, removing listeners and closing resources before the project
+   * is closed.
+   *
+   * <p>There is currently no automatic project-close callback for these ad-hoc classes. Therefore,
+   * F8/F9 extensions should preferably perform short-lived actions and return. Long-lived tools
+   * should be implemented as normal Nodus plugins with an explicit cleanup path instead of using
+   * this function-key hook.
+   *
+   * @param functionKey the programmable key name, normally {@code "F8"} or {@code "F9"}
    */
   private void callFunctionKey(String functionKey) {
-
     String className = null;
     if (nodusProject.isOpen()) {
       className = nodusProject.getProperty(functionKey);

@@ -55,6 +55,9 @@ public class FastEsriLayer extends EsriLayer {
   /** Spatial index for faster drawing. */
   private DisplaySpatialIndexLinear spatialIndex = null;
 
+  /** True once this layer has been disposed and must not rebuild heavy caches. */
+  private boolean disposed = false;
+
   /** Default constructor. */
   public FastEsriLayer() {
     super();
@@ -67,8 +70,66 @@ public class FastEsriLayer extends EsriLayer {
    * @param properties the <code>Properties</code> object
    */
   public void setProperties(String prefix, Properties properties) {
+    disposed = false;
+    clearRenderCaches();
     super.setProperties(prefix, properties);
     setMouseEventInterpreter(new NodusMapMouseInterpreter(this));
+  }
+
+  /** Clears projection-dependent rendering caches without touching the source shapefile data. */
+  protected synchronized void clearRenderCaches() {
+    currentProjectedList = null;
+    previousProj = null;
+    spatialIndex = null;
+  }
+
+  /**
+   * Releases the heavy graphic lists held by this layer.
+   *
+   * <p>This is intentionally separated from {@link #clearRenderCaches()} because it is destructive:
+   * it must only be called when the layer is definitely being closed/disposed.
+   */
+  protected synchronized void clearLayerData() {
+    OMGraphicList projectedList = currentProjectedList;
+    if (projectedList != null) {
+      projectedList.clear();
+    }
+
+    if (selectedGraphics != null) {
+      selectedGraphics.clear();
+    }
+
+    EsriGraphicList esriGraphicList = super.getEsriGraphicList();
+    if (esriGraphicList != null && esriGraphicList != projectedList) {
+      synchronized (esriGraphicList) {
+        esriGraphicList.clear();
+      }
+    }
+  }
+
+  /**
+   * Releases the mouse interpreter without using setMouseEventInterpreter(null), because OpenMap's
+   * setter assumes a non-null argument.
+   */
+  protected synchronized void clearMouseEventInterpreter() {
+    if (mouseEventInterpreter != null) {
+      mouseEventInterpreter.setGRP(null);
+      mouseEventInterpreter = null;
+    }
+  }
+
+  /** Releases caches, graphics and mouse callbacks so this layer can be garbage-collected. */
+  @Override
+  public synchronized void dispose() {
+    if (disposed) {
+      return;
+    }
+
+    disposed = true;
+    clearLayerData();
+    clearRenderCaches();
+    clearMouseEventInterpreter();
+    super.dispose();
   }
 
   /**
@@ -119,6 +180,10 @@ public class FastEsriLayer extends EsriLayer {
    * @return OMGraphicList
    */
   public OMGraphicList getVisibleEsriGraphicList() {
+    if (disposed) {
+      return null;
+    }
+
     if (currentProjectedList == null) {
       currentProjectedList = getEsriGraphicList();
     }
@@ -135,7 +200,7 @@ public class FastEsriLayer extends EsriLayer {
   public synchronized EsriGraphicList getEsriGraphicList() {
     EsriGraphicList retVal = super.getEsriGraphicList();
 
-    if (spatialIndex == null) {
+    if (!disposed && retVal != null && spatialIndex == null) {
       spatialIndex = (DisplaySpatialIndexLinear) DisplaySpatialIndexFactory.createIndex(retVal);
     }
     return retVal;
@@ -143,6 +208,10 @@ public class FastEsriLayer extends EsriLayer {
 
   /** Creates the list of objects to refresh on the screen, using a spatial index. */
   private OMGraphicList getSpatialList(Projection projection) {
+    if (disposed || projection == null || spatialIndex == null) {
+      return null;
+    }
+
     OMGraphicList retVal = null;
     LatLonPoint.Double ul = projection.getUpperLeft();
     LatLonPoint.Double lr = projection.getLowerRight();
@@ -224,8 +293,14 @@ public class FastEsriLayer extends EsriLayer {
   /** Overrides the original method to limit the rendering to the current view. */
   @Override
   public OMGraphicList prepare() {
+    if (disposed) {
+      return null;
+    }
 
     Projection proj = getProjection();
+    if (proj == null) {
+      return null;
+    }
 
     // Force reset of display spatial index on projection change (after zoom, pan or resize)
     if (previousProj != null) {

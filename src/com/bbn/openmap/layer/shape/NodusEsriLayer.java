@@ -644,6 +644,36 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     }
   }
 
+  /** Releases layer-specific references and collections when the project is closed. */
+  @Override
+  public synchronized void dispose() {
+    isReady = false;
+    dirtyDbf = false;
+    dirtyShp = false;
+    displayResults = false;
+    stylesMustBeRefreshed = true;
+    previousScale = -1;
+
+    if (linksToRemove != null) {
+      linksToRemove.clear();
+      linksToRemove = null;
+    }
+
+    if (numIndex != null) {
+      numIndex.clear();
+    }
+
+    layerVarName = null;
+    nodusLocationHandler = null;
+    nodusProject = null;
+    tableName = null;
+    tablePath = null;
+    thisNodusEsriLayer = null;
+    whereStmt = "";
+
+    super.dispose();
+  }
+
   /**
    * This methods updates the styles depending in the rendering scale threshold before calling the
    * original method.

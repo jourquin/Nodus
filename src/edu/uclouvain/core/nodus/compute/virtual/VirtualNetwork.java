@@ -361,6 +361,7 @@ public class VirtualNetwork {
     scenario = 0;
     timeSliceDuration = 0;
   }
+  
   /**
    * Creates a queue of cost parser workers and a pool of threads that will handle these workers.
    *
