@@ -44,7 +44,7 @@ public class GarbageCollectionRunner {
       return;
     }
 
-    timer = new java.util.Timer();
+    timer = new java.util.Timer("Nodus-GarbageCollectionRunner", true);
     timer.scheduleAtFixedRate(
         new TimerTask() {
           @Override
@@ -60,6 +60,8 @@ public class GarbageCollectionRunner {
   public void stop() {
     if (timer != null) {
       timer.cancel();
+      timer.purge();
+      timer = null;
     }
   }
 }
