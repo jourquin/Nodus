@@ -262,9 +262,7 @@ public class ModalSplitMethodsLoader {
     return null;
   }
 
-/**
- * Dispose resources.
- */
+  /** Dispose resources. */
   public static void disposeAvailableModalSplitMethods() {
     for (ModalSplitMethod method : availableModalSplitMethods) {
       if (method != null) {
