@@ -123,11 +123,10 @@ public abstract class Assignment implements Runnable {
   /**
    * Must be implemented for each particular assignment method.
    *
-   * @param vn The Virtual network.
    * @return true on success
    * @throws OutOfMemoryError when not enough heap space is available.
    */
-  public abstract boolean assign(VirtualNetwork vn) throws OutOfMemoryError;
+  public abstract boolean assign() throws OutOfMemoryError;
 
   void displayConsoleIfNeeded() {
     if (isFirstLostPath) {
@@ -244,14 +243,14 @@ public abstract class Assignment implements Runnable {
     nodusMapPanel.updateScenarioComboBox(true);
 
     try {
-      VirtualNetwork virtualNetwork = null;
+      virtualNet = null;
 
       try {
-        virtualNetwork = new VirtualNetwork(assignmentParameters);
-        success = assign(virtualNetwork);
+        virtualNet = new VirtualNetwork(assignmentParameters);
+        success = assign();
       } finally {
-        if (virtualNetwork != null) {
-          virtualNetwork.dispose();
+        if (virtualNet != null) {
+          virtualNet.dispose();
         }
       }
 

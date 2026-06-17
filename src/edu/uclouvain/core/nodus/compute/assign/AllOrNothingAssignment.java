@@ -28,7 +28,6 @@ import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorkerParameter
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
-import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 
@@ -54,7 +53,7 @@ public class AllOrNothingAssignment extends Assignment {
    * @return True on success.
    */
   @Override
-  public boolean assign(VirtualNetwork vn) {
+  public boolean assign() {
 
     // Test if cost functions contain deprecated XX_Duration variables
     if (costsContainDeprecatedVariables()) {
@@ -69,9 +68,6 @@ public class AllOrNothingAssignment extends Assignment {
     // long start = System.currentTimeMillis();
 
     // Generate a virtual network
-    // virtualNet = new VirtualNetwork(assignmentParameters);
-
-    virtualNet = vn;
     if (!virtualNet.generate()) {
       return false;
     }

@@ -30,7 +30,6 @@ import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
-import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
@@ -63,7 +62,7 @@ public class IncFrankWolfeAssignment extends Assignment {
 
   /** Computation thread that does the real assignment work. */
   @Override
-  public boolean assign(VirtualNetwork vn) {
+  public boolean assign() {
 
     // Test if cost functions contain deprecated XX_Duration variables
     if (costsContainDeprecatedVariables()) {
@@ -76,8 +75,6 @@ public class IncFrankWolfeAssignment extends Assignment {
     }
 
     // Generate a virtual network
-    // virtualNet = new VirtualNetwork(assignmentParameters);
-    virtualNet = vn;
     if (!virtualNet.generate()) {
       return false;
     }
