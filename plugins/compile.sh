@@ -4,7 +4,7 @@
 export CLASSPATH=../nodus8.jar:../lib/*
 
 # Compile the source code of the plugin
-javac -source 1.8 -target 1.8 NodusSamplePlugin.java 
+javac --release 11 NodusSamplePlugin.java 
 
 # Create the JAR file
 jar cf NodusSamplePlugin.jar NodusSamplePlugin.class
