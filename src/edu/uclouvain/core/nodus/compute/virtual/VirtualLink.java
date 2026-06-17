@@ -644,8 +644,14 @@ public class VirtualLink {
   /**
    * Temporarily converts the projected Frank-Wolfe volume (1-lambda) * current + lambda * auxiliary
    * into PCUs.
-   *
-   * <p>This does not modify currentVolume or auxiliaryVolume.
+   * 
+   *  <p>This does not modify currentVolume or auxiliaryVolume.
+   *  
+   * @param groupIndex The group index.
+   * @param timeSlice The time slice.
+   * @param averageLoad The average load of the vehicle.
+   * @param passengerCarUnits The PCU for this vehicle.
+   * @param lambda The lambda value
    */
   public void projectedVolumesToVehicles(
       byte groupIndex,

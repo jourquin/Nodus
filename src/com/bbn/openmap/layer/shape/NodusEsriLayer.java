@@ -184,6 +184,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   /** Query string used to filter EsriGraphics. */
   private String whereStmt = "";
 
+  /** Used to check if the resources maintained by this layer are disposed or not. */ 
   private boolean disposed = false;
 
   /** Default constructor. */

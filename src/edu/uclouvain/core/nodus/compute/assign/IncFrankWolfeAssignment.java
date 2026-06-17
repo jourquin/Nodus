@@ -396,6 +396,7 @@ public class IncFrankWolfeAssignment extends Assignment {
    * <p>New current volume = (1-lambda) x current volume + lambda x auxiliary volume
    *
    * @param lambda double
+   * @return true on success. 
    */
   public boolean splitVolumes(double lambda) {
     // Update current volumes on virtual links

@@ -429,7 +429,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Add the NetworkSimplifier.groovy script.
 - Better recognition of OD table structure (path header tables were sometimes recognized as OD matrixes). 
 
-## v9.0 - BuildXXXXXXXX
+## v8.4 - BuildXXXXXXXX
 - Reintroduce the Frank-Wolfe based assignments algorithms after bug fixes
 - Replace FileUtils.copyFiles(...), FileUtils.deleteFile(...) and ProjectLocker.createLock(...) with safer versions
 - More robust Local handling at startup

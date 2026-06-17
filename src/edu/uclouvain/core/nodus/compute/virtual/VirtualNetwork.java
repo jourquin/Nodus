@@ -1517,9 +1517,14 @@ public class VirtualNetwork {
     }
   }
 
+  
   /**
    * Computes temporary real-link PCUs for the Frank-Wolfe line search. The virtual-link volumes
    * themselves are not modified.
+   * 
+   * @param vehiclesParser The vehicle parser.
+   * @param lambda The lambda value.
+   * @return true on success.
    */
   public boolean projectedVolumesToVehicles(VehiclesParser vehiclesParser, double lambda) {
     return projectedVolumesToVehicles(vehiclesParser, (byte) 0, lambda);

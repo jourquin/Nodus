@@ -25,11 +25,14 @@ import java.util.Locale;
 
 /**
  * A simple helper for Locale.
- * 
- * @author Bart Jourquin
  *
+ * @author Bart Jourquin
  */
 public class LocaleUtils {
+
+  /** . */
+  public LocaleUtils() {}
+
   /**
    * Parses a locale string and returns the corresponding {@link Locale}.
    *

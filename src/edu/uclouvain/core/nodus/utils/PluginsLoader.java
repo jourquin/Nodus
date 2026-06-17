@@ -170,8 +170,8 @@ public class PluginsLoader {
             availablePlugins.add((Class<NodusPlugin>) loadedClass);
           } catch (NoSuchMethodException ex) {
             /*
-             * A valid plugin must expose a public no-argument constructor. The jar may contain other
-             * classes that do not; ignore them.
+             * A valid plugin must expose a public no-argument constructor. 
+             * The jar may contain other classes that do not; ignore them.
              */
           }
         }
