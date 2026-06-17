@@ -38,6 +38,17 @@ import java.util.Properties;
  * the project directory. Such project dependent plugins will only appear when the project is
  * loaded.
  *
+ * <p><strong>Plugin lifecycle:</strong> Nodus calls {@link #setNodusMapPanel(NodusMapPanel)} when a
+ * plugin instance is loaded, calls {@link #execute()} when the associated menu item is selected,
+ * and calls {@link #dispose()} before the plugin is unloaded. Project-specific plugins are unloaded
+ * when the project is closed. Global plugins are unloaded when the map panel is disposed, typically
+ * when the application exits.
+ *
+ * <p>Plugins that create windows, register listeners, start timers or threads, open resources, or
+ * keep caches must release those resources in {@link #dispose()}. Overriding implementations should
+ * call {@code super.dispose()} once their own cleanup is complete, so that the reference to the
+ * {@link NodusMapPanel} is released.
+ *
  * @author Bart Jourquin
  */
 public class NodusPlugin {
@@ -103,6 +114,17 @@ public class NodusPlugin {
     System.err.println("plugin 'doStart()' method is not implemented!");
   }
 
+  /**
+   * Called by Nodus before the plugin instance is unloaded.
+   *
+   * <p>Plugins that open windows, register listeners, start timers or threads, open resources, or
+   * keep caches must override this method and release those resources here. Overriding
+   * implementations should call {@code super.dispose()} once their own cleanup is complete.
+   */
+  public void dispose() {
+    nodusMapPanel = null;
+  }
+
   /** Main entry point of the plugin, to which the NodusMapPanel will be passed. */
   public void execute() {
     System.err.println("plugin 'public void execute()' method is not implemented!");
@@ -128,9 +150,10 @@ public class NodusPlugin {
   }
 
   /**
-   * Called by Nodus when the plugins are loaded.
+   * Called by Nodus when the plugin is loaded or detached.
    *
-   * @param nodusMapPanel The Nodus main MapPanel, which gives access to the whole Nodus API.
+   * @param nodusMapPanel The Nodus main MapPanel, which gives access to the whole Nodus API, or
+   *     {@code null} when the plugin is detached.
    */
   public void setNodusMapPanel(NodusMapPanel nodusMapPanel) {
     this.nodusMapPanel = nodusMapPanel;

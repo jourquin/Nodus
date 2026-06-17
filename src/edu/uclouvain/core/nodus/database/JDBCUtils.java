@@ -268,11 +268,30 @@ public class JDBCUtils {
   }
 
   /**
-   * Returns the list of columns of a table.
+   * Returns metadata about the columns of a database table.
    *
-   * @param tableName The table name.
-   * @return A result set with the columns.
-   * @throws SQLException on error.
+   * <p><strong>Resource ownership:</strong> the returned {@link ResultSet} is live and must be
+   * closed by the caller. This method does not close the {@code ResultSet} because it is returned
+   * to the caller for iteration.
+   *
+   * <p>Typical usage:
+   *
+   * <pre>{@code
+   * try (ResultSet rs = JDBCUtils.getColumns(tableName)) {
+   *     while (rs.next()) {
+   *         String columnName = rs.getString("COLUMN_NAME");
+   *         // Use column metadata...
+   *     }
+   * }
+   * }</pre>
+   *
+   * <p>Failing to close the returned {@code ResultSet} may keep JDBC resources, statements,
+   * metadata objects, or database-driver internal structures alive longer than necessary.
+   *
+   * @param tableName the name of the table whose columns are requested
+   * @return a live {@code ResultSet} containing column metadata; the caller is responsible for
+   *     closing it
+   * @throws SQLException if the metadata query fails
    */
   public static ResultSet getColumns(String tableName) throws SQLException {
 
@@ -744,10 +763,36 @@ public class JDBCUtils {
   }
 
   /**
-   * Returns the list of tables in the database.
+   * Returns metadata about database tables matching the given table name pattern.
+   * 
+   * <p>
+   * <strong>Resource ownership:</strong> the returned {@link ResultSet} is live and
+   * must be closed by the caller. This method does not close the {@code ResultSet}
+   * because it is returned to the caller for iteration.
+   * </p>
    *
-   * @return A result set with the table names.
-   * @throws SQLException on error.
+   * <p>
+   * Typical usage:
+   * </p>
+   *
+   * <pre>{@code
+   * try (ResultSet rs = JDBCUtils.getTables(tableNamePattern)) {
+   *     while (rs.next()) {
+   *         String tableName = rs.getString("TABLE_NAME");
+   *         // Use table metadata...
+   *     }
+   * }
+   * }</pre>
+   *
+   * <p>
+   * Failing to close the returned {@code ResultSet} may keep JDBC resources,
+   * statements, metadata objects, or database-driver internal structures alive
+   * longer than necessary.
+   * </p>
+   *
+   * @return a live {@code ResultSet} containing table metadata; the caller is
+   *         responsible for closing it
+   * @throws SQLException if the metadata query fails
    */
   public static ResultSet getTables() throws SQLException {
     return getTables(null);
@@ -755,7 +800,8 @@ public class JDBCUtils {
 
   /**
    * Tests if the given table name exists.
-   *
+   * Note that the returned ResultSet must be closed by the caller.
+   * 
    * @return A non-empyu result set if table exits.
    * @throws SQLException on error.
    */
@@ -926,10 +972,17 @@ public class JDBCUtils {
    */
   public static boolean setConnection(Connection con) {
     jdbcConnection = con;
+
     if (con == null) {
+      dmd = null;
+      catalog = null;
+      schema = null;
+      dbEngine = DB_UNKNOWN;
       return true;
     }
+
     dbEngine = getDbEngine();
+
     try {
       dmd = jdbcConnection.getMetaData();
     } catch (SQLException e) {
@@ -937,14 +990,13 @@ public class JDBCUtils {
       return false;
     }
 
-    // For H2 (version 2), specify that only the "PUBLIC" schema
     schema = null;
-    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
+    if (dbEngine == DB_H2) {
       schema = "PUBLIC";
     }
 
     catalog = null;
-    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
+    if (dbEngine == DB_MYSQL) {
       catalog = "";
     }
 
@@ -969,7 +1021,7 @@ public class JDBCUtils {
     } catch (SQLException e) {
       e.printStackTrace();
     } finally {
-      jdbcConnection = null;
+      setConnection(null);
     }
   }
 

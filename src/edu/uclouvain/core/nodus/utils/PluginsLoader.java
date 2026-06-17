@@ -26,7 +26,6 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -41,14 +40,14 @@ import java.util.jar.JarFile;
  * @author Bart Jourquin
  */
 public class PluginsLoader {
-  /* A place where to store the loaded plugins */
-  private static LinkedList<Class<NodusPlugin>> availablePlugins =
+  /* A place where to store the plugins found by this loader instance. */
+  private final LinkedList<Class<NodusPlugin>> availablePlugins =
       new LinkedList<Class<NodusPlugin>>();
 
   /**
-   * Returns a list of available plugin's.
+   * Returns the plugins found by this loader instance.
    *
-   * @return A LinkedList of available pugin's.
+   * @return A LinkedList of available plugins.
    */
   public LinkedList<Class<NodusPlugin>> getAvailablePlugins() {
     return availablePlugins;
@@ -62,8 +61,6 @@ public class PluginsLoader {
    * @param pluginDir The path to the directory that contains the Nodus project.
    */
   public PluginsLoader(String pluginDir) {
-
-    availablePlugins.clear();
 
     directory = new File(pluginDir);
 
@@ -162,17 +159,19 @@ public class PluginsLoader {
           System.err.println(className);
         }
 
-        if (loadedClass != null) {
+        if (loadedClass != null && NodusPlugin.class.isAssignableFrom(loadedClass)) {
           try {
-            Constructor<?> cons = loadedClass.getConstructor();
-            Object o = cons.newInstance();
-            if (o instanceof NodusPlugin) {
-              availablePlugins.add((Class<NodusPlugin>) loadedClass);
-            }
-          } catch (Exception ex) {
             /*
-             * The jar may contain classes that are not plugins. Do nothing.
-             * This exception is thrown by cons.newInstance().
+             * Make sure the plugin can be instantiated later by NodusMapPanel, but do not create an
+             * instance here. Plugin constructors may allocate resources, and instances created only
+             * for discovery would not be part of the normal plugin lifecycle.
+             */
+            loadedClass.getConstructor();
+            availablePlugins.add((Class<NodusPlugin>) loadedClass);
+          } catch (NoSuchMethodException ex) {
+            /*
+             * A valid plugin must expose a public no-argument constructor. The jar may contain other
+             * classes that do not; ignore them.
              */
           }
         }

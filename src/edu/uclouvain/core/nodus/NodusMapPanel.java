@@ -1134,6 +1134,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Sets the MapBean variable to null and removes all children. */
   @Override
   public void dispose() {
+    disposeAllPlugins();
+
     if (onTopKeeper != null) {
       onTopKeeper.stop();
       onTopKeeper = null;
@@ -1958,7 +1960,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       Properties pluginProp = plugin.getProperties();
       if (pluginProp == null) {
         System.err.println("Plugin " + plugin.getClass().toString() + " returns no properties");
-        detachPlugin(plugin);
+        disposePlugin(plugin);
         continue;
       }
 
@@ -2015,7 +2017,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       JMenuItem menuItem = createPluginMenuItem(plugin, commandId, menu, pluginProp);
 
       if (menuItem == null) {
-        detachPlugin(plugin);
+        disposePlugin(plugin);
         removeEmptyUserDefinedPluginMenus();
         continue;
       }
@@ -2427,7 +2429,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     nodusPlugins[n].execute();
   }
 
-  /** Removes the menu items relative to the project plugins. */
+  /**
+   * Removes project plugin menu items and disposes the associated project plugin instances.
+   *
+   * <p>This method is called when a project is closed. It gives project plugins a deterministic
+   * cleanup point for listeners, timers, threads, windows, and other resources.
+   */
   public void removeProjectPlugins() {
     // Remove all project plugin menu items and detach their listeners.
     Iterator<JMenuItem> it = projectPluginsMenuItems.iterator();
@@ -2447,6 +2454,21 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     removeProjectPluginInstances();
     removeEmptyUserDefinedPluginMenus();
+  }
+
+  /** Calls the plugin lifecycle cleanup method before the plugin instance is released. */
+  private void disposePlugin(NodusPlugin plugin) {
+    if (plugin == null) {
+      return;
+    }
+
+    try {
+      plugin.dispose();
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      detachPlugin(plugin);
+    }
   }
 
   /** Detaches a plugin from this panel before the plugin instance is released. */
@@ -2507,7 +2529,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
 
     for (int i = nbNodusPlugins; i < nodusPlugins.length; i++) {
-      detachPlugin(nodusPlugins[i]);
+      disposePlugin(nodusPlugins[i]);
       nodusPlugins[i] = null;
     }
 
@@ -2523,6 +2545,21 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
 
     nodusPlugins = globalPlugins;
+  }
+
+  /** Disposes all loaded plugins, including global plugins, when the map panel is disposed. */
+  private void disposeAllPlugins() {
+    if (nodusPlugins != null) {
+      for (NodusPlugin plugin : nodusPlugins) {
+        disposePlugin(plugin);
+      }
+      nodusPlugins = null;
+    }
+
+    nbNodusPlugins = 0;
+    globalPluginsMenuItems.clear();
+    projectPluginsMenuItems.clear();
+    userDefinedMenus.clear();
   }
 
   /** Removes empty user-defined plugin menus from the menu bar. */

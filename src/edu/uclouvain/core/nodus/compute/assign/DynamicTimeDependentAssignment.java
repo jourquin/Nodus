@@ -29,7 +29,6 @@ import edu.uclouvain.core.nodus.compute.assign.workers.DynamicTimeDependentAssig
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
-import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.util.Properties;

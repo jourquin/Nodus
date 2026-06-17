@@ -31,6 +31,7 @@ import edu.uclouvain.core.nodus.tools.console.NodusConsole;
  * - This plugin is added to the "Tools" menu, and appears as "Sample plugin". <br>
  * - It gets the NodusMapPanel, which is the main entry point of the Nodus API. <br>
  * - It opens a Nodus console and writes the name if the loaded project, if any. <br>
+ * - It implements dispose() to show where plugin-specific cleanup belongs. <br>
  * <br>
  * Once the jar generated from this file, it can be placed in two locations: <br>
  * - In the "plugins" subdirectory of the Nodus installation directory. In this case, the plugin is
@@ -39,22 +40,21 @@ import edu.uclouvain.core.nodus.tools.console.NodusConsole;
  * - In a project directory. In this case, the plugin is loaded when a project located in this
  * directory is loaded. The plugin will also be unloaded when the project is closed. This is used
  * for project specific plugins.
- * 
- * A plugin must extend edu.uclouvain.core.nodus.NodusPlugin. See the API doc for this class
- * for more information. 
- * 
+ *
+ * <p>A plugin must extend edu.uclouvain.core.nodus.NodusPlugin. See the API doc for this class for
+ * more information.
+ *
  * @author Bart Jourquin
  */
 public class NodusSamplePlugin extends NodusPlugin {
 
-  /**
-   * This is the where real work starts.
-   */
+  /** This is the where real work starts. */
+  @Override
   public void execute() {
-    /* 
+    /*
      * Display a Nodus console. It intercepts System.out and System.err in order to display the
      * output in a JTextPane.
-	  */
+     */
     new NodusConsole();
 
     /*
@@ -73,16 +73,29 @@ public class NodusSamplePlugin extends NodusPlugin {
   }
 
   /**
-   * Controls the way the menuItem relative to this plugin will be displayed.
-   * See edu.uclouvain.core.nodus.NodusPlugin for more information.
-   * 
+   * Releases resources created by the plugin before Nodus unloads it.
+   *
+   * <p>This sample plugin does not keep any long-lived field-level resources. Real plugins that
+   * keep references to windows, listeners, timers, threads, files, database objects, or caches
+   * should release them here.
+   */
+  @Override
+  public void dispose() {
+    super.dispose();
+  }
+
+  /**
+   * Controls the way the menuItem relative to this plugin will be displayed. See
+   * edu.uclouvain.core.nodus.NodusPlugin for more information.
+   *
    * @return Properties
    */
+  @Override
   public Properties getProperties() {
     Properties p = new Properties();
-    
+
     /*
-     *  Text associated to the menu item 
+     *  Text associated to the menu item
      */
     p.setProperty(MENU_ITEM__TEXT, "Sample Plugin");
 
@@ -93,5 +106,4 @@ public class NodusSamplePlugin extends NodusPlugin {
 
     return p;
   }
-
 }

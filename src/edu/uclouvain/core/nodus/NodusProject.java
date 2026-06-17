@@ -612,7 +612,7 @@ public class NodusProject implements ShapeConstants {
                   projection.getHeight());
       nodusMapPanel.getMapBean().setProjection(newProj);
 
-      // Enable some menu items and remove project plugins menus
+      // Enable some menu items and dispose/remove project plugins menus and instances
       nodusMapPanel.removeProjectPlugins();
       nodusMapPanel.enableMenus(false);
 
