@@ -136,22 +136,24 @@ public class ProjectLocker {
 
   /** Releases the lock for the current user. */
   public static void releaseLock() {
-    if (lock != null) {
-      try {
-
+    try {
+      if (lock != null) {
         lock.release();
-        lock = null;
-        channel.close();
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      lock = null;
 
-        File f = new File(lockerFileName);
-        f.delete();
-
-        if (debug) {
-          System.out.println("Project lock released");
+      try {
+        if (channel != null) {
+          channel.close();
         }
-
       } catch (IOException e) {
         e.printStackTrace();
+      } finally {
+        channel = null;
+        lockerFileName = null;
       }
     }
   }

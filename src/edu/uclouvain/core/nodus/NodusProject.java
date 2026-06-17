@@ -663,6 +663,7 @@ public class NodusProject implements ShapeConstants {
 
   /** Releases project-specific object graphs after all project state has been saved. */
   private void disposeProjectObjectGraph() {
+    ModalSplitMethodsLoader.disposeAvailableModalSplitMethods();
     disposeLocationHandlers(nodesLocationHandler);
     nodesLocationHandler = null;
 

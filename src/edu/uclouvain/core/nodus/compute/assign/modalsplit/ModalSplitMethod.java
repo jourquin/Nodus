@@ -125,6 +125,14 @@ public abstract class ModalSplitMethod implements Cloneable {
   }
 
   /**
+   * Dispose resources.
+   */
+  public void dispose() {
+    assignmentParameters = null;
+    nodusProject = null;
+  }
+
+  /**
    * Runs the modal split method algorithm. This is called by the the multiflow assignment workers.
    * Therefore, this method must be thread safe.
    *

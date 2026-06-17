@@ -764,16 +764,12 @@ public class JDBCUtils {
 
   /**
    * Returns metadata about database tables matching the given table name pattern.
-   * 
-   * <p>
-   * <strong>Resource ownership:</strong> the returned {@link ResultSet} is live and
-   * must be closed by the caller. This method does not close the {@code ResultSet}
-   * because it is returned to the caller for iteration.
-   * </p>
    *
-   * <p>
-   * Typical usage:
-   * </p>
+   * <p><strong>Resource ownership:</strong> the returned {@link ResultSet} is live and must be
+   * closed by the caller. This method does not close the {@code ResultSet} because it is returned
+   * to the caller for iteration.
+   *
+   * <p>Typical usage:
    *
    * <pre>{@code
    * try (ResultSet rs = JDBCUtils.getTables(tableNamePattern)) {
@@ -784,14 +780,11 @@ public class JDBCUtils {
    * }
    * }</pre>
    *
-   * <p>
-   * Failing to close the returned {@code ResultSet} may keep JDBC resources,
-   * statements, metadata objects, or database-driver internal structures alive
-   * longer than necessary.
-   * </p>
+   * <p>Failing to close the returned {@code ResultSet} may keep JDBC resources, statements,
+   * metadata objects, or database-driver internal structures alive longer than necessary.
    *
-   * @return a live {@code ResultSet} containing table metadata; the caller is
-   *         responsible for closing it
+   * @return a live {@code ResultSet} containing table metadata; the caller is responsible for
+   *     closing it
    * @throws SQLException if the metadata query fails
    */
   public static ResultSet getTables() throws SQLException {
@@ -799,9 +792,9 @@ public class JDBCUtils {
   }
 
   /**
-   * Tests if the given table name exists.
-   * Note that the returned ResultSet must be closed by the caller.
-   * 
+   * Tests if the given table name exists. Note that the returned ResultSet must be closed by the
+   * caller.
+   *
    * @return A non-empyu result set if table exits.
    * @throws SQLException on error.
    */
@@ -964,6 +957,15 @@ public class JDBCUtils {
     return true;
   }
 
+  /** Clears the resources linked to the connection. */
+  private static void clearConnectionState() {
+    jdbcConnection = null;
+    dmd = null;
+    catalog = null;
+    schema = null;
+    dbEngine = DB_UNKNOWN;
+  }
+
   /**
    * Set the JDBC connection.
    *
@@ -974,10 +976,7 @@ public class JDBCUtils {
     jdbcConnection = con;
 
     if (con == null) {
-      dmd = null;
-      catalog = null;
-      schema = null;
-      dbEngine = DB_UNKNOWN;
+      clearConnectionState();
       return true;
     }
 
@@ -987,6 +986,7 @@ public class JDBCUtils {
       dmd = jdbcConnection.getMetaData();
     } catch (SQLException e) {
       e.printStackTrace();
+      clearConnectionState();
       return false;
     }
 
@@ -1021,7 +1021,7 @@ public class JDBCUtils {
     } catch (SQLException e) {
       e.printStackTrace();
     } finally {
-      setConnection(null);
+      clearConnectionState();
     }
   }
 

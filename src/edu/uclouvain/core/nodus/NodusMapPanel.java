@@ -223,6 +223,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Track the state of the "control" key. */
   private boolean controlPressed = false;
 
+  /** Key listener that handles projection navigation on the map bean. */
+  private NodusProjMapBeanKeyListener mapBeanKeyListener = null;
+
+  /** Key listener that handles Nodus command shortcuts on this panel and on the map bean. */
+  private KeyAdapter commandKeyListener = null;
+
   /** Control variables for the progress bar. */
   private int currentTask = 0;
 
@@ -679,12 +685,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     mapBean.setBckgrnd(Environment.getCustomBackgroundColor());
 
     // Navigate with keys in the map
-    NodusProjMapBeanKeyListener kl = new NodusProjMapBeanKeyListener();
-    kl.findAndInit(projectionStack);
-    kl.setMapBean(mapBean);
-    mapBean.addKeyListener(kl);
+    mapBeanKeyListener = new NodusProjMapBeanKeyListener();
+    mapBeanKeyListener.findAndInit(projectionStack);
+    mapBeanKeyListener.setMapBean(mapBean);
+    mapBean.addKeyListener(mapBeanKeyListener);
 
-    KeyAdapter ka =
+    commandKeyListener =
         new KeyAdapter() {
           @Override
           public void keyPressed(KeyEvent evt) {
@@ -727,8 +733,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         };
 
     // Intercept a few command keys...
-    addKeyListener(ka);
-    getMapBean().addKeyListener(ka);
+    addKeyListener(commandKeyListener);
+    getMapBean().addKeyListener(commandKeyListener);
 
     infoDelegator.setShowWaitCursor(true);
 
@@ -1131,10 +1137,29 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     scenarioComboBox.setVisible(visible);
   }
 
+  /** Removes the key listeners installed by {@link #create()}. */
+  private void removeRegisteredKeyListeners() {
+    if (mapBean != null && mapBeanKeyListener != null) {
+      mapBean.removeKeyListener(mapBeanKeyListener);
+      mapBeanKeyListener = null;
+    }
+
+    if (commandKeyListener != null) {
+      removeKeyListener(commandKeyListener);
+
+      if (mapBean != null) {
+        mapBean.removeKeyListener(commandKeyListener);
+      }
+
+      commandKeyListener = null;
+    }
+  }
+
   /** Sets the MapBean variable to null and removes all children. */
   @Override
   public void dispose() {
     disposeAllPlugins();
+    removeRegisteredKeyListeners();
 
     if (onTopKeeper != null) {
       onTopKeeper.stop();

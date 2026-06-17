@@ -261,4 +261,16 @@ public class ModalSplitMethodsLoader {
     System.err.println("Modal split method not found. This should not be possible!");
     return null;
   }
+
+/**
+ * Dispose resources.
+ */
+  public static void disposeAvailableModalSplitMethods() {
+    for (ModalSplitMethod method : availableModalSplitMethods) {
+      if (method != null) {
+        method.dispose();
+      }
+    }
+    availableModalSplitMethods.clear();
+  }
 }
