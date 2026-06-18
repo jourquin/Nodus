@@ -351,8 +351,8 @@ public class AssignmentParameters {
       String costFunctionsFileName =
           nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + (String) costFunctions;
       this.costFunctions = new Properties();
-      try {
-        this.costFunctions.load(new FileInputStream(costFunctionsFileName.trim()));
+      try (FileInputStream inputStream = new FileInputStream(costFunctionsFileName.trim())) {
+        this.costFunctions.load(inputStream);
       } catch (IOException ex) {
         ex.printStackTrace();
       }

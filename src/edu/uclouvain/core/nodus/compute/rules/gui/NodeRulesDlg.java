@@ -1268,38 +1268,35 @@ public class NodeRulesDlg extends EscapeDialog {
     // Connect to database and execute query
     try {
       Connection con = nodusProject.getMainJDBCConnection();
-      Statement stmt = con.createStatement();
-      ResultSet rs = stmt.executeQuery(sql);
+      try (Statement stmt = con.createStatement();
+          ResultSet rs = stmt.executeQuery(sql)) {
 
-      // model.setColumnIdentifiers(h);
-      while (rs.next()) {
-        // nbRecords++;
-        String[] columns = new String[8];
+        // model.setColumnIdentifiers(h);
+        while (rs.next()) {
+          // nbRecords++;
+          String[] columns = new String[8];
 
-        for (int i = 0; i < columns.length; i++) {
-          String value = rs.getObject(i + 1).toString();
-          if (i == idxSymmetry) {
-            if (value.equals("0")) {
-              value = singleArrow;
-            } else {
-              value = doubleArrow;
+          for (int i = 0; i < columns.length; i++) {
+            String value = rs.getObject(i + 1).toString();
+            if (i == idxSymmetry) {
+              if (value.equals("0")) {
+                value = singleArrow;
+              } else {
+                value = doubleArrow;
+              }
             }
+            columns[i] = value;
           }
-          columns[i] = value;
-        }
 
-        // Remove this rule if not valid
-        exclusionsTableModel.addRow(columns);
-        int n = rulesTable.getRowCount() - 1;
-        rulesTable.setRowSelectionInterval(n, n);
-        if (!isValidRule(n)) {
-          exclusionsTableModel.removeRow(n);
+          // Remove this rule if not valid
+          exclusionsTableModel.addRow(columns);
+          int n = rulesTable.getRowCount() - 1;
+          rulesTable.setRowSelectionInterval(n, n);
+          if (!isValidRule(n)) {
+            exclusionsTableModel.removeRow(n);
+          }
         }
       }
-
-      rs.close();
-      stmt.close();
-
     } catch (Exception e) {
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
 
@@ -1354,75 +1351,75 @@ public class NodeRulesDlg extends EscapeDialog {
     // Execute batch
     try {
       Connection con = nodusProject.getMainJDBCConnection();
-      Statement stmt = con.createStatement();
+      try (Statement stmt = con.createStatement()) {
 
-      // Delete rules in the table
-      String sqlStmt =
-          "DELETE FROM "
-              + tableName
-              + " WHERE ABS("
-              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
-              + ") = "
-              + nodeNum
-              + " AND ("
-              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
-              + " = -1 OR "
-              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
-              + " = "
-              + currentScenario
-              + ")";
-      stmt.executeUpdate(sqlStmt);
+        // Delete rules in the table
+        String sqlStmt =
+            "DELETE FROM "
+                + tableName
+                + " WHERE ABS("
+                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+                + ") = "
+                + nodeNum
+                + " AND ("
+                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
+                + " = -1 OR "
+                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
+                + " = "
+                + currentScenario
+                + ")";
+        stmt.executeUpdate(sqlStmt);
 
-      // Save new rules, but avoid duplicates. herefore, a 2 pass procedure is
-      // used, starting with the symectric rules
-      existingRules.clear();
-      for (int pass = 0; pass < 2; pass++) {
-        for (int row = 0; row < rulesTable.getRowCount(); row++) {
-          String symmetry = "0";
-          if (rulesTable.getValueAt(row, idxSymmetry).equals(doubleArrow)) {
-            symmetry = "1";
-          }
+        // Save new rules, but avoid duplicates. herefore, a 2 pass procedure is
+        // used, starting with the symectric rules
+        existingRules.clear();
+        for (int pass = 0; pass < 2; pass++) {
+          for (int row = 0; row < rulesTable.getRowCount(); row++) {
+            String symmetry = "0";
+            if (rulesTable.getValueAt(row, idxSymmetry).equals(doubleArrow)) {
+              symmetry = "1";
+            }
 
-          if (pass == 0 && symmetry.equals("0")) {
-            continue;
-          }
+            if (pass == 0 && symmetry.equals("0")) {
+              continue;
+            }
 
-          if (pass == 1 && symmetry.equals("1")) {
-            continue;
-          }
+            if (pass == 1 && symmetry.equals("1")) {
+              continue;
+            }
 
-          if (!isDuplicate(row)) {
-            sqlStmt =
-                "INSERT INTO "
-                    + tableName
-                    + " VALUES( "
-                    + rulesTable.getValueAt(row, idxNum)
-                    + ", "
-                    + rulesTable.getValueAt(row, idxScenario)
-                    + ", "
-                    + rulesTable.getValueAt(row, idxGroup)
-                    + ", "
-                    + rulesTable.getValueAt(row, idxMode1)
-                    + ", "
-                    + rulesTable.getValueAt(row, idxMeans1)
-                    + ", "
-                    + rulesTable.getValueAt(row, idxMode2)
-                    + ", "
-                    + rulesTable.getValueAt(row, idxMeans2)
-                    + ", "
-                    + symmetry
-                    + ")";
-            stmt.executeUpdate(sqlStmt);
-          } else {
-            hasDuplicates = true;
+            if (!isDuplicate(row)) {
+              sqlStmt =
+                  "INSERT INTO "
+                      + tableName
+                      + " VALUES( "
+                      + rulesTable.getValueAt(row, idxNum)
+                      + ", "
+                      + rulesTable.getValueAt(row, idxScenario)
+                      + ", "
+                      + rulesTable.getValueAt(row, idxGroup)
+                      + ", "
+                      + rulesTable.getValueAt(row, idxMode1)
+                      + ", "
+                      + rulesTable.getValueAt(row, idxMeans1)
+                      + ", "
+                      + rulesTable.getValueAt(row, idxMode2)
+                      + ", "
+                      + rulesTable.getValueAt(row, idxMeans2)
+                      + ", "
+                      + symmetry
+                      + ")";
+              stmt.executeUpdate(sqlStmt);
+            } else {
+              hasDuplicates = true;
+            }
           }
         }
       }
-
-      stmt.close();
-
     } catch (SQLException ex) {
-      ex.printStackTrace();
+      JOptionPane.showMessageDialog(
+          this, ex.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+      return;
     }
 
     // Save this rule as default for later use

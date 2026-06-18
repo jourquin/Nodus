@@ -64,11 +64,10 @@ public class PoliticalBoundariesLayer extends ShapeLayer {
       // Load the political boundaries
       Properties props = new Properties();
 
-      try {
-        InputStream in =
+      try (InputStream in =
             PoliticalBoundariesLayer.class
                 .getResource("politicalBoundaries.properties")
-                .openStream();
+                .openStream()) {
         props.load(in);
       } catch (IOException ioe) { // Should never happen
         ioe.printStackTrace();

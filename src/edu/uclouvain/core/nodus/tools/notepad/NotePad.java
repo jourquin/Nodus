@@ -309,8 +309,7 @@ public class NotePad extends JFrame {
     textPane.setTabSize(4);
 
     // Apply theme
-    try {
-      InputStream in = NodusMapPanel.class.getResource("eclipse.xml").openStream();
+    try (InputStream in = NodusMapPanel.class.getResource("eclipse.xml").openStream()) {
       Theme theme = Theme.load(in);
       theme.apply(textPane);
     } catch (IOException ioe) { // Should never happen

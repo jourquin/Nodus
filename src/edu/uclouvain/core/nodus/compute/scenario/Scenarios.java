@@ -293,10 +293,9 @@ public class Scenarios {
 
     Connection con = nodusProject.getMainJDBCConnection();
     HashMap<String, VnetRecord> hashMap = null;
-    
-    try {
-      Statement stmt = con.createStatement();
-      ResultSet rs = stmt.executeQuery(sqlStmt);
+ 
+    try (Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery(sqlStmt)) {
 
       // Set initial capacity of the hash table to the number of records
       // fetch + 10%
@@ -334,12 +333,9 @@ public class Scenarios {
         // Put this record in the hash table
         hashMap.put(vnr.getKey(), vnr);
       }
-
-      rs.close();
-      stmt.close();
-
     } catch (SQLException ex) {
       System.err.println(ex.toString());
+      return;
     }
 
     /* Read the second table and update the hashtable with all the records */
@@ -354,9 +350,8 @@ public class Scenarios {
       sqlStmt += " WHERE " + whereString;
     }
 
-    try {
-      Statement stmt = con.createStatement();
-      ResultSet rs = stmt.executeQuery(sqlStmt);
+    try (Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery(sqlStmt)) {
 
       // Retrieve result of query
       while (rs.next()) {
@@ -404,10 +399,6 @@ public class Scenarios {
           }
         }
       }
-
-      rs.close();
-      stmt.close();
-
     } catch (SQLException ex) {
       System.err.println(ex.toString());
       return;
@@ -439,77 +430,73 @@ public class Scenarios {
         sqlStmt += "?,?,?,";
       }
       sqlStmt += "?,?,?)";
-      PreparedStatement prepStmt = con.prepareStatement(sqlStmt);
+      try (PreparedStatement prepStmt = con.prepareStatement(sqlStmt)) {
+        int batchSize = 0;
+        Iterator<VnetRecord> it = hashMap.values().iterator();
+        while (it.hasNext()) {
+          VnetRecord vnr = it.next();
 
-      // Save the data from the hashtable.
-      Statement stmt = con.createStatement();
+          int idx = 1;
+          /*
+           * With the virtual network 3, insert in the table the line origin and the line
+           * destination. With the virtual network 2, don't make any change.
+           */
+          prepStmt.setInt(idx++, vnr.node1);
+          prepStmt.setInt(idx++, vnr.link1);
+          prepStmt.setInt(idx++, vnr.mode1);
+          prepStmt.setInt(idx++, vnr.means1);
+          prepStmt.setInt(idx++, vnr.line1);
+          prepStmt.setInt(idx++, vnr.node2);
+          prepStmt.setInt(idx++, vnr.link2);
+          prepStmt.setInt(idx++, vnr.mode2);
+          prepStmt.setInt(idx++, vnr.means2);
+          prepStmt.setInt(idx++, vnr.line2);
+          prepStmt.setInt(idx++, vnr.time);
+          prepStmt.setDouble(idx++, vnr.length);
 
-      int batchSize = 0;
-      Iterator<VnetRecord> it = hashMap.values().iterator();
-      while (it.hasNext()) {
-        VnetRecord vnr = it.next();
+          // double totalCost = 0.0;
+          double totalQty = 0.0;
+          double averageWeight = 0.0;
+          int totalVehicles = 0;
 
-        int idx = 1;
-        /*
-         * With the virtual network 3, insert in the table the line origin and the line
-         * destination. With the virtual network 2, don't make any change.
-         */
-        prepStmt.setInt(idx++, vnr.node1);
-        prepStmt.setInt(idx++, vnr.link1);
-        prepStmt.setInt(idx++, vnr.mode1);
-        prepStmt.setInt(idx++, vnr.means1);
-        prepStmt.setInt(idx++, vnr.line1);
-        prepStmt.setInt(idx++, vnr.node2);
-        prepStmt.setInt(idx++, vnr.link2);
-        prepStmt.setInt(idx++, vnr.mode2);
-        prepStmt.setInt(idx++, vnr.means2);
-        prepStmt.setInt(idx++, vnr.line2);
-        prepStmt.setInt(idx++, vnr.time);
-        prepStmt.setDouble(idx++, vnr.length);
+          for (byte k = 0; k < (byte) groupsInResults.length; k++) {
+            // totalCost += vnr.cost[k];
+            totalQty += vnr.qty[k];
+            averageWeight += vnr.qty[k] * vnr.cost[k];
+            totalVehicles += vnr.vehicles[k];
 
-        // double totalCost = 0.0;
-        double totalQty = 0.0;
-        double averageWeight = 0.0;
-        int totalVehicles = 0;
-
-        for (byte k = 0; k < (byte) groupsInResults.length; k++) {
-          // totalCost += vnr.cost[k];
-          totalQty += vnr.qty[k];
-          averageWeight += vnr.qty[k] * vnr.cost[k];
-          totalVehicles += vnr.vehicles[k];
-
-          prepStmt.setDouble(idx++, vnr.cost[k]);
-          prepStmt.setDouble(idx++, vnr.qty[k]);
-          prepStmt.setInt(idx++, vnr.vehicles[k]);
-        }
-
-        if (totalQty > 0) {
-          averageWeight /= totalQty;
-        }
-
-        prepStmt.setDouble(idx++, averageWeight);
-        prepStmt.setDouble(idx++, totalQty);
-        prepStmt.setInt(idx++, totalVehicles);
-
-        // Save into table according to batch policy;
-        if (hasBatchSupport) {
-          batchSize++;
-          prepStmt.addBatch();
-          if (batchSize >= maxBatchSize) {
-            prepStmt.executeBatch();
-            batchSize = 0;
+            prepStmt.setDouble(idx++, vnr.cost[k]);
+            prepStmt.setDouble(idx++, vnr.qty[k]);
+            prepStmt.setInt(idx++, vnr.vehicles[k]);
           }
-        } else {
-          prepStmt.executeUpdate();
-        }
-      }
 
-      if (hasBatchSupport) {
-        prepStmt.addBatch();
-      }
-      stmt.close();
-      if (!con.getAutoCommit()) {
-        con.commit();
+          if (totalQty > 0) {
+            averageWeight /= totalQty;
+          }
+
+          prepStmt.setDouble(idx++, averageWeight);
+          prepStmt.setDouble(idx++, totalQty);
+          prepStmt.setInt(idx++, totalVehicles);
+
+          // Save into table according to batch policy;
+          if (hasBatchSupport) {
+            batchSize++;
+            prepStmt.addBatch();
+            if (batchSize >= maxBatchSize) {
+              prepStmt.executeBatch();
+              batchSize = 0;
+            }
+          } else {
+            prepStmt.executeUpdate();
+          }
+        }
+
+        if (hasBatchSupport) {
+          prepStmt.executeBatch();
+        }
+        if (!con.getAutoCommit()) {
+          con.commit();
+        }
       }
     } catch (Exception e) {
       System.err.println(e.toString());
