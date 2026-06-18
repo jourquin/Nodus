@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.database.csv;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.sql.Connection;
@@ -73,7 +74,9 @@ public class ExportCSV {
 
     Connection con = project.getMainJDBCConnection();
     try (Statement stmt = con.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
+        ResultSet rs =
+            stmt.executeQuery(
+                "SELECT * FROM " + JDBCUtils.getQuotedCompliantIdentifier(tableName))) {
 
       ResultSetMetaData rsmd = rs.getMetaData();
       int nbColumns = rsmd.getColumnCount();

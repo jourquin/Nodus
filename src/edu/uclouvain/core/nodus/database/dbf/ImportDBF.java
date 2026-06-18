@@ -78,7 +78,7 @@ public class ImportDBF {
    */
   private static boolean createTable(String tableName, DBFReader dbfReader) {
     StringBuilder sqlStmt = new StringBuilder("CREATE TABLE ");
-    sqlStmt.append(tableName).append(" (");
+    sqlStmt.append(JDBCUtils.getQuotedCompliantIdentifier(tableName)).append(" (");
     int n = dbfReader.getFieldCount();
 
     for (int i = 0; i < n; i++) {
@@ -112,18 +112,19 @@ public class ImportDBF {
    * @return boolean
    */
   private static boolean fillTable(String tableName, DBFReader dbfReader) {
-    String sqlStmt = "INSERT INTO " + tableName + " VALUES (";
+    StringBuilder sqlStmt = new StringBuilder("INSERT INTO ");
+    sqlStmt.append(JDBCUtils.getQuotedCompliantIdentifier(tableName)).append(" VALUES (");
     int n = dbfReader.getFieldCount();
 
     for (int i = 0; i < n; i++) {
-      sqlStmt += "?";
+      sqlStmt.append('?');
 
       if (i < n - 1) {
-        sqlStmt += ",";
+        sqlStmt.append(',');
       }
     }
 
-    sqlStmt += ")";
+    sqlStmt.append(')');
 
     // Get the fields description
     DBFField[] fields = new DBFField[n];
@@ -131,7 +132,7 @@ public class ImportDBF {
       fields[i] = dbfReader.getField(i);
     }
 
-    try (PreparedStatement prepStmt = jdbcConnection.prepareStatement(sqlStmt)) {
+    try (PreparedStatement prepStmt = jdbcConnection.prepareStatement(sqlStmt.toString())) {
 
       int batchSize = 0;
 

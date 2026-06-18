@@ -218,7 +218,10 @@ public class VirtualNetworkWriter {
       hasBatchSupport = JDBCUtils.hasBatchSupport();
 
       /* Prepared statement */
-      String sqlStmt = "INSERT INTO " + vNetTableName + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,";
+      String sqlStmt =
+          "INSERT INTO "
+              + JDBCUtils.getQuotedCompliantIdentifier(vNetTableName)
+              + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,";
 
       byte[] groups = virtualNet.getGroups();
       for (byte k = 0; k < (byte) groups.length; k++) {

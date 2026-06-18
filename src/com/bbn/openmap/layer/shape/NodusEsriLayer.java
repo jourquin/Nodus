@@ -259,7 +259,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         // Create sql stmt
         String sqlStmt =
             "INSERT INTO "
-                + getTableName()
+                + JDBCUtils.getQuotedCompliantIdentifier(getTableName())
                 + " ("
                 + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
                 + ") VALUES ("
@@ -349,7 +349,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         // Create sql stmt
         String sqlStmt =
             "INSERT INTO "
-                + getTableName()
+                + JDBCUtils.getQuotedCompliantIdentifier(getTableName())
                 + " ("
                 + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
                 + ") VALUES ("
@@ -359,7 +359,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
         sqlStmt =
             "UPDATE "
-                + getTableName()
+                + JDBCUtils.getQuotedCompliantIdentifier(getTableName())
                 + " SET "
                 + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE1)
                 + " = "
@@ -413,7 +413,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     updateNumIndex();
 
     String sqlStmt = "INSERT INTO ";
-    sqlStmt += getTableName() + " VALUES( ";
+    sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(getTableName()) + " VALUES( ";
 
     for (int i = 0; i < getModel().getColumnCount(); i++) {
       Object cell = record.get(i);
@@ -456,7 +456,10 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     // Create complete query string
     String sqlstmt =
-        "SELECT " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM) + " FROM " + tableName;
+        "SELECT "
+            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+            + " FROM "
+            + JDBCUtils.getQuotedCompliantIdentifier(tableName);
 
     // Add a where condition if it exists
     if (this.whereStmt.length() > 0) {
@@ -1305,7 +1308,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     // Remove the dbf record in the database table
     String sqlStmt =
         "DELETE FROM "
-            + getTableName()
+            + JDBCUtils.getQuotedCompliantIdentifier(getTableName())
             + " WHERE "
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
             + " = "
@@ -1344,7 +1347,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
       String sqlStmt =
           "DELETE FROM "
-              + getTableName()
+              + JDBCUtils.getQuotedCompliantIdentifier(getTableName())
               + " WHERE "
               + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
               + " = "
@@ -1437,10 +1440,10 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   void saveRecord(int num) {
     Object cell;
     String sqlStmt = "UPDATE ";
-    sqlStmt += getTableName() + " SET ";
+    sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(getTableName()) + " SET ";
 
     for (int i = 0; i < getModel().getColumnCount(); i++) {
-      sqlStmt += getModel().getColumnName(i) + '=';
+      sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(getModel().getColumnName(i)) + '=';
       cell = getModel().getValueAt(graphicIndex, i);
 
       byte type = getModel().getType(i);
@@ -1452,7 +1455,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
           sqlStmt += JDBCUtils.getInt(cell);
         }
       } else {
-        sqlStmt += '\'' + cell.toString() + '\'';
+        sqlStmt += '\'' + cell.toString().replace("'", "''") + '\'';
       }
 
       if (i < getModel().getColumnCount() - 1) {
@@ -1747,7 +1750,9 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         boolean error = false;
 
         // Must have same number of rows
-        try (ResultSet rs = stmt.executeQuery("select count(*) from " + tableName)) {
+        try (ResultSet rs =
+            stmt.executeQuery(
+                "select count(*) from " + JDBCUtils.getQuotedCompliantIdentifier(tableName))) {
           rs.next();
           int nbRows = rs.getInt(1);
           if (model.getRowCount() != nbRows) {
@@ -1796,7 +1801,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         }
 
         // Read the records
-        String sqlStmt = "SELECT * FROM " + tableName;
+        String sqlStmt = "SELECT * FROM " + JDBCUtils.getQuotedCompliantIdentifier(tableName);
 
         try (ResultSet rs = stmt.executeQuery(sqlStmt)) {
           ResultSetMetaData rsmd = rs.getMetaData();
