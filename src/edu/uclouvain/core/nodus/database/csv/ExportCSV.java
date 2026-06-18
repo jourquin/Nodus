@@ -40,6 +40,23 @@ public class ExportCSV {
   /** Default constructor. */
   public ExportCSV() {}
 
+  /** Escapes a value according to RFC4180 so exported files can be safely re-imported. */
+  private static String escapeCsvValue(Object value) {
+    if (value == null) {
+      return "";
+    }
+
+    String text = value.toString();
+    if (text.indexOf(',') == -1
+        && text.indexOf('"') == -1
+        && text.indexOf('\n') == -1
+        && text.indexOf('\r') == -1) {
+      return text;
+    }
+
+    return '"' + text.replace("\"", "\"\"") + '"';
+  }
+
   /**
    * Exports the table which name is given as parameter in the directory of the project. Returns
    * true if the table is successfully exported.
@@ -65,7 +82,7 @@ public class ExportCSV {
       // Save header if needed
       if (withHeader) {
         for (int i = 0; i < nbColumns; i++) {
-          bw.write(rsmd.getColumnName(i + 1));
+          bw.write(escapeCsvValue(rsmd.getColumnName(i + 1)));
           if (i < nbColumns - 1) {
             bw.write(',');
           }
@@ -76,11 +93,7 @@ public class ExportCSV {
       // Retrieve result of query
       while (rs.next()) {
         for (int i = 0; i < nbColumns; i++) {
-          try {
-            bw.write(rs.getObject(i + 1).toString());
-          } catch (Exception e) { // if null
-            bw.write("");
-          }
+          bw.write(escapeCsvValue(rs.getObject(i + 1)));
 
           if (i < nbColumns - 1) {
             bw.write(',');

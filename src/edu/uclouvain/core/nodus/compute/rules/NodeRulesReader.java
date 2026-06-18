@@ -342,7 +342,8 @@ public class NodeRulesReader {
       try (Statement stmt = con.createStatement();
           ResultSet rs = stmt.executeQuery(sql);
           PreparedStatement ps =
-              con.prepareStatement("INSERT INTO " + tmpFileName + " VALUES(?, ?, ? , ?, ?, ?, ?, ?)")) {
+              con.prepareStatement(
+                  "INSERT INTO " + tmpFileName + " VALUES(?, ?, ? , ?, ?, ?, ?, ?)")) {
 
         int group;
         int num;

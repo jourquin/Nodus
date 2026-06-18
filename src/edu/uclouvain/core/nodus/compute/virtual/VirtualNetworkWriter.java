@@ -232,46 +232,46 @@ public class VirtualNetworkWriter {
 
                 if (vl.hasVolume(timeSlice) || saveCompleteVirtualNetwork) {
 
-                int idx = 1;
-                /*
-                 * With the virtual network 3, insert in the table the line origin and the line
-                 * destination. With the virtual network 2, don't make any change.
-                 */
-                prepStmt.setInt(idx++, vl.getBeginVirtualNode().getRealNodeId(true));
-                prepStmt.setInt(idx++, vl.getBeginVirtualNode().getRealLinkId());
-                prepStmt.setInt(idx++, vl.getBeginVirtualNode().getMode());
-                prepStmt.setInt(idx++, vl.getBeginVirtualNode().getMeans());
-                prepStmt.setInt(idx++, vl.getBeginVirtualNode().getService());
-                prepStmt.setInt(idx++, vl.getEndVirtualNode().getRealNodeId(true));
-                prepStmt.setInt(idx++, vl.getEndVirtualNode().getRealLinkId());
-                prepStmt.setInt(idx++, vl.getEndVirtualNode().getMode());
-                prepStmt.setInt(idx++, vl.getEndVirtualNode().getMeans());
-                prepStmt.setInt(idx++, vl.getEndVirtualNode().getService());
-                prepStmt.setInt(idx++, currentTime);
-                prepStmt.setDouble(idx++, vl.getLength());
+                  int idx = 1;
+                  /*
+                   * With the virtual network 3, insert in the table the line origin and the line
+                   * destination. With the virtual network 2, don't make any change.
+                   */
+                  prepStmt.setInt(idx++, vl.getBeginVirtualNode().getRealNodeId(true));
+                  prepStmt.setInt(idx++, vl.getBeginVirtualNode().getRealLinkId());
+                  prepStmt.setInt(idx++, vl.getBeginVirtualNode().getMode());
+                  prepStmt.setInt(idx++, vl.getBeginVirtualNode().getMeans());
+                  prepStmt.setInt(idx++, vl.getBeginVirtualNode().getService());
+                  prepStmt.setInt(idx++, vl.getEndVirtualNode().getRealNodeId(true));
+                  prepStmt.setInt(idx++, vl.getEndVirtualNode().getRealLinkId());
+                  prepStmt.setInt(idx++, vl.getEndVirtualNode().getMode());
+                  prepStmt.setInt(idx++, vl.getEndVirtualNode().getMeans());
+                  prepStmt.setInt(idx++, vl.getEndVirtualNode().getService());
+                  prepStmt.setInt(idx++, currentTime);
+                  prepStmt.setDouble(idx++, vl.getLength());
 
-                double totalQty = 0.0;
-                double averageWeight = 0.0;
-                int totalVehicles = 0;
+                  double totalQty = 0.0;
+                  double averageWeight = 0.0;
+                  int totalVehicles = 0;
 
-                for (byte k = 0; k < (byte) groups.length; k++) {
+                  for (byte k = 0; k < (byte) groups.length; k++) {
 
-                  totalQty += vl.getCurrentVolume(k, timeSlice);
-                  averageWeight += vl.getCurrentVolume(k, timeSlice) * vl.getCost(k);
-                  totalVehicles += vl.getCurrentVehicles(k, timeSlice);
+                    totalQty += vl.getCurrentVolume(k, timeSlice);
+                    averageWeight += vl.getCurrentVolume(k, timeSlice) * vl.getCost(k);
+                    totalVehicles += vl.getCurrentVehicles(k, timeSlice);
 
-                  prepStmt.setDouble(idx++, vl.getCost(k));
-                  prepStmt.setDouble(idx++, vl.getCurrentVolume(k, timeSlice));
-                  prepStmt.setInt(idx++, vl.getCurrentVehicles(k, timeSlice));
-                }
+                    prepStmt.setDouble(idx++, vl.getCost(k));
+                    prepStmt.setDouble(idx++, vl.getCurrentVolume(k, timeSlice));
+                    prepStmt.setInt(idx++, vl.getCurrentVehicles(k, timeSlice));
+                  }
 
-                if (totalQty > 0) {
-                  averageWeight /= totalQty;
-                }
+                  if (totalQty > 0) {
+                    averageWeight /= totalQty;
+                  }
 
-                prepStmt.setDouble(idx++, averageWeight);
-                prepStmt.setDouble(idx++, totalQty);
-                prepStmt.setInt(idx++, totalVehicles);
+                  prepStmt.setDouble(idx++, averageWeight);
+                  prepStmt.setDouble(idx++, totalQty);
+                  prepStmt.setInt(idx++, totalVehicles);
 
                   // Save into table according to batch policy;
                   if (hasBatchSupport) {

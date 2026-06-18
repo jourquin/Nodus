@@ -34,7 +34,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.Reader;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 
@@ -186,23 +185,17 @@ public class NotePadActions {
   public void loadFile(String fileName) {
     try {
       notePad.getTextPane().setText("");
-      notePad.setFileName(lastPath, fileName);
+      StringBuilder txt = new StringBuilder();
 
-      Reader in = new FileReader(lastPath + fileName);
-      notePad.getTextPane().setText("p1=100");
-
-      BufferedReader br = new BufferedReader(in);
-      String str;
-
-      String txt = br.readLine() + '\n';
-
-      while ((str = br.readLine()) != null) {
-        txt += str + '\n';
+      try (BufferedReader br = new BufferedReader(new FileReader(lastPath + fileName))) {
+        String str;
+        while ((str = br.readLine()) != null) {
+          txt.append(str).append('\n');
+        }
       }
 
-      notePad.getTextPane().setText(txt);
-
-      in.close();
+      notePad.setFileName(lastPath, fileName);
+      notePad.getTextPane().setText(txt.toString());
       notePad.getTextPane().setCaretPosition(0);
       fileContent = notePad.getTextPane().getText();
     } catch (FileNotFoundException x) {

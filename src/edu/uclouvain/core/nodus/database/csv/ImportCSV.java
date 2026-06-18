@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.Savepoint;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Iterator;
@@ -113,6 +114,25 @@ public class ImportCSV {
     return batchSize;
   }
 
+  /** Rolls back the current import without disturbing older work on the shared connection. */
+  private static void rollbackToSavepoint(Connection con, Savepoint savepoint) {
+    if (con == null) {
+      return;
+    }
+
+    try {
+      if (!con.getAutoCommit()) {
+        if (savepoint != null) {
+          con.rollback(savepoint);
+        } else {
+          con.rollback();
+        }
+      }
+    } catch (SQLException rollbackEx) {
+      rollbackEx.printStackTrace();
+    }
+  }
+
   /**
    * Imports the table which name is passed as parameter. The CSV file must be located in the
    * project directory. The correspondent table structure (empty table) must exist in the database.
@@ -145,23 +165,32 @@ public class ImportCSV {
       return false;
     }
 
+    String fileName =
+        project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_CSV;
+
+    // Be sure the file exists before clearing the destination table
+    File f = new File(fileName);
+    if (!f.exists()) {
+      return false;
+    }
+
+    Connection con = null;
+    Savepoint savepoint = null;
+
     try {
-      Connection con = project.getMainJDBCConnection();
+      con = project.getMainJDBCConnection();
+      if (con == null) {
+        return false;
+      }
+
+      if (!con.getAutoCommit()) {
+        savepoint = con.setSavepoint();
+      }
 
       // Clean table
       try (Statement stmt = con.createStatement()) {
         String sqlStmt = "delete from " + JDBCUtils.getCompliantIdentifier(tableName);
         stmt.executeUpdate(sqlStmt);
-      }
-
-      // Open a reader for the csv file
-      String fileName =
-          project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_CSV;
-
-      // Be sure the file exists
-      File f = new File(fileName);
-      if (!f.exists()) {
-        return false;
       }
 
       try (Reader in = new FileReader(fileName);
@@ -214,6 +243,7 @@ public class ImportCSV {
       }
 
     } catch (SQLException | IOException e) {
+      rollbackToSavepoint(con, savepoint);
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
     }

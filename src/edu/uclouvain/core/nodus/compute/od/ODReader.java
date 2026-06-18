@@ -132,10 +132,10 @@ public class ODReader {
     // Test the structure of the table
     try (Statement stmt = jdbcConnection.createStatement();
         ResultSet rs =
-          stmt.executeQuery(
-              "SELECT * FROM "
-                  + JDBCUtils.getQuotedCompliantIdentifier(odTableName)
-                  + " WHERE 1 = 0")) {
+            stmt.executeQuery(
+                "SELECT * FROM "
+                    + JDBCUtils.getQuotedCompliantIdentifier(odTableName)
+                    + " WHERE 1 = 0")) {
 
       // Get result set meta data
       ResultSetMetaData rsmd = rs.getMetaData();
@@ -240,10 +240,10 @@ public class ODReader {
     // Test the structure of the table
     try (Statement stmt = jdbcConnection.createStatement();
         ResultSet rs =
-          stmt.executeQuery(
-              "SELECT * FROM "
-                  + JDBCUtils.getQuotedCompliantIdentifier(odTableName)
-                  + " WHERE 1 = 0")) {
+            stmt.executeQuery(
+                "SELECT * FROM "
+                    + JDBCUtils.getQuotedCompliantIdentifier(odTableName)
+                    + " WHERE 1 = 0")) {
 
       // Get result set meta data
       ResultSetMetaData rsmd = rs.getMetaData();

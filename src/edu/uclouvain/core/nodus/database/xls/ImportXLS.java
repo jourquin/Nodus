@@ -26,6 +26,7 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,6 +34,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.Savepoint;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Iterator;
@@ -63,19 +65,28 @@ public class ImportXLS {
   public ImportXLS() {}
 
   /**
-   * Creates a database table using the field descriptions found in the first row of the Excel
-   * sheet.
+   * Returns the Excel file path associated with the table to import.
    */
-  private static boolean createTable(NodusProject nodusProject, String tableName, boolean isXLSX) {
-    couldCreateTable = false;
-
-    // Open a reader for the xls file
+  private static String getFileName(NodusProject nodusProject, String tableName, boolean isXLSX) {
     String fileName =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_XLS;
     if (isXLSX) {
       fileName =
           nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_XLSX;
     }
+
+    return fileName;
+  }
+
+  /**
+   * Builds the CREATE TABLE statement described by the first row of the Excel sheet, or returns
+   * null if the row does not use the DBF-style schema syntax.
+   */
+  private static String getCreateTableStatement(
+      NodusProject nodusProject, String tableName, boolean isXLSX) {
+    couldCreateTable = false;
+
+    String fileName = getFileName(nodusProject, tableName, isXLSX);
 
     try (InputStream inp = new FileInputStream(fileName);
         Workbook wb = WorkbookFactory.create(inp)) {
@@ -85,22 +96,26 @@ public class ImportXLS {
 
       Iterator<Row> rows = sheet.rowIterator();
       if (!rows.hasNext()) {
-        return false;
+        return null;
       }
 
       Row row = rows.next();
       if (row == null) {
-        return false;
+        return null;
       }
 
       // Parse first row
-      String sqlStmt = "CREATE TABLE " + tableName + " (";
+      StringBuilder sqlStmt = new StringBuilder("CREATE TABLE ");
+      sqlStmt.append(tableName).append(" (");
       Iterator<Cell> cells = row.cellIterator();
+      if (!cells.hasNext()) {
+        return null;
+      }
 
       while (cells.hasNext()) {
         Cell cell = cells.next();
         if (cell.getCellType() != CellType.STRING) {
-          return false;
+          return null;
         }
 
         String content = cell.getStringCellValue();
@@ -108,7 +123,7 @@ public class ImportXLS {
         StringTokenizer st = new StringTokenizer(content, ",");
         int nbTokens = st.countTokens();
         if (nbTokens != 3 && nbTokens != 4) {
-          return false;
+          return null;
         }
 
         // First token is the name of the field
@@ -117,15 +132,15 @@ public class ImportXLS {
         // Second is the type of data. Must be N(umeric) or C(haracters)
         String fieldType = st.nextToken().trim();
         if (!fieldType.equalsIgnoreCase("N") && !fieldType.equalsIgnoreCase("C")) {
-          return false;
+          return null;
         }
 
         if (fieldType.equalsIgnoreCase("N") && nbTokens == 3) {
-          return false;
+          return null;
         }
 
         if (fieldType.equalsIgnoreCase("C") && nbTokens == 4) {
-          return false;
+          return null;
         }
         // static boolean oldAutoCommit = false;
         // static boolean result = true;
@@ -133,7 +148,7 @@ public class ImportXLS {
         // Third is length. Must be a strictly positive number
         int fieldLength = Integer.parseInt(st.nextToken());
         if (fieldLength <= 0) {
-          return false;
+          return null;
         }
 
         // Fourth is precision
@@ -141,42 +156,53 @@ public class ImportXLS {
         if (nbTokens == 4) {
           fieldPrecision = Integer.parseInt(st.nextToken());
           if (fieldPrecision < 0) {
-            return false;
+            return null;
           }
         }
 
         // sqlStmt += "\"" + fieldName + "\"";
-        sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(fieldName);
+        sqlStmt.append(JDBCUtils.getQuotedCompliantIdentifier(fieldName));
         if (fieldType.equalsIgnoreCase("N")) {
-          sqlStmt += " NUMERIC(" + fieldLength + "," + fieldPrecision + ")";
+          sqlStmt.append(" NUMERIC(").append(fieldLength).append(',').append(fieldPrecision).append(')');
         } else {
-          sqlStmt += " VARCHAR(" + fieldLength + ")";
+          sqlStmt.append(" VARCHAR(").append(fieldLength).append(')');
         }
 
         if (cells.hasNext()) {
-          sqlStmt += ",";
+          sqlStmt.append(',');
         } else {
-          sqlStmt += ")";
+          sqlStmt.append(')');
         }
       }
 
-      // Now create the table. Do not close the project-owned JDBC connection here.
-      Connection con = nodusProject.getMainJDBCConnection();
-      JDBCUtils.dropTable(tableName);
-      try (Statement stmt = con.createStatement()) {
-        stmt.execute(sqlStmt);
-      }
-
-      couldCreateTable = true;
-      return true;
+      return sqlStmt.toString();
     } catch (NumberFormatException e) {
-      return false;
+      return null;
     } catch (EncryptedDocumentException | IOException e) {
       e.printStackTrace();
-      return false;
+      return null;
     } catch (Exception e) {
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-      return false;
+      return null;
+    }
+  }
+
+  /** Rolls back the current import without disturbing older work on the shared connection. */
+  private static void rollbackToSavepoint(Connection con, Savepoint savepoint) {
+    if (con == null) {
+      return;
+    }
+
+    try {
+      if (!con.getAutoCommit()) {
+        if (savepoint != null) {
+          con.rollback(savepoint);
+        } else {
+          con.rollback();
+        }
+      }
+    } catch (SQLException rollbackEx) {
+      rollbackEx.printStackTrace();
     }
   }
 
@@ -193,9 +219,16 @@ public class ImportXLS {
    * @return True on success.
    */
   public static boolean importTable(NodusProject nodusProject, String tableName, boolean isXLSX) {
+    String fileName = getFileName(nodusProject, tableName, isXLSX);
+    if (!new File(fileName).exists()) {
+      couldCreateTable = false;
+      return false;
+    }
+
+    String createTableStatement = getCreateTableStatement(nodusProject, tableName, isXLSX);
 
     // Test if table can be created from the the content of the first row of the .xls file
-    if (!createTable(nodusProject, tableName, isXLSX)) {
+    if (createTableStatement == null) {
       // Table must exist in order to know which structure it has
       if (!JDBCUtils.tableExists(tableName)) {
         JOptionPane.showMessageDialog(
@@ -210,9 +243,15 @@ public class ImportXLS {
         return false;
       }
     }
+    couldCreateTable = createTableStatement != null;
 
     // Do not close the project-owned JDBC connection here.
     Connection con = nodusProject.getMainJDBCConnection();
+    if (con == null) {
+      return false;
+    }
+
+    Savepoint savepoint = null;
 
     // Clean table and read table structure
     String sqlStmt;
@@ -220,6 +259,15 @@ public class ImportXLS {
     int[] columnTypes;
 
     try (Statement stmt = con.createStatement()) {
+      if (!con.getAutoCommit()) {
+        savepoint = con.setSavepoint();
+      }
+
+      if (createTableStatement != null) {
+        JDBCUtils.dropTable(tableName);
+        stmt.execute(createTableStatement);
+      }
+
       sqlStmt = "delete from " + JDBCUtils.getCompliantIdentifier(tableName);
       stmt.executeUpdate(sqlStmt);
 
@@ -234,16 +282,9 @@ public class ImportXLS {
         }
       }
     } catch (SQLException e) {
+      rollbackToSavepoint(con, savepoint);
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
-    }
-
-    // Open a reader for the xls file
-    String fileName =
-        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_XLS;
-    if (isXLSX) {
-      fileName =
-          nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_XLSX;
     }
 
     // Read records and import them in SQL database
@@ -299,6 +340,7 @@ public class ImportXLS {
         con.commit();
       }
     } catch (Exception e) {
+      rollbackToSavepoint(con, savepoint);
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
     }

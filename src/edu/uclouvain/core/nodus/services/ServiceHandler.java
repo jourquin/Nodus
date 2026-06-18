@@ -37,6 +37,8 @@ import java.awt.Graphics;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Savepoint;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -250,13 +252,20 @@ public class ServiceHandler {
 
   /** Saves the services in the database. */
   private void saveServices() {
-
-    // Create new tables if needed
-    resetServicesTables();
+    Savepoint savepoint = null;
 
     try {
-
       jdbcConnection = nodusProject.getMainJDBCConnection();
+      if (jdbcConnection == null) {
+        return;
+      }
+
+      if (!jdbcConnection.getAutoCommit()) {
+        savepoint = jdbcConnection.setSavepoint();
+      }
+
+      // Create new tables if needed
+      resetServicesTables();
 
       String servicesHeaderSql = "INSERT INTO " + servicesHeaderTableName + " VALUES(?,?,?,?,?)";
       String servicesLinksSql = "INSERT INTO " + servicesLinksTableName + " VALUES(?,?)";
@@ -279,15 +288,11 @@ public class ServiceHandler {
           pstmt1.executeUpdate();
 
           // Stops
-          try {
-            Iterator<Integer> it = s.getStopNodes().iterator();
-            while (it.hasNext()) {
-              pstmt3.setInt(1, s.getId());
-              pstmt3.setInt(2, it.next());
-              pstmt3.executeUpdate();
-            }
-          } catch (Exception e) {
-            e.printStackTrace();
+          Iterator<Integer> it = s.getStopNodes().iterator();
+          while (it.hasNext()) {
+            pstmt3.setInt(1, s.getId());
+            pstmt3.setInt(2, it.next());
+            pstmt3.executeUpdate();
           }
 
           // Chunks
@@ -309,7 +314,21 @@ public class ServiceHandler {
         jdbcConnection.commit();
       }
     } catch (Exception ex) {
-      JOptionPane.showMessageDialog(null, ex.getMessage(), "SQL error", JOptionPane.ERROR_MESSAGE);
+      if (jdbcConnection != null) {
+        try {
+          if (!jdbcConnection.getAutoCommit()) {
+            if (savepoint != null) {
+              jdbcConnection.rollback(savepoint);
+            } else {
+              jdbcConnection.rollback();
+            }
+          }
+        } catch (SQLException rollbackEx) {
+          rollbackEx.printStackTrace();
+        }
+      }
+
+      JOptionPane.showMessageDialog(null, ex.toString(), "SQL error", JOptionPane.ERROR_MESSAGE);
     }
   }
 
