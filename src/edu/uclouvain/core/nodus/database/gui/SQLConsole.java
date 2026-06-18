@@ -362,6 +362,21 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
   }
 
+  /** Closes the shared statement used by this console. */
+  private void closeStatement() {
+    if (statement == null) {
+      return;
+    }
+
+    try {
+      statement.close();
+    } catch (SQLException e) {
+      e.printStackTrace();
+    } finally {
+      statement = null;
+    }
+  }
+
   /**
    * Used to recall a command saved in the history.
    *
@@ -2106,22 +2121,25 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @return True on success
    */
   public boolean runBatch(String[] sqlCommands) {
+    try {
+      sqlCommandsArea = new RSyntaxTextArea();
+      StringBuffer b = new StringBuffer();
+      for (int i = 0; i < sqlCommands.length; i++) {
 
-    sqlCommandsArea = new RSyntaxTextArea();
-    StringBuffer b = new StringBuffer();
-    for (int i = 0; i < sqlCommands.length; i++) {
+        // Be sure a semicolon is present
+        String s = sqlCommands[i].trim();
+        if (!s.endsWith(";")) {
+          s += ";";
+        }
 
-      // Be sure a semicolon is present
-      String s = sqlCommands[i].trim();
-      if (!s.endsWith(";")) {
-        s += ";";
+        b.append(s);
+        b.append(NL);
       }
-
-      b.append(s);
-      b.append(NL);
+      sqlCommandsArea.setText(b.toString());
+      return execute();
+    } finally {
+      closeStatement();
     }
-    sqlCommandsArea.setText(b.toString());
-    return execute();
   }
 
   /** Saves history (recent SQL statements) in property file. */
@@ -2339,14 +2357,12 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    */
   @Override
   public void windowClosing(WindowEvent ev) {
-    try {
-      statement.close();
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+    closeStatement();
 
     saveHistory();
-    frame.dispose();
+    if (frame != null) {
+      frame.dispose();
+    }
   }
 
   /**

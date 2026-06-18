@@ -325,11 +325,8 @@ public class NotePadActions {
     if (notePad.getFileName(false).equals("")) {
       saveFileAs();
     } else {
-      try {
-        PrintWriter fout = new PrintWriter(new FileWriter(notePad.getFileName(true)));
-
+      try (PrintWriter fout = new PrintWriter(new FileWriter(notePad.getFileName(true)))) {
         fout.print(fileContent);
-        fout.close();
       } catch (IOException ioe) {
         // System.err.println("I/O Error on Save");
         JOptionPane.showMessageDialog(
@@ -356,8 +353,6 @@ public class NotePadActions {
     returnVal = fileChooser.showSaveDialog(notePad);
 
     if (returnVal == JFileChooser.APPROVE_OPTION) {
-      PrintWriter fout = null;
-
       try {
         String extension = "." + ((NodusFileFilter) fileChooser.getFileFilter()).getExtension();
         String fileName = fileChooser.getSelectedFile().getPath();
@@ -383,13 +378,13 @@ public class NotePadActions {
         }
 
         if (answer == JOptionPane.YES_OPTION) {
-          fout = new PrintWriter(new FileWriter(fileName));
           fileContent = notePad.getTextPane().getText();
-          fout.print(fileContent);
-          fout.close();
-        }
+          try (PrintWriter fout = new PrintWriter(new FileWriter(fileName))) {
+            fout.print(fileContent);
+          }
 
-        notePad.setFileName(lastPath, name);
+          notePad.setFileName(lastPath, name);
+        }
 
       } catch (IOException ioe) {
         JOptionPane.showMessageDialog(

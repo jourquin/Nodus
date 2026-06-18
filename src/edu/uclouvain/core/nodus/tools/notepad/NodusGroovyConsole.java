@@ -31,6 +31,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JMenu;
@@ -193,10 +194,9 @@ public class NodusGroovyConsole extends NotePad {
     getTextPane().setHighlightCurrentLine(true);
     getTextPane().setAntiAliasingEnabled(true);
     getTextPane().setMarkOccurrences(true);
-    try {
-      Theme theme =
-          Theme.load(
-              getClass().getResourceAsStream("/org/fife/ui/rsyntaxtextarea/themes/idea.xml"));
+    try (InputStream inputStream =
+        getClass().getResourceAsStream("/org/fife/ui/rsyntaxtextarea/themes/idea.xml")) {
+      Theme theme = Theme.load(inputStream);
       theme.apply(getTextPane());
     } catch (IOException ioe) {
       ioe.printStackTrace();

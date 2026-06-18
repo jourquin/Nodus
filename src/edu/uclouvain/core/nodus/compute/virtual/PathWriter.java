@@ -269,22 +269,33 @@ public class PathWriter {
       return true;
     }
 
+    boolean oldAutoCommit = true;
+    boolean restoreAutoCommit = false;
     try {
-      final boolean oldAutoCommit = con.getAutoCommit();
+      oldAutoCommit = con.getAutoCommit();
       con.setAutoCommit(false);
+      restoreAutoCommit = true;
       try {
         prepStmtDetails.executeBatch();
       } catch (Exception e) {
         // If not in batch mode because there is nothing to write in table
       }
       con.commit();
-      con.setAutoCommit(oldAutoCommit);
     } catch (SQLException e) {
       nodusProject.getNodusMapPanel().stopProgress();
       SingleInstanceMessagePane.display(
           nodusProject.getNodusMapPanel(), e.getMessage(), JOptionPane.ERROR_MESSAGE);
 
       return false;
+    } finally {
+      if (restoreAutoCommit) {
+        try {
+          con.setAutoCommit(oldAutoCommit);
+        } catch (SQLException e) {
+          SingleInstanceMessagePane.display(
+              nodusProject.getNodusMapPanel(), e.getMessage(), JOptionPane.ERROR_MESSAGE);
+        }
+      }
     }
 
     detailsBatchSize = 0;
@@ -305,19 +316,29 @@ public class PathWriter {
       return true;
     }
 
+    boolean oldAutoCommit = true;
+    boolean restoreAutoCommit = false;
     try {
-      final boolean oldAutoCommit = con.getAutoCommit();
+      oldAutoCommit = con.getAutoCommit();
       con.setAutoCommit(false);
+      restoreAutoCommit = true;
       try {
         prepStmtHeaders.executeBatch();
       } catch (Exception e) {
         // If not in batch mode because there is nothing to write in table
       }
       con.commit();
-      con.setAutoCommit(oldAutoCommit);
     } catch (SQLException e) {
       e.printStackTrace();
       return false;
+    } finally {
+      if (restoreAutoCommit) {
+        try {
+          con.setAutoCommit(oldAutoCommit);
+        } catch (SQLException e) {
+          e.printStackTrace();
+        }
+      }
     }
 
     headerBatchSize = 0;
