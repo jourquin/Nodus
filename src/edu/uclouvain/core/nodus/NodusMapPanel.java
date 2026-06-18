@@ -3182,4 +3182,20 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   public HashMap<String, Object> getStoredObjects() {
     return store;
   }
+
+  /**
+   * Removes a previously stored object.
+   *
+   * @param objectName The name of the object to remove.
+   */
+  public void removeStoredObject(String objectName) {
+    store.remove(objectName);
+  }
+
+  /**
+   * Clears all stored objects.
+   */
+  public void clearStoredObjects() {
+    store.clear();
+  }
 }

@@ -131,6 +131,12 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
   /** Used to intercept the closing of the launcher window. */
   private WindowAdapter closeAdapter = null;
 
+  /** True when {@link #closeAdapter} is installed on the launcher window. */
+  private boolean closeAdapterInstalled = false;
+
+  /** Launcher window on which {@link #closeAdapter} is currently installed. */
+  private WindowSupport.Frm closeAdapterFrame = null;
+
   /**
    * Initializes the drawing tool.
    *
@@ -590,23 +596,78 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
     return null;
   }
 
+  /** Returns the launcher frame, or {@code null} if it is not available yet. */
+  private WindowSupport.Frm getLauncherFrame() {
+    if (nodusOMDrawingToolLauncher == null
+        || nodusOMDrawingToolLauncher.getWindowSupport() == null) {
+      return null;
+    }
+
+    Object display = nodusOMDrawingToolLauncher.getWindowSupport().getDisplay();
+    if (display instanceof WindowSupport.Frm) {
+      return (WindowSupport.Frm) display;
+    }
+
+    return null;
+  }
+
+  /** Creates the launcher close listener lazily. */
+  private void ensureCloseAdapter() {
+    if (closeAdapter != null) {
+      return;
+    }
+
+    closeAdapter =
+        new WindowAdapter() {
+          @Override
+          public void windowClosing(WindowEvent e) {
+            nodusOMDrawingToolLauncher.cancel();
+          }
+        };
+  }
+
+  /**
+   * Installs the launcher close listener once, even if the drawing tool is activated repeatedly.
+   */
+  private void installCloseAdapter() {
+    ensureCloseAdapter();
+
+    WindowSupport.Frm frm = getLauncherFrame();
+    if (frm == null) {
+      return;
+    }
+
+    if (closeAdapterInstalled && closeAdapterFrame == frm) {
+      return;
+    }
+
+    /*
+     * If the launcher window was recreated, remove the listener from the previous window before
+     * installing it on the current one.
+     */
+    removeCloseAdapter();
+
+    frm.addWindowListener(closeAdapter);
+    closeAdapterFrame = frm;
+    closeAdapterInstalled = true;
+  }
+
+  /** Removes the launcher close listener, if it was installed. */
+  private void removeCloseAdapter() {
+    if (closeAdapterInstalled && closeAdapterFrame != null && closeAdapter != null) {
+      closeAdapterFrame.removeWindowListener(closeAdapter);
+    }
+
+    closeAdapterFrame = null;
+    closeAdapterInstalled = false;
+  }
+
   @Override
   public synchronized void activate() {
     // Avoid re-entrance
     nodusOMDrawingToolLauncher.setBusy(true);
 
-    // Create and add a listener to detect a closing of the launcher
-    if (closeAdapter == null) {
-      closeAdapter =
-          new WindowAdapter() {
-            public void windowClosing(WindowEvent e) {
-              nodusOMDrawingToolLauncher.cancel();
-            }
-          };
-    }
-    WindowSupport.Frm frm =
-        (WindowSupport.Frm) nodusOMDrawingToolLauncher.getWindowSupport().getDisplay();
-    frm.addWindowListener(closeAdapter);
+    installCloseAdapter();
 
     nodusMapPanel.getMapBean().requestFocus();
     super.activate();
@@ -616,12 +677,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
   public synchronized void cancel() {
     nodusOMDrawingToolLauncher.setBusy(false);
 
-    // Remove the closing listener on the launcher
-    WindowSupport.Frm frm =
-        (WindowSupport.Frm) nodusOMDrawingToolLauncher.getWindowSupport().getDisplay();
-    if (frm != null) {
-      frm.removeWindowListener(closeAdapter);
-    }
+    removeCloseAdapter();
 
     // If there was an ongoing link moving action, restore to node tool
     if (isMoving) {
@@ -1577,7 +1633,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
         // the new first link
         double[] pts1 = new double[cutflag + 3];
         // the new second link
-        
+
         int i = 0;
         // the new points for the first link
         do {

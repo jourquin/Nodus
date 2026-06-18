@@ -59,6 +59,7 @@ import java.awt.Container;
 import java.awt.Frame;
 import java.awt.SecondaryLoop;
 import java.awt.Toolkit;
+import java.awt.Window;
 import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.FileInputStream;
@@ -372,11 +373,11 @@ public class NodusProject implements ShapeConstants {
       scriptRunner.setVariable("closeProject", true);
       scriptRunner.run(true);
 
-      // Close all the open children frames
-      for (Frame element : Frame.getFrames()) {
-        if (element != nodusMapPanel.getMainFrame()) {
-          element.setVisible(false);
-          element.dispose();
+      // Close all the open child windows, including dialogs.
+      for (Window window : Window.getWindows()) {
+        if (window != null && window != nodusMapPanel.getMainFrame() && window.isDisplayable()) {
+          window.setVisible(false);
+          window.dispose();
         }
       }
 
@@ -617,6 +618,7 @@ public class NodusProject implements ShapeConstants {
 
       // Enable some menu items and dispose/remove project plugins menus and instances
       nodusMapPanel.removeProjectPlugins();
+      nodusMapPanel.clearStoredObjects();
       nodusMapPanel.enableMenus(false);
 
       otherNodeNumbers.clear();
