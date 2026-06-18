@@ -113,15 +113,18 @@ public class NotePadActions {
         save();
         notePad.setFileName("", "");
         notePad.setVisible(false);
+        notePad.dispose();
       }
 
       if (option == 1) {
         notePad.setFileName("", "");
         notePad.setVisible(false);
+        notePad.dispose();
       }
 
     } else {
       notePad.setVisible(false);
+      notePad.dispose();
     }
   }
 

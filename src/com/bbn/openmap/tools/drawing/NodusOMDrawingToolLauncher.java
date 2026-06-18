@@ -66,6 +66,12 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
   /** . */
   private NodusMapPanel nodusMapPanel;
 
+  /** Listener installed on the launcher window support. */
+  private ComponentListener windowSupportComponentListener;
+
+  /** True if {@link #windowSupportComponentListener} has already been installed. */
+  private boolean windowSupportComponentListenerInstalled = false;
+
   /**
    * Constructor.
    *
@@ -142,34 +148,45 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
     add(buttonsPanel);
 
     // Editing the network is not allowed when results are displayed or if no project is open.
-    windowSupport.addComponentListener(
-        new ComponentListener() {
+    installWindowSupportComponentListener();
+  }
 
-          @Override
-          public void componentShown(ComponentEvent e) {
+  /**
+   * Installs the window-support listener once, even if {@link #resetGUI()} is called repeatedly.
+   */
+  private void installWindowSupportComponentListener() {
+    if (windowSupportComponentListener == null) {
+      windowSupportComponentListener =
+          new ComponentListener() {
 
-            if (areLayersEditable()) {
-              createButton.setEnabled(true);
-            } else {
-              createButton.setEnabled(false);
+            @Override
+            public void componentShown(ComponentEvent e) {
+              if (createButton != null) {
+                createButton.setEnabled(areLayersEditable());
+              }
             }
-          }
 
-          @Override
-          public void componentResized(ComponentEvent e) {
-            // Nothing to do
-          }
+            @Override
+            public void componentResized(ComponentEvent e) {
+              // Nothing to do
+            }
 
-          @Override
-          public void componentMoved(ComponentEvent e) {
-            // Nothing to do
-          }
+            @Override
+            public void componentMoved(ComponentEvent e) {
+              // Nothing to do
+            }
 
-          @Override
-          public void componentHidden(ComponentEvent e) {
-            // Nothing to do
-          }
-        });
+            @Override
+            public void componentHidden(ComponentEvent e) {
+              // Nothing to do
+            }
+          };
+    }
+
+    if (!windowSupportComponentListenerInstalled) {
+      windowSupport.addComponentListener(windowSupportComponentListener);
+      windowSupportComponentListenerInstalled = true;
+    }
   }
 
   /** Cancel edit operation and close window. */

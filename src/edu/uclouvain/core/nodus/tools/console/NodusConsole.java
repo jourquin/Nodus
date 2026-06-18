@@ -91,11 +91,29 @@ public class NodusConsole extends WindowAdapter
 
   private JFrame frame;
 
+  private JButton clearButton;
+
+  private JButton saveButton;
+
+  private ActionListener clearActionListener;
+
+  private ActionListener saveActionListener;
+
   private PipedInputStream pin = new PipedInputStream();
 
   private PipedInputStream pin2 = new PipedInputStream();
 
   private boolean quit;
+
+  private boolean disposed;
+
+  private PrintStream previousOut;
+
+  private PrintStream previousErr;
+
+  private PrintStream redirectedOut;
+
+  private PrintStream redirectedErr;
 
   private Thread reader;
 
@@ -124,6 +142,7 @@ public class NodusConsole extends WindowAdapter
 
     // create all components and add them
     frame = new JFrame();
+    frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     frame.setTitle(i18n.get(NodusConsole.class, "Nodus_Console", "Nodus Console"));
     frame.setName(thisComponentName);
     frame.setIconImage(
@@ -142,8 +161,8 @@ public class NodusConsole extends WindowAdapter
     StyleConstants.setFontFamily(style, "MonoSpaced");
     StyleConstants.setFontSize(style, 12);
 
-    final JButton clearButton = new JButton(i18n.get(NodusConsole.class, "Clear", "Clear"));
-    final JButton saveButton = new JButton(i18n.get(NodusConsole.class, "Save", "Save"));
+    clearButton = new JButton(i18n.get(NodusConsole.class, "Clear", "Clear"));
+    saveButton = new JButton(i18n.get(NodusConsole.class, "Save", "Save"));
 
     frame.getContentPane().setLayout(new BorderLayout(10, 10));
     JScrollPane sp = new JScrollPane(textArea);
@@ -156,15 +175,16 @@ public class NodusConsole extends WindowAdapter
     frame.addWindowListener(this);
     // clearButton.addActionListener(this);
 
-    clearButton.addActionListener(
+    clearActionListener =
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
-            textArea.setText("");
+            clear();
           }
-        });
+        };
+    clearButton.addActionListener(clearActionListener);
 
-    saveButton.addActionListener(
+    saveActionListener =
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -172,51 +192,10 @@ public class NodusConsole extends WindowAdapter
               System.out.println("--- Content saved ---");
             }
           }
-        });
+        };
+    saveButton.addActionListener(saveActionListener);
 
-    try {
-      PipedOutputStream pout = new PipedOutputStream(pin);
-      PrintStream ps = new PrintStream(pout, true);
-
-      System.setOut(ps);
-    } catch (java.io.IOException io) {
-      textArea.setText(
-          i18n.get(
-                  NodusConsole.class,
-                  "Couldn_t_redirect_STDOUT_to_this_console",
-                  "Couldn't redirect STDOUT to this console")
-              + "\n"
-              + io.getMessage());
-    } catch (SecurityException se) {
-      textArea.setText(
-          i18n.get(
-                  NodusConsole.class,
-                  "Couldn_t_redirect_STDOUT_to_this_console",
-                  "Couldn't redirect STDOUT to this console")
-              + "\n"
-              + se.getMessage());
-    }
-
-    try {
-      PipedOutputStream pout2 = new PipedOutputStream(pin2);
-      System.setErr(new PrintStream(pout2, true));
-    } catch (java.io.IOException io) {
-      textArea.setText(
-          i18n.get(
-                  NodusConsole.class,
-                  "Couldn_t_redirect_STDERR_to_this_console",
-                  "Couldn't redirect STDERR to this console")
-              + "\n"
-              + io.getMessage());
-    } catch (SecurityException se) {
-      textArea.setText(
-          i18n.get(
-                  NodusConsole.class,
-                  "Couldn_t_redirect_STDERR_to_this_console",
-                  "Couldn't redirect STDERR to this console")
-              + "\n"
-              + se.getMessage());
-    }
+    redirectStandardStreams();
 
     quit = false; // signals the Threads that they should exit
 
@@ -233,10 +212,123 @@ public class NodusConsole extends WindowAdapter
         new Runnable() {
           @Override
           public void run() {
-            reader.start();
-            reader2.start();
+            if (!quit && reader != null && reader.getState() == Thread.State.NEW) {
+              reader.start();
+            }
+            if (!quit && reader2 != null && reader2.getState() == Thread.State.NEW) {
+              reader2.start();
+            }
           }
         });
+  }
+
+  /** Redirects standard output and error streams to this console. */
+  private void redirectStandardStreams() {
+    previousOut = System.out;
+    previousErr = System.err;
+
+    try {
+      PipedOutputStream pout = new PipedOutputStream(pin);
+      redirectedOut = new PrintStream(pout, true);
+      System.setOut(redirectedOut);
+    } catch (java.io.IOException io) {
+      showRedirectionError(
+          "Couldn_t_redirect_STDOUT_to_this_console",
+          "Couldn't redirect STDOUT to this console",
+          io.getMessage());
+    } catch (SecurityException se) {
+      showRedirectionError(
+          "Couldn_t_redirect_STDOUT_to_this_console",
+          "Couldn't redirect STDOUT to this console",
+          se.getMessage());
+    }
+
+    try {
+      PipedOutputStream pout2 = new PipedOutputStream(pin2);
+      redirectedErr = new PrintStream(pout2, true);
+      System.setErr(redirectedErr);
+    } catch (java.io.IOException io) {
+      showRedirectionError(
+          "Couldn_t_redirect_STDERR_to_this_console",
+          "Couldn't redirect STDERR to this console",
+          io.getMessage());
+    } catch (SecurityException se) {
+      showRedirectionError(
+          "Couldn_t_redirect_STDERR_to_this_console",
+          "Couldn't redirect STDERR to this console",
+          se.getMessage());
+    }
+  }
+
+  /** Displays a standard stream redirection error in the console text area. */
+  private void showRedirectionError(String key, String defaultText, String message) {
+    if (textArea != null) {
+      textArea.setText(i18n.get(NodusConsole.class, key, defaultText) + "\n" + message);
+    }
+  }
+
+  /** Restores the standard streams that were active before this console redirected them. */
+  private void restoreStandardStreams() {
+    if (previousOut != null && System.out == redirectedOut) {
+      System.setOut(previousOut);
+    }
+
+    if (previousErr != null && System.err == redirectedErr) {
+      System.setErr(previousErr);
+    }
+  }
+
+  /** Closes redirected streams. */
+  private void closeRedirectedStreams() {
+    if (redirectedOut != null) {
+      redirectedOut.close();
+      redirectedOut = null;
+    }
+
+    if (redirectedErr != null) {
+      redirectedErr.close();
+      redirectedErr = null;
+    }
+  }
+
+  /** Removes listeners installed by this console. */
+  private void removeInstalledListeners() {
+    if (clearButton != null && clearActionListener != null) {
+      clearButton.removeActionListener(clearActionListener);
+    }
+
+    if (saveButton != null && saveActionListener != null) {
+      saveButton.removeActionListener(saveActionListener);
+    }
+
+    if (frame != null) {
+      frame.removeWindowListener(this);
+    }
+  }
+
+  /** Clears references held by this console after the window has been disposed. */
+  private void releaseReferences() {
+    removeInstalledListeners();
+
+    if (frame != null) {
+      frame.getContentPane().removeAll();
+    }
+
+    textArea = null;
+    doc = null;
+    style = null;
+    clearButton = null;
+    saveButton = null;
+    clearActionListener = null;
+    saveActionListener = null;
+    defaultDirectory = null;
+    frame = null;
+    previousOut = null;
+    previousErr = null;
+    pin = null;
+    pin2 = null;
+    reader = null;
+    reader2 = null;
   }
 
   /**
@@ -250,7 +342,9 @@ public class NodusConsole extends WindowAdapter
 
   /** Clears the console. */
   public void clear() {
-    textArea.setText("");
+    if (textArea != null) {
+      textArea.setText("");
+    }
   }
 
   private synchronized String readLine(PipedInputStream in) throws IOException {
@@ -313,15 +407,18 @@ public class NodusConsole extends WindowAdapter
         }
       }
     } catch (Exception e) {
-      textArea.setText(
-          "\n"
-              + i18n.get(
-                  NodusConsole.class,
-                  "Console_reports_an_Internal_error",
-                  "Console reports an Internal error.")
-              + "\n"
-              + MessageFormat.format(
-                  i18n.get(NodusConsole.class, "The_error_is", "The error is: {0}"), e.toString()));
+      if (textArea != null) {
+        textArea.setText(
+            "\n"
+                + i18n.get(
+                    NodusConsole.class,
+                    "Console_reports_an_Internal_error",
+                    "Console reports an Internal error.")
+                + "\n"
+                + MessageFormat.format(
+                    i18n.get(NodusConsole.class, "The_error_is", "The error is: {0}"),
+                    e.toString()));
+      }
     }
   }
 
@@ -331,6 +428,10 @@ public class NodusConsole extends WindowAdapter
    * @return True on success.
    */
   private boolean saveContent() {
+    if (textArea == null) {
+      return false;
+    }
+
     JFileChooser f = new JFileChooser(".");
 
     f.setDialogTitle(i18n.get(NodusConsole.class, "Save", "Save"));
@@ -384,7 +485,9 @@ public class NodusConsole extends WindowAdapter
    * @param height The height, expressed in pixels.
    */
   public void setSize(int width, int height) {
-    frame.setSize(width, height);
+    if (frame != null) {
+      frame.setSize(width, height);
+    }
   }
 
   /**
@@ -394,20 +497,61 @@ public class NodusConsole extends WindowAdapter
    * @hidden
    */
   @Override
-  public synchronized void windowClosed(WindowEvent evt) {
-    quit = true;
-    notifyAll(); // stop all threads
+  public void windowClosed(WindowEvent evt) {
+    Thread stdoutReader;
+    Thread stderrReader;
+
+    synchronized (this) {
+      if (disposed) {
+        return;
+      }
+
+      disposed = true;
+      quit = true;
+      notifyAll(); // stop all threads
+
+      restoreStandardStreams();
+      closeRedirectedStreams();
+
+      stdoutReader = reader;
+      stderrReader = reader2;
+
+      closePipe(pin);
+      closePipe(pin2);
+    }
+
+    joinReader(stdoutReader);
+    joinReader(stderrReader);
+
+    synchronized (this) {
+      releaseReferences();
+    }
+  }
+
+  /** Closes a pipe quietly during console shutdown. */
+  private void closePipe(PipedInputStream pipe) {
+    if (pipe == null) {
+      return;
+    }
+
     try {
-      reader.join(1000);
-      pin.close();
-    } catch (Exception e) {
+      pipe.close();
+    } catch (IOException e) {
       e.printStackTrace();
     }
+  }
+
+  /** Waits briefly for a reader thread to stop. */
+  private void joinReader(Thread thread) {
+    if (thread == null) {
+      return;
+    }
+
     try {
-      reader2.join(1000);
-      pin2.close();
-    } catch (Exception e) {
-      e.printStackTrace();
+      thread.interrupt();
+      thread.join(1000);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
   }
 
@@ -418,8 +562,10 @@ public class NodusConsole extends WindowAdapter
    * @hidden
    */
   @Override
-  public synchronized void windowClosing(WindowEvent evt) {
-    frame.setVisible(false); // default behaviour of JFrame
-    frame.dispose();
+  public void windowClosing(WindowEvent evt) {
+    if (frame != null) {
+      frame.setVisible(false); // default behaviour of JFrame
+      frame.dispose();
+    }
   }
 }
