@@ -35,6 +35,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 /**
@@ -58,7 +59,11 @@ public class ExportXLS {
   public static boolean exportTable(NodusProject nodusProject, String tableName, boolean isXLSX) {
 
     try (Workbook wbs = isXLSX ? new XSSFWorkbook() : new HSSFWorkbook()) {
-      Sheet sheet = wbs.createSheet(tableName);
+      String sheetName = WorkbookUtil.createSafeSheetName(tableName);
+      if (sheetName.length() > 31) {
+        sheetName = sheetName.substring(0, 31);
+      }
+      Sheet sheet = wbs.createSheet(sheetName);
 
       // Browse table. Do not close the project-owned JDBC connection here.
       Connection con = nodusProject.getMainJDBCConnection();

@@ -219,7 +219,6 @@ public class NodeResults implements ShapeConstants {
         Iterator<?> it = egl.iterator();
         int index = 0;
         double minRadius = maxRadius / 10;
-        double ratio = (maxResult - minResult) / (maxRadius - minRadius);
 
         while (it.hasNext()) {
           OMGraphic omg = (OMGraphic) it.next();
@@ -234,7 +233,13 @@ public class NodeResults implements ShapeConstants {
 
             if (rn.getResult() != 0) {
 
-              double size = minRadius + (rn.getResult() - minResult) / ratio;
+              double size;
+              if (maxResult > minResult) {
+                double ratio = (maxResult - minResult) / (maxRadius - minRadius);
+                size = minRadius + (rn.getResult() - minResult) / ratio;
+              } else {
+                size = maxRadius;
+              }
               rn.setSize((int) size);
             } else {
               rn.setSize(0);

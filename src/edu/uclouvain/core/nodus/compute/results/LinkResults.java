@@ -114,6 +114,8 @@ public class LinkResults implements ShapeConstants {
 
   private static int currentScenario = -1;
 
+  private static VehiclesParser currentVehiclesParser = null;
+
   double maxResult = Double.MIN_VALUE;
   double minResult = Double.MAX_VALUE;
 
@@ -438,7 +440,7 @@ public class LinkResults implements ShapeConstants {
 
     // Load the average loads of each type of vehicle from the cost functions file
     if (displayVehicles) {
-      if (scenario != currentScenario) {
+      if (scenario != currentScenario || currentVehiclesParser == null) {
         currentScenario = scenario;
 
         // Load cost functions
@@ -455,18 +457,22 @@ public class LinkResults implements ShapeConstants {
           costFunctions.load(inputStream);
         } catch (IOException ex) {
           ex.printStackTrace();
+          nodusMapPanel.setBusy(false);
           return false;
         }
 
         // Initialize the vehicles parser and load the vehicle characteristics for all groups.
-        vehiclesParser = new VehiclesParser(currentScenario);
+        currentVehiclesParser = new VehiclesParser(currentScenario);
 
         for (byte group = 0; group < NodusC.MAXGROUPS; group++) {
-          if (!vehiclesParser.loadVehicleCharacteristics(costFunctions, group)) {
+          if (!currentVehiclesParser.loadVehicleCharacteristics(costFunctions, group)) {
+            nodusMapPanel.setBusy(false);
             return false;
           }
         }
       }
+
+      vehiclesParser = currentVehiclesParser;
     }
 
     Connection jdbcConnection = nodusProject.getMainJDBCConnection();
