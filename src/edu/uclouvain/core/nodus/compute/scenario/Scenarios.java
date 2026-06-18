@@ -182,17 +182,17 @@ public class Scenarios {
       tableName =
           nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + referenceScenario;
 
-      ResultSet col = JDBCUtils.getColumns(tableName);
+      try (ResultSet col = JDBCUtils.getColumns(tableName)) {
+        while (col.next()) {
+          String c = col.getString(4).toLowerCase();
 
-      while (col.next()) {
-        String c = col.getString(4).toLowerCase();
+          // Get the group number
+          if (c.startsWith(NodusC.DBF_QUANTITY)) {
+            String num = c.substring(NodusC.DBF_QUANTITY.length(), c.length());
 
-        // Get the group number
-        if (c.startsWith(NodusC.DBF_QUANTITY)) {
-          String num = c.substring(NodusC.DBF_QUANTITY.length(), c.length());
-
-          if (num.length() > 0) {
-            groupList1.add(Byte.valueOf(num));
+            if (num.length() > 0) {
+              groupList1.add(Byte.valueOf(num));
+            }
           }
         }
       }
@@ -201,22 +201,19 @@ public class Scenarios {
       tableName = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
       tableName =
           nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenarioToCompare;
-      // col = metaData.getColumns(null, null, tableName, null);
-      col = JDBCUtils.getColumns(tableName);
+      try (ResultSet col = JDBCUtils.getColumns(tableName)) {
+        while (col.next()) {
+          String c = col.getString(4).toLowerCase();
 
-      while (col.next()) {
-        String c = col.getString(4).toLowerCase();
+          if (c.startsWith(NodusC.DBF_QUANTITY)) {
+            String num = c.substring(NodusC.DBF_QUANTITY.length(), c.length());
 
-        if (c.startsWith(NodusC.DBF_QUANTITY)) {
-          String num = c.substring(NodusC.DBF_QUANTITY.length(), c.length());
-
-          if (num.length() > 0) {
-            groupList2.add(Byte.valueOf(num));
+            if (num.length() > 0) {
+              groupList2.add(Byte.valueOf(num));
+            }
           }
         }
       }
-
-      col.close();
     } catch (SQLException ex) {
       System.err.println(ex.toString());
       return;

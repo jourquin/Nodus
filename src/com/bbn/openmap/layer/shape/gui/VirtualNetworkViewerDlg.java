@@ -165,166 +165,165 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
       Connection jdbcConnection = nodusProject.getMainJDBCConnection();
 
       // connect to database and execute query
-      Statement stmt = jdbcConnection.createStatement();
-      ResultSet rs = stmt.executeQuery(sqlTextField.getText());
+      try (Statement stmt = jdbcConnection.createStatement();
+          ResultSet rs = stmt.executeQuery(sqlTextField.getText())) {
 
-      // Find index of the QTY field
-      ResultSetMetaData m = rs.getMetaData();
-      int col = m.getColumnCount();
-      String[] h = new String[col];
-      int nbFieldsOk = 0;
-      int nbNeededFields = 11;
+        // Find index of the QTY field
+        ResultSetMetaData m = rs.getMetaData();
+        int col = m.getColumnCount();
+        String[] h = new String[col];
+        int nbFieldsOk = 0;
+        int nbNeededFields = 11;
 
-      for (int i = 1; i <= col; i++) {
-        String n = m.getColumnName(i);
-        h[i - 1] = n;
+        for (int i = 1; i <= col; i++) {
+          String n = m.getColumnName(i);
+          h[i - 1] = n;
 
-        switch (i) {
-          case 1:
-            if (n.equalsIgnoreCase(NodusC.DBF_NODE1)) {
-              nbFieldsOk++;
-            }
-            break;
+          switch (i) {
+            case 1:
+              if (n.equalsIgnoreCase(NodusC.DBF_NODE1)) {
+                nbFieldsOk++;
+              }
+              break;
 
-          case 2:
-            if (n.equalsIgnoreCase(NodusC.DBF_LINK1)) {
-              nbFieldsOk++;
-            }
-            break;
+            case 2:
+              if (n.equalsIgnoreCase(NodusC.DBF_LINK1)) {
+                nbFieldsOk++;
+              }
+              break;
 
-          case 3:
-            if (n.equalsIgnoreCase(NodusC.DBF_MODE1)) {
-              nbFieldsOk++;
-            }
-            break;
+            case 3:
+              if (n.equalsIgnoreCase(NodusC.DBF_MODE1)) {
+                nbFieldsOk++;
+              }
+              break;
 
-          case 4:
-            if (n.equalsIgnoreCase(NodusC.DBF_MEANS1)) {
-              nbFieldsOk++;
-            }
-            break;
+            case 4:
+              if (n.equalsIgnoreCase(NodusC.DBF_MEANS1)) {
+                nbFieldsOk++;
+              }
+              break;
 
-          case 5:
-            if (n.equalsIgnoreCase(NodusC.DBF_SERVICE1)) {
-              nbFieldsOk++;
-            }
-            break;
+            case 5:
+              if (n.equalsIgnoreCase(NodusC.DBF_SERVICE1)) {
+                nbFieldsOk++;
+              }
+              break;
 
-          case 6:
-            if (n.equalsIgnoreCase(NodusC.DBF_NODE2)) {
-              nbFieldsOk++;
-            }
-            break;
+            case 6:
+              if (n.equalsIgnoreCase(NodusC.DBF_NODE2)) {
+                nbFieldsOk++;
+              }
+              break;
 
-          case 7:
-            if (n.equalsIgnoreCase(NodusC.DBF_LINK2)) {
-              nbFieldsOk++;
-            }
-            break;
+            case 7:
+              if (n.equalsIgnoreCase(NodusC.DBF_LINK2)) {
+                nbFieldsOk++;
+              }
+              break;
 
-          case 8:
-            if (n.equalsIgnoreCase(NodusC.DBF_MODE2)) {
-              nbFieldsOk++;
-            }
-            break;
+            case 8:
+              if (n.equalsIgnoreCase(NodusC.DBF_MODE2)) {
+                nbFieldsOk++;
+              }
+              break;
 
-          case 9:
-            if (n.equalsIgnoreCase(NodusC.DBF_MEANS2)) {
-              nbFieldsOk++;
-            }
-            break;
+            case 9:
+              if (n.equalsIgnoreCase(NodusC.DBF_MEANS2)) {
+                nbFieldsOk++;
+              }
+              break;
 
-          case 10:
-            if (n.equalsIgnoreCase(NodusC.DBF_SERVICE2)) {
-              nbFieldsOk++;
-            }
-            break;
+            case 10:
+              if (n.equalsIgnoreCase(NodusC.DBF_SERVICE2)) {
+                nbFieldsOk++;
+              }
+              break;
 
-          case 11:
-            if (n.equalsIgnoreCase(NodusC.DBF_TIME)) {
-              nbFieldsOk++;
-            }
-            break;
+            case 11:
+              if (n.equalsIgnoreCase(NodusC.DBF_TIME)) {
+                nbFieldsOk++;
+              }
+              break;
 
-          default:
-            break;
-        }
-      }
-
-      if (nbFieldsOk != nbNeededFields) {
-        System.err.println("Invalid query for graph drawing");
-        return;
-      }
-
-      HashMap<String, JungVirtualNode> nodesHashMap = new HashMap<>();
-      HashMap<String, JungVirtualLink> linksHashMap = new HashMap<>();
-
-      while (rs.next()) {
-        final int node1 = rs.getInt(1);
-        final int link1 = rs.getInt(2);
-        final byte mode1 = rs.getByte(3);
-        final byte means1 = rs.getByte(4);
-
-        final int node2 = rs.getInt(6);
-        final int link2 = rs.getInt(7);
-        final byte mode2 = rs.getByte(8);
-        final byte means2 = rs.getByte(9);
-
-        int line1 = rs.getInt(5);
-        int line2 = rs.getInt(10);
-        if (!hasServices) {
-          line1 = line2 = 0;
+            default:
+              break;
+          }
         }
 
-        int time = rs.getInt(11);
-        if (!hasTime) {
-          time = 0;
+        if (nbFieldsOk != nbNeededFields) {
+          System.err.println("Invalid query for graph drawing");
+          return;
         }
 
-        int idx = 12;
+        HashMap<String, JungVirtualNode> nodesHashMap = new HashMap<>();
+        HashMap<String, JungVirtualLink> linksHashMap = new HashMap<>();
 
-        final double quantity = rs.getDouble(idx++);
-        final double unitCost = rs.getDouble(idx++);
-        final double vehicles = rs.getDouble(idx++);
+        while (rs.next()) {
+          final int node1 = rs.getInt(1);
+          final int link1 = rs.getInt(2);
+          final byte mode1 = rs.getByte(3);
+          final byte means1 = rs.getByte(4);
 
-        JungVirtualNode n1 = new JungVirtualNode(node1, link1, mode1, means1, line1);
-        JungVirtualNode n2 = new JungVirtualNode(node2, link2, mode2, means2, line2);
+          final int node2 = rs.getInt(6);
+          final int link2 = rs.getInt(7);
+          final byte mode2 = rs.getByte(8);
+          final byte means2 = rs.getByte(9);
 
-        JungVirtualNode n = nodesHashMap.get(n1.toString());
-        if (n == null) {
-          nodesHashMap.put(n1.toString(), n1);
+          int line1 = rs.getInt(5);
+          int line2 = rs.getInt(10);
+          if (!hasServices) {
+            line1 = line2 = 0;
+          }
 
+          int time = rs.getInt(11);
+          if (!hasTime) {
+            time = 0;
+          }
+
+          int idx = 12;
+
+          final double quantity = rs.getDouble(idx++);
+          final double unitCost = rs.getDouble(idx++);
+          final double vehicles = rs.getDouble(idx++);
+
+          JungVirtualNode n1 = new JungVirtualNode(node1, link1, mode1, means1, line1);
+          JungVirtualNode n2 = new JungVirtualNode(node2, link2, mode2, means2, line2);
+
+          JungVirtualNode n = nodesHashMap.get(n1.toString());
+          if (n == null) {
+            nodesHashMap.put(n1.toString(), n1);
+
+          } else {
+            n1 = n;
+          }
+
+          n = nodesHashMap.get(n2.toString());
+          if (n == null) {
+            nodesHashMap.put(n2.toString(), n2);
+          } else {
+            n2 = n;
+          }
+
+          JungVirtualLink jvl = new JungVirtualLink(n1, n2, quantity, unitCost, vehicles, time);
+
+          linksHashMap.put(jvl.toString(), jvl);
+        }
+
+        // Now display graph
+        if (!nodesHashMap.isEmpty()) {
+          List<JungVirtualNode> nodeList = new ArrayList<JungVirtualNode>(nodesHashMap.values());
+          List<JungVirtualLink> linkList = new ArrayList<JungVirtualLink>(linksHashMap.values());
+          VirtualNetworkGraphViewerDlg dialog =
+              new VirtualNetworkGraphViewerDlg(this, nodeList, linkList, isNode);
+          dialog.setVisible(true);
         } else {
-          n1 = n;
+          JOptionPane.showMessageDialog(
+              null,
+              i18n.get(VirtualNetworkViewerDlg.class, "Nothing_to_display", "Nothing to display"),
+              NodusC.APPNAME,
+              JOptionPane.INFORMATION_MESSAGE);
         }
-
-        n = nodesHashMap.get(n2.toString());
-        if (n == null) {
-          nodesHashMap.put(n2.toString(), n2);
-        } else {
-          n2 = n;
-        }
-
-        JungVirtualLink jvl = new JungVirtualLink(n1, n2, quantity, unitCost, vehicles, time);
-
-        linksHashMap.put(jvl.toString(), jvl);
-      }
-      rs.close();
-      stmt.close();
-
-      // Now display graph
-      if (!nodesHashMap.isEmpty()) {
-        List<JungVirtualNode> nodeList = new ArrayList<JungVirtualNode>(nodesHashMap.values());
-        List<JungVirtualLink> linkList = new ArrayList<JungVirtualLink>(linksHashMap.values());
-        VirtualNetworkGraphViewerDlg dialog =
-            new VirtualNetworkGraphViewerDlg(this, nodeList, linkList, isNode);
-        dialog.setVisible(true);
-      } else {
-        JOptionPane.showMessageDialog(
-            null,
-            i18n.get(VirtualNetworkViewerDlg.class, "Nothing_to_display", "Nothing to display"),
-            NodusC.APPNAME,
-            JOptionPane.INFORMATION_MESSAGE);
       }
 
     } catch (Exception ex) {
@@ -560,42 +559,40 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
       String sqlStmt = sqlTextField.getText();
 
       // connect to database and execute query
-      Statement stmt = jdbcConnection.createStatement();
-      ResultSet rs = stmt.executeQuery(sqlStmt);
+      try (Statement stmt = jdbcConnection.createStatement();
+          ResultSet rs = stmt.executeQuery(sqlStmt)) {
 
-      // Retrieve result of query
-      results.clear();
+        // Retrieve result of query
+        results.clear();
 
-      ResultSetMetaData m = rs.getMetaData();
-      int col = m.getColumnCount();
-      String[] h = new String[col];
+        ResultSetMetaData m = rs.getMetaData();
+        int col = m.getColumnCount();
+        String[] h = new String[col];
 
-      h[0] = JDBCUtils.getCompliantIdentifier(NodusC.DBF_NODE1);
-      h[1] = JDBCUtils.getCompliantIdentifier(NodusC.DBF_NODE2);
-      for (int i = 1; i <= col; i++) {
-        h[i - 1] = m.getColumnName(i);
-      }
-
-      results.setHead(h);
-
-      ((TableSorter) resultsTable.getModel()).setTableHeader(resultsTable.getTableHeader());
-
-      while (rs.next()) {
+        h[0] = JDBCUtils.getCompliantIdentifier(NodusC.DBF_NODE1);
+        h[1] = JDBCUtils.getCompliantIdentifier(NodusC.DBF_NODE2);
         for (int i = 1; i <= col; i++) {
-          h[i - 1] = rs.getString(i);
-
-          if (rs.wasNull()) {
-            h[i - 1] = "(null)";
-          }
+          h[i - 1] = m.getColumnName(i);
         }
 
-        results.addRow(h);
+        results.setHead(h);
+
+        ((TableSorter) resultsTable.getModel()).setTableHeader(resultsTable.getTableHeader());
+
+        while (rs.next()) {
+          for (int i = 1; i <= col; i++) {
+            h[i - 1] = rs.getString(i);
+
+            if (rs.wasNull()) {
+              h[i - 1] = "(null)";
+            }
+          }
+
+          results.addRow(h);
+        }
+
+        results.fireTableChanged(null);
       }
-
-      results.fireTableChanged(null);
-
-      rs.close();
-      stmt.close();
 
     } catch (Exception ex) {
       JOptionPane.showMessageDialog(

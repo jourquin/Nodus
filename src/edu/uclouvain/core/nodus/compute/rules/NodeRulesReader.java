@@ -95,12 +95,11 @@ public class NodeRulesReader {
     try {
       // Open connection
       Connection con = nodusProject.getMainJDBCConnection();
-      Statement stmt = con.createStatement();
-      ResultSet rs = stmt.executeQuery(sql);
-      rs.next();
-      nbRecords = rs.getInt(1);
-      rs.close();
-      stmt.close();
+      try (Statement stmt = con.createStatement();
+          ResultSet rs = stmt.executeQuery(sql)) {
+        rs.next();
+        nbRecords = rs.getInt(1);
+      }
     } catch (SQLException e) {
       JOptionPane.showMessageDialog(
           null, e.getMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
@@ -174,95 +173,94 @@ public class NodeRulesReader {
     int means2 = -1;
 
     int symetry = 0;
+    boolean progressStarted = false;
 
     try {
       Connection con = nodusProject.getMainJDBCConnection();
-      Statement stmt = con.createStatement();
-      ResultSet rs = stmt.executeQuery(sql);
+      try (Statement stmt = con.createStatement();
+          ResultSet rs = stmt.executeQuery(sql)) {
+        VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();
 
-      VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();
+        nodusMapPanel.startProgress(nbRecords);
+        progressStarted = true;
 
-      nodusMapPanel.startProgress(nbRecords);
+        while (rs.next()) {
+          if (!nodusMapPanel.updateProgress(
+              i18n.get(NodeRulesReader.class, "Loading_exclusions", "Loading exclusions"))) {
 
-      while (rs.next()) {
-        if (!nodusMapPanel.updateProgress(
-            i18n.get(NodeRulesReader.class, "Loading_exclusions", "Loading exclusions"))) {
-
-          return false;
-        }
-
-        for (int i = 1; i <= 8; i++) {
-          Object obj = rs.getObject(i);
-          int value = JDBCUtils.getInt(obj);
-
-          if (value == Integer.MIN_VALUE) {
             return false;
           }
 
-          switch (i) {
-            case 1:
-              num = value;
-              break;
+          for (int i = 1; i <= 8; i++) {
+            Object obj = rs.getObject(i);
+            int value = JDBCUtils.getInt(obj);
 
-            case 2:
-              scenario = value;
-              break;
+            if (value == Integer.MIN_VALUE) {
+              return false;
+            }
 
-            case 3:
-              group = value;
-              break;
+            switch (i) {
+              case 1:
+                num = value;
+                break;
 
-            case 4:
-              mode1 = value;
-              break;
+              case 2:
+                scenario = value;
+                break;
 
-            case 5:
-              means1 = value;
-              break;
+              case 3:
+                group = value;
+                break;
 
-            case 6:
-              mode2 = value;
-              break;
+              case 4:
+                mode1 = value;
+                break;
 
-            case 7:
-              means2 = value;
-              break;
+              case 5:
+                means1 = value;
+                break;
 
-            case 8:
-              symetry = value;
-              break;
+              case 6:
+                mode2 = value;
+                break;
 
-            default:
-              break;
+              case 7:
+                means2 = value;
+                break;
+
+              case 8:
+                symetry = value;
+                break;
+
+              default:
+                break;
+            }
           }
-        }
 
-        // add the exclusion to the relevant list
-        int originIndex = virtualNet.getNodeIndexInVirtualNodeList(Math.abs(num), true);
+          // add the exclusion to the relevant list
+          int originIndex = virtualNet.getNodeIndexInVirtualNodeList(Math.abs(num), true);
 
-        if (originIndex != -1) {
-          NodeRule exc = new NodeRule(num, scenario, group, mode1, means1, mode2, means2);
-          vnl[originIndex].addExclusion(exc);
-
-          // Add reverse rule ?
-          if (symetry != 0) {
-            exc = new NodeRule(num, scenario, group, mode2, means2, mode1, means1);
+          if (originIndex != -1) {
+            NodeRule exc = new NodeRule(num, scenario, group, mode1, means1, mode2, means2);
             vnl[originIndex].addExclusion(exc);
+
+            // Add reverse rule ?
+            if (symetry != 0) {
+              exc = new NodeRule(num, scenario, group, mode2, means2, mode1, means1);
+              vnl[originIndex].addExclusion(exc);
+            }
           }
         }
       }
-
-      rs.close();
-      stmt.close();
-
     } catch (Exception e) {
-      nodusMapPanel.stopProgress();
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
 
       return false;
+    } finally {
+      if (progressStarted) {
+        nodusMapPanel.stopProgress();
+      }
     }
-
-    nodusMapPanel.stopProgress();
 
     return true;
   }
@@ -341,50 +339,46 @@ public class NodeRulesReader {
             + tableName;
     try {
       Connection con = nodusProject.getMainJDBCConnection();
-      Statement stmt = con.createStatement();
-      ResultSet rs = stmt.executeQuery(sql);
+      try (Statement stmt = con.createStatement();
+          ResultSet rs = stmt.executeQuery(sql);
+          PreparedStatement ps =
+              con.prepareStatement("INSERT INTO " + tmpFileName + " VALUES(?, ?, ? , ?, ?, ?, ?, ?)")) {
 
-      String insertStmt = "INSERT INTO " + tmpFileName + " VALUES(?, ?, ? , ?, ?, ?, ?, ?)";
-      PreparedStatement ps = con.prepareStatement(insertStmt);
+        int group;
+        int num;
+        int mode1;
+        int means1;
+        int mode2;
+        int means2;
+        while (rs.next()) {
 
-      int group;
-      int num;
-      int mode1;
-      int means1;
-      int mode2;
-      int means2;
-      while (rs.next()) {
+          group = rs.getInt(1);
+          num = rs.getInt(2);
+          mode1 = rs.getInt(3);
+          means1 = rs.getInt(4);
+          mode2 = rs.getInt(5);
+          means2 = rs.getInt(6);
 
-        group = rs.getInt(1);
-        num = rs.getInt(2);
-        mode1 = rs.getInt(3);
-        means1 = rs.getInt(4);
-        mode2 = rs.getInt(5);
-        means2 = rs.getInt(6);
+          // Save upgraded record
+          int scenario = -1; // Old exclusions were applicable to all the scenarios
+          num = -num; // Exclusions have now a negative sign. Positive signs are for inclusions
 
-        // Save upgraded record
-        int scenario = -1; // Old exclusions were applicable to all the scenarios
-        num = -num; // Exclusions have now a negative sign. Positive signs are for inclusions
+          ps.setInt(1, num);
+          ps.setInt(2, scenario);
+          ps.setInt(3, group);
+          ps.setInt(4, mode1);
+          ps.setInt(5, means1);
+          ps.setInt(6, mode2);
+          ps.setInt(7, means2);
+          ps.setInt(8, 1); // Old exclusions were all symetric (both directions)
 
-        ps.setInt(1, num);
-        ps.setInt(2, scenario);
-        ps.setInt(3, group);
-        ps.setInt(4, mode1);
-        ps.setInt(5, means1);
-        ps.setInt(6, mode2);
-        ps.setInt(7, means2);
-        ps.setInt(8, 1); // Old exclusions were all symetric (both directions)
-
-        ps.execute();
+          ps.execute();
+        }
       }
 
-      ps.close();
       if (!con.getAutoCommit()) {
         con.commit();
       }
-      rs.close();
-      stmt.close();
-
     } catch (Exception e) {
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return;

@@ -84,8 +84,7 @@ public class ODReader {
     Connection jdbcConnection = nodusProject.getMainJDBCConnection();
     Vector<String> tables = new Vector<>();
 
-    try {
-      ResultSet result = JDBCUtils.getTables();
+    try (ResultSet result = JDBCUtils.getTables()) {
       while (result.next()) {
         // if (result.getString(3).indexOf("$") == -1) {
         // Keep only valid OD tables
@@ -113,7 +112,6 @@ public class ODReader {
         // }
       }
 
-      result.close();
     } catch (SQLException e) {
       e.printStackTrace();
       return tables;
@@ -132,16 +130,12 @@ public class ODReader {
   private static boolean isValidBasicODTable(Connection jdbcConnection, String odTableName) {
 
     // Test the structure of the table
-    try {
-      // Create a result set
-      Statement stmt = jdbcConnection.createStatement();
-
-      // Select * but returns no records
-      ResultSet rs =
+    try (Statement stmt = jdbcConnection.createStatement();
+        ResultSet rs =
           stmt.executeQuery(
               "SELECT * FROM "
                   + JDBCUtils.getQuotedCompliantIdentifier(odTableName)
-                  + " WHERE 1 = 0");
+                  + " WHERE 1 = 0")) {
 
       // Get result set meta data
       ResultSetMetaData rsmd = rs.getMetaData();
@@ -174,9 +168,6 @@ public class ODReader {
           break;
         }
       }
-      stmt.close();
-      rs.close();
-
       if (!grpField || !orgField || !dstField || !qtyField || hasIterationField) {
         return false;
       }
@@ -247,14 +238,12 @@ public class ODReader {
     nodusMapPanel.setBusy(true);
 
     // Test the structure of the table
-    try {
-      // Create a result set
-      Statement stmt = jdbcConnection.createStatement();
-      ResultSet rs =
+    try (Statement stmt = jdbcConnection.createStatement();
+        ResultSet rs =
           stmt.executeQuery(
               "SELECT * FROM "
                   + JDBCUtils.getQuotedCompliantIdentifier(odTableName)
-                  + " WHERE 1 = 0");
+                  + " WHERE 1 = 0")) {
 
       // Get result set meta data
       ResultSetMetaData rsmd = rs.getMetaData();
@@ -287,9 +276,6 @@ public class ODReader {
           timeField = true;
         }
       }
-      stmt.close();
-      rs.close();
-
       if (!grpField || !orgField || !dstField || !qtyField) {
         nodusMapPanel.setBusy(false);
         isOk = false;
@@ -328,13 +314,11 @@ public class ODReader {
 
     try {
       // Open connection
-      Statement stmt = jdbcConnection.createStatement();
-      ResultSet rs = stmt.executeQuery(sql);
-
-      rs.next();
-      nbRecords = rs.getInt(1);
-      rs.close();
-      stmt.close();
+      try (Statement stmt = jdbcConnection.createStatement();
+          ResultSet rs = stmt.executeQuery(sql)) {
+        rs.next();
+        nbRecords = rs.getInt(1);
+      }
 
     } catch (Exception e) {
       JOptionPane.showMessageDialog(
@@ -398,167 +382,167 @@ public class ODReader {
     }
 
     // connect to database and execute query
+    boolean progressStarted = false;
     try {
-      Statement stmt = jdbcConnection.createStatement();
       nodusMapPanel.setBusy(true);
 
-      ResultSet rs = stmt.executeQuery(sqlStmt);
-      nodusMapPanel.setBusy(false);
+      try (Statement stmt = jdbcConnection.createStatement();
+          ResultSet rs = stmt.executeQuery(sqlStmt)) {
+        nodusMapPanel.setBusy(false);
 
-      nodusMapPanel.startProgress(nbRecords);
+        nodusMapPanel.startProgress(nbRecords);
+        progressStarted = true;
 
-      VirtualNodeList[] vnl = vnet.getVirtualNodeLists();
+        VirtualNodeList[] vnl = vnet.getVirtualNodeLists();
 
-      // Get the records
-      while (rs.next()) {
-        if (!nodusMapPanel.updateProgress(
-            i18n.get(ODReader.class, "LoadingMatrix", "Loading O-D matrix"))) {
+        // Get the records
+        while (rs.next()) {
+          if (!nodusMapPanel.updateProgress(
+              i18n.get(ODReader.class, "LoadingMatrix", "Loading O-D matrix"))) {
 
-          return false;
-        }
+            return false;
+          }
 
-        int group = 0;
-        int origin = 0;
-        int destination = 0;
-        double quantity = 0;
-        byte odClass = 0;
-        int time = 0;
-        int nbFields = 4;
+          int group = 0;
+          int origin = 0;
+          int destination = 0;
+          double quantity = 0;
+          byte odClass = 0;
+          int time = 0;
+          int nbFields = 4;
 
-        if (isTimeDependent) {
-          nbFields++;
-        }
+          if (isTimeDependent) {
+            nbFields++;
+          }
 
-        if (hasClasses) {
-          nbFields++;
-        }
+          if (hasClasses) {
+            nbFields++;
+          }
 
-        for (int i = 1; i <= nbFields; i++) {
-          Object obj = rs.getObject(i);
+          for (int i = 1; i <= nbFields; i++) {
+            Object obj = rs.getObject(i);
 
-          switch (i) {
-            case 1: // Group
-              int value1 = JDBCUtils.getInt(obj);
-              if (value1 == Integer.MIN_VALUE) {
-                return false;
-              }
-              group = value1;
-              demandForGroup[value1] = true;
-
-              break;
-
-            case 2: // org
-              int value2 = JDBCUtils.getInt(obj);
-              if (value2 == Integer.MIN_VALUE) {
-                return false;
-              }
-              origin = value2;
-
-              break;
-
-            case 3: // dst
-              int value3 = JDBCUtils.getInt(obj);
-              if (value3 == Integer.MIN_VALUE) {
-                return false;
-              }
-              destination = value3;
-
-              break;
-
-            case 4: // qty
-              double value4 = JDBCUtils.getDouble(obj);
-              if (value4 == Double.MIN_VALUE) {
-                return false;
-              }
-              quantity = value4;
-              break;
-
-            case 5:
-              if (isTimeDependent) { // time
-                int value5 = JDBCUtils.getInt(obj);
-                if (value5 == Integer.MIN_VALUE) {
+            switch (i) {
+              case 1: // Group
+                int value1 = JDBCUtils.getInt(obj);
+                if (value1 == Integer.MIN_VALUE) {
                   return false;
                 }
-                time = value5;
-              } else { // class
-                byte value5 = JDBCUtils.getByte(obj);
-                if (value5 == Byte.MIN_VALUE) {
+                group = value1;
+                demandForGroup[value1] = true;
+
+                break;
+
+              case 2: // org
+                int value2 = JDBCUtils.getInt(obj);
+                if (value2 == Integer.MIN_VALUE) {
                   return false;
                 }
-                odClass = value5;
+                origin = value2;
+
+                break;
+
+              case 3: // dst
+                int value3 = JDBCUtils.getInt(obj);
+                if (value3 == Integer.MIN_VALUE) {
+                  return false;
+                }
+                destination = value3;
+
+                break;
+
+              case 4: // qty
+                double value4 = JDBCUtils.getDouble(obj);
+                if (value4 == Double.MIN_VALUE) {
+                  return false;
+                }
+                quantity = value4;
+                break;
+
+              case 5:
+                if (isTimeDependent) { // time
+                  int value5 = JDBCUtils.getInt(obj);
+                  if (value5 == Integer.MIN_VALUE) {
+                    return false;
+                  }
+                  time = value5;
+                } else { // class
+                  byte value5 = JDBCUtils.getByte(obj);
+                  if (value5 == Byte.MIN_VALUE) {
+                    return false;
+                  }
+                  odClass = value5;
+                  if (odClass > maxClass) {
+                    maxClass = odClass;
+                  }
+                }
+                break;
+              case 6: // class in Time dependent case
+                byte value6 = JDBCUtils.getByte(obj);
+                if (value6 == Byte.MIN_VALUE) {
+                  return false;
+                }
+                odClass = value6;
                 if (odClass > maxClass) {
                   maxClass = odClass;
                 }
-              }
-              break;
-            case 6: // class in Time dependent case
-              byte value6 = JDBCUtils.getByte(obj);
-              if (value6 == Byte.MIN_VALUE) {
-                return false;
-              }
-              odClass = value6;
-              if (odClass > maxClass) {
-                maxClass = odClass;
-              }
-              break;
-            default:
-              break;
+                break;
+              default:
+                break;
+            }
           }
-        }
 
-        // Do not consider OD cells from an origin to itself
-        if (origin == destination) {
-          continue;
-        }
-
-        // add the demand to the relevant list
-        if (group >= 0 && group < NodusC.MAXMM && quantity > 0) {
-          int orgIndex = vnet.getNodeIndexInVirtualNodeList(origin, true);
-          int dstIndex = vnet.getNodeIndexInVirtualNodeList(destination, true);
-
-          // Both nodes must exist
-          if (orgIndex == -1 || dstIndex == -1) {
+          // Do not consider OD cells from an origin to itself
+          if (origin == destination) {
             continue;
           }
 
-          // Is in highlighted area?
-          if (limitedToHighligthedArea) {
-            OMPoint graphic = vnl[orgIndex].getGraphic();
-            RealNetworkObject rl = (RealNetworkObject) graphic.getAttribute(0);
-            if (!rl.isInHighlightedArea()) {
+          // add the demand to the relevant list
+          if (group >= 0 && group < NodusC.MAXMM && quantity > 0) {
+            int orgIndex = vnet.getNodeIndexInVirtualNodeList(origin, true);
+            int dstIndex = vnet.getNodeIndexInVirtualNodeList(destination, true);
+
+            // Both nodes must exist
+            if (orgIndex == -1 || dstIndex == -1) {
               continue;
             }
 
-            // Also test destination
-            graphic = vnl[dstIndex].getGraphic();
-            rl = (RealNetworkObject) graphic.getAttribute(0);
-            if (!rl.isInHighlightedArea()) {
-              continue;
-            }
-          }
-          // Add the demand to the list
+            // Is in highlighted area?
+            if (limitedToHighligthedArea) {
+              OMPoint graphic = vnl[orgIndex].getGraphic();
+              RealNetworkObject rl = (RealNetworkObject) graphic.getAttribute(0);
+              if (!rl.isInHighlightedArea()) {
+                continue;
+              }
 
-          ODCell odCell = null;
-          if (!hasClasses) {
-            if (isTimeDependent) {
-              odCell = new ODCell(group, origin, destination, quantity, time);
-            } else {
-              odCell = new ODCell(group, origin, destination, quantity);
+              // Also test destination
+              graphic = vnl[dstIndex].getGraphic();
+              rl = (RealNetworkObject) graphic.getAttribute(0);
+              if (!rl.isInHighlightedArea()) {
+                continue;
+              }
             }
-          } else {
-            if (isTimeDependent) {
-              odCell = new ODCell(group, origin, destination, quantity, time, odClass);
+            // Add the demand to the list
+
+            ODCell odCell = null;
+            if (!hasClasses) {
+              if (isTimeDependent) {
+                odCell = new ODCell(group, origin, destination, quantity, time);
+              } else {
+                odCell = new ODCell(group, origin, destination, quantity);
+              }
             } else {
-              odCell = new ODCell(group, origin, destination, quantity, odClass);
+              if (isTimeDependent) {
+                odCell = new ODCell(group, origin, destination, quantity, time, odClass);
+              } else {
+                odCell = new ODCell(group, origin, destination, quantity, odClass);
+              }
             }
+            vnl[orgIndex].addDemand(odCell);
+            totalQuantity += quantity;
           }
-          vnl[orgIndex].addDemand(odCell);
-          totalQuantity += quantity;
         }
       }
-      rs.close();
-      stmt.close();
-
     } catch (Exception e) {
       String msg = e.toString();
 
@@ -566,10 +550,14 @@ public class ODReader {
         msg = i18n.get(ODReader.class, "InvalidRecordFound", "Invalid record found in O-D table");
       }
 
-      nodusMapPanel.stopProgress();
       JOptionPane.showMessageDialog(null, msg, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
 
       return false;
+    } finally {
+      nodusMapPanel.setBusy(false);
+      if (progressStarted) {
+        nodusMapPanel.stopProgress();
+      }
     }
 
     // Get an array of group numbers for which there is a demand
@@ -594,8 +582,6 @@ public class ODReader {
 
     // Set the classes
     vnet.setMaxClass(maxClass);
-
-    nodusMapPanel.stopProgress();
 
     return true;
   }

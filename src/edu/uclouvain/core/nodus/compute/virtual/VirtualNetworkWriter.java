@@ -181,6 +181,7 @@ public class VirtualNetworkWriter {
 
     // long start = System.currentTimeMillis();
 
+    boolean progressStarted = false;
     try {
       // Fill it
       jdbcConnection = nodusProject.getMainJDBCConnection();
@@ -195,43 +196,41 @@ public class VirtualNetworkWriter {
         sqlStmt += "?,?,?,";
       }
       sqlStmt += "?,?,?)";
-      PreparedStatement prepStmt = jdbcConnection.prepareStatement(sqlStmt);
+      try (PreparedStatement prepStmt = jdbcConnection.prepareStatement(sqlStmt)) {
+        nodusMapPanel.startProgress(virtualNet.getNbVirtualLinks());
+        progressStarted = true;
 
-      nodusMapPanel.startProgress(virtualNet.getNbVirtualLinks());
+        int batchSize = 0;
 
-      int batchSize = 0;
+        VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();
+        for (VirtualNodeList element : vnl) {
+          // Iterate through all the virtual nodes generated for this real node
+          Iterator<VirtualNode> nodeLit = element.getVirtualNodeList().iterator();
 
-      VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();
-      for (VirtualNodeList element : vnl) {
-        // Iterate through all the virtual nodes generated for this real node
-        Iterator<VirtualNode> nodeLit = element.getVirtualNodeList().iterator();
+          while (nodeLit.hasNext()) {
+            VirtualNode vn = nodeLit.next();
 
-        while (nodeLit.hasNext()) {
-          VirtualNode vn = nodeLit.next();
+            // Iterate through all the virtual links that start from
+            // this virtual node
+            Iterator<VirtualLink> linkLit = vn.getVirtualLinkList().iterator();
 
-          // Iterate through all the virtual links that start from
-          // this virtual node
-          Iterator<VirtualLink> linkLit = vn.getVirtualLinkList().iterator();
+            while (linkLit.hasNext()) {
+              if (!nodusMapPanel.updateProgress(
+                  i18n.get(
+                      VirtualNetworkWriter.class,
+                      "Saving_virtual_network",
+                      "Saving virtual network"))) {
 
-          while (linkLit.hasNext()) {
-            if (!nodusMapPanel.updateProgress(
-                i18n.get(
-                    VirtualNetworkWriter.class,
-                    "Saving_virtual_network",
-                    "Saving virtual network"))) {
+                return false;
+              }
 
-              prepStmt.close();
+              VirtualLink vl = linkLit.next();
 
-              return false;
-            }
+              // Only saves virtual links on which a volume was assigned
+              for (byte timeSlice = 0; timeSlice < nbTimeSlices; timeSlice++) {
+                int currentTime = assignmentStarTime + timeSlice * timeSliceDuration;
 
-            VirtualLink vl = linkLit.next();
-
-            // Only saves virtual links on which a volume was assigned
-            for (byte timeSlice = 0; timeSlice < nbTimeSlices; timeSlice++) {
-              int currentTime = assignmentStarTime + timeSlice * timeSliceDuration;
-
-              if (vl.hasVolume(timeSlice) || saveCompleteVirtualNetwork) {
+                if (vl.hasVolume(timeSlice) || saveCompleteVirtualNetwork) {
 
                 int idx = 1;
                 /*
@@ -274,35 +273,32 @@ public class VirtualNetworkWriter {
                 prepStmt.setDouble(idx++, totalQty);
                 prepStmt.setInt(idx++, totalVehicles);
 
-                // Save into table according to batch policy;
-                if (hasBatchSupport) {
-                  batchSize++;
-                  prepStmt.addBatch();
-                  if (batchSize >= maxBatchSize) {
-                    prepStmt.executeBatch();
-                    batchSize = 0;
+                  // Save into table according to batch policy;
+                  if (hasBatchSupport) {
+                    batchSize++;
+                    prepStmt.addBatch();
+                    if (batchSize >= maxBatchSize) {
+                      prepStmt.executeBatch();
+                      batchSize = 0;
+                    }
+                  } else {
+                    prepStmt.executeUpdate();
                   }
-                } else {
-                  prepStmt.executeUpdate();
                 }
               }
             }
           }
         }
-      }
+        // Flush remaining records in batch
+        if (hasBatchSupport) {
+          prepStmt.executeBatch();
+        }
 
-      // Flush remaining records in batch
-      if (hasBatchSupport) {
-        prepStmt.executeBatch();
+        if (!jdbcConnection.getAutoCommit()) {
+          jdbcConnection.commit();
+        }
       }
-
-      if (!jdbcConnection.getAutoCommit()) {
-        jdbcConnection.commit();
-      }
-      prepStmt.close();
-
     } catch (Exception e) {
-      nodusMapPanel.stopProgress();
       SingleInstanceMessagePane.display(
           nodusProject.getNodusMapPanel(),
           i18n.get(
@@ -312,12 +308,14 @@ public class VirtualNetworkWriter {
           JOptionPane.ERROR_MESSAGE);
       e.printStackTrace();
       return false;
+    } finally {
+      if (progressStarted) {
+        nodusMapPanel.stopProgress();
+      }
     }
 
     // long end = System.currentTimeMillis();
     // System.out.println("Duration : " + (end - start) / 1000);
-
-    nodusMapPanel.stopProgress();
 
     return true;
   }

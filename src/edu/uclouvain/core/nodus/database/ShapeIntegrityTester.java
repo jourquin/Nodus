@@ -71,7 +71,7 @@ public class ShapeIntegrityTester {
   public ShapeIntegrityTester(NodusProject nodusProject) {
     this.nodusProject = nodusProject;
 
-    integrityTestTimer = new java.util.Timer();
+    integrityTestTimer = new java.util.Timer("Nodus-ShapeIntegrityTester", true);
     integrityTestTimer.scheduleAtFixedRate(
         new TimerTask() {
           @Override
@@ -89,6 +89,9 @@ public class ShapeIntegrityTester {
    * @return True if all the layers are loaded
    */
   private boolean isProjectLoaded() {
+    if (nodusProject == null) {
+      return false;
+    }
 
     linkLayers = nodusProject.getLinkLayers();
     nodeLayers = nodusProject.getNodeLayers();
@@ -130,7 +133,7 @@ public class ShapeIntegrityTester {
       return;
     }
 
-    integrityTestTimer.cancel();
+    cancelTimer();
 
     HashMap<Integer, String> nodes;
     HashMap<Integer, Integer> otherObjects;
@@ -425,6 +428,24 @@ public class ShapeIntegrityTester {
         }
       }
       index++;
+    }
+  }
+
+  /** Stops the periodic integrity test and releases retained references. */
+  public synchronized void stop() {
+    cancelTimer();
+
+    linkLayers = null;
+    nodeLayers = null;
+    nodusProject = null;
+  }
+
+  /** Cancels the timer without clearing the project state used by the current validation run. */
+  private synchronized void cancelTimer() {
+    if (integrityTestTimer != null) {
+      integrityTestTimer.cancel();
+      integrityTestTimer.purge();
+      integrityTestTimer = null;
     }
   }
 }

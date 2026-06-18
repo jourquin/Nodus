@@ -463,11 +463,8 @@ public class NodusConsole extends WindowAdapter
             fileName += extension;
           }
 
-          try {
-            FileWriter write = new FileWriter(file);
-
+          try (FileWriter write = new FileWriter(fileName)) {
             write.write(textArea.getText().toCharArray());
-            write.close();
             return true;
           } catch (IOException e) {
             e.printStackTrace();

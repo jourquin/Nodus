@@ -227,6 +227,9 @@ public class NodusProject implements ShapeConstants {
   /** True if the ID's of the other layers present in the project directory are loaded. */
   private boolean otherObjectsLoaded = false;
 
+  /** Deferred integrity tester that runs while project layers are loading. */
+  private ShapeIntegrityTester shapeIntegrityTester;
+
   /**
    * Project properties. Implemented as a PropertiesConfiguration so that it can be updated without
    * any change to its original structure
@@ -361,6 +364,7 @@ public class NodusProject implements ShapeConstants {
     if (isOpen) {
       nodusMapPanel.setBusy(true);
       nodusMapPanel.getMenuFile().setEnabled(false);
+      stopShapeIntegrityTester();
 
       // Run the project's Groovy project script if exists
       String scriptFileName =
@@ -660,6 +664,14 @@ public class NodusProject implements ShapeConstants {
       projectProperties = null;
 
       disposeProjectObjectGraph();
+    }
+  }
+
+  /** Stops the deferred integrity tester, if one is still running. */
+  private void stopShapeIntegrityTester() {
+    if (shapeIntegrityTester != null) {
+      shapeIntegrityTester.stop();
+      shapeIntegrityTester = null;
     }
   }
 
@@ -2275,7 +2287,8 @@ public class NodusProject implements ShapeConstants {
 
     // When all the layers are loaded, an integrity test will be performed
     // on the database
-    new ShapeIntegrityTester(this);
+    stopShapeIntegrityTester();
+    shapeIntegrityTester = new ShapeIntegrityTester(this);
 
     // Load additional OpenMap layers if any
     name = projectProperties.getProperty(NodusC.PROP_OPENMAP_LAYERS, null);

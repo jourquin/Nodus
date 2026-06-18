@@ -34,6 +34,7 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.NoSuchElementException;
 import java.util.Properties;
@@ -147,9 +148,8 @@ public class NodusWMSLayer extends WMSLayer {
 
     // Just call it once
     if (capabilitiesAlreadyFetched) {
-      return true;
+      return treeData != null && !treeData.isEmpty();
     }
-    capabilitiesAlreadyFetched = true;
 
     StringBuffer buf = new StringBuffer(queryHeader);
 
@@ -173,11 +173,11 @@ public class NodusWMSLayer extends WMSLayer {
 
     buf.append("?" + "&REQUEST=GetCapabilities" + "&version=" + wmsVersion);
 
-    java.net.URL url = null;
+    java.net.HttpURLConnection urlc = null;
 
     try {
-      url = new java.net.URL(buf.toString());
-      java.net.HttpURLConnection urlc = (java.net.HttpURLConnection) url.openConnection();
+      java.net.URL url = new java.net.URL(buf.toString());
+      urlc = (java.net.HttpURLConnection) url.openConnection();
       if (urlc == null || urlc.getContentType() == null) {
         Thread thread =
             new ThreadedDialog(
@@ -198,9 +198,9 @@ public class NodusWMSLayer extends WMSLayer {
       SAXParserFactory spf = SAXParserFactory.newInstance();
       spf.setNamespaceAware(true);
       spf.setValidating(true);
-      try {
+      try (InputStream inputStream = urlc.getInputStream()) {
         SAXParser parser = spf.newSAXParser();
-        parser.parse(new InputSource(urlc.getInputStream()), cparser);
+        parser.parse(new InputSource(inputStream), cparser);
       } catch (ParserConfigurationException e) {
         e.printStackTrace();
       } catch (SAXException e) {
@@ -240,6 +240,7 @@ public class NodusWMSLayer extends WMSLayer {
 
       treeData = new Vector<>();
       treeData.add(constructedDataTree.elementAt(0));
+      capabilitiesAlreadyFetched = true;
     } catch (java.net.MalformedURLException murle) {
       Thread thread =
           new ThreadedDialog("NodusWMSLayer: URL \"" + buf.toString() + "\" is malformed.");
@@ -258,6 +259,10 @@ public class NodusWMSLayer extends WMSLayer {
                   getServerName()));
       thread.start();
       return false;
+    } finally {
+      if (urlc != null) {
+        urlc.disconnect();
+      }
     }
 
     // Find the name of the server in treeData
