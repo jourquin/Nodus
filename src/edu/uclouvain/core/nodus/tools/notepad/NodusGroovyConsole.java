@@ -196,6 +196,9 @@ public class NodusGroovyConsole extends NotePad {
     getTextPane().setMarkOccurrences(true);
     try (InputStream inputStream =
         getClass().getResourceAsStream("/org/fife/ui/rsyntaxtextarea/themes/idea.xml")) {
+      if (inputStream == null) {
+        throw new IOException("idea.xml theme not found");
+      }
       Theme theme = Theme.load(inputStream);
       theme.apply(getTextPane());
     } catch (IOException ioe) {

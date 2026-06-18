@@ -75,8 +75,11 @@ public class ExportXLS {
           if (type.equals("VARCHAR") || type.equals("CHAR")) {
             s += "C," + col.getString(7);
             numerical.add(Boolean.FALSE);
+          } else if (type.equals("DATE") || type.contains("TIME")) {
+            s += "C," + col.getString(7);
+            numerical.add(Boolean.FALSE);
           } else {
-            s += "C," + col.getString(7) + "," + col.getString(9);
+            s += "N," + col.getString(7) + "," + col.getString(9);
             numerical.add(Boolean.TRUE);
           }
           Cell cell = row.createCell(nbColumns);
@@ -97,7 +100,10 @@ public class ExportXLS {
           for (int column = 0; column < nbColumns; column++) {
             Cell cell = row.createCell(column);
             if (Boolean.TRUE.equals(numerical.elementAt(column))) {
-              cell.setCellValue(rs.getDouble(column + 1));
+              Object value = rs.getObject(column + 1);
+              if (value instanceof Number) {
+                cell.setCellValue(((Number) value).doubleValue());
+              }
             } else {
               cell.setCellValue(rs.getString(column + 1));
             }

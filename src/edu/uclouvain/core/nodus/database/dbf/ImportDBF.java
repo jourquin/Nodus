@@ -29,6 +29,8 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.PreparedStatement;
+import java.sql.Savepoint;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import javax.swing.JOptionPane;
@@ -48,6 +50,25 @@ public class ImportDBF {
   /** Default constructor. */
   public ImportDBF() {}
 
+  /** Rolls back the current import without disturbing older work on the shared connection. */
+  private static void rollbackToSavepoint(Connection con, Savepoint savepoint) {
+    if (con == null) {
+      return;
+    }
+
+    try {
+      if (!con.getAutoCommit()) {
+        if (savepoint != null) {
+          con.rollback(savepoint);
+        } else {
+          con.rollback();
+        }
+      }
+    } catch (SQLException rollbackEx) {
+      rollbackEx.printStackTrace();
+    }
+  }
+
   /**
    * Creates a new table, based on the structure of the dbfReader. Returns true on success.
    *
@@ -56,25 +77,24 @@ public class ImportDBF {
    * @return boolean
    */
   private static boolean createTable(String tableName, DBFReader dbfReader) {
-
-    JDBCUtils.dropTable(tableName);
-
-    String sqlStmt = "CREATE TABLE " + tableName + " (";
+    StringBuilder sqlStmt = new StringBuilder("CREATE TABLE ");
+    sqlStmt.append(tableName).append(" (");
     int n = dbfReader.getFieldCount();
 
     for (int i = 0; i < n; i++) {
       DBFField field = dbfReader.getField(i);
 
-      sqlStmt += sqlType(field);
+      sqlStmt.append(sqlType(field));
 
       if (i < n - 1) {
-        sqlStmt += ", ";
+        sqlStmt.append(", ");
       }
     }
 
-    sqlStmt += ")";
+    sqlStmt.append(')');
     try (Statement stmt = jdbcConnection.createStatement()) {
-      stmt.execute(sqlStmt);
+      JDBCUtils.dropTable(tableName);
+      stmt.execute(sqlStmt.toString());
 
     } catch (Exception e) {
       e.printStackTrace();
@@ -200,29 +220,40 @@ public class ImportDBF {
    */
   public static boolean importTable(NodusProject project, String tableName) {
     jdbcConnection = project.getMainJDBCConnection();
+    if (jdbcConnection == null) {
+      return false;
+    }
 
     String path = project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
 
     maxBatchSize = project.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
 
     hasBatchSupport = JDBCUtils.hasBatchSupport();
+    Savepoint savepoint = null;
 
     // Uppercases? Lowercases?, Mixed? Depends on database capabilities ...
     String jdbcTableName = JDBCUtils.getCompliantIdentifier(tableName);
 
     // Create table
     try (DBFReader dbfReader = new DBFReader(path + tableName + NodusC.TYPE_DBF)) {
+      if (!jdbcConnection.getAutoCommit()) {
+        savepoint = jdbcConnection.setSavepoint();
+      }
+
       // Create new table and drop existent one
       if (dbfReader.isOpen()) {
         if (!createTable(jdbcTableName, dbfReader)) {
+          rollbackToSavepoint(jdbcConnection, savepoint);
           return false;
         }
 
         if (!fillTable(jdbcTableName, dbfReader)) {
+          rollbackToSavepoint(jdbcConnection, savepoint);
           return false;
         }
       }
     } catch (Exception e) {
+      rollbackToSavepoint(jdbcConnection, savepoint);
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
     } finally {
