@@ -599,6 +599,13 @@ public class NodusProject implements ShapeConstants {
         }
       }
 
+      /*
+       * Additional OpenMap layers and the invisible drawing layer are removed from the
+       * LayerHandler below, but they are not part of nodeLayers/linkLayers/labelsLayer.
+       * Dispose them explicitly before losing the LayerHandler references.
+       */
+      disposeAdditionalProjectLayers(layer);
+
       nodusMapPanel.getLayerHandler().removeAll();
       nodusMapPanel.getLayerHandler().setLayers(new Layer[0]);
 
@@ -760,6 +767,68 @@ public class NodusProject implements ShapeConstants {
     ProjectLocker.releaseLock();
     nodusMapPanel.getMenuFile().setEnabled(true);
     nodusMapPanel.setBusy(false);
+  }
+
+  /**
+   * Disposes project-owned layers that are removed from the {@link LayerHandler} but are not
+   * disposed through {@link #disposeProjectObjectGraph()}.
+   *
+   * <p>The node layers, link layers, and labels layer are intentionally skipped here because they
+   * still hold state used while the project close sequence saves settings, and they are disposed in
+   * a controlled order by {@code disposeProjectObjectGraph()}. The application-level political
+   * boundaries layer is also skipped because it is managed by {@link NodusMapPanel}.
+   *
+   * @param layers the layer snapshot to inspect before it is removed from the {@code LayerHandler}
+   */
+  private void disposeAdditionalProjectLayers(Layer[] layers) {
+    if (layers == null) {
+      return;
+    }
+
+    for (Layer layer : layers) {
+      if (layer == null || isDisposedElsewhere(layer) || isApplicationManagedLayer(layer)) {
+        continue;
+      }
+
+      try {
+        Container palette = layer.getPalette();
+        if (palette != null) {
+          palette.setVisible(false);
+        }
+
+        layer.dispose();
+      } catch (Exception ex) {
+        ex.printStackTrace();
+      }
+    }
+  }
+
+  /** Returns true when the layer is disposed later by {@link #disposeProjectObjectGraph()}. */
+  private boolean isDisposedElsewhere(Layer layer) {
+    return layer == labelsLayer
+        || containsLayer(nodeLayers, layer)
+        || containsLayer(linkLayers, layer);
+  }
+
+  /** Returns true when the layer is owned by the application rather than by the open project. */
+  private boolean isApplicationManagedLayer(Layer layer) {
+    return "com.bbn.openmap.layer.shape.PoliticalBoundariesLayer"
+        .equals(layer.getClass().getName());
+  }
+
+  /** Returns true when {@code layer} is present in the given Nodus ESRI layer array. */
+  private boolean containsLayer(NodusEsriLayer[] layers, Layer layer) {
+    if (layers == null) {
+      return false;
+    }
+
+    for (NodusEsriLayer candidate : layers) {
+      if (candidate == layer) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /** Releases project-specific object graphs after all project state has been saved. */

@@ -71,15 +71,17 @@ public class NodusGroovyConsole extends NotePad {
        * Groovy cannot interrupt a running long Nodus tasks, such as an assignment, launched from
        * a script. So, explicitly call cancelLongTask()
        */
-      nodusMapPanel.cancelLongTask();
+      if (nodusMapPanel != null) {
+        nodusMapPanel.cancelLongTask();
+      }
 
       /*
-       * This is ugly because unsafe and deprecated, but it allows to stop a running script
+       * This is ugly because unsafe and deprecated, but it allows to stop a running script.
+       * Keep all cleanup in finally so closing the console releases the map/project graph even
+       * when the Groovy script is forcefully stopped.
        */
       try {
         stop();
-        runButton.setIcon(runIcon);
-        running = false;
         if (NodusConsole.isVisible()) {
           String msg =
               i18n.get(
@@ -88,26 +90,48 @@ public class NodusGroovyConsole extends NotePad {
         }
       } catch (Exception e) {
         e.printStackTrace();
+      } finally {
+        finishScriptRun(this);
+        releaseScriptReferences();
       }
+    }
+
+    /** Clears references held by the Groovy shell and this worker thread. */
+    private void releaseScriptReferences() {
+      if (shell != null) {
+        try {
+          shell.getContext().getVariables().clear();
+        } catch (Exception e) {
+          // Nothing to do. The important part is to null the shell reference below.
+        }
+      }
+
+      shell = null;
+      script = null;
+      nodusMapPanel = null;
     }
 
     @Override
     public void run() {
 
       running = true;
-      runButton.setIcon(stopIcon);
+      if (runButton != null) {
+        runButton.setIcon(stopIcon);
+      }
 
       try {
-        shell.evaluate(script);
+        if (shell != null && script != null) {
+          shell.evaluate(script);
+        }
       } catch (CompilationFailedException e) {
         System.err.println(e.getMessage());
 
       } catch (IOException e) {
         System.err.println(e.getMessage());
+      } finally {
+        finishScriptRun(this);
+        releaseScriptReferences();
       }
-
-      runButton.setIcon(runIcon);
-      running = false;
     }
   }
 
@@ -119,6 +143,12 @@ public class NodusGroovyConsole extends NotePad {
 
   /** . */
   private GroovyThread job = null;
+
+  /** Listener shared by the menu item and toolbar button. */
+  private ActionListener runScriptActionListener;
+
+  /** True once the console is being disposed. */
+  private boolean disposed = false;
 
   /** . */
   private NodusMapPanel nodusMapPanel;
@@ -188,20 +218,7 @@ public class NodusGroovyConsole extends NotePad {
     runButton.setToolTipText(
         i18n.get(NodusGroovyConsole.class, "Run_Groovy_script", "Run Groovy script"));
 
-    runGroovyShell.addActionListener(
-        new ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent ae) {
-
-            if (!running) {
-              executeScript();
-            } else {
-              cancelRunningScript();
-            }
-          }
-        });
-
-    runButton.addActionListener(
+    runScriptActionListener =
         new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent ae) {
@@ -211,18 +228,45 @@ public class NodusGroovyConsole extends NotePad {
               cancelRunningScript();
             }
           }
-        });
+        };
+
+    runGroovyShell.addActionListener(runScriptActionListener);
+    runButton.addActionListener(runScriptActionListener);
   }
 
   /** Cancels a running script, if any. */
   private void cancelRunningScript() {
-    if (job != null) {
-      job.cancel();
+    GroovyThread runningJob = job;
+    job = null;
+
+    if (runningJob != null) {
+      runningJob.cancel();
     }
+  }
+
+  @Override
+  public void dispose() {
+    disposed = true;
+
+    cancelRunningScript();
+    removeScriptActionListeners();
+
+    nodusMapPanel = null;
+    run = null;
+    runButton = null;
+    runGroovyShell = null;
+    runIcon = null;
+    stopIcon = null;
+
+    super.dispose();
   }
 
   /** Executes the Groovy script in a thread... */
   private void executeScript() {
+    if (disposed || nodusMapPanel == null) {
+      return;
+    }
+
     actions.askForSave();
 
     // File script = GroovyPreParser.preParseScript(getFileName(true));
@@ -230,6 +274,34 @@ public class NodusGroovyConsole extends NotePad {
     if (script != null) {
       job = new GroovyThread(nodusMapPanel, script);
       job.start();
+    }
+  }
+
+  /** Resets the UI state after a script finishes or is cancelled. */
+  private void finishScriptRun(GroovyThread finishedJob) {
+    if (runButton != null) {
+      runButton.setIcon(runIcon);
+    }
+
+    running = false;
+
+    if (job == finishedJob) {
+      job = null;
+    }
+  }
+
+  /** Removes listeners installed by this class from the toolbar button and menu item. */
+  private void removeScriptActionListeners() {
+    if (runScriptActionListener != null) {
+      if (runGroovyShell != null) {
+        runGroovyShell.removeActionListener(runScriptActionListener);
+      }
+
+      if (runButton != null) {
+        runButton.removeActionListener(runScriptActionListener);
+      }
+
+      runScriptActionListener = null;
     }
   }
 }
