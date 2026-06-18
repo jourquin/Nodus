@@ -28,6 +28,7 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Savepoint;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.DecimalFormat;
@@ -43,6 +44,25 @@ import java.util.LinkedList;
  * @author Bart Jourquin
  */
 public class Scenarios {
+
+  /** Rolls back the current write without disturbing older work on the shared connection. */
+  private void rollbackToSavepoint(Connection con, Savepoint savepoint) {
+    if (con == null) {
+      return;
+    }
+
+    try {
+      if (!con.getAutoCommit()) {
+        if (savepoint != null) {
+          con.rollback(savepoint);
+        } else {
+          con.rollback();
+        }
+      }
+    } catch (SQLException rollbackEx) {
+      rollbackEx.printStackTrace();
+    }
+  }
 
   /** Placeholder for virtual link records that must be compared between two scenarios. */
   private class VnetRecord {
@@ -413,10 +433,15 @@ public class Scenarios {
       maxBatchSize /= 5;
     }
 
+    Savepoint savepoint = null;
     try {
+      if (!con.getAutoCommit()) {
+        savepoint = con.setSavepoint();
+      }
 
       // Create result table
       if (!VirtualNetworkWriter.initTable(nodusProject, resultScenario, groupsInResults)) {
+        rollbackToSavepoint(con, savepoint);
         return;
       }
 
@@ -499,6 +524,7 @@ public class Scenarios {
         }
       }
     } catch (Exception e) {
+      rollbackToSavepoint(con, savepoint);
       System.err.println(e.toString());
       return;
     }

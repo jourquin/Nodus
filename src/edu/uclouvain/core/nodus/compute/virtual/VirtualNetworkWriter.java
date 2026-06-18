@@ -32,6 +32,8 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.SingleInstanceMessagePane;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.util.Iterator;
 import javax.swing.JOptionPane;
 
@@ -49,6 +51,25 @@ public class VirtualNetworkWriter {
   private boolean hasBatchSupport;
 
   private Connection jdbcConnection;
+
+  /** Rolls back the current write without disturbing older work on the shared connection. */
+  private void rollbackToSavepoint(Savepoint savepoint) {
+    if (jdbcConnection == null) {
+      return;
+    }
+
+    try {
+      if (!jdbcConnection.getAutoCommit()) {
+        if (savepoint != null) {
+          jdbcConnection.rollback(savepoint);
+        } else {
+          jdbcConnection.rollback();
+        }
+      }
+    } catch (SQLException rollbackEx) {
+      rollbackEx.printStackTrace();
+    }
+  }
 
   /**
    * Initializes the database table used to store the virtual network that contains an assignment.
@@ -158,12 +179,6 @@ public class VirtualNetworkWriter {
    * @return True on success.
    */
   public boolean save() {
-
-    // Create or clear table at first iteration
-    if (!initTable()) {
-      return false;
-    }
-
     int nbTimeSlices = virtualNet.getNbTimeSlices();
     int timeSliceDuration = virtualNet.getTimeSliceDuration();
     int assignmentStarTime = virtualNet.getAssignmentStartTime();
@@ -182,9 +197,23 @@ public class VirtualNetworkWriter {
     // long start = System.currentTimeMillis();
 
     boolean progressStarted = false;
+    Savepoint savepoint = null;
     try {
       // Fill it
       jdbcConnection = nodusProject.getMainJDBCConnection();
+      if (jdbcConnection == null) {
+        return false;
+      }
+
+      if (!jdbcConnection.getAutoCommit()) {
+        savepoint = jdbcConnection.setSavepoint();
+      }
+
+      // Create or clear table at first iteration
+      if (!initTable()) {
+        rollbackToSavepoint(savepoint);
+        return false;
+      }
 
       hasBatchSupport = JDBCUtils.hasBatchSupport();
 
@@ -220,7 +249,7 @@ public class VirtualNetworkWriter {
                       VirtualNetworkWriter.class,
                       "Saving_virtual_network",
                       "Saving virtual network"))) {
-
+                rollbackToSavepoint(savepoint);
                 return false;
               }
 
@@ -306,6 +335,7 @@ public class VirtualNetworkWriter {
               "Invalid_value",
               "Invalid value in VNET fields. See Stack Trace."),
           JOptionPane.ERROR_MESSAGE);
+      rollbackToSavepoint(savepoint);
       e.printStackTrace();
       return false;
     } finally {
