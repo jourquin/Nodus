@@ -94,7 +94,7 @@ public class ExportXLS {
       }
 
       // Loop over the rows to export data from table
-      String sqlStmt = "select * from " + JDBCUtils.getCompliantIdentifier(tableName);
+      String sqlStmt = "select * from " + JDBCUtils.getQuotedCompliantIdentifier(tableName);
 
       try (Statement stmt = con.createStatement();
           ResultSet rs = stmt.executeQuery(sqlStmt)) {

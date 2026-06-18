@@ -106,7 +106,7 @@ public class ImportXLS {
 
       // Parse first row
       StringBuilder sqlStmt = new StringBuilder("CREATE TABLE ");
-      sqlStmt.append(tableName).append(" (");
+      sqlStmt.append(JDBCUtils.getQuotedCompliantIdentifier(tableName)).append(" (");
       Iterator<Cell> cells = row.cellIterator();
       if (!cells.hasNext()) {
         return null;
@@ -257,6 +257,7 @@ public class ImportXLS {
     String sqlStmt;
     int nbCols;
     int[] columnTypes;
+    String quotedTableName = JDBCUtils.getQuotedCompliantIdentifier(tableName);
 
     try (Statement stmt = con.createStatement()) {
       if (!con.getAutoCommit()) {
@@ -268,11 +269,11 @@ public class ImportXLS {
         stmt.execute(createTableStatement);
       }
 
-      sqlStmt = "delete from " + JDBCUtils.getCompliantIdentifier(tableName);
+      sqlStmt = "delete from " + quotedTableName;
       stmt.executeUpdate(sqlStmt);
 
       // Get table structure
-      sqlStmt = "select * from " + JDBCUtils.getCompliantIdentifier(tableName);
+      sqlStmt = "select * from " + quotedTableName;
       try (ResultSet rs = stmt.executeQuery(sqlStmt)) {
         ResultSetMetaData metaData = rs.getMetaData();
         nbCols = metaData.getColumnCount();
@@ -301,14 +302,16 @@ public class ImportXLS {
       }
 
       // Use a prepared statement to increase insert speed
-      sqlStmt = "INSERT INTO " + tableName + " VALUES (";
+      StringBuilder insertStatement = new StringBuilder("INSERT INTO ");
+      insertStatement.append(quotedTableName).append(" VALUES (");
       for (int i = 0; i < nbCols; i++) {
-        sqlStmt += "?";
+        insertStatement.append('?');
         if (i < nbCols - 1) {
-          sqlStmt += ",";
+          insertStatement.append(',');
         }
       }
-      sqlStmt += ")";
+      insertStatement.append(')');
+      sqlStmt = insertStatement.toString();
 
       try (PreparedStatement prepStmt = con.prepareStatement(sqlStmt)) {
         while (rows.hasNext()) {

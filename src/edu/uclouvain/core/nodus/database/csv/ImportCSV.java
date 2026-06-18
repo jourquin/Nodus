@@ -62,7 +62,7 @@ public class ImportCSV {
    */
   private static String buildInsertStatement(String tableName, int nbFields) {
     StringBuilder sqlStmt = new StringBuilder("INSERT INTO ");
-    sqlStmt.append(tableName).append(" VALUES (");
+    sqlStmt.append(JDBCUtils.getQuotedCompliantIdentifier(tableName)).append(" VALUES (");
 
     for (int i = 0; i < nbFields; i++) {
       if (i > 0) {
@@ -189,7 +189,7 @@ public class ImportCSV {
 
       // Clean table
       try (Statement stmt = con.createStatement()) {
-        String sqlStmt = "delete from " + JDBCUtils.getCompliantIdentifier(tableName);
+        String sqlStmt = "delete from " + JDBCUtils.getQuotedCompliantIdentifier(tableName);
         stmt.executeUpdate(sqlStmt);
       }
 
