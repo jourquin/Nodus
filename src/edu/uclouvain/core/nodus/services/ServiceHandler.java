@@ -267,9 +267,18 @@ public class ServiceHandler {
       // Create new tables if needed
       resetServicesTables();
 
-      String servicesHeaderSql = "INSERT INTO " + servicesHeaderTableName + " VALUES(?,?,?,?,?)";
-      String servicesLinksSql = "INSERT INTO " + servicesLinksTableName + " VALUES(?,?)";
-      String serviceStopsSql = "INSERT INTO " + serviceStopsTableName + " VALUES(?,?)";
+      String servicesHeaderSql =
+          "INSERT INTO "
+              + JDBCUtils.getQuotedCompliantIdentifier(servicesHeaderTableName)
+              + " VALUES(?,?,?,?,?)";
+      String servicesLinksSql =
+          "INSERT INTO "
+              + JDBCUtils.getQuotedCompliantIdentifier(servicesLinksTableName)
+              + " VALUES(?,?)";
+      String serviceStopsSql =
+          "INSERT INTO "
+              + JDBCUtils.getQuotedCompliantIdentifier(serviceStopsTableName)
+              + " VALUES(?,?)";
 
       try (PreparedStatement pstmt1 = jdbcConnection.prepareStatement(servicesHeaderSql);
           PreparedStatement pstmt2 = jdbcConnection.prepareStatement(servicesLinksSql);
@@ -740,7 +749,10 @@ public class ServiceHandler {
       try (Statement stmt1 = jdbcConnection.createStatement();
           Statement stmt2 = jdbcConnection.createStatement();
           Statement stmt3 = jdbcConnection.createStatement();
-          ResultSet rs1 = stmt1.executeQuery("SELECT * FROM " + servicesHeaderTableName)) {
+          ResultSet rs1 =
+              stmt1.executeQuery(
+                  "SELECT * FROM "
+                      + JDBCUtils.getQuotedCompliantIdentifier(servicesHeaderTableName))) {
 
         // Retrieve result of query : header
         while (rs1.next()) {
@@ -755,11 +767,11 @@ public class ServiceHandler {
           // Retrieve the list of chunks for this line
           String sqlStmt2 =
               "SELECT "
-                  + NodusC.DBF_LINK
+                  + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK)
                   + " FROM "
-                  + servicesLinksTableName
+                  + JDBCUtils.getQuotedCompliantIdentifier(servicesLinksTableName)
                   + " WHERE "
-                  + NodusC.DBF_ID
+                  + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ID)
                   + " = "
                   + idService;
           try (ResultSet rs2 = stmt2.executeQuery(sqlStmt2)) {
@@ -771,11 +783,11 @@ public class ServiceHandler {
 
           String sqlStmt3 =
               "SELECT "
-                  + NodusC.DBF_STOP
+                  + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_STOP)
                   + " FROM "
-                  + serviceStopsTableName
+                  + JDBCUtils.getQuotedCompliantIdentifier(serviceStopsTableName)
                   + " WHERE "
-                  + NodusC.DBF_ID
+                  + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ID)
                   + " = "
                   + idService;
           try (ResultSet rs3 = stmt3.executeQuery(sqlStmt3)) {

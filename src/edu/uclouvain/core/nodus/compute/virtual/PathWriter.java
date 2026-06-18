@@ -393,9 +393,10 @@ public class PathWriter {
     JDBCUtils.createTable(pathHeaderTableName, fields);
 
     // Use prepared statements to improve insert performances
+    String quotedPathHeaderTableName = JDBCUtils.getQuotedCompliantIdentifier(pathHeaderTableName);
     String sqlStmt =
         "INSERT INTO "
-            + JDBCUtils.getCompliantIdentifier(pathHeaderTableName)
+            + quotedPathHeaderTableName
             + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     try {
@@ -414,9 +415,11 @@ public class PathWriter {
       JDBCUtils.createTable(pathDetailTableName, fields);
 
       // Use prepared statements to improve insert performances
+      String quotedPathDetailTableName =
+          JDBCUtils.getQuotedCompliantIdentifier(pathDetailTableName);
       sqlStmt =
           "INSERT INTO "
-              + JDBCUtils.getCompliantIdentifier(pathDetailTableName)
+              + quotedPathDetailTableName
               + " VALUES (?,?,?,?)";
       try {
         prepStmtDetails = con.prepareStatement(sqlStmt);
@@ -604,7 +607,7 @@ public class PathWriter {
       prepStmtHeaders.setInt(idx++, ldMode);
       prepStmtHeaders.setInt(idx++, ldMeans);
       prepStmtHeaders.setInt(idx++, ulMode);
-      prepStmtHeaders.setInt(idx++, ldMeans);
+      prepStmtHeaders.setInt(idx++, ulMeans);
       prepStmtHeaders.setInt(idx++, nbTranshipments);
       prepStmtHeaders.setInt(idx++, pathIndex);
 
@@ -655,7 +658,7 @@ public class PathWriter {
        */
       String sqlStmt =
           "UPDATE "
-              + pathHeaderTableName
+              + JDBCUtils.getQuotedCompliantIdentifier(pathHeaderTableName)
               + " SET "
               + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
               + " = ROUND("
@@ -675,7 +678,7 @@ public class PathWriter {
        */
       sqlStmt =
           "UPDATE "
-              + pathHeaderTableName
+              + JDBCUtils.getQuotedCompliantIdentifier(pathHeaderTableName)
               + " SET "
               + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)
               + " = ROUND("
