@@ -197,14 +197,13 @@ public class ExportDBF implements ShapeConstants {
 
         while (dbfReader.hasNextRecord()) {
           Object[] o = dbfReader.nextRecord();
+          if (o == null) {
+            continue;
+          }
           ps.setInt(1, ++n);
           ps.setInt(2, Integer.parseInt(o[NodusC.DBF_IDX_NUM].toString()));
           ps.execute();
         }
-      }
-
-      if (!jdbcConnection.getAutoCommit()) {
-        jdbcConnection.commit();
       }
 
       return true;
@@ -419,10 +418,6 @@ public class ExportDBF implements ShapeConstants {
         }
 
         dbf.addRecord(o);
-      }
-
-      if (!con.getAutoCommit()) {
-        con.commit();
       }
 
     } catch (Exception ex) {

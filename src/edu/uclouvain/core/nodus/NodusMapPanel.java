@@ -136,6 +136,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Paths;
 import java.util.EventObject;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -981,11 +984,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     }
 
     // Get the filenames of the dcwpo-browser map data
-    String shpFileName = this.getClass().getResource("dcwpo-browse.shp").getFile();
-
-    // Run from within Eclipse or standalone JAR ?
-    if (shpFileName.contains("jar!")) {
-      shpFileName = "jar:" + shpFileName;
+    String shpFileName = getResourceLocation("dcwpo-browse.shp");
+    if (shpFileName == null) {
+      return;
     }
 
     p.setProperty("overviewLayer.shapeFile", shpFileName);
@@ -996,6 +997,25 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     overviewMapHandler.activateMouseMode();
 
     getMapHandler().add(overviewMapHandler);
+  }
+
+  /** Returns a filesystem path or jar URL suitable for embedded shape resources. */
+  private String getResourceLocation(String resourceName) {
+    URL resource = getClass().getResource(resourceName);
+    if (resource == null) {
+      System.err.println("Resource not found: " + resourceName);
+      return null;
+    }
+
+    if ("jar".equalsIgnoreCase(resource.getProtocol())) {
+      return resource.toExternalForm();
+    }
+
+    try {
+      return Paths.get(resource.toURI()).toString();
+    } catch (URISyntaxException | IllegalArgumentException ex) {
+      return resource.getPath();
+    }
   }
 
   /**

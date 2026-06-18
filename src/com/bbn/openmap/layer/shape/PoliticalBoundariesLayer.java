@@ -30,6 +30,9 @@ import com.bbn.openmap.util.PropUtils;
 import edu.uclouvain.core.nodus.NodusC;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Properties;
 
@@ -65,20 +68,19 @@ public class PoliticalBoundariesLayer extends ShapeLayer {
       Properties props = new Properties();
 
       try (InputStream in =
-            PoliticalBoundariesLayer.class
-                .getResource("politicalBoundaries.properties")
-                .openStream()) {
+          PoliticalBoundariesLayer.class.getResourceAsStream("politicalBoundaries.properties")) {
+        if (in == null) {
+          throw new IOException("politicalBoundaries.properties not found");
+        }
         props.load(in);
       } catch (IOException ioe) { // Should never happen
         ioe.printStackTrace();
       }
 
       // Get the filenames of the cntry02 map data
-      String shpFileName = PoliticalBoundariesLayer.class.getResource("cntry02.shp").getFile();
-
-      // Run from within Eclipse or standalone JAR ?
-      if (shpFileName.contains("jar!")) {
-        shpFileName = "jar:" + shpFileName;
+      String shpFileName = getResourceLocation("cntry02.shp");
+      if (shpFileName == null) {
+        return null;
       }
 
       props.setProperty("shapePolitical.shapeFile", shpFileName);
@@ -99,5 +101,24 @@ public class PoliticalBoundariesLayer extends ShapeLayer {
     }
 
     return politicalBoundariesLayer;
+  }
+
+  /** Returns a filesystem path or jar URL suitable for embedded shape resources. */
+  private static String getResourceLocation(String resourceName) {
+    URL resource = PoliticalBoundariesLayer.class.getResource(resourceName);
+    if (resource == null) {
+      System.err.println("Resource not found: " + resourceName);
+      return null;
+    }
+
+    if ("jar".equalsIgnoreCase(resource.getProtocol())) {
+      return resource.toExternalForm();
+    }
+
+    try {
+      return Paths.get(resource.toURI()).toString();
+    } catch (URISyntaxException | IllegalArgumentException ex) {
+      return resource.getPath();
+    }
   }
 }
