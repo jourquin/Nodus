@@ -23,12 +23,7 @@ package edu.uclouvain.core.nodus.utils;
 
 import edu.uclouvain.core.nodus.NodusPlugin;
 import java.io.File;
-import java.io.FileFilter;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.jar.JarEntry;
@@ -39,10 +34,13 @@ import java.util.jar.JarFile;
  *
  * @author Bart Jourquin
  */
-public class PluginsLoader {
+public class PluginsLoader implements AutoCloseable {
+
   /* A place where to store the plugins found by this loader instance. */
   private final LinkedList<Class<NodusPlugin>> availablePlugins =
       new LinkedList<Class<NodusPlugin>>();
+
+  private final PluginClassPath pluginClassPath;
 
   /**
    * Returns the plugins found by this loader instance.
@@ -53,7 +51,7 @@ public class PluginsLoader {
     return availablePlugins;
   }
 
-  private File directory;
+  //private File directory;
 
   /**
    * Loads all the available plugins.
@@ -61,70 +59,41 @@ public class PluginsLoader {
    * @param pluginDir The path to the directory that contains the Nodus project.
    */
   public PluginsLoader(String pluginDir) {
+    PluginClassPath classPath = null;
 
-    directory = new File(pluginDir);
-
+    File directory = new File(pluginDir);
     if (!directory.exists()) {
+      pluginClassPath = null;
       return;
     }
 
-    if (directory.isDirectory()) {
-      loadJars();
-    } else {
+    if (!directory.isDirectory()) {
       System.err.println(directory + " is not a directory");
+      pluginClassPath = null;
+      return;
+    }
+
+    try {
+      classPath = new PluginClassPath(directory, PluginsLoader.class.getClassLoader());
+    } catch (IOException ex) {
+      ex.printStackTrace();
+    }
+
+    pluginClassPath = classPath;
+
+    if (pluginClassPath != null) {
+      loadJars();
     }
   }
 
   /** Load all the jars in the directory and looks for plugins. */
   private void loadJars() {
-
-    File[] jarFiles =
-        directory.listFiles(
-            new FileFilter() {
-              @Override
-              public boolean accept(File pathname) {
-                boolean accept = false;
-                accept = pathname.getName().endsWith(".jar");
-
-                if (!accept) { // Accept also Windows shortcuts...
-                  accept = pathname.getName().endsWith(".jar.lnk");
-                }
-
-                return accept;
-              }
-            });
-
-    if (jarFiles == null) {
+    if (pluginClassPath == null) {
       return;
     }
 
-    for (int i = 0; i < jarFiles.length; i++) {
-
-      try {
-        // Resolve the case of Windows shortcuts
-        if (FileUtils.isWindowsShortcut(jarFiles[i])) {
-          jarFiles[i] = FileUtils.getWindowsRealFile(jarFiles[i]);
-          if (jarFiles[i] == null) {
-            continue;
-          }
-        }
-
-        // Test existence (could be a dead link...)
-        if (!jarFiles[i].exists()) {
-          continue;
-        }
-
-        // Load jar file
-        JarLoader jl = new JarLoader(jarFiles[i].getAbsolutePath());
-        jl.loadJarClasses();
-
-        loadPlugins(jarFiles[i].getAbsolutePath());
-
-      } catch (FileNotFoundException ex) {
-        System.out.println(ex.toString());
-      } catch (IOException ex) {
-        System.out.println(ex.toString());
-      }
+    for (File jarFile : pluginClassPath.getJarFiles()) {
+      loadPlugins(jarFile);
     }
   }
 
@@ -134,25 +103,24 @@ public class PluginsLoader {
    * @param pathToJar Path to jar file
    */
   @SuppressWarnings("unchecked")
-  private void loadPlugins(String pathToJar) {
-
-    try (JarFile jarFile = new JarFile(pathToJar);
-        URLClassLoader cl =
-            URLClassLoader.newInstance(new URL[] {new URL("jar:file:" + pathToJar + "!/")})) {
+  private void loadPlugins(File pathToJar) {
+    try (JarFile jarFile = new JarFile(pathToJar)) {
       Enumeration<JarEntry> e = jarFile.entries();
 
       while (e.hasMoreElements()) {
-        JarEntry je = (JarEntry) e.nextElement();
+        JarEntry je = e.nextElement();
+
         if (je.isDirectory() || !je.getName().endsWith(".class")) {
           continue;
         }
 
-        // -6 because of .class
         String className = je.getName().substring(0, je.getName().length() - 6);
         className = className.replace('/', '.');
+
         Class<?> loadedClass = null;
+
         try {
-          loadedClass = cl.loadClass(className);
+          loadedClass = pluginClassPath.loadClass(className);
         } catch (Error e1) {
           System.err.println(className);
         } catch (Exception e1) {
@@ -162,24 +130,30 @@ public class PluginsLoader {
         if (loadedClass != null && NodusPlugin.class.isAssignableFrom(loadedClass)) {
           try {
             /*
-             * Make sure the plugin can be instantiated later by NodusMapPanel, but do not create an
-             * instance here. Plugin constructors may allocate resources, and instances created only
-             * for discovery would not be part of the normal plugin lifecycle.
+             * Make sure the plugin can be instantiated later by NodusMapPanel,
+             * but do not create an instance here.
              */
             loadedClass.getConstructor();
             availablePlugins.add((Class<NodusPlugin>) loadedClass);
           } catch (NoSuchMethodException ex) {
             /*
-             * A valid plugin must expose a public no-argument constructor. 
+             * A valid plugin must expose a public no-argument constructor.
              * The jar may contain other classes that do not; ignore them.
              */
           }
         }
       }
-    } catch (MalformedURLException e) {
-      e.printStackTrace();
     } catch (IOException e) {
       e.printStackTrace();
+    }
+  }
+
+  @Override
+  public void close() {
+    availablePlugins.clear();
+
+    if (pluginClassPath != null) {
+      pluginClassPath.close();
     }
   }
 }

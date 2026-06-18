@@ -241,6 +241,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Vector of global plugins. */
   private Vector<JMenuItem> globalPluginsMenuItems = new Vector<>();
 
+  /** Class loaders that must stay alive for application-wide plugins. */
+  private Vector<PluginsLoader> globalPluginLoaders = new Vector<>();
+
+  /** Class loaders that must stay alive for project-specific plugins. */
+  private Vector<PluginsLoader> projectPluginLoaders = new Vector<>();
+
   /** The browser used for the user guide. */
   HelpBrowser helpBrowser = null;
 
@@ -639,6 +645,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     scriptRunner.setVariable("startNodus", false);
     scriptRunner.setVariable("quitNodus", true);
     scriptRunner.run(true);
+
+    /*
+     * Explicitly dispose application-wide plugins and close their loaders before exiting.
+     * Do not rely on Swing disposal here because this method calls System.exit(0).
+     */
+    disposeAllPlugins();
 
     setVisible(false);
     System.exit(0);
@@ -1956,133 +1968,154 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   public void loadPlugins(String dir, boolean projectPlugin) {
 
-    // Load all the plugins
+    // Load all the plugins.
     PluginsLoader nodusPluginLoader = new PluginsLoader(dir);
-    LinkedList<Class<NodusPlugin>> availableClasses = nodusPluginLoader.getAvailablePlugins();
+    boolean keepLoader = false;
 
-    if (availableClasses.isEmpty()) {
-      if (!projectPlugin) {
-        nbNodusPlugins = 0;
-      }
-      return;
-    }
+    try {
+      LinkedList<Class<NodusPlugin>> availableClasses = nodusPluginLoader.getAvailablePlugins();
 
-    Vector<NodusPlugin> loadedPlugins = new Vector<>();
-
-    Iterator<Class<NodusPlugin>> classIterator = availableClasses.iterator();
-    while (classIterator.hasNext()) {
-      Class<NodusPlugin> loadableClass = classIterator.next();
-      NodusPlugin plugin = null;
-
-      try {
-        plugin = loadableClass.getConstructor().newInstance();
-        plugin.setNodusMapPanel(this);
-      } catch (Exception e) {
-        e.printStackTrace();
-        continue;
+      if (availableClasses.isEmpty()) {
+        if (!projectPlugin) {
+          nbNodusPlugins = 0;
+        }
+        return;
       }
 
-      Properties pluginProp = plugin.getProperties();
-      if (pluginProp == null) {
-        System.err.println("Plugin " + plugin.getClass().toString() + " returns no properties");
-        disposePlugin(plugin);
-        continue;
-      }
+      Vector<NodusPlugin> loadedPlugins = new Vector<>();
 
-      // Where must the plugin be inserted?
-      JMenu menu = null;
-      String text = pluginProp.getProperty(NodusPlugin.USER_DEFINED_MENUBAR_TEXT);
+      Iterator<Class<NodusPlugin>> classIterator = availableClasses.iterator();
+      while (classIterator.hasNext()) {
+        Class<NodusPlugin> loadableClass = classIterator.next();
+        NodusPlugin plugin = null;
 
-      if (text != null) {
-        // Does this user-defined menu already exists?
-        boolean found = false;
-        Iterator<JMenuItem> it = userDefinedMenus.iterator();
+        try {
+          plugin = loadableClass.getConstructor().newInstance();
+          plugin.setNodusMapPanel(this);
+        } catch (Exception e) {
+          e.printStackTrace();
+          continue;
+        }
 
-        while (it.hasNext()) {
-          JMenu m = (JMenu) it.next();
+        Properties pluginProp = plugin.getProperties();
+        if (pluginProp == null) {
+          System.err.println("Plugin " + plugin.getClass().toString() + " returns no properties");
+          disposePlugin(plugin);
+          continue;
+        }
 
-          if (m.getText().equals(text)) {
-            found = true;
-            menu = m;
+        // Where must the plugin be inserted?
+        JMenu menu = null;
+        String text = pluginProp.getProperty(NodusPlugin.USER_DEFINED_MENUBAR_TEXT);
 
-            break;
+        if (text != null) {
+          // Does this user-defined menu already exists?
+          boolean found = false;
+          Iterator<JMenuItem> it = userDefinedMenus.iterator();
+
+          while (it.hasNext()) {
+            JMenu m = (JMenu) it.next();
+
+            if (m.getText().equals(text)) {
+              found = true;
+              menu = m;
+
+              break;
+            }
+          }
+
+          // No. Add it, just before the "help" menu!
+          if (!found) {
+            menu = new JMenu(text);
+            userDefinedMenus.add(menu);
+            nodusMenuBar.add(menu, nodusMenuBar.getMenuCount() - 1);
+            menu.setEnabled(false);
+          }
+        } else {
+          // Menu item must be added to a Nodus menu
+          text = pluginProp.getProperty(NodusPlugin.MENUBAR_ID);
+
+          if (text != null) {
+            int n = Integer.parseInt(text);
+            menu = getPluginMenu(plugin, n);
+          } else {
+            System.err.println(
+                "Plugin "
+                    + plugin.getClass().toString()
+                    + " doesn't define a MenuBarID "
+                    + "or a UserDefinedMenubarText");
           }
         }
 
-        // No. Add it, just before the "help" menu!
-        if (!found) {
-          menu = new JMenu(text);
-          userDefinedMenus.add(menu);
-          nodusMenuBar.add(menu, nodusMenuBar.getMenuCount() - 1);
-          menu.setEnabled(false);
-        }
-      } else {
-        // Menu item must be added to a Nodus menu
-        text = pluginProp.getProperty(NodusPlugin.MENUBAR_ID);
+        // Create the relevant menu item and associate an actionCommand to it.
+        int commandId = loadedPlugins.size();
 
-        if (text != null) {
-          int n = Integer.parseInt(text);
-          menu = getPluginMenu(plugin, n);
+        if (projectPlugin) {
+          commandId += nbNodusPlugins;
+        }
+
+        JMenuItem menuItem = createPluginMenuItem(plugin, commandId, menu, pluginProp);
+
+        if (menuItem == null) {
+          disposePlugin(plugin);
+          removeEmptyUserDefinedPluginMenus();
+          continue;
+        }
+
+        // Store the menu in a vector in order to enable/disable/remove it easily.
+        if (!projectPlugin) {
+          globalPluginsMenuItems.add(menuItem);
         } else {
-          System.err.println(
-              "Plugin "
-                  + plugin.getClass().toString()
-                  + " doesn't define a MenuBarID "
-                  + "or a UserDefinedMenubarText");
+          projectPluginsMenuItems.add(menuItem);
+        }
+
+        loadedPlugins.add(plugin);
+      }
+
+      if (loadedPlugins.isEmpty()) {
+        if (!projectPlugin) {
+          nbNodusPlugins = 0;
+        }
+        return;
+      }
+
+      NodusPlugin[] plugins = loadedPlugins.toArray(new NodusPlugin[loadedPlugins.size()]);
+
+      // Add project plugins after global plugins. They will be removed again on project close.
+      if (!projectPlugin) {
+        nodusPlugins = plugins;
+        nbNodusPlugins = plugins.length;
+      } else if (nodusPlugins == null) {
+        nodusPlugins = plugins;
+      } else {
+        NodusPlugin[] tmp = nodusPlugins.clone();
+        int newSize = nodusPlugins.length + plugins.length;
+        nodusPlugins = new NodusPlugin[newSize];
+
+        for (int i = 0; i < tmp.length; i++) {
+          nodusPlugins[i] = tmp[i];
+        }
+
+        for (int i = 0; i < plugins.length; i++) {
+          nodusPlugins[tmp.length + i] = plugins[i];
         }
       }
 
-      // Create the relevant menu item and associate an actionCommand to it.
-      int commandId = loadedPlugins.size();
-
-      if (projectPlugin) {
-        commandId += nbNodusPlugins;
-      }
-
-      JMenuItem menuItem = createPluginMenuItem(plugin, commandId, menu, pluginProp);
-
-      if (menuItem == null) {
-        disposePlugin(plugin);
-        removeEmptyUserDefinedPluginMenus();
-        continue;
-      }
-
-      // Store the menu in a vector in order to enable/disable/remove it easily.
+      /*
+       * Keep the loader alive while the plugin instances loaded from it are alive.
+       * Application-wide plugin loaders are closed at Nodus exit.
+       * Project-specific plugin loaders are closed when the project is closed.
+       */
       if (!projectPlugin) {
-        globalPluginsMenuItems.add(menuItem);
+        globalPluginLoaders.add(nodusPluginLoader);
       } else {
-        projectPluginsMenuItems.add(menuItem);
+        projectPluginLoaders.add(nodusPluginLoader);
       }
 
-      loadedPlugins.add(plugin);
-    }
-
-    if (loadedPlugins.isEmpty()) {
-      if (!projectPlugin) {
-        nbNodusPlugins = 0;
-      }
-      return;
-    }
-
-    NodusPlugin[] plugins = loadedPlugins.toArray(new NodusPlugin[loadedPlugins.size()]);
-
-    // Add project plugins after global plugins. They will be removed again on project close.
-    if (!projectPlugin) {
-      nodusPlugins = plugins;
-      nbNodusPlugins = plugins.length;
-    } else if (nodusPlugins == null) {
-      nodusPlugins = plugins;
-    } else {
-      NodusPlugin[] tmp = nodusPlugins.clone();
-      int newSize = nodusPlugins.length + plugins.length;
-      nodusPlugins = new NodusPlugin[newSize];
-
-      for (int i = 0; i < tmp.length; i++) {
-        nodusPlugins[i] = tmp[i];
-      }
-
-      for (int i = 0; i < plugins.length; i++) {
-        nodusPlugins[tmp.length + i] = plugins[i];
+      keepLoader = true;
+    } finally {
+      if (!keepLoader) {
+        nodusPluginLoader.close();
       }
     }
   }
@@ -2478,7 +2511,35 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     projectPluginsMenuItems.clear();
 
     removeProjectPluginInstances();
+
+    /*
+     * Project plugin instances have now been disposed. Their project-scoped
+     * class loaders can be closed and released.
+     */
+    closePluginLoaders(projectPluginLoaders);
+
     removeEmptyUserDefinedPluginMenus();
+  }
+
+  /** Closes all plugin loaders owned by the given lifecycle scope. */
+  private void closePluginLoaders(Vector<PluginsLoader> loaders) {
+    Iterator<PluginsLoader> it = loaders.iterator();
+
+    while (it.hasNext()) {
+      PluginsLoader loader = it.next();
+
+      if (loader == null) {
+        continue;
+      }
+
+      try {
+        loader.close();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+
+    loaders.clear();
   }
 
   /** Calls the plugin lifecycle cleanup method before the plugin instance is released. */
@@ -2585,6 +2646,13 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     globalPluginsMenuItems.clear();
     projectPluginsMenuItems.clear();
     userDefinedMenus.clear();
+
+    /*
+     * Project loaders may already have been closed by removeProjectPlugins().
+     * The close operation is intentionally idempotent for the application exit path.
+     */
+    closePluginLoaders(projectPluginLoaders);
+    closePluginLoaders(globalPluginLoaders);
   }
 
   /** Removes empty user-defined plugin menus from the menu bar. */

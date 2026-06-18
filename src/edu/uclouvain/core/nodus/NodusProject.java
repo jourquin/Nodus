@@ -254,6 +254,8 @@ public class NodusProject implements ShapeConstants {
 
   private NetworkServerControl derbyServer;
 
+  private boolean h2TcpServerStarted = false;
+
   private int tcpPort;
 
   private HsqlProperties hsqldbProps = new HsqlProperties();
@@ -493,6 +495,7 @@ public class NodusProject implements ShapeConstants {
             if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
               org.h2.tools.Server.shutdownTcpServer(
                   "tcp://localhost:" + tcpPort, "nodus", false, false);
+              h2TcpServerStarted = false;
             }
 
             if (JDBCUtils.getDbEngine() == JDBCUtils.DB_DERBY) {
@@ -631,9 +634,7 @@ public class NodusProject implements ShapeConstants {
       nodusMapPanel.setRenderingScaleThreshold(-1);
 
       // Close the log file for this project
-      loggerHandler.flush();
-      loggerHandler.close();
-      Nodus.nodusLogger.removeHandler(loggerHandler);
+      closeLoggerHandler();
 
       nodusMapPanel.setBusy(false);
       nodusMapPanel.getMenuFile().setEnabled(true);
@@ -659,6 +660,104 @@ public class NodusProject implements ShapeConstants {
       serviceHandler.close();
       serviceHandler = null;
     }
+  }
+
+  /** Closes and deregisters the project logger handler, if any. */
+  private void closeLoggerHandler() {
+    if (loggerHandler == null) {
+      return;
+    }
+
+    try {
+      loggerHandler.flush();
+    } finally {
+      loggerHandler.close();
+      Nodus.nodusLogger.removeHandler(loggerHandler);
+      loggerHandler = null;
+    }
+  }
+
+  /** Closes the project JDBC connection during failed project opening. */
+  private void closeJdbcConnectionAfterFailedOpen() {
+    if (jdbcConnection == null) {
+      JDBCUtils.setConnection(null);
+      return;
+    }
+
+    try {
+      jdbcConnection.close();
+    } catch (SQLException e) {
+      e.printStackTrace();
+    } finally {
+      JDBCUtils.setConnection(null);
+      jdbcConnection = null;
+    }
+  }
+
+  /** Stops embedded database servers that may have been started during failed project opening. */
+  private void shutdownEmbeddedServersAfterFailedOpen() {
+    if (hsqldbServer != null) {
+      try {
+        hsqldbServer.shutdown();
+      } catch (Exception e) {
+        e.printStackTrace();
+      } finally {
+        hsqldbServer = null;
+      }
+    }
+
+    if (h2TcpServerStarted) {
+      try {
+        org.h2.tools.Server.shutdownTcpServer("tcp://localhost:" + tcpPort, "nodus", false, false);
+      } catch (Exception e) {
+        e.printStackTrace();
+      } finally {
+        h2TcpServerStarted = false;
+      }
+    }
+
+    if (derbyServer != null) {
+      try {
+        derbyServer.shutdown();
+      } catch (Exception e) {
+        e.printStackTrace();
+      } finally {
+        derbyServer = null;
+      }
+    }
+  }
+
+  /**
+   * Releases project-scoped resources allocated before a project has fully opened.
+   *
+   * <p>This is deliberately separate from {@link #close()} because {@code close()} only runs when
+   * {@link #isOpen} is already {@code true}. If project opening fails after project plugins have
+   * been loaded, their class loaders must still be closed.
+   */
+  private void cleanupFailedProjectOpen() {
+    closeServiceHandler();
+
+    /*
+     * Project plugins are loaded before the database and layers are ready. If opening fails,
+     * NodusMapPanel.removeProjectPlugins() disposes their instances, removes their menu items,
+     * and closes their project-scoped plugin class loaders.
+     */
+    nodusMapPanel.removeProjectPlugins();
+
+    /* Modal split methods are project-scoped too. This is safe even if none were loaded yet. */
+    ModalSplitMethodsLoader.disposeAvailableModalSplitMethods();
+
+    closeLoggerHandler();
+    closeJdbcConnectionAfterFailedOpen();
+    shutdownEmbeddedServersAfterFailedOpen();
+
+    stylesProperties = null;
+    nodeStyle = null;
+    linkStyle = null;
+
+    ProjectLocker.releaseLock();
+    nodusMapPanel.getMenuFile().setEnabled(true);
+    nodusMapPanel.setBusy(false);
   }
 
   /** Releases project-specific object graphs after all project state has been saved. */
@@ -1640,8 +1739,7 @@ public class NodusProject implements ShapeConstants {
 
     // Test the validity of the dbf files in the project
     if (!ProjectFilesTools.isValidProject(localProperties)) {
-      nodusMapPanel.setBusy(false);
-      nodusMapPanel.getMenuFile().setEnabled(true);
+      cleanupFailedProjectOpen();
       return;
     }
 
@@ -1755,6 +1853,7 @@ public class NodusProject implements ShapeConstants {
         hsqldbServer.setLogWriter(null);
       } catch (Exception e) {
         e.printStackTrace();
+        cleanupFailedProjectOpen();
         return;
       }
       hsqldbServer.start();
@@ -1771,6 +1870,7 @@ public class NodusProject implements ShapeConstants {
                 "-tcpPort",
                 Integer.toString(tcpPort))
             .start();
+        h2TcpServerStarted = true;
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -1800,9 +1900,7 @@ public class NodusProject implements ShapeConstants {
 
       jdbcConnection = getMainJDBCConnection();
       if (jdbcConnection == null) {
-        nodusMapPanel.setBusy(false);
-        ProjectLocker.releaseLock();
-        nodusMapPanel.getMenuFile().setEnabled(true);
+        cleanupFailedProjectOpen();
         return;
       }
 
@@ -1816,8 +1914,7 @@ public class NodusProject implements ShapeConstants {
             }
           });
 
-      ProjectLocker.releaseLock();
-      nodusMapPanel.getMenuFile().setEnabled(true);
+      cleanupFailedProjectOpen();
       return;
     }
 
@@ -1831,9 +1928,7 @@ public class NodusProject implements ShapeConstants {
         stmt.execute("SET PROPERTY \"sql.enforce_size\" true");
       } catch (SQLException ex) {
         System.err.println(ex.toString());
-        nodusMapPanel.setBusy(false);
-        ProjectLocker.releaseLock();
-        nodusMapPanel.getMenuFile().setEnabled(true);
+        cleanupFailedProjectOpen();
         return;
       }
     }
@@ -1866,14 +1961,7 @@ public class NodusProject implements ShapeConstants {
 
     // Test if this project has valid virtual network tables
     if (!isValidVirtualNetworkVersion()) {
-      nodusMapPanel.setBusy(false);
-      ProjectLocker.releaseLock();
-      nodusMapPanel.getMenuFile().setEnabled(true);
-      try {
-        jdbcConnection.close();
-      } catch (SQLException e) {
-        e.printStackTrace();
-      }
+      cleanupFailedProjectOpen();
       return;
     }
 

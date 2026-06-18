@@ -26,14 +26,9 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import java.io.File;
-import java.io.FileFilter;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -50,6 +45,9 @@ import javax.swing.JOptionPane;
 public class ModalSplitMethodsLoader {
   /** A place where to store the loaded methods. */
   private static LinkedList<ModalSplitMethod> availableModalSplitMethods = new LinkedList<>();
+
+  /** Project-scoped class paths that define user modal-split methods. */
+  private static LinkedList<PluginClassPath> modalSplitClassPaths = new LinkedList<>();
 
   /**
    * Returns the available modal split methods.
@@ -77,7 +75,7 @@ public class ModalSplitMethodsLoader {
 
     this.nodusProject = nodusProject;
 
-    availableModalSplitMethods.clear();
+    disposeAvailableModalSplitMethods();
 
     // Load the standard classes
     for (String standardModalSpliMethod : standardModalSpliMethods) {
@@ -112,63 +110,39 @@ public class ModalSplitMethodsLoader {
 
   /** Load all the jars in the directory and looks for modal split methods. */
   private void loadJars() {
-    File[] jarFiles =
-        directory.listFiles(
-            new FileFilter() {
-              @Override
-              public boolean accept(File pathname) {
-                boolean accept = false;
-                accept = pathname.getName().endsWith(".jar");
+    PluginClassPath classPath = null;
 
-                if (!accept) { // Accept also Windows shortcuts...
-                  accept = pathname.getName().endsWith(".jar.lnk");
-                }
+    try {
+      classPath = new PluginClassPath(directory, ModalSplitMethodsLoader.class.getClassLoader());
 
-                return accept;
-              }
-            });
+      int nbMethodsBefore = availableModalSplitMethods.size();
 
-    if (jarFiles == null) {
-      return;
-    }
+      for (File jarFile : classPath.getJarFiles()) {
+        loadUserDefinedModalSplitMethods(jarFile, classPath);
+      }
 
-    for (int i = 0; i < jarFiles.length; i++) {
-
-      try {
-        // Resolve the case of Windows shortcuts
-        if (FileUtils.isWindowsShortcut(jarFiles[i])) {
-          jarFiles[i] = FileUtils.getWindowsRealFile(jarFiles[i]);
-          if (jarFiles[i] == null) {
-            continue;
-          }
-        }
-
-        // Test existence (could be a dead link...)
-        if (!jarFiles[i].exists()) {
-          continue;
-        }
-
-        // Load jar file
-        JarLoader jl = new JarLoader(jarFiles[i].getAbsolutePath());
-        jl.loadJarClasses();
-
-        loadUserDefinedModalSplitMethods(jarFiles[i].getAbsolutePath());
-
-      } catch (FileNotFoundException ex) {
-        System.out.println(ex.toString());
-      } catch (IOException ex) {
-        System.out.println(ex.toString());
+      /*
+       * Keep the class loader alive only if it actually loaded at least one
+       * project-scoped modal-split method instance.
+       */
+      if (availableModalSplitMethods.size() > nbMethodsBefore) {
+        modalSplitClassPaths.add(classPath);
+        classPath = null;
+      }
+    } catch (IOException ex) {
+      System.out.println(ex.toString());
+    } finally {
+      if (classPath != null) {
+        classPath.close();
       }
     }
   }
 
   /** Searches for instances of ModalSplitMethod in a jar. */
-  private void loadUserDefinedModalSplitMethods(String pathToJar) {
+  private void loadUserDefinedModalSplitMethods(File pathToJar, PluginClassPath classPath) {
 
     String className;
-    try (JarFile jarFile = new JarFile(pathToJar);
-        URLClassLoader cl =
-            URLClassLoader.newInstance(new URL[] {new URL("jar:file:" + pathToJar + "!/")})) {
+    try (JarFile jarFile = new JarFile(pathToJar)) {
       Enumeration<JarEntry> e = jarFile.entries();
 
       while (e.hasMoreElements()) {
@@ -179,7 +153,7 @@ public class ModalSplitMethodsLoader {
         // -6 because of .class
         className = je.getName().substring(0, je.getName().length() - 6);
         className = className.replace('/', '.');
-        Class<?> c = cl.loadClass(className);
+        Class<?> c = classPath.loadClass(className);
 
         Constructor<?> cons = null;
         try {
@@ -231,8 +205,6 @@ public class ModalSplitMethodsLoader {
           availableModalSplitMethods.add((ModalSplitMethod) o);
         }
       }
-    } catch (MalformedURLException e) {
-      e.printStackTrace();
     } catch (ClassNotFoundException e) {
       e.printStackTrace();
     } catch (IOException e) {
@@ -269,6 +241,19 @@ public class ModalSplitMethodsLoader {
         method.dispose();
       }
     }
+
     availableModalSplitMethods.clear();
+
+    /*
+     * Close the project-scoped modal-split class loaders after method.dispose(),
+     * because dispose() may still need classes/resources from the plugin.
+     */
+    for (PluginClassPath classPath : modalSplitClassPaths) {
+      if (classPath != null) {
+        classPath.close();
+      }
+    }
+
+    modalSplitClassPaths.clear();
   }
 }
