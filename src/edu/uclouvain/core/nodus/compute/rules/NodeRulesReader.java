@@ -33,6 +33,7 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Savepoint;
 import java.sql.SQLException;
 import java.sql.Statement;
 import javax.swing.JOptionPane;
@@ -57,6 +58,25 @@ public class NodeRulesReader {
   private VirtualNetwork virtualNet;
 
   private int scenario;
+
+  /** Rolls back the current upgrade without disturbing older work on the shared connection. */
+  private static void rollbackToSavepoint(Connection con, Savepoint savepoint) {
+    if (con == null) {
+      return;
+    }
+
+    try {
+      if (!con.getAutoCommit()) {
+        if (savepoint != null) {
+          con.rollback(savepoint);
+        } else {
+          con.rollback();
+        }
+      }
+    } catch (SQLException rollbackEx) {
+      rollbackEx.printStackTrace();
+    }
+  }
 
   /**
    * Initializes the exclusions reader.
@@ -318,9 +338,6 @@ public class NodeRulesReader {
 
     String tmpFileName = tableName + "_tmp";
 
-    // Create temporary output table
-    createExclusionsTable(tmpFileName);
-
     // Convert table
     String sql =
         "SELECT "
@@ -337,8 +354,24 @@ public class NodeRulesReader {
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
             + " FROM "
             + tableName;
+    Connection con = null;
+    Savepoint savepoint = null;
     try {
-      Connection con = nodusProject.getMainJDBCConnection();
+      con = nodusProject.getMainJDBCConnection();
+      if (con == null) {
+        return;
+      }
+
+      if (!con.getAutoCommit()) {
+        savepoint = con.setSavepoint();
+      }
+
+      // Create temporary output table
+      if (!createExclusionsTable(tmpFileName)) {
+        rollbackToSavepoint(con, savepoint);
+        return;
+      }
+
       try (Statement stmt = con.createStatement();
           ResultSet rs = stmt.executeQuery(sql);
           PreparedStatement ps =
@@ -377,16 +410,19 @@ public class NodeRulesReader {
         }
       }
 
+      JDBCUtils.dropTable(tableName);
+      if (!JDBCUtils.renameTable(tmpFileName, tableName)) {
+        rollbackToSavepoint(con, savepoint);
+        return;
+      }
+
       if (!con.getAutoCommit()) {
         con.commit();
       }
     } catch (Exception e) {
+      rollbackToSavepoint(con, savepoint);
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return;
     }
-
-    // Rename tmp table
-    JDBCUtils.dropTable(tableName);
-    JDBCUtils.renameTable(tmpFileName, tableName);
   }
 }

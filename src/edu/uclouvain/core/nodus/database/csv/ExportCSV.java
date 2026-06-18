@@ -72,35 +72,36 @@ public class ExportCSV {
         project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_CSV;
 
     Connection con = project.getMainJDBCConnection();
-    try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName));
-        Statement stmt = con.createStatement();
+    try (Statement stmt = con.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT * FROM " + tableName)) {
 
       ResultSetMetaData rsmd = rs.getMetaData();
       int nbColumns = rsmd.getColumnCount();
 
-      // Save header if needed
-      if (withHeader) {
-        for (int i = 0; i < nbColumns; i++) {
-          bw.write(escapeCsvValue(rsmd.getColumnName(i + 1)));
-          if (i < nbColumns - 1) {
-            bw.write(',');
+      try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName))) {
+        // Save header if needed
+        if (withHeader) {
+          for (int i = 0; i < nbColumns; i++) {
+            bw.write(escapeCsvValue(rsmd.getColumnName(i + 1)));
+            if (i < nbColumns - 1) {
+              bw.write(',');
+            }
           }
-        }
-        bw.newLine();
-      }
-
-      // Retrieve result of query
-      while (rs.next()) {
-        for (int i = 0; i < nbColumns; i++) {
-          bw.write(escapeCsvValue(rs.getObject(i + 1)));
-
-          if (i < nbColumns - 1) {
-            bw.write(',');
-          }
+          bw.newLine();
         }
 
-        bw.newLine();
+        // Retrieve result of query
+        while (rs.next()) {
+          for (int i = 0; i < nbColumns; i++) {
+            bw.write(escapeCsvValue(rs.getObject(i + 1)));
+
+            if (i < nbColumns - 1) {
+              bw.write(',');
+            }
+          }
+
+          bw.newLine();
+        }
       }
     } catch (Exception ex) {
       System.out.println(ex.toString());
