@@ -30,6 +30,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.sql.Types;
 import javax.swing.JOptionPane;
 
 /**
@@ -124,12 +125,20 @@ public class ImportDBF {
 
         for (int i = 0; i < o.length; i++) {
 
-          // QGIS (?) sometimes  stores null values. Replace with 0 or empty String (ugly trick)
+          // QGIS (?) sometimes stores null values. Replace numeric and string values with
+          // the defaults historically used by Nodus, and bind real SQL NULLs for dates
+          // or unsupported field types so that every PreparedStatement parameter is set.
           if (o[i] == null) {
             if (fields[i].getType() == 'N') {
-              o[i] = new BigDecimal(0);
-            } else if (fields[i].getType() == 'N') {
-              o[i] = new String("");
+              o[i] = BigDecimal.ZERO;
+            } else if (fields[i].getType() == 'C') {
+              o[i] = "";
+            } else if (fields[i].getType() == 'D') {
+              prepStmt.setNull(i + 1, Types.DATE);
+              continue;
+            } else {
+              prepStmt.setNull(i + 1, Types.NULL);
+              continue;
             }
           }
 
@@ -204,8 +213,6 @@ public class ImportDBF {
     // Create table
     try (DBFReader dbfReader = new DBFReader(path + tableName + NodusC.TYPE_DBF)) {
       // Create new table and drop existent one
-      JDBCUtils.dropTable(jdbcTableName);
-
       if (dbfReader.isOpen()) {
         if (!createTable(jdbcTableName, dbfReader)) {
           return false;
@@ -218,6 +225,8 @@ public class ImportDBF {
     } catch (Exception e) {
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
+    } finally {
+      jdbcConnection = null;
     }
 
     return true;
