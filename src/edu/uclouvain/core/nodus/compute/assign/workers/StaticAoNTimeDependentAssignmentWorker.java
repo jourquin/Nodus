@@ -137,6 +137,7 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
 
       int currentNode = endNode;
       boolean isPathFound = true;
+      boolean pathWasTruncated = false;
       PathWeights pathCosts = new PathWeights();
       int nbTranshipments = 0;
       byte loadingMode = 0;
@@ -198,26 +199,17 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
         VirtualLink vl = pathIterator.next();
 
         // Compute the arrival time at the end of this link
-        byte timeSlice = 0;
-
         if (vl.getType() == VirtualLink.TYPE_MOVE) {
           currentTime += (int) (vl.getLength() * 3600) / vl.getSpeed();
+        }
 
-          if (currentTime >= assignmentStartTime && currentTime <= assignmentEndTime) {
-            timeSlice = (byte) Math.floor((currentTime - assignmentStartTime) / timeSliceDuration);
+        if (currentTime >= assignmentStartTime && currentTime < assignmentEndTime) {
+          int timeSlice = (int) Math.floor((currentTime - assignmentStartTime) / timeSliceDuration);
 
-            // Stop if out of time frame
-            if (timeSlice == nbTimeSlices) {
-              break;
-            }
-          } else {
-            System.out.println(
-                demand.getOriginNodeId()
-                    + "-"
-                    + demand.getDestinationNodeId()
-                    + " starting at "
-                    + demand.getStartingTime() / 60
-                    + " minutes after midnight is out of time frame");
+          // Stop if out of time frame
+          if (timeSlice >= nbTimeSlices) {
+            pathWasTruncated = true;
+            break;
           }
 
           switch (vl.getType()) {
@@ -263,12 +255,23 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
             default:
               break;
           }
+
+          vl.addVolume(groupIndex, timeSlice, demand.getQuantity());
+        } else {
+          System.out.println(
+              demand.getOriginNodeId()
+                  + "-"
+                  + demand.getDestinationNodeId()
+                  + " starting at "
+                  + demand.getStartingTime() / 60
+                  + " minutes after midnight is out of time frame");
+          pathWasTruncated = true;
+          break;
         }
-        vl.addVolume(groupIndex, timeSlice, demand.getQuantity());
       }
 
       // The total cost of a path must be strictly positive
-      if (isPathFound && pathCosts.getCost() == 0.0) {
+      if (isPathFound && !pathWasTruncated && pathCosts.getCost() == 0.0) {
         setErrorMessage(
             i18n.get(
                 AssignmentWorker.class,
@@ -278,7 +281,7 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
       }
 
       // Save the header of this detailed path if needed
-      if (isPathFound && pathWriter.isSavePaths()) {
+      if (isPathFound && pathCosts.getCost() > 0.0 && pathWriter.isSavePaths()) {
         if (!pathWriter.savePathHeader(
             1,
             demand,
@@ -305,6 +308,12 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
    */
   public void setTimeParameters(
       int assignmentStartTime, int assignmentEndTime, int timeSliceDuration) {
+    if (timeSliceDuration <= 0
+        || assignmentEndTime <= assignmentStartTime
+        || assignmentEndTime - assignmentStartTime < timeSliceDuration) {
+      throw new IllegalArgumentException("Invalid assignment time parameters");
+    }
+
     // Transform minutes into seconds
     this.assignmentStartTime = assignmentStartTime * 60;
     this.assignmentEndTime = assignmentEndTime * 60;

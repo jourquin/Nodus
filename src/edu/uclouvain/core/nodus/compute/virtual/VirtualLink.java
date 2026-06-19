@@ -206,7 +206,7 @@ public class VirtualLink {
    * @param timeSlice The time slice the volume belongs to.
    * @param qty The quantity to add.
    */
-  public void addVolume(byte groupIndex, byte timeSlice, double qty) {
+  public void addVolume(byte groupIndex, int timeSlice, double qty) {
 
     // The volume can be a NaN instead of 0 in the Multinomial logit modal split function
     if (Double.isNaN(qty)) {
@@ -214,6 +214,17 @@ public class VirtualLink {
     }
 
     currentVolume[groupIndex][timeSlice] += qty;
+  }
+
+  /**
+   * Adds a quantity of a dynamic assignment to this virtual link.
+   *
+   * @param groupIndex The index of the group of commodities.
+   * @param timeSlice The time slice the volume belongs to.
+   * @param qty The quantity to add.
+   */
+  public void addVolume(byte groupIndex, byte timeSlice, double qty) {
+    addVolume(groupIndex, (int) timeSlice, qty);
   }
 
   /**
@@ -282,8 +293,19 @@ public class VirtualLink {
    * @param timeSlice The time slice for which the volume is asked for.
    * @return The current volume for the group of commodities and time slice.
    */
-  public double getCurrentVolume(byte groupIndex, byte timeSlice) {
+  public double getCurrentVolume(byte groupIndex, int timeSlice) {
     return currentVolume[groupIndex][timeSlice];
+  }
+
+  /**
+   * Returns the current volume on this virtual link for a given group index and time slice.
+   *
+   * @param groupIndex The index of the group of commodities.
+   * @param timeSlice The time slice for which the volume is asked for.
+   * @return The current volume for the group of commodities and time slice.
+   */
+  public double getCurrentVolume(byte groupIndex, byte timeSlice) {
+    return getCurrentVolume(groupIndex, (int) timeSlice);
   }
 
   /**
@@ -294,7 +316,7 @@ public class VirtualLink {
    * @return The number of vehicles.
    */
   public int getCurrentVehicles(byte groupIndex) {
-    return getCurrentVehicles(groupIndex, (byte) 0);
+    return getCurrentVehicles(groupIndex, 0);
   }
 
   /**
@@ -305,7 +327,7 @@ public class VirtualLink {
    * @param timeSlice The time slice the number of vehicles is asked for.
    * @return The number of vehicles.
    */
-  public int getCurrentVehicles(byte groupIndex, byte timeSlice) {
+  public int getCurrentVehicles(byte groupIndex, int timeSlice) {
     if (virtualLinkType == TYPE_MOVE
         || virtualLinkType == TYPE_LOAD
         || virtualLinkType == TYPE_UNLOAD
@@ -314,6 +336,17 @@ public class VirtualLink {
     } else {
       return 0;
     }
+  }
+
+  /**
+   * Returns the number of vehicles computed for a given group and time slice.
+   *
+   * @param groupIndex The index of the group of commodities.
+   * @param timeSlice The time slice.
+   * @return The number of vehicles.
+   */
+  public int getCurrentVehicles(byte groupIndex, byte timeSlice) {
+    return getCurrentVehicles(groupIndex, (int) timeSlice);
   }
 
   /**
@@ -457,7 +490,7 @@ public class VirtualLink {
    * @return True if there is a volume for at least one group of commodities.
    */
   public boolean hasVolume() {
-    return hasVolume((byte) 0);
+    return hasVolume(0);
   }
 
   /**
@@ -467,13 +500,23 @@ public class VirtualLink {
    * @param timeSlice The time slice a volume is looking for.
    * @return True if there is a volume for at least one group of commodities.
    */
-  public boolean hasVolume(byte timeSlice) {
+  public boolean hasVolume(int timeSlice) {
     for (int i = 0; i < nbGroups; i++) {
       if (currentVolume[i][timeSlice] > 0) {
         return true;
       }
     }
     return false;
+  }
+
+  /**
+   * Returns true if the current volume is positive during the given time slice.
+   *
+   * @param timeSlice The time slice.
+   * @return True if there is a volume for at least one group.
+   */
+  public boolean hasVolume(byte timeSlice) {
+    return hasVolume((int) timeSlice);
   }
 
   /**
@@ -487,7 +530,7 @@ public class VirtualLink {
    *     virtual link represents.
    */
   public void volumesToVehicles(
-      byte groupIndex, byte timeSlice, double averageLoad, double passengerCarUnits) {
+      byte groupIndex, int timeSlice, double averageLoad, double passengerCarUnits) {
 
     int nbVehicles = (int) Math.ceil(currentVolume[groupIndex][timeSlice] / averageLoad);
     currentVehicles[groupIndex][timeSlice] = nbVehicles;
@@ -500,6 +543,19 @@ public class VirtualLink {
       realLink.addAuxiliaryPassengerCarUnits(
           this, (int) Math.ceil(nbAuxiliaryVehicles * passengerCarUnits));
     }
+  }
+
+  /**
+   * Transforms volumes into vehicles for a byte-indexed time slice.
+   *
+   * @param groupIndex The index of the group of commodities.
+   * @param timeSlice The time slice.
+   * @param averageLoad The average load.
+   * @param passengerCarUnits The passenger-car-unit factor.
+   */
+  public void volumesToVehicles(
+      byte groupIndex, byte timeSlice, double averageLoad, double passengerCarUnits) {
+    volumesToVehicles(groupIndex, (int) timeSlice, averageLoad, passengerCarUnits);
   }
 
   /**
@@ -655,7 +711,7 @@ public class VirtualLink {
    */
   public void projectedVolumesToVehicles(
       byte groupIndex,
-      byte timeSlice,
+      int timeSlice,
       double averageLoad,
       double passengerCarUnits,
       double lambda) {
@@ -670,5 +726,24 @@ public class VirtualLink {
 
     int nbVehicles = (int) Math.ceil(projectedVolume / averageLoad);
     realLink.addPassengerCarUnits(this, (int) Math.ceil(nbVehicles * passengerCarUnits));
+  }
+
+  /**
+   * Converts a projected volume for a byte-indexed time slice.
+   *
+   * @param groupIndex The group index.
+   * @param timeSlice The time slice.
+   * @param averageLoad The average load.
+   * @param passengerCarUnits The PCU factor.
+   * @param lambda The lambda value.
+   */
+  public void projectedVolumesToVehicles(
+      byte groupIndex,
+      byte timeSlice,
+      double averageLoad,
+      double passengerCarUnits,
+      double lambda) {
+    projectedVolumesToVehicles(
+        groupIndex, (int) timeSlice, averageLoad, passengerCarUnits, lambda);
   }
 }

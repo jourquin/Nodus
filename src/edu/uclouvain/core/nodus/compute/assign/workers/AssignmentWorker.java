@@ -33,6 +33,7 @@ import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.util.LinkedList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * An AssignmentWorker is an assignment that runs it its own thread. For each assignment class
@@ -44,14 +45,14 @@ import java.util.LinkedList;
  */
 public abstract class AssignmentWorker extends Thread {
 
-  private static int currentPathIndex = 0;
+  private static final AtomicInteger currentPathIndex = new AtomicInteger();
 
   /** I18N mechanism. */
   static I18n i18n = Environment.getI18n();
 
   /** Reset the index of the (detailed) path to 0. Used by multi-flow assignments */
   public static void resetPathIndex() {
-    currentPathIndex = 0;
+    currentPathIndex.set(0);
   }
 
   AssignmentParameters assignmentParameters;
@@ -110,6 +111,20 @@ public abstract class AssignmentWorker extends Thread {
     canceled = true;
   }
 
+  /** Cancels every worker associated with the current assignment. */
+  private void cancelAssignmentWorkers() {
+    if (assignment == null || assignment.getAssignmentWorkers() == null) {
+      cancel();
+      return;
+    }
+
+    for (AssignmentWorker element : assignment.getAssignmentWorkers()) {
+      if (element != null) {
+        element.cancel();
+      }
+    }
+  }
+
   /**
    * Sets an error message that will be displayed once the assignment canceled.
    *
@@ -131,8 +146,8 @@ public abstract class AssignmentWorker extends Thread {
    *
    * @return New path index.
    */
-  public synchronized int getNewPathIndex() {
-    return currentPathIndex++;
+  public int getNewPathIndex() {
+    return currentPathIndex.getAndIncrement();
   }
 
   /**
@@ -179,13 +194,18 @@ public abstract class AssignmentWorker extends Thread {
 
         // Start the real work
         if (!doAssignment()) {
-          // Cancel all workers
-          for (AssignmentWorker element : assignment.getAssignmentWorkers()) {
-            element.cancel();
-          }
+          cancelAssignmentWorkers();
         }
       }
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      cancelAssignmentWorkers();
+      e.printStackTrace();
+    } catch (RuntimeException e) {
+      if (assignment != null) {
+        setErrorMessage(e.toString());
+      }
+      cancelAssignmentWorkers();
       e.printStackTrace();
     }
   }

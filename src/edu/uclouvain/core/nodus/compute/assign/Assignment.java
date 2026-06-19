@@ -301,6 +301,7 @@ public abstract class Assignment implements Runnable {
       stopGarbageCollectionRunner();
       assignmentWorkers = null;
       pathWriter = null;
+      nodusMapPanel.resetText();
 
       if (!outOfMemory) {
         nodusMapPanel.getAssignmentMenuItem().setEnabled(true);

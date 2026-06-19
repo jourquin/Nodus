@@ -57,6 +57,7 @@ public class BinaryHeapNode {
   public void init(int id, double weight) {
     this.id = id;
     this.weight = weight;
+    goalEstWeight = 0;
     keyWeight = weight;
   }
 

@@ -48,7 +48,7 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
   private BinaryHeapDijkstra shortestPath;
   float assignmentEndTime;
   float assignmentStartTime;
-  byte currentTimeSlice;
+  int currentTimeSlice;
 
   LinkedList<DemandToRelocate> demandsToRelocate;
 
@@ -122,13 +122,18 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
 
         // Get the demand associated to this node for the current group
         demandList =
-            virtualNet.getVirtualNodeLists()[nodeIndex].getDemandForGroup(
-                virtualNet.getGroups()[groupIndex], odClass);
+            virtualNet
+                .getVirtualNodeLists()[nodeIndex]
+                .getDemandForGroup(
+                    demandListIndex, virtualNet.getGroups()[groupIndex], odClass);
 
         if (demandList != null) {
           // Compute all the shortest paths in the virtual network starting from here
           // (not a loading node)
-          int beginNode = virtualNet.getVirtualNodeLists()[nodeIndex].getLoadingVirtualNodeId();
+          int beginNode =
+              virtualNet
+                  .getVirtualNodeLists()[nodeIndex]
+                  .getLoadingVirtualNodeId(demandListIndex);
           shortestPath.compute(beginNode, demandList);
 
           // Build all the relevant detailed paths
@@ -155,7 +160,8 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
   private boolean readPaths(int demandListIndex, int nodeIndex) {
 
     int[] pi = shortestPath.getPredecessors();
-    int beginNode = virtualNet.getVirtualNodeLists()[nodeIndex].getLoadingVirtualNodeId();
+    int beginNode =
+        virtualNet.getVirtualNodeLists()[nodeIndex].getLoadingVirtualNodeId(demandListIndex);
 
     // Scan the demand list
     Iterator<ODCell> it = demandList.iterator();
@@ -194,6 +200,7 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
 
       int currentNode = endNode;
       boolean isPathFound = true;
+      boolean pathWasTruncated = false;
       PathWeights pathCosts = new PathWeights();
       int nbTranshipments = 0;
       byte loadingMode = 0;
@@ -250,7 +257,6 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
 
       // Now, rebuild the path in the correct order
       Iterator<VirtualLink> pathIterator = orderedLinkList.iterator();
-      pathIterator = orderedLinkList.iterator();
       while (pathIterator.hasNext()) {
 
         VirtualLink vl = pathIterator.next();
@@ -281,62 +287,63 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
             } else {
               System.err.println("This should never happen !");
             }
+            pathWasTruncated = true;
             break;
           }
 
           // Update the OD cell : this OD pair has at least reached this node
           demand.setRelocatedOriginNodeId(vl.getEndVirtualNode().getRealNodeId(false));
           demand.setRelocatedStartingTime(currentTime);
+        }
 
-          switch (vl.getType()) {
-            case VirtualLink.TYPE_LOAD:
-              pathCosts.ldCost += vl.getCost(groupIndex);
-              pathCosts.ldDuration += vl.getDuration(groupIndex);
-              loadingMode = vl.getEndVirtualNode().getMode();
-              loadingMeans = vl.getEndVirtualNode().getMeans();
-              break;
-            case VirtualLink.TYPE_UNLOAD:
-              pathCosts.ulCost += vl.getCost(groupIndex);
-              pathCosts.ulDuration += vl.getDuration(groupIndex);
-              unloadingMode = vl.getBeginVirtualNode().getMode();
-              unloadingMeans = vl.getBeginVirtualNode().getMeans();
-              break;
-            case VirtualLink.TYPE_TRANSIT:
-              pathCosts.trCost += vl.getCost(groupIndex);
-              pathCosts.trDuration += vl.getDuration(groupIndex);
-              break;
-            case VirtualLink.TYPE_TRANSHIP:
-              pathCosts.tpCost += vl.getCost(groupIndex);
-              pathCosts.tpDuration += vl.getDuration(groupIndex);
-              nbTranshipments++;
-              break;
-            case VirtualLink.TYPE_STOP:
-              pathCosts.stpCost += vl.getCost(groupIndex);
-              pathCosts.stpDuration += vl.getDuration(groupIndex);
-              break;
-            case VirtualLink.TYPE_SWITCH:
-              pathCosts.swCost += vl.getCost(groupIndex);
-              pathCosts.swDuration += vl.getDuration(groupIndex);
-              break;
-            case VirtualLink.TYPE_MOVE:
-              pathCosts.mvCost += vl.getCost(groupIndex);
-              if (assignmentParameters.hasDurationFunctions()) {
-                pathCosts.mvDuration += vl.getDuration(groupIndex);
-              } else {
-                pathCosts.mvDuration += vl.getDefaultDuration();
-              }
-              pathCosts.length += vl.getLength();
-              pathWriter.savePathLink(vl, currentPathIndex);
-              break;
-            default:
-              break;
-          }
+        switch (vl.getType()) {
+          case VirtualLink.TYPE_LOAD:
+            pathCosts.ldCost += vl.getCost(groupIndex);
+            pathCosts.ldDuration += vl.getDuration(groupIndex);
+            loadingMode = vl.getEndVirtualNode().getMode();
+            loadingMeans = vl.getEndVirtualNode().getMeans();
+            break;
+          case VirtualLink.TYPE_UNLOAD:
+            pathCosts.ulCost += vl.getCost(groupIndex);
+            pathCosts.ulDuration += vl.getDuration(groupIndex);
+            unloadingMode = vl.getBeginVirtualNode().getMode();
+            unloadingMeans = vl.getBeginVirtualNode().getMeans();
+            break;
+          case VirtualLink.TYPE_TRANSIT:
+            pathCosts.trCost += vl.getCost(groupIndex);
+            pathCosts.trDuration += vl.getDuration(groupIndex);
+            break;
+          case VirtualLink.TYPE_TRANSHIP:
+            pathCosts.tpCost += vl.getCost(groupIndex);
+            pathCosts.tpDuration += vl.getDuration(groupIndex);
+            nbTranshipments++;
+            break;
+          case VirtualLink.TYPE_STOP:
+            pathCosts.stpCost += vl.getCost(groupIndex);
+            pathCosts.stpDuration += vl.getDuration(groupIndex);
+            break;
+          case VirtualLink.TYPE_SWITCH:
+            pathCosts.swCost += vl.getCost(groupIndex);
+            pathCosts.swDuration += vl.getDuration(groupIndex);
+            break;
+          case VirtualLink.TYPE_MOVE:
+            pathCosts.mvCost += vl.getCost(groupIndex);
+            if (assignmentParameters.hasDurationFunctions()) {
+              pathCosts.mvDuration += vl.getDuration(groupIndex);
+            } else {
+              pathCosts.mvDuration += vl.getDefaultDuration();
+            }
+            pathCosts.length += vl.getLength();
+            pathWriter.savePathLink(vl, currentPathIndex);
+            break;
+          default:
+            break;
         }
         vl.addVolume(groupIndex, currentTimeSlice, demand.getQuantity());
       }
 
       // The total cost of a path must be strictly positive
-      if (isPathFound && pathCosts.getCost() == 0.0) {
+      if (isPathFound && !pathWasTruncated && pathCosts.getCost() == 0.0) {
         setErrorMessage(
             i18n.get(
                 AssignmentWorker.class,
@@ -346,7 +353,7 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
       }
 
       // Save the header of this detailed path if needed
-      if (isPathFound && pathWriter.isSavePaths()) {
+      if (isPathFound && pathCosts.getCost() > 0.0 && pathWriter.isSavePaths()) {
         if (!pathWriter.savePathHeader(
             1,
             demand,
@@ -372,10 +379,21 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
    * @param sliceStartTime Starting time of the period, expressed in minutes after midnight.
    * @param sliceDuration Duration of the period, expressed in minutes.
    */
-  public void setTimeParameters(byte currentTimeSlice, int sliceStartTime, int sliceDuration) {
+  public void setTimeParameters(int currentTimeSlice, int sliceStartTime, int sliceDuration) {
     this.currentTimeSlice = currentTimeSlice;
     this.assignmentStartTime = sliceStartTime * 60;
     this.assignmentEndTime = this.assignmentStartTime + sliceDuration * 60;
+  }
+
+  /**
+   * Initializes the time parameters for a byte-indexed period.
+   *
+   * @param currentTimeSlice Period concerned by these parameters.
+   * @param sliceStartTime Starting time of the period, expressed in minutes after midnight.
+   * @param sliceDuration Duration of the period, expressed in minutes.
+   */
+  public void setTimeParameters(byte currentTimeSlice, int sliceStartTime, int sliceDuration) {
+    setTimeParameters((int) currentTimeSlice, sliceStartTime, sliceDuration);
   }
 
   private class DemandToRelocate {

@@ -49,6 +49,9 @@ public class FastEsriLayer extends EsriLayer {
   /** List of object to currently display. */
   private OMGraphicList currentProjectedList = null;
 
+  /** Source list already loaded by OpenMap, retained to avoid lazy SHP reads during disposal. */
+  private EsriGraphicList loadedEsriGraphicList = null;
+
   /** Track the previous projection. */
   private Projection previousProj = null;
 
@@ -71,6 +74,7 @@ public class FastEsriLayer extends EsriLayer {
    */
   public void setProperties(String prefix, Properties properties) {
     disposed = false;
+    loadedEsriGraphicList = null;
     clearRenderCaches();
     super.setProperties(prefix, properties);
     setMouseEventInterpreter(new NodusMapMouseInterpreter(this));
@@ -99,12 +103,13 @@ public class FastEsriLayer extends EsriLayer {
       selectedGraphics.clear();
     }
 
-    EsriGraphicList esriGraphicList = super.getEsriGraphicList();
+    EsriGraphicList esriGraphicList = loadedEsriGraphicList;
     if (esriGraphicList != null && esriGraphicList != projectedList) {
       synchronized (esriGraphicList) {
         esriGraphicList.clear();
       }
     }
+    loadedEsriGraphicList = null;
   }
 
   /**
@@ -198,9 +203,14 @@ public class FastEsriLayer extends EsriLayer {
    */
   @Override
   public synchronized EsriGraphicList getEsriGraphicList() {
-    EsriGraphicList retVal = super.getEsriGraphicList();
+    if (disposed) {
+      return loadedEsriGraphicList;
+    }
 
-    if (!disposed && retVal != null && spatialIndex == null) {
+    EsriGraphicList retVal = super.getEsriGraphicList();
+    loadedEsriGraphicList = retVal;
+
+    if (retVal != null && spatialIndex == null) {
       spatialIndex = (DisplaySpatialIndexLinear) DisplaySpatialIndexFactory.createIndex(retVal);
     }
     return retVal;

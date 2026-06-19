@@ -49,9 +49,9 @@ public class BinaryHeapAStar extends BinaryHeapDijkstra {
     int min = extractMin();
 
     while (min != goal) {
-      if (min == -1) {
+      if (min == -1 || minWeight == Double.MAX_VALUE) {
         System.err.println("Goal not reachable from source.");
-        break;
+        return;
       }
 
       weights[min] = minWeight;
@@ -59,19 +59,22 @@ public class BinaryHeapAStar extends BinaryHeapDijkstra {
       for (AdjacencyNode curNode = graph[min];
           curNode.nextNode != null;
           curNode = curNode.nextNode) {
-        relax(graph[min].virtualNodeNum, curNode.nextNode.virtualNodeNum, curNode.edgeWeight);
-
-        if (nodePos[curNode.nextNode.virtualNodeNum] != -1
-            && upperBoundCosts[nodePos[curNode.nextNode.virtualNodeNum]].goalEstWeight == 0) {
-          upperBoundCosts[nodePos[curNode.nextNode.virtualNodeNum]].updateGoalEstWeight(
+        int nextNodeNum = curNode.nextNode.virtualNodeNum;
+        if (nodePos[nextNodeNum] != -1
+            && upperBoundCosts[nodePos[nextNodeNum]].goalEstWeight == 0) {
+          upperBoundCosts[nodePos[nextNodeNum]].updateGoalEstWeight(
               curNode.nextNode.goalEst(graph[goal]));
         }
+
+        relax(graph[min].virtualNodeNum, nextNodeNum, curNode.edgeWeight);
       }
 
       min = extractMin();
     }
 
-    weights[min] = minWeight;
+    if (min != -1) {
+      weights[min] = minWeight;
+    }
   }
 
   /**
@@ -137,27 +140,6 @@ public class BinaryHeapAStar extends BinaryHeapDijkstra {
    * @param source the number identifier of the source node
    */
   public void initializeSingleSource(AdjacencyNode[] graph, int source) {
-    for (int i = 0; i < upperBoundCosts.length; i++) {
-      upperBoundCosts[i] = stock[i];
-    }
-
-    upperBoundCosts[1].init(source, 0);
-    nodePos[source] = 1;
-
-    // BHNodes greater than source
-    int i = 2;
-
-    for (int nextNodeNum = source + 1; nextNodeNum < graph.length; i++, nextNodeNum++) {
-      upperBoundCosts[i].init(nextNodeNum, Double.MAX_VALUE);
-      nodePos[nextNodeNum] = i;
-    }
-
-    // BHNodes less than source
-    for (int nextNodeNum = 1; nextNodeNum < source; i++, nextNodeNum++) {
-      upperBoundCosts[i].init(nextNodeNum, Double.MAX_VALUE);
-      nodePos[nextNodeNum] = i;
-    }
-
-    heapSize = upperBoundCosts.length - 1;
+    super.initializeSingleSource(source);
   }
 }

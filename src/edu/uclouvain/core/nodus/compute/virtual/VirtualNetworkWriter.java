@@ -259,7 +259,7 @@ public class VirtualNetworkWriter {
               VirtualLink vl = linkLit.next();
 
               // Only saves virtual links on which a volume was assigned
-              for (byte timeSlice = 0; timeSlice < nbTimeSlices; timeSlice++) {
+              for (int timeSlice = 0; timeSlice < nbTimeSlices; timeSlice++) {
                 int currentTime = assignmentStarTime + timeSlice * timeSliceDuration;
 
                 if (vl.hasVolume(timeSlice) || saveCompleteVirtualNetwork) {

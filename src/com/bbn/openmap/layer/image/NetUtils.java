@@ -58,10 +58,18 @@ public class NetUtils {
 
     try {
       url = new URL(server);
-      port = url.getDefaultPort();
+      port = url.getPort();
+      if (port == -1) {
+        port = url.getDefaultPort();
+      }
       host = url.getHost();
     } catch (MalformedURLException e1) {
       e1.printStackTrace();
+      return false;
+    }
+
+    if (host.isBlank() || port < 0) {
+      return false;
     }
 
     try (Socket socket = new Socket()) {

@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.compute.assign.shortestpath;
 
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 
@@ -239,6 +240,9 @@ public class BinaryHeapDijkstra {
    * @param source The number identifier of the source node
    */
   public void initializeSingleSource(int source) {
+    Arrays.fill(pi, 0);
+    Arrays.fill(weights, Double.MAX_VALUE);
+
     for (int i = 0; i < upperBoundCosts.length; i++) {
       upperBoundCosts[i] = stock[i];
     }
@@ -298,7 +302,7 @@ public class BinaryHeapDijkstra {
 
     Iterator<ODCell> it = demandList.iterator();
 
-    nbNodesToReach = demandList.size();
+    nbNodesToReach = 0;
 
     while (it.hasNext()) {
       ODCell demand = it.next();
@@ -307,7 +311,10 @@ public class BinaryHeapDijkstra {
               .getVirtualNodeLists()[
               virtualNet.getNodeIndexInVirtualNodeList(demand.getDestinationNodeId(), true)]
               .getUnloadingVirtualNodeId();
-      graph[index].isNodeToReach = true;
+      if (!graph[index].isNodeToReach) {
+        graph[index].isNodeToReach = true;
+        nbNodesToReach++;
+      }
     }
   }
 

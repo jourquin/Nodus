@@ -284,7 +284,7 @@ public class CostParser {
   /** For Parsii. */
   Scope scope = new Scope();
 
-  private byte timeSlice;
+  private int timeSlice;
 
   /**
    * Initializes a new cost parser for a given group, class and time slice.
@@ -304,6 +304,27 @@ public class CostParser {
       byte groupNum,
       byte classNum,
       byte timeSlice) {
+    this(costFunctions, project, scenario, groupNum, classNum, (int) timeSlice);
+  }
+
+  /**
+   * Initializes a new cost parser for a given group, class and time slice.
+   *
+   * @param costFunctions Cost functions that will be parsed.
+   * @param project The Nodus project.
+   * @param scenario The scenario ID.
+   * @param groupNum The group of goods.
+   * @param classNum The OD class.
+   * @param timeSlice The time slice.
+   */
+  @SuppressWarnings("unchecked")
+  public CostParser(
+      Properties costFunctions,
+      NodusProject project,
+      int scenario,
+      byte groupNum,
+      byte classNum,
+      int timeSlice) {
     this.costFunctions = costFunctions;
     this.scenario = scenario;
     this.classNum = classNum;

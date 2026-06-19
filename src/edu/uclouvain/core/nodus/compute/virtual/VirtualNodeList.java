@@ -199,7 +199,7 @@ public class VirtualNodeList {
    * @param odCell The OD cell to relocate.
    * @param newVirtualNodeId The ID of the virtual node the demand must be reallocated to.
    */
-  public void relocateDemand(ODCell odCell, int newVirtualNodeId) {
+  public synchronized void relocateDemand(ODCell odCell, int newVirtualNodeId) {
     // Is there already a list associated to the given starting virtual node ?
     if (demands != null) {
       for (int i = 0; i < demands.size(); i++) {
@@ -212,6 +212,11 @@ public class VirtualNodeList {
     } else {
       demands = new Vector<>(1, 1);
     }
+
+    Demands relocatedDemands = new Demands();
+    relocatedDemands.loadingVirtualNodeId = newVirtualNodeId;
+    demands.add(relocatedDemands);
+    storeDemand(demands.size() - 1, odCell);
   }
 
   /**
@@ -290,13 +295,26 @@ public class VirtualNodeList {
    * @return LinkedList containing the Demands associated to this groups.
    */
   public LinkedList<ODCell> getDemandForGroup(int group, byte odClass) {
+    return getDemandForGroup(0, group, odClass);
+  }
 
-    if (demands == null) {
+  /**
+   * Returns the demands from one loading-node-specific list for a given group and OD class.
+   *
+   * @param listIndex Index of the demand list.
+   * @param group The group ID.
+   * @param odClass The OD class ID.
+   * @return The matching demands, or null if none exist.
+   */
+  public synchronized LinkedList<ODCell> getDemandForGroup(
+      int listIndex, int group, byte odClass) {
+
+    if (demands == null || listIndex < 0 || listIndex >= demands.size()) {
       return null;
     }
 
     LinkedList<ODCell> listForGroup = new LinkedList<>();
-    Collection<LinkedList<ODCell>> values = demands.get(0).destinations.values();
+    Collection<LinkedList<ODCell>> values = demands.get(listIndex).destinations.values();
     Iterator<LinkedList<ODCell>> it = values.iterator();
     while (it.hasNext()) {
       LinkedList<ODCell> demandList = it.next();
@@ -408,11 +426,24 @@ public class VirtualNodeList {
   }
 
   /**
+   * Returns the loading virtual node associated with a specific demand list.
+   *
+   * @param listIndex Index of the demand list.
+   * @return The loading virtual node ID, or -1 if the list does not exist.
+   */
+  public synchronized int getLoadingVirtualNodeId(int listIndex) {
+    if (demands == null || listIndex < 0 || listIndex >= demands.size()) {
+      return -1;
+    }
+    return demands.get(listIndex).loadingVirtualNodeId;
+  }
+
+  /**
    * Returns the number of demand lists associated to the real node.
    *
    * @return The number of demand lists.
    */
-  public int getNbDemandLists() {
+  public synchronized int getNbDemandLists() {
     if (demands == null) {
       return 0;
     } else {
@@ -454,7 +485,7 @@ public class VirtualNodeList {
    * @param odClass The ID of the OD class.
    * @return True if a demand exists.
    */
-  public boolean hasDemandForGroup(int group, byte odClass) {
+  public synchronized boolean hasDemandForGroup(int group, byte odClass) {
 
     if (demands == null) {
       return false;
@@ -521,12 +552,23 @@ public class VirtualNodeList {
    * @param listIndex Index of the demand list the demand must be deleted from.
    * @param odCell The OD cell to remove.
    */
-  public void removeDemand(int listIndex, ODCell odCell) {
+  public synchronized void removeDemand(int listIndex, ODCell odCell) {
+    if (demands == null || listIndex < 0 || listIndex >= demands.size() || odCell == null) {
+      return;
+    }
+
     HashMap<Integer, LinkedList<ODCell>> destinations = demands.get(listIndex).destinations;
 
     LinkedList<ODCell> ll = destinations.get(odCell.getDestinationNodeId());
+    if (ll == null) {
+      return;
+    }
+
     synchronized (ll) {
       ll.remove(odCell);
+      if (ll.isEmpty()) {
+        destinations.remove(odCell.getDestinationNodeId());
+      }
     }
   }
 

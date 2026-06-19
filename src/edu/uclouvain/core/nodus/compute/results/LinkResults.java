@@ -656,8 +656,7 @@ public class LinkResults implements ShapeConstants {
     String oldText = null;
     Layer[] l = nodusMapPanel.getLayerHandler().getLayers();
     for (Layer element : l) {
-      if (element.getClass().getName() == "com.bbn.openmap.layer.NodusLabelLayer"
-          || element.getClass().getName() == "com.bbn.openmap.layer.LabelLayer") {
+      if (element instanceof LabelLayer) {
         labelLayer = (LabelLayer) element;
         oldText = labelLayer.getLabelText();
         break;

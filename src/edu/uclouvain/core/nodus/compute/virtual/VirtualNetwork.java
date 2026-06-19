@@ -373,7 +373,7 @@ public class VirtualNetwork {
    * @return True on success.
    */
   public boolean computeCosts(
-      int iteration, int scenario, byte odClass, byte timeSlice, int nbThreads) {
+      int iteration, int scenario, byte odClass, int timeSlice, int nbThreads) {
 
     if (vnl == null) {
       return false;
@@ -449,6 +449,21 @@ public class VirtualNetwork {
   }
 
   /**
+   * Computes costs for a byte-indexed time slice.
+   *
+   * @param iteration The current iteration.
+   * @param scenario The scenario.
+   * @param odClass The OD class.
+   * @param timeSlice The time slice.
+   * @param nbThreads The number of worker threads.
+   * @return True on success.
+   */
+  public boolean computeCosts(
+      int iteration, int scenario, byte odClass, byte timeSlice, int nbThreads) {
+    return computeCosts(iteration, scenario, odClass, (int) timeSlice, nbThreads);
+  }
+
+  /**
    * Creates a queue of cost parser workers and a pool of threads that will handle these workers.
    *
    * @param iteration The iteration for which the costs must be computed.
@@ -458,7 +473,7 @@ public class VirtualNetwork {
    * @return True on success.
    */
   public boolean computeCosts(int iteration, int scenario, byte odClass, int nbThreads) {
-    return computeCosts(iteration, scenario, odClass, (byte) -1, nbThreads);
+    return computeCosts(iteration, scenario, odClass, -1, nbThreads);
   }
 
   /**
@@ -549,7 +564,7 @@ public class VirtualNetwork {
    * @return True on success.
    */
   public boolean volumesToVehicles(VehiclesParser vehiclesParser) {
-    return volumesToVehicles(vehiclesParser, (byte) 0);
+    return volumesToVehicles(vehiclesParser, 0);
   }
 
   /**
@@ -565,7 +580,7 @@ public class VirtualNetwork {
    * @param timeSlice The time slice to consider.
    * @return True on success.
    */
-  public boolean volumesToVehicles(VehiclesParser vehiclesParser, byte timeSlice) {
+  public boolean volumesToVehicles(VehiclesParser vehiclesParser, int timeSlice) {
     resetPassengerCarUnits();
     for (byte groupIndex = 0; groupIndex < getNbGroups(); groupIndex++) {
 
@@ -622,6 +637,17 @@ public class VirtualNetwork {
       }
     }
     return true;
+  }
+
+  /**
+   * Computes vehicles for a byte-indexed time slice.
+   *
+   * @param vehiclesParser The vehicle parser.
+   * @param timeSlice The time slice.
+   * @return True on success.
+   */
+  public boolean volumesToVehicles(VehiclesParser vehiclesParser, byte timeSlice) {
+    return volumesToVehicles(vehiclesParser, (int) timeSlice);
   }
 
   /**
@@ -1449,6 +1475,12 @@ public class VirtualNetwork {
    */
   public void setAssignmentTimeParameters(
       int assignmentStartTime, int assignmentEndTime, int timeSliceDuration) {
+    if (timeSliceDuration <= 0
+        || assignmentEndTime <= assignmentStartTime
+        || assignmentEndTime - assignmentStartTime < timeSliceDuration) {
+      throw new IllegalArgumentException("Invalid assignment time parameters");
+    }
+
     this.assignmentStartTime = assignmentStartTime;
     this.assignmentEndTime = assignmentEndTime;
     this.timeSliceDuration = timeSliceDuration;
@@ -1552,7 +1584,7 @@ public class VirtualNetwork {
    *     units; {@code false} otherwise
    */
   public boolean projectedVolumesToVehicles(
-      VehiclesParser vehiclesParser, byte timeSlice, double lambda) {
+      VehiclesParser vehiclesParser, int timeSlice, double lambda) {
 
     resetPassengerCarUnits();
 
@@ -1588,5 +1620,18 @@ public class VirtualNetwork {
     }
 
     return true;
+  }
+
+  /**
+   * Converts projected volumes for a byte-indexed time slice.
+   *
+   * @param vehiclesParser The vehicle parser.
+   * @param timeSlice The time slice.
+   * @param lambda The Frank-Wolfe step.
+   * @return True on success.
+   */
+  public boolean projectedVolumesToVehicles(
+      VehiclesParser vehiclesParser, byte timeSlice, double lambda) {
+    return projectedVolumesToVehicles(vehiclesParser, (int) timeSlice, lambda);
   }
 }

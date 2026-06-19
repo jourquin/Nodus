@@ -61,34 +61,23 @@ class InsertedPoint {
    * @param yc Coordinate Y of the click point.
    */
   public InsertedPoint(double x1, double y1, double x2, double y2, double xc, double yc) {
-    final double a = (y2 - y1) / (x2 - x1);
-    final double b = y1 - a * x1;
-    final double c = yc + 1 / a * xc;
+    double dx = x2 - x1;
+    double dy = y2 - y1;
+    double segmentLengthSquared = dx * dx + dy * dy;
 
-    if (y1 == y2) {
+    if (segmentLengthSquared == 0) {
       xi = x1;
-      yi = yc;
-      return;
-    }
-    if (x1 == x2) {
-      xi = xc;
       yi = y1;
+      inclu = false;
+      length = length(xi, yi, xc, yc);
       return;
-    }
-    if (x1 == x2 && y1 == y2) {
-      inclu = false;
-      return;
-    }
-    xi = a / (Math.pow(a, 2) + 1) * (c - b);
-    yi = a * xi + b;
-    if (length(x1, y1, xi, yi) > length(x1, y1, x2, y2)) {
-      inclu = false;
-    } else if (length(xi, yi, x2, y2) > length(x1, y1, x2, y2)) {
-      inclu = false;
-    } else {
-      inclu = true;
     }
 
+    double projection =
+        ((xc - x1) * dx + (yc - y1) * dy) / segmentLengthSquared;
+    xi = x1 + projection * dx;
+    yi = y1 + projection * dy;
+    inclu = projection >= 0 && projection <= 1;
     length = length(xi, yi, xc, yc);
   }
 

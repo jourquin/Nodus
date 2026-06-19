@@ -2715,7 +2715,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     LabelLayer labelLayer = null;
     Layer[] l = getLayerHandler().getLayers();
     for (Layer element : l) {
-      if (element.getClass().getName() == "com.bbn.openmap.layer.LabelLayer") {
+      if (element instanceof LabelLayer) {
         labelLayer = (LabelLayer) element;
         break;
       }

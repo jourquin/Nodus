@@ -72,20 +72,32 @@ public class StaticAoNTimeDependentAssignment extends Assignment {
     // Get the information about the time windows in the cost function
     Properties costFunctions = assignmentParameters.getCostFunctions();
 
-    int assignmentStartTime =
-        Integer.parseInt(costFunctions.getProperty(NodusC.VARNAME_STARTTIME, "-1"));
-    int assignmentEndTime =
-        Integer.parseInt(costFunctions.getProperty(NodusC.VARNAME_ENDTIME, "-1"));
-    int timeSliceDuration =
-        Integer.parseInt(costFunctions.getProperty(NodusC.VARNAME_TIMESLICE, "-1"));
+    int assignmentStartTime;
+    int assignmentEndTime;
+    int timeSliceDuration;
+    try {
+      assignmentStartTime =
+          Integer.parseInt(costFunctions.getProperty(NodusC.VARNAME_STARTTIME, "-1"));
+      assignmentEndTime =
+          Integer.parseInt(costFunctions.getProperty(NodusC.VARNAME_ENDTIME, "-1"));
+      timeSliceDuration =
+          Integer.parseInt(costFunctions.getProperty(NodusC.VARNAME_TIMESLICE, "-1"));
+    } catch (NumberFormatException e) {
+      assignmentStartTime = -1;
+      assignmentEndTime = -1;
+      timeSliceDuration = -1;
+    }
 
-    if (assignmentEndTime == -1 || assignmentStartTime == -1 || timeSliceDuration == -1) {
+    if (assignmentStartTime < 0
+        || assignmentEndTime <= assignmentStartTime
+        || timeSliceDuration <= 0
+        || assignmentEndTime - assignmentStartTime < timeSliceDuration) {
       JOptionPane.showMessageDialog(
           null,
           i18n.get(
               Assignment.class,
               "Time_related_variables_not_found",
-              "Time related variables not found in cost functions"),
+              "Valid time related variables were not found in cost functions"),
           NodusC.APPNAME,
           JOptionPane.ERROR_MESSAGE);
       return false;
@@ -213,7 +225,7 @@ public class StaticAoNTimeDependentAssignment extends Assignment {
     // System.out.println("Duration : " + ((end - start) / 1000));
 
     // Transform the volumes into vehicles
-    for (byte i = 0; i < virtualNet.getNbTimeSlices(); i++) {
+    for (int i = 0; i < virtualNet.getNbTimeSlices(); i++) {
       virtualNet.volumesToVehicles(vehiclesParser, i);
     }
 
