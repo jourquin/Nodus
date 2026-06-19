@@ -117,7 +117,7 @@ public class IncrementalAssignment extends Assignment {
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
     startGarbageCollectionRunner();
 
-    for (byte iteration = 1; iteration <= assignmentParameters.getNbIterations(); iteration++) {
+    for (int iteration = 1; iteration <= assignmentParameters.getNbIterations(); iteration++) {
       // Compute the load factor for the current iteration
       double denominator =
           assignmentParameters.getNbIterations()

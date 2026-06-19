@@ -65,7 +65,6 @@ public class NodusGroovyConsole extends NotePad {
       shell.setVariable("nodusMapPanel", nodusMapPanel);
     }
 
-    @SuppressWarnings("deprecation")
     public void cancel() {
 
       /*
@@ -76,24 +75,12 @@ public class NodusGroovyConsole extends NotePad {
         nodusMapPanel.cancelLongTask();
       }
 
-      /*
-       * This is ugly because unsafe and deprecated, but it allows to stop a running script.
-       * Keep all cleanup in finally so closing the console releases the map/project graph even
-       * when the Groovy script is forcefully stopped.
-       */
-      try {
-        stop();
-        if (NodusConsole.isVisible()) {
-          String msg =
-              i18n.get(
-                  NodusGroovyConsole.class, "interrupted", "Groovy script interrupted by user.");
-          System.err.println(msg);
-        }
-      } catch (Exception e) {
-        e.printStackTrace();
-      } finally {
-        finishScriptRun(this);
-        releaseScriptReferences();
+      interrupt();
+      if (NodusConsole.isVisible()) {
+        String msg =
+            i18n.get(
+                NodusGroovyConsole.class, "interrupted", "Groovy script interrupted by user.");
+        System.err.println(msg);
       }
     }
 

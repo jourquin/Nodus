@@ -185,7 +185,7 @@ public abstract class AssignmentWorker extends Thread {
         pathWriter = assignment.getPathWriter();
         assignmentParameters = assignment.getAssignmentParameters();
 
-        iteration = awp.getIteration();
+        iteration = awp.getIterationAsInt();
         loadFactor = awp.getLoadFactor();
         groupIndex = awp.getGroupIndex();
         odClass = awp.getODClass();

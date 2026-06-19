@@ -123,7 +123,7 @@ public class FrankWolfeAssignment extends Assignment {
      * Enter into an iterative process that can be stopped before NbIterations if the stopping rule
      * succeeds
      */
-    for (byte iteration = 1; iteration < assignmentParameters.getNbIterations() + 1; iteration++) {
+    for (int iteration = 1; iteration <= assignmentParameters.getNbIterations(); iteration++) {
       // -- Assign all od classes
       for (byte odClass = 0; odClass < virtualNet.getNbODClasses(); odClass++) {
 

@@ -195,11 +195,16 @@ public abstract class Assignment implements Runnable {
     return pathWriter;
   }
 
-  /** Finalizes path tables after a successful assignment. */
-  private void closePathWriter() {
+  /**
+   * Finalizes path tables after a successful assignment.
+   *
+   * @return True if all path data was saved.
+   */
+  private boolean closePathWriter() {
     if (pathWriter != null) {
-      pathWriter.close();
+      return pathWriter.close();
     }
+    return true;
   }
 
   /** Releases and deletes path tables after a failed or cancelled assignment. */
@@ -255,7 +260,7 @@ public abstract class Assignment implements Runnable {
       }
 
       if (success) {
-        closePathWriter();
+        success = closePathWriter();
       }
 
       if (!success && !errorMessage.isEmpty()) {

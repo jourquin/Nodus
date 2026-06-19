@@ -1779,10 +1779,6 @@ public class NodusProject implements ShapeConstants {
     nodusMapPanel.setBusy(true);
 
     // Find out path and filename
-    String projectPath = projectResourceFileNameAndPath;
-    File f = new File(projectResourceFileNameAndPath);
-    String name = f.getName();
-    projectPath = projectPath.substring(0, projectPath.lastIndexOf(name) - 1) + File.separator;
 
     // Try to add the ".local" properties that contain previous saved values
     localProperties = new Properties();
@@ -1801,6 +1797,12 @@ public class NodusProject implements ShapeConstants {
       String value = projectProperties.getProperty(key);
       localProperties.setProperty(key, value);
     }
+
+    File f = new File(projectResourceFileNameAndPath);
+    File parent = f.getAbsoluteFile().getParentFile();
+    String name = f.getName();
+    String projectPath =
+        (parent == null ? new File(".").getAbsoluteFile() : parent).getPath() + File.separator;
 
     localProperties.setProperty(NodusC.PROP_PROJECT_CANONICAL_NAME, projectResourceFileNameAndPath);
     localProperties.setProperty(NodusC.PROP_PROJECT_DOTPATH, projectPath);
@@ -2074,13 +2076,22 @@ public class NodusProject implements ShapeConstants {
     float scale = this.getLocalProperty(NodusC.PROP_MAP_SCALE, Float.MAX_VALUE);
     double latitude = this.getLocalProperty(NodusC.PROP_MAP_LATITUDE, Double.MAX_VALUE);
     double longitude = this.getLocalProperty(NodusC.PROP_MAP_LONGITUDE, Double.MAX_VALUE);
-    LatLonPoint.Double llp = new LatLonPoint.Double(latitude, longitude);
 
     // All the values must have been found in properties to restore view
-    if (scale + latitude + longitude < Double.MAX_VALUE) {
+    if (scale != Float.MAX_VALUE
+        && latitude != Double.MAX_VALUE
+        && longitude != Double.MAX_VALUE
+        && Float.isFinite(scale)
+        && scale > 0
+        && Double.isFinite(latitude)
+        && Double.isFinite(longitude)
+        && latitude >= -90
+        && latitude <= 90
+        && longitude >= -180
+        && longitude <= 180) {
       // Prepare map
       nodusMapPanel.getMapBean().setScale(scale);
-      nodusMapPanel.getMapBean().setCenter(llp);
+      nodusMapPanel.getMapBean().setCenter(new LatLonPoint.Double(latitude, longitude));
       nodusMapPanel.getMapBean().validate();
     }
 

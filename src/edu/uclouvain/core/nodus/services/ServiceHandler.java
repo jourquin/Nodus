@@ -37,8 +37,8 @@ import java.awt.Graphics;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Savepoint;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -260,12 +260,14 @@ public class ServiceHandler {
         return;
       }
 
+      // Create new tables if needed
+      resetServicesTables();
+
+      // HSQLDB invalidates savepoints when resetServicesTables() drops/recreates the tables.
+      // Protect only the following data insertion phase.
       if (!jdbcConnection.getAutoCommit()) {
         savepoint = jdbcConnection.setSavepoint();
       }
-
-      // Create new tables if needed
-      resetServicesTables();
 
       String servicesHeaderSql =
           "INSERT INTO "
@@ -325,12 +327,8 @@ public class ServiceHandler {
     } catch (Exception ex) {
       if (jdbcConnection != null) {
         try {
-          if (!jdbcConnection.getAutoCommit()) {
-            if (savepoint != null) {
-              jdbcConnection.rollback(savepoint);
-            } else {
-              jdbcConnection.rollback();
-            }
+          if (!jdbcConnection.getAutoCommit() && savepoint != null) {
+            jdbcConnection.rollback(savepoint);
           }
         } catch (SQLException rollbackEx) {
           rollbackEx.printStackTrace();

@@ -172,22 +172,32 @@ public class PathWriter {
     }
   }
 
-  /** Commits the current JDBC connection if it is not in auto-commit mode. */
-  private void commitIfNeeded() {
+  /**
+   * Commits the current JDBC connection if it is not in auto-commit mode.
+   *
+   * @return True on success.
+   */
+  private boolean commitIfNeeded() {
     try {
       if (con != null && !con.getAutoCommit()) {
         con.commit();
       }
+      return true;
     } catch (SQLException ex) {
       ex.printStackTrace();
+      return false;
     }
   }
 
-  /** Save the SQL batches, create the indexes and close the prepared statements. */
-  public synchronized void close() {
+  /**
+   * Saves the SQL batches, creates the indexes and closes the prepared statements.
+   *
+   * @return True if all pending path data was saved.
+   */
+  public synchronized boolean close() {
 
     if (closed) {
-      return;
+      return !canceled;
     }
 
     try {
@@ -197,7 +207,9 @@ public class PathWriter {
             .setText(i18n.get(PathWriter.class, "Creating_indexes", "Creating indexes..."));
 
         if (hasBatchSupport) {
-          executeHeaderBatch(true);
+          if (!executeHeaderBatch(true)) {
+            return false;
+          }
         }
 
         // Create index on origin node
@@ -213,7 +225,9 @@ public class PathWriter {
 
         if (saveDetailedPaths) {
           if (hasBatchSupport) {
-            executeDetailsBatch(true);
+            if (!executeDetailsBatch(true)) {
+              return false;
+            }
           }
 
           // Create index on path index
@@ -225,8 +239,12 @@ public class PathWriter {
           JDBCUtils.createIndex(index);
         }
 
-        commitIfNeeded();
+        if (!commitIfNeeded()) {
+          canceled = true;
+          return false;
+        }
       }
+      return !canceled;
     } finally {
       closePreparedStatements();
       closed = true;
@@ -263,42 +281,25 @@ public class PathWriter {
    */
   private boolean executeDetailsBatch(boolean force) {
 
-    detailsBatchSize++;
+    if (!force) {
+      detailsBatchSize++;
+    }
 
-    if (detailsBatchSize < maxBatchSize && !force) {
+    if (detailsBatchSize == 0 || (detailsBatchSize < maxBatchSize && !force)) {
       return true;
     }
 
-    boolean oldAutoCommit = true;
-    boolean restoreAutoCommit = false;
     try {
-      oldAutoCommit = con.getAutoCommit();
-      con.setAutoCommit(false);
-      restoreAutoCommit = true;
-      try {
-        prepStmtDetails.executeBatch();
-      } catch (Exception e) {
-        // If not in batch mode because there is nothing to write in table
-      }
-      con.commit();
+      prepStmtDetails.executeBatch();
+      detailsBatchSize = 0;
     } catch (SQLException e) {
+      canceled = true;
       nodusProject.getNodusMapPanel().stopProgress();
       SingleInstanceMessagePane.display(
           nodusProject.getNodusMapPanel(), e.getMessage(), JOptionPane.ERROR_MESSAGE);
-
       return false;
-    } finally {
-      if (restoreAutoCommit) {
-        try {
-          con.setAutoCommit(oldAutoCommit);
-        } catch (SQLException e) {
-          SingleInstanceMessagePane.display(
-              nodusProject.getNodusMapPanel(), e.getMessage(), JOptionPane.ERROR_MESSAGE);
-        }
-      }
     }
 
-    detailsBatchSize = 0;
     return true;
   }
 
@@ -310,38 +311,25 @@ public class PathWriter {
    */
   private boolean executeHeaderBatch(boolean force) {
 
-    headerBatchSize++;
+    if (!force) {
+      headerBatchSize++;
+    }
 
-    if (headerBatchSize < maxBatchSize && !force) {
+    if (headerBatchSize == 0 || (headerBatchSize < maxBatchSize && !force)) {
       return true;
     }
 
-    boolean oldAutoCommit = true;
-    boolean restoreAutoCommit = false;
     try {
-      oldAutoCommit = con.getAutoCommit();
-      con.setAutoCommit(false);
-      restoreAutoCommit = true;
-      try {
-        prepStmtHeaders.executeBatch();
-      } catch (Exception e) {
-        // If not in batch mode because there is nothing to write in table
-      }
-      con.commit();
+      prepStmtHeaders.executeBatch();
+      headerBatchSize = 0;
     } catch (SQLException e) {
-      e.printStackTrace();
+      canceled = true;
+      nodusProject.getNodusMapPanel().stopProgress();
+      SingleInstanceMessagePane.display(
+          nodusProject.getNodusMapPanel(), e.getMessage(), JOptionPane.ERROR_MESSAGE);
       return false;
-    } finally {
-      if (restoreAutoCommit) {
-        try {
-          con.setAutoCommit(oldAutoCommit);
-        } catch (SQLException e) {
-          e.printStackTrace();
-        }
-      }
     }
 
-    headerBatchSize = 0;
     return true;
   }
 
@@ -466,13 +454,18 @@ public class PathWriter {
 
       if (hasBatchSupport) {
         prepStmtDetails.addBatch();
-        executeDetailsBatch(false);
+        if (!executeDetailsBatch(false)) {
+          return;
+        }
       } else {
         prepStmtDetails.executeUpdate();
       }
 
     } catch (Exception e) {
-      System.err.println(e.toString());
+      canceled = true;
+      nodusProject.getNodusMapPanel().stopProgress();
+      SingleInstanceMessagePane.display(
+          nodusProject.getNodusMapPanel(), e.getMessage(), JOptionPane.ERROR_MESSAGE);
     }
   }
 
@@ -613,7 +606,9 @@ public class PathWriter {
 
       if (hasBatchSupport) {
         prepStmtHeaders.addBatch();
-        executeHeaderBatch(false);
+        if (!executeHeaderBatch(false)) {
+          return false;
+        }
       } else {
         prepStmtHeaders.executeUpdate();
       }
@@ -647,7 +642,9 @@ public class PathWriter {
 
     // Be sure header table is updated
     if (hasBatchSupport) {
-      executeHeaderBatch(true);
+      if (!executeHeaderBatch(true)) {
+        return;
+      }
     }
 
     try (Statement stmt = con.createStatement()) {

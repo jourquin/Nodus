@@ -54,17 +54,13 @@ public class VirtualNetworkWriter {
 
   /** Rolls back the current write without disturbing older work on the shared connection. */
   private void rollbackToSavepoint(Savepoint savepoint) {
-    if (jdbcConnection == null) {
+    if (jdbcConnection == null || savepoint == null) {
       return;
     }
 
     try {
       if (!jdbcConnection.getAutoCommit()) {
-        if (savepoint != null) {
-          jdbcConnection.rollback(savepoint);
-        } else {
-          jdbcConnection.rollback();
-        }
+        jdbcConnection.rollback(savepoint);
       }
     } catch (SQLException rollbackEx) {
       rollbackEx.printStackTrace();
@@ -205,14 +201,15 @@ public class VirtualNetworkWriter {
         return false;
       }
 
-      if (!jdbcConnection.getAutoCommit()) {
-        savepoint = jdbcConnection.setSavepoint();
-      }
-
       // Create or clear table at first iteration
       if (!initTable()) {
-        rollbackToSavepoint(savepoint);
         return false;
+      }
+
+      // HSQLDB may commit DDL statements executed by initTable(), invalidating older savepoints.
+      // Create the savepoint only after the destination table is ready.
+      if (!jdbcConnection.getAutoCommit()) {
+        savepoint = jdbcConnection.setSavepoint();
       }
 
       hasBatchSupport = JDBCUtils.hasBatchSupport();
@@ -322,7 +319,7 @@ public class VirtualNetworkWriter {
           }
         }
         // Flush remaining records in batch
-        if (hasBatchSupport) {
+        if (hasBatchSupport && batchSize > 0) {
           prepStmt.executeBatch();
         }
 

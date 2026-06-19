@@ -118,9 +118,9 @@ public class IncFrankWolfeAssignment extends Assignment {
     startGarbageCollectionRunner();
 
     // Perform an incremental assignment with four iterations
-    byte nbIterationsInc = 4;
+    int nbIterationsInc = 4;
 
-    for (byte iteration = 1; iteration <= nbIterationsInc; iteration++) {
+    for (int iteration = 1; iteration <= nbIterationsInc; iteration++) {
       // Compute the load factor for the current iteration
       double den = nbIterationsInc * (nbIterationsInc + 1) / 2.0;
 
@@ -213,14 +213,14 @@ public class IncFrankWolfeAssignment extends Assignment {
 
     // Enter into an iterative process that can be stopped before
     // NbIterations if the stopping rule succeeds
-    byte start = (byte) (nbIterationsInc + 1);
+    int start = nbIterationsInc + 1;
 
     int end = assignmentParameters.getNbIterations() + 1 + nbIterationsInc;
 
     // Get the number of threads
     int threads = assignmentParameters.getThreads();
 
-    for (byte iteration = start; iteration < end; iteration++) {
+    for (int iteration = start; iteration < end; iteration++) {
       // --- Assign all od classes
       for (byte odClass = 0; odClass < virtualNet.getNbODClasses(); odClass++) {
 

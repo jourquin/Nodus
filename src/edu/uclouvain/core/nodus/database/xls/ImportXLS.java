@@ -34,8 +34,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.sql.Savepoint;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.Iterator;
 import java.util.StringTokenizer;
@@ -64,9 +64,7 @@ public class ImportXLS {
   /** Default constructor. */
   public ImportXLS() {}
 
-  /**
-   * Returns the Excel file path associated with the table to import.
-   */
+  /** Returns the Excel file path associated with the table to import. */
   private static String getFileName(NodusProject nodusProject, String tableName, boolean isXLSX) {
     String fileName =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_XLS;
@@ -163,7 +161,12 @@ public class ImportXLS {
         // sqlStmt += "\"" + fieldName + "\"";
         sqlStmt.append(JDBCUtils.getQuotedCompliantIdentifier(fieldName));
         if (fieldType.equalsIgnoreCase("N")) {
-          sqlStmt.append(" NUMERIC(").append(fieldLength).append(',').append(fieldPrecision).append(')');
+          sqlStmt
+              .append(" NUMERIC(")
+              .append(fieldLength)
+              .append(',')
+              .append(fieldPrecision)
+              .append(')');
         } else {
           sqlStmt.append(" VARCHAR(").append(fieldLength).append(')');
         }
@@ -203,6 +206,19 @@ public class ImportXLS {
       }
     } catch (SQLException rollbackEx) {
       rollbackEx.printStackTrace();
+    }
+  }
+
+  /** Restores auto-commit after a transaction started by this importer. */
+  private static void restoreAutoCommit(Connection con, boolean restore) {
+    if (!restore || con == null) {
+      return;
+    }
+
+    try {
+      con.setAutoCommit(true);
+    } catch (SQLException e) {
+      e.printStackTrace();
     }
   }
 
@@ -252,6 +268,7 @@ public class ImportXLS {
     }
 
     Savepoint savepoint = null;
+    boolean restoreAutoCommit = false;
 
     // Clean table and read table structure
     String sqlStmt;
@@ -260,14 +277,19 @@ public class ImportXLS {
     String quotedTableName = JDBCUtils.getQuotedCompliantIdentifier(tableName);
 
     try (Statement stmt = con.createStatement()) {
-      if (!con.getAutoCommit()) {
-        savepoint = con.setSavepoint();
+      if (con.getAutoCommit()) {
+        con.setAutoCommit(false);
+        restoreAutoCommit = true;
       }
 
       if (createTableStatement != null) {
         JDBCUtils.dropTable(tableName);
         stmt.execute(createTableStatement);
       }
+
+      // HSQLDB invalidates savepoints when the optional DROP/CREATE TABLE above is executed.
+      // Start the rollback scope only after the table structure is ready.
+      savepoint = con.setSavepoint();
 
       sqlStmt = "delete from " + quotedTableName;
       stmt.executeUpdate(sqlStmt);
@@ -282,8 +304,9 @@ public class ImportXLS {
           columnTypes[i] = metaData.getColumnType(i + 1);
         }
       }
-    } catch (SQLException e) {
+    } catch (Exception e) {
       rollbackToSavepoint(con, savepoint);
+      restoreAutoCommit(con, restoreAutoCommit);
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
     }
@@ -339,13 +362,17 @@ public class ImportXLS {
         }
       }
 
-      if (!con.getAutoCommit()) {
+      if (restoreAutoCommit) {
         con.commit();
+      } else if (savepoint != null) {
+        con.releaseSavepoint(savepoint);
       }
     } catch (Exception e) {
       rollbackToSavepoint(con, savepoint);
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
+    } finally {
+      restoreAutoCommit(con, restoreAutoCommit);
     }
 
     return true;

@@ -25,7 +25,6 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
-import java.util.Iterator;
 import java.util.List;
 import javax.swing.JDialog;
 import javax.swing.JOptionPane;
@@ -40,7 +39,7 @@ public class MultinomialLogit extends ModalSplitMethod {
   private I18n i18n = Environment.getI18n();
 
   private boolean warningAlreadyDisplayed = false;
-  
+
   /**
    * Default constructor. Calls the super class.
    *
@@ -62,77 +61,91 @@ public class MultinomialLogit extends ModalSplitMethod {
   }
 
   @Override
-  public void initializeGroup(
-      int currentGroup) {
+  public void initializeGroup(int currentGroup) {
     super.initializeGroup(currentGroup);
     warningAlreadyDisplayed = false;
+  }
+
+  /** Displays the calibration warning once for the current group. */
+  private void displayCalibrationWarning() {
+    if (warningAlreadyDisplayed) {
+      return;
+    }
+
+    warningAlreadyDisplayed = true;
+    String msg =
+        i18n.get(ModalSplitMethod.class, "calibrate", "Weights are too high. Please calibrate");
+    String title = i18n.get(ModalSplitMethod.class, "MNL", "Multinomial logit");
+    JOptionPane pane = new JOptionPane(msg, JOptionPane.WARNING_MESSAGE);
+    JDialog dialog = pane.createDialog(getNodusProject().getMainFrame(), title);
+    dialog.setModal(false);
+    dialog.setVisible(true);
   }
 
   @Override
   public boolean split(ODCell odCell, List<PathsForMode> pathsLists) {
 
-    /*
-     * Compute the market marketShare for each mode
-     */
-    double denominator = 0.0;
-    Iterator<PathsForMode> plIt = pathsLists.iterator();
-    while (plIt.hasNext()) {
-      PathsForMode modalPaths = plIt.next();
-      double d = Math.exp(-modalPaths.cheapestPathWeights.getCost());
-      denominator += d;
+    if (pathsLists.isEmpty()) {
+      return false;
     }
 
-    // Compute the market marketShare per mode
-    plIt = pathsLists.iterator();
-    while (plIt.hasNext()) {
-      PathsForMode modalPaths = plIt.next();
-
-      double v = Math.exp(-modalPaths.cheapestPathWeights.getCost()) / denominator;
-      if (Double.isNaN(v)) {
-        v = 0.0;
+    // Subtracting the lowest cost keeps at least one exponential equal to one and prevents
+    // numerical underflow when all costs are large.
+    double lowestModalCost = Double.POSITIVE_INFINITY;
+    for (PathsForMode modalPaths : pathsLists) {
+      double cost = modalPaths.cheapestPathWeights.getCost();
+      if (Double.isFinite(cost)) {
+        lowestModalCost = Math.min(lowestModalCost, cost);
       }
-      modalPaths.marketShare = v;
+    }
+
+    if (!Double.isFinite(lowestModalCost)) {
+      displayCalibrationWarning();
+      return false;
+    }
+
+    double denominator = 0.0;
+    for (PathsForMode modalPaths : pathsLists) {
+      double cost = modalPaths.cheapestPathWeights.getCost();
+      if (Double.isFinite(cost)) {
+        denominator += Math.exp(lowestModalCost - cost);
+      }
+    }
+
+    for (PathsForMode modalPaths : pathsLists) {
+      double cost = modalPaths.cheapestPathWeights.getCost();
+      modalPaths.marketShare =
+          Double.isFinite(cost) ? Math.exp(lowestModalCost - cost) / denominator : 0.0;
     }
 
     // Compute the market marketShare per path for each mode
-    plIt = pathsLists.iterator();
-    while (plIt.hasNext()) {
-      PathsForMode modalPaths = plIt.next();
-
-      // Denominator for this mode
-      denominator = 0.0;
-      Iterator<Path> it = modalPaths.pathList.iterator();
-      while (it.hasNext()) {
-        Path path = it.next();
-        double d = Math.exp(-path.weights.getCost());
-        if (d == 0) {
-          if (!warningAlreadyDisplayed) {
-            warningAlreadyDisplayed = true;
-            String msg =
-                i18n.get(
-                    ModalSplitMethod.class, "calibrate", "Weights are too high. Please calibrate");
-            String title = i18n.get(ModalSplitMethod.class, "MNL", "Multinomial logit");
-            JOptionPane pane = new JOptionPane(msg, JOptionPane.WARNING_MESSAGE);
-            JDialog dialog = pane.createDialog(getNodusProject().getMainFrame(), title);
-            dialog.setModal(false);
-            dialog.setVisible(true);
-            return false;
-          }
+    for (PathsForMode modalPaths : pathsLists) {
+      double lowestPathCost = Double.POSITIVE_INFINITY;
+      for (Path path : modalPaths.pathList) {
+        double cost = path.weights.getCost();
+        if (Double.isFinite(cost)) {
+          lowestPathCost = Math.min(lowestPathCost, cost);
         }
-        denominator += d;
       }
 
-      // Spread over each path of this mode
-      it = modalPaths.pathList.iterator();
-      while (it.hasNext()) {
-        Path path = it.next();
+      if (!Double.isFinite(lowestPathCost)) {
+        displayCalibrationWarning();
+        return false;
+      }
 
-        double v = Math.exp(-path.weights.getCost()) / denominator;
-        if (Double.isNaN(v)) {
-          v = 0.0;
+      denominator = 0.0;
+      for (Path path : modalPaths.pathList) {
+        double cost = path.weights.getCost();
+        if (Double.isFinite(cost)) {
+          denominator += Math.exp(lowestPathCost - cost);
         }
+      }
 
-        path.marketShare = v * modalPaths.marketShare;
+      for (Path path : modalPaths.pathList) {
+        double cost = path.weights.getCost();
+        double pathShare =
+            Double.isFinite(cost) ? Math.exp(lowestPathCost - cost) / denominator : 0.0;
+        path.marketShare = pathShare * modalPaths.marketShare;
       }
     }
     return true;

@@ -123,7 +123,7 @@ public class MSAAssignment extends Assignment {
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
     startGarbageCollectionRunner();
 
-    for (byte iteration = 1; iteration < assignmentParameters.getNbIterations() + 1; iteration++) {
+    for (int iteration = 1; iteration <= assignmentParameters.getNbIterations(); iteration++) {
       double split = 1.0 / iteration;
 
       for (byte odClass = 0; odClass < virtualNet.getNbODClasses(); odClass++) {

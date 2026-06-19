@@ -29,8 +29,8 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.PreparedStatement;
-import java.sql.Savepoint;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Types;
 import javax.swing.JOptionPane;
@@ -52,20 +52,29 @@ public class ImportDBF {
 
   /** Rolls back the current import without disturbing older work on the shared connection. */
   private static void rollbackToSavepoint(Connection con, Savepoint savepoint) {
-    if (con == null) {
+    if (con == null || savepoint == null) {
       return;
     }
 
     try {
       if (!con.getAutoCommit()) {
-        if (savepoint != null) {
-          con.rollback(savepoint);
-        } else {
-          con.rollback();
-        }
+        con.rollback(savepoint);
       }
     } catch (SQLException rollbackEx) {
       rollbackEx.printStackTrace();
+    }
+  }
+
+  /** Restores auto-commit after a transaction started by this importer. */
+  private static void restoreAutoCommit(Connection con, boolean restore) {
+    if (!restore || con == null) {
+      return;
+    }
+
+    try {
+      con.setAutoCommit(true);
+    } catch (SQLException e) {
+      e.printStackTrace();
     }
   }
 
@@ -199,10 +208,6 @@ public class ImportDBF {
         prepStmt.executeBatch();
       }
 
-      if (!jdbcConnection.getAutoCommit()) {
-        jdbcConnection.commit();
-      }
-
     } catch (Exception e) {
       System.out.println(e.toString());
       return false;
@@ -219,7 +224,7 @@ public class ImportDBF {
    * @param tableName The name of the file to import, without extension.
    * @return boolean
    */
-  public static boolean importTable(NodusProject project, String tableName) {
+  public static synchronized boolean importTable(NodusProject project, String tableName) {
     jdbcConnection = project.getMainJDBCConnection();
     if (jdbcConnection == null) {
       return false;
@@ -231,33 +236,45 @@ public class ImportDBF {
 
     hasBatchSupport = JDBCUtils.hasBatchSupport();
     Savepoint savepoint = null;
+    boolean restoreAutoCommit = false;
 
     // Uppercases? Lowercases?, Mixed? Depends on database capabilities ...
     String jdbcTableName = JDBCUtils.getCompliantIdentifier(tableName);
 
     // Create table
     try (DBFReader dbfReader = new DBFReader(path + tableName + NodusC.TYPE_DBF)) {
-      if (!jdbcConnection.getAutoCommit()) {
-        savepoint = jdbcConnection.setSavepoint();
+      if (jdbcConnection.getAutoCommit()) {
+        jdbcConnection.setAutoCommit(false);
+        restoreAutoCommit = true;
       }
 
       // Create new table and drop existent one
       if (dbfReader.isOpen()) {
         if (!createTable(jdbcTableName, dbfReader)) {
-          rollbackToSavepoint(jdbcConnection, savepoint);
           return false;
         }
+
+        // HSQLDB invalidates existing savepoints when DROP/CREATE TABLE is executed.
+        // Protect the data insertion phase with a savepoint created after the DDL.
+        savepoint = jdbcConnection.setSavepoint();
 
         if (!fillTable(jdbcTableName, dbfReader)) {
           rollbackToSavepoint(jdbcConnection, savepoint);
           return false;
         }
       }
+
+      if (restoreAutoCommit) {
+        jdbcConnection.commit();
+      } else if (savepoint != null) {
+        jdbcConnection.releaseSavepoint(savepoint);
+      }
     } catch (Exception e) {
       rollbackToSavepoint(jdbcConnection, savepoint);
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
     } finally {
+      restoreAutoCommit(jdbcConnection, restoreAutoCommit);
       jdbcConnection = null;
     }
 

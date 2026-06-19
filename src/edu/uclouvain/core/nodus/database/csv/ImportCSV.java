@@ -28,12 +28,11 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.io.File;
 import java.io.FileReader;
-import java.io.IOException;
 import java.io.Reader;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.Savepoint;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.Iterator;
 import javax.swing.JOptionPane;
@@ -133,6 +132,19 @@ public class ImportCSV {
     }
   }
 
+  /** Restores auto-commit after a transaction started by this importer. */
+  private static void restoreAutoCommit(Connection con, boolean restore) {
+    if (!restore || con == null) {
+      return;
+    }
+
+    try {
+      con.setAutoCommit(true);
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+  }
+
   /**
    * Imports the table which name is passed as parameter. The CSV file must be located in the
    * project directory. The correspondent table structure (empty table) must exist in the database.
@@ -176,6 +188,7 @@ public class ImportCSV {
 
     Connection con = null;
     Savepoint savepoint = null;
+    boolean restoreAutoCommit = false;
 
     try {
       con = project.getMainJDBCConnection();
@@ -183,7 +196,10 @@ public class ImportCSV {
         return false;
       }
 
-      if (!con.getAutoCommit()) {
+      if (con.getAutoCommit()) {
+        con.setAutoCommit(false);
+        restoreAutoCommit = true;
+      } else {
         savepoint = con.setSavepoint();
       }
 
@@ -238,14 +254,18 @@ public class ImportCSV {
         }
       }
 
-      if (!con.getAutoCommit()) {
+      if (restoreAutoCommit) {
         con.commit();
+      } else if (savepoint != null) {
+        con.releaseSavepoint(savepoint);
       }
 
-    } catch (SQLException | IOException e) {
+    } catch (Exception e) {
       rollbackToSavepoint(con, savepoint);
       JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
+    } finally {
+      restoreAutoCommit(con, restoreAutoCommit);
     }
 
     // long end = System.currentTimeMillis();

@@ -35,6 +35,8 @@ import java.awt.Cursor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.NoSuchElementException;
 import java.util.Properties;
@@ -151,7 +153,18 @@ public class NodusWMSLayer extends WMSLayer {
       return treeData != null && !treeData.isEmpty();
     }
 
+    if (queryHeader == null || queryHeader.isBlank()) {
+      return false;
+    }
+
     StringBuffer buf = new StringBuffer(queryHeader);
+    if (queryHeader.indexOf('?') < 0) {
+      buf.append('?');
+    } else if (!queryHeader.endsWith("?") && !queryHeader.endsWith("&")) {
+      buf.append('&');
+    }
+
+    buf.append("REQUEST=GetCapabilities").append("&version=").append(wmsVersion);
 
     if (vendorSpecificNames != null) {
       if (vendorSpecificValues != null) {
@@ -163,15 +176,16 @@ public class NodusWMSLayer extends WMSLayer {
           try {
             paramName = nameTokenizer.nextToken();
             paramValue = valueTokenizer.nextToken();
-            buf.append("&").append(paramName).append("=").append(paramValue);
+            buf.append('&')
+                .append(URLEncoder.encode(paramName.trim(), StandardCharsets.UTF_8))
+                .append('=')
+                .append(URLEncoder.encode(paramValue.trim(), StandardCharsets.UTF_8));
           } catch (NoSuchElementException e) {
             e.printStackTrace();
           }
         }
       }
     }
-
-    buf.append("?" + "&REQUEST=GetCapabilities" + "&version=" + wmsVersion);
 
     java.net.HttpURLConnection urlc = null;
 

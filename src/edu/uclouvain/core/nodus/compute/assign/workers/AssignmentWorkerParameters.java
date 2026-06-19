@@ -32,7 +32,7 @@ public class AssignmentWorkerParameters {
 
   private Assignment assignment;
   private byte groupIndex;
-  private byte iteration = 0;
+  private int iteration = 0;
   private double loadFactor;
   private byte odClass;
 
@@ -44,7 +44,7 @@ public class AssignmentWorkerParameters {
    * @param odClass The OD class that will be assigned by this worker.
    */
   public AssignmentWorkerParameters(Assignment assignment, byte groupIndex, byte odClass) {
-    this(assignment, groupIndex, odClass, (byte) 0, 0.0);
+    this(assignment, groupIndex, odClass, 0, 0.0);
   }
 
   /**
@@ -56,8 +56,21 @@ public class AssignmentWorkerParameters {
    * @param iteration The iteration of the equilibrium assignment algorithm the worker will run.
    */
   public AssignmentWorkerParameters(
-      Assignment assignment, byte groupIndex, byte odClass, byte iteration) {
+      Assignment assignment, byte groupIndex, byte odClass, int iteration) {
     this(assignment, groupIndex, odClass, iteration, 0.0);
+  }
+
+  /**
+   * Backward-compatible constructor for already compiled assignment classes.
+   *
+   * @param assignment The Assignment object these parameters belong to.
+   * @param groupIndex The index of the group that will be assigned by this worker.
+   * @param odClass The OD class that will be assigned by this worker.
+   * @param iteration The iteration of the equilibrium assignment algorithm the worker will run.
+   */
+  public AssignmentWorkerParameters(
+      Assignment assignment, byte groupIndex, byte odClass, byte iteration) {
+    this(assignment, groupIndex, odClass, (int) iteration, 0.0);
   }
 
   /**
@@ -71,12 +84,30 @@ public class AssignmentWorkerParameters {
    *     IncFrankWolfe algorithms only).
    */
   public AssignmentWorkerParameters(
-      Assignment assignment, byte groupIndex, byte odClass, byte iteration, double loadFactor) {
+      Assignment assignment, byte groupIndex, byte odClass, int iteration, double loadFactor) {
     this.assignment = assignment;
     this.groupIndex = groupIndex;
     this.odClass = odClass;
     this.iteration = iteration;
     this.loadFactor = loadFactor;
+  }
+
+  /**
+   * Backward-compatible constructor for already compiled assignment classes.
+   *
+   * @param assignment The Assignment object these parameters belong to.
+   * @param groupIndex The index of the group that will be assigned by this worker.
+   * @param odClass The OD class that will be assigned by this worker.
+   * @param iteration The iteration of the equilibrium assignment algorithm the worker will run.
+   * @param loadFactor The incremental load factor.
+   */
+  public AssignmentWorkerParameters(
+      Assignment assignment,
+      byte groupIndex,
+      byte odClass,
+      byte iteration,
+      double loadFactor) {
+    this(assignment, groupIndex, odClass, (int) iteration, loadFactor);
   }
 
   Assignment getAssignment() {
@@ -87,7 +118,21 @@ public class AssignmentWorkerParameters {
     return groupIndex;
   }
 
+  /**
+   * Returns the iteration as a byte for binary compatibility with older compiled classes.
+   *
+   * @return The iteration truncated to a byte.
+   */
   byte getIteration() {
+    return (byte) iteration;
+  }
+
+  /**
+   * Returns the iteration without byte truncation.
+   *
+   * @return The iteration.
+   */
+  int getIterationAsInt() {
     return iteration;
   }
 

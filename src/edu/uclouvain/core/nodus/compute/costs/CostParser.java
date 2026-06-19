@@ -296,7 +296,6 @@ public class CostParser {
    * @param classNum The OD class.
    * @param timeSlice The time slice.
    */
-  @SuppressWarnings("unchecked")
   public CostParser(
       Properties costFunctions,
       NodusProject project,

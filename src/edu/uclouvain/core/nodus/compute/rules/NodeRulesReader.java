@@ -33,8 +33,8 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Savepoint;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import javax.swing.JOptionPane;
 
@@ -61,17 +61,13 @@ public class NodeRulesReader {
 
   /** Rolls back the current upgrade without disturbing older work on the shared connection. */
   private static void rollbackToSavepoint(Connection con, Savepoint savepoint) {
-    if (con == null) {
+    if (con == null || savepoint == null) {
       return;
     }
 
     try {
       if (!con.getAutoCommit()) {
-        if (savepoint != null) {
-          con.rollback(savepoint);
-        } else {
-          con.rollback();
-        }
+        con.rollback(savepoint);
       }
     } catch (SQLException rollbackEx) {
       rollbackEx.printStackTrace();
@@ -362,14 +358,15 @@ public class NodeRulesReader {
         return;
       }
 
-      if (!con.getAutoCommit()) {
-        savepoint = con.setSavepoint();
-      }
-
       // Create temporary output table
       if (!createExclusionsTable(tmpFileName)) {
-        rollbackToSavepoint(con, savepoint);
         return;
+      }
+
+      // HSQLDB invalidates savepoints when the temporary table is created.
+      // Protect the record conversion phase with a savepoint created after that DDL.
+      if (!con.getAutoCommit()) {
+        savepoint = con.setSavepoint();
       }
 
       try (Statement stmt = con.createStatement();
@@ -410,9 +407,15 @@ public class NodeRulesReader {
         }
       }
 
+      // DROP/ALTER below invalidate HSQLDB savepoints. The converted rows have been fully written,
+      // so release the DML savepoint before replacing the old table.
+      if (savepoint != null) {
+        con.releaseSavepoint(savepoint);
+        savepoint = null;
+      }
+
       JDBCUtils.dropTable(tableName);
       if (!JDBCUtils.renameTable(tmpFileName, tableName)) {
-        rollbackToSavepoint(con, savepoint);
         return;
       }
 
