@@ -1209,8 +1209,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @param state boolean
    */
   public void enableMenus(boolean state) {
-
-    javax.swing.SwingUtilities.invokeLater(
+    Runnable updateMenus =
         new Runnable() {
           @Override
           public void run() {
@@ -1243,6 +1242,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             }
 
             // In the "File" menu, not all items must be disables/enabled
+            menuItemFileOpen.setEnabled(true);
             menuItemFileSave.setEnabled(state);
             menuItemFileClose.setEnabled(state);
             menuItemFileSaveAs.setEnabled(state);
@@ -1250,8 +1250,107 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
             menuFile.setEnabled(true);
             menuFile.setVisible(true);
+            refreshMenuBarUI();
           }
-        });
+        };
+
+    if (javax.swing.SwingUtilities.isEventDispatchThread()) {
+      updateMenus.run();
+    } else {
+      javax.swing.SwingUtilities.invokeLater(updateMenus);
+    }
+  }
+
+  /**
+   * Temporarily disables the actions in the File menu without disabling the top-level menu itself.
+   *
+   * <p>This is important on macOS when using the native screen menu bar, where disabling the whole
+   * {@link JMenu} can leave it visually grayed after it is re-enabled.
+   *
+   * @param busy true while a project is opening/closing, false to restore the regular state
+   */
+  public void setFileMenuBusy(boolean busy) {
+    Runnable updateMenus =
+        new Runnable() {
+          @Override
+          public void run() {
+            boolean projectOpen = nodusProject != null && nodusProject.isOpen();
+            boolean enabled = !busy;
+
+            menuFile.setEnabled(true);
+            menuFile.setVisible(true);
+
+            menuItemFileOpen.setEnabled(enabled);
+            menuItemFileSave.setEnabled(enabled && projectOpen);
+            menuItemFileClose.setEnabled(enabled && projectOpen);
+            menuItemFileSaveAs.setEnabled(enabled && projectOpen);
+            menuItemFilePrint.setEnabled(enabled && projectOpen);
+
+            if (menuItemFileExit != null) {
+              menuItemFileExit.setEnabled(enabled);
+            }
+
+            refreshMenuBarUI();
+          }
+        };
+
+    if (javax.swing.SwingUtilities.isEventDispatchThread()) {
+      updateMenus.run();
+    } else {
+      javax.swing.SwingUtilities.invokeLater(updateMenus);
+    }
+  }
+
+  /** Forces Swing and the host window system to refresh the menu bar state. */
+  private void refreshMenuBarUI() {
+    nodusMenuBar.revalidate();
+    nodusMenuBar.repaint();
+
+    Frame mainFrame = getMainFrame();
+    if (mainFrame instanceof JFrame) {
+      JFrame frame = (JFrame) mainFrame;
+      if (frame.getJMenuBar() != nodusMenuBar) {
+        frame.setJMenuBar(nodusMenuBar);
+      }
+      if (frame.getJMenuBar() != null) {
+        frame.getJMenuBar().revalidate();
+        frame.getJMenuBar().repaint();
+      }
+    }
+
+    if (mainFrame != null) {
+      mainFrame.invalidate();
+      mainFrame.repaint();
+    }
+  }
+
+  /** Brings the main frame back to the foreground after modal dialogs are closed. */
+  public void restoreMainFrameFocus() {
+    Runnable restoreFocus =
+        new Runnable() {
+          @Override
+          public void run() {
+            Frame mainFrame = getMainFrame();
+            if (mainFrame == null) {
+              return;
+            }
+
+            boolean alwaysOnTop = mainFrame.isAlwaysOnTop();
+            mainFrame.toFront();
+            mainFrame.requestFocus();
+            getMapBean().requestFocus();
+
+            // Toggling always-on-top is a pragmatic way to make macOS re-activate the window.
+            mainFrame.setAlwaysOnTop(true);
+            mainFrame.setAlwaysOnTop(alwaysOnTop);
+          }
+        };
+
+    if (javax.swing.SwingUtilities.isEventDispatchThread()) {
+      restoreFocus.run();
+    } else {
+      javax.swing.SwingUtilities.invokeLater(restoreFocus);
+    }
   }
 
   /**

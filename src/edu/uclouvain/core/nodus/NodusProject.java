@@ -362,308 +362,319 @@ public class NodusProject implements ShapeConstants {
    */
   public void close() {
     if (isOpen) {
+      boolean projectClosed = false;
       nodusMapPanel.setBusy(true);
-      nodusMapPanel.getMenuFile().setEnabled(false);
-      stopShapeIntegrityTester();
+      nodusMapPanel.setFileMenuBusy(true);
 
-      // Run the project's Groovy project script if exists
-      String scriptFileName =
-          localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
-              + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
-              + NodusC.TYPE_GROOVY;
-      ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
-      scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
-      scriptRunner.setVariable("openProject", false);
-      scriptRunner.setVariable("closeProject", true);
-      scriptRunner.run(true);
+      try {
+        stopShapeIntegrityTester();
 
-      // Close all the open child windows, including dialogs.
-      for (Window window : Window.getWindows()) {
-        if (window != null && window != nodusMapPanel.getMainFrame() && window.isDisplayable()) {
-          window.setVisible(false);
-          window.dispose();
-        }
-      }
+        // Run the project's Groovy project script if exists
+        String scriptFileName =
+            localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
+                + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
+                + NodusC.TYPE_GROOVY;
+        ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
+        scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
+        scriptRunner.setVariable("openProject", false);
+        scriptRunner.setVariable("closeProject", true);
+        scriptRunner.run(true);
 
-      Layer[] layer = nodusMapPanel.getLayerHandler().getLayers();
-
-      String layerOrder = "";
-      for (Layer element : layer) {
-        Container c = element.getPalette();
-        layerOrder += element.getName() + ",";
-        if (c != null) {
-          c.setVisible(false);
-        }
-      }
-
-      // Save the current settings in the property file
-      float scale = nodusMapPanel.getMapBean().getScale();
-      LatLonPoint.Double llp = (LatLonPoint.Double) nodusMapPanel.getMapBean().getCenter();
-      this.setLocalProperty(NodusC.PROP_MAP_SCALE, scale);
-      this.setLocalProperty(NodusC.PROP_MAP_LATITUDE, llp.getLatitude());
-      this.setLocalProperty(NodusC.PROP_MAP_LONGITUDE, llp.getLongitude());
-
-      Color color = (Color) nodusMapPanel.getMapBean().getBckgrnd();
-      this.setLocalProperty(NodusC.PROP_MAP_BACKGROUNDCOLOR, Integer.toString(color.getRGB()));
-      this.setLocalProperty(
-          NodusC.PROP_PROJECTION, nodusMapPanel.getMapBean().getProjection().getClass().getName());
-
-      this.setLocalProperty(NodusC.PROP_ACTIVE_MOUSE_MODE, nodusMapPanel.getActiveMouseMode());
-
-      this.setLocalProperty(NodusC.PROP_MAP_ORDER, layerOrder);
-
-      if (nodeLayers != null && linkLayers != null) {
-
-        // Save the Services and release the service editor object graph.
-        closeServiceHandler();
-
-        if (isDirty()) {
-
-          int answer =
-              JOptionPane.showConfirmDialog(
-                  null,
-                  i18n.get(
-                      NodusProject.class, "Commit_changes_to_layers", "Commit changes to layers?"),
-                  i18n.get(NodusProject.class, "Network_was_modified", "Network was modified"),
-                  JOptionPane.YES_NO_OPTION);
-
-          if (answer == JOptionPane.YES_OPTION) {
-            saveEsriLayers();
-          } else {
-            /*
-             * Drop the sql tables as they are changed and that the user don't want to save these
-             * changes. They will be reimported when project will be reopened
-             */
-            rollBack();
+        // Close all the open child windows, including dialogs.
+        for (Window window : Window.getWindows()) {
+          if (window != null && window != nodusMapPanel.getMainFrame() && window.isDisplayable()) {
+            window.setVisible(false);
+            window.dispose();
           }
         }
 
-        // Close JDBC connection. Compact it if needed
-        try (Connection connection = jdbcConnection) {
-          if (!connection.getAutoCommit()) {
-            connection.commit();
+        Layer[] layer = nodusMapPanel.getLayerHandler().getLayers();
+
+        String layerOrder = "";
+        for (Layer element : layer) {
+          Container c = element.getPalette();
+          layerOrder += element.getName() + ",";
+          if (c != null) {
+            c.setVisible(false);
+          }
+        }
+
+        // Save the current settings in the property file
+        float scale = nodusMapPanel.getMapBean().getScale();
+        LatLonPoint.Double llp = (LatLonPoint.Double) nodusMapPanel.getMapBean().getCenter();
+        this.setLocalProperty(NodusC.PROP_MAP_SCALE, scale);
+        this.setLocalProperty(NodusC.PROP_MAP_LATITUDE, llp.getLatitude());
+        this.setLocalProperty(NodusC.PROP_MAP_LONGITUDE, llp.getLongitude());
+
+        Color color = (Color) nodusMapPanel.getMapBean().getBckgrnd();
+        this.setLocalProperty(NodusC.PROP_MAP_BACKGROUNDCOLOR, Integer.toString(color.getRGB()));
+        this.setLocalProperty(
+            NodusC.PROP_PROJECTION,
+            nodusMapPanel.getMapBean().getProjection().getClass().getName());
+
+        this.setLocalProperty(NodusC.PROP_ACTIVE_MOUSE_MODE, nodusMapPanel.getActiveMouseMode());
+
+        this.setLocalProperty(NodusC.PROP_MAP_ORDER, layerOrder);
+
+        if (nodeLayers != null && linkLayers != null) {
+
+          // Save the Services and release the service editor object graph.
+          closeServiceHandler();
+
+          if (isDirty()) {
+
+            int answer =
+                JOptionPane.showConfirmDialog(
+                    null,
+                    i18n.get(
+                        NodusProject.class,
+                        "Commit_changes_to_layers",
+                        "Commit changes to layers?"),
+                    i18n.get(NodusProject.class, "Network_was_modified", "Network was modified"),
+                    JOptionPane.YES_NO_OPTION);
+
+            if (answer == JOptionPane.YES_OPTION) {
+              saveEsriLayers();
+            } else {
+              /*
+               * Drop the sql tables as they are changed and that the user don't want to save these
+               * changes. They will be reimported when project will be reopened
+               */
+              rollBack();
+            }
           }
 
-          boolean isShutdown = false;
+          // Close JDBC connection. Compact it if needed
+          try (Connection connection = jdbcConnection) {
+            if (!connection.getAutoCommit()) {
+              connection.commit();
+            }
 
-          // Ask if a "shutdown compact" must be performed as this can take a while
-          if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB
-              || JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
+            boolean isShutdown = false;
 
-            if (Boolean.parseBoolean(getLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, "true"))) {
-              int answer =
-                  JOptionPane.showConfirmDialog(
-                      null,
-                      i18n.get(NodusProject.class, "AskForCompact", "Compact database?"),
-                      NodusC.APPNAME,
-                      JOptionPane.YES_NO_OPTION);
+            // Ask if a "shutdown compact" must be performed as this can take a while
+            if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB
+                || JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
 
-              if (answer == JOptionPane.YES_OPTION) {
-                nodusMapPanel.setText(
-                    i18n.get(NodusProject.class, "Compacting", "Compacting database..."));
+              if (Boolean.parseBoolean(getLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, "true"))) {
+                int answer =
+                    JOptionPane.showConfirmDialog(
+                        null,
+                        i18n.get(NodusProject.class, "AskForCompact", "Compact database?"),
+                        NodusC.APPNAME,
+                        JOptionPane.YES_NO_OPTION);
 
-                SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
-                isShutdown = true;
-                Thread work =
-                    new Thread(
-                        () -> {
-                          try {
-                            JDBCUtils.shutdownCompact();
-                          } catch (Exception ex) {
-                            ex.printStackTrace();
+                if (answer == JOptionPane.YES_OPTION) {
+                  nodusMapPanel.setText(
+                      i18n.get(NodusProject.class, "Compacting", "Compacting database..."));
 
-                            SwingUtilities.invokeLater(
-                                () ->
-                                    JOptionPane.showMessageDialog(
-                                        null,
-                                        ex.toString(),
-                                        NodusC.APPNAME,
-                                        JOptionPane.ERROR_MESSAGE));
-                          } finally {
-                            loop.exit();
-                          }
-                        },
-                        "Nodus-Database-Compactor");
+                  SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+                  isShutdown = true;
+                  Thread work =
+                      new Thread(
+                          () -> {
+                            try {
+                              JDBCUtils.shutdownCompact();
+                            } catch (Exception ex) {
+                              ex.printStackTrace();
 
-                work.start();
-                loop.enter();
+                              SwingUtilities.invokeLater(
+                                  () ->
+                                      JOptionPane.showMessageDialog(
+                                          null,
+                                          ex.toString(),
+                                          NodusC.APPNAME,
+                                          JOptionPane.ERROR_MESSAGE));
+                            } finally {
+                              loop.exit();
+                            }
+                          },
+                          "Nodus-Database-Compactor");
+
+                  work.start();
+                  loop.enter();
+                }
               }
             }
+
+            // Shutdown the embedded DB server if needed
+            if (!isShutdown) {
+              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB) {
+                hsqldbServer.shutdown();
+              }
+
+              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
+                org.h2.tools.Server.shutdownTcpServer(
+                    "tcp://localhost:" + tcpPort, "nodus", false, false);
+                h2TcpServerStarted = false;
+              }
+
+              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_DERBY) {
+                derbyServer.shutdown();
+              }
+            }
+          } catch (Exception e) {
+            e.printStackTrace();
+          } finally {
+            JDBCUtils.setConnection(null);
+            jdbcConnection = null;
           }
 
-          // Shutdown the embedded DB server if needed
-          if (!isShutdown) {
-            if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB) {
-              hsqldbServer.shutdown();
-            }
+          // Save time stamps of dbf files
+          for (NodusEsriLayer nodeLayer : nodeLayers) {
+            String key = nodeLayer.getTableName() + NodusC.PROP_DOTLASTMODIFIED;
+            File f =
+                new File(
+                    getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
+                        + nodeLayer.getTableName()
+                        + NodusC.TYPE_DBF);
+            setLocalProperty(key, f.lastModified());
+          }
 
-            if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
-              org.h2.tools.Server.shutdownTcpServer(
-                  "tcp://localhost:" + tcpPort, "nodus", false, false);
-              h2TcpServerStarted = false;
-            }
+          for (NodusEsriLayer linkLayer : linkLayers) {
+            String key = linkLayer.getTableName() + NodusC.PROP_DOTLASTMODIFIED;
+            File f =
+                new File(
+                    getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
+                        + linkLayer.getTableName()
+                        + NodusC.TYPE_DBF);
+            setLocalProperty(key, f.lastModified());
+          }
 
-            if (JDBCUtils.getDbEngine() == JDBCUtils.DB_DERBY) {
-              derbyServer.shutdown();
+          // Save project local properties
+          if (localProperties != null) {
+            try {
+              for (NodusEsriLayer element : nodeLayers) {
+                localProperties.setProperty(
+                    element.getTableName() + NodusC.PROP_VISIBLE,
+                    Boolean.toString(element.isVisible()));
+              }
+
+              for (NodusEsriLayer element : linkLayers) {
+                localProperties.setProperty(
+                    element.getTableName() + NodusC.PROP_VISIBLE,
+                    Boolean.toString(element.isVisible()));
+              }
+
+              if (getNodusMapPanel().isHighlightedAreaLayerAdded()) {
+                localProperties.setProperty(
+                    NodusC.PROP_ADD_HIGHLIGHTED_AREA, Boolean.toString(true));
+                localProperties.setProperty(
+                    NodusC.PROP_DISPLAY_HIGHLIGHTED_AREA,
+                    Boolean.toString(getNodusMapPanel().isHighlightedAreaLayerVisible()));
+              } else {
+                localProperties.setProperty(
+                    NodusC.PROP_ADD_HIGHLIGHTED_AREA, Boolean.toString(false));
+              }
+
+              localProperties.setProperty(
+                  labelsLayer.getName() + NodusC.PROP_VISIBLE,
+                  Boolean.toString(labelsLayer.isVisible()));
+              localProperties.setProperty(
+                  NodusC.PROP_DISPLAY_POLITICAL_BOUNDARIES,
+                  Boolean.toString(nodusMapPanel.isPoliticalBoundariesVisible()));
+              localProperties.setProperty(
+                  NodusC.PROP_ADD_POLITICAL_BOUNDARIES,
+                  Boolean.toString(nodusMapPanel.isPoliticalBoundariesAdded()));
+
+              try (FileOutputStream outputStream =
+                  new FileOutputStream(projectResourceFileNameAndPath + NodusC.TYPE_LOCAL)) {
+                localProperties.store(outputStream, null);
+              }
+
+              localProperties.clear();
+              localProperties = null;
+            } catch (IOException ex) {
+              System.err.println(
+                  "Caught IOException saving resources: " + projectResourceFileNameAndPath);
+              ex.printStackTrace();
             }
           }
-        } catch (Exception e) {
-          e.printStackTrace();
-        } finally {
-          JDBCUtils.setConnection(null);
-          jdbcConnection = null;
         }
 
-        // Save time stamps of dbf files
-        for (NodusEsriLayer nodeLayer : nodeLayers) {
-          String key = nodeLayer.getTableName() + NodusC.PROP_DOTLASTMODIFIED;
-          File f =
-              new File(
-                  getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
-                      + nodeLayer.getTableName()
-                      + NodusC.TYPE_DBF);
-          setLocalProperty(key, f.lastModified());
-        }
+        // Now remove all the layers, but leave political boundaries visible
+        getNodusMapPanel().displayHighlightedAreaLayer(false, false);
+        getNodusMapPanel().displayPoliticalBoundaries(true, true);
 
-        for (NodusEsriLayer linkLayer : linkLayers) {
-          String key = linkLayer.getTableName() + NodusC.PROP_DOTLASTMODIFIED;
-          File f =
-              new File(
-                  getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
-                      + linkLayer.getTableName()
-                      + NodusC.TYPE_DBF);
-          setLocalProperty(key, f.lastModified());
-        }
+        labelsLayer.setRemovable(true);
 
-        // Save project local properties
-        if (localProperties != null) {
-          try {
-            for (NodusEsriLayer element : nodeLayers) {
-              localProperties.setProperty(
-                  element.getTableName() + NodusC.PROP_VISIBLE,
-                  Boolean.toString(element.isVisible()));
-            }
-
-            for (NodusEsriLayer element : linkLayers) {
-              localProperties.setProperty(
-                  element.getTableName() + NodusC.PROP_VISIBLE,
-                  Boolean.toString(element.isVisible()));
-            }
-
-            if (getNodusMapPanel().isHighlightedAreaLayerAdded()) {
-              localProperties.setProperty(NodusC.PROP_ADD_HIGHLIGHTED_AREA, Boolean.toString(true));
-              localProperties.setProperty(
-                  NodusC.PROP_DISPLAY_HIGHLIGHTED_AREA,
-                  Boolean.toString(getNodusMapPanel().isHighlightedAreaLayerVisible()));
-            } else {
-              localProperties.setProperty(
-                  NodusC.PROP_ADD_HIGHLIGHTED_AREA, Boolean.toString(false));
-            }
-
-            localProperties.setProperty(
-                labelsLayer.getName() + NodusC.PROP_VISIBLE,
-                Boolean.toString(labelsLayer.isVisible()));
-            localProperties.setProperty(
-                NodusC.PROP_DISPLAY_POLITICAL_BOUNDARIES,
-                Boolean.toString(nodusMapPanel.isPoliticalBoundariesVisible()));
-            localProperties.setProperty(
-                NodusC.PROP_ADD_POLITICAL_BOUNDARIES,
-                Boolean.toString(nodusMapPanel.isPoliticalBoundariesAdded()));
-
-            try (FileOutputStream outputStream =
-                new FileOutputStream(projectResourceFileNameAndPath + NodusC.TYPE_LOCAL)) {
-              localProperties.store(outputStream, null);
-            }
-
-            localProperties.clear();
-            localProperties = null;
-          } catch (IOException ex) {
-            System.err.println(
-                "Caught IOException saving resources: " + projectResourceFileNameAndPath);
-            ex.printStackTrace();
+        if (nodeLayers != null) {
+          for (NodusEsriLayer nodeLayer : nodeLayers) {
+            nodeLayer.setRemovable(true);
           }
         }
-      }
 
-      // Now remove all the layers, but leave political boundaries visible
-      getNodusMapPanel().displayHighlightedAreaLayer(false, false);
-      getNodusMapPanel().displayPoliticalBoundaries(true, true);
-
-      labelsLayer.setRemovable(true);
-
-      if (nodeLayers != null) {
-        for (NodusEsriLayer nodeLayer : nodeLayers) {
-          nodeLayer.setRemovable(true);
+        if (linkLayers != null) {
+          for (NodusEsriLayer linkLayer : linkLayers) {
+            linkLayer.setRemovable(true);
+          }
         }
+
+        /*
+         * Additional OpenMap layers and the invisible drawing layer are removed from the
+         * LayerHandler below, but they are not part of nodeLayers/linkLayers/labelsLayer.
+         * Dispose them explicitly before losing the LayerHandler references.
+         */
+        disposeAdditionalProjectLayers(layer);
+
+        nodusMapPanel.getLayerHandler().removeAll();
+        nodusMapPanel.getLayerHandler().setLayers(new Layer[0]);
+
+        // Reset projection to default values
+        nodusMapPanel.resetMap();
+        Projection projection = nodusMapPanel.getMapBean().getProjection();
+        Point2D ctr = projection.getCenter();
+        Projection newProj =
+            new ProjectionFactory()
+                .makeProjection(
+                    Mercator.class.getName(),
+                    ctr,
+                    projection.getScale(),
+                    projection.getWidth(),
+                    projection.getHeight());
+        nodusMapPanel.getMapBean().setProjection(newProj);
+
+        // Enable some menu items and dispose/remove project plugins menus and instances
+        nodusMapPanel.removeProjectPlugins();
+        nodusMapPanel.clearStoredObjects();
+        nodusMapPanel.enableMenus(false);
+
+        otherNodeNumbers.clear();
+        otherLinkNumbers.clear();
+        otherObjectsLoaded = false;
+
+        // Reset Classpath
+        // ClassPathHacker.setClassPath(oldClasspath);
+
+        ProjectLocker.releaseLock();
+
+        isOpen = false;
+        projectClosed = true;
+
+        // Reset rendering scale threshold
+        nodusMapPanel.setRenderingScaleThreshold(-1);
+
+        // Close the log file for this project
+        closeLoggerHandler();
+
+        nodusMapPanel.resetTitle();
+        nodusMapPanel.resetText();
+        nodusMapPanel.getNodusLayersPanel().enableButtons(false);
+
+        // Reset view to initial values
+        getNodusMapPanel().getMapBean().setScale(initialScale);
+        getNodusMapPanel().getMapBean().setCenter(initialCenterPoint);
+
+        projectProperties.clear();
+        projectProperties = null;
+
+        disposeProjectObjectGraph();
+      } finally {
+        nodusMapPanel.enableMenus(!projectClosed);
+        nodusMapPanel.setFileMenuBusy(false);
+        nodusMapPanel.setBusy(false);
+        nodusMapPanel.restoreMainFrameFocus();
       }
-
-      if (linkLayers != null) {
-        for (NodusEsriLayer linkLayer : linkLayers) {
-          linkLayer.setRemovable(true);
-        }
-      }
-
-      /*
-       * Additional OpenMap layers and the invisible drawing layer are removed from the
-       * LayerHandler below, but they are not part of nodeLayers/linkLayers/labelsLayer.
-       * Dispose them explicitly before losing the LayerHandler references.
-       */
-      disposeAdditionalProjectLayers(layer);
-
-      nodusMapPanel.getLayerHandler().removeAll();
-      nodusMapPanel.getLayerHandler().setLayers(new Layer[0]);
-
-      // Reset projection to default values
-      nodusMapPanel.resetMap();
-      Projection projection = nodusMapPanel.getMapBean().getProjection();
-      Point2D ctr = projection.getCenter();
-      Projection newProj =
-          new ProjectionFactory()
-              .makeProjection(
-                  Mercator.class.getName(),
-                  ctr,
-                  projection.getScale(),
-                  projection.getWidth(),
-                  projection.getHeight());
-      nodusMapPanel.getMapBean().setProjection(newProj);
-
-      // Enable some menu items and dispose/remove project plugins menus and instances
-      nodusMapPanel.removeProjectPlugins();
-      nodusMapPanel.clearStoredObjects();
-      nodusMapPanel.enableMenus(false);
-
-      otherNodeNumbers.clear();
-      otherLinkNumbers.clear();
-      otherObjectsLoaded = false;
-
-      // Reset Classpath
-      // ClassPathHacker.setClassPath(oldClasspath);
-
-      ProjectLocker.releaseLock();
-
-      isOpen = false;
-
-      // Reset rendering scale threshold
-      nodusMapPanel.setRenderingScaleThreshold(-1);
-
-      // Close the log file for this project
-      closeLoggerHandler();
-
-      nodusMapPanel.setBusy(false);
-      nodusMapPanel.getMenuFile().setEnabled(true);
-
-      nodusMapPanel.resetTitle();
-      nodusMapPanel.resetText();
-      nodusMapPanel.getNodusLayersPanel().enableButtons(false);
-
-      // Reset view to initial values
-      getNodusMapPanel().getMapBean().setScale(initialScale);
-      getNodusMapPanel().getMapBean().setCenter(initialCenterPoint);
-
-      projectProperties.clear();
-      projectProperties = null;
-
-      disposeProjectObjectGraph();
     }
   }
 
@@ -777,7 +788,7 @@ public class NodusProject implements ShapeConstants {
     linkStyle = null;
 
     ProjectLocker.releaseLock();
-    nodusMapPanel.getMenuFile().setEnabled(true);
+    nodusMapPanel.setFileMenuBusy(false);
     nodusMapPanel.setBusy(false);
   }
 
@@ -1828,7 +1839,7 @@ public class NodusProject implements ShapeConstants {
       return;
     }
 
-    nodusMapPanel.getMenuFile().setEnabled(false);
+    nodusMapPanel.setFileMenuBusy(true);
 
     nodusMapPanel.loadPlugins(projectPath, true);
 
@@ -2382,6 +2393,8 @@ public class NodusProject implements ShapeConstants {
     getNodusMapPanel().resetText();
     getNodusMapPanel().updateScenarioComboBox(true);
     getNodusMapPanel().enableMenus(true);
+    getNodusMapPanel().setFileMenuBusy(false);
+    getNodusMapPanel().restoreMainFrameFocus();
 
     nodusMapPanel.setBusy(false);
   }
