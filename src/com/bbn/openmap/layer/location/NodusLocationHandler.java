@@ -559,11 +559,13 @@ public class NodusLocationHandler extends AbstractLocationHandler
           if (!displayResults) { // Use the selected field as label
             if (locationFieldIndex != -1) {
               Object value = model.getValueAt(rnbo.getRowIndex(), locationFieldIndex);
-              if (value instanceof Double) {
+              if (value == null) {
+                label = "";
+              } else if (value instanceof Double) {
                 BigDecimal bd = new BigDecimal((Double) value);
                 label = bd.toString();
               } else {
-                label = model.getValueAt(rnbo.getRowIndex(), locationFieldIndex).toString();
+                label = value.toString();
               }
             }
           } else {

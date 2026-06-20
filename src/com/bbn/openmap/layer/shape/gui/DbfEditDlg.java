@@ -501,7 +501,8 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
     String key = "";
     for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
-      key += dbfTable.getValueAt(i, 1).toString();
+      Object value = dbfTable.getValueAt(i, 1);
+      key += value == null ? "" : value.toString();
     }
 
     String b = "0";
@@ -1258,7 +1259,10 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
       int n = nodusEsriLayer.getLocationHandler().getLocationFieldIndex();
 
       if (n >= 0) {
-        oldLabel = nodusEsriLayer.getModel().getValueAt(graphicIndex, n).toString();
+        Object labelValue = nodusEsriLayer.getModel().getValueAt(graphicIndex, n);
+        if (labelValue != null) {
+          oldLabel = labelValue.toString();
+        }
       }
     }
 
@@ -1320,7 +1324,8 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     // Put the new values in the table.
     // We know they are correct because they were tested in the cell editor
     for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
-      String value = dbfTable.getValueAt(i, 1).toString();
+      Object rawValue = dbfTable.getValueAt(i, 1);
+      String value = rawValue == null ? "" : rawValue.toString();
 
       if (nodusEsriLayer.getModel().getType(i) == DbfTableModel.TYPE_NUMERIC) {
         Double d = Double.valueOf(value);
@@ -1333,7 +1338,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     // Build SQL command
     Object cell;
     String sqlStmt = "UPDATE ";
-    sqlStmt += nodusEsriLayer.getTableName() + " SET ";
+    sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(nodusEsriLayer.getTableName()) + " SET ";
 
     for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
       sqlStmt +=
@@ -1350,9 +1355,14 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
           sqlStmt += JDBCUtils.getInt(cell);
         }
       } else if (type == DbfTableModel.TYPE_CHARACTER) {
-        sqlStmt += '\'' + cell.toString() + '\'';
+        String stringValue = cell == null ? "" : cell.toString();
+        sqlStmt += '\'' + stringValue.replace("'", "''") + '\'';
       } else if (type == DbfTableModel.TYPE_DATE) {
-        sqlStmt += JDBCUtils.getDate(cell.toString());
+        if (cell == null || cell.toString().isBlank()) {
+          sqlStmt += "NULL";
+        } else {
+          sqlStmt += JDBCUtils.getDate(cell.toString());
+        }
       }
       if (i < nodusEsriLayer.getModel().getColumnCount() - 1) {
         sqlStmt += ", ";
@@ -1379,7 +1389,10 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
         int n = nodusEsriLayer.getLocationHandler().getLocationFieldIndex();
 
         if (n >= 0) {
-          newLabel = nodusEsriLayer.getModel().getValueAt(graphicIndex, n).toString();
+          Object labelValue = nodusEsriLayer.getModel().getValueAt(graphicIndex, n);
+          if (labelValue != null) {
+            newLabel = labelValue.toString();
+          }
           bl.setName(newLabel);
         }
       }
