@@ -63,7 +63,11 @@ public class WmsCapabilitiesXmlParser extends DefaultHandler {
    */
   @Override
   public void characters(char[] ch, int start, int length) {
-    charBuff = new String(ch, start, length);
+    if (charBuff == null) {
+      charBuff = new String(ch, start, length);
+    } else {
+      charBuff += new String(ch, start, length);
+    }
   }
 
   /**
@@ -162,6 +166,7 @@ public class WmsCapabilitiesXmlParser extends DefaultHandler {
 
     currPath = new Vector<>();
     currPath.add(server);
+    charBuff = null;
   }
 
   /**
@@ -174,6 +179,8 @@ public class WmsCapabilitiesXmlParser extends DefaultHandler {
    */
   @Override
   public void startElement(String uri, String localName, String name, Attributes attributes) {
+    charBuff = null;
+
     if (name.toLowerCase().equals("layer")) {
       WmsLayerInfo layerInfo = new WmsLayerInfo(server);
 

@@ -930,11 +930,13 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @return true on success.
    */
   private boolean extractShp(String stmt) {
+    String stmtLower = stmt.toLowerCase();
+
     // Get source shapefile name
     int index;
     String token = " from ";
 
-    if ((index = stmt.indexOf(token)) == -1) {
+    if ((index = stmtLower.indexOf(token)) == -1) {
       displayMessageInResult(
           i18n.get(SQLConsole.class, "Usage", "Usage:"),
           i18n.get(
@@ -945,9 +947,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       return false;
     }
 
-    String s = stmt.substring(index + token.length()).trim();
+    String fromClause = stmt.substring(index + token.length()).trim();
 
-    if ((index = s.indexOf(" ")) == -1) {
+    if ((index = fromClause.indexOf(" ")) == -1) {
       displayMessageInResult(
           i18n.get(SQLConsole.class, "Usage", "Usage:"),
           i18n.get(
@@ -957,11 +959,13 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
       return false;
     }
+
+    String fromShapefile = fromClause.substring(0, index);
 
     // Get the destination file name
     token = " to ";
 
-    if ((index = stmt.indexOf(token)) == -1) {
+    if ((index = stmtLower.indexOf(token)) == -1) {
       displayMessageInResult(
           i18n.get(SQLConsole.class, "Usage", "Usage:"),
           i18n.get(
@@ -972,9 +976,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       return false;
     }
 
-    s = stmt.substring(index + token.length()).trim();
+    String toClause = stmt.substring(index + token.length()).trim();
 
-    if ((index = s.indexOf(" ")) == -1) {
+    if ((index = toClause.indexOf(" ")) == -1) {
       displayMessageInResult(
           i18n.get(SQLConsole.class, "Usage", "Usage:"),
           i18n.get(
@@ -985,12 +989,12 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       return false;
     }
 
-    String toShapefile = s.substring(0, index);
+    String toShapefile = toClause.substring(0, index);
 
     // get where statement
     token = " where ";
 
-    if ((index = stmt.indexOf(token)) == -1) {
+    if ((index = stmtLower.indexOf(token)) == -1) {
       displayMessageInResult(
           i18n.get(SQLConsole.class, "Usage", "Usage:"),
           i18n.get(
@@ -1005,7 +1009,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     // Test if it is a valid link layer
     NodusEsriLayer[] layers = nodusProject.getLinkLayers();
-    String fromShapefile = s.substring(0, index);
 
     for (NodusEsriLayer element : layers) {
       if (element.getTableName().equals(fromShapefile)) {
@@ -1642,6 +1645,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * correspond to the DBF files of shapefiles.
    */
   private boolean isInsertAllowed(String sqlStmt) {
+    sqlStmt = sqlStmt.toLowerCase();
 
     // Get shapefile name
     int index;
@@ -1653,6 +1657,16 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
 
     String tableName = sqlStmt.substring(index + token.length()).trim();
+
+    int separatorIndex = tableName.indexOf(' ');
+    int parenthesisIndex = tableName.indexOf('(');
+    if (separatorIndex == -1
+        || (parenthesisIndex != -1 && parenthesisIndex < separatorIndex)) {
+      separatorIndex = parenthesisIndex;
+    }
+    if (separatorIndex != -1) {
+      tableName = tableName.substring(0, separatorIndex);
+    }
 
     // Is it a Nodus layer?
     if (nodusProject.getLayer(tableName) == null) {

@@ -361,6 +361,35 @@ public class NodusConsole extends WindowAdapter
     return input;
   }
 
+  /** Appends console output to the document on the Swing event thread. */
+  private void appendToConsole(final String input, final Color color) {
+    SwingUtilities.invokeLater(
+        new Runnable() {
+          @Override
+          public void run() {
+            try {
+              StyleConstants.setForeground(style, color);
+              doc.insertString(doc.getLength(), input, style);
+              // Make sure the last line is always visible
+              textArea.setCaretPosition(textArea.getDocument().getLength());
+            } catch (Exception e) {
+              if (textArea != null) {
+                textArea.setText(
+                    "\n"
+                        + i18n.get(
+                            NodusConsole.class,
+                            "Console_reports_an_Internal_error",
+                            "Console reports an Internal error.")
+                        + "\n"
+                        + MessageFormat.format(
+                            i18n.get(NodusConsole.class, "The_error_is", "The error is: {0}"),
+                            e.toString()));
+              }
+            }
+          }
+        });
+  }
+
   /**
    * .
    *
@@ -377,11 +406,7 @@ public class NodusConsole extends WindowAdapter
         }
         if (pin.available() != 0) {
           String input = readLine(pin);
-
-          StyleConstants.setForeground(style, Color.black);
-          doc.insertString(doc.getLength(), input, style);
-          // Make sure the last line is always visible
-          textArea.setCaretPosition(textArea.getDocument().getLength());
+          appendToConsole(input, Color.black);
         }
         if (quit) {
           return;
@@ -397,10 +422,7 @@ public class NodusConsole extends WindowAdapter
         if (pin2.available() != 0) {
 
           String input = readLine(pin2);
-          StyleConstants.setForeground(style, Color.red);
-          doc.insertString(doc.getLength(), input, style);
-          // Make sure the last line is always visible
-          textArea.setCaretPosition(textArea.getDocument().getLength());
+          appendToConsole(input, Color.red);
         }
         if (quit) {
           return;

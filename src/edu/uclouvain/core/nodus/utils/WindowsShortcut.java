@@ -55,6 +55,21 @@ public class WindowsShortcut {
   }
 
   /**
+   * Converts four bytes into a signed integer. This is little endian because it's for an Intel only
+   * OS.
+   *
+   * @param bytes The bytes to convert.
+   * @param offset The offset to start at.
+   * @return The integer value (32 bits value).
+   */
+  private static int bytesToInt(byte[] bytes, int offset) {
+    return (bytes[offset] & 0xff)
+        | ((bytes[offset + 1] & 0xff) << 8)
+        | ((bytes[offset + 2] & 0xff) << 16)
+        | ((bytes[offset + 3] & 0xff) << 24);
+  }
+
+  /**
    * Converts two bytes into word. This is little endian because it's for an Intel only OS.
    *
    * @param bytes The bytes to convert.
@@ -234,22 +249,24 @@ public class WindowsShortcut {
       int fileStart = 0x4c + shellLen;
 
       final int fileLocationInfoFlagOffsetOffset = 0x08;
-      int fileLocationInfoFlag = link[fileStart + fileLocationInfoFlagOffsetOffset];
+      int fileLocationInfoFlag = bytesToInt(link, fileStart + fileLocationInfoFlagOffsetOffset);
       isLocal = (fileLocationInfoFlag & 2) == 0;
       final int basenameOoffsetOoffset = 0x10;
       final int networkVolumeTableOffsetOffset = 0x14;
       final int finalnameOffsetOffset = 0x18;
-      int finalNameOffset = link[fileStart + finalnameOffsetOffset] + fileStart;
+      int finalNameOffset = bytesToInt(link, fileStart + finalnameOffsetOffset) + fileStart;
       String finalname = getNullDelimitedString(link, finalNameOffset);
       if (isLocal) {
-        int baseNameOffset = link[fileStart + basenameOoffsetOoffset] + fileStart;
+        int baseNameOffset = bytesToInt(link, fileStart + basenameOoffsetOoffset) + fileStart;
         String basename = getNullDelimitedString(link, baseNameOffset);
         realFile = basename + finalname;
       } else {
-        int networkVolumeTableOffset = link[fileStart + networkVolumeTableOffsetOffset] + fileStart;
+        int networkVolumeTableOffset =
+            bytesToInt(link, fileStart + networkVolumeTableOffsetOffset) + fileStart;
         int shareNameOffsetOffset = 0x08;
         int shareNameOffset =
-            link[networkVolumeTableOffset + shareNameOffsetOffset] + networkVolumeTableOffset;
+            bytesToInt(link, networkVolumeTableOffset + shareNameOffsetOffset)
+                + networkVolumeTableOffset;
         String shareName = getNullDelimitedString(link, shareNameOffset);
         realFile = shareName + "\\" + finalname;
       }
