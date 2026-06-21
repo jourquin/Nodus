@@ -103,6 +103,67 @@ public class VirtualNetwork {
   /* Formater used in progress-bar display */
   private NumberFormat formatter = new DecimalFormat("0.00000");
 
+  /** Requests cancellation of every cost worker in the given pool. */
+  private void cancelCostWorkers(CostParserWorker[] workers) {
+    if (workers == null) {
+      return;
+    }
+
+    for (CostParserWorker worker : workers) {
+      if (worker != null) {
+        worker.cancel(null);
+        worker.interrupt();
+      }
+    }
+  }
+
+  /**
+   * Waits for every cost worker to finish. If interrupted, workers are canceled before this method
+   * returns false.
+   */
+  private boolean waitForCostWorkers(CostParserWorker[] workers) {
+    if (workers == null) {
+      return true;
+    }
+
+    boolean interrupted = false;
+
+    for (CostParserWorker worker : workers) {
+      if (worker == null) {
+        continue;
+      }
+
+      try {
+        worker.join();
+      } catch (InterruptedException e) {
+        interrupted = true;
+        break;
+      }
+    }
+
+    if (!interrupted) {
+      return true;
+    }
+
+    cancelCostWorkers(workers);
+
+    for (CostParserWorker worker : workers) {
+      if (worker == null) {
+        continue;
+      }
+
+      try {
+        worker.join(1000);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return false;
+      }
+    }
+
+    Thread.currentThread().interrupt();
+    return false;
+  }
+
   /*
    * Data structure used to represent a virtual network in a form that is suitable for the use with
    * the algorithm of Dijkstra (shortest paths)
@@ -421,12 +482,9 @@ public class VirtualNetwork {
     }
 
     // Wait until all the works are completed
-    for (int i = 0; i < nbThreads; i++) {
-      try {
-        worker[i].join();
-      } catch (InterruptedException ex) {
-        ex.printStackTrace();
-      }
+    if (!waitForCostWorkers(worker)) {
+      nodusMapPanel.stopProgress();
+      return false;
     }
 
     nodusMapPanel.stopProgress();
@@ -1407,12 +1465,9 @@ public class VirtualNetwork {
       }
 
       // Wait until all the works are completed
-      for (int i = 0; i < threads; i++) {
-        try {
-          worker[i].join();
-        } catch (InterruptedException ex) {
-          ex.printStackTrace();
-        }
+      if (!waitForCostWorkers(worker)) {
+        nodusMapPanel.stopProgress();
+        return Double.NaN;
       }
 
       // Test if everything was OK

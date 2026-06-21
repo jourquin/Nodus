@@ -77,12 +77,9 @@ public class ShapeIntegrityTester {
         new TimerTask() {
           @Override
           public void run() {
-            SwingUtilities.invokeLater(
-                () -> {
-                  if (nodusProject != null) {
-                    runIntegrityTest();
-                  }
-                });
+            if (nodusProject != null) {
+              runIntegrityTest();
+            }
           }
         },
         0,
@@ -342,16 +339,22 @@ public class ShapeIntegrityTester {
     nodes = null;
     links = null;
 
-    if (error) {
-      // Display error message  the project
-      JOptionPane.showMessageDialog(null, errorMessage, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-    }
+    final boolean hasError = error;
+    final String integrityErrorMessage = errorMessage;
+    final NodusEsriLayer[] linkLayersToPurge = linkLayers;
 
-    // new DatabaseIntegrityTester(nodusProject);
+    SwingUtilities.invokeLater(
+        () -> {
+          if (hasError) {
+            JOptionPane.showMessageDialog(
+                null, integrityErrorMessage, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+          }
 
-    for (NodusEsriLayer element : linkLayers) {
-      element.purgeLinks();
-    }
+          // new DatabaseIntegrityTester(nodusProject);
+          for (NodusEsriLayer element : linkLayersToPurge) {
+            element.purgeLinks();
+          }
+        });
 
     // testFreeNodes();
    

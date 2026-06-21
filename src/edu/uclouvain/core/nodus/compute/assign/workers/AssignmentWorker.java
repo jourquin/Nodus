@@ -106,21 +106,21 @@ public abstract class AssignmentWorker extends Thread {
     this.workQueue = queue;
   }
 
-  /** Give the signal to this work to stop. */
-  private void cancel() {
+  /** Give the signal to this worker to stop. */
+  public void requestCancel() {
     canceled = true;
   }
 
   /** Cancels every worker associated with the current assignment. */
   private void cancelAssignmentWorkers() {
     if (assignment == null || assignment.getAssignmentWorkers() == null) {
-      cancel();
+      requestCancel();
       return;
     }
 
     for (AssignmentWorker element : assignment.getAssignmentWorkers()) {
       if (element != null) {
-        element.cancel();
+        element.requestCancel();
       }
     }
   }
@@ -218,7 +218,7 @@ public abstract class AssignmentWorker extends Thread {
    */
   boolean updateProgress(String message) {
     if (!nodusMapPanel.updateProgress(message)) {
-      cancel();
+      requestCancel();
       return false;
     }
     return true;

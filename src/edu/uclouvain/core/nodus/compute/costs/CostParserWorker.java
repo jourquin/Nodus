@@ -291,7 +291,8 @@ public class CostParserWorker extends Thread {
         }
       }
     } catch (InterruptedException e) {
-      // Nothing to do
+      canceled = true;
+      Thread.currentThread().interrupt();
     }
   }
 }

@@ -90,6 +90,7 @@ import java.util.logging.Level;
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
 /**
  * This layer extends the original OpenMap EsriLayer, allowing the edition of the content of the DBF
@@ -1663,12 +1664,16 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     // Verify if dbf table must be imported in database
     if (!JDBCUtils.tableExists(layerName)) {
-      nodusProject
-          .getNodusMapPanel()
-          .setText(
-              MessageFormat.format(
-                  i18n.get(NodusEsriLayer.class, "Importing", "Importing \"{0}\" in database"),
-                  layerName));
+      final String importMessage =
+          MessageFormat.format(
+              i18n.get(NodusEsriLayer.class, "Importing", "Importing \"{0}\" in database"),
+              layerName);
+      SwingUtilities.invokeLater(
+          () -> {
+            if (this.nodusProject != null && this.nodusProject.getNodusMapPanel() != null) {
+              this.nodusProject.getNodusMapPanel().setText(importMessage);
+            }
+          });
       ImportDBF.importTable(nodusProject, layerName);
     }
 

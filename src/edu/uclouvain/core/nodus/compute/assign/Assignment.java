@@ -180,6 +180,67 @@ public abstract class Assignment implements Runnable {
     return assignmentWorkers;
   }
 
+  /** Requests cancellation of every worker associated with the current assignment. */
+  protected void cancelAssignmentWorkers() {
+    if (assignmentWorkers == null) {
+      return;
+    }
+
+    for (AssignmentWorker worker : assignmentWorkers) {
+      if (worker != null) {
+        worker.requestCancel();
+        worker.interrupt();
+      }
+    }
+  }
+
+  /**
+   * Waits for all assignment workers to complete. If interrupted, workers are canceled before this
+   * method returns false.
+   */
+  protected boolean waitForAssignmentWorkers() {
+    if (assignmentWorkers == null) {
+      return true;
+    }
+
+    boolean interrupted = false;
+
+    for (AssignmentWorker worker : assignmentWorkers) {
+      if (worker == null) {
+        continue;
+      }
+
+      try {
+        worker.join();
+      } catch (InterruptedException e) {
+        interrupted = true;
+        break;
+      }
+    }
+
+    if (!interrupted) {
+      return true;
+    }
+
+    cancelAssignmentWorkers();
+
+    for (AssignmentWorker worker : assignmentWorkers) {
+      if (worker == null) {
+        continue;
+      }
+
+      try {
+        worker.join(1000);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return false;
+      }
+    }
+
+    Thread.currentThread().interrupt();
+    return false;
+  }
+
   /**
    * Creates the PathWriter for concrete assignment classes. The base run() method owns the final
    * close/discard lifecycle of this writer.

@@ -224,12 +224,9 @@ public class DynamicTimeDependentAssignment extends Assignment {
         nodusMapPanel.startProgress(lengthOfTask);
 
         // Wait until all the works are completed
-        for (int i = 0; i < threads; i++) {
-          try {
-            assignmentWorkers[i].join();
-          } catch (InterruptedException ex) {
-            ex.printStackTrace();
-          }
+        if (!waitForAssignmentWorkers()) {
+          nodusMapPanel.stopProgress();
+          return false;
         }
 
         nodusMapPanel.stopProgress();
