@@ -221,6 +221,14 @@ public class CostParser {
     return value;
   }
 
+  /** Returns {@link Double#NaN} for invalid divisions so the parser can surface a clear error. */
+  private static double safeDivide(double numerator, double denominator) {
+    if (denominator == 0.0) {
+      return Double.NaN;
+    }
+    return numerator / denominator;
+  }
+
   private byte classNum;
 
   /** Cost functions files. Normally a property file which extension is ".cost" */
@@ -456,8 +464,9 @@ public class CostParser {
             double capacity = args.get(1).evaluate();
             double alpha = args.get(2).evaluate();
             double beta = args.get(3).evaluate();
+            double volumeOverCapacity = safeDivide(volume, capacity);
 
-            double delay = 1 + beta * Math.pow(volume / capacity, alpha);
+            double delay = 1 + beta * Math.pow(volumeOverCapacity, alpha);
             return delay;
           }
 
@@ -485,8 +494,8 @@ public class CostParser {
             double volume = args.get(0).evaluate();
             double capacity = args.get(1).evaluate();
             double alpha = args.get(2).evaluate();
-            double beta = (2 * alpha - 1) / (2 * alpha - 2);
-            double x = volume / capacity;
+            double beta = safeDivide(2 * alpha - 1, 2 * alpha - 2);
+            double x = safeDivide(volume, capacity);
 
             double delay =
                 2
@@ -517,7 +526,7 @@ public class CostParser {
 
             double length = args.get(0).evaluate();
             double speed = args.get(1).evaluate();
-            return length / speed;
+            return safeDivide(length, speed);
           }
 
           @Override
@@ -541,7 +550,7 @@ public class CostParser {
 
             double length = args.get(0).evaluate();
             double speed = args.get(1).evaluate();
-            return length * 60 / speed;
+            return safeDivide(length * 60, speed);
           }
 
           @Override
@@ -565,7 +574,7 @@ public class CostParser {
 
             double length = args.get(0).evaluate();
             double speed = args.get(1).evaluate();
-            return length * 3600 / speed;
+            return safeDivide(length * 3600, speed);
           }
 
           @Override

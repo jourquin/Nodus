@@ -225,12 +225,27 @@ public class NodusGroovyConsole extends NotePad {
   }
 
   /** Cancels a running script, if any. */
-  private void cancelRunningScript() {
+  private GroovyThread cancelRunningScript() {
     GroovyThread runningJob = job;
     job = null;
 
     if (runningJob != null) {
       runningJob.cancel();
+    }
+
+    return runningJob;
+  }
+
+  /** Waits briefly for a cancelled script to stop so disposal can release references sooner. */
+  private void waitForScriptShutdown(GroovyThread runningJob) {
+    if (runningJob == null) {
+      return;
+    }
+
+    try {
+      runningJob.join(1000);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
   }
 
@@ -238,7 +253,8 @@ public class NodusGroovyConsole extends NotePad {
   public void dispose() {
     disposed = true;
 
-    cancelRunningScript();
+    GroovyThread runningJob = cancelRunningScript();
+    waitForScriptShutdown(runningJob);
     removeScriptActionListeners();
 
     nodusMapPanel = null;

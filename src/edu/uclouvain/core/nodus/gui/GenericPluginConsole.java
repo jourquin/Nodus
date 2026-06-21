@@ -238,8 +238,11 @@ public class GenericPluginConsole extends JDialog {
     Thread work =
         new Thread() {
           public void run() {
-            nodusPlugin.doStart();
-            loop.exit();
+            try {
+              nodusPlugin.doStart();
+            } finally {
+              loop.exit();
+            }
           }
         };
 

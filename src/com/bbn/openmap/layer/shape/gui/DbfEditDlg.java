@@ -1296,14 +1296,12 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     }
 
     // Also copy style (which is only editable via the combo box...)
-    String style = values.get(NodusC.DBF_IDX_STYLE).toString();
-    style = style.substring(0, style.indexOf('.'));
+    String style = normalizeIntegerDbfValue(values.get(NodusC.DBF_IDX_STYLE));
     dbfTable.setValueAt(style, NodusC.DBF_IDX_STYLE, 1);
     styleComboBox.setSelectedIndex(JDBCUtils.getInt(style));
 
     // Same for "enabled"
-    String enabled = values.get(NodusC.DBF_IDX_ENABLED).toString();
-    enabled = enabled.substring(0, enabled.indexOf('.'));
+    String enabled = normalizeIntegerDbfValue(values.get(NodusC.DBF_IDX_ENABLED));
     dbfTable.setValueAt(enabled, NodusC.DBF_IDX_ENABLED, 1);
 
     // Reset "clipboard"
@@ -1311,6 +1309,16 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     pasteButton.setEnabled(false);
 
     setSaveButtonState();
+  }
+
+  /** Normalizes numeric DBF values that may be returned either as "1" or "1.0". */
+  private String normalizeIntegerDbfValue(Object value) {
+    String normalized = value.toString().trim();
+    int dotIndex = normalized.indexOf('.');
+    if (dotIndex != -1) {
+      normalized = normalized.substring(0, dotIndex);
+    }
+    return normalized;
   }
 
   /**

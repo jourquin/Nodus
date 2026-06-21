@@ -1488,7 +1488,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     MouseEvent me = getMouseEventInterpreter().getCurrentMouseEvent();
 
-    if (list != null) {
+    if (list != null && omgl != null && !omgl.isEmpty()) {
 
       OMGraphic omg = omgl.get(0);
 

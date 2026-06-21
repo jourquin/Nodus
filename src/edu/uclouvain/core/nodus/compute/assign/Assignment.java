@@ -305,6 +305,9 @@ public abstract class Assignment implements Runnable {
     } finally {
       stopGarbageCollectionRunner();
       assignmentWorkers = null;
+      if (!success) {
+        discardPathWriter();
+      }
       pathWriter = null;
       nodusMapPanel.resetText();
 

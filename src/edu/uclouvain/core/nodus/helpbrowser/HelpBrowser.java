@@ -27,8 +27,6 @@ import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.Locale;
 
 /**
@@ -37,9 +35,6 @@ import java.util.Locale;
  * @author Bart Jourquin
  */
 public class HelpBrowser {
-
-  private URI uri;
-  private URL url;
   private static I18n i18n = Environment.getI18n();
 
   /** Default constructor. */
@@ -53,6 +48,7 @@ public class HelpBrowser {
    */
   public void launchBrowser(boolean isHelp) {
     if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+      URI uri;
 
       try {
         String homeDir = System.getProperty("NODUS_HOME", ".");
@@ -72,21 +68,19 @@ public class HelpBrowser {
           helpFileName = homeDir + File.separator + "api" + File.separator + "index.html";
         }
 
-        url = new URL("file:///" + helpFileName);
-        uri = new URI(url.getProtocol(), url.getHost(), url.getPath(), url.getQuery(), null);
-
-      } catch (URISyntaxException e) {
-        e.printStackTrace();
+        uri = new File(helpFileName).toURI();
       } catch (IOException e) {
         e.printStackTrace();
+        return;
       }
 
+      final URI targetUri = uri;
       Thread t =
           new Thread() {
             @Override
             public void run() {
               try {
-                Desktop.getDesktop().browse(uri);
+                Desktop.getDesktop().browse(targetUri);
               } catch (Exception e) {
                 System.err.println(e.getMessage());
               }

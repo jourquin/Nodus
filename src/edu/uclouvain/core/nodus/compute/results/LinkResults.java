@@ -743,85 +743,87 @@ public class LinkResults implements ShapeConstants {
 
     int currentTime = assignmentStartTime;
     final LabelLayer lbl = labelLayer;
+    try {
+      while (currentTime <= assignmentEndTime) {
+        final int t = currentTime;
+        displayNextTimeSlice = false;
 
-    while (currentTime <= assignmentEndTime) {
-      final int t = currentTime;
-      displayNextTimeSlice = false;
+        if (lbl != null) {
+          String labelUnit;
+          if (displayVehicles) {
+            labelUnit = i18n.get(LinkResults.class, "Vehicles_at", "Vehicles at");
+          } else {
+            labelUnit = i18n.get(LinkResults.class, "Volume_at", "Volume at");
+          }
 
-      if (lbl != null) {
-        String labelUnit;
-        if (displayVehicles) {
-          labelUnit = i18n.get(LinkResults.class, "Vehicles_at", "Vehicles at");
-        } else {
-          labelUnit = i18n.get(LinkResults.class, "Volume_at", "Volume at");
+          int hour = t / 60 % 24;
+          int min = t % 60;
+          DecimalFormat hourFormatter = new DecimalFormat("00");
+          lbl.setLabelText(
+              labelUnit + " " + hourFormatter.format(hour) + ":" + hourFormatter.format(min));
+          lbl.doPrepare();
         }
 
-        int hour = t / 60 % 24;
-        int min = t % 60;
-        DecimalFormat hourFormatter = new DecimalFormat("00");
-        lbl.setLabelText(
-            labelUnit + " " + hourFormatter.format(hour) + ":" + hourFormatter.format(min));
-        lbl.doPrepare();
-      }
+        resetResults();
+        displayVolumes(sqlStmt, t);
 
-      resetResults();
-      displayVolumes(sqlStmt, t);
+        currentTime += timeSliceDuration;
 
-      currentTime += timeSliceDuration;
-
-      // Wait 1 second or press "Enter" to display next time slice
-      SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
-      Thread work =
-          new Thread() {
-            public void run() {
-              try {
-                if (autoSliceDisplay) {
-                  Thread.sleep(sliceDisplayInterval);
-                } else {
-                  while (!displayNextTimeSlice) {
-                    Thread.sleep(10);
+        // Wait 1 second or press "Enter" to display next time slice
+        SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
+        Thread work =
+            new Thread() {
+              public void run() {
+                try {
+                  if (autoSliceDisplay) {
+                    Thread.sleep(sliceDisplayInterval);
+                  } else {
+                    while (!displayNextTimeSlice) {
+                      Thread.sleep(10);
+                    }
                   }
+                } catch (InterruptedException e) {
+                  e.printStackTrace();
+                } finally {
+                  loop.exit();
                 }
-              } catch (InterruptedException e) {
-                e.printStackTrace();
               }
-              loop.exit();
-            }
-          };
+            };
 
-      work.start();
-      loop.enter();
+        work.start();
+        loop.enter();
 
-      if (cancelDisplay) {
-        break;
+        if (cancelDisplay) {
+          break;
+        }
       }
+
+      if (!cancelDisplay) {
+        JOptionPane.showMessageDialog(
+            nodusMapPanel,
+            i18n.get(LinkResults.class, "All_periods_displayed", "All the periods were displayed"),
+            i18n.get(ResultsDlg.class, "Display_results", "Display results"),
+            JOptionPane.INFORMATION_MESSAGE);
+      }
+
+      return true;
+    } finally {
+      nodusMapPanel.getMapBean().removeKeyListener(ka);
+
+      if (labelLayer != null) {
+        labelLayer.setLabelText("");
+        labelLayer.doPrepare();
+      }
+
+      // Restore old text label
+      if (labelLayer != null && oldText != null) {
+        labelLayer.setLabelText(oldText);
+      }
+
+      // dlg.resetLayers();
+      nodusMapPanel.resetText();
+      nodusMapPanel.getMainFrame().requestFocus();
     }
-
-    nodusMapPanel.getMapBean().removeKeyListener(ka);
-
-    if (labelLayer != null) {
-      labelLayer.setLabelText("");
-      labelLayer.doPrepare();
-    }
-
-    if (!cancelDisplay) {
-      JOptionPane.showMessageDialog(
-          nodusMapPanel,
-          i18n.get(LinkResults.class, "All_periods_displayed", "All the periods were displayed"),
-          i18n.get(ResultsDlg.class, "Display_results", "Display results"),
-          JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    // Restore old text label
-    if (labelLayer != null && oldText != null) {
-      labelLayer.setLabelText(oldText);
-    }
-
-    // dlg.resetLayers();
-    nodusMapPanel.resetText();
-    nodusMapPanel.getMainFrame().requestFocus();
-
-    return true;
   }
 
   private boolean isInScreen(double lat, double lon) {

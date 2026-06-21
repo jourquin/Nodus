@@ -190,6 +190,29 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
   private static final String NL = System.getProperty("line.separator");
 
+  /** Returns true if the statement is exactly the given command, ignoring case and edge spaces. */
+  private static boolean isCommand(String sqlStmt, String command) {
+    return sqlStmt != null && sqlStmt.trim().equalsIgnoreCase(command);
+  }
+
+  /**
+   * Returns true if the statement starts with the given command followed by a whitespace boundary.
+   */
+  private static boolean startsWithCommand(String sqlStmt, String command) {
+    if (sqlStmt == null) {
+      return false;
+    }
+
+    String trimmed = sqlStmt.trim();
+    int commandLength = command.length();
+    if (!trimmed.regionMatches(true, 0, command, 0, commandLength)) {
+      return false;
+    }
+
+    return trimmed.length() == commandLength
+        || Character.isWhitespace(trimmed.charAt(commandLength));
+  }
+
   /**
    * Reads a SQL batch file.
    *
@@ -587,14 +610,14 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         break;
       }
 
-      String sync = sqlCommand.toUpperCase();
+      String sync = sqlCommand.trim().toUpperCase();
 
-      if (sync.indexOf(ENABLEECHO) != -1) {
+      if (isCommand(sync, ENABLEECHO)) {
         withEcho = true;
         continue;
       }
 
-      if (sync.indexOf(DISABLEECHO) != -1) {
+      if (isCommand(sync, DISABLEECHO)) {
         withEcho = false;
         continue;
       }
@@ -610,22 +633,21 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
       // Intercept Nodus specific commands commands
 
-      if (sync.indexOf(STOP) != -1) {
+      if (isCommand(sync, STOP)) {
         break;
       }
 
       // Create, Drop, Alter and Rename table commands need to refresh table list
-      if (sync.indexOf("TABLE") != -1) {
-        if (sync.indexOf("CREATE") != -1
-            || sync.indexOf("ALTER") != -1
-            || sync.indexOf("DROP") != -1
-            || sync.indexOf("RENAME") != -1) {
-          treeMustBeRefreshed = true;
-        }
+      if ((startsWithCommand(sync, "CREATE TABLE")
+              || startsWithCommand(sync, "ALTER TABLE")
+              || startsWithCommand(sync, "DROP TABLE")
+              || startsWithCommand(sync, "RENAME TABLE"))
+          && withGUI) {
+        treeMustBeRefreshed = true;
       }
 
       // "shutdown compact" is not allowed from the console
-      if (sync.indexOf("SHUTDOWN") != -1 && sync.indexOf("COMPACT") != -1) {
+      if (startsWithCommand(sync, "SHUTDOWN COMPACT")) {
         JOptionPane.showMessageDialog(
             null,
             i18n.get(
@@ -637,39 +659,39 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         continue;
       }
 
-      if (sync.indexOf(ENABLEHEADERS) != -1) {
+      if (isCommand(sync, ENABLEHEADERS)) {
         displayHeaders = true;
         continue;
       }
 
-      if (sync.indexOf(DISABLEHEADERS) != -1) {
+      if (isCommand(sync, DISABLEHEADERS)) {
         displayHeaders = false;
         continue;
       }
 
-      if (sync.indexOf(CLEARSCREEN) != -1 && withGUI) {
+      if (isCommand(sync, CLEARSCREEN) && withGUI) {
         txtResultArea.setText("");
         continue;
       }
 
-      if (sync.indexOf(DISPLAYGRID) != -1 && withGUI) {
+      if (isCommand(sync, DISPLAYGRID) && withGUI) {
         menuResultInGrid.doClick();
 
         continue;
       }
 
-      if (sync.indexOf(DISPLAYTEXT) != -1 && withGUI) {
+      if (isCommand(sync, DISPLAYTEXT) && withGUI) {
         menuResultInText.doClick();
         continue;
       }
 
-      if (sync.indexOf(CLEARSCENARIO) != -1) {
+      if (startsWithCommand(sync, CLEARSCENARIO)) {
         clearScenario(sqlCommand);
         treeMustBeRefreshed = true;
         continue;
       }
 
-      if (sync.indexOf(EXPORTDBF) != -1) {
+      if (startsWithCommand(sync, EXPORTDBF)) {
         boolean b = importExport(sqlCommand, EXPORTDBF);
 
         if (b) {
@@ -680,7 +702,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (sync.indexOf(IMPORTDBF) != -1) {
+      if (startsWithCommand(sync, IMPORTDBF)) {
         boolean b = importExport(sqlCommand, IMPORTDBF);
 
         if (b) {
@@ -692,7 +714,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (sync.indexOf(IMPORTCSVH) != -1) {
+      if (startsWithCommand(sync, IMPORTCSVH)) {
         boolean b = importExport(sqlCommand, IMPORTCSVH);
 
         if (b) {
@@ -704,7 +726,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (sync.indexOf(IMPORTCSV) != -1) {
+      if (startsWithCommand(sync, IMPORTCSV)) {
         boolean b = importExport(sqlCommand, IMPORTCSV);
 
         if (b) {
@@ -716,7 +738,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (sync.indexOf(EXPORTCSVH) != -1) {
+      if (startsWithCommand(sync, EXPORTCSVH)) {
         boolean b = importExport(sqlCommand, EXPORTCSVH);
 
         if (b) {
@@ -727,7 +749,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (sync.indexOf(EXPORTCSV) != -1) {
+      if (startsWithCommand(sync, EXPORTCSV)) {
         boolean b = importExport(sqlCommand, EXPORTCSV);
 
         if (b) {
@@ -738,7 +760,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (sync.indexOf(IMPORTXLSX) != -1) {
+      if (startsWithCommand(sync, IMPORTXLSX)) {
         boolean b = importExport(sqlCommand, IMPORTXLSX);
 
         if (b) {
@@ -750,7 +772,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (sync.indexOf(EXPORTXLSX) != -1) {
+      if (startsWithCommand(sync, EXPORTXLSX)) {
         boolean b = importExport(sqlCommand, EXPORTXLSX);
 
         if (b) {
@@ -761,7 +783,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (sync.indexOf(IMPORTXLS) != -1) {
+      if (startsWithCommand(sync, IMPORTXLS)) {
         boolean b = importExport(sqlCommand, IMPORTXLS);
 
         if (b) {
@@ -773,7 +795,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (sync.indexOf(EXPORTXLS) != -1) {
+      if (startsWithCommand(sync, EXPORTXLS)) {
         boolean b = importExport(sqlCommand, EXPORTXLS);
 
         if (b) {
@@ -784,7 +806,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (sync.indexOf(EXTRACTSHP) != -1) {
+      if (startsWithCommand(sync, EXTRACTSHP)) {
         boolean b = extractShp(sqlCommand);
 
         if (b) {
@@ -796,7 +818,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       // Intercept delete/insert commands for nodus layers
-      if (sync.indexOf("DELETE") != -1) {
+      if (startsWithCommand(sync, "DELETE")) {
         boolean b = isDeleteAllowed(sqlCommand);
 
         if (!b) {
@@ -805,7 +827,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (sync.indexOf("INSERT") != -1) {
+      if (startsWithCommand(sync, "INSERT")) {
         boolean b = isInsertAllowed(sqlCommand);
 
         if (!b) {
@@ -893,8 +915,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     Thread work =
         new Thread() {
           public void run() {
-            execute();
-            loop.exit();
+            try {
+              execute();
+            } finally {
+              loop.exit();
+            }
           }
         };
 
@@ -2106,13 +2131,10 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
                       rootNode);
               makeNode(se.getMessage(), propertiesNode);
               makeNode(se.getSQLState(), propertiesNode);
+            } finally {
+              treeScrollPane.setCursor(oldC);
+              loop.exit();
             }
-
-            // treeModel.nodeStructureChanged(rootNode);
-
-            treeScrollPane.setCursor(oldC);
-
-            loop.exit();
           }
         };
 
