@@ -1403,14 +1403,21 @@ public class NodusProject implements ShapeConstants {
         Thread work =
             new Thread() {
               public void run() {
-                getNodusMapPanel()
-                    .setText(
-                        MessageFormat.format(
-                            i18n.get(
-                                NodusProject.class, "Importing", "Importing \"{0}\" in database"),
-                            currentTable));
-                ImportDBF.importTable(thisProject, currentTable);
-                loop.exit();
+                try {
+                  SwingUtilities.invokeLater(
+                      () ->
+                          getNodusMapPanel()
+                              .setText(
+                                  MessageFormat.format(
+                                      i18n.get(
+                                          NodusProject.class,
+                                          "Importing",
+                                          "Importing \"{0}\" in database"),
+                                      currentTable)));
+                  ImportDBF.importTable(thisProject, currentTable);
+                } finally {
+                  loop.exit();
+                }
               }
             };
 
@@ -2170,8 +2177,11 @@ public class NodusProject implements ShapeConstants {
       Thread work =
           new Thread() {
             public void run() {
-              nep.setProject(_this, currentName);
-              loop.exit();
+              try {
+                nep.setProject(_this, currentName);
+              } finally {
+                loop.exit();
+              }
             }
           };
 
@@ -2238,8 +2248,11 @@ public class NodusProject implements ShapeConstants {
       Thread work =
           new Thread() {
             public void run() {
-              nep.setProject(_this, currentLayerName);
-              loop.exit();
+              try {
+                nep.setProject(_this, currentLayerName);
+              } finally {
+                loop.exit();
+              }
             }
           };
 
@@ -2274,8 +2287,11 @@ public class NodusProject implements ShapeConstants {
     Thread work =
         new Thread() {
           public void run() {
-            loadOtherLayersObjectNumbers();
-            loop.exit();
+            try {
+              loadOtherLayersObjectNumbers();
+            } finally {
+              loop.exit();
+            }
           }
         };
 

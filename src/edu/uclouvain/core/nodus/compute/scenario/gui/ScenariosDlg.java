@@ -368,8 +368,11 @@ public class ScenariosDlg extends EscapeDialog {
         Thread work =
             new Thread() {
               public void run() {
-                scenarios.compare(scenario1, scenario2, result, whereString);
-                loop.exit();
+                try {
+                  scenarios.compare(scenario1, scenario2, result, whereString);
+                } finally {
+                  loop.exit();
+                }
               }
             };
 
@@ -482,8 +485,11 @@ public class ScenariosDlg extends EscapeDialog {
         Thread work =
             new Thread() {
               public void run() {
-                scenarios.sum(scenario1, scenario2, result, whereString);
-                loop.exit();
+                try {
+                  scenarios.sum(scenario1, scenario2, result, whereString);
+                } finally {
+                  loop.exit();
+                }
               }
             };
 

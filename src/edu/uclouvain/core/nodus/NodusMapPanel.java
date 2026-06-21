@@ -1274,12 +1274,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         new Runnable() {
           @Override
           public void run() {
-            boolean projectOpen = nodusProject != null && nodusProject.isOpen();
-            boolean enabled = !busy;
-
             menuFile.setEnabled(true);
             menuFile.setVisible(true);
-
+            
+            boolean projectOpen = nodusProject != null && nodusProject.isOpen();
+            boolean enabled = !busy;
+            
             menuItemFileOpen.setEnabled(enabled);
             menuItemFileSave.setEnabled(enabled && projectOpen);
             menuItemFileClose.setEnabled(enabled && projectOpen);
@@ -1335,12 +1335,13 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
               return;
             }
 
-            boolean alwaysOnTop = mainFrame.isAlwaysOnTop();
+            
             mainFrame.toFront();
             mainFrame.requestFocus();
             getMapBean().requestFocus();
 
             // Toggling always-on-top is a pragmatic way to make macOS re-activate the window.
+            boolean alwaysOnTop = mainFrame.isAlwaysOnTop();
             mainFrame.setAlwaysOnTop(true);
             mainFrame.setAlwaysOnTop(alwaysOnTop);
           }

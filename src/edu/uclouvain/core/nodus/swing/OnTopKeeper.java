@@ -29,6 +29,7 @@ import java.awt.Frame;
 import java.util.Timer;
 import java.util.TimerTask;
 import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 
 /**
  * This class implements a mechanism that ensures that all the sub-frames remain always on top.
@@ -71,7 +72,12 @@ public class OnTopKeeper {
         new TimerTask() {
           @Override
           public void run() {
-            setAlwaysOnTop(stickyDrawingTool);
+            SwingUtilities.invokeLater(
+                () -> {
+                  if (running && nodusMapPanel != null) {
+                    setAlwaysOnTop(stickyDrawingTool);
+                  }
+                });
           }
         },
         0,

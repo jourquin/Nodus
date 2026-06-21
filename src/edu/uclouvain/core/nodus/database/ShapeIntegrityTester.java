@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.TimerTask;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 /**
  * Tests the integrity of a Nodus project:
@@ -76,7 +77,12 @@ public class ShapeIntegrityTester {
         new TimerTask() {
           @Override
           public void run() {
-            runIntegrityTest();
+            SwingUtilities.invokeLater(
+                () -> {
+                  if (nodusProject != null) {
+                    runIntegrityTest();
+                  }
+                });
           }
         },
         0,

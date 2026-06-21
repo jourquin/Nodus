@@ -59,6 +59,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -88,6 +89,7 @@ import javax.swing.JTextPane;
 import javax.swing.JToolBar;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
@@ -985,8 +987,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       return false;
     }
 
-    String fromShapefile = fromClause.substring(0, index);
-
     // Get the destination file name
     token = " to ";
 
@@ -1034,6 +1034,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     // Test if it is a valid link layer
     NodusEsriLayer[] layers = nodusProject.getLinkLayers();
+    String fromShapefile = fromClause.substring(0, index);
 
     for (NodusEsriLayer element : layers) {
       if (element.getTableName().equals(fromShapefile)) {
@@ -1685,8 +1686,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     int separatorIndex = tableName.indexOf(' ');
     int parenthesisIndex = tableName.indexOf('(');
-    if (separatorIndex == -1
-        || (parenthesisIndex != -1 && parenthesisIndex < separatorIndex)) {
+    if (separatorIndex == -1 || (parenthesisIndex != -1 && parenthesisIndex < separatorIndex)) {
       separatorIndex = parenthesisIndex;
     }
     if (separatorIndex != -1) {
@@ -1759,21 +1759,45 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
   }
 
-  /**
-   * Simple tree node factory method - set parent and user object.
-   *
-   * @param userObject Object
-   * @param parent MutableTreeNode
-   * @return DefaultMutableTreeNode
-   */
-  private DefaultMutableTreeNode makeNode(Object userObject, MutableTreeNode parent) {
+  //  /**
+  //   * Simple tree node factory method - set parent and user object.
+  //   *
+  //   * @param userObject Object
+  //   * @param parent MutableTreeNode
+  //   * @return DefaultMutableTreeNode
+  //   */
+  //  private DefaultMutableTreeNode makeNode(Object userObject, MutableTreeNode parent) {
+  //    DefaultMutableTreeNode node = new DefaultMutableTreeNode(userObject);
+  //
+  //    if (parent != null) {
+  //      treeModel.insertNodeInto(node, parent, parent.getChildCount());
+  //    }
+  //
+  //    return node;
+  //  }
+
+  /** Builds a detached tree node hierarchy that can safely be prepared off the EDT. */
+  private DefaultMutableTreeNode makeDetachedNode(
+      Object userObject, DefaultMutableTreeNode parent) {
     DefaultMutableTreeNode node = new DefaultMutableTreeNode(userObject);
 
     if (parent != null) {
-      treeModel.insertNodeInto(node, parent, parent.getChildCount());
+      parent.add(node);
     }
 
     return node;
+  }
+
+  /** Replaces the visible tree contents with a freshly rebuilt detached root. */
+  private void applyTreeRoot(DefaultMutableTreeNode rebuiltRoot) {
+    rootNode.removeAllChildren();
+    rootNode.setUserObject(rebuiltRoot.getUserObject());
+
+    while (rebuiltRoot.getChildCount() > 0) {
+      rootNode.add((MutableTreeNode) rebuiltRoot.getFirstChild());
+    }
+
+    treeModel.nodeStructureChanged(rootNode);
   }
 
   /**
@@ -1981,21 +2005,21 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   /** Clear all existing nodes from the tree model and rebuild from scratch. */
   private void refreshTree() {
 
+    final Cursor oldC = treeScrollPane.getCursor();
     rootNode.removeAllChildren();
     treeModel.nodeStructureChanged(rootNode);
+    treeScrollPane.setCursor(new Cursor(Cursor.WAIT_CURSOR));
 
     SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
     Thread work =
         new Thread() {
           public void run() {
-            DefaultMutableTreeNode propertiesNode;
-            Cursor oldC = treeScrollPane.getCursor();
-            treeScrollPane.setCursor(new Cursor(Cursor.WAIT_CURSOR));
+            DefaultMutableTreeNode rebuiltRoot = new DefaultMutableTreeNode("");
 
             // Now rebuild the tree below its root
             try {
               // Start by naming the root node from its URL:
-              rootNode.setUserObject(metaData.getURL());
+              rebuiltRoot.setUserObject(metaData.getURL());
 
               // In Oracle, limit to the schema of the user
               String schema = null;
@@ -2035,28 +2059,28 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
               // For each table, build a tree node with interesting info
               for (int i = 0; i < tables.size(); i++) {
                 String name = tables.elementAt(i);
-                DefaultMutableTreeNode tableNode = makeNode(name, rootNode);
+                DefaultMutableTreeNode tableNode = makeDetachedNode(name, rebuiltRoot);
                 // Add remarks.
                 String remark = remarks.elementAt(i);
 
                 if (remark != null && !remark.trim().equals("")) {
-                  makeNode(remark, tableNode);
+                  makeDetachedNode(remark, tableNode);
                 }
 
                 // With a child for each column containing pertinent attributes
                 try (ResultSet col = metaData.getColumns(catalog, schema, name, null)) {
                   while (col.next()) {
                     String c = col.getString(4);
-                    DefaultMutableTreeNode columnNode = makeNode(c, tableNode);
+                    DefaultMutableTreeNode columnNode = makeDetachedNode(c, tableNode);
                     String type = col.getString(6);
 
-                    makeNode(
+                    makeDetachedNode(
                         MessageFormat.format(i18n.get(SQLConsole.class, "Type", "Type: {0}"), type),
                         columnNode);
 
                     boolean nullable = col.getInt(11) != DatabaseMetaData.columnNoNulls;
 
-                    makeNode(
+                    makeDetachedNode(
                         MessageFormat.format(
                             i18n.get(SQLConsole.class, "Nullable", "Nullable: {0}"), nullable),
                         columnNode);
@@ -2064,7 +2088,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
                 }
 
                 DefaultMutableTreeNode indexesNode =
-                    makeNode(i18n.get(SQLConsole.class, "Indices", "Indices"), tableNode);
+                    makeDetachedNode(i18n.get(SQLConsole.class, "Indices", "Indices"), tableNode);
 
                 try (ResultSet ind = metaData.getIndexInfo(catalog, schema, name, false, false)) {
                   String oldiname = null;
@@ -2076,8 +2100,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
                     String iname = ind.getString(6);
 
                     if (oldiname == null || !oldiname.equals(iname)) {
-                      indexNode = makeNode(iname, indexesNode);
-                      makeNode(
+                      indexNode = makeDetachedNode(iname, indexesNode);
+                      makeDetachedNode(
                           MessageFormat.format(
                               i18n.get(SQLConsole.class, "Unique", "Unique: {0}"), !nonunique),
                           indexNode);
@@ -2085,54 +2109,67 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
                     }
 
                     // And the ordered column list for index components
-                    makeNode(ind.getString(9), indexNode);
+                    makeDetachedNode(ind.getString(9), indexNode);
                   }
                 }
               }
 
               // Finally - a little additional metadata on this connection
-              propertiesNode =
-                  makeNode(i18n.get(SQLConsole.class, "Properties", "Properties"), rootNode);
+              DefaultMutableTreeNode propertiesNode =
+                  makeDetachedNode(
+                      i18n.get(SQLConsole.class, "Properties", "Properties"), rebuiltRoot);
 
-              makeNode(
+              makeDetachedNode(
                   MessageFormat.format(
                       i18n.get(SQLConsole.class, "User", "User: {0}"), metaData.getUserName()),
                   propertiesNode);
-              makeNode(
+              makeDetachedNode(
                   MessageFormat.format(
                       i18n.get(SQLConsole.class, "ReadOnly", "ReadOnly: {0}"),
                       jdbcConnection.isReadOnly()),
                   propertiesNode);
-              makeNode(
+              makeDetachedNode(
                   MessageFormat.format(
                       i18n.get(SQLConsole.class, "AutoCommit", "AutoCommit: {0}"),
                       jdbcConnection.getAutoCommit()),
                   propertiesNode);
-              makeNode(
+              makeDetachedNode(
                   MessageFormat.format(
                       i18n.get(SQLConsole.class, "Driver", "Driver: {0}"),
                       metaData.getDriverName()),
                   propertiesNode);
-              makeNode(
+              makeDetachedNode(
                   MessageFormat.format(
                       i18n.get(SQLConsole.class, "Product", "Product: {0}"),
                       metaData.getDatabaseProductName()),
                   propertiesNode);
-              makeNode(
+              makeDetachedNode(
                   MessageFormat.format(
                       i18n.get(SQLConsole.class, "Version", "Version: {0}"),
                       metaData.getDatabaseProductVersion()),
                   propertiesNode);
             } catch (SQLException se) {
-              propertiesNode =
-                  makeNode(
+              DefaultMutableTreeNode propertiesNode =
+                  makeDetachedNode(
                       i18n.get(SQLConsole.class, "Error_getting_metadata", "Error getting metadata")
                           + ":",
-                      rootNode);
-              makeNode(se.getMessage(), propertiesNode);
-              makeNode(se.getSQLState(), propertiesNode);
+                      rebuiltRoot);
+              makeDetachedNode(se.getMessage(), propertiesNode);
+              makeDetachedNode(se.getSQLState(), propertiesNode);
+            }
+
+            try {
+              final DefaultMutableTreeNode treeToDisplay = rebuiltRoot;
+              SwingUtilities.invokeAndWait(
+                  () -> {
+                    applyTreeRoot(treeToDisplay);
+                    treeScrollPane.setCursor(oldC);
+                  });
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+            } catch (InvocationTargetException e) {
+              e.printStackTrace();
             } finally {
-              treeScrollPane.setCursor(oldC);
               loop.exit();
             }
           }
@@ -2140,8 +2177,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     work.start();
     loop.enter();
-
-    treeModel.nodeStructureChanged(rootNode);
   }
 
   /** Resets the command area, tell it it doesn't contain a script anymore. */

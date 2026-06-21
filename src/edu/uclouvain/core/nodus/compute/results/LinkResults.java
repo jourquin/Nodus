@@ -861,17 +861,20 @@ public class LinkResults implements ShapeConstants {
     Thread work =
         new Thread() {
           public void run() {
-            NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
-            for (NodusEsriLayer element : linkLayers) {
-              EsriGraphicList egl = element.getEsriGraphicList();
-              Iterator<?> it = egl.iterator();
-              while (it.hasNext()) {
-                OMGraphic omg = (OMGraphic) it.next();
-                RealNetworkObject rno = (RealNetworkObject) omg.getAttribute(0);
-                rno.setResult(0.0);
+            try {
+              NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
+              for (NodusEsriLayer element : linkLayers) {
+                EsriGraphicList egl = element.getEsriGraphicList();
+                Iterator<?> it = egl.iterator();
+                while (it.hasNext()) {
+                  OMGraphic omg = (OMGraphic) it.next();
+                  RealNetworkObject rno = (RealNetworkObject) omg.getAttribute(0);
+                  rno.setResult(0.0);
+                }
               }
+            } finally {
+              loop.exit();
             }
-            loop.exit();
           }
         };
 

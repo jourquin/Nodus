@@ -88,68 +88,69 @@ public class ProjectFilesTools implements ShapeConstants {
     Thread work =
         new Thread() {
           public void run() {
-            System.out.println("Upgrading " + path + layerName + NodusC.TYPE_DBF);
+            try {
+              System.out.println("Upgrading " + path + layerName + NodusC.TYPE_DBF);
 
-            List<Object[]> data = new LinkedList<Object[]>();
+              List<Object[]> data = new LinkedList<Object[]>();
 
-            DBFField[] fields = null;
-            try (DBFReader dbfReader = new DBFReader(path + layerName + NodusC.TYPE_DBF)) {
+              DBFField[] fields = null;
+              try (DBFReader dbfReader = new DBFReader(path + layerName + NodusC.TYPE_DBF)) {
 
-              // Retain structure
-              fields = new DBFField[dbfReader.getFieldCount() + 1];
+                // Retain structure
+                fields = new DBFField[dbfReader.getFieldCount() + 1];
 
-              int j = 0;
-              for (int i = 0; i < fields.length; i++) {
-                // Insert the "enabled" field at the right place
-                if (i == NodusC.DBF_IDX_ENABLED) {
-                  fields[i] = new DBFField(NodusC.DBF_ENABLED, 'N', 1, 0);
-                } else {
-                  fields[i] = dbfReader.getField(j);
-                  j++;
-                }
-              }
-
-              // Read the dbf file
-              while (dbfReader.hasNextRecord()) {
-                Object[] record = dbfReader.nextRecord().clone();
-
-                // Insert default "enabled" value = 1
-                Object[] newRecord = new Object[record.length + 1];
-                j = 0;
-                for (int i = 0; i < newRecord.length; i++) {
+                int j = 0;
+                for (int i = 0; i < fields.length; i++) {
+                  // Insert the "enabled" field at the right place
                   if (i == NodusC.DBF_IDX_ENABLED) {
-                    newRecord[i] = Integer.valueOf(1);
+                    fields[i] = new DBFField(NodusC.DBF_ENABLED, 'N', 1, 0);
                   } else {
-                    newRecord[i] = record[j];
+                    fields[i] = dbfReader.getField(j);
                     j++;
                   }
                 }
-                data.add(newRecord);
+
+                // Read the dbf file
+                while (dbfReader.hasNextRecord()) {
+                  Object[] record = dbfReader.nextRecord().clone();
+
+                  // Insert default "enabled" value = 1
+                  Object[] newRecord = new Object[record.length + 1];
+                  j = 0;
+                  for (int i = 0; i < newRecord.length; i++) {
+                    if (i == NodusC.DBF_IDX_ENABLED) {
+                      newRecord[i] = Integer.valueOf(1);
+                    } else {
+                      newRecord[i] = record[j];
+                      j++;
+                    }
+                  }
+                  data.add(newRecord);
+                }
+              } catch (DBFException e) {
+                e.printStackTrace();
+                result = false;
+                return;
               }
-            } catch (DBFException e) {
-              e.printStackTrace();
-              result = false;
-              loop.exit();
-              return;
-            }
 
-            if (!result) {
-              loop.exit();
-              return;
-            }
-
-            // Write the upgraded DBF file
-            try (DBFWriter dbfWriter = new DBFWriter(path + layerName + NodusC.TYPE_DBF, fields)) {
-              ListIterator<Object[]> it = data.listIterator();
-              while (it.hasNext()) {
-                dbfWriter.addRecord(it.next());
+              if (!result) {
+                return;
               }
-            } catch (DBFException e) {
-              e.printStackTrace();
-              result = false;
-            }
 
-            loop.exit();
+              // Write the upgraded DBF file
+              try (DBFWriter dbfWriter =
+                  new DBFWriter(path + layerName + NodusC.TYPE_DBF, fields)) {
+                ListIterator<Object[]> it = data.listIterator();
+                while (it.hasNext()) {
+                  dbfWriter.addRecord(it.next());
+                }
+              } catch (DBFException e) {
+                e.printStackTrace();
+                result = false;
+              }
+            } finally {
+              loop.exit();
+            }
           }
         };
 
