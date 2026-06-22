@@ -377,7 +377,7 @@ public class LinkResults implements ShapeConstants {
     roundResults();
 
     /* Set the width of the strokes and update map. */
-    int maxWidth = nodusProject.getLocalProperty(NodusC.PROP_MAX_WIDTH, NodusC.MAX_WIDTH);
+    int maxWidth = Math.max(1, nodusProject.getLocalProperty(NodusC.PROP_MAX_WIDTH, NodusC.MAX_WIDTH));
     DbfTableModel resultModel = null;
 
     for (NodusEsriLayer linkLayer : linkLayers) {
@@ -416,7 +416,12 @@ public class LinkResults implements ShapeConstants {
           }
 
           if (rl.getResult() != 0) {
-            double size = rl.getResult() / ((maxResult - minResult) / (double) maxWidth);
+            double size;
+            if (maxResult > minResult) {
+              size = rl.getResult() / ((maxResult - minResult) / (double) maxWidth);
+            } else {
+              size = maxWidth;
+            }
 
             if (size > 0) {
               size++;
@@ -543,7 +548,7 @@ public class LinkResults implements ShapeConstants {
     NodusEsriLayer[] layers = nodusProject.getLinkLayers();
     DbfTableModel resultModel = null;
 
-    int maxWidth = nodusProject.getLocalProperty(NodusC.PROP_MAX_WIDTH, NodusC.MAX_WIDTH);
+    int maxWidth = Math.max(1, nodusProject.getLocalProperty(NodusC.PROP_MAX_WIDTH, NodusC.MAX_WIDTH));
     for (int i = 0; i < layers.length; i++) {
 
       if (layers[i].isVisible()) {
