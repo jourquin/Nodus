@@ -34,13 +34,12 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.SecondaryLoop;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.util.LinkedList;
+import java.util.concurrent.ExecutionException;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -49,6 +48,7 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerListModel;
+import javax.swing.SwingWorker;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 
@@ -135,8 +135,6 @@ public class ScenariosDlg extends EscapeDialog {
 
   /** . */
   private RSyntaxTextArea whereTextPane = new RSyntaxTextArea();
-
-  private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
   /**
    * Initializes a new dialog box.
@@ -363,42 +361,26 @@ public class ScenariosDlg extends EscapeDialog {
         }
 
         // Compare
-        setBusy(true);
-        SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
-        Thread work =
-            new Thread() {
-              public void run() {
-                try {
-                  scenarios.compare(scenario1, scenario2, result, whereString);
-                } finally {
-                  loop.exit();
-                }
-              }
-            };
-
-        work.start();
-        loop.enter();
-
-        setBusy(false);
-
-        // Describe the resulting scenario
-        nodusProject.setLocalProperty(
-            NodusC.PROP_ASSIGNMENT_DESCRIPTION + result,
-            MessageFormat.format(
-                i18n.get(
-                    ScenariosDlg.class,
-                    "Comparison_description",
-                    "Comparison of scenarios {0} and {1}"),
-                scenario1,
-                scenario2));
-        nodusProject.setLocalProperty(NodusC.PROP_SCENARIO, result);
-        nodusProject.getNodusMapPanel().updateScenarioComboBox(true);
-        // Done
-        JOptionPane.showMessageDialog(
-            this,
-            i18n.get(ScenariosDlg.class, "Comparison_completed", "Comparison completed"),
-            NodusC.APPNAME,
-            JOptionPane.INFORMATION_MESSAGE);
+        runScenarioTask(
+            () -> scenarios.compare(scenario1, scenario2, result, whereString),
+            () -> {
+              nodusProject.setLocalProperty(
+                  NodusC.PROP_ASSIGNMENT_DESCRIPTION + result,
+                  MessageFormat.format(
+                      i18n.get(
+                          ScenariosDlg.class,
+                          "Comparison_description",
+                          "Comparison of scenarios {0} and {1}"),
+                      scenario1,
+                      scenario2));
+              nodusProject.setLocalProperty(NodusC.PROP_SCENARIO, result);
+              nodusProject.getNodusMapPanel().updateScenarioComboBox(true);
+              JOptionPane.showMessageDialog(
+                  this,
+                  i18n.get(ScenariosDlg.class, "Comparison_completed", "Comparison completed"),
+                  NodusC.APPNAME,
+                  JOptionPane.INFORMATION_MESSAGE);
+            });
       }
     }
 
@@ -479,43 +461,62 @@ public class ScenariosDlg extends EscapeDialog {
         }
 
         // Sum
-        setBusy(true);
-
-        SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
-        Thread work =
-            new Thread() {
-              public void run() {
-                try {
-                  scenarios.sum(scenario1, scenario2, result, whereString);
-                } finally {
-                  loop.exit();
-                }
-              }
-            };
-
-        work.start();
-        loop.enter();
-
-        setBusy(false);
-
-        // Describe the resulting scenario
-        nodusProject.setLocalProperty(
-            NodusC.PROP_ASSIGNMENT_DESCRIPTION + result,
-            MessageFormat.format(
-                i18n.get(ScenariosDlg.class, "Sum_description", "Sum of scenarios {0} and {1}"),
-                scenario1,
-                scenario2));
-        nodusProject.setLocalProperty(NodusC.PROP_SCENARIO, result);
-        nodusProject.getNodusMapPanel().updateScenarioComboBox(true);
-
-        // Done
-        JOptionPane.showMessageDialog(
-            this,
-            i18n.get(ScenariosDlg.class, "Sum_completed", "Sum completed"),
-            NodusC.APPNAME,
-            JOptionPane.INFORMATION_MESSAGE);
+        runScenarioTask(
+            () -> scenarios.sum(scenario1, scenario2, result, whereString),
+            () -> {
+              nodusProject.setLocalProperty(
+                  NodusC.PROP_ASSIGNMENT_DESCRIPTION + result,
+                  MessageFormat.format(
+                      i18n.get(
+                          ScenariosDlg.class, "Sum_description", "Sum of scenarios {0} and {1}"),
+                      scenario1,
+                      scenario2));
+              nodusProject.setLocalProperty(NodusC.PROP_SCENARIO, result);
+              nodusProject.getNodusMapPanel().updateScenarioComboBox(true);
+              JOptionPane.showMessageDialog(
+                  this,
+                  i18n.get(ScenariosDlg.class, "Sum_completed", "Sum completed"),
+                  NodusC.APPNAME,
+                  JOptionPane.INFORMATION_MESSAGE);
+            });
       }
     }
+  }
+
+  /** Runs a scenario operation in the background and completes the UI update on the EDT. */
+  private void runScenarioTask(Runnable task, Runnable onSuccess) {
+    setBusy(true);
+
+    SwingWorker<Void, Void> worker =
+        new SwingWorker<Void, Void>() {
+          @Override
+          protected Void doInBackground() {
+            task.run();
+            return null;
+          }
+
+          @Override
+          protected void done() {
+            setBusy(false);
+
+            try {
+              get();
+              onSuccess.run();
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+            } catch (ExecutionException e) {
+              Throwable cause = e.getCause() == null ? e : e.getCause();
+              cause.printStackTrace();
+              JOptionPane.showMessageDialog(
+                  ScenariosDlg.this,
+                  cause.getMessage() == null ? cause.toString() : cause.getMessage(),
+                  NodusC.APPNAME,
+                  JOptionPane.ERROR_MESSAGE);
+            }
+          }
+        };
+
+    worker.execute();
   }
 
   /**

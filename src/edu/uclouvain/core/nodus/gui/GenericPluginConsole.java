@@ -29,15 +29,16 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.SecondaryLoop;
-import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.concurrent.ExecutionException;
 import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.SwingWorker;
 
 /**
  * Simple dialog with start-cancel buttons and a text area that display the progression of the task.
@@ -74,9 +75,6 @@ public class GenericPluginConsole extends JDialog {
 
   /** . */
   private JButton startButton = new JButton();
-
-  /** . */
-  private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
   /**
    * Creates a simple output console for a Nodus plugin.
@@ -234,19 +232,36 @@ public class GenericPluginConsole extends JDialog {
   }
 
   private void startButtonAction() {
-    SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
-    Thread work =
-        new Thread() {
-          public void run() {
+    setBusy(true);
+
+    SwingWorker<Void, Void> worker =
+        new SwingWorker<Void, Void>() {
+          @Override
+          protected Void doInBackground() {
+            nodusPlugin.doStart();
+            return null;
+          }
+
+          @Override
+          protected void done() {
+            setBusy(false);
+
             try {
-              nodusPlugin.doStart();
-            } finally {
-              loop.exit();
+              get();
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+            } catch (ExecutionException e) {
+              Throwable cause = e.getCause() == null ? e : e.getCause();
+              cause.printStackTrace();
+              JOptionPane.showMessageDialog(
+                  GenericPluginConsole.this,
+                  cause.getMessage() == null ? cause.toString() : cause.getMessage(),
+                  getTitle(),
+                  JOptionPane.ERROR_MESSAGE);
             }
           }
         };
 
-    work.start();
-    loop.enter();
+    worker.execute();
   }
 }
