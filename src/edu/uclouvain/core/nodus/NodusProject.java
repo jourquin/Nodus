@@ -81,6 +81,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -91,6 +92,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import org.apache.derby.drda.NetworkServerControl;
 import org.hsqldb.persist.HsqlProperties;
 
@@ -1380,51 +1382,292 @@ public class NodusProject implements ShapeConstants {
     return prop;
   }
 
-  /** Import the DBF tables specified in the project if needed. */
-  private void importDBFTables() {
-
-    String tablesToImport = projectProperties.getProperty(NodusC.PROP_IMPORT_TABLES, null);
-    NodusProject thisProject = this;
+  /** Returns the tokenized values of a whitespace-separated project property, or an empty list. */
+  private List<String> getTokenizedProjectProperty(String propertyName, String legacyPropertyName) {
+    String tablesToImport = projectProperties.getProperty(propertyName, null);
 
     if (tablesToImport == null) {
-      // Could be a project with the old property name
-      tablesToImport = projectProperties.getProperty("importTables", null);
-      if (tablesToImport == null) {
-        return;
-      }
+      tablesToImport = projectProperties.getProperty(legacyPropertyName, null);
+    }
+
+    List<String> values = new LinkedList<>();
+    if (tablesToImport == null) {
+      return values;
     }
 
     StringTokenizer st = new StringTokenizer(tablesToImport);
     while (st.hasMoreTokens()) {
-      final String currentTable = st.nextToken();
-      // Import only if not exists
-      if (!JDBCUtils.tableExists(currentTable)) {
-        SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
-        Thread work =
-            new Thread() {
-              public void run() {
-                try {
-                  SwingUtilities.invokeLater(
-                      () ->
-                          getNodusMapPanel()
-                              .setText(
-                                  MessageFormat.format(
-                                      i18n.get(
-                                          NodusProject.class,
-                                          "Importing",
-                                          "Importing \"{0}\" in database"),
-                                      currentTable)));
-                  ImportDBF.importTable(thisProject, currentTable);
-                } finally {
-                  loop.exit();
-                }
-              }
-            };
+      values.add(st.nextToken());
+    }
 
-        work.start();
-        loop.enter();
+    return values;
+  }
+
+  /** Runs a project-opening task off the EDT and resumes the open sequence on the EDT. */
+  private void runProjectOpenTask(String threadName, Runnable task, Runnable onSuccess) {
+    SwingWorker<Void, Void> worker =
+        new SwingWorker<Void, Void>() {
+          @Override
+          protected Void doInBackground() {
+            String originalName = Thread.currentThread().getName();
+            try {
+              Thread.currentThread().setName(threadName);
+              task.run();
+              return null;
+            } finally {
+              Thread.currentThread().setName(originalName);
+            }
+          }
+
+          @Override
+          protected void done() {
+            try {
+              get();
+              onSuccess.run();
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              cleanupFailedProjectOpen();
+            } catch (ExecutionException e) {
+              Throwable cause = e.getCause() == null ? e : e.getCause();
+              cause.printStackTrace();
+              JOptionPane.showMessageDialog(
+                  nodusMapPanel,
+                  cause.getMessage() == null ? cause.toString() : cause.getMessage(),
+                  NodusC.APPNAME,
+                  JOptionPane.ERROR_MESSAGE);
+              cleanupFailedProjectOpen();
+            }
+          }
+        };
+
+    worker.execute();
+  }
+
+  /** Imports additional DBF tables one by one without blocking the EDT. */
+  private void importDBFTablesAsync(List<String> tableNames, int index, Runnable onDone) {
+    if (index >= tableNames.size()) {
+      onDone.run();
+      return;
+    }
+
+    String currentTable = tableNames.get(index);
+    if (JDBCUtils.tableExists(currentTable)) {
+      importDBFTablesAsync(tableNames, index + 1, onDone);
+      return;
+    }
+
+    nodusMapPanel.setText(
+        MessageFormat.format(
+            i18n.get(NodusProject.class, "Importing", "Importing \"{0}\" in database"),
+            currentTable));
+
+    runProjectOpenTask(
+        "Nodus-Project-ImportDBF",
+        () -> ImportDBF.importTable(this, currentTable),
+        () -> importDBFTablesAsync(tableNames, index + 1, onDone));
+  }
+
+  /** Loads node layers one by one without relying on a nested event loop. */
+  private void loadNodeLayersAsync(
+      List<String> nodeLayerNames, List<String> linkLayerNames, int index, int layerPosition) {
+    if (index >= nodeLayerNames.size()) {
+      loadLinkLayersAsync(linkLayerNames, 0, layerPosition);
+      return;
+    }
+
+    String currentName = nodeLayerNames.get(index);
+    String key = currentName + NodusC.PROP_NAME;
+    localProperties.setProperty(key, currentName);
+
+    if (reImportCheckBox.isSelected()) {
+      JDBCUtils.dropTable(currentName);
+    }
+
+    if (isDbfModified(currentName)) {
+      JDBCUtils.dropTable(currentName);
+    }
+
+    String prettyName =
+        projectProperties.getProperty(currentName + NodusC.PROP_PRETTY_NAME, currentName);
+    projectProperties.setProperty(currentName + NodusC.PROP_PRETTY_NAME, prettyName);
+
+    nodeLayers[index] = new NodusEsriLayer();
+    nodeLayers[index].setName(prettyName);
+
+    NodusEsriLayer layer = nodeLayers[index];
+    runProjectOpenTask(
+        "Nodus-Project-LoadNodeLayer",
+        () -> layer.setProject(this, currentName),
+        () -> {
+          nodesLocationHandler[index] = new NodusLocationHandler(layer);
+          nodesLocationHandler[index].setProperties(currentName, localProperties);
+          nodesLocationHandler[index].setLayer(labelsLayer);
+          layer.setLocationHandler(nodesLocationHandler[index]);
+          layer.doPrepare();
+
+          nodusMapPanel.getLayerHandler().addLayer(layer, layerPosition);
+
+          boolean visible = getLocalProperty(layer.getTableName() + NodusC.PROP_VISIBLE, true);
+          nodesLocationHandler[index].setVisible(visible);
+          layer.setVisible(visible);
+
+          loadNodeLayersAsync(nodeLayerNames, linkLayerNames, index + 1, layerPosition + 1);
+        });
+  }
+
+  /** Loads link layers one by one without relying on a nested event loop. */
+  private void loadLinkLayersAsync(List<String> linkLayerNames, int index, int layerPosition) {
+    if (index >= linkLayerNames.size()) {
+      List<String> tablesToImport =
+          getTokenizedProjectProperty(NodusC.PROP_IMPORT_TABLES, "importTables");
+      importDBFTablesAsync(
+          tablesToImport,
+          0,
+          () ->
+              runProjectOpenTask(
+                  "Nodus-Project-LoadOtherLayers",
+                  this::loadOtherLayersObjectNumbers,
+                  () -> finishProjectOpen(layerPosition)));
+      return;
+    }
+
+    String currentLayerName = linkLayerNames.get(index);
+    String key = currentLayerName + NodusC.PROP_NAME;
+    localProperties.setProperty(key, currentLayerName);
+
+    if (reImportCheckBox.isSelected()) {
+      JDBCUtils.dropTable(currentLayerName);
+    }
+
+    if (isDbfModified(currentLayerName)) {
+      JDBCUtils.dropTable(currentLayerName);
+    }
+
+    String prettyName =
+        projectProperties.getProperty(currentLayerName + NodusC.PROP_PRETTY_NAME, currentLayerName);
+    projectProperties.setProperty(currentLayerName + NodusC.PROP_PRETTY_NAME, prettyName);
+
+    linkLayers[index] = new NodusEsriLayer();
+    linkLayers[index].setName(prettyName);
+
+    NodusEsriLayer layer = linkLayers[index];
+    runProjectOpenTask(
+        "Nodus-Project-LoadLinkLayer",
+        () -> layer.setProject(this, currentLayerName),
+        () -> {
+          linksLocationHandler[index] = new NodusLocationHandler(layer);
+          linksLocationHandler[index].setProperties(currentLayerName, localProperties);
+          linksLocationHandler[index].setLayer(labelsLayer);
+          layer.setLocationHandler(linksLocationHandler[index]);
+          layer.doPrepare();
+
+          nodusMapPanel.getLayerHandler().addLayer(layer, layerPosition);
+
+          boolean visible = getLocalProperty(layer.getTableName() + NodusC.PROP_VISIBLE, true);
+          linksLocationHandler[index].setVisible(visible);
+          layer.setVisible(visible);
+
+          loadLinkLayersAsync(linkLayerNames, index + 1, layerPosition + 1);
+        });
+  }
+
+  /** Completes project opening on the EDT after the asynchronous loading steps finish. */
+  private void finishProjectOpen(int layerPosition) {
+    nodusMapPanel.getNodusDrawingTool().setNodusLayers(nodeLayers, linkLayers);
+
+    if (nodeLayers.length > 0) {
+      labelsLayer.addLocationHandler(nodesLocationHandler, linksLocationHandler);
+      labelsLayer.setDeclutterMatrix(new DeclutterMatrix());
+      boolean visible = this.getLocalProperty(labelsLayer.getName() + NodusC.PROP_VISIBLE, true);
+      labelsLayer.setVisible(visible);
+      nodusMapPanel.getLayerHandler().addLayer(labelsLayer, layerPosition++);
+      labelsLayer.reloadData();
+      labelsLayer.doPrepare();
+    }
+
+    NodusDrawingToolLayer drawingToolLayer = new NodusDrawingToolLayer();
+    Properties drawingLayerProperties = new Properties();
+    drawingLayerProperties.setProperty("DrawingLayer.prettyName", "Drawing layer");
+    drawingToolLayer.setProperties("DrawingLayer", drawingLayerProperties);
+    drawingToolLayer.setDrawingTool(nodusMapPanel.getNodusDrawingTool());
+    nodusMapPanel.getLayerHandler().addLayer(drawingToolLayer);
+
+    nodusMapPanel.getNodusDrawingToolLauncher().findAndInit(drawingToolLayer);
+    nodusMapPanel.getNodusDrawingToolLauncher().setCurrentRequestor(drawingToolLayer.getName());
+
+    stopShapeIntegrityTester();
+    shapeIntegrityTester = new ShapeIntegrityTester(this);
+
+    String name = projectProperties.getProperty(NodusC.PROP_OPENMAP_LAYERS, null);
+    Properties props = null;
+
+    if (name != null) {
+      props = new Properties();
+
+      try {
+        String fileName =
+            localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH) + name + NodusC.TYPE_OPENMAP;
+        try (FileInputStream inputStream = new FileInputStream(fileName)) {
+          props.load(inputStream);
+        }
+      } catch (IOException ex) {
+        System.out.println(ex.toString());
+      }
+
+      addOpenMapLayers(props);
+    }
+
+    Layer[] layer = nodusMapPanel.getLayerHandler().getLayers();
+    String layerOrder = localProperties.getProperty(NodusC.PROP_MAP_ORDER, "");
+
+    StringTokenizer st = new StringTokenizer(layerOrder, ",");
+    int position = 0;
+    while (st.hasMoreTokens()) {
+      String currentLayer = st.nextToken();
+
+      for (Layer element : layer) {
+        if (element.getName().equals(currentLayer)) {
+          try {
+            nodusMapPanel.getLayerHandler().moveLayer(element, position);
+            position++;
+          } catch (Exception e) {
+            // Layer list could be corrupted
+          }
+        }
       }
     }
+
+    setDefaultPreferences();
+    nodusMapPanel.setRenderingScaleThreshold(
+        getLocalProperty(NodusC.PROP_RENDERING_SCALE_THRESHOLD, (float) -1));
+    NodeRulesReader.fixExclusionTableIfNeeded(this);
+    serviceHandler = new ServiceHandler(this);
+    new ModalSplitMethodsLoader(this);
+
+    String scriptFileName =
+        localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
+            + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
+            + NodusC.TYPE_GROOVY;
+    ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
+    scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
+    scriptRunner.setVariable("openProject", true);
+    scriptRunner.setVariable("closeProject", false);
+    scriptRunner.run(true);
+
+    isOpen = true;
+    nodusMapPanel.getNodusLayersPanel().enableButtons(true);
+
+    String mouseModeId = getLocalProperty(NodusC.PROP_ACTIVE_MOUSE_MODE, null);
+    if (mouseModeId != null) {
+      getNodusMapPanel().setActiveMouseMode(mouseModeId);
+    }
+    getNodusMapPanel().resetText();
+    getNodusMapPanel().updateScenarioComboBox(true);
+    getNodusMapPanel().enableMenus(true);
+    getNodusMapPanel().setFileMenuBusy(false);
+    getNodusMapPanel().restoreMainFrameFocus();
+
+    nodusMapPanel.setBusy(false);
   }
 
   /**
@@ -2127,292 +2370,20 @@ public class NodusProject implements ShapeConstants {
     boolean enableHighlightedArea = getLocalProperty(NodusC.PROP_DISPLAY_HIGHLIGHTED_AREA, false);
     getNodusMapPanel().displayHighlightedAreaLayer(displayHighlightedArea, enableHighlightedArea);
 
-    // Create a location layer for the location handlers
     labelsLayer = new NodusLocationLayer();
     labelsLayer.setName(i18n.get(NodusProject.class, "Labels", "Labels"));
-    // labelsLayer.setRemovable(false);
 
-    // Create new ESRI layer for the nodes
-    name = projectProperties.getProperty(NodusC.PROP_NETWORK_NODES);
+    List<String> nodeLayerNames =
+        getTokenizedProjectProperty(NodusC.PROP_NETWORK_NODES, NodusC.PROP_NETWORK_NODES);
+    nodeLayers = new NodusEsriLayer[nodeLayerNames.size()];
+    nodesLocationHandler = new NodusLocationHandler[nodeLayerNames.size()];
 
-    // How many layers?
-    StringTokenizer st = new StringTokenizer(name);
-    int n = st.countTokens();
-    nodeLayers = new NodusEsriLayer[n];
-    nodesLocationHandler = new NodusLocationHandler[n];
-    n = 0;
+    List<String> linkLayerNames =
+        getTokenizedProjectProperty(NodusC.PROP_NETWORK_LINKS, NodusC.PROP_NETWORK_LINKS);
+    linkLayers = new NodusEsriLayer[linkLayerNames.size()];
+    linksLocationHandler = new NodusLocationHandler[linkLayerNames.size()];
 
-    // Position of the layer
-    int layerPosition = 0;
-    while (st.hasMoreTokens()) {
-      final String currentName = st.nextToken();
-
-      // Createlayer n
-      String key;
-      key = currentName + NodusC.PROP_NAME;
-      localProperties.setProperty(key, currentName);
-
-      // Force re-import?
-      if (reImportCheckBox.isSelected()) {
-        JDBCUtils.dropTable(currentName);
-      }
-
-      // Force reimport if dbf file is newer than the last one used in this project
-      if (isDbfModified(currentName)) {
-        JDBCUtils.dropTable(currentName);
-      }
-
-      // Get the pretty name given to the layer. Take shapefile name if none was defined.
-      String prettyName =
-          projectProperties.getProperty(currentName + NodusC.PROP_PRETTY_NAME, currentName);
-      projectProperties.setProperty(currentName + NodusC.PROP_PRETTY_NAME, prettyName);
-
-      nodeLayers[n] = new NodusEsriLayer();
-      nodeLayers[n].setName(prettyName);
-
-      final NodusEsriLayer nep = nodeLayers[n];
-      final NodusProject _this = this;
-
-      SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
-      Thread work =
-          new Thread() {
-            public void run() {
-              try {
-                nep.setProject(_this, currentName);
-              } finally {
-                loop.exit();
-              }
-            }
-          };
-
-      work.start();
-      loop.enter();
-
-      // Create a new location handler based on the ESRI layer
-      nodesLocationHandler[n] = new NodusLocationHandler(nodeLayers[n]);
-      nodesLocationHandler[n].setProperties(currentName, localProperties);
-      nodesLocationHandler[n].setLayer(labelsLayer);
-      nodeLayers[n].setLocationHandler(nodesLocationHandler[n]);
-      nodeLayers[n].doPrepare();
-
-      nodusMapPanel.getLayerHandler().addLayer(nodeLayers[n], layerPosition++);
-
-      // Set the visibility
-      boolean b = this.getLocalProperty(nodeLayers[n].getTableName() + NodusC.PROP_VISIBLE, true);
-      nodesLocationHandler[n].setVisible(b);
-      nodeLayers[n].setVisible(b);
-
-      n++;
-    }
-
-    // Create new ESRI layers for the links
-    name = projectProperties.getProperty(NodusC.PROP_NETWORK_LINKS);
-
-    // How many layers?
-    st = new StringTokenizer(name);
-    n = st.countTokens();
-    linkLayers = new NodusEsriLayer[n];
-    linksLocationHandler = new NodusLocationHandler[n];
-    n = 0;
-
-    while (st.hasMoreTokens()) {
-      final String currentLayerName = st.nextToken();
-
-      // Create layer n
-      String key;
-      key = currentLayerName + NodusC.PROP_NAME;
-      localProperties.setProperty(key, currentLayerName);
-
-      // Force re-import?
-      if (reImportCheckBox.isSelected()) {
-        JDBCUtils.dropTable(currentLayerName);
-      }
-
-      // Force reimport if dbf file is newer than the last one used in this project
-      if (isDbfModified(currentLayerName)) {
-        JDBCUtils.dropTable(currentLayerName);
-      }
-
-      // Get the pretty name given to the layer. Take shapefile name if none was defined.
-      String prettyName =
-          projectProperties.getProperty(
-              currentLayerName + NodusC.PROP_PRETTY_NAME, currentLayerName);
-      projectProperties.setProperty(currentLayerName + NodusC.PROP_PRETTY_NAME, prettyName);
-
-      linkLayers[n] = new NodusEsriLayer();
-      linkLayers[n].setName(prettyName);
-
-      final NodusEsriLayer nep = linkLayers[n];
-      final NodusProject _this = this;
-      SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
-      Thread work =
-          new Thread() {
-            public void run() {
-              try {
-                nep.setProject(_this, currentLayerName);
-              } finally {
-                loop.exit();
-              }
-            }
-          };
-
-      work.start();
-      loop.enter();
-
-      // Create a new location handler based on the ESRI layer
-      linksLocationHandler[n] = new NodusLocationHandler(linkLayers[n]);
-      linksLocationHandler[n].setProperties(currentLayerName, localProperties);
-      linksLocationHandler[n].setLayer(labelsLayer);
-      linkLayers[n].setLocationHandler(linksLocationHandler[n]);
-      linkLayers[n].doPrepare();
-
-      nodusMapPanel.getLayerHandler().addLayer(linkLayers[n], layerPosition++);
-
-      // Set the visibility
-      boolean b = this.getLocalProperty(linkLayers[n].getTableName() + NodusC.PROP_VISIBLE, true);
-      linksLocationHandler[n].setVisible(b);
-      linkLayers[n].setVisible(b);
-
-      n++;
-    }
-
-    /*
-     * Import the OD tables specified in the project if needed
-     */
-    importDBFTables();
-
-    /* Load the numbers of the objects that are in shapefiles in this directory,
-     * but not in current project */
-    SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
-    Thread work =
-        new Thread() {
-          public void run() {
-            try {
-              loadOtherLayersObjectNumbers();
-            } finally {
-              loop.exit();
-            }
-          }
-        };
-
-    work.start();
-    loop.enter();
-
-    // Tell the drawing tool to which layers it has to speak with
-    nodusMapPanel.getNodusDrawingTool().setNodusLayers(nodeLayers, linkLayers);
-
-    // Add the location handlers
-    if (nodeLayers.length > 0) {
-      labelsLayer.addLocationHandler(nodesLocationHandler, linksLocationHandler);
-      labelsLayer.setDeclutterMatrix(new DeclutterMatrix());
-      boolean b = this.getLocalProperty(labelsLayer.getName() + NodusC.PROP_VISIBLE, true);
-      labelsLayer.setVisible(b);
-      nodusMapPanel.getLayerHandler().addLayer(labelsLayer, layerPosition++);
-      labelsLayer.reloadData();
-      labelsLayer.doPrepare();
-    }
-
-    // Create an invisible drawing layer
-    NodusDrawingToolLayer drawingToolLayer = new NodusDrawingToolLayer();
-    Properties p = new Properties();
-    p.setProperty("DrawingLayer.prettyName", "Drawing layer");
-    drawingToolLayer.setProperties("DrawingLayer", p);
-    drawingToolLayer.setDrawingTool(nodusMapPanel.getNodusDrawingTool());
-    nodusMapPanel.getLayerHandler().addLayer(drawingToolLayer);
-
-    nodusMapPanel.getNodusDrawingToolLauncher().findAndInit(drawingToolLayer);
-    nodusMapPanel.getNodusDrawingToolLauncher().setCurrentRequestor(drawingToolLayer.getName());
-
-    // When all the layers are loaded, an integrity test will be performed
-    // on the database
-    stopShapeIntegrityTester();
-    shapeIntegrityTester = new ShapeIntegrityTester(this);
-
-    // Load additional OpenMap layers if any
-    name = projectProperties.getProperty(NodusC.PROP_OPENMAP_LAYERS, null);
-
-    Properties props = null;
-
-    if (name != null) {
-      props = new Properties();
-
-      try {
-        String fileName =
-            localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH) + name + NodusC.TYPE_OPENMAP;
-        try (FileInputStream inputStream = new FileInputStream(fileName)) {
-          props.load(inputStream);
-        }
-      } catch (IOException ex) {
-        System.out.println(ex.toString());
-      }
-
-      addOpenMapLayers(props);
-    }
-
-    // Restore the order of the layers as saved in properties
-    Layer[] layer = nodusMapPanel.getLayerHandler().getLayers();
-    String layerOrder = localProperties.getProperty(NodusC.PROP_MAP_ORDER, "");
-
-    st = new StringTokenizer(layerOrder, ",");
-    int position = 0;
-    while (st.hasMoreTokens()) {
-      String currentLayer = st.nextToken();
-
-      for (Layer element : layer) {
-        if (element.getName().equals(currentLayer)) {
-          try {
-            nodusMapPanel.getLayerHandler().moveLayer(element, position);
-            position++;
-          } catch (Exception e) {
-            // Layer list could be corrupted
-          }
-        }
-      }
-    }
-
-    // Set the default preferences
-    setDefaultPreferences();
-
-    // Restore the scale rendering threshold
-    nodusMapPanel.setRenderingScaleThreshold(
-        getLocalProperty(NodusC.PROP_RENDERING_SCALE_THRESHOLD, (float) -1));
-
-    // Verify if exclusion table is compatible with this version of Nodus
-    NodeRulesReader.fixExclusionTableIfNeeded(this);
-
-    // Load the service lines
-    serviceHandler = new ServiceHandler(this);
-
-    // Initialize the user defined modal split methods for this project
-    new ModalSplitMethodsLoader(this);
-
-    String scriptFileName =
-        localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
-            + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
-            + NodusC.TYPE_GROOVY;
-    ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
-    scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
-    scriptRunner.setVariable("openProject", true);
-    scriptRunner.setVariable("closeProject", false);
-    scriptRunner.run(true);
-
-    isOpen = true;
-
-    // Enable layers panel
-    nodusMapPanel.getNodusLayersPanel().enableButtons(true);
-
-    // Reset mouse mode
-    String mouseModeId = getLocalProperty(NodusC.PROP_ACTIVE_MOUSE_MODE, null);
-    if (mouseModeId != null) {
-      getNodusMapPanel().setActiveMouseMode(mouseModeId);
-    }
-    getNodusMapPanel().resetText();
-    getNodusMapPanel().updateScenarioComboBox(true);
-    getNodusMapPanel().enableMenus(true);
-    getNodusMapPanel().setFileMenuBusy(false);
-    getNodusMapPanel().restoreMainFrameFocus();
-
-    nodusMapPanel.setBusy(false);
+    loadNodeLayersAsync(nodeLayerNames, linkLayerNames, 0, 0);
   }
 
   /** Reload the project. Can be used when new node/link layers are added/removed to the project. */
