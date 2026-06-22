@@ -204,7 +204,7 @@ public class ImportDBF {
       }
 
       // Flush remaining records in batch
-      if (hasBatchSupport) {
+      if (hasBatchSupport && batchSize > 0) {
         prepStmt.executeBatch();
       }
 

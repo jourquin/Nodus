@@ -114,6 +114,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Insets;
+import java.awt.IllegalComponentStateException;
 import java.awt.Paint;
 import java.awt.Point;
 import java.awt.RenderingHints;
@@ -630,16 +631,29 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** Closes the main frame after having save its state in the Nodus properties file. */
   public void closeAndSaveState() {
-
-    // Close project
     if (nodusProject != null) {
-      nodusProject.close();
+      nodusProject.close(this::finishCloseAndSaveState);
+      return;
     }
+    finishCloseAndSaveState();
+  }
+
+  /** Persists frame/application state and exits once any project close sequence is complete. */
+  private void finishCloseAndSaveState() {
 
     // Save current settings
-    int frameWidth = getMainFrame().getWidth();
-    int frameHeight = getMainFrame().getHeight();
-    Point p = getMainFrame().getLocationOnScreen();
+    Frame mainFrame = getMainFrame();
+    int frameWidth = mainFrame.getWidth();
+    int frameHeight = mainFrame.getHeight();
+    Point p = mainFrame.getLocation();
+
+    if (mainFrame.isShowing()) {
+      try {
+        p = mainFrame.getLocationOnScreen();
+      } catch (IllegalComponentStateException e) {
+        p = mainFrame.getLocation();
+      }
+    }
 
     // Avoid saving minimized state values (Windows only)
     if (p.x != -32000) {
@@ -2328,9 +2342,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   private void menuItemFileCloseActionPerformed(ActionEvent e) {
     if (nodusProject != null) {
-      nodusProject.close();
-      displayScenarioCombo(false);
-      displayPoliticalBoundaries(true, true);
+      nodusProject.close(
+          () -> {
+            displayScenarioCombo(false);
+            displayPoliticalBoundaries(true, true);
+          });
     }
   }
 
@@ -2358,9 +2374,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           public void run() {
             String projectName = nodusProject.getProject();
             if (projectName != null) {
-              if (nodusProject.isOpen()) {
-                nodusProject.close();
-              }
               openProject(projectName);
             }
           }
@@ -2580,32 +2593,37 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   public void openProject(String projectName) {
     if (projectName != null) {
+      Runnable openTask =
+          () -> {
+            displayScenarioCombo(true);
+            try {
+              nodusProject.openProject(projectName);
+            } catch (OutOfMemoryError e) {
+              // Free memory and force garbage collection
+              Layer[] layer = getLayerHandler().getLayers();
+              for (int i = 0; i < layer.length; i++) {
+                layer[i] = null;
+              }
+              System.gc();
+
+              JOptionPane.showMessageDialog(
+                  nodusProject.getNodusMapPanel(),
+                  i18n.get(
+                      NodusMapPanel.class,
+                      "Out_of_memory",
+                      "Out of memory. Increase JVM Heap size in launcher script"),
+                  NodusC.APPNAME,
+                  JOptionPane.ERROR_MESSAGE);
+
+              nodusProject.getNodusMapPanel().closeAndSaveState();
+              // System.exit(0);
+            }
+          };
+
       if (nodusProject.isOpen()) {
-        nodusProject.close(); // In case a project was already loaded
-      }
-
-      displayScenarioCombo(true);
-      try {
-        nodusProject.openProject(projectName);
-      } catch (OutOfMemoryError e) {
-        // Free memory and force garbage collection
-        Layer[] layer = getLayerHandler().getLayers();
-        for (int i = 0; i < layer.length; i++) {
-          layer[i] = null;
-        }
-        System.gc();
-
-        JOptionPane.showMessageDialog(
-            nodusProject.getNodusMapPanel(),
-            i18n.get(
-                NodusMapPanel.class,
-                "Out_of_memory",
-                "Out of memory. Increase JVM Heap size in launcher script"),
-            NodusC.APPNAME,
-            JOptionPane.ERROR_MESSAGE);
-
-        nodusProject.getNodusMapPanel().closeAndSaveState();
-        // System.exit(0);
+        nodusProject.close(openTask); // In case a project was already loaded
+      } else {
+        openTask.run();
       }
     }
   }
