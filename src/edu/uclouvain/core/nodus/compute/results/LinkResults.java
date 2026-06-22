@@ -112,12 +112,55 @@ public class LinkResults implements ShapeConstants {
 
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
-  private static int currentScenario = -1;
+  private int currentScenario = -1;
 
-  private static VehiclesParser currentVehiclesParser = null;
+  private String currentCostFunctionsFileName = null;
+
+  private VehiclesParser currentVehiclesParser = null;
 
   double maxResult = Double.MIN_VALUE;
   double minResult = Double.MAX_VALUE;
+
+  /** Resolves the cost-functions file path for the current scenario. */
+  private String getCostFunctionsFileName(int scenario) {
+    String costFunctionsFileName = nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS);
+    costFunctionsFileName =
+        nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS + scenario, costFunctionsFileName);
+    return nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + costFunctionsFileName;
+  }
+
+  /**
+   * Returns a vehicle parser for the current project/scenario, reloading it when the scenario or
+   * the underlying cost-functions file changes.
+   */
+  private VehiclesParser getVehiclesParser(int scenario) {
+    String costFunctionsFileName = getCostFunctionsFileName(scenario);
+
+    if (scenario != currentScenario
+        || currentVehiclesParser == null
+        || !costFunctionsFileName.equals(currentCostFunctionsFileName)) {
+      Properties costFunctions = new Properties();
+      try (FileInputStream inputStream = new FileInputStream(costFunctionsFileName.trim())) {
+        costFunctions.load(inputStream);
+      } catch (IOException ex) {
+        ex.printStackTrace();
+        return null;
+      }
+
+      VehiclesParser vehiclesParser = new VehiclesParser(scenario);
+      for (byte group = 0; group < NodusC.MAXGROUPS; group++) {
+        if (!vehiclesParser.loadVehicleCharacteristics(costFunctions, group)) {
+          return null;
+        }
+      }
+
+      currentScenario = scenario;
+      currentCostFunctionsFileName = costFunctionsFileName;
+      currentVehiclesParser = vehiclesParser;
+    }
+
+    return currentVehiclesParser;
+  }
 
   /**
    * Initializes the class.
@@ -440,39 +483,11 @@ public class LinkResults implements ShapeConstants {
 
     // Load the average loads of each type of vehicle from the cost functions file
     if (displayVehicles) {
-      if (scenario != currentScenario || currentVehiclesParser == null) {
-        currentScenario = scenario;
-
-        // Load cost functions
-        String costFunctionsFileName = nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS);
-
-        costFunctionsFileName =
-            nodusProject.getLocalProperty(
-                NodusC.PROP_COST_FUNCTIONS + currentScenario, costFunctionsFileName);
-        costFunctionsFileName =
-            nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + costFunctionsFileName;
-
-        Properties costFunctions = new Properties();
-        try (FileInputStream inputStream = new FileInputStream(costFunctionsFileName.trim())) {
-          costFunctions.load(inputStream);
-        } catch (IOException ex) {
-          ex.printStackTrace();
-          nodusMapPanel.setBusy(false);
-          return false;
-        }
-
-        // Initialize the vehicles parser and load the vehicle characteristics for all groups.
-        currentVehiclesParser = new VehiclesParser(currentScenario);
-
-        for (byte group = 0; group < NodusC.MAXGROUPS; group++) {
-          if (!currentVehiclesParser.loadVehicleCharacteristics(costFunctions, group)) {
-            nodusMapPanel.setBusy(false);
-            return false;
-          }
-        }
+      vehiclesParser = getVehiclesParser(scenario);
+      if (vehiclesParser == null) {
+        nodusMapPanel.setBusy(false);
+        return false;
       }
-
-      vehiclesParser = currentVehiclesParser;
     }
 
     Connection jdbcConnection = nodusProject.getMainJDBCConnection();
