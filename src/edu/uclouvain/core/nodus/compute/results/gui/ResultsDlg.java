@@ -856,7 +856,9 @@ public class ResultsDlg extends EscapeDialog {
             nodusProject.setLocalProperty(
                 NodusC.PROP_DYNAMIC_QUANTITIES_QUERY + currentScenario,
                 dynamicQuantitiesQueryString);
-            success = lr.displayTimeDependentFlows(sqlTextPane.getText(), this::resetLayers);
+            success =
+                lr.displayTimeDependentFlows(
+                    sqlTextPane.getText(), this::handleTimeDependentDisplayFinished);
             break;
 
           case 4: // Display time dependent assigned vehicles
@@ -864,7 +866,9 @@ public class ResultsDlg extends EscapeDialog {
             dynamicVehiclesQueryString = sqlTextPane.getText();
             nodusProject.setLocalProperty(
                 NodusC.PROP_DYNAMIC_VEHICLES_QUERY + currentScenario, dynamicVehiclesQueryString);
-            success = lr.displayTimeDependentFlows(sqlTextPane.getText(), this::resetLayers);
+            success =
+                lr.displayTimeDependentFlows(
+                    sqlTextPane.getText(), this::handleTimeDependentDisplayFinished);
             break;
 
           default:
@@ -873,6 +877,14 @@ public class ResultsDlg extends EscapeDialog {
       }
     }
 
+    if (!success) {
+      setVisible(true);
+    }
+  }
+
+  /** Restores the dialog/layers after time-dependent playback finishes. */
+  private void handleTimeDependentDisplayFinished(boolean success) {
+    resetLayers();
     if (!success) {
       setVisible(true);
     }

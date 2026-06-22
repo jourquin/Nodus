@@ -71,6 +71,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.Vector;
+import java.util.concurrent.FutureTask;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -87,6 +88,7 @@ import javax.swing.JTextPane;
 import javax.swing.JToolBar;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
@@ -555,18 +557,21 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @param msg Message to display
    */
   private void displayMessageInResult(String head, String msg) {
-    // For grid result
-    gridResultArea.clear();
+    runOnEdtAndWait(
+        () -> {
+          // For grid result
+          gridResultArea.clear();
 
-    String[] g = new String[1];
-    g[0] = head;
-    gridResultArea.setHead(g);
+          String[] g = new String[1];
+          g[0] = head;
+          gridResultArea.setHead(g);
 
-    g[0] = msg;
-    gridResultArea.addRow(g);
-    if (typeOfResultFormat == 1) {
-      updateTextResult();
-    }
+          g[0] = msg;
+          gridResultArea.addRow(g);
+          if (typeOfResultFormat == 1) {
+            updateTextResult();
+          }
+        });
   }
 
   /**
@@ -579,7 +584,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     setBusy(true);
 
     // Decompose all the statements
-    Vector<String> sqlCommands = parseSQLCommands(sqlCommandsArea.getText());
+    String sqlCommandsText = getSqlCommandsText();
+    Vector<String> sqlCommands = parseSQLCommands(sqlCommandsText);
 
     // Limit the output length of a single line query
     try {
@@ -597,8 +603,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     // Clear the output zone
     if (withGUI) {
       treeMustBeRefreshed = false;
-      txtResultArea.setText(null);
-      gridResultArea.clear();
+      clearGuiResults();
     }
 
     boolean error = false;
@@ -646,8 +651,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
       // "shutdown compact" is not allowed from the console
       if (startsWithCommand(sync, "SHUTDOWN COMPACT")) {
-        JOptionPane.showMessageDialog(
-            null,
+        showMessageDialogOnEdt(
             i18n.get(
                 SQLConsole.class,
                 "Shutdown_not_allowed",
@@ -668,18 +672,18 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       if (isCommand(sync, CLEARSCREEN) && withGUI) {
-        txtResultArea.setText("");
+        clearTextResultArea();
         continue;
       }
 
       if (isCommand(sync, DISPLAYGRID) && withGUI) {
-        menuResultInGrid.doClick();
+        runOnEdtAndWait(menuResultInGrid::doClick);
 
         continue;
       }
 
       if (isCommand(sync, DISPLAYTEXT) && withGUI) {
-        menuResultInText.doClick();
+        runOnEdtAndWait(menuResultInText::doClick);
         continue;
       }
 
@@ -834,7 +838,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      gridResultArea.clear();
+      clearGridResultArea();
 
       String[] g = new String[1];
 
@@ -849,22 +853,20 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         } else {
           // Is an update
           g[0] = "update count";
-          if (withGUI) {
-            gridResultArea.setHead(g);
-          } else {
+          if (!withGUI) {
             System.out.print(g[0] + ": ");
           }
 
           g[0] = "" + r;
           if (withGUI) {
-            gridResultArea.addRow(g);
+            showSingleValueResult("update count", g[0]);
           } else {
             System.out.println(g[0]);
           }
         }
 
         if (sqlCommands.size() <= 1) {
-          addToRecent(sqlCommandsArea.getText());
+          addToRecent(sqlCommandsText);
         }
 
         if (!jdbcConnection.getAutoCommit()) {
@@ -880,11 +882,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         s += " / State: " + e.getSQLState();
 
         if (withGUI) {
-          g[0] = "SQL Error";
-          gridResultArea.setHead(g);
-          g[0] = s;
-
-          gridResultArea.addRow(g);
+          showSingleValueResult("SQL Error", s);
         } else {
           System.err.println(s);
         }
@@ -1115,15 +1113,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       ResultSet r = stmt.getResultSet();
 
       if (r == null) {
-
-        String[] g = new String[1];
-
-        g[0] = i18n.get(SQLConsole.class, "Result", "Result");
-        gridResultArea.setHead(g);
-
-        g[0] = i18n.get(SQLConsole.class, "empty", "(empty)");
-        gridResultArea.addRow(g);
-
+        showSingleValueResult(
+            i18n.get(SQLConsole.class, "Result", "Result"),
+            i18n.get(SQLConsole.class, "empty", "(empty)"));
         return;
       }
 
@@ -1132,24 +1124,21 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
         int col = m.getColumnCount();
         String[] h = new String[col];
+        List<String[]> rows = new ArrayList<>();
 
         for (int i = 1; i <= col; i++) {
           h[i - 1] = m.getColumnLabel(i);
         }
 
-        gridResultArea.setHead(h);
-
-        sorter.setTableHeader(resultTable.getTableHeader());
-
         int counter = 0;
-        jbuttonExecute.setForeground(colorButton);
+        boolean maxRowsReached = false;
         while (result.next()) {
 
           // The result set may be larger that the max rows set. In such a case, change
           // the color of the text in the query button in order to warn the user.
           counter++;
           if (counter == maxRows) {
-            jbuttonExecute.setForeground(Color.RED);
+            maxRowsReached = true;
           }
 
           for (int i = 1; i <= col; i++) {
@@ -1160,8 +1149,10 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
             }
           }
 
-          gridResultArea.addRow(h);
+          rows.add(h.clone());
         }
+
+        applyFormattedResultSet(h.clone(), rows, maxRowsReached);
       }
     } catch (SQLException e) {
       e.printStackTrace();
@@ -2277,16 +2268,23 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
   /** Sets or unsets the wait cursor. */
   private void setBusy(boolean busy) {
-    if (withGUI) {
-      if (busy) {
-        frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-        sqlCommandsArea.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-        nodusMapPanel.setBusy(true);
-      } else {
-        frame.setCursor(oldCursor);
-        sqlCommandsArea.setCursor(oldCursor);
-        nodusMapPanel.setBusy(false);
-      }
+    if (!withGUI) {
+      return;
+    }
+
+    if (!SwingUtilities.isEventDispatchThread()) {
+      runOnEdtAndWait(() -> setBusy(busy));
+      return;
+    }
+
+    if (busy) {
+      frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+      sqlCommandsArea.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+      nodusMapPanel.setBusy(true);
+    } else {
+      frame.setCursor(oldCursor);
+      sqlCommandsArea.setCursor(oldCursor);
+      nodusMapPanel.setBusy(false);
     }
   }
 
@@ -2375,16 +2373,23 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
   /** Updates the result text area. */
   private void updateTextResult() {
+    if (withGUI) {
+      runOnEdtAndWait(
+          () -> {
+            if (typeOfResultFormat == 1) {
+              String result = getResultAsString();
+              if (result.length() > 0) {
+                addToTxtResultArea(result + NL, false);
+              }
+            }
+          });
+      return;
+    }
 
-    String result = "";
     if (typeOfResultFormat == 1) {
-      result = getResultAsString();
+      String result = getResultAsString();
       if (result.length() > 0) {
-        if (withGUI) {
-          addToTxtResultArea(result + NL, false);
-        } else {
-          System.out.println(result);
-        }
+        System.out.println(result);
       }
     }
   }
@@ -2437,6 +2442,10 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @param isCommand If true, the text will be displayed in bold blue.
    */
   private void addToTxtResultArea(String textToAdd, boolean isCommand) {
+    if (withGUI && !SwingUtilities.isEventDispatchThread()) {
+      runOnEdtAndWait(() -> addToTxtResultArea(textToAdd, isCommand));
+      return;
+    }
 
     if (isCommand) {
       StyleConstants.setForeground(style, Color.blue);
@@ -2451,6 +2460,92 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       txtResultArea.setCaretPosition(txtResultArea.getDocument().getLength());
     } catch (BadLocationException e) {
       e.printStackTrace();
+    }
+  }
+
+  /** Returns the SQL command text from the editor, safely from any thread. */
+  private String getSqlCommandsText() {
+    if (!withGUI || SwingUtilities.isEventDispatchThread()) {
+      return sqlCommandsArea.getText();
+    }
+
+    FutureTask<String> task = new FutureTask<>(sqlCommandsArea::getText);
+    runOnEdtAndWait(task);
+    try {
+      return task.get();
+    } catch (Exception e) {
+      throw new IllegalStateException("Unable to read SQL command text", e);
+    }
+  }
+
+  /** Clears both result panes from the EDT. */
+  private void clearGuiResults() {
+    runOnEdtAndWait(
+        () -> {
+          txtResultArea.setText(null);
+          gridResultArea.clear();
+        });
+  }
+
+  /** Clears only the grid result area from the EDT. */
+  private void clearGridResultArea() {
+    if (!withGUI) {
+      return;
+    }
+
+    runOnEdtAndWait(gridResultArea::clear);
+  }
+
+  /** Clears only the text result area from the EDT. */
+  private void clearTextResultArea() {
+    if (!withGUI) {
+      return;
+    }
+
+    runOnEdtAndWait(() -> txtResultArea.setText(""));
+  }
+
+  /** Shows a one-cell result in the grid, safely from any thread. */
+  private void showSingleValueResult(String head, String value) {
+    runOnEdtAndWait(
+        () -> {
+          String[] header = {head};
+          String[] row = {value};
+          gridResultArea.setHead(header);
+          gridResultArea.addRow(row);
+        });
+  }
+
+  /** Applies a fully materialized result set to the grid on the EDT. */
+  private void applyFormattedResultSet(
+      String[] header, List<String[]> rows, boolean maxRowsReached) {
+    runOnEdtAndWait(
+        () -> {
+          gridResultArea.setHead(header);
+          sorter.setTableHeader(resultTable.getTableHeader());
+          jbuttonExecute.setForeground(maxRowsReached ? Color.RED : colorButton);
+          for (String[] row : rows) {
+            gridResultArea.addRow(row);
+          }
+        });
+  }
+
+  /** Displays a message dialog safely from any thread. */
+  private void showMessageDialogOnEdt(String message, String title, int messageType) {
+    runOnEdtAndWait(() -> JOptionPane.showMessageDialog(null, message, title, messageType));
+  }
+
+  /** Runs {@code task} on the EDT and waits for completion when called off the EDT. */
+  private void runOnEdtAndWait(Runnable task) {
+    if (!withGUI || SwingUtilities.isEventDispatchThread()) {
+      task.run();
+      return;
+    }
+
+    try {
+      SwingUtilities.invokeAndWait(task);
+    } catch (Exception e) {
+      throw new IllegalStateException("Unable to execute task on EDT", e);
     }
   }
 

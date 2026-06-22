@@ -547,7 +547,12 @@ public class ProjectFilesTools implements ShapeConstants {
 
       if (!isValidLayer(path, currentName, SHAPE_TYPE_POLYLINE)) {
         if (enabledFieldMustBeAdded) {
-          addEnabledField(path, currentName);
+          if (!addEnabledField(path, currentName)) {
+            enabledFieldMustBeAdded = false;
+            JOptionPane.showMessageDialog(
+                null, errorMessage, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+            return false;
+          }
           enabledFieldMustBeAdded = false;
         } else {
           JOptionPane.showMessageDialog(

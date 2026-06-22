@@ -52,6 +52,7 @@ import java.sql.Statement;
 import java.text.DecimalFormat;
 import java.util.Iterator;
 import java.util.Properties;
+import java.util.function.Consumer;
 import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
@@ -640,8 +641,11 @@ public class LinkResults implements ShapeConstants {
     return displayTimeDependentFlows(sqlStmt, null);
   }
 
-  /** Starts the time-dependent result playback and invokes {@code onDone} when it finishes. */
-  public boolean displayTimeDependentFlows(String sqlStmt, Runnable onDone) {
+  /**
+   * Starts the time-dependent result playback and reports the final success state to {@code
+   * onDone}.
+   */
+  public boolean displayTimeDependentFlows(String sqlStmt, Consumer<Boolean> onDone) {
 
     // double maxResult = Double.MIN_VALUE;
     // double minResult = Double.MAX_VALUE;
@@ -652,7 +656,7 @@ public class LinkResults implements ShapeConstants {
     // Return without error
     if (answer == null) {
       if (onDone != null) {
-        onDone.run();
+        onDone.accept(Boolean.TRUE);
       }
       return true;
     }
@@ -694,6 +698,7 @@ public class LinkResults implements ShapeConstants {
     try (FileInputStream inputStream = new FileInputStream(costFunctionsFileName.trim())) {
       costFunctions.load(inputStream);
     } catch (IOException ex) {
+      isTimeDependent = false;
       JOptionPane.showMessageDialog(
           null, "Cost functions not found", NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
@@ -707,6 +712,7 @@ public class LinkResults implements ShapeConstants {
         Integer.parseInt(costFunctions.getProperty(NodusC.VARNAME_TIMESLICE, "-1"));
 
     if (assignmentEndTime == -1 || assignmentStartTime == -1 || timeSliceDuration == -1) {
+      isTimeDependent = false;
       JOptionPane.showMessageDialog(
           null,
           "Time related variables not found in cost functions",
@@ -733,6 +739,7 @@ public class LinkResults implements ShapeConstants {
       }
 
     } catch (Exception ex) {
+      isTimeDependent = false;
       nodusMapPanel.setBusy(false);
       JOptionPane.showMessageDialog(null, ex.getMessage(), "SQL error", JOptionPane.ERROR_MESSAGE);
 
@@ -828,14 +835,14 @@ public class LinkResults implements ShapeConstants {
       LabelLayer labelLayer,
       String oldText,
       KeyAdapter keyAdapter,
-      Runnable onDone) {
+      Consumer<Boolean> onDone) {
     if (cancelDisplay) {
-      finishTimeDependentDisplay(keyAdapter, labelLayer, oldText, false, onDone);
+      finishTimeDependentDisplay(keyAdapter, labelLayer, oldText, false, true, onDone);
       return;
     }
 
     if (currentTime > assignmentEndTime) {
-      finishTimeDependentDisplay(keyAdapter, labelLayer, oldText, true, onDone);
+      finishTimeDependentDisplay(keyAdapter, labelLayer, oldText, true, true, onDone);
       return;
     }
 
@@ -859,7 +866,7 @@ public class LinkResults implements ShapeConstants {
 
     resetResults();
     if (!displayVolumes(sqlStmt, currentTime)) {
-      finishTimeDependentDisplay(keyAdapter, labelLayer, oldText, false, onDone);
+      finishTimeDependentDisplay(keyAdapter, labelLayer, oldText, false, false, onDone);
       return;
     }
 
@@ -885,7 +892,7 @@ public class LinkResults implements ShapeConstants {
       LabelLayer labelLayer,
       String oldText,
       KeyAdapter keyAdapter,
-      Runnable onDone) {
+      Consumer<Boolean> onDone) {
     Timer timer =
         new Timer(
             autoSliceDisplay ? sliceDisplayInterval : 10,
@@ -916,7 +923,8 @@ public class LinkResults implements ShapeConstants {
       LabelLayer labelLayer,
       String oldText,
       boolean completed,
-      Runnable onDone) {
+      boolean success,
+      Consumer<Boolean> onDone) {
     nodusMapPanel.getMapBean().removeKeyListener(keyAdapter);
 
     if (labelLayer != null) {
@@ -937,7 +945,7 @@ public class LinkResults implements ShapeConstants {
     }
 
     if (onDone != null) {
-      onDone.run();
+      onDone.accept(Boolean.valueOf(success));
     }
   }
 
