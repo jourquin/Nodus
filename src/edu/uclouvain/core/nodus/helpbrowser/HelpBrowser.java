@@ -86,6 +86,8 @@ public class HelpBrowser {
               }
             }
           };
+      t.setName("Nodus-HelpBrowser");
+      t.setDaemon(true);
       t.start();
     } else {
 

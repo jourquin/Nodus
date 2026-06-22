@@ -55,6 +55,23 @@ public class GitHubRelease {
 
   private static I18n i18n = Environment.getI18n();
 
+  /** Returns a desktop instance only when URI browsing is supported on this runtime. */
+  private static Desktop getBrowseDesktop() {
+    if (!Desktop.isDesktopSupported()) {
+      return null;
+    }
+
+    try {
+      Desktop desktop = Desktop.getDesktop();
+      if (!desktop.isSupported(Desktop.Action.BROWSE)) {
+        return null;
+      }
+      return desktop;
+    } catch (SecurityException | UnsupportedOperationException e) {
+      return null;
+    }
+  }
+
   /** . */
   public GitHubRelease() {}
 
@@ -187,11 +204,31 @@ public class GitHubRelease {
         new MouseAdapter() {
           @Override
           public void mouseClicked(MouseEvent e) {
-            try {
-              Desktop.getDesktop().browse(new java.net.URI(url));
-            } catch (Exception ex) {
-              ex.printStackTrace();
+            Desktop desktop = getBrowseDesktop();
+            if (desktop == null) {
+              JOptionPane.showMessageDialog(
+                  null,
+                  i18n.get(
+                      GitHubRelease.class,
+                      "DesktopBrowseUnsupported",
+                      "Desktop browsing is not supported on this system"),
+                  NodusC.APPNAME,
+                  JOptionPane.ERROR_MESSAGE);
+              return;
             }
+
+            Thread t =
+                new Thread(
+                    () -> {
+                      try {
+                        desktop.browse(new java.net.URI(url));
+                      } catch (Exception ex) {
+                        ex.printStackTrace();
+                      }
+                    },
+                    "Nodus-ReleaseBrowser");
+            t.setDaemon(true);
+            t.start();
           }
         });
 

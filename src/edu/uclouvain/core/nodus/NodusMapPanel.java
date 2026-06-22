@@ -462,7 +462,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
   /** Current desktop context. */
-  private Desktop desktop = Desktop.getDesktop();
+  private Desktop desktop = getSupportedDesktop();
 
   /**
    * Creates all the GUI components needed by Nodus on the application's panel. The application's
@@ -490,6 +490,26 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             }
           });
     }
+  }
+
+  /** Returns the local desktop integration object only when the runtime actually supports it. */
+  private static Desktop getSupportedDesktop() {
+    if (!Desktop.isDesktopSupported()) {
+      return null;
+    }
+
+    try {
+      return Desktop.getDesktop();
+    } catch (SecurityException | UnsupportedOperationException e) {
+      return null;
+    }
+  }
+
+  /** True when native macOS application handlers can be registered safely. */
+  private boolean useMacDesktopIntegration() {
+    return desktop != null
+        && System.getProperty("os.name").toLowerCase().startsWith("mac")
+        && UIManager.getLookAndFeel().isNativeLookAndFeel();
   }
 
   /**
@@ -1912,8 +1932,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     menuFile.add(menuItemFileSaveAs);
     menuFile.add(menuItemFilePrint);
 
-    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
-        && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
+    if (useMacDesktopIntegration() && desktop.isSupported(Desktop.Action.APP_QUIT_HANDLER)) {
       desktop.setQuitHandler(
           (e, r) -> {
             menuItemFileExitActionPerformed();
@@ -1943,8 +1962,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     menuTools.add(menuItemToolGroovyScripts);
     menuTools.add(menuItemToolRessourcesMonitor);
 
-    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
-        && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
+    if (useMacDesktopIntegration() && desktop.isSupported(Desktop.Action.APP_ABOUT)) {
       desktop.setAboutHandler(e -> menuItemAboutActionPerformed());
     } else {
       menuHelp.add(menuItemHelpAbout);
@@ -2970,8 +2988,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** Set application preferences. */
   private void setGlobalPreferencesMenu() {
-    if (System.getProperty("os.name").toLowerCase().startsWith("mac")
-        && UIManager.getLookAndFeel().isNativeLookAndFeel()) {
+    if (useMacDesktopIntegration() && desktop.isSupported(Desktop.Action.APP_PREFERENCES)) {
       desktop.setPreferencesHandler(e -> menuItemFileGlobalPreferencesActionPerformed());
     } else {
       menuFile.add(menuItemSystemProperties);

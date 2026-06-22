@@ -32,6 +32,7 @@ import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
+import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -51,6 +52,63 @@ import javax.swing.SwingUtilities;
 public class ShapeIntegrityTester {
   private static I18n i18n = Environment.getI18n();
 
+  /** Snapshot of a node layer captured on the EDT for background validation. */
+  private static final class NodeLayerSnapshot {
+    private final String layerName;
+    private final int graphicCount;
+    private final long[] nodeIds;
+
+    private NodeLayerSnapshot(String layerName, int graphicCount, long[] nodeIds) {
+      this.layerName = layerName;
+      this.graphicCount = graphicCount;
+      this.nodeIds = nodeIds;
+    }
+  }
+
+  /** Snapshot of a link layer captured on the EDT for background validation. */
+  private static final class LinkLayerSnapshot {
+    private final NodusEsriLayer layer;
+    private final String layerName;
+    private final int graphicCount;
+    private final long[] linkIds;
+    private final int[] node1Ids;
+    private final int[] node2Ids;
+
+    private LinkLayerSnapshot(
+        NodusEsriLayer layer,
+        String layerName,
+        int graphicCount,
+        long[] linkIds,
+        int[] node1Ids,
+        int[] node2Ids) {
+      this.layer = layer;
+      this.layerName = layerName;
+      this.graphicCount = graphicCount;
+      this.linkIds = linkIds;
+      this.node1Ids = node1Ids;
+      this.node2Ids = node2Ids;
+    }
+  }
+
+  /** Immutable data used by the background integrity validation pass. */
+  private static final class IntegritySnapshot {
+    private final NodeLayerSnapshot[] nodeLayers;
+    private final LinkLayerSnapshot[] linkLayers;
+    private final HashMap<Integer, Integer> otherNodeNumbers;
+    private final HashMap<Integer, Integer> otherLinkNumbers;
+
+    private IntegritySnapshot(
+        NodeLayerSnapshot[] nodeLayers,
+        LinkLayerSnapshot[] linkLayers,
+        HashMap<Integer, Integer> otherNodeNumbers,
+        HashMap<Integer, Integer> otherLinkNumbers) {
+      this.nodeLayers = nodeLayers;
+      this.linkLayers = linkLayers;
+      this.otherNodeNumbers = otherNodeNumbers;
+      this.otherLinkNumbers = otherLinkNumbers;
+    }
+  }
+
   /** Timer used to launch the tester. */
   private java.util.Timer integrityTestTimer;
 
@@ -62,6 +120,9 @@ public class ShapeIntegrityTester {
 
   /** Nodus project to be tested. */
   private NodusProject nodusProject;
+
+  /** True once the tester is shutting down and should ignore pending work. */
+  private volatile boolean stopped = false;
 
   /**
    * The tester works in a timer that is launched with an interval of one second, on a given
@@ -77,7 +138,7 @@ public class ShapeIntegrityTester {
         new TimerTask() {
           @Override
           public void run() {
-            if (nodusProject != null) {
+            if (!stopped && nodusProject != null) {
               runIntegrityTest();
             }
           }
@@ -92,7 +153,7 @@ public class ShapeIntegrityTester {
    * @return True if all the layers are loaded
    */
   private boolean isProjectLoaded() {
-    if (nodusProject == null) {
+    if (stopped || nodusProject == null) {
       return false;
     }
 
@@ -126,13 +187,96 @@ public class ShapeIntegrityTester {
     return true;
   }
 
+  /** Captures the layer/model state on the EDT so validation can run safely off-thread. */
+  private IntegritySnapshot captureSnapshot() {
+    final IntegritySnapshot[] snapshotHolder = new IntegritySnapshot[1];
+    final RuntimeException[] failureHolder = new RuntimeException[1];
+
+    Runnable captureTask =
+        () -> {
+          if (stopped || !isProjectLoaded()) {
+            return;
+          }
+
+          try {
+            NodeLayerSnapshot[] nodeSnapshots = new NodeLayerSnapshot[nodeLayers.length];
+            for (int i = 0; i < nodeLayers.length; i++) {
+              NodusEsriLayer layer = nodeLayers[i];
+              DbfTableModel model = layer.getModel();
+              long[] nodeIds = new long[model.getRowCount()];
+              for (int row = 0; row < model.getRowCount(); row++) {
+                nodeIds[row] = JDBCUtils.getLong(model.getValueAt(row, NodusC.DBF_IDX_NUM));
+              }
+              nodeSnapshots[i] =
+                  new NodeLayerSnapshot(
+                      layer.getName(), layer.getEsriGraphicList().size(), nodeIds);
+            }
+
+            LinkLayerSnapshot[] linkSnapshots = new LinkLayerSnapshot[linkLayers.length];
+            for (int i = 0; i < linkLayers.length; i++) {
+              NodusEsriLayer layer = linkLayers[i];
+              DbfTableModel model = layer.getModel();
+              long[] linkIds = new long[model.getRowCount()];
+              int[] node1Ids = new int[model.getRowCount()];
+              int[] node2Ids = new int[model.getRowCount()];
+              for (int row = 0; row < model.getRowCount(); row++) {
+                linkIds[row] = JDBCUtils.getLong(model.getValueAt(row, NodusC.DBF_IDX_NUM));
+                node1Ids[row] = JDBCUtils.getInt(model.getValueAt(row, NodusC.DBF_IDX_NODE1));
+                node2Ids[row] = JDBCUtils.getInt(model.getValueAt(row, NodusC.DBF_IDX_NODE2));
+              }
+              linkSnapshots[i] =
+                  new LinkLayerSnapshot(
+                      layer,
+                      layer.getName(),
+                      layer.getEsriGraphicList().size(),
+                      linkIds,
+                      node1Ids,
+                      node2Ids);
+            }
+
+            snapshotHolder[0] =
+                new IntegritySnapshot(
+                    nodeSnapshots,
+                    linkSnapshots,
+                    new HashMap<>(nodusProject.getOtherNodeNumbers()),
+                    new HashMap<>(nodusProject.getOtherLinkNumbers()));
+          } catch (RuntimeException e) {
+            failureHolder[0] = e;
+          }
+        };
+
+    if (SwingUtilities.isEventDispatchThread()) {
+      captureTask.run();
+    } else {
+      try {
+        SwingUtilities.invokeAndWait(captureTask);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return null;
+      } catch (InvocationTargetException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof RuntimeException) {
+          throw (RuntimeException) cause;
+        }
+        throw new RuntimeException(cause);
+      }
+    }
+
+    if (failureHolder[0] != null) {
+      throw failureHolder[0];
+    }
+
+    return snapshotHolder[0];
+  }
+
   /**
    * Real integrity tests starts here. The test only can start when all the node and link layers are
    * loaded.
    */
   private void runIntegrityTest() {
 
-    if (!isProjectLoaded()) {
+    IntegritySnapshot snapshot = captureSnapshot();
+    if (snapshot == null || stopped) {
       return;
     }
 
@@ -145,13 +289,12 @@ public class ShapeIntegrityTester {
 
     // Test if each node number only occurs one time
     nodes = new HashMap<>();
-    otherObjects = nodusProject.getOtherNodeNumbers();
+    otherObjects = snapshot.otherNodeNumbers;
 
-    for (NodusEsriLayer element : nodeLayers) {
-      DbfTableModel model = element.getModel();
-      String layerName = element.getName();
+    for (NodeLayerSnapshot element : snapshot.nodeLayers) {
+      String layerName = element.layerName;
 
-      if (element.getEsriGraphicList().size() != model.getRowCount()) {
+      if (element.graphicCount != element.nodeIds.length) {
         error = true;
         errorMessage =
             MessageFormat.format(
@@ -159,9 +302,9 @@ public class ShapeIntegrityTester {
                 layerName);
 
       } else {
-        for (int j = 0; j < model.getRowCount(); j++) {
+        for (int j = 0; j < element.nodeIds.length; j++) {
           // A num must be > 0 and <= Integer.MAX_VALUE
-          long id = JDBCUtils.getLong(model.getValueAt(j, NodusC.DBF_IDX_NUM));
+          long id = element.nodeIds[j];
           if (id <= 0 || id > Integer.MAX_VALUE) {
             error = true;
             errorMessage =
@@ -222,13 +365,12 @@ public class ShapeIntegrityTester {
       // Test if each link number occurs only one time and is linked to
       // two existent nodes
       links = new HashMap<>();
-      otherObjects = nodusProject.getOtherLinkNumbers();
+      otherObjects = snapshot.otherLinkNumbers;
 
-      for (NodusEsriLayer element : linkLayers) {
-        DbfTableModel model = element.getModel();
-        String layerName = element.getName();
+      for (LinkLayerSnapshot element : snapshot.linkLayers) {
+        String layerName = element.layerName;
 
-        if (element.getEsriGraphicList().size() != model.getRowCount()) {
+        if (element.graphicCount != element.linkIds.length) {
           error = true;
           errorMessage =
               MessageFormat.format(
@@ -236,10 +378,10 @@ public class ShapeIntegrityTester {
                       ShapeIntegrityTester.class, "is_unbalanced", "Layer \"{0}\" is unbalanced"),
                   layerName);
         } else {
-          for (int j = 0; j < model.getRowCount(); j++) {
+          for (int j = 0; j < element.linkIds.length; j++) {
 
             // A num must be > 0 and <= Integer.MAX_VALUE
-            long id = JDBCUtils.getLong(model.getValueAt(j, NodusC.DBF_IDX_NUM));
+            long id = element.linkIds[j];
             if (id <= 0 || id > Integer.MAX_VALUE) {
               error = true;
               errorMessage =
@@ -289,8 +431,7 @@ public class ShapeIntegrityTester {
             // Test the existence of the two end nodes. End nodes
             // must also be different
 
-            Integer node1 =
-                Integer.valueOf(JDBCUtils.getInt(model.getValueAt(j, NodusC.DBF_IDX_NODE1)));
+            Integer node1 = Integer.valueOf(element.node1Ids[j]);
             Integer node2 = null;
 
             if (nodes.get(node1) == null) {
@@ -306,7 +447,7 @@ public class ShapeIntegrityTester {
 
               error = true;
             } else {
-              node2 = Integer.valueOf(JDBCUtils.getInt(model.getValueAt(j, NodusC.DBF_IDX_NODE2)));
+              node2 = Integer.valueOf(element.node2Ids[j]);
 
               if (nodes.get(node2) == null) {
                 errorMessage =
@@ -325,7 +466,7 @@ public class ShapeIntegrityTester {
 
             // Remove "loops"
             if (node1.equals(node2)) {
-              element.addLinkToRemove(link);
+              element.layer.addLinkToRemove(link);
             }
           }
         }
@@ -341,23 +482,27 @@ public class ShapeIntegrityTester {
 
     final boolean hasError = error;
     final String integrityErrorMessage = errorMessage;
-    final NodusEsriLayer[] linkLayersToPurge = linkLayers;
+    final LinkLayerSnapshot[] linkLayersToPurge = snapshot.linkLayers;
 
     SwingUtilities.invokeLater(
         () -> {
-          if (hasError) {
+          if (stopped) {
+            return;
+          }
+
+          if (hasError && integrityErrorMessage != null) {
             JOptionPane.showMessageDialog(
                 null, integrityErrorMessage, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
           }
 
           // new DatabaseIntegrityTester(nodusProject);
-          for (NodusEsriLayer element : linkLayersToPurge) {
-            element.purgeLinks();
+          for (LinkLayerSnapshot element : linkLayersToPurge) {
+            element.layer.purgeLinks();
           }
         });
 
     // testFreeNodes();
-   
+
   }
 
   /** Additional tests, not used in production. */
@@ -442,6 +587,7 @@ public class ShapeIntegrityTester {
 
   /** Stops the periodic integrity test and releases retained references. */
   public synchronized void stop() {
+    stopped = true;
     cancelTimer();
 
     linkLayers = null;

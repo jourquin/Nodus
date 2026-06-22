@@ -915,15 +915,15 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
     Thread work =
-        new Thread() {
-          public void run() {
-            try {
-              execute();
-            } finally {
-              loop.exit();
-            }
-          }
-        };
+        new Thread(
+            () -> {
+              try {
+                execute();
+              } finally {
+                loop.exit();
+              }
+            },
+            "Nodus-SQLConsole-Execute");
 
     work.start();
     loop.enter();
@@ -1800,6 +1800,17 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     treeModel.nodeStructureChanged(rootNode);
   }
 
+  /** Restores the tree cursor on the EDT after a background refresh completes or aborts. */
+  private void restoreTreeCursor(Cursor cursor) {
+    Runnable restoreCursor = () -> treeScrollPane.setCursor(cursor);
+
+    if (SwingUtilities.isEventDispatchThread()) {
+      restoreCursor.run();
+    } else {
+      SwingUtilities.invokeLater(restoreCursor);
+    }
+  }
+
   /**
    * Exit the console.
    *
@@ -2012,168 +2023,174 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
     Thread work =
-        new Thread() {
-          public void run() {
-            DefaultMutableTreeNode rebuiltRoot = new DefaultMutableTreeNode("");
+        new Thread(
+            () -> {
+              DefaultMutableTreeNode rebuiltRoot = new DefaultMutableTreeNode("");
 
-            // Now rebuild the tree below its root
-            try {
-              // Start by naming the root node from its URL:
-              rebuiltRoot.setUserObject(metaData.getURL());
+              // Now rebuild the tree below its root
+              try {
+                // Start by naming the root node from its URL:
+                rebuiltRoot.setUserObject(metaData.getURL());
 
-              // In Oracle, limit to the schema of the user
-              String schema = null;
-              /*if (JDBCUtils.getDbEngine() == JDBCUtils.DB_ORACLE) {
-                schema =
-                    JDBCUtils.getCompliantIdentifier(
-                        nodusProject.getLocalProperty(NodusC.PROP_JDBC_USERNAME, "null"));
-              }*/
+                // In Oracle, limit to the schema of the user
+                String schema = null;
+                /*if (JDBCUtils.getDbEngine() == JDBCUtils.DB_ORACLE) {
+                  schema =
+                      JDBCUtils.getCompliantIdentifier(
+                          nodusProject.getLocalProperty(NodusC.PROP_JDBC_USERNAME, "null"));
+                }*/
 
-              // For H2 (version 2), specify that only the "PUBLIC" schema must be displayed
-              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
-                schema = "PUBLIC";
-              }
-
-              String catalog = null;
-              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
-                catalog = "";
-              }
-
-              // get metadata about user tables by building a vector of table names
-              // String[] usertables = {"TABLE", "GLOBAL TEMPORARY", "VIEW"};
-              // ResultSet result = metaData.getTables(catalog, schema, null, usertables);
-              Vector<String> tables = new Vector<>();
-              Vector<String> remarks = new Vector<>();
-
-              try (ResultSet result = JDBCUtils.getTables()) {
-                String s;
-                while (result.next()) {
-                  s = result.getString(3);
-                  if (s.indexOf("$") == -1) {
-                    tables.addElement(s);
-                    remarks.addElement(result.getString(5));
-                  }
-                }
-              }
-
-              // For each table, build a tree node with interesting info
-              for (int i = 0; i < tables.size(); i++) {
-                String name = tables.elementAt(i);
-                DefaultMutableTreeNode tableNode = makeDetachedNode(name, rebuiltRoot);
-                // Add remarks.
-                String remark = remarks.elementAt(i);
-
-                if (remark != null && !remark.trim().equals("")) {
-                  makeDetachedNode(remark, tableNode);
+                // For H2 (version 2), specify that only the "PUBLIC" schema must be displayed
+                if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
+                  schema = "PUBLIC";
                 }
 
-                // With a child for each column containing pertinent attributes
-                try (ResultSet col = metaData.getColumns(catalog, schema, name, null)) {
-                  while (col.next()) {
-                    String c = col.getString(4);
-                    DefaultMutableTreeNode columnNode = makeDetachedNode(c, tableNode);
-                    String type = col.getString(6);
+                String catalog = null;
+                if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
+                  catalog = "";
+                }
 
-                    makeDetachedNode(
-                        MessageFormat.format(i18n.get(SQLConsole.class, "Type", "Type: {0}"), type),
-                        columnNode);
+                // get metadata about user tables by building a vector of table names
+                // String[] usertables = {"TABLE", "GLOBAL TEMPORARY", "VIEW"};
+                // ResultSet result = metaData.getTables(catalog, schema, null, usertables);
+                Vector<String> tables = new Vector<>();
+                Vector<String> remarks = new Vector<>();
 
-                    boolean nullable = col.getInt(11) != DatabaseMetaData.columnNoNulls;
-
-                    makeDetachedNode(
-                        MessageFormat.format(
-                            i18n.get(SQLConsole.class, "Nullable", "Nullable: {0}"), nullable),
-                        columnNode);
+                try (ResultSet result = JDBCUtils.getTables()) {
+                  String s;
+                  while (result.next()) {
+                    s = result.getString(3);
+                    if (s.indexOf("$") == -1) {
+                      tables.addElement(s);
+                      remarks.addElement(result.getString(5));
+                    }
                   }
                 }
 
-                DefaultMutableTreeNode indexesNode =
-                    makeDetachedNode(i18n.get(SQLConsole.class, "Indices", "Indices"), tableNode);
+                // For each table, build a tree node with interesting info
+                for (int i = 0; i < tables.size(); i++) {
+                  String name = tables.elementAt(i);
+                  DefaultMutableTreeNode tableNode = makeDetachedNode(name, rebuiltRoot);
+                  // Add remarks.
+                  String remark = remarks.elementAt(i);
 
-                try (ResultSet ind = metaData.getIndexInfo(catalog, schema, name, false, false)) {
-                  String oldiname = null;
+                  if (remark != null && !remark.trim().equals("")) {
+                    makeDetachedNode(remark, tableNode);
+                  }
 
-                  // A child node to contain each index - and its attributes
-                  while (ind.next()) {
-                    DefaultMutableTreeNode indexNode = null;
-                    boolean nonunique = ind.getBoolean(4);
-                    String iname = ind.getString(6);
+                  // With a child for each column containing pertinent attributes
+                  try (ResultSet col = metaData.getColumns(catalog, schema, name, null)) {
+                    while (col.next()) {
+                      String c = col.getString(4);
+                      DefaultMutableTreeNode columnNode = makeDetachedNode(c, tableNode);
+                      String type = col.getString(6);
 
-                    if (oldiname == null || !oldiname.equals(iname)) {
-                      indexNode = makeDetachedNode(iname, indexesNode);
                       makeDetachedNode(
                           MessageFormat.format(
-                              i18n.get(SQLConsole.class, "Unique", "Unique: {0}"), !nonunique),
-                          indexNode);
-                      oldiname = iname;
-                    }
+                              i18n.get(SQLConsole.class, "Type", "Type: {0}"), type),
+                          columnNode);
 
-                    // And the ordered column list for index components
-                    makeDetachedNode(ind.getString(9), indexNode);
+                      boolean nullable = col.getInt(11) != DatabaseMetaData.columnNoNulls;
+
+                      makeDetachedNode(
+                          MessageFormat.format(
+                              i18n.get(SQLConsole.class, "Nullable", "Nullable: {0}"), nullable),
+                          columnNode);
+                    }
+                  }
+
+                  DefaultMutableTreeNode indexesNode =
+                      makeDetachedNode(i18n.get(SQLConsole.class, "Indices", "Indices"), tableNode);
+
+                  try (ResultSet ind = metaData.getIndexInfo(catalog, schema, name, false, false)) {
+                    String oldiname = null;
+
+                    // A child node to contain each index - and its attributes
+                    while (ind.next()) {
+                      DefaultMutableTreeNode indexNode = null;
+                      boolean nonunique = ind.getBoolean(4);
+                      String iname = ind.getString(6);
+
+                      if (oldiname == null || !oldiname.equals(iname)) {
+                        indexNode = makeDetachedNode(iname, indexesNode);
+                        makeDetachedNode(
+                            MessageFormat.format(
+                                i18n.get(SQLConsole.class, "Unique", "Unique: {0}"), !nonunique),
+                            indexNode);
+                        oldiname = iname;
+                      }
+
+                      // And the ordered column list for index components
+                      makeDetachedNode(ind.getString(9), indexNode);
+                    }
                   }
                 }
+
+                // Finally - a little additional metadata on this connection
+                DefaultMutableTreeNode propertiesNode =
+                    makeDetachedNode(
+                        i18n.get(SQLConsole.class, "Properties", "Properties"), rebuiltRoot);
+
+                makeDetachedNode(
+                    MessageFormat.format(
+                        i18n.get(SQLConsole.class, "User", "User: {0}"), metaData.getUserName()),
+                    propertiesNode);
+                makeDetachedNode(
+                    MessageFormat.format(
+                        i18n.get(SQLConsole.class, "ReadOnly", "ReadOnly: {0}"),
+                        jdbcConnection.isReadOnly()),
+                    propertiesNode);
+                makeDetachedNode(
+                    MessageFormat.format(
+                        i18n.get(SQLConsole.class, "AutoCommit", "AutoCommit: {0}"),
+                        jdbcConnection.getAutoCommit()),
+                    propertiesNode);
+                makeDetachedNode(
+                    MessageFormat.format(
+                        i18n.get(SQLConsole.class, "Driver", "Driver: {0}"),
+                        metaData.getDriverName()),
+                    propertiesNode);
+                makeDetachedNode(
+                    MessageFormat.format(
+                        i18n.get(SQLConsole.class, "Product", "Product: {0}"),
+                        metaData.getDatabaseProductName()),
+                    propertiesNode);
+                makeDetachedNode(
+                    MessageFormat.format(
+                        i18n.get(SQLConsole.class, "Version", "Version: {0}"),
+                        metaData.getDatabaseProductVersion()),
+                    propertiesNode);
+              } catch (SQLException se) {
+                DefaultMutableTreeNode propertiesNode =
+                    makeDetachedNode(
+                        i18n.get(
+                                SQLConsole.class,
+                                "Error_getting_metadata",
+                                "Error getting metadata")
+                            + ":",
+                        rebuiltRoot);
+                makeDetachedNode(se.getMessage(), propertiesNode);
+                makeDetachedNode(se.getSQLState(), propertiesNode);
               }
 
-              // Finally - a little additional metadata on this connection
-              DefaultMutableTreeNode propertiesNode =
-                  makeDetachedNode(
-                      i18n.get(SQLConsole.class, "Properties", "Properties"), rebuiltRoot);
-
-              makeDetachedNode(
-                  MessageFormat.format(
-                      i18n.get(SQLConsole.class, "User", "User: {0}"), metaData.getUserName()),
-                  propertiesNode);
-              makeDetachedNode(
-                  MessageFormat.format(
-                      i18n.get(SQLConsole.class, "ReadOnly", "ReadOnly: {0}"),
-                      jdbcConnection.isReadOnly()),
-                  propertiesNode);
-              makeDetachedNode(
-                  MessageFormat.format(
-                      i18n.get(SQLConsole.class, "AutoCommit", "AutoCommit: {0}"),
-                      jdbcConnection.getAutoCommit()),
-                  propertiesNode);
-              makeDetachedNode(
-                  MessageFormat.format(
-                      i18n.get(SQLConsole.class, "Driver", "Driver: {0}"),
-                      metaData.getDriverName()),
-                  propertiesNode);
-              makeDetachedNode(
-                  MessageFormat.format(
-                      i18n.get(SQLConsole.class, "Product", "Product: {0}"),
-                      metaData.getDatabaseProductName()),
-                  propertiesNode);
-              makeDetachedNode(
-                  MessageFormat.format(
-                      i18n.get(SQLConsole.class, "Version", "Version: {0}"),
-                      metaData.getDatabaseProductVersion()),
-                  propertiesNode);
-            } catch (SQLException se) {
-              DefaultMutableTreeNode propertiesNode =
-                  makeDetachedNode(
-                      i18n.get(SQLConsole.class, "Error_getting_metadata", "Error getting metadata")
-                          + ":",
-                      rebuiltRoot);
-              makeDetachedNode(se.getMessage(), propertiesNode);
-              makeDetachedNode(se.getSQLState(), propertiesNode);
-            }
-
-            try {
-              final DefaultMutableTreeNode treeToDisplay = rebuiltRoot;
-              SwingUtilities.invokeAndWait(
-                  () -> {
-                    applyTreeRoot(treeToDisplay);
-                    treeScrollPane.setCursor(oldC);
-                  });
-            } catch (InterruptedException e) {
-              Thread.currentThread().interrupt();
-            } catch (InvocationTargetException e) {
-              e.printStackTrace();
-            } finally {
-              loop.exit();
-            }
-          }
-        };
+              try {
+                final DefaultMutableTreeNode treeToDisplay = rebuiltRoot;
+                SwingUtilities.invokeAndWait(
+                    () -> {
+                      applyTreeRoot(treeToDisplay);
+                      treeScrollPane.setCursor(oldC);
+                    });
+              } catch (InterruptedException e) {
+                restoreTreeCursor(oldC);
+                Thread.currentThread().interrupt();
+              } catch (InvocationTargetException e) {
+                restoreTreeCursor(oldC);
+                e.printStackTrace();
+              } finally {
+                loop.exit();
+              }
+            },
+            "Nodus-SQLConsole-RefreshTree");
 
     work.start();
     loop.enter();

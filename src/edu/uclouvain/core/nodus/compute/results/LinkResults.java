@@ -772,23 +772,25 @@ public class LinkResults implements ShapeConstants {
         // Wait 1 second or press "Enter" to display next time slice
         SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
         Thread work =
-            new Thread() {
-              public void run() {
-                try {
-                  if (autoSliceDisplay) {
-                    Thread.sleep(sliceDisplayInterval);
-                  } else {
-                    while (!displayNextTimeSlice) {
-                      Thread.sleep(10);
+            new Thread(
+                () -> {
+                  try {
+                    if (autoSliceDisplay) {
+                      Thread.sleep(sliceDisplayInterval);
+                    } else {
+                      while (!displayNextTimeSlice) {
+                        Thread.sleep(10);
+                      }
                     }
+                  } catch (InterruptedException e) {
+                    cancelDisplay = true;
+                    Thread.currentThread().interrupt();
+                  } finally {
+                    loop.exit();
                   }
-                } catch (InterruptedException e) {
-                  e.printStackTrace();
-                } finally {
-                  loop.exit();
-                }
-              }
-            };
+                },
+                "Nodus-LinkResults-SliceDelay");
+        work.setDaemon(true);
 
         work.start();
         loop.enter();
@@ -859,24 +861,24 @@ public class LinkResults implements ShapeConstants {
 
     SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
     Thread work =
-        new Thread() {
-          public void run() {
-            try {
-              NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
-              for (NodusEsriLayer element : linkLayers) {
-                EsriGraphicList egl = element.getEsriGraphicList();
-                Iterator<?> it = egl.iterator();
-                while (it.hasNext()) {
-                  OMGraphic omg = (OMGraphic) it.next();
-                  RealNetworkObject rno = (RealNetworkObject) omg.getAttribute(0);
-                  rno.setResult(0.0);
+        new Thread(
+            () -> {
+              try {
+                NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
+                for (NodusEsriLayer element : linkLayers) {
+                  EsriGraphicList egl = element.getEsriGraphicList();
+                  Iterator<?> it = egl.iterator();
+                  while (it.hasNext()) {
+                    OMGraphic omg = (OMGraphic) it.next();
+                    RealNetworkObject rno = (RealNetworkObject) omg.getAttribute(0);
+                    rno.setResult(0.0);
+                  }
                 }
+              } finally {
+                loop.exit();
               }
-            } finally {
-              loop.exit();
-            }
-          }
-        };
+            },
+            "Nodus-LinkResults-Reset");
 
     work.start();
     loop.enter();

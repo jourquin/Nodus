@@ -77,7 +77,7 @@ public class NodusConsole extends WindowAdapter
     for (Frame element : frames) {
       if (element instanceof JFrame) {
         JFrame f = (JFrame) element;
-        if (f.getName().equals(thisComponentName) && f.isVisible()) {
+        if (thisComponentName.equals(f.getName()) && f.isVisible()) {
           return true;
         }
       }
@@ -201,10 +201,12 @@ public class NodusConsole extends WindowAdapter
 
     // Starting two separate threads to read from the PipedInputStreams
     reader = new Thread(this);
+    reader.setName("NodusConsole-stdout");
     reader.setDaemon(true);
     // reader.start();
 
     reader2 = new Thread(this);
+    reader2.setName("NodusConsole-stderr");
     reader2.setDaemon(true);
     // reader2.start();
 
@@ -402,7 +404,8 @@ public class NodusConsole extends WindowAdapter
         try {
           this.wait(100);
         } catch (InterruptedException ie) {
-          ie.printStackTrace();
+          Thread.currentThread().interrupt();
+          return;
         }
         if (pin.available() != 0) {
           String input = readLine(pin);
@@ -417,7 +420,8 @@ public class NodusConsole extends WindowAdapter
         try {
           this.wait(100);
         } catch (InterruptedException ie) {
-          ie.printStackTrace();
+          Thread.currentThread().interrupt();
+          return;
         }
         if (pin2.available() != 0) {
 

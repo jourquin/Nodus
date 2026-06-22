@@ -45,7 +45,13 @@ public final class PluginClassPath implements AutoCloseable {
 
   private final ArrayList<File> jarFiles;
   private URLClassLoader classLoader;
-
+  
+  /**
+   * Creates a new plugin class path from the given directory.
+   *
+   * @param directoryName the name of the directory containing the plugin jar files
+   * @throws IOException if an I/O error occurs while collecting jar files
+   */
   public PluginClassPath(String directoryName) throws IOException {
     this(new File(directoryName), PluginClassPath.class.getClassLoader());
   }
@@ -68,6 +74,11 @@ public final class PluginClassPath implements AutoCloseable {
     classLoader = URLClassLoader.newInstance(urls, parent);
   }
 
+  /**
+   * Returns an unmodifiable list of the jar files in this plugin class path.
+   *
+   * @return an unmodifiable list of the jar files in this plugin class path
+   */
   public List<File> getJarFiles() {
     return Collections.unmodifiableList(jarFiles);
   }

@@ -197,6 +197,9 @@ public abstract class Assignment implements Runnable {
   /**
    * Waits for all assignment workers to complete. If interrupted, workers are canceled before this
    * method returns false.
+   *
+   * @return true if all workers completed, false if the waiting thread was interrupted and workers
+   *     were canceled.
    */
   protected boolean waitForAssignmentWorkers() {
     if (assignmentWorkers == null) {
