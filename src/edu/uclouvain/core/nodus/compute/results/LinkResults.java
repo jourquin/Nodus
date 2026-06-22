@@ -42,8 +42,6 @@ import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.results.gui.ResultsDlg;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
-import java.awt.SecondaryLoop;
-import java.awt.Toolkit;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.FileInputStream;
@@ -55,6 +53,7 @@ import java.text.DecimalFormat;
 import java.util.Iterator;
 import java.util.Properties;
 import javax.swing.JOptionPane;
+import javax.swing.Timer;
 
 /**
  * Performs the necessary queries and work to display the results of assignments.
@@ -109,8 +108,6 @@ public class LinkResults implements ShapeConstants {
   private float ulLat;
 
   private float ulLon;
-
-  private static Toolkit toolKit = Toolkit.getDefaultToolkit();
 
   private int currentScenario = -1;
 
@@ -640,6 +637,11 @@ public class LinkResults implements ShapeConstants {
    * @return True on success.
    */
   public boolean displayTimeDependentFlows(String sqlStmt) {
+    return displayTimeDependentFlows(sqlStmt, null);
+  }
+
+  /** Starts the time-dependent result playback and invokes {@code onDone} when it finishes. */
+  public boolean displayTimeDependentFlows(String sqlStmt, Runnable onDone) {
 
     // double maxResult = Double.MIN_VALUE;
     // double minResult = Double.MAX_VALUE;
@@ -649,6 +651,9 @@ public class LinkResults implements ShapeConstants {
 
     // Return without error
     if (answer == null) {
+      if (onDone != null) {
+        onDone.run();
+      }
       return true;
     }
 
@@ -756,91 +761,19 @@ public class LinkResults implements ShapeConstants {
     nodusMapPanel.getMapBean().addKeyListener(ka);
     nodusMapPanel.getMapBean().requestFocus();
 
-    int currentTime = assignmentStartTime;
     final LabelLayer lbl = labelLayer;
-    try {
-      while (currentTime <= assignmentEndTime) {
-        final int t = currentTime;
-        displayNextTimeSlice = false;
+    displayNextTimeSliceAsync(
+        sqlStmt,
+        assignmentStartTime,
+        assignmentEndTime,
+        timeSliceDuration,
+        displayVehicles,
+        lbl,
+        oldText,
+        ka,
+        onDone);
 
-        if (lbl != null) {
-          String labelUnit;
-          if (displayVehicles) {
-            labelUnit = i18n.get(LinkResults.class, "Vehicles_at", "Vehicles at");
-          } else {
-            labelUnit = i18n.get(LinkResults.class, "Volume_at", "Volume at");
-          }
-
-          int hour = t / 60 % 24;
-          int min = t % 60;
-          DecimalFormat hourFormatter = new DecimalFormat("00");
-          lbl.setLabelText(
-              labelUnit + " " + hourFormatter.format(hour) + ":" + hourFormatter.format(min));
-          lbl.doPrepare();
-        }
-
-        resetResults();
-        displayVolumes(sqlStmt, t);
-
-        currentTime += timeSliceDuration;
-
-        // Wait 1 second or press "Enter" to display next time slice
-        SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
-        Thread work =
-            new Thread(
-                () -> {
-                  try {
-                    if (autoSliceDisplay) {
-                      Thread.sleep(sliceDisplayInterval);
-                    } else {
-                      while (!displayNextTimeSlice) {
-                        Thread.sleep(10);
-                      }
-                    }
-                  } catch (InterruptedException e) {
-                    cancelDisplay = true;
-                    Thread.currentThread().interrupt();
-                  } finally {
-                    loop.exit();
-                  }
-                },
-                "Nodus-LinkResults-SliceDelay");
-        work.setDaemon(true);
-
-        work.start();
-        loop.enter();
-
-        if (cancelDisplay) {
-          break;
-        }
-      }
-
-      if (!cancelDisplay) {
-        JOptionPane.showMessageDialog(
-            nodusMapPanel,
-            i18n.get(LinkResults.class, "All_periods_displayed", "All the periods were displayed"),
-            i18n.get(ResultsDlg.class, "Display_results", "Display results"),
-            JOptionPane.INFORMATION_MESSAGE);
-      }
-
-      return true;
-    } finally {
-      nodusMapPanel.getMapBean().removeKeyListener(ka);
-
-      if (labelLayer != null) {
-        labelLayer.setLabelText("");
-        labelLayer.doPrepare();
-      }
-
-      // Restore old text label
-      if (labelLayer != null && oldText != null) {
-        labelLayer.setLabelText(oldText);
-      }
-
-      // dlg.resetLayers();
-      nodusMapPanel.resetText();
-      nodusMapPanel.getMainFrame().requestFocus();
-    }
+    return true;
   }
 
   private boolean isInScreen(double lat, double lon) {
@@ -873,30 +806,139 @@ public class LinkResults implements ShapeConstants {
 
   /** Resets the link layers in order to reset the result field of each graphic. */
   void resetResults() {
+    NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
+    for (NodusEsriLayer element : linkLayers) {
+      EsriGraphicList egl = element.getEsriGraphicList();
+      Iterator<?> it = egl.iterator();
+      while (it.hasNext()) {
+        OMGraphic omg = (OMGraphic) it.next();
+        RealNetworkObject rno = (RealNetworkObject) omg.getAttribute(0);
+        rno.setResult(0.0);
+      }
+    }
+  }
 
-    SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
-    Thread work =
-        new Thread(
-            () -> {
-              try {
-                NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
-                for (NodusEsriLayer element : linkLayers) {
-                  EsriGraphicList egl = element.getEsriGraphicList();
-                  Iterator<?> it = egl.iterator();
-                  while (it.hasNext()) {
-                    OMGraphic omg = (OMGraphic) it.next();
-                    RealNetworkObject rno = (RealNetworkObject) omg.getAttribute(0);
-                    rno.setResult(0.0);
-                  }
-                }
-              } finally {
-                loop.exit();
+  /** Displays one time slice and schedules the next one without blocking the EDT. */
+  private void displayNextTimeSliceAsync(
+      String sqlStmt,
+      int currentTime,
+      int assignmentEndTime,
+      int timeSliceDuration,
+      boolean displayVehicles,
+      LabelLayer labelLayer,
+      String oldText,
+      KeyAdapter keyAdapter,
+      Runnable onDone) {
+    if (cancelDisplay) {
+      finishTimeDependentDisplay(keyAdapter, labelLayer, oldText, false, onDone);
+      return;
+    }
+
+    if (currentTime > assignmentEndTime) {
+      finishTimeDependentDisplay(keyAdapter, labelLayer, oldText, true, onDone);
+      return;
+    }
+
+    displayNextTimeSlice = false;
+
+    if (labelLayer != null) {
+      String labelUnit;
+      if (displayVehicles) {
+        labelUnit = i18n.get(LinkResults.class, "Vehicles_at", "Vehicles at");
+      } else {
+        labelUnit = i18n.get(LinkResults.class, "Volume_at", "Volume at");
+      }
+
+      int hour = currentTime / 60 % 24;
+      int min = currentTime % 60;
+      DecimalFormat hourFormatter = new DecimalFormat("00");
+      labelLayer.setLabelText(
+          labelUnit + " " + hourFormatter.format(hour) + ":" + hourFormatter.format(min));
+      labelLayer.doPrepare();
+    }
+
+    resetResults();
+    if (!displayVolumes(sqlStmt, currentTime)) {
+      finishTimeDependentDisplay(keyAdapter, labelLayer, oldText, false, onDone);
+      return;
+    }
+
+    scheduleNextTimeSliceAsync(
+        sqlStmt,
+        currentTime + timeSliceDuration,
+        assignmentEndTime,
+        timeSliceDuration,
+        displayVehicles,
+        labelLayer,
+        oldText,
+        keyAdapter,
+        onDone);
+  }
+
+  /** Waits for the next playback step without entering a nested event loop. */
+  private void scheduleNextTimeSliceAsync(
+      String sqlStmt,
+      int nextTime,
+      int assignmentEndTime,
+      int timeSliceDuration,
+      boolean displayVehicles,
+      LabelLayer labelLayer,
+      String oldText,
+      KeyAdapter keyAdapter,
+      Runnable onDone) {
+    Timer timer =
+        new Timer(
+            autoSliceDisplay ? sliceDisplayInterval : 10,
+            e -> {
+              if (!autoSliceDisplay && !displayNextTimeSlice && !cancelDisplay) {
+                return;
               }
-            },
-            "Nodus-LinkResults-Reset");
 
-    work.start();
-    loop.enter();
+              ((Timer) e.getSource()).stop();
+              displayNextTimeSliceAsync(
+                  sqlStmt,
+                  nextTime,
+                  assignmentEndTime,
+                  timeSliceDuration,
+                  displayVehicles,
+                  labelLayer,
+                  oldText,
+                  keyAdapter,
+                  onDone);
+            });
+    timer.setRepeats(!autoSliceDisplay);
+    timer.start();
+  }
+
+  /** Restores the map state after the time-dependent playback finishes or is canceled. */
+  private void finishTimeDependentDisplay(
+      KeyAdapter keyAdapter,
+      LabelLayer labelLayer,
+      String oldText,
+      boolean completed,
+      Runnable onDone) {
+    nodusMapPanel.getMapBean().removeKeyListener(keyAdapter);
+
+    if (labelLayer != null) {
+      labelLayer.setLabelText(oldText == null ? "" : oldText);
+      labelLayer.doPrepare();
+    }
+
+    nodusMapPanel.resetText();
+    nodusMapPanel.getMainFrame().requestFocus();
+    isTimeDependent = false;
+
+    if (completed) {
+      JOptionPane.showMessageDialog(
+          nodusMapPanel,
+          i18n.get(LinkResults.class, "All_periods_displayed", "All the periods were displayed"),
+          i18n.get(ResultsDlg.class, "Display_results", "Display results"),
+          JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    if (onDone != null) {
+      onDone.run();
+    }
   }
 
   /** Rounds the results obtained on the different links. */

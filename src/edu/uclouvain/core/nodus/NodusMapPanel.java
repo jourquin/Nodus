@@ -112,13 +112,12 @@ import java.awt.Graphics;
 import java.awt.GraphicsEnvironment;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.IllegalComponentStateException;
 import java.awt.Image;
 import java.awt.Insets;
-import java.awt.IllegalComponentStateException;
 import java.awt.Paint;
 import java.awt.Point;
 import java.awt.RenderingHints;
-import java.awt.SecondaryLoop;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.ClipboardOwner;
@@ -460,8 +459,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   private static MapBeanRepaintPolicy defaultMapBeanRepaintPolicy;
 
-  private static Toolkit toolKit = Toolkit.getDefaultToolkit();
-
   /** Current desktop context. */
   private Desktop desktop = getSupportedDesktop();
 
@@ -588,34 +585,19 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       return;
     }
 
-    final NodusMapPanel mapPanel = this;
-    final String hookClassName = className;
-
-    SecondaryLoop loop = toolKit.getSystemEventQueue().createSecondaryLoop();
-
-    Thread work =
-        new Thread(
-            () -> {
-              try {
-                Class<?> hookClass = Class.forName(hookClassName);
-                Constructor<?> ctor = hookClass.getConstructor(NodusMapPanel.class);
-                ctor.newInstance(mapPanel);
-              } catch (ClassNotFoundException
-                  | NoSuchMethodException
-                  | SecurityException
-                  | InstantiationException
-                  | IllegalAccessException
-                  | IllegalArgumentException
-                  | InvocationTargetException ex) {
-                ex.printStackTrace();
-              } finally {
-                loop.exit();
-              }
-            },
-            "Nodus-" + functionKey + "-Hook");
-
-    work.start();
-    loop.enter();
+    try {
+      Class<?> hookClass = Class.forName(className);
+      Constructor<?> ctor = hookClass.getConstructor(NodusMapPanel.class);
+      ctor.newInstance(this);
+    } catch (ClassNotFoundException
+        | NoSuchMethodException
+        | SecurityException
+        | InstantiationException
+        | IllegalAccessException
+        | IllegalArgumentException
+        | InvocationTargetException ex) {
+      ex.printStackTrace();
+    }
   }
 
   /**
