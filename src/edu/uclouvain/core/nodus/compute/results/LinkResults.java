@@ -659,8 +659,12 @@ public class LinkResults implements ShapeConstants {
   }
 
   /**
-   * Starts the time-dependent result playback and reports the final success state to {@code
-   * onDone}.
+   * Displays the results of a time dependent assignment. This displays a map for each time slice.
+   *
+   * @param sqlStmt The SQL query used to display this result.
+   * @param onDone A callback that will be called when the playback is finished or canceled, with a
+   *     boolean indicating success.
+   * @return True on success.
    */
   public boolean displayTimeDependentFlows(String sqlStmt, Consumer<Boolean> onDone) {
 

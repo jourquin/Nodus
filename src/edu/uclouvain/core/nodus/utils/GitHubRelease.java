@@ -126,7 +126,8 @@ public class GitHubRelease {
     if (jarBuildId == null) {
       if (!autoCheck) {
         result.message =
-            i18n.get(GitHubRelease.class, "IDEBuild", "The current running instance is an IDE build");
+            i18n.get(
+                GitHubRelease.class, "IDEBuild", "The current running instance is an IDE build");
       }
       return result;
     }

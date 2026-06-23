@@ -369,6 +369,8 @@ public class NodusProject implements ShapeConstants {
   /**
    * Closes the project and invokes {@code onClosed} on the EDT once the full close sequence is
    * complete, including optional DB compaction.
+   * 
+   * @param onClosed callback to run after the project is fully closed, or {@code null} if no
    */
   public void close(Runnable onClosed) {
     if (onClosed != null) {
