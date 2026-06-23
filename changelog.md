@@ -436,4 +436,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 
 ## v8.4 - BuildXXXXXXXX
 - Ask for database compaction earlier in the close procedure. 
+- Upgrade to Groovy 5.0.6
+
 
