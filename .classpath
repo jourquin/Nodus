@@ -21,8 +21,6 @@
 	<classpathentry kind="lib" path="lib/openmap-6.0.jar" sourcepath="/Users/jourquinb/git/openmap"/>
 	<classpathentry kind="lib" path="lib/parsii-5.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/py4j0.10.9.2.jar"/>
-	<classpathentry kind="lib" path="lib/slf4j-api-1.7.35.jar"/>
-	<classpathentry kind="lib" path="lib/slf4j-nop-1.7.35.jar"/>
 	<classpathentry kind="lib" path="lib/derbyclient.jar"/>
 	<classpathentry kind="lib" path="lib/derbynet.jar" sourcepath="/Users/jourquinb/Downloads/db-derby-10.15.2.0-src.zip"/>
 	<classpathentry kind="lib" path="lib/derbytools.jar"/>
@@ -32,10 +30,6 @@
 	<classpathentry kind="lib" path="lib/log4j-to-slf4j-2.18.0.jar"/>
 	<classpathentry kind="lib" path="lib/xmlbeans-5.1.1.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.7.3.jar"/>
-	<classpathentry kind="lib" path="lib/jna-5.14.0.jar"/>
-	<classpathentry kind="lib" path="lib/jna-platform-5.14.0.jar"/>
-	<classpathentry kind="lib" path="lib/oshi-core-java11-6.6.1.jar"/>
-	<classpathentry kind="lib" path="lib/oshi-demo-6.6.1.jar"/>
 	<classpathentry kind="lib" path="lib/poi-5.2.5.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-5.2.5.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-full-5.2.5.jar"/>
@@ -111,5 +105,12 @@
 	<classpathentry kind="lib" path="lib/groovy/snakeyaml-2.5.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/testng-7.12.0.jar"/>
 	<classpathentry kind="lib" path="lib/h2-2.4.240.jar"/>
+	<classpathentry kind="lib" path="lib/oshi/oshi-common-7.3.1.jar"/>
+	<classpathentry kind="lib" path="lib/oshi/oshi-core-7.3.1.jar"/>
+	<classpathentry kind="lib" path="lib/oshi/oshi-demo-7.3.1.jar"/>
+	<classpathentry kind="lib" path="lib/oshi/jna-5.19.1.jar"/>
+	<classpathentry kind="lib" path="lib/oshi/jna-platform-5.19.1.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-api-1.7.35.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-nop-1.7.35.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

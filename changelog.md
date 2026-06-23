@@ -438,6 +438,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Ask for database compaction earlier in the close procedure. 
 - Upgrade to Groovy 5.0.6
 - Upgrade to H2 2.4.240
+- Upgrade to OSHI 7.3.1
+
 
 
 
