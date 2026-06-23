@@ -373,6 +373,11 @@ public class NodusProject implements ShapeConstants {
    * @param onClosed callback to run after the project is fully closed, or {@code null} if no
    */
   public void close(Runnable onClosed) {
+    if (!SwingUtilities.isEventDispatchThread()) {
+      SwingUtilities.invokeLater(() -> close(onClosed));
+      return;
+    }
+
     if (onClosed != null) {
       closeCompletionCallbacks.add(onClosed);
     }
@@ -390,11 +395,14 @@ public class NodusProject implements ShapeConstants {
     nodusMapPanel.setBusy(true);
     nodusMapPanel.setFileMenuBusy(true);
     stopShapeIntegrityTester();
-    runProjectLifecycleScriptAsync(false, true, this::continueProjectClose);
+    int dbEngine = JDBCUtils.getDbEngine();
+    boolean compactDatabase = shouldCompactDatabase(dbEngine);
+    runProjectLifecycleScriptAsync(
+        false, true, () -> continueProjectClose(dbEngine, compactDatabase));
   }
 
   /** Continues the close workflow after the optional project Groovy hook has completed. */
-  private void continueProjectClose() {
+  private void continueProjectClose(int dbEngine, boolean compactDatabase) {
     boolean projectClosed = false;
     boolean closeDeferred = false;
     try {
@@ -458,15 +466,11 @@ public class NodusProject implements ShapeConstants {
         }
 
         Connection connection = jdbcConnection;
-        int dbEngine = JDBCUtils.getDbEngine();
-        boolean compactDatabase = false;
 
         try {
           if (connection != null && !connection.getAutoCommit()) {
             connection.commit();
           }
-
-          compactDatabase = shouldCompactDatabase(dbEngine);
         } catch (Exception e) {
           e.printStackTrace();
         }
@@ -565,7 +569,7 @@ public class NodusProject implements ShapeConstants {
 
     int answer =
         JOptionPane.showConfirmDialog(
-            null,
+            nodusMapPanel.getMainFrame(),
             i18n.get(NodusProject.class, "AskForCompact", "Compact database?"),
             NodusC.APPNAME,
             JOptionPane.YES_NO_OPTION);

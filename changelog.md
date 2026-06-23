@@ -433,3 +433,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Reintroduce the Frank-Wolfe based assignments algorithms after bug fixes
 - Major code refactoring to avoid not closed resources, non standard SQL... An effort to make the code more robust.
 - Complete redesign of the plugin implementation for a better memory usage
+
+## v8.4 - BuildXXXXXXXX
+- Ask for database compaction earlier in the close procedure. 
+
