@@ -1507,10 +1507,13 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
             if (omg.isVisible()) {
               // Display the dialog close to the graphic to edit
               DbfEditDlg dbfDlg = new DbfEditDlg(this, graphicIndex, false);
-
-              Point p = me.getLocationOnScreen();
-              dbfDlg.setLocation(p);
-              GUIUtils.keepDialogInScreen(dbfDlg);
+              if (me.getComponent() != null && me.getComponent().isShowing()) {
+                Point p = me.getLocationOnScreen();
+                dbfDlg.setLocation(p);
+                GUIUtils.keepDialogInScreen(dbfDlg);
+              } else {
+                dbfDlg.setLocationRelativeTo(this);
+              }
               dbfDlg.setVisible(true);
 
               omg.deselect();

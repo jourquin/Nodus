@@ -310,7 +310,17 @@ public class LinkResults implements ShapeConstants {
     // Build time dependent query
     if (time != -1) {
       String tmp1 = sqlStmt.toLowerCase();
-      int index = tmp1.indexOf("where") + 5;
+      int whereIndex = tmp1.indexOf("where");
+      if (whereIndex == -1) {
+        nodusMapPanel.setBusy(false);
+        JOptionPane.showMessageDialog(
+            null,
+            "Time-dependent result queries must contain a WHERE clause.",
+            "SQL error",
+            JOptionPane.ERROR_MESSAGE);
+        return false;
+      }
+      int index = whereIndex + 5;
       sqlStmt =
           sqlStmt.substring(0, index)
               + " time = "
@@ -377,7 +387,8 @@ public class LinkResults implements ShapeConstants {
     roundResults();
 
     /* Set the width of the strokes and update map. */
-    int maxWidth = Math.max(1, nodusProject.getLocalProperty(NodusC.PROP_MAX_WIDTH, NodusC.MAX_WIDTH));
+    int maxWidth =
+        Math.max(1, nodusProject.getLocalProperty(NodusC.PROP_MAX_WIDTH, NodusC.MAX_WIDTH));
     DbfTableModel resultModel = null;
 
     for (NodusEsriLayer linkLayer : linkLayers) {
@@ -548,7 +559,8 @@ public class LinkResults implements ShapeConstants {
     NodusEsriLayer[] layers = nodusProject.getLinkLayers();
     DbfTableModel resultModel = null;
 
-    int maxWidth = Math.max(1, nodusProject.getLocalProperty(NodusC.PROP_MAX_WIDTH, NodusC.MAX_WIDTH));
+    int maxWidth =
+        Math.max(1, nodusProject.getLocalProperty(NodusC.PROP_MAX_WIDTH, NodusC.MAX_WIDTH));
     for (int i = 0; i < layers.length; i++) {
 
       if (layers[i].isVisible()) {

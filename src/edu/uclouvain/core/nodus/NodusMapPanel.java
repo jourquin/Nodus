@@ -480,13 +480,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     // Check if a newer version is available
     String value = getNodusProperties().getProperty(NodusC.PROP_CHECK_FOR_UPDATES, "true");
     if (Boolean.parseBoolean(value)) {
-      javax.swing.SwingUtilities.invokeLater(
-          new Runnable() {
-            @Override
-            public void run() {
-              GitHubRelease.checkForNewerRelease();
-            }
-          });
+      GitHubRelease.checkForNewerRelease();
     }
   }
 
@@ -663,16 +657,18 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     scriptRunner.setVariable("nodusMapPanel", this);
     scriptRunner.setVariable("startNodus", false);
     scriptRunner.setVariable("quitNodus", true);
-    scriptRunner.run(true);
+    scriptRunner.runAsync(
+        true,
+        success -> {
+          /*
+           * Explicitly dispose application-wide plugins and close their loaders before exiting.
+           * Do not rely on Swing disposal here because this method calls System.exit(0).
+           */
+          disposeAllPlugins();
 
-    /*
-     * Explicitly dispose application-wide plugins and close their loaders before exiting.
-     * Do not rely on Swing disposal here because this method calls System.exit(0).
-     */
-    disposeAllPlugins();
-
-    setVisible(false);
-    System.exit(0);
+          setVisible(false);
+          System.exit(0);
+        });
   }
 
   /** Copy the content of the MapBean as an image in the clipboard. */

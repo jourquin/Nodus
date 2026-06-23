@@ -967,8 +967,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
 
     String fromClause = stmt.substring(index + token.length()).trim();
-
-    if ((index = fromClause.indexOf(" ")) == -1) {
+    String fromClauseLower = fromClause.toLowerCase();
+    int toIndexInFromClause = fromClauseLower.indexOf(" to ");
+    if (toIndexInFromClause == -1) {
       displayMessageInResult(
           i18n.get(SQLConsole.class, "Usage", "Usage:"),
           i18n.get(
@@ -1026,7 +1027,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     // Test if it is a valid link layer
     NodusEsriLayer[] layers = nodusProject.getLinkLayers();
-    String fromShapefile = fromClause.substring(0, index);
+    String fromShapefile = fromClause.substring(0, toIndexInFromClause).trim();
 
     for (NodusEsriLayer element : layers) {
       if (element.getTableName().equals(fromShapefile)) {
@@ -1208,7 +1209,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
 
     // Split per line
-    String[] line = sqlCommand.split(NL);
+    String[] line = sqlCommand.split("\\R");
 
     // Concatenate multi-line commands
     Vector<String> commandsToParse = new Vector<>();
@@ -1217,7 +1218,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       line[i] = line[i].trim();
 
       // Ignore comments
-      if (line[i].startsWith("#")) {
+      if (line[i].startsWith("#") || line[i].startsWith("--")) {
         continue;
       }
 
@@ -1619,22 +1620,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * correspond to the DBF files of shapefiles.
    */
   private boolean isDeleteAllowed(String sqlStmt) {
+    String tableName = getProtectedTableName(sqlStmt, " from ", false);
 
-    sqlStmt = sqlStmt.toLowerCase();
-
-    // Get shapefile name
-    int index;
-    String token = " from ";
-
-    if ((index = sqlStmt.indexOf(token)) == -1) {
+    if (tableName == null) {
       // probably an error in the SQL statement. To be handled by the jdbc driver
       return true;
-    }
-
-    String tableName = sqlStmt.substring(index + token.length()).trim();
-
-    if (tableName.indexOf(' ') != -1) {
-      tableName = tableName.substring(0, tableName.indexOf(' '));
     }
 
     // Is it a Nodus layer?
@@ -1656,26 +1646,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * correspond to the DBF files of shapefiles.
    */
   private boolean isInsertAllowed(String sqlStmt) {
-    sqlStmt = sqlStmt.toLowerCase();
+    String tableName = getProtectedTableName(sqlStmt, " into ", true);
 
-    // Get shapefile name
-    int index;
-    String token = " into ";
-
-    if ((index = sqlStmt.indexOf(token)) == -1) {
+    if (tableName == null) {
       // probably an error in the SQL statement. To be handled by the jdbc driver
       return true;
-    }
-
-    String tableName = sqlStmt.substring(index + token.length()).trim();
-
-    int separatorIndex = tableName.indexOf(' ');
-    int parenthesisIndex = tableName.indexOf('(');
-    if (separatorIndex == -1 || (parenthesisIndex != -1 && parenthesisIndex < separatorIndex)) {
-      separatorIndex = parenthesisIndex;
-    }
-    if (separatorIndex != -1) {
-      tableName = tableName.substring(0, separatorIndex);
     }
 
     // Is it a Nodus layer?
@@ -1690,6 +1665,88 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
             "Insert_not_allowed_on_Nodus_layers",
             "SQL INSERT operations not allowed on Nodus layers"));
     return false;
+  }
+
+  /**
+   * Extracts and normalizes the table name targeted by a protected SQL command.
+   *
+   * @param sqlStmt Full SQL statement.
+   * @param token Clause token used to locate the table name.
+   * @param stopAtParenthesis Whether an opening parenthesis may terminate the identifier.
+   * @return The normalized table name, or {@code null} if the token was not found.
+   */
+  private String getProtectedTableName(String sqlStmt, String token, boolean stopAtParenthesis) {
+    String lowerSqlStmt = sqlStmt.toLowerCase();
+    int index = lowerSqlStmt.indexOf(token);
+    if (index == -1) {
+      return null;
+    }
+
+    String remainder = sqlStmt.substring(index + token.length()).trim();
+    String identifier = extractSqlIdentifier(remainder, stopAtParenthesis);
+    if (identifier == null || identifier.isBlank()) {
+      return "";
+    }
+
+    String tableName = getLastQualifiedIdentifierPart(identifier);
+    tableName = unquoteSqlIdentifier(tableName);
+    return JDBCUtils.getCompliantIdentifier(tableName);
+  }
+
+  /** Reads a SQL identifier, preserving quoted segments and optional schema qualification. */
+  private String extractSqlIdentifier(String text, boolean stopAtParenthesis) {
+    StringBuilder identifier = new StringBuilder();
+    boolean inQuotes = false;
+
+    for (int i = 0; i < text.length(); i++) {
+      char c = text.charAt(i);
+      if (c == '"') {
+        inQuotes = !inQuotes;
+        identifier.append(c);
+        continue;
+      }
+
+      if (!inQuotes
+          && (Character.isWhitespace(c) || c == ',' || (stopAtParenthesis && c == '('))) {
+        break;
+      }
+
+      identifier.append(c);
+    }
+
+    return identifier.toString().trim();
+  }
+
+  /** Returns the rightmost part of a possibly schema-qualified SQL identifier. */
+  private String getLastQualifiedIdentifierPart(String identifier) {
+    boolean inQuotes = false;
+    int splitIndex = -1;
+
+    for (int i = 0; i < identifier.length(); i++) {
+      char c = identifier.charAt(i);
+      if (c == '"') {
+        inQuotes = !inQuotes;
+      } else if (c == '.' && !inQuotes) {
+        splitIndex = i;
+      }
+    }
+
+    if (splitIndex == -1) {
+      return identifier;
+    }
+
+    return identifier.substring(splitIndex + 1).trim();
+  }
+
+  /** Removes surrounding double quotes from a SQL identifier. */
+  private String unquoteSqlIdentifier(String identifier) {
+    String trimmed = identifier.trim();
+    if (trimmed.length() >= 2
+        && trimmed.charAt(0) == '"'
+        && trimmed.charAt(trimmed.length() - 1) == '"') {
+      return trimmed.substring(1, trimmed.length() - 1);
+    }
+    return trimmed;
   }
 
   /**

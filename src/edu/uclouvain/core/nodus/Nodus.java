@@ -222,12 +222,14 @@ public class Nodus {
             scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
             scriptRunner.setVariable("startNodus", true);
             scriptRunner.setVariable("quitNodus", false);
-            scriptRunner.run(true);
-
-            // Load the project passed as parameter
-            if (projectToLoad != null) {
-              nodusMapPanel.openProject(projectToLoad);
-            }
+            scriptRunner.runAsync(
+                true,
+                success -> {
+                  // Load the project passed as parameter
+                  if (projectToLoad != null) {
+                    nodusMapPanel.openProject(projectToLoad);
+                  }
+                });
             // nodusMapPanel.repaint(nodusMapPanel.getVisibleRect());
           }
         });

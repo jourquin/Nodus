@@ -40,6 +40,7 @@ import java.util.regex.Pattern;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.SwingWorker;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -95,27 +96,47 @@ public class GitHubRelease {
    * @param parent Parent dialog.
    */
   private static void checkForNewerRelease(JDialog parent, boolean autoCheck) {
+    SwingWorker<ReleaseCheckResult, Void> worker =
+        new SwingWorker<ReleaseCheckResult, Void>() {
+          @Override
+          protected ReleaseCheckResult doInBackground() {
+            return getReleaseCheckResult(autoCheck);
+          }
+
+          @Override
+          protected void done() {
+            try {
+              displayReleaseCheckResult(parent, autoCheck, get());
+            } catch (Exception e) {
+              e.printStackTrace();
+            }
+          }
+        };
+
+    worker.execute();
+  }
+
+  /** Computes the release-check outcome without touching Swing components. */
+  private static ReleaseCheckResult getReleaseCheckResult(boolean autoCheck) {
+    ReleaseCheckResult result = new ReleaseCheckResult();
 
     // Don't test an IDE build
     BuildIdGenerator generator = new BuildIdGenerator();
     String jarBuildId = generator.getJarBuildId();
     if (jarBuildId == null) {
       if (!autoCheck) {
-        JOptionPane.showMessageDialog(
-            parent,
-            i18n.get(
-                GitHubRelease.class, "IDEBuild", "The current running instance is an IDE build"));
+        result.message =
+            i18n.get(GitHubRelease.class, "IDEBuild", "The current running instance is an IDE build");
       }
-      return;
+      return result;
     }
 
     if (!isConnectedToInternet()) {
       if (!autoCheck) {
-        JOptionPane.showMessageDialog(
-            parent,
-            i18n.get(GitHubRelease.class, "NoInternetConnection", "No Internet connection"));
+        result.message =
+            i18n.get(GitHubRelease.class, "NoInternetConnection", "No Internet connection");
       }
-      return;
+      return result;
     }
 
     try {
@@ -131,14 +152,14 @@ public class GitHubRelease {
 
       if (!remoteVersion.equals(currentVersion)) {
         newReleaseAvailable = true;
-        String message =
+        result.message =
             MessageFormat.format(
                 i18n.get(
                     GitHubRelease.class,
                     "NewVersionAvailable",
                     "Nodus version {0} is available on"),
                 remoteVersion);
-        displayInformationMessage(message, NodusC.nodusUrl, autoCheck);
+        result.url = NodusC.nodusUrl;
 
       } else {
         // A new build may be available.
@@ -155,7 +176,7 @@ public class GitHubRelease {
 
           if (Integer.parseInt(jarBuildId) < remoteBuild) {
             newReleaseAvailable = true;
-            String message =
+            result.message =
                 MessageFormat.format(
                     i18n.get(
                         GitHubRelease.class,
@@ -163,28 +184,47 @@ public class GitHubRelease {
                         "Nodus version {0} build {1} is available on"),
                     remoteVersion,
                     remoteBuildId);
-            displayInformationMessage(message, NodusC.nodusUrl, autoCheck);
+            result.url = NodusC.nodusUrl;
           }
         } else if (!autoCheck) {
-          JOptionPane.showMessageDialog(
-              parent,
+          result.message =
               MessageFormat.format(
                   i18n.get(
                       GitHubRelease.class,
                       "CannotParseBuildId",
                       "Could not determine the latest build id from release name \"{0}\""),
-                  releaseName));
+                  releaseName);
         }
       }
 
-      if (!newReleaseAvailable && !autoCheck) {
-        JOptionPane.showMessageDialog(
-            parent, i18n.get(GitHubRelease.class, "UpToDate", "Nodus is up-to-date"));
+      if (!newReleaseAvailable && !autoCheck && result.message == null) {
+        result.message = i18n.get(GitHubRelease.class, "UpToDate", "Nodus is up-to-date");
       }
 
     } catch (Exception e) {
       e.printStackTrace();
     }
+    return result;
+  }
+
+  /** Displays the worker result on the EDT. */
+  private static void displayReleaseCheckResult(
+      JDialog parent, boolean autoCheck, ReleaseCheckResult result) {
+    if (result == null || result.message == null) {
+      return;
+    }
+
+    if (result.url != null) {
+      displayInformationMessage(result.message, result.url, autoCheck);
+    } else {
+      JOptionPane.showMessageDialog(parent, result.message);
+    }
+  }
+
+  /** Simple value object used to communicate worker results back to the EDT. */
+  private static class ReleaseCheckResult {
+    private String message;
+    private String url;
   }
 
   /**

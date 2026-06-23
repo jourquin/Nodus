@@ -385,25 +385,17 @@ public class NodusProject implements ShapeConstants {
     }
 
     closeInProgress = true;
-    boolean projectClosed = false;
-    boolean closeDeferred = false;
     nodusMapPanel.setBusy(true);
     nodusMapPanel.setFileMenuBusy(true);
+    stopShapeIntegrityTester();
+    runProjectLifecycleScriptAsync(false, true, this::continueProjectClose);
+  }
 
+  /** Continues the close workflow after the optional project Groovy hook has completed. */
+  private void continueProjectClose() {
+    boolean projectClosed = false;
+    boolean closeDeferred = false;
     try {
-      stopShapeIntegrityTester();
-
-      // Run the project's Groovy project script if exists
-      String scriptFileName =
-          localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
-              + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
-              + NodusC.TYPE_GROOVY;
-      ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
-      scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
-      scriptRunner.setVariable("openProject", false);
-      scriptRunner.setVariable("closeProject", true);
-      scriptRunner.run(true);
-
       // Close all the open child windows, including dialogs.
       for (Window window : Window.getWindows()) {
         if (window != null && window != nodusMapPanel.getMainFrame() && window.isDisplayable()) {
@@ -1763,16 +1755,11 @@ public class NodusProject implements ShapeConstants {
     NodeRulesReader.fixExclusionTableIfNeeded(this);
     serviceHandler = new ServiceHandler(this);
     new ModalSplitMethodsLoader(this);
+    runProjectLifecycleScriptAsync(true, false, this::completeProjectOpenUi);
+  }
 
-    String scriptFileName =
-        localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
-            + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
-            + NodusC.TYPE_GROOVY;
-    ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
-    scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
-    scriptRunner.setVariable("openProject", true);
-    scriptRunner.setVariable("closeProject", false);
-    scriptRunner.run(true);
+  /** Finalizes the project-open UI state once the optional Groovy hook has completed. */
+  private void completeProjectOpenUi() {
 
     isOpen = true;
     nodusMapPanel.getNodusLayersPanel().enableButtons(true);
@@ -1788,6 +1775,25 @@ public class NodusProject implements ShapeConstants {
     getNodusMapPanel().restoreMainFrameFocus();
 
     nodusMapPanel.setBusy(false);
+  }
+
+  /** Runs the project Groovy hook asynchronously and resumes the workflow on the EDT. */
+  private void runProjectLifecycleScriptAsync(
+      boolean openProjectFlag, boolean closeProjectFlag, Runnable onDone) {
+    if (localProperties == null) {
+      onDone.run();
+      return;
+    }
+
+    String scriptFileName =
+        localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH)
+            + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
+            + NodusC.TYPE_GROOVY;
+    ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
+    scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
+    scriptRunner.setVariable("openProject", openProjectFlag);
+    scriptRunner.setVariable("closeProject", closeProjectFlag);
+    scriptRunner.runAsync(true, success -> onDone.run());
   }
 
   /**
@@ -2187,8 +2193,12 @@ public class NodusProject implements ShapeConstants {
 
     localProperties.setProperty(NodusC.PROP_PROJECT_CANONICAL_NAME, projectResourceFileNameAndPath);
     localProperties.setProperty(NodusC.PROP_PROJECT_DOTPATH, projectPath);
+    String projectDotName =
+        name.endsWith(NodusC.TYPE_NODUS)
+            ? name.substring(0, name.length() - NodusC.TYPE_NODUS.length())
+            : name;
     localProperties.setProperty(
-        NodusC.PROP_PROJECT_DOTNAME, name.substring(0, name.indexOf(NodusC.TYPE_NODUS)));
+        NodusC.PROP_PROJECT_DOTNAME, projectDotName);
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_LAST_PATH, projectPath);
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_LAST_PROJECT, name);
 

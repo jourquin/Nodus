@@ -26,6 +26,7 @@ import groovy.lang.GroovyShell;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
@@ -71,21 +72,7 @@ public class ScriptRunner {
 
     Thread thread =
         new Thread(
-            () -> {
-              try {
-                shell.evaluate(new File(scriptFileName));
-
-              } catch (IOException e) {
-                if (!ignoreMissingScript) {
-                  success.set(false);
-                  showError(e);
-                }
-
-              } catch (Exception e) {
-                success.set(false);
-                showError(e);
-              }
-            },
+            () -> success.set(evaluateScript(ignoreMissingScript)),
             "Nodus-ScriptRunner");
 
     thread.start();
@@ -99,6 +86,43 @@ public class ScriptRunner {
     }
 
     return success.get();
+  }
+
+  /**
+   * Runs the Groovy script in a background thread and invokes {@code onDone} on the EDT when the
+   * script finishes.
+   *
+   * @param ignoreMissingScript If set to false, no error is returned if the script doesn't exist.
+   * @param onDone Optional callback receiving the success flag once execution completes.
+   */
+  public void runAsync(boolean ignoreMissingScript, Consumer<Boolean> onDone) {
+    Thread thread =
+        new Thread(
+            () -> {
+              boolean success = evaluateScript(ignoreMissingScript);
+              if (onDone != null) {
+                SwingUtilities.invokeLater(() -> onDone.accept(Boolean.valueOf(success)));
+              }
+            },
+            "Nodus-ScriptRunner");
+    thread.start();
+  }
+
+  /** Evaluates the configured script and returns true on success. */
+  private boolean evaluateScript(boolean ignoreMissingScript) {
+    try {
+      shell.evaluate(new File(scriptFileName));
+      return true;
+    } catch (IOException e) {
+      if (!ignoreMissingScript) {
+        showError(e);
+        return false;
+      }
+      return true;
+    } catch (Exception e) {
+      showError(e);
+      return false;
+    }
   }
 
   /**
