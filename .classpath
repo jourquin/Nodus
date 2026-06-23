@@ -32,7 +32,6 @@
 	<classpathentry kind="lib" path="lib/log4j-to-slf4j-2.18.0.jar"/>
 	<classpathentry kind="lib" path="lib/xmlbeans-5.1.1.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.7.3.jar"/>
-	<classpathentry kind="lib" path="lib/h2-2.2.224.jar"/>
 	<classpathentry kind="lib" path="lib/jna-5.14.0.jar"/>
 	<classpathentry kind="lib" path="lib/jna-platform-5.14.0.jar"/>
 	<classpathentry kind="lib" path="lib/oshi-core-java11-6.6.1.jar"/>
@@ -111,5 +110,6 @@
 	<classpathentry kind="lib" path="lib/groovy/junit-platform-launcher-1.14.3.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/snakeyaml-2.5.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/testng-7.12.0.jar"/>
+	<classpathentry kind="lib" path="lib/h2-2.4.240.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
