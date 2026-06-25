@@ -1465,7 +1465,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     return layerHandler;
   }
 
-  /** Returns true while one or more long-running tasks keep the UI busy. */
+  /**
+   * Returns true while one or more long-running tasks keep the UI busy.
+   * 
+   * @return True if the UI is busy, false otherwise.
+   */
   public boolean isBusy() {
     return busyDepth > 0;
   }
