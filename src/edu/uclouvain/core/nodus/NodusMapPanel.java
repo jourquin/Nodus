@@ -217,6 +217,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   private int busyDepth = 0;
 
+  /** If true, wait before displaying the default political boundaries at startup. */
+  private boolean deferDefaultPoliticalBoundaries;
+
   /** Control variables for the progress bar. */
   private boolean canceled;
 
@@ -471,9 +474,24 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @param properties The .nodus8.properties file content
    */
   public NodusMapPanel(Properties properties) {
+    this(properties, false);
+  }
+
+  /**
+   * Creates all the GUI components needed by Nodus on the application's panel. The application's
+   * properties are also passed as a parameter in order to restore and save the application "state".
+   * <br>
+   * See also OpenMap documentation for more details on the behavior of the MapBeans.
+   *
+   * @param properties The .nodus8.properties file content.
+   * @param deferDefaultPoliticalBoundaries If true, do not display the built-in political
+   *     boundaries during initialization.
+   */
+  public NodusMapPanel(Properties properties, boolean deferDefaultPoliticalBoundaries) {
     MapHandler mh = getMapHandler();
     mh.add(this);
     nodusProperties = properties;
+    this.deferDefaultPoliticalBoundaries = deferDefaultPoliticalBoundaries;
 
     create();
 
@@ -1447,6 +1465,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     return layerHandler;
   }
 
+  /** Returns true while one or more long-running tasks keep the UI busy. */
+  public boolean isBusy() {
+    return busyDepth > 0;
+  }
+
   /**
    * Returns the main frame of the application.
    *
@@ -1723,7 +1746,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     nodusProject = new NodusProject(this);
 
     resetMap();
-    displayPoliticalBoundaries(true, true);
+    if (!deferDefaultPoliticalBoundaries) {
+      displayPoliticalBoundaries(true, true);
+    }
 
     JButton fakeButton = new JButton();
     JLabel fakeLabel = new JLabel();

@@ -434,12 +434,14 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Major code refactoring to avoid not closed resources, non standard SQL... An effort to make the code more robust.
 - Complete redesign of the plugin implementation for a better memory usage
 
-## v8.4 - BuildXXXXXXXX
+## v8.4 - Build20260625
 - Ask for database compaction earlier in the close procedure. 
 - Upgrade to Groovy 5.0.6
 - Upgrade to H2 2.4.240
 - Upgrade to OSHI 7.3.1
 - Update installer splash image, which was still v8.3
+- Avoid display of political boundaries if Nodus opens a project at launch time
+
 
 
 

@@ -206,7 +206,7 @@ public class Nodus {
           @Override
           public void run() {
             // Create main window
-            nodusMapPanel = new NodusMapPanel(nodusProperties);
+            nodusMapPanel = new NodusMapPanel(nodusProperties, projectToLoad != null);
             showInFrame();
 
             // Be sure window is in foreground
@@ -228,11 +228,37 @@ public class Nodus {
                   // Load the project passed as parameter
                   if (projectToLoad != null) {
                     nodusMapPanel.openProject(projectToLoad);
+                    displayDefaultPoliticalBoundariesIfProjectLoadFails();
                   }
                 });
             // nodusMapPanel.repaint(nodusMapPanel.getVisibleRect());
           }
         });
+  }
+
+  /**
+   * Restores the default political boundaries only if the project requested at startup does not
+   * open successfully.
+   */
+  private void displayDefaultPoliticalBoundariesIfProjectLoadFails() {
+    javax.swing.Timer startupProjectTimer = new javax.swing.Timer(250, null);
+    startupProjectTimer.addActionListener(
+        e -> {
+          if (nodusMapPanel == null || nodusMapPanel.getNodusProject() == null) {
+            return;
+          }
+
+          if (nodusMapPanel.getNodusProject().isOpen()) {
+            startupProjectTimer.stop();
+            return;
+          }
+
+          if (!nodusMapPanel.isBusy()) {
+            nodusMapPanel.displayPoliticalBoundaries(true, true);
+            startupProjectTimer.stop();
+          }
+        });
+    startupProjectTimer.start();
   }
 
   /** Sets the Look and Feel to the system default, but to Nimbus for Linux. */
