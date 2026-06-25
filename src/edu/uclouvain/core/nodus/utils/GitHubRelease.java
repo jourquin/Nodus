@@ -26,6 +26,7 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import java.awt.Cursor;
 import java.awt.Desktop;
+import java.awt.Frame;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
@@ -41,6 +42,7 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -216,7 +218,7 @@ public class GitHubRelease {
     }
 
     if (result.url != null) {
-      displayInformationMessage(result.message, result.url, autoCheck);
+      displayInformationMessage(parent, result.message, result.url, autoCheck);
     } else {
       JOptionPane.showMessageDialog(parent, result.message);
     }
@@ -231,10 +233,12 @@ public class GitHubRelease {
   /**
    * Display an information message in a non modal dialog with a clickable URL.
    *
+   * @param parent The parent dialog if there is one.
    * @param message The message to display
    * @param url The URL
    */
-  private static void displayInformationMessage(String message, String url, boolean inBackground) {
+  private static void displayInformationMessage(
+      JDialog parent, String message, String url, boolean inBackground) {
     // Information message must be non modal
     message = "<html>" + message + " <a href=\"" + url + "\">" + url + "</a></html>";
     JLabel label = new JLabel(message);
@@ -273,17 +277,82 @@ public class GitHubRelease {
           }
         });
 
-    // Create the non modal dialog box
+    Runnable showDialog =
+        () -> {
+          Frame owner = resolveNotificationOwner(parent);
+          if (inBackground && owner == null) {
+            return;
+          }
+          showInformationDialog(owner, label, inBackground);
+        };
+
+    if (inBackground) {
+      showWhenOwnerVisible(parent, showDialog);
+    } else {
+      showDialog.run();
+    }
+  }
+
+  /** Returns the best visible owner for a release-check notification dialog. */
+  private static Frame resolveNotificationOwner(JDialog parent) {
+    if (parent != null && parent.getOwner() instanceof Frame) {
+      Frame parentOwner = (Frame) parent.getOwner();
+      if (parentOwner.isShowing()) {
+        return parentOwner;
+      }
+    }
+
+    Frame[] frames = Frame.getFrames();
+    for (Frame frame : frames) {
+      if (frame != null && frame.isShowing()) {
+        return frame;
+      }
+    }
+
+    return null;
+  }
+
+  /** Shows the information dialog once the application main window is visible. */
+  private static void showWhenOwnerVisible(JDialog parent, Runnable showDialog) {
+    if (resolveNotificationOwner(parent) != null) {
+      showDialog.run();
+      return;
+    }
+
+    final int maxAttempts = 50;
+    final int[] attempts = {0};
+    Timer timer = new Timer(100, null);
+    timer.addActionListener(
+        e -> {
+          attempts[0]++;
+          Frame owner = resolveNotificationOwner(parent);
+          if (owner != null) {
+            ((Timer) e.getSource()).stop();
+            showDialog.run();
+          } else if (attempts[0] >= maxAttempts) {
+            ((Timer) e.getSource()).stop();
+          }
+        });
+    timer.setRepeats(true);
+    timer.start();
+  }
+
+  /** Creates and shows the clickable release information dialog. */
+  private static void showInformationDialog(Frame owner, JLabel label, boolean inBackground) {
     JOptionPane pane =
         new JOptionPane(
             label, JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, null, null);
-    JDialog dialog = pane.createDialog(null, NodusC.APPNAME);
-    if (inBackground) {
-      dialog.setModal(false);
-    } else {
-      dialog.setModal(true);
+    JDialog dialog = pane.createDialog(owner, NodusC.APPNAME);
+    dialog.setModal(!inBackground);
+    if (owner != null) {
+      dialog.setLocationRelativeTo(owner);
+      dialog.setAlwaysOnTop(true);
     }
     dialog.setVisible(true);
+    if (owner != null) {
+      dialog.toFront();
+      dialog.setAlwaysOnTop(false);
+    }
   }
 
   /**
