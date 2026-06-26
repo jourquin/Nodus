@@ -443,8 +443,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Avoid display of political boundaries if Nodus opens a project at launch time
 - Be sure the "new release" info remains on top of the map panel
 
-
-
+## v8.4 - Build20260626
+- Fix a bug in SQLConsole (column names not always displayed)
 
 
 
