@@ -441,6 +441,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Upgrade to OSHI 7.3.1
 - Update installer splash image, which was still v8.3
 - Avoid display of political boundaries if Nodus opens a project at launch time
+- Be sure the "new release" info remains on top of the map panel
+
 
 
 
