@@ -1124,16 +1124,17 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         ResultSetMetaData m = result.getMetaData();
 
         int col = m.getColumnCount();
-        String[] h = new String[col];
+        String[] header = new String[col];
         List<String[]> rows = new ArrayList<>();
 
         for (int i = 1; i <= col; i++) {
-          h[i - 1] = m.getColumnLabel(i);
+          header[i - 1] = m.getColumnLabel(i);
         }
 
         int counter = 0;
         boolean maxRowsReached = false;
         while (result.next()) {
+          String[] row = new String[col];
 
           // The result set may be larger that the max rows set. In such a case, change
           // the color of the text in the query button in order to warn the user.
@@ -1143,17 +1144,17 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
           }
 
           for (int i = 1; i <= col; i++) {
-            h[i - 1] = result.getString(i);
+            row[i - 1] = result.getString(i);
 
             if (result.wasNull()) {
-              h[i - 1] = "(null)";
+              row[i - 1] = "(null)";
             }
           }
 
-          rows.add(h.clone());
+          rows.add(row);
         }
 
-        applyFormattedResultSet(h.clone(), rows, maxRowsReached);
+        applyFormattedResultSet(header, rows, maxRowsReached);
       }
     } catch (SQLException e) {
       e.printStackTrace();
