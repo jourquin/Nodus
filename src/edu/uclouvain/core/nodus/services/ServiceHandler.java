@@ -151,27 +151,44 @@ public class ServiceHandler {
 
     /* Add or remove chunk */
     if (currentService.contains(omg)) {
-      /*
-       * Remove rules: - one node must have only one occurrence - the other node must have two
-       * occurrences, only one element in the line. Thus, only the end chunks can be removed
-       */
+      if (currentService.getNbLinks() > 1 && n1 > 1 && n2 > 1) {
+        return false;
+      }
       omg.deselect();
       currentService.removeChunk(omg);
+      removeUnusedStops();
     } else {
 
-      /*
-       * Add rules: - a node cannot have more than one occurence, otherwise is an (unallowed) fork -
-       * at least one node must have one occurence or this chunk is the first one
-       */
-      if (n1 + n2 > 0 || currentService.getNbLinks() == 0) {
+      if (currentService.getNbLinks() == 0) {
         currentService.addChunk(omg);
         addStopNode(n1, node1);
         addStopNode(n2, node2);
       } else {
-        return false;
+        if (n1 > 0 && n2 > 0) {
+          return false;
+        }
+
+        int sharedNode = n1 > 0 ? node1 : node2;
+        int sharedNodeOccurences = n1 > 0 ? n1 : n2;
+
+        if (sharedNodeOccurences >= 2 && !removeLastBranchFromNode(sharedNode)) {
+          return false;
+        }
+
+        n1 = getNbOccurences(node1);
+        n2 = getNbOccurences(node2);
+
+        if (n1 + n2 == 1) {
+          currentService.addChunk(omg);
+          addStopNode(n1, node1);
+          addStopNode(n2, node2);
+        } else {
+          return false;
+        }
       }
     } // this.setLocationRelativeTo(nodusMapPanel);
     serviceEditorDlg.loadModeMeans((byte) mode, (byte) means);
+    repaintLinkLayers();
     paintService(true);
 
     mustBeSaved = true;
@@ -454,6 +471,112 @@ public class ServiceHandler {
     }
 
     return nbOccurences;
+  }
+
+  /**
+   * Returns the endpoint node IDs of a service link.
+   *
+   * @param link The link.
+   * @return The two endpoint node IDs, or null if the link is not found.
+   */
+  private int[] getLinkEndpointNodeIds(OMGraphic link) {
+    for (NodusEsriLayer element : linkLayer) {
+      int idx = element.getEsriGraphicList().indexOf(link);
+      if (idx != -1) {
+        return new int[] {
+          JDBCUtils.getInt(element.getModel().getValueAt(idx, NodusC.DBF_IDX_NODE1)),
+          JDBCUtils.getInt(element.getModel().getValueAt(idx, NodusC.DBF_IDX_NODE2))
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Returns the only service link incident to a node.
+   *
+   * @param nodeId The node ID.
+   * @return The incident link, or null if there is not exactly one.
+   */
+  private OMGraphic getSingleIncidentLink(int nodeId) {
+    OMGraphic incidentLink = null;
+
+    Iterator<OMGraphic> it = currentService.getLinks().iterator();
+    while (it.hasNext()) {
+      OMGraphic link = it.next();
+      int[] nodes = getLinkEndpointNodeIds(link);
+      if (nodes != null && (nodes[0] == nodeId || nodes[1] == nodeId)) {
+        if (incidentLink != null) {
+          return null;
+        }
+        incidentLink = link;
+      }
+    }
+
+    return incidentLink;
+  }
+
+  /**
+   * Removes the most recently added branch that starts at a node.
+   *
+   * @param nodeId The node from which the branch starts.
+   * @return True if a branch was removed.
+   */
+  private boolean removeLastBranchFromNode(int nodeId) {
+    LinkedList<OMGraphic> links = currentService.getLinks();
+
+    for (int i = links.size() - 1; i >= 0; i--) {
+      OMGraphic link = links.get(i);
+      int[] nodes = getLinkEndpointNodeIds(link);
+      if (nodes != null && (nodes[0] == nodeId || nodes[1] == nodeId)) {
+        removeBranchFromNode(nodeId, link);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Removes a path branch from a service, starting with a link incident to a given node.
+   *
+   * @param anchorNodeId The node at which the branch starts.
+   * @param firstLink The first link of the branch.
+   */
+  private void removeBranchFromNode(int anchorNodeId, OMGraphic firstLink) {
+    int previousNodeId = anchorNodeId;
+    OMGraphic link = firstLink;
+
+    while (link != null) {
+      int[] nodes = getLinkEndpointNodeIds(link);
+      if (nodes == null) {
+        break;
+      }
+
+      int nextNodeId = nodes[0] == previousNodeId ? nodes[1] : nodes[0];
+      link.deselect();
+      currentService.removeChunk(link);
+
+      if (getNbOccurences(nextNodeId) != 1) {
+        break;
+      }
+
+      link = getSingleIncidentLink(nextNodeId);
+      previousNodeId = nextNodeId;
+    }
+
+    removeUnusedStops();
+  }
+
+  /** Removes stop nodes that no longer belong to any selected service link. */
+  private void removeUnusedStops() {
+    Iterator<Integer> it = currentService.getStopNodes().iterator();
+    while (it.hasNext()) {
+      if (getNbOccurences(it.next()) == 0) {
+        it.remove();
+      }
+    }
   }
 
   /**
@@ -844,6 +967,7 @@ public class ServiceHandler {
   public void displayService(String serviceName) {
 
     paintService(false);
+    repaintLinkLayers();
 
     // Get the line to edit
     TransportService s = services.get(serviceName);
@@ -860,6 +984,13 @@ public class ServiceHandler {
       // setListening(true);
     }
     paintService(true);
+  }
+
+  /** Repaints all link layers so deselected service links are actually cleared from the map. */
+  private void repaintLinkLayers() {
+    for (NodusEsriLayer element : linkLayer) {
+      element.repaint();
+    }
   }
 
   /** Associate the service ID to the real links. */
@@ -932,9 +1063,7 @@ public class ServiceHandler {
       setListening(false);
       paintService(false);
       currentService = null;
-      for (NodusEsriLayer element : linkLayer) {
-        element.repaint();
-      }
+      repaintLinkLayers();
     }
   }
 
