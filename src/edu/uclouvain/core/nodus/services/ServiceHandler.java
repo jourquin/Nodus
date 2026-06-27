@@ -143,9 +143,7 @@ public class ServiceHandler {
       }
     }
 
-    int node1 =
-        JDBCUtils.getInt(
-            record.get(NodusC.DBF_IDX_NODE1)); // this.setLocationRelativeTo(nodusMapPanel);
+    int node1 = JDBCUtils.getInt(record.get(NodusC.DBF_IDX_NODE1));
     int node2 = JDBCUtils.getInt(record.get(NodusC.DBF_IDX_NODE2));
 
     int n1 = getNbOccurences(node1);
@@ -177,6 +175,9 @@ public class ServiceHandler {
     paintService(true);
 
     mustBeSaved = true;
+    if (serviceEditorDlg != null) {
+      serviceEditorDlg.markServicesChanged();
+    }
     return true;
   }
 
@@ -212,10 +213,39 @@ public class ServiceHandler {
     mustBeSaved = true;
   }
 
+  /**
+   * Saves pending service changes immediately, if any.
+   *
+   * @return True if there was nothing to save or if the save succeeded.
+   */
+  public boolean savePendingChanges() {
+    if (!mustBeSaved) {
+      return true;
+    }
+    if (saveServices()) {
+      mustBeSaved = false;
+      return true;
+    }
+    return false;
+  }
+
+  /** Discards pending service changes and reloads the services stored in the database. */
+  public void discardPendingChanges() {
+    resetService();
+    if (services != null) {
+      services.clear();
+    }
+    loadService();
+    mustBeSaved = false;
+  }
+
   /** Closes the service manager and saves the service in tha database if needed. */
   public void close() {
 
     try {
+      if (serviceEditorDlg != null && serviceEditorDlg.hasUnsavedChanges()) {
+        serviceEditorDlg.discardPendingChanges();
+      }
       if (mustBeSaved) {
         saveServices();
       }
@@ -251,13 +281,13 @@ public class ServiceHandler {
   }
 
   /** Saves the services in the database. */
-  private void saveServices() {
+  private boolean saveServices() {
     Savepoint savepoint = null;
 
     try {
       jdbcConnection = nodusProject.getMainJDBCConnection();
       if (jdbcConnection == null) {
-        return;
+        return false;
       }
 
       // Create new tables if needed
@@ -324,6 +354,7 @@ public class ServiceHandler {
       if (!jdbcConnection.getAutoCommit()) {
         jdbcConnection.commit();
       }
+      return true;
     } catch (Exception ex) {
       if (jdbcConnection != null) {
         try {
@@ -336,6 +367,7 @@ public class ServiceHandler {
       }
 
       JOptionPane.showMessageDialog(null, ex.toString(), "SQL error", JOptionPane.ERROR_MESSAGE);
+      return false;
     }
   }
 

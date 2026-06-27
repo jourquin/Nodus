@@ -61,6 +61,7 @@ import java.text.MessageFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.TreeMap;
 import javax.swing.AbstractCellEditor;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -407,6 +408,12 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
   /** . */
   private boolean isNewRecord;
 
+  /** Staged service stop states for a node. Applied only when this dialog is saved. */
+  private TreeMap<String, Boolean> serviceStopsForNode = null;
+
+  /** True when the staged service stop states differ from the current service data. */
+  private boolean isServiceStopsChanged = false;
+
   /** . */
   private int graphicIndex;
 
@@ -695,8 +702,21 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
           new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-              ServicesDlg dlg = new ServicesDlg(_this, nodusEsriLayer, objectNum);
+              ServicesAtNodeDlg dlg =
+                  new ServicesAtNodeDlg(_this, nodusEsriLayer, objectNum, serviceStopsForNode);
               dlg.setVisible(true);
+              TreeMap<String, Boolean> selectedServiceStops = dlg.getSelectedServiceStops();
+              if (selectedServiceStops != null) {
+                serviceStopsForNode = selectedServiceStops;
+                isServiceStopsChanged =
+                    !serviceStopsForNode.equals(
+                        nodusEsriLayer
+                            .getNodusMapPanel()
+                            .getNodusProject()
+                            .getServiceHandler()
+                            .getServiceNamesForNode(objectNum));
+                setSaveButtonState();
+              }
             }
           });
     }
@@ -765,7 +785,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     // Get the num of the object for later use;
     objectNum = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NUM));
     GridBagConstraints servicesButtonConstraints = new GridBagConstraints();
-    servicesButtonConstraints.gridx = 0;
+    servicesButtonConstraints.gridx = 2;
     servicesButtonConstraints.insets = new Insets(5, 5, 5, 5);
     servicesButtonConstraints.gridy = 2;
 
@@ -1132,7 +1152,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     mainPanel.add(getTranshipComboBox(), gridBagConstraints);
     mainPanel.add(transhipLabel, transhipLabelConstraints);
 
-    if (nodusEsriLayer.getType() != SHAPE_TYPE_POINT && NodusC.withServices) {
+    if (NodusC.withServices) {
       mainPanel.add(getServicesButton(), servicesButtonConstraints);
     }
 
@@ -1329,91 +1349,107 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
    */
   private void saveButton_actionPerformed(ActionEvent e) {
 
-    // Put the new values in the table.
-    // We know they are correct because they were tested in the cell editor
-    for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
-      Object rawValue = dbfTable.getValueAt(i, 1);
-      String value = rawValue == null ? "" : rawValue.toString();
+    boolean isDbfChanged = isNewRecord || computeHashCode() != initialValuesHashCode;
 
-      if (nodusEsriLayer.getModel().getType(i) == DbfTableModel.TYPE_NUMERIC) {
-        Double d = Double.valueOf(value);
-        nodusEsriLayer.getModel().setValueAt(d, graphicIndex, i);
-      } else {
-        nodusEsriLayer.getModel().setValueAt(value, graphicIndex, i);
-      }
-    }
+    if (isDbfChanged) {
+      // Put the new values in the table.
+      // We know they are correct because they were tested in the cell editor
+      for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
+        Object rawValue = dbfTable.getValueAt(i, 1);
+        String value = rawValue == null ? "" : rawValue.toString();
 
-    // Build SQL command
-    Object cell;
-    String sqlStmt = "UPDATE ";
-    sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(nodusEsriLayer.getTableName()) + " SET ";
-
-    for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
-      sqlStmt +=
-          JDBCUtils.getQuotedCompliantIdentifier(nodusEsriLayer.getModel().getColumnName(i)) + '=';
-      cell = nodusEsriLayer.getModel().getValueAt(graphicIndex, i);
-
-      byte type = nodusEsriLayer.getModel().getType(i);
-
-      if (type == DbfTableModel.TYPE_NUMERIC) {
-        if (nodusEsriLayer.getModel().getDecimalCount(i) > 0) {
-          sqlStmt += JDBCUtils.getDouble(cell);
-
+        if (nodusEsriLayer.getModel().getType(i) == DbfTableModel.TYPE_NUMERIC) {
+          Double d = Double.valueOf(value);
+          nodusEsriLayer.getModel().setValueAt(d, graphicIndex, i);
         } else {
-          sqlStmt += JDBCUtils.getInt(cell);
-        }
-      } else if (type == DbfTableModel.TYPE_CHARACTER) {
-        String stringValue = cell == null ? "" : cell.toString();
-        sqlStmt += '\'' + stringValue.replace("'", "''") + '\'';
-      } else if (type == DbfTableModel.TYPE_DATE) {
-        if (cell == null || cell.toString().isBlank()) {
-          sqlStmt += "NULL";
-        } else {
-          sqlStmt += JDBCUtils.getDate(cell.toString());
+          nodusEsriLayer.getModel().setValueAt(value, graphicIndex, i);
         }
       }
-      if (i < nodusEsriLayer.getModel().getColumnCount() - 1) {
-        sqlStmt += ", ";
-      }
-    }
 
-    int num =
-        JDBCUtils.getInt(nodusEsriLayer.getModel().getValueAt(graphicIndex, NodusC.DBF_IDX_NUM));
-    sqlStmt += " WHERE " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM) + " = " + num;
+      // Build SQL command
+      Object cell;
+      String sqlStmt = "UPDATE ";
+      sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(nodusEsriLayer.getTableName()) + " SET ";
 
-    nodusEsriLayer.executeUpdateSqlStmt(sqlStmt);
-    nodusEsriLayer.setDirtyDbf(true);
+      for (int i = 0; i < nodusEsriLayer.getModel().getColumnCount(); i++) {
+        sqlStmt +=
+            JDBCUtils.getQuotedCompliantIdentifier(nodusEsriLayer.getModel().getColumnName(i))
+                + '=';
+        cell = nodusEsriLayer.getModel().getValueAt(graphicIndex, i);
 
-    // Get the label attached to this graphic and update it
-    String newLabel = null;
+        byte type = nodusEsriLayer.getModel().getType(i);
 
-    // Normally no test must be done on the type of AppObject
-    RealNetworkObject rnbo = (RealNetworkObject) omGraphic.getAttribute(0);
+        if (type == DbfTableModel.TYPE_NUMERIC) {
+          if (nodusEsriLayer.getModel().getDecimalCount(i) > 0) {
+            sqlStmt += JDBCUtils.getDouble(cell);
 
-    if (rnbo != null) {
-      BasicLocation bl = rnbo.getLocation();
-
-      if (bl != null) {
-        int n = nodusEsriLayer.getLocationHandler().getLocationFieldIndex();
-
-        if (n >= 0) {
-          Object labelValue = nodusEsriLayer.getModel().getValueAt(graphicIndex, n);
-          if (labelValue != null) {
-            newLabel = labelValue.toString();
+          } else {
+            sqlStmt += JDBCUtils.getInt(cell);
           }
-          bl.setName(newLabel);
+        } else if (type == DbfTableModel.TYPE_CHARACTER) {
+          String stringValue = cell == null ? "" : cell.toString();
+          sqlStmt += '\'' + stringValue.replace("'", "''") + '\'';
+        } else if (type == DbfTableModel.TYPE_DATE) {
+          if (cell == null || cell.toString().isBlank()) {
+            sqlStmt += "NULL";
+          } else {
+            sqlStmt += JDBCUtils.getDate(cell.toString());
+          }
+        }
+        if (i < nodusEsriLayer.getModel().getColumnCount() - 1) {
+          sqlStmt += ", ";
         }
       }
-    } else {
-      // Force the labels to be reloaded if a new link or node is
-      // added
-      nodusEsriLayer.getLocationHandler().reloadData();
+
+      int num =
+          JDBCUtils.getInt(nodusEsriLayer.getModel().getValueAt(graphicIndex, NodusC.DBF_IDX_NUM));
+      sqlStmt += " WHERE " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM) + " = " + num;
+
+      nodusEsriLayer.executeUpdateSqlStmt(sqlStmt);
+      nodusEsriLayer.setDirtyDbf(true);
     }
 
-    // Update the display if needed
-    if (isStyleChanged || oldLabel != null && !oldLabel.equals(newLabel)) {
-      nodusEsriLayer.attachStyles();
-      nodusEsriLayer.doPrepare();
+    if (isServiceStopsChanged && serviceStopsForNode != null) {
+      nodusEsriLayer
+          .getNodusMapPanel()
+          .getNodusProject()
+          .getServiceHandler()
+          .setStops(objectNum, serviceStopsForNode);
+      nodusEsriLayer.getNodusMapPanel().getNodusProject().getServiceHandler().savePendingChanges();
+    }
+
+    if (isDbfChanged) {
+      // Get the label attached to this graphic and update it
+      String newLabel = null;
+
+      // Normally no test must be done on the type of AppObject
+      RealNetworkObject rnbo = (RealNetworkObject) omGraphic.getAttribute(0);
+
+      if (rnbo != null) {
+        BasicLocation bl = rnbo.getLocation();
+
+        if (bl != null) {
+          int n = nodusEsriLayer.getLocationHandler().getLocationFieldIndex();
+
+          if (n >= 0) {
+            Object labelValue = nodusEsriLayer.getModel().getValueAt(graphicIndex, n);
+            if (labelValue != null) {
+              newLabel = labelValue.toString();
+            }
+            bl.setName(newLabel);
+          }
+        }
+      } else {
+        // Force the labels to be reloaded if a new link or node is
+        // added
+        nodusEsriLayer.getLocationHandler().reloadData();
+      }
+
+      // Update the display if needed
+      if (isStyleChanged || oldLabel != null && !oldLabel.equals(newLabel)) {
+        nodusEsriLayer.attachStyles();
+        nodusEsriLayer.doPrepare();
+      }
     }
 
     nodusEsriLayer.setCanceled(false);
@@ -1441,7 +1477,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
   /** Enable the save button if at least one value is different from the initial ones. */
   private void setSaveButtonState() {
-    if (isInitialized && computeHashCode() != initialValuesHashCode) {
+    if (isInitialized && (computeHashCode() != initialValuesHashCode || isServiceStopsChanged)) {
       saveButton.setEnabled(true);
     } else {
       if (isNewRecord) {

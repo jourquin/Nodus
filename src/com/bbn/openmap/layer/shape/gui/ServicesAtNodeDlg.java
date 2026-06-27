@@ -50,7 +50,7 @@ import javax.swing.table.DefaultTableModel;
  *
  * @author Bart Jourquin
  */
-public class ServicesDlg extends EscapeDialog implements ShapeConstants {
+public class ServicesAtNodeDlg extends EscapeDialog implements ShapeConstants {
 
   private static I18n i18n = Environment.getI18n();
 
@@ -72,7 +72,7 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
   private JTable servicesTable = null;
 
   /** . */
-  private TreeMap<String, ?> listNameForNode = null;
+  private TreeMap<String, Boolean> listNameForNode = null;
 
   /** . */
   private DefaultTableModel modeltable = new DefaultTableModel();
@@ -88,6 +88,9 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
 
   /** . */
   private ServiceHandler serviceHandler;
+
+  /** Staged stop selections for a node, returned to the parent dialog. */
+  private TreeMap<String, Boolean> selectedServiceStops = null;
 
   /** . */
   private LinkedList<?> serviceIdsForLink;
@@ -105,12 +108,32 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
    * @param nodusEsriLayer The layer the object to edit belongs to
    * @param objectNum Node or Link number
    */
-  public ServicesDlg(JDialog parent, NodusEsriLayer nodusEsriLayer, int objectNum) {
+  public ServicesAtNodeDlg(JDialog parent, NodusEsriLayer nodusEsriLayer, int objectNum) {
+    this(parent, nodusEsriLayer, objectNum, null);
+  }
+
+  /**
+   * Dialog box that allows edition of lines and services.
+   *
+   * @param parent The parent dialog
+   * @param nodusEsriLayer The layer the object to edit belongs to
+   * @param objectNum Node or Link number
+   * @param serviceStopsForNode Staged stop states to display for a node, or null to load current
+   *     service states
+   */
+  public ServicesAtNodeDlg(
+      JDialog parent,
+      NodusEsriLayer nodusEsriLayer,
+      int objectNum,
+      TreeMap<String, Boolean> serviceStopsForNode) {
     super(nodusEsriLayer.getNodusMapPanel().getMainFrame(), "", true);
     this.nodusMapPanel = nodusEsriLayer.getNodusMapPanel();
     serviceHandler = nodusMapPanel.getNodusProject().getServiceHandler();
     this.objectType = nodusEsriLayer.getType();
     this.objectNum = objectNum;
+    if (serviceStopsForNode != null) {
+      listNameForNode = new TreeMap<>(serviceStopsForNode);
+    }
     initialize();
 
     getRootPane().setDefaultButton(getCloseButton());
@@ -126,7 +149,7 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
   private JButton getCloseButton() {
     if (closeButton == null) {
       closeButton = new JButton();
-      closeButton.setText(i18n.get(ServicesDlg.class, "Close", "Close"));
+      closeButton.setText(i18n.get(ServicesAtNodeDlg.class, "Close", "Close"));
       closeButton.addActionListener(
           new java.awt.event.ActionListener() {
             @Override
@@ -142,13 +165,25 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
                     listNodes.put((String) checkList.getModel().getElementAt(i), false);
                   }
                 }
-                serviceHandler.setStops(objectNum, listNodes);
+                selectedServiceStops = listNodes;
               }
               setVisible(false);
             }
           });
     }
     return closeButton;
+  }
+
+  /**
+   * Returns the staged stop selections made in this dialog.
+   *
+   * @return Selected service stops, or null if the dialog was closed without applying selections.
+   */
+  public TreeMap<String, Boolean> getSelectedServiceStops() {
+    if (selectedServiceStops == null) {
+      return null;
+    }
+    return new TreeMap<>(selectedServiceStops);
   }
 
   /**
@@ -227,8 +262,8 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
 
     if (servicesTable == null) {
 
-      modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Index", "Index"));
-      modeltable.addColumn(i18n.get(ServicesDlg.class, "Service_Name", "TransportService"));
+      modeltable.addColumn(i18n.get(ServicesAtNodeDlg.class, "Service_Index", "Index"));
+      modeltable.addColumn(i18n.get(ServicesAtNodeDlg.class, "Service_Name", "TransportService"));
 
       DecimalFormat formatter = new DecimalFormat("0000");
 
@@ -302,13 +337,15 @@ public class ServicesDlg extends EscapeDialog implements ShapeConstants {
     switch (objectType) {
       case SHAPE_TYPE_POINT:
         this.setTitle(
-            i18n.get(ServicesDlg.class, "Services_at_this_node", "Services at this node"));
-        listNameForNode = serviceHandler.getServiceNamesForNode(objectNum);
+            i18n.get(ServicesAtNodeDlg.class, "Services_at_this_node", "Services at this node"));
+        if (listNameForNode == null) {
+          listNameForNode = serviceHandler.getServiceNamesForNode(objectNum);
+        }
         break;
 
       case SHAPE_TYPE_POLYLINE:
         this.setTitle(
-            i18n.get(ServicesDlg.class, "Services_at_this_link", "Services at this link"));
+            i18n.get(ServicesAtNodeDlg.class, "Services_at_this_link", "Services at this link"));
         serviceIdsForLink = serviceHandler.getServicesForLink(objectNum);
         serviceNamesForLink = serviceHandler.getServiceNamesForLink(objectNum);
         break;

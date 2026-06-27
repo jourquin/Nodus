@@ -31,6 +31,7 @@ import edu.uclouvain.core.nodus.services.TransportService;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import edu.uclouvain.core.nodus.swing.TableSorter;
 import java.awt.CardLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
@@ -74,6 +75,9 @@ public class ServicesDlg extends EscapeDialog {
 
   /** . */
   private JButton closeButton = null;
+
+  /** Saves all pending service changes to the database. */
+  private JButton listSaveButton = null;
 
   /** . */
   private int[] constPeriod = {1, 12, 52, 365};
@@ -147,6 +151,9 @@ public class ServicesDlg extends EscapeDialog {
   /** . */
   private JComboBox<String> time = new JComboBox<>();
 
+  /** True when the list contains changes not yet written to the database. */
+  private boolean hasUnsavedServiceChanges = false;
+
   /**
    * Creates the service editor dialog.
    *
@@ -210,6 +217,31 @@ public class ServicesDlg extends EscapeDialog {
     }
   }
 
+  /** Marks the service list as changed. */
+  public void markServicesChanged() {
+    hasUnsavedServiceChanges = true;
+    serviceHandler.mustBeSaved();
+    if (listSaveButton != null) {
+      listSaveButton.setEnabled(true);
+    }
+  }
+
+  /** Returns true if the service editor contains unsaved changes. */
+  public boolean hasUnsavedChanges() {
+    return hasUnsavedServiceChanges;
+  }
+
+  /** Discards changes made in this editor and reloads the persisted services. */
+  public void discardPendingChanges() {
+    serviceHandler.discardPendingChanges();
+    hasUnsavedServiceChanges = false;
+    refreshServicesTable();
+    if (listSaveButton != null) {
+      listSaveButton.setEnabled(false);
+    }
+    showCard(LIST_CARD);
+  }
+
   /**
    * Initialize the "cancel" button.
    *
@@ -264,11 +296,37 @@ public class ServicesDlg extends EscapeDialog {
           new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
+              discardPendingChanges();
               setVisible(false);
             }
           });
     }
     return closeButton;
+  }
+
+  /**
+   * Initializes the service-list "save" button.
+   *
+   * @return javax.swing.JButton
+   */
+  private JButton getListSaveButton() {
+    if (listSaveButton == null) {
+      listSaveButton = new JButton();
+      listSaveButton.setText(i18n.get(ServicesDlg.class, "Save", "Save"));
+      listSaveButton.setEnabled(false);
+      listSaveButton.addActionListener(
+          new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+              if (serviceHandler.savePendingChanges()) {
+                hasUnsavedServiceChanges = false;
+                listSaveButton.setEnabled(false);
+                setVisible(false);
+              }
+            }
+          });
+    }
+    return listSaveButton;
   }
 
   /**
@@ -325,7 +383,7 @@ public class ServicesDlg extends EscapeDialog {
 
                 fillServicesTable(keyCopy);
 
-                serviceHandler.mustBeSaved();
+                markServicesChanged();
 
                 serviceHandler.resetService();
 
@@ -363,6 +421,10 @@ public class ServicesDlg extends EscapeDialog {
               }
 
               serviceHandler.removeService(serviceName);
+              hasUnsavedServiceChanges = true;
+              if (listSaveButton != null) {
+                listSaveButton.setEnabled(true);
+              }
               if (getRowInModelbyService(serviceName) != -1) {
                 servicesTableModel.removeRow(getRowInModelbyService(serviceName));
               }
@@ -440,9 +502,10 @@ public class ServicesDlg extends EscapeDialog {
       buttonsPanel.add(getCancelButton());
       buttonsPanel.add(getSaveButton());
 
-      editorCard.add(
+      addToGridBag(
+          editorCard,
           new JLabel(i18n.get(ServicesDlg.class, "Service_Index", "ID")),
-          setContraints(
+          createConstraints(
               0,
               0,
               1,
@@ -455,9 +518,10 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      editorCard.add(
+      addToGridBag(
+          editorCard,
           idxField,
-          setContraints(
+          createConstraints(
               1,
               0,
               1,
@@ -470,9 +534,10 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      editorCard.add(
+      addToGridBag(
+          editorCard,
           new JLabel(i18n.get(ServicesDlg.class, "Service_Name", "Name")),
-          setContraints(
+          createConstraints(
               0,
               1,
               1,
@@ -485,9 +550,10 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      editorCard.add(
+      addToGridBag(
+          editorCard,
           nameField,
-          setContraints(
+          createConstraints(
               1,
               1,
               3,
@@ -500,9 +566,10 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      editorCard.add(
+      addToGridBag(
+          editorCard,
           modeMeansPanel,
-          setContraints(
+          createConstraints(
               0,
               2,
               4,
@@ -515,9 +582,10 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      editorCard.add(
+      addToGridBag(
+          editorCard,
           frequencyPanel,
-          setContraints(
+          createConstraints(
               0,
               3,
               4,
@@ -530,9 +598,10 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      editorCard.add(
+      addToGridBag(
+          editorCard,
           buttonsPanel,
-          setContraints(
+          createConstraints(
               0,
               4,
               4,
@@ -570,12 +639,13 @@ public class ServicesDlg extends EscapeDialog {
 
       listCard.setLayout(new GridBagLayout());
 
-      listCard.add(
+      addToGridBag(
+          listCard,
           getServicesScrollPane(),
-          setContraints(
+          createConstraints(
               0,
               1,
-              5,
+              7,
               1,
               0.1,
               0.1,
@@ -585,9 +655,10 @@ public class ServicesDlg extends EscapeDialog {
               200,
               0));
 
-      listCard.add(
+      addToGridBag(
+          listCard,
           getAddButton(),
-          setContraints(
+          createConstraints(
               0,
               2,
               1,
@@ -600,9 +671,10 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      listCard.add(
+      addToGridBag(
+          listCard,
           getEditButton(),
-          setContraints(
+          createConstraints(
               1,
               2,
               1,
@@ -615,9 +687,10 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      listCard.add(
+      addToGridBag(
+          listCard,
           getCopyButton(),
-          setContraints(
+          createConstraints(
               2,
               2,
               1,
@@ -630,9 +703,10 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      listCard.add(
+      addToGridBag(
+          listCard,
           getDeleteButton(),
-          setContraints(
+          createConstraints(
               3,
               2,
               1,
@@ -645,10 +719,43 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      listCard.add(
-          getCloseButton(),
-          setContraints(
+      addToGridBag(
+          listCard,
+          new JPanel(),
+          createConstraints(
               4,
+              2,
+              1,
+              1,
+              1,
+              0,
+              GridBagConstraints.CENTER,
+              GridBagConstraints.HORIZONTAL,
+              new Insets(5, 5, 5, 5),
+              0,
+              0));
+
+      addToGridBag(
+          listCard,
+          getListSaveButton(),
+          createConstraints(
+              5,
+              2,
+              1,
+              1,
+              0,
+              0,
+              GridBagConstraints.SOUTHEAST,
+              GridBagConstraints.NONE,
+              new Insets(5, 5, 5, 5),
+              0,
+              0));
+
+      addToGridBag(
+          listCard,
+          getCloseButton(),
+          createConstraints(
+              6,
               2,
               1,
               1,
@@ -835,7 +942,7 @@ public class ServicesDlg extends EscapeDialog {
 
                 fillServicesTable(name);
 
-                serviceHandler.mustBeSaved();
+                markServicesChanged();
                 enableButtons();
                 serviceHandler.setListening(false);
                 showCard(LIST_CARD);
@@ -941,6 +1048,21 @@ public class ServicesDlg extends EscapeDialog {
     return serviceTable;
   }
 
+  /** Rebuilds the service list from the handler state. */
+  private void refreshServicesTable() {
+    if (serviceTable == null) {
+      return;
+    }
+
+    servicesTableModel.setRowCount(0);
+    Iterator<String> it = serviceHandler.getServiceNamesIterator();
+
+    while (it.hasNext()) {
+      fillServicesTable(it.next());
+    }
+    enableButtons();
+  }
+
   /**
    * This method initializes this dialog.
    *
@@ -992,12 +1114,17 @@ public class ServicesDlg extends EscapeDialog {
     }
   }
 
+  /** Adds a component to a panel using GridBagLayout constraints. */
+  private void addToGridBag(JPanel panel, Component component, GridBagConstraints constraints) {
+    panel.add(component, constraints);
+  }
+
   /**
-   * This method initializes GridBagConstraints.
+   * Creates GridBagConstraints for a component.
    *
    * @return GridBagConstraints
    */
-  private GridBagConstraints setContraints(
+  private GridBagConstraints createConstraints(
       int gridx,
       int gridy,
       int gridwidth,
@@ -1009,9 +1136,7 @@ public class ServicesDlg extends EscapeDialog {
       Insets insets,
       int ipadx,
       int ipady) {
-    // if (gridBagConstraints == null) {
     GridBagConstraints gbc = new GridBagConstraints();
-    // }
 
     gbc.gridx = gridx;
     gbc.gridy = gridy;
@@ -1036,6 +1161,11 @@ public class ServicesDlg extends EscapeDialog {
   @Override
   public void setVisible(boolean visible) {
     String serviceName = null;
+    if (!visible && hasUnsavedServiceChanges) {
+      discardPendingChanges();
+    } else if (visible) {
+      refreshServicesTable();
+    }
     super.setVisible(visible);
     if (visible) {
       if (getServiceTable().getRowCount() > 0) {
