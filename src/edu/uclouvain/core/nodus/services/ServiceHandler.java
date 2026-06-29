@@ -127,10 +127,12 @@ public class ServiceHandler {
 
     // Only polylines can be taken into account
     if (!(omg instanceof OMPoly)) {
+      logServiceLineEdit("Selected graphic cannot be added because it is not a link");
       return false;
     }
 
     // All the chunks must belong to the same mode
+    int linkId = getLinkId(record);
     int mode = JDBCUtils.getInt(record.get(NodusC.DBF_IDX_MODE));
     int means = JDBCUtils.getInt(record.get(NodusC.DBF_IDX_MEANS));
 
@@ -138,6 +140,12 @@ public class ServiceHandler {
       currentService.setMode((byte) JDBCUtils.getInt(record.get(NodusC.DBF_IDX_MODE)));
     } else {
       if (JDBCUtils.getInt(record.get(NodusC.DBF_IDX_MODE)) != currentService.getMode()) {
+        logServiceLineEdit(
+            formatLink(linkId)
+                + " cannot be added because its mode "
+                + mode
+                + " differs from the service line mode "
+                + currentService.getMode());
         return false;
       }
     }
@@ -151,30 +159,57 @@ public class ServiceHandler {
     /* Add or remove chunk */
     if (currentService.contains(omg)) {
       if (currentService.getNbLinks() > 1 && n1 > 1 && n2 > 1) {
+        logServiceLineEdit(
+            formatLink(linkId)
+                + " cannot be removed because it is inside the current service line");
         return false;
       }
       omg.deselect();
       currentService.removeChunk(omg);
       removeUnusedStops();
+      logServiceLineEdit(formatLink(linkId) + " removed from line");
     } else {
 
       if (currentService.getNbLinks() == 0) {
         if (!isValidServiceEndpoint(node1) && !isValidServiceEndpoint(node2)) {
+          logServiceLineEdit(
+              formatLink(linkId)
+                  + " cannot be added because the first link of a line must be connected to a node"
+                  + " with operations");
           return false;
         }
         currentService.addChunk(omg);
         addStopNode(n1, node1);
         addStopNode(n2, node2);
+        logServiceLineEdit(formatLink(linkId) + " added to line");
       } else {
         if (n1 > 0 && n2 > 0) {
+          logServiceLineEdit(
+              formatLink(linkId)
+                  + " cannot be added because both end nodes already belong to the service line");
           return false;
         }
 
         int sharedNode = n1 > 0 ? node1 : node2;
         int sharedNodeOccurences = n1 > 0 ? n1 : n2;
 
-        if (sharedNodeOccurences >= 2 && !removeLastBranchFromNode(sharedNode)) {
-          return false;
+        if (sharedNodeOccurences >= 2) {
+          LinkedList<OMGraphic> removedLinks = removeLastBranchFromNode(sharedNode);
+          if (removedLinks.isEmpty()) {
+            logServiceLineEdit(
+                formatLink(linkId)
+                    + " cannot be added because no removable branch was found at fork node "
+                    + sharedNode);
+            return false;
+          }
+          for (OMGraphic removedLink : removedLinks) {
+            logServiceLineEdit(
+                formatLink(removedLink)
+                    + " removed because "
+                    + formatLink(linkId)
+                    + " is added in another branch of the fork at node "
+                    + sharedNode);
+          }
         }
 
         n1 = getNbOccurences(node1);
@@ -184,7 +219,12 @@ public class ServiceHandler {
           currentService.addChunk(omg);
           addStopNode(n1, node1);
           addStopNode(n2, node2);
+          logServiceLineEdit(formatLink(linkId) + " added to line");
         } else {
+          logServiceLineEdit(
+              formatLink(linkId)
+                  + " cannot be added because it is not connected to exactly one end of the"
+                  + " current service line");
           return false;
         }
       }
@@ -224,6 +264,41 @@ public class ServiceHandler {
         currentService.addStop(nodeId);
       }
     }
+  }
+
+  /** Formats a service line edit message for the terminal. */
+  private void logServiceLineEdit(String message) {
+    System.out.println("[Services] " + message);
+  }
+
+  /** Returns the link ID stored in a DBF record. */
+  private int getLinkId(List<Object> record) {
+    return JDBCUtils.getInt(record.get(NodusC.DBF_IDX_NUM));
+  }
+
+  /** Returns the ID of an already loaded link graphic. */
+  private int getLinkId(OMGraphic link) {
+    for (NodusEsriLayer element : linkLayer) {
+      int idx = element.getEsriGraphicList().indexOf(link);
+      if (idx != -1) {
+        return JDBCUtils.getInt(element.getModel().getValueAt(idx, NodusC.DBF_IDX_NUM));
+      }
+    }
+
+    return Integer.MIN_VALUE;
+  }
+
+  /** Formats a link ID for service line edit messages. */
+  private String formatLink(int linkId) {
+    if (linkId == Integer.MIN_VALUE) {
+      return "Link <unknown>";
+    }
+    return "Link " + linkId;
+  }
+
+  /** Formats a service link for service line edit messages. */
+  private String formatLink(OMGraphic link) {
+    return formatLink(getLinkId(link));
   }
 
   /** Notify that the service needs to be saved. */
@@ -578,21 +653,20 @@ public class ServiceHandler {
    * Removes the most recently added branch that starts at a node.
    *
    * @param nodeId The node from which the branch starts.
-   * @return True if a branch was removed.
+   * @return Links removed from the service.
    */
-  private boolean removeLastBranchFromNode(int nodeId) {
+  private LinkedList<OMGraphic> removeLastBranchFromNode(int nodeId) {
     LinkedList<OMGraphic> links = currentService.getLinks();
 
     for (int i = links.size() - 1; i >= 0; i--) {
       OMGraphic link = links.get(i);
       int[] nodes = getLinkEndpointNodeIds(link);
       if (nodes != null && (nodes[0] == nodeId || nodes[1] == nodeId)) {
-        removeBranchFromNode(nodeId, link);
-        return true;
+        return removeBranchFromNode(nodeId, link);
       }
     }
 
-    return false;
+    return new LinkedList<>();
   }
 
   /**
@@ -600,8 +674,10 @@ public class ServiceHandler {
    *
    * @param anchorNodeId The node at which the branch starts.
    * @param firstLink The first link of the branch.
+   * @return Links removed from the service.
    */
-  private void removeBranchFromNode(int anchorNodeId, OMGraphic firstLink) {
+  private LinkedList<OMGraphic> removeBranchFromNode(int anchorNodeId, OMGraphic firstLink) {
+    LinkedList<OMGraphic> removedLinks = new LinkedList<>();
     int previousNodeId = anchorNodeId;
     OMGraphic link = firstLink;
 
@@ -611,10 +687,11 @@ public class ServiceHandler {
         break;
       }
 
-      int nextNodeId = nodes[0] == previousNodeId ? nodes[1] : nodes[0];
       link.deselect();
       currentService.removeChunk(link);
+      removedLinks.add(link);
 
+      int nextNodeId = nodes[0] == previousNodeId ? nodes[1] : nodes[0];
       if (getNbOccurences(nextNodeId) != 1) {
         break;
       }
@@ -624,6 +701,7 @@ public class ServiceHandler {
     }
 
     removeUnusedStops();
+    return removedLinks;
   }
 
   /** Removes stop nodes that no longer belong to any selected service link. */
@@ -682,7 +760,7 @@ public class ServiceHandler {
             return element.getEsriGraphicList().getOMGraphicAt(idx);
           }
         }
-        break; // findbug ??
+        break; 
 
       case TYPE_LINK:
         for (NodusEsriLayer element : linkLayer) {
