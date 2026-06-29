@@ -979,7 +979,7 @@ public class ServicesDlg extends EscapeDialog {
                       i18n.get(
                           ServicesDlg.class,
                           "Invalid_service_endpoints",
-                          "The line must start and end at nodes where operations are allowed"),
+                          "All end nodes of the line must allow operations"),
                       NodusC.APPNAME,
                       JOptionPane.ERROR_MESSAGE);
                   return;
@@ -1284,6 +1284,12 @@ public class ServicesDlg extends EscapeDialog {
     } else {
       serviceHandler.resetService();
     }
+  }
+
+  /** Disposes the dialog without converting the hide request into an editor-card cancel action. */
+  public void disposeFromServiceHandler() {
+    super.setVisible(false);
+    dispose();
   }
 
   private boolean isEditorCardVisible() {

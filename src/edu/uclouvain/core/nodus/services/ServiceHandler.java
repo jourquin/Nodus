@@ -43,16 +43,18 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeMap;
 import javax.swing.JOptionPane;
 
 /**
  * This class manages the editing process for services.
  *
- * @author Galina Iassinovskaia
+ * @author Galina Iassinovskaia and Bart Jourquin
  */
 public class ServiceHandler {
 
@@ -65,9 +67,6 @@ public class ServiceHandler {
   private TransportService currentService;
 
   private ServicesDlg serviceEditorDlg;
-
-  /** The painting environment, that will correspond to the Mapbean. */
-  private Graphics graphics;
 
   private Connection jdbcConnection;
 
@@ -99,8 +98,6 @@ public class ServiceHandler {
 
     this.nodusProject = nodusProject;
     // nodusMapPanel = nodusProject.getNodusMapPanel();
-
-    graphics = nodusProject.getNodusMapPanel().getMapBean().getGraphics();
 
     linkLayer = nodusProject.getLinkLayers();
     nodeLayer = nodusProject.getNodeLayers();
@@ -200,33 +197,7 @@ public class ServiceHandler {
           return false;
         }
 
-        int sharedNode = n1 > 0 ? node1 : node2;
-        int sharedNodeOccurences = n1 > 0 ? n1 : n2;
-
-        if (sharedNodeOccurences >= 2) {
-          LinkedList<OMGraphic> removedLinks = removeLastBranchFromNode(sharedNode);
-          if (removedLinks.isEmpty()) {
-            logServiceLineEdit(
-                "Log_No_removable_branch",
-                "{0} cannot be added because no removable branch was found at fork node {1}",
-                formatLink(linkId),
-                formatIdentifier(sharedNode));
-            return false;
-          }
-          for (OMGraphic removedLink : removedLinks) {
-            logServiceLineEdit(
-                "Log_Link_removed_for_fork",
-                "{0} removed because {1} is added in another branch of the fork at node {2}",
-                formatLink(removedLink),
-                formatLink(linkId),
-                formatIdentifier(sharedNode));
-          }
-        }
-
-        n1 = getNbOccurences(node1);
-        n2 = getNbOccurences(node2);
-
-        if (n1 + n2 == 1) {
+        if (n1 > 0 || n2 > 0) {
           currentService.addChunk(omg);
           addStopNode(n1, node1);
           addStopNode(n2, node2);
@@ -234,7 +205,7 @@ public class ServiceHandler {
         } else {
           logServiceLineEdit(
               "Log_Not_connected_to_one_end",
-              "{0} cannot be added because it is not connected to exactly one end of the current"
+              "{0} cannot be added because it is not connected to exactly one node of the current"
                   + " service line",
               formatLink(linkId));
           return false;
@@ -292,18 +263,6 @@ public class ServiceHandler {
     return JDBCUtils.getInt(record.get(NodusC.DBF_IDX_NUM));
   }
 
-  /** Returns the ID of an already loaded link graphic. */
-  private int getLinkId(OMGraphic link) {
-    for (NodusEsriLayer element : linkLayer) {
-      int idx = element.getEsriGraphicList().indexOf(link);
-      if (idx != -1) {
-        return JDBCUtils.getInt(element.getModel().getValueAt(idx, NodusC.DBF_IDX_NUM));
-      }
-    }
-
-    return Integer.MIN_VALUE;
-  }
-
   /** Formats a link ID for service line edit messages. */
   private String formatLink(int linkId) {
     if (linkId == Integer.MIN_VALUE) {
@@ -311,11 +270,6 @@ public class ServiceHandler {
     }
     return MessageFormat.format(
         i18n.get(ServiceHandler.class, "Log_Link", "Link {0}"), formatIdentifier(linkId));
-  }
-
-  /** Formats a service link for service line edit messages. */
-  private String formatLink(OMGraphic link) {
-    return formatLink(getLinkId(link));
   }
 
   /** Formats an identifier without locale-specific grouping separators. */
@@ -354,15 +308,12 @@ public class ServiceHandler {
     mustBeSaved = false;
   }
 
-  /** Closes the service manager and saves the service in tha database if needed. */
+  /** Closes the service manager and saves the services in the database if needed. */
   public void close() {
 
     try {
-      if (serviceEditorDlg != null && serviceEditorDlg.hasUnsavedChanges()) {
-        serviceEditorDlg.discardPendingChanges();
-      }
       if (mustBeSaved) {
-        saveServices();
+        savePendingChanges();
       }
     } finally {
       dispose();
@@ -371,13 +322,12 @@ public class ServiceHandler {
 
   /** Releases references held by the service manager. */
   public void dispose() {
+    resetService();
     listening = false;
     mustBeSaved = false;
-    currentService = null;
 
     if (serviceEditorDlg != null) {
-      serviceEditorDlg.setVisible(false);
-      serviceEditorDlg.dispose();
+      serviceEditorDlg.disposeFromServiceHandler();
       serviceEditorDlg = null;
     }
 
@@ -385,7 +335,6 @@ public class ServiceHandler {
       services.clear();
     }
 
-    graphics = null;
     jdbcConnection = null;
     linkLayer = null;
     nodeLayer = null;
@@ -531,14 +480,13 @@ public class ServiceHandler {
    */
   public int getMeansForService(int serviceId) {
     Iterator<TransportService> it = services.values().iterator();
-    TransportService s = null;
     while (it.hasNext()) {
-      s = it.next();
+      TransportService s = it.next();
       if (s.getId() == serviceId) {
-        break;
+        return s.getMeans();
       }
     }
-    return s.getMeans();
+    return 0;
   }
 
   /**
@@ -583,10 +531,10 @@ public class ServiceHandler {
   }
 
   /**
-   * Checks if a service starts and ends at operation-enabled nodes.
+   * Checks if all service end nodes allow operations.
    *
    * @param service The service to check.
-   * @return True if the service has exactly two valid end nodes.
+   * @return True if the service has at least two valid end nodes and no invalid end node.
    */
   public boolean hasValidEndNodes(TransportService service) {
     if (service == null || service.getNbLinks() == 0) {
@@ -594,12 +542,14 @@ public class ServiceHandler {
     }
 
     LinkedList<Integer> endNodes = new LinkedList<>();
+    LinkedList<int[]> serviceEdges = new LinkedList<>();
     Iterator<OMGraphic> it = service.getLinks().iterator();
     while (it.hasNext()) {
       int[] nodes = getLinkEndpointNodeIds(it.next());
       if (nodes == null) {
-        continue;
+        return false;
       }
+      serviceEdges.add(nodes);
       if (getNbOccurences(service, nodes[0]) == 1 && !endNodes.contains(nodes[0])) {
         endNodes.add(nodes[0]);
       }
@@ -608,9 +558,48 @@ public class ServiceHandler {
       }
     }
 
-    return endNodes.size() == 2
-        && isValidServiceEndpoint(endNodes.get(0))
-        && isValidServiceEndpoint(endNodes.get(1));
+    if (endNodes.size() < 2) {
+      return false;
+    }
+
+    Iterator<Integer> endNodeIterator = endNodes.iterator();
+    while (endNodeIterator.hasNext()) {
+      if (!isValidServiceEndpoint(endNodeIterator.next())) {
+        return false;
+      }
+    }
+
+    return isConnectedService(serviceEdges);
+  }
+
+  /** Checks if all service links belong to a single connected graph component. */
+  private boolean isConnectedService(LinkedList<int[]> serviceEdges) {
+    if (serviceEdges.isEmpty()) {
+      return false;
+    }
+
+    Set<Integer> connectedNodes = new HashSet<>();
+    LinkedList<int[]> remainingEdges = new LinkedList<>(serviceEdges);
+    int[] firstEdge = remainingEdges.removeFirst();
+    connectedNodes.add(firstEdge[0]);
+    connectedNodes.add(firstEdge[1]);
+
+    boolean expanded;
+    do {
+      expanded = false;
+      Iterator<int[]> edgeIterator = remainingEdges.iterator();
+      while (edgeIterator.hasNext()) {
+        int[] edge = edgeIterator.next();
+        if (connectedNodes.contains(edge[0]) || connectedNodes.contains(edge[1])) {
+          connectedNodes.add(edge[0]);
+          connectedNodes.add(edge[1]);
+          edgeIterator.remove();
+          expanded = true;
+        }
+      }
+    } while (expanded);
+
+    return remainingEdges.isEmpty();
   }
 
   /**
@@ -645,85 +634,6 @@ public class ServiceHandler {
     }
 
     return null;
-  }
-
-  /**
-   * Returns the only service link incident to a node.
-   *
-   * @param nodeId The node ID.
-   * @return The incident link, or null if there is not exactly one.
-   */
-  private OMGraphic getSingleIncidentLink(int nodeId) {
-    OMGraphic incidentLink = null;
-
-    Iterator<OMGraphic> it = currentService.getLinks().iterator();
-    while (it.hasNext()) {
-      OMGraphic link = it.next();
-      int[] nodes = getLinkEndpointNodeIds(link);
-      if (nodes != null && (nodes[0] == nodeId || nodes[1] == nodeId)) {
-        if (incidentLink != null) {
-          return null;
-        }
-        incidentLink = link;
-      }
-    }
-
-    return incidentLink;
-  }
-
-  /**
-   * Removes the most recently added branch that starts at a node.
-   *
-   * @param nodeId The node from which the branch starts.
-   * @return Links removed from the service.
-   */
-  private LinkedList<OMGraphic> removeLastBranchFromNode(int nodeId) {
-    LinkedList<OMGraphic> links = currentService.getLinks();
-
-    for (int i = links.size() - 1; i >= 0; i--) {
-      OMGraphic link = links.get(i);
-      int[] nodes = getLinkEndpointNodeIds(link);
-      if (nodes != null && (nodes[0] == nodeId || nodes[1] == nodeId)) {
-        return removeBranchFromNode(nodeId, link);
-      }
-    }
-
-    return new LinkedList<>();
-  }
-
-  /**
-   * Removes a path branch from a service, starting with a link incident to a given node.
-   *
-   * @param anchorNodeId The node at which the branch starts.
-   * @param firstLink The first link of the branch.
-   * @return Links removed from the service.
-   */
-  private LinkedList<OMGraphic> removeBranchFromNode(int anchorNodeId, OMGraphic firstLink) {
-    LinkedList<OMGraphic> removedLinks = new LinkedList<>();
-    int previousNodeId = anchorNodeId;
-    OMGraphic link = firstLink;
-
-    while (link != null) {
-      int[] nodes = getLinkEndpointNodeIds(link);
-      if (nodes == null) {
-        break;
-      }
-
-      link.deselect();
-      currentService.removeChunk(link);
-      removedLinks.add(link);
-
-      int nextNodeId = nodes[0] == previousNodeId ? nodes[1] : nodes[0];
-      if (getNbOccurences(nextNodeId) != 1) {
-        break;
-      }
-
-      link = getSingleIncidentLink(nextNodeId);
-      previousNodeId = nextNodeId;
-    }
-
-    removeUnusedStops();
-    return removedLinks;
   }
 
   /** Removes stop nodes that no longer belong to any selected service link. */
@@ -1086,8 +996,11 @@ public class ServiceHandler {
                   + idService;
           try (ResultSet rs2 = stmt2.executeQuery(sqlStmt2)) {
             while (rs2.next()) {
-              OMGraphic omg = getOMGraphic(JDBCUtils.getInt(rs2.getObject(1)), TYPE_LINK);
-              s.addChunk(omg);
+              int linkId = JDBCUtils.getInt(rs2.getObject(1));
+              OMGraphic omg = getOMGraphic(linkId, TYPE_LINK);
+              if (omg != null) {
+                s.addChunk(omg);
+              }
             }
           }
 
@@ -1181,16 +1094,27 @@ public class ServiceHandler {
    * @param select If true, the service will be selected (highlighted) on the map.
    */
   public void paintService(boolean select) {
-    if (currentService == null || currentService.getNbLinks() == 0) {
+    if (currentService == null || currentService.getNbLinks() == 0 || nodusProject == null) {
       return;
     }
 
-    Iterator<OMGraphic> it = currentService.getLinks().iterator();
-    while (it.hasNext()) {
-      OMGraphic omg = it.next();
-      omg.setSelectPaint(java.awt.Color.GREEN);
-      omg.setSelected(select);
-      omg.render(graphics);
+    Graphics serviceGraphics = nodusProject.getNodusMapPanel().getMapBean().getGraphics();
+    if (serviceGraphics == null) {
+      return;
+    }
+
+    try {
+      Iterator<OMGraphic> it = currentService.getLinks().iterator();
+      while (it.hasNext()) {
+        OMGraphic omg = it.next();
+        if (omg != null) {
+          omg.setSelectPaint(java.awt.Color.GREEN);
+          omg.setSelected(select);
+          omg.render(serviceGraphics);
+        }
+      }
+    } finally {
+      serviceGraphics.dispose();
     }
   }
 

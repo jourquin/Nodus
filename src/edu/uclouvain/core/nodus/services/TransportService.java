@@ -90,7 +90,9 @@ public class TransportService {
    * @param omg The link to add.
    */
   public void addChunk(OMGraphic omg) {
-    links.add(omg);
+    if (omg != null) {
+      links.add(omg);
+    }
   }
 
   /**
@@ -99,7 +101,9 @@ public class TransportService {
    * @param nodeId The ID of the node to add.
    */
   public void addStop(int nodeId) {
-    stopNodes.add(nodeId);
+    if (!stopNodes.contains(nodeId)) {
+      stopNodes.add(nodeId);
+    }
   }
 
   /** Removes all the links from the service. */
@@ -234,7 +238,12 @@ public class TransportService {
    * @param links The list of links to associate to the service.
    */
   public void setChunks(LinkedList<OMGraphic> links) {
-    this.links = links;
+    this.links = new LinkedList<>();
+    if (links != null) {
+      for (OMGraphic link : links) {
+        addChunk(link);
+      }
+    }
   }
 
   /**
@@ -279,6 +288,13 @@ public class TransportService {
    * @param stopNodes The list of stop nodes of the service.
    */
   public void setStops(LinkedList<Integer> stopNodes) {
-    this.stopNodes = stopNodes;
+    this.stopNodes = new LinkedList<>();
+    if (stopNodes != null) {
+      for (Integer nodeId : stopNodes) {
+        if (nodeId != null) {
+          addStop(nodeId);
+        }
+      }
+    }
   }
 }
