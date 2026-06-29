@@ -21,11 +21,13 @@
 
 package edu.uclouvain.core.nodus.services;
 
+import com.bbn.openmap.Environment;
 import com.bbn.openmap.event.NavMouseMode;
 import com.bbn.openmap.event.SelectMouseMode;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.omGraphics.OMPoly;
+import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
@@ -40,6 +42,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -52,6 +55,8 @@ import javax.swing.JOptionPane;
  * @author Galina Iassinovskaia
  */
 public class ServiceHandler {
+
+  private static I18n i18n = Environment.getI18n();
 
   private static final int TYPE_LINK = 1;
   private static final int TYPE_NODE = 0;
@@ -127,7 +132,9 @@ public class ServiceHandler {
 
     // Only polylines can be taken into account
     if (!(omg instanceof OMPoly)) {
-      logServiceLineEdit("Selected graphic cannot be added because it is not a link");
+      logServiceLineEdit(
+          "Log_Selected_graphic_not_link",
+          "Selected graphic cannot be added because it is not a link");
       return false;
     }
 
@@ -141,11 +148,11 @@ public class ServiceHandler {
     } else {
       if (JDBCUtils.getInt(record.get(NodusC.DBF_IDX_MODE)) != currentService.getMode()) {
         logServiceLineEdit(
-            formatLink(linkId)
-                + " cannot be added because its mode "
-                + mode
-                + " differs from the service line mode "
-                + currentService.getMode());
+            "Log_Mode_mismatch",
+            "{0} cannot be added because its mode {1} differs from the service line mode {2}",
+            formatLink(linkId),
+            formatIdentifier(mode),
+            formatIdentifier(currentService.getMode()));
         return false;
       }
     }
@@ -160,33 +167,36 @@ public class ServiceHandler {
     if (currentService.contains(omg)) {
       if (currentService.getNbLinks() > 1 && n1 > 1 && n2 > 1) {
         logServiceLineEdit(
-            formatLink(linkId)
-                + " cannot be removed because it is inside the current service line");
+            "Log_Link_inside_line",
+            "{0} cannot be removed because it is inside the current service line",
+            formatLink(linkId));
         return false;
       }
       omg.deselect();
       currentService.removeChunk(omg);
       removeUnusedStops();
-      logServiceLineEdit(formatLink(linkId) + " removed from line");
+      logServiceLineEdit("Log_Link_removed", "{0} removed from line", formatLink(linkId));
     } else {
 
       if (currentService.getNbLinks() == 0) {
         if (!isValidServiceEndpoint(node1) && !isValidServiceEndpoint(node2)) {
           logServiceLineEdit(
-              formatLink(linkId)
-                  + " cannot be added because the first link of a line must be connected to a node"
-                  + " with operations");
+              "Log_First_link_requires_operations",
+              "{0} cannot be added because the first link of a line must be connected to a node"
+                  + " with operations",
+              formatLink(linkId));
           return false;
         }
         currentService.addChunk(omg);
         addStopNode(n1, node1);
         addStopNode(n2, node2);
-        logServiceLineEdit(formatLink(linkId) + " added to line");
+        logServiceLineEdit("Log_Link_added", "{0} added to line", formatLink(linkId));
       } else {
         if (n1 > 0 && n2 > 0) {
           logServiceLineEdit(
-              formatLink(linkId)
-                  + " cannot be added because both end nodes already belong to the service line");
+              "Log_Both_end_nodes_in_line",
+              "{0} cannot be added because both end nodes already belong to the service line",
+              formatLink(linkId));
           return false;
         }
 
@@ -197,18 +207,19 @@ public class ServiceHandler {
           LinkedList<OMGraphic> removedLinks = removeLastBranchFromNode(sharedNode);
           if (removedLinks.isEmpty()) {
             logServiceLineEdit(
-                formatLink(linkId)
-                    + " cannot be added because no removable branch was found at fork node "
-                    + sharedNode);
+                "Log_No_removable_branch",
+                "{0} cannot be added because no removable branch was found at fork node {1}",
+                formatLink(linkId),
+                formatIdentifier(sharedNode));
             return false;
           }
           for (OMGraphic removedLink : removedLinks) {
             logServiceLineEdit(
-                formatLink(removedLink)
-                    + " removed because "
-                    + formatLink(linkId)
-                    + " is added in another branch of the fork at node "
-                    + sharedNode);
+                "Log_Link_removed_for_fork",
+                "{0} removed because {1} is added in another branch of the fork at node {2}",
+                formatLink(removedLink),
+                formatLink(linkId),
+                formatIdentifier(sharedNode));
           }
         }
 
@@ -219,12 +230,13 @@ public class ServiceHandler {
           currentService.addChunk(omg);
           addStopNode(n1, node1);
           addStopNode(n2, node2);
-          logServiceLineEdit(formatLink(linkId) + " added to line");
+          logServiceLineEdit("Log_Link_added", "{0} added to line", formatLink(linkId));
         } else {
           logServiceLineEdit(
-              formatLink(linkId)
-                  + " cannot be added because it is not connected to exactly one end of the"
-                  + " current service line");
+              "Log_Not_connected_to_one_end",
+              "{0} cannot be added because it is not connected to exactly one end of the current"
+                  + " service line",
+              formatLink(linkId));
           return false;
         }
       }
@@ -266,9 +278,13 @@ public class ServiceHandler {
     }
   }
 
-  /** Formats a service line edit message for the terminal. */
-  private void logServiceLineEdit(String message) {
-    System.out.println("[Services] " + message);
+  /** Formats and prints a service line edit message for the terminal. */
+  private void logServiceLineEdit(String key, String defaultPattern, Object... args) {
+    String message =
+        MessageFormat.format(i18n.get(ServiceHandler.class, key, defaultPattern), args);
+    System.out.println(
+        MessageFormat.format(
+            i18n.get(ServiceHandler.class, "Log_Prefix", "[Services] {0}"), message));
   }
 
   /** Returns the link ID stored in a DBF record. */
@@ -291,14 +307,20 @@ public class ServiceHandler {
   /** Formats a link ID for service line edit messages. */
   private String formatLink(int linkId) {
     if (linkId == Integer.MIN_VALUE) {
-      return "Link <unknown>";
+      return i18n.get(ServiceHandler.class, "Log_Unknown_link", "Link <unknown>");
     }
-    return "Link " + linkId;
+    return MessageFormat.format(
+        i18n.get(ServiceHandler.class, "Log_Link", "Link {0}"), formatIdentifier(linkId));
   }
 
   /** Formats a service link for service line edit messages. */
   private String formatLink(OMGraphic link) {
     return formatLink(getLinkId(link));
+  }
+
+  /** Formats an identifier without locale-specific grouping separators. */
+  private String formatIdentifier(int identifier) {
+    return Integer.toString(identifier);
   }
 
   /** Notify that the service needs to be saved. */
