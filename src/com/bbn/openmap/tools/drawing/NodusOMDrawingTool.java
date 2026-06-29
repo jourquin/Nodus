@@ -52,8 +52,6 @@ import javax.swing.JDialog;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 
-// TODO (services) Interaction with services not working
-
 /**
  * This drawing tool makes it possible to modify the graphics stored into a set of nodes and link
  * layers. The tool also checks that the asked operation is possible. - A new node can be added if

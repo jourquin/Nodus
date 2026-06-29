@@ -294,7 +294,6 @@ public class ServicesAtNodeDlg extends EscapeDialog implements ShapeConstants {
       sorter.setTableHeader(servicesTable.getTableHeader());
 
       /* Intercept the value changed even */
-      // TODO (services) Display selected line
       servicesTable
           .getSelectionModel()
           .addListSelectionListener(

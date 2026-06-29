@@ -51,7 +51,6 @@ import javax.swing.JOptionPane;
  *
  * @author Galina Iassinovskaia
  */
-// TODO (services) Still buggy. Test in interaction with the drawing tool
 public class ServiceHandler {
 
   private static final int TYPE_LINK = 1;
@@ -160,6 +159,9 @@ public class ServiceHandler {
     } else {
 
       if (currentService.getNbLinks() == 0) {
+        if (!isValidServiceEndpoint(node1) && !isValidServiceEndpoint(node2)) {
+          return false;
+        }
         currentService.addChunk(omg);
         addStopNode(n1, node1);
         addStopNode(n2, node2);
@@ -218,8 +220,7 @@ public class ServiceHandler {
   /** Adds a stop node to the service. */
   private void addStopNode(int occurences, int nodeId) {
     if (occurences < 1) {
-      if (getTranship(nodeId) == NodusC.HANDLING_ALL
-          || getTranship(nodeId) == NodusC.SERVICE_CHANGE) {
+      if (isValidServiceEndpoint(nodeId) && !currentService.contains(nodeId)) {
         currentService.addStop(nodeId);
       }
     }
@@ -450,8 +451,19 @@ public class ServiceHandler {
    * @return The number of occurrences of the node in the current service.
    */
   private int getNbOccurences(int nodeId) {
+    return getNbOccurences(currentService, nodeId);
+  }
 
-    Iterator<OMGraphic> it = currentService.getLinks().iterator();
+  /**
+   * Returns the number of occurrences of the given node ID in a service.
+   *
+   * @param service The service to inspect.
+   * @param nodeId The ID of the node.
+   * @return The number of occurrences of the node in the service.
+   */
+  private int getNbOccurences(TransportService service, int nodeId) {
+
+    Iterator<OMGraphic> it = service.getLinks().iterator();
     int nbOccurences = 0;
     while (it.hasNext()) {
       OMGraphic omg = it.next();
@@ -471,6 +483,51 @@ public class ServiceHandler {
     }
 
     return nbOccurences;
+  }
+
+  /**
+   * Checks if a service starts and ends at operation-enabled nodes.
+   *
+   * @param service The service to check.
+   * @return True if the service has exactly two valid end nodes.
+   */
+  public boolean hasValidEndNodes(TransportService service) {
+    if (service == null || service.getNbLinks() == 0) {
+      return false;
+    }
+
+    LinkedList<Integer> endNodes = new LinkedList<>();
+    Iterator<OMGraphic> it = service.getLinks().iterator();
+    while (it.hasNext()) {
+      int[] nodes = getLinkEndpointNodeIds(it.next());
+      if (nodes == null) {
+        continue;
+      }
+      if (getNbOccurences(service, nodes[0]) == 1 && !endNodes.contains(nodes[0])) {
+        endNodes.add(nodes[0]);
+      }
+      if (getNbOccurences(service, nodes[1]) == 1 && !endNodes.contains(nodes[1])) {
+        endNodes.add(nodes[1]);
+      }
+    }
+
+    return endNodes.size() == 2
+        && isValidServiceEndpoint(endNodes.get(0))
+        && isValidServiceEndpoint(endNodes.get(1));
+  }
+
+  /**
+   * Checks if a node can be used as the start or end of a service.
+   *
+   * @param nodeId The node ID.
+   * @return True if transport operations are allowed at this node.
+   */
+  private boolean isValidServiceEndpoint(int nodeId) {
+    int handling = getTranship(nodeId);
+    if (handling > NodusC.SERVICE_CHANGE) {
+      handling -= NodusC.SERVICE_CHANGE + 1;
+    }
+    return handling > NodusC.HANDLING_NONE && handling <= NodusC.SERVICE_CHANGE;
   }
 
   /**

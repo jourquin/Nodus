@@ -418,7 +418,6 @@ public class NodusC {
    * Name of the variable that must be used in cost functions to generate service lines for a
    * mode/means combination.
    */
-  // TODO (services) Change variable name ?
   public static final String VARNAME_SERVICELINES = "SERVICELINES";
 
   /**

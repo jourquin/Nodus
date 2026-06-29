@@ -37,17 +37,26 @@ import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.util.Iterator;
+import javax.swing.AbstractAction;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 
 // TODO Load and save on id, not on name
@@ -64,7 +73,7 @@ public class ServicesDlg extends EscapeDialog {
   private static I18n i18n = Environment.getI18n();
 
   private static final String LIST_CARD = "ListCard";
-  private static final String EDITOR_CARD = "EditorCord";
+  private static final String EDITOR_CARD = "EditorCard";
   private static final Dimension EDITOR_CARD_SIZE = new Dimension(400, 220);
 
   /** . */
@@ -154,6 +163,9 @@ public class ServicesDlg extends EscapeDialog {
   /** True when the list contains changes not yet written to the database. */
   private boolean hasUnsavedServiceChanges = false;
 
+  /** Prevents the same Escape key press from leaving the editor and closing the dialog. */
+  private boolean suppressDialogCloseAfterLeavingEditor = false;
+
   /**
    * Creates the service editor dialog.
    *
@@ -221,12 +233,41 @@ public class ServicesDlg extends EscapeDialog {
   public void markServicesChanged() {
     hasUnsavedServiceChanges = true;
     serviceHandler.mustBeSaved();
+    updateSaveButtons();
+  }
+
+  /** Updates the enabled state of the save buttons. */
+  private void updateSaveButtons() {
+    boolean isCurrentServiceValid =
+        serviceHandler.hasValidEndNodes(serviceHandler.getCurrentService());
+
+    if (saveButton != null) {
+      saveButton.setEnabled(isCurrentServiceValid && hasValidEditorFields());
+    }
     if (listSaveButton != null) {
-      listSaveButton.setEnabled(true);
+      listSaveButton.setEnabled(hasUnsavedServiceChanges);
     }
   }
 
-  /** Returns true if the service editor contains unsaved changes. */
+  /** Returns true if the editor-card fields contain values that can be saved. */
+  private boolean hasValidEditorFields() {
+    String meansValue =
+        meansField.getSelectedItem() == null ? "" : meansField.getSelectedItem().toString();
+    return !nameField.getText().isBlank()
+        && !frequencyField.getText().isBlank()
+        && !modeField.getText().isBlank()
+        && !meansValue.isBlank()
+        && JDBCUtils.getInt(frequencyField.getText()) != Integer.MIN_VALUE
+        && meansField.getSelectedItem() != null
+        && JDBCUtils.getInt(meansValue) != Integer.MIN_VALUE
+        && JDBCUtils.getInt(modeField.getText()) != Integer.MIN_VALUE;
+  }
+
+  /**
+   * Returns true if the service editor contains unsaved changes.
+   *
+   * @return true if the service editor contains unsaved changes
+   */
   public boolean hasUnsavedChanges() {
     return hasUnsavedServiceChanges;
   }
@@ -236,9 +277,7 @@ public class ServicesDlg extends EscapeDialog {
     serviceHandler.discardPendingChanges();
     hasUnsavedServiceChanges = false;
     refreshServicesTable();
-    if (listSaveButton != null) {
-      listSaveButton.setEnabled(false);
-    }
+    updateSaveButtons();
     showCard(LIST_CARD);
   }
 
@@ -255,28 +294,7 @@ public class ServicesDlg extends EscapeDialog {
           new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-
-              TransportService s = serviceHandler.getCurrentService();
-              serviceHandler.resetService();
-
-              String key = s.getName();
-              if (key != null) {
-                if (getServiceTable().getRowCount() != 0) {
-                  int row = getRowInModelbyService(key);
-                  if (row != -1) {
-                    getServiceTable().setRowSelectionInterval(row, row);
-                  } else {
-                    getServiceTable().setRowSelectionInterval(0, 0);
-                    key =
-                        (String)
-                            getServiceTable().getValueAt(getServiceTable().getSelectedRow(), 1);
-                  }
-                }
-                serviceHandler.displayService(key);
-              }
-              serviceHandler.setListening(false);
-
-              showCard(LIST_CARD);
+              leaveEditorCard();
             }
           });
     }
@@ -320,7 +338,7 @@ public class ServicesDlg extends EscapeDialog {
             public void actionPerformed(java.awt.event.ActionEvent e) {
               if (serviceHandler.savePendingChanges()) {
                 hasUnsavedServiceChanges = false;
-                listSaveButton.setEnabled(false);
+                updateSaveButtons();
                 setVisible(false);
               }
             }
@@ -422,9 +440,7 @@ public class ServicesDlg extends EscapeDialog {
 
               serviceHandler.removeService(serviceName);
               hasUnsavedServiceChanges = true;
-              if (listSaveButton != null) {
-                listSaveButton.setEnabled(true);
-              }
+              updateSaveButtons();
               if (getRowInModelbyService(serviceName) != -1) {
                 servicesTableModel.removeRow(getRowInModelbyService(serviceName));
               }
@@ -453,21 +469,29 @@ public class ServicesDlg extends EscapeDialog {
           new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-
-              TransportService s = serviceHandler.getCurrentService();
-              nameField.setText(s.getName());
-              idxField.setText(s.getId() + "");
-              int[] temp = computeFrequencyUnit(s.getFrequency());
-              frequencyField.setText(temp[0] + "");
-              time.setSelectedIndex(temp[1]);
-              loadModeMeans(s.getMode(), s.getMeans());
-
-              serviceHandler.setListening(true);
-              showCard(EDITOR_CARD);
+              editCurrentService();
             }
           });
     }
     return editButton;
+  }
+
+  /** Edits the currently selected service. */
+  private void editCurrentService() {
+    TransportService s = serviceHandler.getCurrentService();
+    if (s == null) {
+      return;
+    }
+
+    nameField.setText(s.getName());
+    idxField.setText(s.getId() + "");
+    int[] temp = computeFrequencyUnit(s.getFrequency());
+    frequencyField.setText(temp[0] + "");
+    time.setSelectedIndex(temp[1]);
+    loadModeMeans(s.getMode(), s.getMeans());
+
+    serviceHandler.setListening(true);
+    showCard(EDITOR_CARD);
   }
 
   /**
@@ -622,6 +646,28 @@ public class ServicesDlg extends EscapeDialog {
       for (String element : period) {
         time.addItem(element);
       }
+
+      DocumentListener saveStateDocumentListener =
+          new DocumentListener() {
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+              updateSaveButtons();
+            }
+
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+              updateSaveButtons();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+              updateSaveButtons();
+            }
+          };
+      nameField.getDocument().addDocumentListener(saveStateDocumentListener);
+      frequencyField.getDocument().addDocumentListener(saveStateDocumentListener);
+      meansField.addItemListener(e -> updateSaveButtons());
+      time.addItemListener(e -> updateSaveButtons());
     }
 
     return editorCard;
@@ -884,6 +930,7 @@ public class ServicesDlg extends EscapeDialog {
     if (saveButton == null) {
       saveButton = new JButton();
       saveButton.setText(i18n.get(ServicesDlg.class, "Save", "Save"));
+      saveButton.setEnabled(false);
       saveButton.addActionListener(
           new java.awt.event.ActionListener() {
             @Override
@@ -926,6 +973,17 @@ public class ServicesDlg extends EscapeDialog {
                 }
 
                 TransportService s = serviceHandler.getCurrentService();
+                if (!serviceHandler.hasValidEndNodes(s)) {
+                  JOptionPane.showMessageDialog(
+                      nodusMapPanel,
+                      i18n.get(
+                          ServicesDlg.class,
+                          "Invalid_service_endpoints",
+                          "The line must start and end at nodes where operations are allowed"),
+                      NodusC.APPNAME,
+                      JOptionPane.ERROR_MESSAGE);
+                  return;
+                }
 
                 s.setName(name);
                 s.setFrequency(
@@ -1017,8 +1075,18 @@ public class ServicesDlg extends EscapeDialog {
           };
 
       sorter.setTableHeader(serviceTable.getTableHeader());
+      sorter.setSortingStatus(0, TableSorter.ASCENDING);
 
       serviceTable.getColumnModel().getColumn(1).setPreferredWidth(300);
+      serviceTable.addMouseListener(
+          new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+              if (e.getClickCount() == 2 && getServiceTable().getSelectedRow() != -1) {
+                editCurrentService();
+              }
+            }
+          });
 
       /* Intercept the value changed even */
       serviceTable
@@ -1072,8 +1140,33 @@ public class ServicesDlg extends EscapeDialog {
     // this.setSize(500, 300);
 
     this.setContentPane(getMainPane());
+    installEscapeKey();
     cards.show(mainPanel, LIST_CARD);
     pack();
+  }
+
+  /** Handles Escape consistently from any component in the dialog. */
+  private void installEscapeKey() {
+    getRootPane()
+        .getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+        .put(KeyStroke.getKeyStroke("ESCAPE"), "handleEscape");
+    getRootPane()
+        .getActionMap()
+        .put(
+            "handleEscape",
+            new AbstractAction() {
+              private static final long serialVersionUID = 1L;
+
+              @Override
+              public void actionPerformed(ActionEvent e) {
+                if (isEditorCardVisible()) {
+                  suppressDialogCloseAfterLeavingEditor();
+                  leaveEditorCard();
+                } else {
+                  setVisible(false);
+                }
+              }
+            });
   }
 
   /**
@@ -1084,22 +1177,19 @@ public class ServicesDlg extends EscapeDialog {
    */
   public void loadModeMeans(int mode, int means) {
     modeField.setText(mode + "");
+    meansField.removeAllItems();
     if (mode == -1) {
-      meansField.removeAllItems();
       meansField.addItem("-1");
       meansField.setSelectedIndex(0);
     } else {
-
-      if (serviceHandler.getCurrentService().getMeans() != -1
-          && means > serviceHandler.getCurrentService().getMeans()) {
-        meansField.removeAllItems();
-      }
-
       for (int i = 0; i < means; ++i) {
         meansField.addItem("" + (i + 1));
       }
-      meansField.setSelectedIndex(meansField.getItemCount() - 1);
+      if (meansField.getItemCount() > 0) {
+        meansField.setSelectedItem("" + means);
+      }
     }
+    updateSaveButtons();
   }
 
   /**
@@ -1160,7 +1250,18 @@ public class ServicesDlg extends EscapeDialog {
    */
   @Override
   public void setVisible(boolean visible) {
-    String serviceName = null;
+
+    if (!visible && suppressDialogCloseAfterLeavingEditor && !isEditorCardVisible()) {
+      suppressDialogCloseAfterLeavingEditor = false;
+      return;
+    }
+
+    if (!visible && isEditorCardVisible()) {
+      suppressDialogCloseAfterLeavingEditor();
+      leaveEditorCard();
+      return;
+    }
+
     if (!visible && hasUnsavedServiceChanges) {
       discardPendingChanges();
     } else if (visible) {
@@ -1168,6 +1269,7 @@ public class ServicesDlg extends EscapeDialog {
     }
     super.setVisible(visible);
     if (visible) {
+      String serviceName = null;
       if (getServiceTable().getRowCount() > 0) {
         if (getServiceTable().getSelectedRow() != -1) {
           serviceName =
@@ -1182,6 +1284,37 @@ public class ServicesDlg extends EscapeDialog {
     } else {
       serviceHandler.resetService();
     }
+  }
+
+  private boolean isEditorCardVisible() {
+    return editorCard != null && editorCard.isVisible();
+  }
+
+  private void suppressDialogCloseAfterLeavingEditor() {
+    suppressDialogCloseAfterLeavingEditor = true;
+    SwingUtilities.invokeLater(() -> suppressDialogCloseAfterLeavingEditor = false);
+  }
+
+  private void leaveEditorCard() {
+    TransportService s = serviceHandler.getCurrentService();
+    serviceHandler.resetService();
+
+    String key = s.getName();
+    if (key != null) {
+      if (getServiceTable().getRowCount() != 0) {
+        int row = getRowInModelbyService(key);
+        if (row != -1) {
+          getServiceTable().setRowSelectionInterval(row, row);
+        } else {
+          getServiceTable().setRowSelectionInterval(0, 0);
+          key = (String) getServiceTable().getValueAt(getServiceTable().getSelectedRow(), 1);
+        }
+      }
+      serviceHandler.displayService(key);
+    }
+    serviceHandler.setListening(false);
+
+    showCard(LIST_CARD);
   }
 
   private void showCard(String card) {
