@@ -1385,7 +1385,7 @@ public class VirtualNetwork {
 
   /**
    * Loads the matrix of mode/means combinations for which services must be generated, i.e. if the
-   * "SERVICELINE.mode,means" variable exists in the cost functions.
+   * "SERVICELINES.mode,means" variable exists in the cost functions.
    */
   private void loadLinesForModeMeans() {
 
