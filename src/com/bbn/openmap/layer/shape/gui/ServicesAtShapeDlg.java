@@ -50,7 +50,7 @@ import javax.swing.table.DefaultTableModel;
  *
  * @author Bart Jourquin
  */
-public class ServicesAtNodeDlg extends EscapeDialog implements ShapeConstants {
+public class ServicesAtShapeDlg extends EscapeDialog implements ShapeConstants {
 
   private static I18n i18n = Environment.getI18n();
 
@@ -108,7 +108,7 @@ public class ServicesAtNodeDlg extends EscapeDialog implements ShapeConstants {
    * @param nodusEsriLayer The layer the object to edit belongs to
    * @param objectNum Node or Link number
    */
-  public ServicesAtNodeDlg(JDialog parent, NodusEsriLayer nodusEsriLayer, int objectNum) {
+  public ServicesAtShapeDlg(JDialog parent, NodusEsriLayer nodusEsriLayer, int objectNum) {
     this(parent, nodusEsriLayer, objectNum, null);
   }
 
@@ -121,7 +121,7 @@ public class ServicesAtNodeDlg extends EscapeDialog implements ShapeConstants {
    * @param serviceStopsForNode Staged stop states to display for a node, or null to load current
    *     service states
    */
-  public ServicesAtNodeDlg(
+  public ServicesAtShapeDlg(
       JDialog parent,
       NodusEsriLayer nodusEsriLayer,
       int objectNum,
@@ -149,7 +149,7 @@ public class ServicesAtNodeDlg extends EscapeDialog implements ShapeConstants {
   private JButton getCloseButton() {
     if (closeButton == null) {
       closeButton = new JButton();
-      closeButton.setText(i18n.get(ServicesAtNodeDlg.class, "Close", "Close"));
+      closeButton.setText(i18n.get(ServicesAtShapeDlg.class, "Close", "Close"));
       closeButton.addActionListener(
           new java.awt.event.ActionListener() {
             @Override
@@ -262,8 +262,8 @@ public class ServicesAtNodeDlg extends EscapeDialog implements ShapeConstants {
 
     if (servicesTable == null) {
 
-      modeltable.addColumn(i18n.get(ServicesAtNodeDlg.class, "Service_Index", "Index"));
-      modeltable.addColumn(i18n.get(ServicesAtNodeDlg.class, "Service_Name", "TransportService"));
+      modeltable.addColumn(i18n.get(ServicesAtShapeDlg.class, "Service_Index", "Index"));
+      modeltable.addColumn(i18n.get(ServicesAtShapeDlg.class, "Service_Name", "Service Name"));
 
       DecimalFormat formatter = new DecimalFormat("0000");
 
@@ -336,7 +336,7 @@ public class ServicesAtNodeDlg extends EscapeDialog implements ShapeConstants {
     switch (objectType) {
       case SHAPE_TYPE_POINT:
         this.setTitle(
-            i18n.get(ServicesAtNodeDlg.class, "Services_at_this_node", "Services at this node"));
+            i18n.get(ServicesAtShapeDlg.class, "Services_at_this_node", "Services at this node"));
         if (listNameForNode == null) {
           listNameForNode = serviceHandler.getServiceNamesForNode(objectNum);
         }
@@ -344,7 +344,7 @@ public class ServicesAtNodeDlg extends EscapeDialog implements ShapeConstants {
 
       case SHAPE_TYPE_POLYLINE:
         this.setTitle(
-            i18n.get(ServicesAtNodeDlg.class, "Services_at_this_link", "Services at this link"));
+            i18n.get(ServicesAtShapeDlg.class, "Services_at_this_link", "Services at this link"));
         serviceIdsForLink = serviceHandler.getServicesForLink(objectNum);
         serviceNamesForLink = serviceHandler.getServiceNamesForLink(objectNum);
         break;

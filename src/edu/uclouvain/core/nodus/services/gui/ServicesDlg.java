@@ -34,6 +34,7 @@ import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -57,6 +58,7 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.table.TableColumnModel;
 import javax.swing.table.DefaultTableModel;
 
 // TODO Load and save on id, not on name
@@ -163,6 +165,15 @@ public class ServicesDlg extends EscapeDialog {
   /** True when the list contains changes not yet written to the database. */
   private boolean hasUnsavedServiceChanges = false;
 
+  /** True when the service details editor contains changes not yet applied to the list. */
+  private boolean hasUnsavedEditorChanges = false;
+
+  /** Suppresses dirty tracking while editor fields are filled programmatically. */
+  private boolean isLoadingEditorFields = false;
+
+  /** Snapshot of editor fields when the details card was opened or last saved. */
+  private String originalEditorValues = "";
+
   /** Prevents the same Escape key press from leaving the editor and closing the dialog. */
   private boolean suppressDialogCloseAfterLeavingEditor = false;
 
@@ -172,10 +183,7 @@ public class ServicesDlg extends EscapeDialog {
    * @param serviceHandler The service handler.
    */
   public ServicesDlg(ServiceHandler serviceHandler) {
-    super(
-        serviceHandler.getNodusMapPanel().getMainFrame(),
-        i18n.get(ServicesDlg.class, "Service_editor", "Services editor"),
-        false);
+    super((Frame) null, i18n.get(ServicesDlg.class, "Service_editor", "Services editor"), false);
     this.serviceHandler = serviceHandler;
     nodusMapPanel = serviceHandler.getNodusMapPanel();
     initialize();
@@ -197,6 +205,31 @@ public class ServicesDlg extends EscapeDialog {
       }
     }
     return frequency;
+  }
+
+  /** Formats the annualized frequency in the same unit shown by the editor fields. */
+  private String formatFrequency(int frequency) {
+    int[] frequencyUnit = computeFrequencyUnit(frequency);
+    return MessageFormat.format(
+        i18n.get(ServicesDlg.class, "Frequency_per_period_with_year", "{0} per {1} ({2}/year)"),
+        Integer.valueOf(frequencyUnit[0]),
+        getPeriodLabel(frequencyUnit[1]),
+        Integer.valueOf(frequency));
+  }
+
+  /** Returns the localized period label for a frequency period index. */
+  private String getPeriodLabel(int periodIndex) {
+    switch (periodIndex) {
+      case 1:
+        return i18n.get(ServicesDlg.class, "month", "month");
+      case 2:
+        return i18n.get(ServicesDlg.class, "week", "week");
+      case 3:
+        return i18n.get(ServicesDlg.class, "day", "day");
+      case 0:
+      default:
+        return i18n.get(ServicesDlg.class, "year", "year");
+    }
   }
 
   /** Enable or disable the buttons. */
@@ -224,7 +257,7 @@ public class ServicesDlg extends EscapeDialog {
             nameService,
             f2.format(s.getMode()),
             f2.format(s.getMeans()),
-            f1.format(s.getFrequency())
+            formatFrequency(s.getFrequency())
           });
     }
   }
@@ -232,21 +265,28 @@ public class ServicesDlg extends EscapeDialog {
   /** Marks the service list as changed. */
   public void markServicesChanged() {
     hasUnsavedServiceChanges = true;
+    if (isEditorCardVisible()) {
+      hasUnsavedEditorChanges = true;
+    }
     serviceHandler.mustBeSaved();
     updateSaveButtons();
   }
 
   /** Updates the enabled state of the save buttons. */
   private void updateSaveButtons() {
-    boolean isCurrentServiceValid =
-        serviceHandler.hasValidEndNodes(serviceHandler.getCurrentService());
-
     if (saveButton != null) {
-      saveButton.setEnabled(isCurrentServiceValid && hasValidEditorFields());
+      saveButton.setEnabled(
+          hasUnsavedEditorChanges && hasCurrentServiceLinks() && hasValidEditorFields());
     }
     if (listSaveButton != null) {
       listSaveButton.setEnabled(hasUnsavedServiceChanges);
     }
+  }
+
+  /** Returns true if the edited service already contains a line path. */
+  private boolean hasCurrentServiceLinks() {
+    TransportService service = serviceHandler.getCurrentService();
+    return service != null && service.getNbLinks() > 0;
   }
 
   /** Returns true if the editor-card fields contain values that can be saved. */
@@ -261,6 +301,36 @@ public class ServicesDlg extends EscapeDialog {
         && meansField.getSelectedItem() != null
         && JDBCUtils.getInt(meansValue) != Integer.MIN_VALUE
         && JDBCUtils.getInt(modeField.getText()) != Integer.MIN_VALUE;
+  }
+
+  /** Captures the current details editor values for later dirty-state comparisons. */
+  private String getEditorValuesSnapshot() {
+    String meansValue =
+        meansField.getSelectedItem() == null ? "" : meansField.getSelectedItem().toString();
+    return nameField.getText()
+        + '\n'
+        + frequencyField.getText()
+        + '\n'
+        + time.getSelectedIndex()
+        + '\n'
+        + modeField.getText()
+        + '\n'
+        + meansValue;
+  }
+
+  /** Resets dirty tracking for the details editor. */
+  private void resetEditorDirtyState() {
+    originalEditorValues = getEditorValuesSnapshot();
+    hasUnsavedEditorChanges = false;
+    updateSaveButtons();
+  }
+
+  /** Updates dirty tracking after a user-visible editor field change. */
+  private void updateEditorDirtyState() {
+    if (!isLoadingEditorFields) {
+      hasUnsavedEditorChanges = !getEditorValuesSnapshot().equals(originalEditorValues);
+    }
+    updateSaveButtons();
   }
 
   /**
@@ -483,12 +553,15 @@ public class ServicesDlg extends EscapeDialog {
       return;
     }
 
+    isLoadingEditorFields = true;
     nameField.setText(s.getName());
     idxField.setText(s.getId() + "");
     int[] temp = computeFrequencyUnit(s.getFrequency());
     frequencyField.setText(temp[0] + "");
     time.setSelectedIndex(temp[1]);
     loadModeMeans(s.getMode(), s.getMeans());
+    isLoadingEditorFields = false;
+    resetEditorDirtyState();
 
     serviceHandler.setListening(true);
     showCard(EDITOR_CARD);
@@ -518,7 +591,7 @@ public class ServicesDlg extends EscapeDialog {
       frequencyPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
       frequencyPanel.add(new JLabel(i18n.get(ServicesDlg.class, "Service_Frequency", "Frequency")));
       frequencyPanel.add(frequencyField);
-      frequencyPanel.add(new JLabel(" per "));
+      frequencyPanel.add(new JLabel(i18n.get(ServicesDlg.class, "Frequency_per", " per ")));
       frequencyPanel.add(time);
 
       JPanel buttonsPanel = new JPanel();
@@ -638,10 +711,10 @@ public class ServicesDlg extends EscapeDialog {
               0,
               0));
 
-      period[0] = i18n.get(ServicesDlg.class, "year", "year");
-      period[1] = i18n.get(ServicesDlg.class, "month", "month");
-      period[2] = i18n.get(ServicesDlg.class, "week", "week");
-      period[3] = i18n.get(ServicesDlg.class, "day", "day");
+      period[0] = getPeriodLabel(0);
+      period[1] = getPeriodLabel(1);
+      period[2] = getPeriodLabel(2);
+      period[3] = getPeriodLabel(3);
 
       for (String element : period) {
         time.addItem(element);
@@ -651,23 +724,23 @@ public class ServicesDlg extends EscapeDialog {
           new DocumentListener() {
             @Override
             public void changedUpdate(DocumentEvent e) {
-              updateSaveButtons();
+              updateEditorDirtyState();
             }
 
             @Override
             public void insertUpdate(DocumentEvent e) {
-              updateSaveButtons();
+              updateEditorDirtyState();
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-              updateSaveButtons();
+              updateEditorDirtyState();
             }
           };
       nameField.getDocument().addDocumentListener(saveStateDocumentListener);
       frequencyField.getDocument().addDocumentListener(saveStateDocumentListener);
-      meansField.addItemListener(e -> updateSaveButtons());
-      time.addItemListener(e -> updateSaveButtons());
+      meansField.addItemListener(e -> updateEditorDirtyState());
+      time.addItemListener(e -> updateEditorDirtyState());
     }
 
     return editorCard;
@@ -849,6 +922,7 @@ public class ServicesDlg extends EscapeDialog {
 
               int idx = serviceHandler.getNewServiceId();
 
+              isLoadingEditorFields = true;
               idxField.setText(idx + "");
               frequencyField.setText(12 + "");
               time.setSelectedIndex(0);
@@ -856,6 +930,8 @@ public class ServicesDlg extends EscapeDialog {
               nameField.setText("");
 
               loadModeMeans((byte) -1, (byte) -1);
+              isLoadingEditorFields = false;
+              resetEditorDirtyState();
 
               nameField.setEditable(true);
 
@@ -973,13 +1049,16 @@ public class ServicesDlg extends EscapeDialog {
                 }
 
                 TransportService s = serviceHandler.getCurrentService();
-                if (!serviceHandler.hasValidEndNodes(s)) {
+                String validationMessage = serviceHandler.getServiceLineValidationMessage(s);
+                if (validationMessage != null) {
                   JOptionPane.showMessageDialog(
                       nodusMapPanel,
-                      i18n.get(
-                          ServicesDlg.class,
-                          "Invalid_service_endpoints",
-                          "All end nodes of the line must allow operations"),
+                      MessageFormat.format(
+                          i18n.get(
+                              ServicesDlg.class,
+                              "Invalid_service_line",
+                              "The service line is not valid because {0}."),
+                          validationMessage),
                       NodusC.APPNAME,
                       JOptionPane.ERROR_MESSAGE);
                   return;
@@ -994,14 +1073,16 @@ public class ServicesDlg extends EscapeDialog {
 
                 serviceHandler.saveService(s);
 
-                if (getRowInModelbyService(name) != -1) {
-                  servicesTableModel.removeRow(getRowInModelbyService(name));
+                int row = getRowInModelbyService(id);
+                if (row != -1) {
+                  servicesTableModel.removeRow(row);
                 }
 
                 fillServicesTable(name);
 
                 markServicesChanged();
                 enableButtons();
+                resetEditorDirtyState();
                 serviceHandler.setListening(false);
                 showCard(LIST_CARD);
                 selectService(name);
@@ -1077,7 +1158,8 @@ public class ServicesDlg extends EscapeDialog {
       sorter.setTableHeader(serviceTable.getTableHeader());
       sorter.setSortingStatus(0, TableSorter.ASCENDING);
 
-      serviceTable.getColumnModel().getColumn(1).setPreferredWidth(300);
+      serviceTable.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
+      setServiceTableColumnWidths();
       serviceTable.addMouseListener(
           new MouseAdapter() {
             @Override
@@ -1116,6 +1198,25 @@ public class ServicesDlg extends EscapeDialog {
     return serviceTable;
   }
 
+  /** Sets stable widths so the frequency display remains readable. */
+  private void setServiceTableColumnWidths() {
+    TableColumnModel columnModel = serviceTable.getColumnModel();
+    setServiceTableColumnWidth(columnModel, 0, 80, 60);
+    setServiceTableColumnWidth(columnModel, 1, 260, 120);
+    setServiceTableColumnWidth(columnModel, 2, 70, 55);
+    setServiceTableColumnWidth(columnModel, 3, 80, 60);
+    setServiceTableColumnWidth(columnModel, 4, 240, 220);
+
+    serviceTable.setPreferredScrollableViewportSize(new Dimension(760, 520));
+  }
+
+  /** Sets preferred and minimum widths for a service table column. */
+  private void setServiceTableColumnWidth(
+      TableColumnModel columnModel, int column, int preferredWidth, int minWidth) {
+    columnModel.getColumn(column).setPreferredWidth(preferredWidth);
+    columnModel.getColumn(column).setMinWidth(minWidth);
+  }
+
   /** Rebuilds the service list from the handler state. */
   private void refreshServicesTable() {
     if (serviceTable == null) {
@@ -1143,6 +1244,7 @@ public class ServicesDlg extends EscapeDialog {
     installEscapeKey();
     cards.show(mainPanel, LIST_CARD);
     pack();
+    setLocationRelativeTo(nodusMapPanel.getMainFrame());
   }
 
   /** Handles Escape consistently from any component in the dialog. */

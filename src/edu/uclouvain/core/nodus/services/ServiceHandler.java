@@ -43,10 +43,12 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import javax.swing.JOptionPane;
@@ -537,19 +539,53 @@ public class ServiceHandler {
    * @return True if the service has at least two valid end nodes and no invalid end node.
    */
   public boolean hasValidEndNodes(TransportService service) {
+    return getServiceLineValidationMessage(service) == null;
+  }
+
+  /**
+   * Validates a service line and returns a user-readable reason if it is invalid.
+   *
+   * @param service The service to check.
+   * @return null if the service line is valid, otherwise the reason why it is invalid.
+   */
+  public String getServiceLineValidationMessage(TransportService service) {
     if (service == null || service.getNbLinks() == 0) {
-      return false;
+      return i18n.get(ServiceHandler.class, "InvalidLine_No_links", "the line has no links");
     }
 
     LinkedList<Integer> endNodes = new LinkedList<>();
     LinkedList<int[]> serviceEdges = new LinkedList<>();
+    Set<Integer> serviceNodes = new HashSet<>();
     Iterator<OMGraphic> it = service.getLinks().iterator();
     while (it.hasNext()) {
-      int[] nodes = getLinkEndpointNodeIds(it.next());
+      OMGraphic link = it.next();
+      int[] nodes = getLinkEndpointNodeIds(link);
       if (nodes == null) {
-        return false;
+        return i18n.get(
+            ServiceHandler.class,
+            "InvalidLine_Link_not_found",
+            "one of the links was not found in the network");
+      }
+      int[] linkMode = getLinkIdAndMode(link);
+      if (linkMode == null) {
+        return i18n.get(
+            ServiceHandler.class,
+            "InvalidLine_Link_not_found",
+            "one of the links was not found in the network");
+      }
+      if (linkMode[1] != service.getMode()) {
+        return MessageFormat.format(
+            i18n.get(
+                ServiceHandler.class,
+                "InvalidLine_Mode_mismatch",
+                "{0} has mode {1}, but the service uses mode {2}"),
+            formatLink(linkMode[0]),
+            formatIdentifier(linkMode[1]),
+            formatIdentifier(service.getMode()));
       }
       serviceEdges.add(nodes);
+      serviceNodes.add(nodes[0]);
+      serviceNodes.add(nodes[1]);
       if (getNbOccurences(service, nodes[0]) == 1 && !endNodes.contains(nodes[0])) {
         endNodes.add(nodes[0]);
       }
@@ -558,18 +594,43 @@ public class ServiceHandler {
       }
     }
 
-    if (endNodes.size() < 2) {
-      return false;
+    if (!isConnectedService(serviceEdges)) {
+      return i18n.get(
+          ServiceHandler.class,
+          "InvalidLine_Disconnected",
+          "the links do not form a single connected line");
     }
 
+    if (serviceEdges.size() > serviceNodes.size() - 1) {
+      return i18n.get(ServiceHandler.class, "InvalidLine_Cycle", "the line contains a cycle");
+    }
+
+    if (endNodes.size() < 2) {
+      return i18n.get(
+          ServiceHandler.class,
+          "InvalidLine_Not_enough_end_nodes",
+          "the line has less than two end nodes");
+    }
+
+    LinkedList<Integer> invalidEndNodes = new LinkedList<>();
     Iterator<Integer> endNodeIterator = endNodes.iterator();
     while (endNodeIterator.hasNext()) {
-      if (!isValidServiceEndpoint(endNodeIterator.next())) {
-        return false;
+      Integer endNode = endNodeIterator.next();
+      if (!isValidServiceEndpoint(endNode)) {
+        invalidEndNodes.add(endNode);
       }
     }
 
-    return isConnectedService(serviceEdges);
+    if (!invalidEndNodes.isEmpty()) {
+      return MessageFormat.format(
+          i18n.get(
+              ServiceHandler.class,
+              "InvalidLine_Invalid_end_nodes",
+              "end node(s) {0} do not allow operations"),
+          formatNodeList(invalidEndNodes));
+    }
+
+    return null;
   }
 
   /** Checks if all service links belong to a single connected graph component. */
@@ -636,6 +697,39 @@ public class ServiceHandler {
     return null;
   }
 
+  /**
+   * Returns the link ID and mode of a service link.
+   *
+   * @param link The link.
+   * @return The link ID and mode, or null if the link is not found.
+   */
+  private int[] getLinkIdAndMode(OMGraphic link) {
+    for (NodusEsriLayer element : linkLayer) {
+      int idx = element.getEsriGraphicList().indexOf(link);
+      if (idx != -1) {
+        return new int[] {
+          JDBCUtils.getInt(element.getModel().getValueAt(idx, NodusC.DBF_IDX_NUM)),
+          JDBCUtils.getInt(element.getModel().getValueAt(idx, NodusC.DBF_IDX_MODE))
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /** Formats node IDs without locale-specific grouping separators. */
+  private String formatNodeList(LinkedList<Integer> nodeIds) {
+    StringBuilder builder = new StringBuilder();
+    Iterator<Integer> it = nodeIds.iterator();
+    while (it.hasNext()) {
+      if (builder.length() != 0) {
+        builder.append(", ");
+      }
+      builder.append(formatIdentifier(it.next()));
+    }
+    return builder.toString();
+  }
+
   /** Removes stop nodes that no longer belong to any selected service link. */
   private void removeUnusedStops() {
     Iterator<Integer> it = currentService.getStopNodes().iterator();
@@ -692,7 +786,7 @@ public class ServiceHandler {
             return element.getEsriGraphicList().getOMGraphicAt(idx);
           }
         }
-        break; 
+        break;
 
       case TYPE_LINK:
         for (NodusEsriLayer element : linkLayer) {
@@ -1024,8 +1118,66 @@ public class ServiceHandler {
         }
       }
 
+      validateLoadedServices();
+
     } catch (Exception ex) {
       JOptionPane.showMessageDialog(null, ex.getMessage(), "SQL error", JOptionPane.ERROR_MESSAGE);
+    }
+  }
+
+  /** Warns the user about invalid services loaded from the database. */
+  private void validateLoadedServices() {
+    if (services.isEmpty()) {
+      return;
+    }
+
+    ArrayList<String> invalidServiceNames = new ArrayList<>();
+    StringBuilder invalidServices = new StringBuilder();
+    Iterator<TransportService> it = services.values().iterator();
+    while (it.hasNext()) {
+      TransportService service = it.next();
+      String reason = getServiceLineValidationMessage(service);
+      if (reason != null) {
+        invalidServiceNames.add(service.getName());
+        invalidServices
+            .append(
+                MessageFormat.format(
+                    i18n.get(
+                        ServiceHandler.class,
+                        "InvalidLine_List_item",
+                        "Line {0} ({1}) is not valid because {2}."),
+                    formatIdentifier(service.getId()),
+                    service.getName(),
+                    reason))
+            .append('\n');
+      }
+    }
+
+    if (invalidServiceNames.isEmpty()) {
+      return;
+    }
+
+    int answer =
+        JOptionPane.showConfirmDialog(
+            nodusProject.getMainFrame(),
+            MessageFormat.format(
+                i18n.get(
+                    ServiceHandler.class,
+                    "InvalidLine_Delete_question",
+                    "The following service lines are invalid:\n\n{0}\nDelete them from the"
+                        + " database tables?"),
+                invalidServices.toString()),
+            NodusC.APPNAME,
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE);
+
+    if (answer == JOptionPane.YES_OPTION) {
+      Iterator<String> invalidServiceNameIterator = invalidServiceNames.iterator();
+      while (invalidServiceNameIterator.hasNext()) {
+        services.remove(invalidServiceNameIterator.next());
+      }
+      saveServices();
+      mustBeSaved = false;
     }
   }
 
@@ -1180,8 +1332,13 @@ public class ServiceHandler {
    * @param service The service to save.
    */
   public void saveService(TransportService service) {
-    if (services.get(service.getName()) != null) {
-      services.remove(service.getName());
+    Iterator<Map.Entry<String, TransportService>> it = services.entrySet().iterator();
+    while (it.hasNext()) {
+      Map.Entry<String, TransportService> entry = it.next();
+      TransportService existingService = entry.getValue();
+      if (entry.getKey().equals(service.getName()) || existingService.getId() == service.getId()) {
+        it.remove();
+      }
     }
     services.put(service.getName(), service);
   }
