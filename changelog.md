@@ -446,5 +446,11 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 ## v8.4 - Build20260626
 - Fix a bug in SQLConsole (column names not always displayed)
 
+## v8.4 - BuildXXXXXXXX
+- The ESC key can now be used to close most GUI components
+- Cleaning I18N resources and Java code
+- Redesign of the Lines and Services workflow, now also documented 
+
+
 
 
