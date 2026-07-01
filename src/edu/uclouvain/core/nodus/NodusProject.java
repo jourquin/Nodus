@@ -26,6 +26,7 @@ import com.bbn.openmap.Layer;
 import com.bbn.openmap.LayerHandler;
 import com.bbn.openmap.dataAccess.shape.EsriPolyline;
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
+import com.bbn.openmap.event.SelectMouseMode;
 import com.bbn.openmap.layer.DeclutterMatrix;
 import com.bbn.openmap.layer.drawing.NodusDrawingToolLayer;
 import com.bbn.openmap.layer.location.NodusLocationHandler;
@@ -1770,10 +1771,8 @@ public class NodusProject implements ShapeConstants {
     isOpen = true;
     nodusMapPanel.getNodusLayersPanel().enableButtons(true);
 
-    String mouseModeId = getLocalProperty(NodusC.PROP_ACTIVE_MOUSE_MODE, null);
-    if (mouseModeId != null) {
-      getNodusMapPanel().setActiveMouseMode(mouseModeId);
-    }
+    String mouseModeId = getLocalProperty(NodusC.PROP_ACTIVE_MOUSE_MODE, SelectMouseMode.modeID);
+    getNodusMapPanel().setActiveMouseMode(mouseModeId);
     getNodusMapPanel().resetText();
     getNodusMapPanel().updateScenarioComboBox(true);
     getNodusMapPanel().enableMenus(true);

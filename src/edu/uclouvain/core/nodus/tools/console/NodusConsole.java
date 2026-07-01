@@ -31,6 +31,7 @@ import java.awt.Frame;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
@@ -41,10 +42,13 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintStream;
 import java.text.MessageFormat;
+import javax.swing.AbstractAction;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.KeyStroke;
 import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
 import javax.swing.ScrollPaneConstants;
@@ -170,6 +174,7 @@ public class NodusConsole extends WindowAdapter
     frame.getContentPane().add(clearButton, BorderLayout.NORTH);
     frame.getContentPane().add(sp, BorderLayout.CENTER);
     frame.getContentPane().add(saveButton, BorderLayout.SOUTH);
+    registerEscapeCloseAction();
     frame.setVisible(true);
 
     frame.addWindowListener(this);
@@ -222,6 +227,27 @@ public class NodusConsole extends WindowAdapter
             }
           }
         });
+  }
+
+  /** Makes the Escape key close the console. */
+  private void registerEscapeCloseAction() {
+    frame
+        .getRootPane()
+        .getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+        .put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close");
+    frame
+        .getRootPane()
+        .getActionMap()
+        .put(
+            "close",
+            new AbstractAction() {
+              private static final long serialVersionUID = 8164810984853990830L;
+
+              @Override
+              public void actionPerformed(ActionEvent e) {
+                closeConsole();
+              }
+            });
   }
 
   /** Redirects standard output and error streams to this console. */
@@ -586,6 +612,11 @@ public class NodusConsole extends WindowAdapter
    */
   @Override
   public void windowClosing(WindowEvent evt) {
+    closeConsole();
+  }
+
+  /** Closes the console frame. */
+  private void closeConsole() {
     if (frame != null) {
       frame.setVisible(false); // default behaviour of JFrame
       frame.dispose();

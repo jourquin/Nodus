@@ -327,7 +327,7 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
     return this;
   }
 
-  /** This layer only support the gesture mode mode. */
+  /** This layer only support the gesture mode. */
   public String[] getMouseModeServiceList() {
     return new String[] {SelectMouseMode.modeID};
   }
