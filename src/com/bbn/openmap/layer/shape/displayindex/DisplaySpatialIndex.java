@@ -34,7 +34,7 @@ import java.util.Iterator;
 /**
  * A specific spatial index intended to fasten the rendering of large shapefiles.
  *
- * @author Bart Jourquin, inspired from ???
+ * @author Bart Jourquin, inspired from anonymous
  */
 public interface DisplaySpatialIndex extends DataBoundsProvider {
 

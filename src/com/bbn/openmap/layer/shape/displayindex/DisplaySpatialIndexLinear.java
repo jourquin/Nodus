@@ -30,6 +30,8 @@ import java.io.IOException;
  * A Spatial Index is a variation on a Shape Index, adding the bounding box.
  *
  * @see DisplaySpatialIndexLinear
+ * 
+ * @author Bart Jourquin, inspired from anonymous
  */
 public class DisplaySpatialIndexLinear extends DisplaySpatialIndexImpl {
 

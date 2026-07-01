@@ -58,10 +58,8 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.table.TableColumnModel;
 import javax.swing.table.DefaultTableModel;
-
-// TODO Load and save on id, not on name
+import javax.swing.table.TableColumnModel;
 
 /**
  * The service editor allows editing the lines and services.

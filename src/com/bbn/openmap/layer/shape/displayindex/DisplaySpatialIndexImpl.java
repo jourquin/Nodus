@@ -42,7 +42,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-/** A Spatial Index is a variation on a Shape Index, adding the bounding box. */
+/** 
+ * A Spatial Index is a variation on a Shape Index, adding the bounding box. 
+ * 
+ * @author Bart Jourquin, inspired from anonymous
+ */
 public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
 
   private static class BoundsEntry {
