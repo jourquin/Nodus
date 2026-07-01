@@ -291,7 +291,7 @@ public class ODReader {
         String msg =
             i18n.get(
                 ODReader.class,
-                "Invalid Table",
+                "Invalid_Table",
                 "Time dependent O-D table structure must contain times");
         JOptionPane.showMessageDialog(null, msg, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
         return;

@@ -1716,7 +1716,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
               MessageFormat.format(
                   "{0}:",
                   i18n.get(
-                      NodusOMDrawingTool.class, "Layer to transfer to", "Layer to transfer to")),
+                      NodusOMDrawingTool.class, "Layer_to_transfer_to", "Layer to transfer to")),
               NodusC.APPNAME,
               JOptionPane.QUESTION_MESSAGE,
               null,

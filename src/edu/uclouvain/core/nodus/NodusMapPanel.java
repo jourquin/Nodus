@@ -2334,11 +2334,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     if (selected) {
       menuItemControlToolpanel.setText(
-          i18n.get(NodusMapPanel.class, "Display Tool Panel", "Display Tool Panel"));
+          i18n.get(NodusMapPanel.class, "Display_Tool_Panel", "Display Tool Panel"));
 
     } else {
       menuItemControlToolpanel.setText(
-          i18n.get(NodusMapPanel.class, "Hide Tool Panel", "Hide Tool Panel"));
+          i18n.get(NodusMapPanel.class, "Hide_Tool_Panel", "Hide Tool Panel"));
     }
   }
 

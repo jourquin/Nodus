@@ -139,7 +139,7 @@ public class NotePadActions {
         JOptionPane.showMessageDialog(
             null,
             i18n.get(NotePadActions.class, "Word_not_found", "Word not found!"),
-            i18n.get(NotePadActions.class, "No match", "No match"),
+            i18n.get(NotePadActions.class, "No_match", "No match"),
             JOptionPane.WARNING_MESSAGE);
 
         findWord =

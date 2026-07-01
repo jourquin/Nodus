@@ -1045,7 +1045,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
           displayMessageInResult(
               "ExtractShp",
               MessageFormat.format(
-                  i18n.get(SQLConsole.class, "Error on extracting", "Error on extracting {0}"),
+                  i18n.get(SQLConsole.class, "Error_on_extracting", "Error on extracting {0}"),
                   toShapefile));
         }
 
@@ -1085,7 +1085,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
           displayMessageInResult(
               "ExtractShp",
               i18n.get(
-                  SQLConsole.class, "Error on extracting", "Error on extracting {0}", toShapefile));
+                  SQLConsole.class, "Error_on_extracting", "Error on extracting {0}", toShapefile));
 
           return false;
         }
@@ -1096,7 +1096,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     displayMessageInResult(
         i18n.get(SQLConsole.class, "Error", "Error"),
         MessageFormat.format(
-            i18n.get(SQLConsole.class, "is_not a_valid_shapefile", "{0} is not a valid shapefile."),
+            i18n.get(SQLConsole.class, "is_not_a_valid_shapefile", "{0} is not a valid shapefile."),
             fromShapefile));
 
     return false;
@@ -1334,7 +1334,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       displayMessageInResult(
           i18n.get(SQLConsole.class, "Usage", "Usage:"),
           MessageFormat.format(
-              i18n.get(SQLConsole.class, "{0} TableName", "TableName"), operation));
+              i18n.get(SQLConsole.class, "TableName", "{0} TableName"), operation));
 
       return false;
     }
@@ -1872,9 +1872,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     JFileChooser f = new JFileChooser(".");
     f.setFileFilter(
         new NodusFileFilter(
-            NodusC.TYPE_SQL, i18n.get(SQLConsole.class, "SQL command files", "SQL command files")));
+            NodusC.TYPE_SQL, i18n.get(SQLConsole.class, "SQL_command_files", "SQL command files")));
 
-    f.setDialogTitle(i18n.get(SQLConsole.class, "Open Script_", "Open Script..."));
+    f.setDialogTitle(i18n.get(SQLConsole.class, "Open_Script_", "Open Script..."));
 
     if (defDirectory != null) {
       f.setCurrentDirectory(new File(defDirectory));
@@ -2273,7 +2273,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     JFileChooser f = new JFileChooser(".");
     f.setFileFilter(
         new NodusFileFilter(
-            NodusC.TYPE_SQL, i18n.get(SQLConsole.class, "SQL command files", "SQL command files")));
+            NodusC.TYPE_SQL, i18n.get(SQLConsole.class, "SQL_command_files", "SQL command files")));
     f.setDialogTitle(i18n.get(SQLConsole.class, "Save_script", "Save script"));
 
     if (defDirectory != null) {

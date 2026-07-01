@@ -331,7 +331,7 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
       JOptionPane.showMessageDialog(
           null,
           ex.getMessage(),
-          i18n.get(VirtualNetworkViewerDlg.class, "SQL error", "SQL error"),
+          i18n.get(VirtualNetworkViewerDlg.class, "SQL_error", "SQL error"),
           JOptionPane.ERROR_MESSAGE);
     }
   }
@@ -598,7 +598,7 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
       JOptionPane.showMessageDialog(
           null,
           ex.getMessage(),
-          i18n.get(VirtualNetworkViewerDlg.class, "SQL error", "SQL error"),
+          i18n.get(VirtualNetworkViewerDlg.class, "SQL_error", "SQL error"),
           JOptionPane.ERROR_MESSAGE);
     }
   }

@@ -232,7 +232,7 @@ public class NodusWMSLayer extends WMSLayer {
             new ThreadedDialog(
                 i18n.get(
                     NodusWMSLayer.class,
-                    "Could not parse capabilities",
+                    "Could_not_parse_capabilities",
                     "Could not parse capabilities"));
         thread.start();
 

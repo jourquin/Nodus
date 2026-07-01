@@ -185,7 +185,7 @@ public class WmsLayersChooserDlg extends EscapeDialog implements MouseListener {
       // Only takes "real" layers, for which there is a LatLonBoundingBox...
       if (info.getField("name") == null) {
         infoTextArea.setText(
-            i18n.get(WmsLayersChooserDlg.class, "No_ a_valid_layer", "Not a valid layer"));
+            i18n.get(WmsLayersChooserDlg.class, "Not_a_valid_layer", "Not a valid layer"));
       } else {
         if (!listModel.contains(info)) {
           listModel.addElement(info);
@@ -644,7 +644,7 @@ public class WmsLayersChooserDlg extends EscapeDialog implements MouseListener {
       if (e.getClickCount() == 2) {
         if (info.getField("name") == null) {
           infoTextArea.setText(
-              i18n.get(WmsLayersChooserDlg.class, "No_ a_valid_layer", "Not a valid layer"));
+              i18n.get(WmsLayersChooserDlg.class, "Not_a_valid_layer", "Not a valid layer"));
         } else {
           if (!listModel.contains(info)) {
             listModel.addElement(info);

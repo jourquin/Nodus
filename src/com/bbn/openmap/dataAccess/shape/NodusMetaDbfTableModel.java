@@ -409,7 +409,7 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
           .getContentPane()
           .add(getGUI(filename, MODIFY_ROW_MASK | DONE_MASK), BorderLayout.CENTER);
 
-      saveButton = new JButton(i18n.get(MetaDbfTableModel.class, "Save Changes", "Save Changes"));
+      saveButton = new JButton(i18n.get(MetaDbfTableModel.class, "Save_Changes", "Save Changes"));
       saveButton.setEnabled(false);
       saveButton.addActionListener(
           new ActionListener() {
