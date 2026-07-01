@@ -522,6 +522,28 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         && UIManager.getLookAndFeel().isNativeLookAndFeel();
   }
 
+  /** Registers Nodus handlers for the macOS application menu. */
+  private void registerMacApplicationHandlers() {
+    if (!useMacDesktopIntegration()) {
+      return;
+    }
+
+    if (desktop.isSupported(Desktop.Action.APP_QUIT_HANDLER)) {
+      desktop.setQuitHandler(
+          (e, r) -> {
+            menuItemFileExitActionPerformed();
+          });
+    }
+
+    if (desktop.isSupported(Desktop.Action.APP_ABOUT)) {
+      desktop.setAboutHandler(e -> menuItemAboutActionPerformed());
+    }
+
+    if (desktop.isSupported(Desktop.Action.APP_PREFERENCES)) {
+      desktop.setPreferencesHandler(e -> menuItemFileGlobalPreferencesActionPerformed());
+    }
+  }
+
   /**
    * .
    *
@@ -1953,11 +1975,10 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     menuFile.add(menuItemFileSaveAs);
     menuFile.add(menuItemFilePrint);
 
+    registerMacApplicationHandlers();
+
     if (useMacDesktopIntegration() && desktop.isSupported(Desktop.Action.APP_QUIT_HANDLER)) {
-      desktop.setQuitHandler(
-          (e, r) -> {
-            menuItemFileExitActionPerformed();
-          });
+      // The Quit item is provided by the macOS application menu.
     } else {
       menuFile.addSeparator();
       menuFile.add(menuItemFileExit);
@@ -1983,9 +2004,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     menuTools.add(menuItemToolGroovyScripts);
     menuTools.add(menuItemToolRessourcesMonitor);
 
-    if (useMacDesktopIntegration() && desktop.isSupported(Desktop.Action.APP_ABOUT)) {
-      desktop.setAboutHandler(e -> menuItemAboutActionPerformed());
-    } else {
+    if (!useMacDesktopIntegration() || !desktop.isSupported(Desktop.Action.APP_ABOUT)) {
       menuHelp.add(menuItemHelpAbout);
     }
   }
@@ -2457,6 +2476,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       consoleFrame.setVisible(true);
 
       // Reset the preferences menu
+      registerMacApplicationHandlers();
       setGlobalPreferencesMenu();
     }
   }
@@ -3024,7 +3044,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   private void setGlobalPreferencesMenu() {
     if (useMacDesktopIntegration() && desktop.isSupported(Desktop.Action.APP_PREFERENCES)) {
       desktop.setPreferencesHandler(e -> menuItemFileGlobalPreferencesActionPerformed());
-    } else {
+    } else if (menuItemSystemProperties.getParent() == null) {
       menuFile.add(menuItemSystemProperties);
     }
   }
