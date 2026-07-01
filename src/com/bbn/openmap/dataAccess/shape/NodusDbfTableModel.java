@@ -27,10 +27,14 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import javax.swing.AbstractAction;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.KeyStroke;
 
 /**
  * An extended DbfTableModel to be used with NodusMetaDbfTableModel.
@@ -120,6 +124,9 @@ public class NodusDbfTableModel extends DbfTableModel {
                   mdtm.showGUI(filePath.toString());
                 }
               });
+        } else if (button.getText().equals(i18n.get(DbfTableModel.class, "Done", "Done"))) {
+          button.setText(i18n.get(DbfTableModel.class, "Close", "Close"));
+          registerEscapeCloseAction(button);
         }
       }
     }
@@ -127,5 +134,26 @@ public class NodusDbfTableModel extends DbfTableModel {
     // Show it on the left of the app
     frame.setLocationRelativeTo(layer.getNodusMapPanel().getNodusLayersPanel());
     frame.setVisible(true);
+  }
+
+  /** Makes the Escape key trigger the same action as the Close button. */
+  private void registerEscapeCloseAction(JButton closeButton) {
+    frame
+        .getRootPane()
+        .getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+        .put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "close");
+    frame
+        .getRootPane()
+        .getActionMap()
+        .put(
+            "close",
+            new AbstractAction() {
+              private static final long serialVersionUID = -8598746150804933016L;
+
+              @Override
+              public void actionPerformed(ActionEvent e) {
+                closeButton.doClick();
+              }
+            });
   }
 }
