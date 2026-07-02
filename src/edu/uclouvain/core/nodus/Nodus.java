@@ -338,7 +338,9 @@ public class Nodus {
         new WindowAdapter() {
           @Override
           public void windowClosing(WindowEvent e) {
-            if (projectHasUnsavedLayerChanges() || confirmQuit(openMapFrame)) {
+            if (projectHasUnsavedLayerChanges()
+                || projectWillAskForCompactOnClose()
+                || confirmQuit(openMapFrame)) {
               nodusMapPanel.closeAndSaveState();
               // System.exit(0);
             }
@@ -354,6 +356,16 @@ public class Nodus {
   private boolean projectHasUnsavedLayerChanges() {
     NodusProject nodusProject = nodusMapPanel.getNodusProject();
     return nodusProject != null && nodusProject.isOpen() && nodusProject.isDirty();
+  }
+
+  /**
+   * Returns true if closing the current project will already ask about database compaction.
+   *
+   * @return true if the compact database prompt will be displayed
+   */
+  private boolean projectWillAskForCompactOnClose() {
+    NodusProject nodusProject = nodusMapPanel.getNodusProject();
+    return nodusProject != null && nodusProject.willAskForCompactOnClose();
   }
 
   /**

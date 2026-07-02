@@ -558,13 +558,18 @@ public class NodusProject implements ShapeConstants {
     worker.execute();
   }
 
+  /**
+   * Returns true if closing the project will ask whether to compact the embedded DB.
+   *
+   * @return true if the compact database prompt will be displayed on close
+   */
+  public boolean willAskForCompactOnClose() {
+    return isOpen() && canCompactDatabaseOnClose(JDBCUtils.getDbEngine());
+  }
+
   /** Returns true when close() should compact the embedded DB before finishing. */
   private boolean shouldCompactDatabase(int dbEngine) {
-    if (dbEngine != JDBCUtils.DB_HSQLDB && dbEngine != JDBCUtils.DB_H2) {
-      return false;
-    }
-
-    if (!Boolean.parseBoolean(getLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, "true"))) {
+    if (!canCompactDatabaseOnClose(dbEngine)) {
       return false;
     }
 
@@ -576,6 +581,19 @@ public class NodusProject implements ShapeConstants {
             JOptionPane.YES_NO_OPTION);
 
     return answer == JOptionPane.YES_OPTION;
+  }
+
+  /** Returns true when the project close workflow can offer embedded DB compaction. */
+  private boolean canCompactDatabaseOnClose(int dbEngine) {
+    if (dbEngine != JDBCUtils.DB_HSQLDB && dbEngine != JDBCUtils.DB_H2) {
+      return false;
+    }
+
+    if (!Boolean.parseBoolean(getLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, "true"))) {
+      return false;
+    }
+
+    return true;
   }
 
   /** Saves the last-modified timestamps of node and link DBF files in the project properties. */
