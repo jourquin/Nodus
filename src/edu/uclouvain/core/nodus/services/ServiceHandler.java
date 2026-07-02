@@ -44,6 +44,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -85,6 +86,12 @@ public class ServiceHandler {
   private String servicesHeaderTableName;
 
   private String servicesLinksTableName;
+
+  /** Visibility state of link graphics hidden by the line-view mode. */
+  private Map<OMGraphic, Boolean> lineViewGraphicVisibility = new HashMap<>();
+
+  /** Layers touched by the line-view mode. */
+  private Set<NodusEsriLayer> lineViewLayers = new HashSet<>();
 
   /** TreeMap that contains the services. */
   private TreeMap<String, TransportService> services = new TreeMap<>();
@@ -302,6 +309,7 @@ public class ServiceHandler {
 
   /** Discards pending service changes and reloads the services stored in the database. */
   public void discardPendingChanges() {
+    clearLineView();
     resetService();
     if (services != null) {
       services.clear();
@@ -324,6 +332,7 @@ public class ServiceHandler {
 
   /** Releases references held by the service manager. */
   public void dispose() {
+    clearLineView();
     resetService();
     listening = false;
     mustBeSaved = false;
@@ -341,6 +350,8 @@ public class ServiceHandler {
     linkLayer = null;
     nodeLayer = null;
     nodusProject = null;
+    lineViewGraphicVisibility = null;
+    lineViewLayers = null;
     servicesHeaderTableName = null;
     servicesLinksTableName = null;
     serviceStopsTableName = null;
@@ -1206,6 +1217,80 @@ public class ServiceHandler {
       // setListening(true);
     }
     paintService(true);
+  }
+
+  /** Restores the normal layer view after the filtered service line view was used. */
+  public void clearLineView() {
+    if (lineViewGraphicVisibility == null || lineViewGraphicVisibility.isEmpty()) {
+      return;
+    }
+
+    for (Map.Entry<OMGraphic, Boolean> entry : lineViewGraphicVisibility.entrySet()) {
+      OMGraphic graphic = entry.getKey();
+      if (graphic != null) {
+        graphic.setVisible(entry.getValue().booleanValue());
+      }
+    }
+
+    repaintLineViewLayers();
+    lineViewGraphicVisibility.clear();
+    lineViewLayers.clear();
+  }
+
+  /**
+   * Filters the map so only links belonging to the selected service remain visible on the layers
+   * touched by that service.
+   *
+   * @param service The service to isolate on the map.
+   */
+  public void displayLineView(TransportService service) {
+    clearLineView();
+    if (service == null || service.getNbLinks() == 0 || linkLayer == null) {
+      return;
+    }
+
+    Set<OMGraphic> serviceLinks = new HashSet<>(service.getLinks());
+    for (NodusEsriLayer element : linkLayer) {
+      if (element == null || !lineViewLayerContainsServiceLink(element, serviceLinks)) {
+        continue;
+      }
+
+      lineViewLayers.add(element);
+      Iterator<?> it = element.getEsriGraphicList().iterator();
+      while (it.hasNext()) {
+        OMGraphic graphic = (OMGraphic) it.next();
+        if (graphic != null) {
+          boolean wasVisible = graphic.isVisible();
+          lineViewGraphicVisibility.put(graphic, Boolean.valueOf(wasVisible));
+          graphic.setVisible(serviceLinks.contains(graphic) && wasVisible);
+        }
+      }
+    }
+    repaintLineViewLayers();
+  }
+
+  /** Returns true if a layer contains at least one link of the given service. */
+  private boolean lineViewLayerContainsServiceLink(
+      NodusEsriLayer layer, Set<OMGraphic> serviceLinks) {
+    Iterator<OMGraphic> it = serviceLinks.iterator();
+    while (it.hasNext()) {
+      if (layer.getEsriGraphicList().contains(it.next())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Repaints the layers touched by the line-view mode. */
+  private void repaintLineViewLayers() {
+    if (lineViewLayers == null) {
+      return;
+    }
+    for (NodusEsriLayer layer : lineViewLayers) {
+      if (layer != null) {
+        layer.repaint();
+      }
+    }
   }
 
   /** Repaints all link layers so deselected service links are actually cleared from the map. */

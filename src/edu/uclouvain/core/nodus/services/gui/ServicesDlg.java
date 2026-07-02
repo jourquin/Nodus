@@ -88,6 +88,12 @@ public class ServicesDlg extends EscapeDialog {
   /** Saves all pending service changes to the database. */
   private JButton listSaveButton = null;
 
+  /** Toggles the filtered service line view on the map. */
+  private JButton lineViewButton = null;
+
+  /** True when the map is filtered to the selected service line. */
+  private boolean lineViewActive = false;
+
   /** . */
   private int[] constPeriod = {1, 12, 52, 365};
 
@@ -232,7 +238,9 @@ public class ServicesDlg extends EscapeDialog {
 
   /** Enable or disable the buttons. */
   private void enableButtons() {
-    if (getServiceTable().getRowCount() != 0) {
+    boolean hasRows = getServiceTable().getRowCount() != 0;
+    boolean hasSelection = getServiceTable().getSelectedRow() != -1;
+    if (hasRows) {
       getDeleteButton().setEnabled(true);
       getEditButton().setEnabled(true);
       getCopyButton().setEnabled(true);
@@ -241,6 +249,8 @@ public class ServicesDlg extends EscapeDialog {
       getEditButton().setEnabled(false);
       getCopyButton().setEnabled(false);
     }
+    updateLineViewButton();
+    getLineViewButton().setEnabled(hasSelection);
   }
 
   /** Fill the ServicesTable. */
@@ -499,6 +509,7 @@ public class ServicesDlg extends EscapeDialog {
               if (getServiceTable().getSelectedRow() == -1) {
                 return;
               }
+              showLayerView();
 
               String serviceName =
                   (String) getServiceTable().getValueAt(getServiceTable().getSelectedRow(), 1);
@@ -522,6 +533,92 @@ public class ServicesDlg extends EscapeDialog {
           });
     }
     return deleteButton;
+  }
+
+  /**
+   * Initializes the line-view toggle button.
+   *
+   * @return javax.swing.JButton lineViewButton
+   */
+  private JButton getLineViewButton() {
+    if (lineViewButton == null) {
+      lineViewButton = new JButton();
+      updateLineViewButton();
+      lineViewButton.setEnabled(false);
+      lineViewButton.addActionListener(
+          new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+              setLineViewActive(!lineViewActive);
+            }
+          });
+    }
+    return lineViewButton;
+  }
+
+  /** Updates the label of the line-view toggle button. */
+  private void updateLineViewButton() {
+    if (lineViewButton == null) {
+      return;
+    }
+    if (lineViewActive) {
+      lineViewButton.setText(i18n.get(ServicesDlg.class, "Layer_view", "Layer view"));
+    } else {
+      lineViewButton.setText(i18n.get(ServicesDlg.class, "Line_view", "Line view"));
+    }
+  }
+
+  /** Enables or disables the filtered service line view. */
+  private void setLineViewActive(boolean active) {
+    if (active) {
+      String serviceName = getSelectedServiceName();
+      if (serviceName == null) {
+        lineViewActive = false;
+        serviceHandler.clearLineView();
+      } else {
+        lineViewActive = true;
+        serviceHandler.displayLineView(serviceHandler.getService(serviceName));
+      }
+    } else {
+      lineViewActive = false;
+      serviceHandler.clearLineView();
+    }
+    updateLineViewButton();
+    enableButtons();
+  }
+
+  /** Refreshes the filtered line view after the table selection changes. */
+  private void refreshLineViewForSelection() {
+    updateLineViewButton();
+    if (lineViewActive) {
+      String serviceName = getSelectedServiceName();
+      if (serviceName == null) {
+        setLineViewActive(false);
+      } else {
+        serviceHandler.displayLineView(serviceHandler.getService(serviceName));
+      }
+    }
+  }
+
+  /** Returns the selected service name, or null if no service is selected. */
+  private String getSelectedServiceName() {
+    int row = getServiceTable().getSelectedRow();
+    if (row == -1) {
+      return null;
+    }
+    Object serviceName = getServiceTable().getValueAt(row, 1);
+    return serviceName == null ? null : serviceName.toString();
+  }
+
+  /** Restores the normal layer view. */
+  private void showLayerView() {
+    if (lineViewActive) {
+      setLineViewActive(false);
+    } else {
+      serviceHandler.clearLineView();
+      updateLineViewButton();
+      enableButtons();
+    }
   }
 
   /**
@@ -550,6 +647,7 @@ public class ServicesDlg extends EscapeDialog {
     if (s == null) {
       return;
     }
+    showLayerView();
 
     isLoadingEditorFields = true;
     nameField.setText(s.getName());
@@ -762,7 +860,7 @@ public class ServicesDlg extends EscapeDialog {
           createConstraints(
               0,
               1,
-              7,
+              8,
               1,
               0.1,
               0.1,
@@ -838,9 +936,25 @@ public class ServicesDlg extends EscapeDialog {
 
       addToGridBag(
           listCard,
-          new JPanel(),
+          getLineViewButton(),
           createConstraints(
               4,
+              2,
+              1,
+              1,
+              0,
+              0,
+              GridBagConstraints.SOUTHWEST,
+              GridBagConstraints.NONE,
+              new Insets(5, 5, 5, 5),
+              0,
+              0));
+
+      addToGridBag(
+          listCard,
+          new JPanel(),
+          createConstraints(
+              5,
               2,
               1,
               1,
@@ -856,7 +970,7 @@ public class ServicesDlg extends EscapeDialog {
           listCard,
           getListSaveButton(),
           createConstraints(
-              5,
+              6,
               2,
               1,
               1,
@@ -872,7 +986,7 @@ public class ServicesDlg extends EscapeDialog {
           listCard,
           getCloseButton(),
           createConstraints(
-              6,
+              7,
               2,
               1,
               1,
@@ -917,6 +1031,7 @@ public class ServicesDlg extends EscapeDialog {
           new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
+              showLayerView();
 
               int idx = serviceHandler.getNewServiceId();
 
@@ -1190,6 +1305,7 @@ public class ServicesDlg extends EscapeDialog {
                   // Load new service
                   serviceHandler.displayService(serviceName);
                   enableButtons();
+                  refreshLineViewForSelection();
                 }
               });
     }
@@ -1363,9 +1479,12 @@ public class ServicesDlg extends EscapeDialog {
     }
 
     if (!visible && hasUnsavedServiceChanges) {
+      showLayerView();
       discardPendingChanges();
     } else if (visible) {
       refreshServicesTable();
+    } else {
+      showLayerView();
     }
     super.setVisible(visible);
     if (visible) {
@@ -1381,6 +1500,7 @@ public class ServicesDlg extends EscapeDialog {
         serviceHandler.displayService(serviceName);
       }
       cards.show(mainPanel, LIST_CARD);
+      enableButtons();
     } else {
       serviceHandler.resetService();
     }

@@ -26,6 +26,7 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
+import edu.uclouvain.core.nodus.utils.LocaleUtils;
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -369,18 +370,20 @@ public class LanguageChooser extends EscapeDialog {
     if (selectedIndex != -1) {
       if (selectedIndex != currentLanguageIndex) {
         setVisible(false);
+        String localeString = availableLocales[selectedIndex];
+        Locale locale = LocaleUtils.parseLocale(localeString);
+        properties.setProperty(NodusC.PROP_LOCALE, localeString);
+        LocaleUtils.applyLocale(locale);
+        nodusMapPanel.updateComponentsText();
         JOptionPane.showMessageDialog(
             nodusMapPanel,
             i18n.get(
                 LanguageChooser.class,
-                "New_language_will_be_applied_at_next_restart",
-                "New language will be completely applied at next restart"),
+                "New_language_partially_applied",
+                "The main interface has been updated. Some open windows may need to be reopened."),
             NodusC.APPNAME,
             JOptionPane.INFORMATION_MESSAGE);
-        String locale = availableLocales[selectedIndex];
-        properties.setProperty(NodusC.PROP_LOCALE, locale);
-        Locale.setDefault(new Locale(locale.toLowerCase(), locale.toUpperCase()));
-        nodusMapPanel.updateComponentsText();
+        currentLanguageIndex = selectedIndex;
       }
     }
   }

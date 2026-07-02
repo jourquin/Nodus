@@ -24,6 +24,7 @@ package edu.uclouvain.core.nodus;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.MapHandler;
 import com.bbn.openmap.gui.OpenMapFrame;
+import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.gui.Splash;
 import edu.uclouvain.core.nodus.utils.LocaleUtils;
 import edu.uclouvain.core.nodus.utils.MacUtils;
@@ -44,8 +45,10 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.InputMap;
+import javax.swing.JOptionPane;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
+import javax.swing.WindowConstants;
 import javax.swing.text.DefaultEditorKit;
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
@@ -89,8 +92,6 @@ public class Nodus {
     Splash splash = new Splash();
     splash.display(100);
 
-    Environment.init();
-
     nodusLogger = Logger.getLogger(Nodus.class.getName());
     nodusLogger.setUseParentHandlers(false);
     nodusLogger.setLevel(Level.ALL);
@@ -105,15 +106,15 @@ public class Nodus {
 
     // Prepare i18n mechanism
     String localeString = nodusProperties.getProperty(NodusC.PROP_LOCALE, null);
+    Locale locale = Locale.ENGLISH;
 
     if (localeString != null) {
-      Locale locale = LocaleUtils.parseLocale(localeString);
-      Locale.setDefault(locale);
-
-      // Locale.setDefault(new Locale(locale.toLowerCase(), locale.toUpperCase()));
-    } else {
-      Locale.setDefault(Locale.ENGLISH);
+      locale = LocaleUtils.parseLocale(localeString);
     }
+
+    LocaleUtils.applyLocale(locale);
+    Environment.init();
+    LocaleUtils.applyLocale(locale);
 
     setLookAndFeel();
 
@@ -332,14 +333,47 @@ public class Nodus {
    * @param openMapFrame The main frame of the application.
    */
   private void setWindowListenerOnFrame(OpenMapFrame openMapFrame) {
+    openMapFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
     openMapFrame.addWindowListener(
         new WindowAdapter() {
           @Override
           public void windowClosing(WindowEvent e) {
-            nodusMapPanel.closeAndSaveState();
-            // System.exit(0);
+            if (projectHasUnsavedLayerChanges() || confirmQuit(openMapFrame)) {
+              nodusMapPanel.closeAndSaveState();
+              // System.exit(0);
+            }
           }
         });
+  }
+
+  /**
+   * Returns true if the open project has unsaved layer changes.
+   *
+   * @return true if a project is open and dirty
+   */
+  private boolean projectHasUnsavedLayerChanges() {
+    NodusProject nodusProject = nodusMapPanel.getNodusProject();
+    return nodusProject != null && nodusProject.isOpen() && nodusProject.isDirty();
+  }
+
+  /**
+   * Asks the user to confirm the application quit.
+   *
+   * @param openMapFrame The main frame of the application.
+   * @return true if the user confirms the quit request.
+   */
+  private boolean confirmQuit(OpenMapFrame openMapFrame) {
+    I18n i18n = Environment.getI18n();
+
+    int result =
+        JOptionPane.showConfirmDialog(
+            openMapFrame,
+            i18n.get(Nodus.class, "Confirm_quit", "Do you really want to quit Nodus?"),
+            i18n.get(Nodus.class, "Quit_Nodus", "Quit Nodus"),
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE);
+
+    return result == JOptionPane.YES_OPTION;
   }
 
   /** Associates the OpenMap frame with the application. */

@@ -449,7 +449,10 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 ## v8.4 - BuildXXXXXXXX
 - The ESC key can now be used to close most GUI components
 - Cleaning I18N resources and Java code
-- Redesign of the Lines and Services workflow, now also documented 
+- Redesign of the Lines and Services workflow, now also better documented
+- More OpenMap GUI windows can be leaved using the ESC key
+- Improved language change workflow
+- Ask the user to confirm if he wants to leave Nodus if left via the window close listener
 
 
 

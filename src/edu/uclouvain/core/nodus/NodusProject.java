@@ -397,13 +397,11 @@ public class NodusProject implements ShapeConstants {
     nodusMapPanel.setFileMenuBusy(true);
     stopShapeIntegrityTester();
     int dbEngine = JDBCUtils.getDbEngine();
-    boolean compactDatabase = shouldCompactDatabase(dbEngine);
-    runProjectLifecycleScriptAsync(
-        false, true, () -> continueProjectClose(dbEngine, compactDatabase));
+    runProjectLifecycleScriptAsync(false, true, () -> continueProjectClose(dbEngine));
   }
 
   /** Continues the close workflow after the optional project Groovy hook has completed. */
-  private void continueProjectClose(int dbEngine, boolean compactDatabase) {
+  private void continueProjectClose(int dbEngine) {
     boolean projectClosed = false;
     boolean closeDeferred = false;
     try {
@@ -465,6 +463,8 @@ public class NodusProject implements ShapeConstants {
             rollBack();
           }
         }
+
+        boolean compactDatabase = shouldCompactDatabase(dbEngine);
 
         Connection connection = jdbcConnection;
 

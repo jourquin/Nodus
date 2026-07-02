@@ -23,16 +23,27 @@ package com.bbn.openmap.gui;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.Layer;
+import com.bbn.openmap.LayerHandler;
 import com.bbn.openmap.layer.drawing.NodusDrawingToolLayer;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import java.awt.Component;
+import java.awt.Container;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.beans.PropertyChangeEvent;
 import java.net.URL;
 import java.util.Iterator;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.ButtonGroup;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JRootPane;
+import javax.swing.KeyStroke;
+import javax.swing.RootPaneContainer;
 
 /**
  * This class overrides LayersPanel in order not to allow removing the mandatory layers for a Nodus
@@ -43,6 +54,56 @@ import javax.swing.JButton;
  * @author Bart Jourquin
  */
 public class NodusLayersPanel extends LayersPanel {
+
+  /** Action key used to close a layer palette with the ESC key. */
+  private static final String ESCAPE_CLOSE_LAYER_PALETTE_ACTION =
+      "edu.uclouvain.core.nodus.closeLayerPalette";
+
+  /** Layer pane that adds an ESC shortcut to layer palettes. */
+  private static class EscapePaletteLayerPane extends LayerPane {
+
+    private static final long serialVersionUID = 6959316825376506161L;
+
+    /**
+     * Creates a layer pane.
+     *
+     * @param layer the layer represented by this pane
+     * @param layerHandler the layer handler
+     * @param bg the layer selection button group
+     */
+    EscapePaletteLayerPane(Layer layer, LayerHandler layerHandler, ButtonGroup bg) {
+      super(layer, layerHandler, bg);
+    }
+
+    @Override
+    protected void showPalette() {
+      super.showPalette();
+      installEscapeCloseAction(getLayer(), this);
+    }
+  }
+
+  /** Layer status pane that adds an ESC shortcut to layer palettes. */
+  private static class EscapePaletteLayerStatusPane extends LayerStatusPane {
+
+    private static final long serialVersionUID = -6366212064843239483L;
+
+    /**
+     * Creates a layer status pane.
+     *
+     * @param layer the layer represented by this pane
+     * @param layerHandler the layer handler
+     * @param bg the layer selection button group
+     */
+    EscapePaletteLayerStatusPane(Layer layer, LayerHandler layerHandler, ButtonGroup bg) {
+      super(layer, layerHandler, bg);
+    }
+
+    @Override
+    protected void showPalette() {
+      super.showPalette();
+      installEscapeCloseAction(getLayer(), this);
+    }
+  }
 
   private static I18n i18n = Environment.getI18n();
 
@@ -87,6 +148,88 @@ public class NodusLayersPanel extends LayersPanel {
     getControls().configuration = "NORTH";
     getControls().createInterface();
     getControls().add(editLayersButton);
+  }
+
+  /**
+   * Creates a layer pane whose palette window can be closed with the ESC key.
+   *
+   * @param layer the layer represented by this pane
+   * @param layerHandler the layer handler
+   * @param bg the layer selection button group
+   * @return the layer pane
+   */
+  @Override
+  protected LayerPane createLayerPaneForLayer(
+      Layer layer, LayerHandler layerHandler, ButtonGroup bg) {
+    if (showStatus) {
+      return new EscapePaletteLayerStatusPane(layer, layerHandler, bg);
+    }
+
+    return new EscapePaletteLayerPane(layer, layerHandler, bg);
+  }
+
+  /**
+   * Installs an ESC key action on the palette window for a layer.
+   *
+   * @param layer the layer whose palette is displayed
+   * @param layerPane the layer pane that owns the palette button
+   */
+  private static void installEscapeCloseAction(Layer layer, LayerPane layerPane) {
+    if (layer == null) {
+      return;
+    }
+
+    WindowSupport windowSupport = layer.getWindowSupport();
+
+    if (windowSupport == null) {
+      return;
+    }
+
+    JRootPane rootPane = getPaletteRootPane(windowSupport);
+    Action closeAction =
+        new AbstractAction() {
+          private static final long serialVersionUID = 3174951125653169808L;
+
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            windowSupport.killWindow();
+            layerPane.setPaletteOn(false);
+          }
+        };
+
+    if (rootPane != null) {
+      rootPane
+          .getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+          .put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), ESCAPE_CLOSE_LAYER_PALETTE_ACTION);
+      rootPane.getActionMap().put(ESCAPE_CLOSE_LAYER_PALETTE_ACTION, closeAction);
+      return;
+    }
+
+    Component content = windowSupport.getContent();
+
+    if (content instanceof JComponent) {
+      JComponent component = (JComponent) content;
+      component
+          .getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+          .put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), ESCAPE_CLOSE_LAYER_PALETTE_ACTION);
+      component.getActionMap().put(ESCAPE_CLOSE_LAYER_PALETTE_ACTION, closeAction);
+    }
+  }
+
+  /**
+   * Returns the root pane used by the palette window, if any.
+   *
+   * @param windowSupport the OpenMap window support
+   * @return the root pane, or null if the window does not expose one
+   */
+  private static JRootPane getPaletteRootPane(WindowSupport windowSupport) {
+    Container window = windowSupport.getWindow();
+
+    if (window instanceof RootPaneContainer) {
+      return ((RootPaneContainer) window).getRootPane();
+    }
+
+    return null;
   }
 
   /**

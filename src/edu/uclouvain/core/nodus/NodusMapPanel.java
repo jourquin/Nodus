@@ -867,6 +867,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     menuItemFileExit.setAccelerator(
         KeyStroke.getKeyStroke(
             KeyEvent.VK_Q, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+    
     menuItemFileExit.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -3130,14 +3131,33 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     menuItemHelpAbout.setText(i18n.get(NodusMapPanel.class, "About", "About"));
 
+    menuItemHelpHelp.setText(i18n.get(NodusMapPanel.class, "Help", "Help"));
+
+    menuItemHelpApiDoc.setText(i18n.get(NodusMapPanel.class, "API_Doc", "API Javadoc"));
+
     menuItemControlBackground.setText(
         i18n.get(NodusMapPanel.class, "Set_Background_color", "Set Background color"));
 
-    menuItemControlToolpanel.setText(
-        i18n.get(NodusMapPanel.class, "Hide_Tool_Panel", "Hide Tool Panel"));
+    setControlMenuItemsText();
+  }
 
-    menuItemControlControlpanel.setText(
-        i18n.get(NodusMapPanel.class, "Hide_Control_Panel", "Hide Control Panel"));
+  /** Updates labels of control menu items whose text depends on component visibility. */
+  private void setControlMenuItemsText() {
+    if (toolPanel != null && !toolPanel.isVisible()) {
+      menuItemControlToolpanel.setText(
+          i18n.get(NodusMapPanel.class, "Display_Tool_Panel", "Display Tool Panel"));
+    } else {
+      menuItemControlToolpanel.setText(
+          i18n.get(NodusMapPanel.class, "Hide_Tool_Panel", "Hide Tool Panel"));
+    }
+
+    if (controlPanel != null && !controlPanel.isVisible()) {
+      menuItemControlControlpanel.setText(
+          i18n.get(NodusMapPanel.class, "Display_Control_Panel", "Display Control Panel"));
+    } else {
+      menuItemControlControlpanel.setText(
+          i18n.get(NodusMapPanel.class, "Hide_Control_Panel", "Hide Control Panel"));
+    }
   }
 
   /**
@@ -3231,6 +3251,17 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     setMenuItemsText();
 
     scenarioLabel.setText(i18n.get(NodusMapPanel.class, "Scenario", "Scenario"));
+    refreshMenuBarUI();
+    revalidate();
+    repaint();
+
+    Frame mainFrame = getMainFrame();
+
+    if (mainFrame != null) {
+      mainFrame.invalidate();
+      mainFrame.validate();
+      mainFrame.repaint();
+    }
   }
 
   /**

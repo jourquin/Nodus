@@ -21,7 +21,11 @@
 
 package edu.uclouvain.core.nodus.utils;
 
+import com.bbn.openmap.Environment;
+import com.bbn.openmap.util.I18n;
+import java.lang.reflect.Field;
 import java.util.Locale;
+import java.util.ResourceBundle;
 
 /**
  * A simple helper for Locale.
@@ -74,5 +78,77 @@ public class LocaleUtils {
     }
 
     return parsedLocale;
+  }
+
+  /**
+   * Applies the locale to both the JVM and OpenMap i18n mechanism.
+   *
+   * <p>OpenMap's {@code BasicI18n} stores the locale that was current when the environment was
+   * initialized. Updating the JVM default locale alone is therefore not enough for runtime language
+   * changes.
+   *
+   * @param locale the locale to apply
+   */
+  public static void applyLocale(Locale locale) {
+    if (locale == null) {
+      return;
+    }
+
+    Locale.setDefault(locale);
+    ResourceBundle.clearCache();
+    updateOpenMapI18nLocale(locale);
+  }
+
+  /**
+   * Updates OpenMap's current i18n instance when it exposes the expected private locale field.
+   *
+   * @param locale the locale to apply
+   */
+  private static void updateOpenMapI18nLocale(Locale locale) {
+    I18n i18n;
+
+    try {
+      i18n = Environment.getI18n();
+    } catch (RuntimeException ex) {
+      return;
+    }
+
+    if (i18n == null) {
+      return;
+    }
+
+    Field localeField = findField(i18n.getClass(), "loc");
+
+    if (localeField == null) {
+      return;
+    }
+
+    try {
+      localeField.setAccessible(true);
+      localeField.set(i18n, locale);
+    } catch (IllegalAccessException | RuntimeException ex) {
+      // Keep the JVM default locale even if OpenMap internals change in a future version.
+    }
+  }
+
+  /**
+   * Searches a field in a class hierarchy.
+   *
+   * @param clazz the class to inspect
+   * @param fieldName the field name to find
+   * @return the field, or null if not found
+   */
+  private static Field findField(Class<?> clazz, String fieldName) {
+    Class<?> currentClass = clazz;
+
+    while (currentClass != null) {
+      try {
+        return currentClass.getDeclaredField(fieldName);
+      } catch (NoSuchFieldException ex) {
+        currentClass = currentClass.getSuperclass();
+      }
+    }
+
+    return null;
   }
 }
