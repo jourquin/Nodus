@@ -46,6 +46,7 @@ import java.text.MessageFormat;
 import java.util.Iterator;
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -89,7 +90,7 @@ public class ServicesDlg extends EscapeDialog {
   private JButton listSaveButton = null;
 
   /** Toggles the filtered service line view on the map. */
-  private JButton lineViewButton = null;
+  private JCheckBox lineViewCheckBox = null;
 
   /** True when the map is filtered to the selected service line. */
   private boolean lineViewActive = false;
@@ -249,8 +250,8 @@ public class ServicesDlg extends EscapeDialog {
       getEditButton().setEnabled(false);
       getCopyButton().setEnabled(false);
     }
-    updateLineViewButton();
-    getLineViewButton().setEnabled(hasSelection);
+    updateLineViewCheckBox();
+    getLineViewCheckBox().setEnabled(hasSelection);
   }
 
   /** Fill the ServicesTable. */
@@ -536,36 +537,33 @@ public class ServicesDlg extends EscapeDialog {
   }
 
   /**
-   * Initializes the line-view toggle button.
+   * Initializes the line-view toggle check box.
    *
-   * @return javax.swing.JButton lineViewButton
+   * @return javax.swing.JCheckBox lineViewCheckBox
    */
-  private JButton getLineViewButton() {
-    if (lineViewButton == null) {
-      lineViewButton = new JButton();
-      updateLineViewButton();
-      lineViewButton.setEnabled(false);
-      lineViewButton.addActionListener(
+  private JCheckBox getLineViewCheckBox() {
+    if (lineViewCheckBox == null) {
+      lineViewCheckBox = new JCheckBox();
+      updateLineViewCheckBox();
+      lineViewCheckBox.setEnabled(false);
+      lineViewCheckBox.addActionListener(
           new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-              setLineViewActive(!lineViewActive);
+              setLineViewActive(lineViewCheckBox.isSelected());
             }
           });
     }
-    return lineViewButton;
+    return lineViewCheckBox;
   }
 
-  /** Updates the label of the line-view toggle button. */
-  private void updateLineViewButton() {
-    if (lineViewButton == null) {
+  /** Updates the state of the line-view toggle check box. */
+  private void updateLineViewCheckBox() {
+    if (lineViewCheckBox == null) {
       return;
     }
-    if (lineViewActive) {
-      lineViewButton.setText(i18n.get(ServicesDlg.class, "Layer_view", "Layer view"));
-    } else {
-      lineViewButton.setText(i18n.get(ServicesDlg.class, "Line_view", "Line view"));
-    }
+    lineViewCheckBox.setText(i18n.get(ServicesDlg.class, "Line_view", "Line view"));
+    lineViewCheckBox.setSelected(lineViewActive);
   }
 
   /** Enables or disables the filtered service line view. */
@@ -583,13 +581,13 @@ public class ServicesDlg extends EscapeDialog {
       lineViewActive = false;
       serviceHandler.clearLineView();
     }
-    updateLineViewButton();
+    updateLineViewCheckBox();
     enableButtons();
   }
 
   /** Refreshes the filtered line view after the table selection changes. */
   private void refreshLineViewForSelection() {
-    updateLineViewButton();
+    updateLineViewCheckBox();
     if (lineViewActive) {
       String serviceName = getSelectedServiceName();
       if (serviceName == null) {
@@ -616,7 +614,7 @@ public class ServicesDlg extends EscapeDialog {
       setLineViewActive(false);
     } else {
       serviceHandler.clearLineView();
-      updateLineViewButton();
+      updateLineViewCheckBox();
       enableButtons();
     }
   }
@@ -936,7 +934,7 @@ public class ServicesDlg extends EscapeDialog {
 
       addToGridBag(
           listCard,
-          getLineViewButton(),
+          getLineViewCheckBox(),
           createConstraints(
               4,
               2,
@@ -944,7 +942,7 @@ public class ServicesDlg extends EscapeDialog {
               1,
               0,
               0,
-              GridBagConstraints.SOUTHWEST,
+              GridBagConstraints.WEST,
               GridBagConstraints.NONE,
               new Insets(5, 5, 5, 5),
               0,
