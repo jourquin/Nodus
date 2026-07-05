@@ -37,6 +37,9 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -59,6 +62,7 @@ import javax.swing.JSpinner;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.WindowConstants;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -244,6 +248,14 @@ public class NodeRulesDlg extends EscapeDialog {
 
     initialize();
     getRootPane().setDefaultButton(saveButton);
+    setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+    addWindowListener(
+        new WindowAdapter() {
+          @Override
+          public void windowClosing(WindowEvent e) {
+            requestCloseDialog();
+          }
+        });
     setLocationRelativeTo(nodusProject.getNodusMapPanel());
   }
 
@@ -894,7 +906,7 @@ public class NodeRulesDlg extends EscapeDialog {
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
-            setVisible(false);
+            requestCloseDialog();
           }
         });
 
@@ -1441,6 +1453,50 @@ public class NodeRulesDlg extends EscapeDialog {
 
     // Close dialog
     setVisible(false);
+  }
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+    if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+      requestCloseDialog();
+      e.consume();
+      return;
+    }
+    super.keyPressed(e);
+  }
+
+  /** Closes the dialog after resolving pending rule changes, if any. */
+  private void requestCloseDialog() {
+    if (!hasPendingChanges()) {
+      setVisible(false);
+      return;
+    }
+
+    Object[] options = {
+      i18n.get(NodeRulesDlg.class, "Discard_changes", "Discard changes"),
+      i18n.get(NodeRulesDlg.class, "Save_changes", "Save changes")
+    };
+    int answer =
+        JOptionPane.showOptionDialog(
+            this,
+            i18n.get(NodeRulesDlg.class, "Discard_changes_question", "Discard changes?"),
+            NodusC.APPNAME,
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[0]);
+
+    if (answer == JOptionPane.YES_OPTION) {
+      setVisible(false);
+    } else if (answer == JOptionPane.NO_OPTION && saveButton.isEnabled()) {
+      saveButton_actionPerformed(null);
+    }
+  }
+
+  /** Returns true when the rules differ from the initially loaded rules. */
+  private boolean hasPendingChanges() {
+    return getRulesHashCode() != initialRulesHashCode;
   }
 
   /**

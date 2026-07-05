@@ -76,6 +76,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
+import javax.swing.WindowConstants;
 import javax.swing.border.LineBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -437,12 +438,13 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
       nbUneditableFields = 3;
     }
 
+    setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+
     // Same action as escape key or cancel button
     addWindowListener(
         new WindowAdapter() {
           public void windowClosing(WindowEvent e) {
-            cancel();
-            setVisible(false);
+            requestCloseDialog();
           }
         });
 
@@ -473,8 +475,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
    * @param e ActionEvent
    */
   private void cancelButton_actionPerformed(ActionEvent e) {
-    cancel();
-    setVisible(false);
+    requestCloseDialog();
   }
 
   /*
@@ -485,8 +486,9 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
   public void keyPressed(KeyEvent e) {
     int code = e.getKeyCode();
     if (code == KeyEvent.VK_ESCAPE) {
-      // Key pressed is the ESCAPE key. Hide this Dialog.
-      cancel();
+      requestCloseDialog();
+      e.consume();
+      return;
     }
     super.keyPressed(e);
   }
@@ -497,6 +499,57 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
       nodusEsriLayer.getModel().setValueAt(oldValues[i], graphicIndex, i);
     }
     nodusEsriLayer.setCanceled(true);
+  }
+
+  /** Closes the dialog after resolving pending record changes, if any. */
+  private void requestCloseDialog() {
+    if (!stopActiveCellEditing()) {
+      return;
+    }
+
+    if (!hasPendingChanges()) {
+      discardAndClose();
+      return;
+    }
+
+    Object[] options = {
+      i18n.get(DbfEditDlg.class, "Discard_changes", "Discard changes"),
+      i18n.get(DbfEditDlg.class, "Save_changes", "Save changes")
+    };
+    int answer =
+        JOptionPane.showOptionDialog(
+            this,
+            i18n.get(DbfEditDlg.class, "Discard_changes_question", "Discard changes?"),
+            NodusC.APPNAME,
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[0]);
+
+    if (answer == JOptionPane.YES_OPTION) {
+      discardAndClose();
+    } else if (answer == JOptionPane.NO_OPTION) {
+      saveButton_actionPerformed(null);
+    }
+  }
+
+  /** Stops the active table cell editor, returning false when validation fails. */
+  private boolean stopActiveCellEditing() {
+    return !dbfTable.isEditing() || dbfTable.getCellEditor().stopCellEditing();
+  }
+
+  /** Returns true when the dialog contains changes that can be saved. */
+  private boolean hasPendingChanges() {
+    return isNewRecord
+        || isServiceStopsChanged
+        || isInitialized && computeHashCode() != initialValuesHashCode;
+  }
+
+  /** Discards pending changes and closes the dialog. */
+  private void discardAndClose() {
+    cancel();
+    setVisible(false);
   }
 
   /**

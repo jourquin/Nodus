@@ -36,6 +36,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -43,7 +45,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
+import javax.swing.JOptionPane;
 import javax.swing.SwingConstants;
+import javax.swing.WindowConstants;
 import javax.swing.border.TitledBorder;
 
 /**
@@ -112,6 +116,9 @@ public class GlobalPreferencesDlg extends EscapeDialog {
 
   /** . */
   private boolean oldAntialiasing;
+
+  /** Snapshot of values loaded when the dialog opened. */
+  private String originalValuesSnapshot = "";
 
   /** . */
   private JCheckBox checkForUpdatesCheckBox;
@@ -397,7 +404,7 @@ public class GlobalPreferencesDlg extends EscapeDialog {
         new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
-            setVisible(false);
+            requestCloseDialog();
           }
         });
 
@@ -419,11 +426,104 @@ public class GlobalPreferencesDlg extends EscapeDialog {
         });
 
     loadSettings();
+    originalValuesSnapshot = getValuesSnapshot();
 
     getRootPane().setDefaultButton(okButton);
     setLocationRelativeTo(nodusMapPanel);
     setModal(true);
+    setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+    addWindowListener(
+        new WindowAdapter() {
+          @Override
+          public void windowClosing(WindowEvent e) {
+            requestCloseDialog();
+          }
+        });
     pack();
+  }
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+    if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+      requestCloseDialog();
+      e.consume();
+      return;
+    }
+    super.keyPressed(e);
+  }
+
+  /** Closes the dialog after resolving pending preference changes, if any. */
+  private void requestCloseDialog() {
+    if (!hasPendingChanges()) {
+      setVisible(false);
+      return;
+    }
+
+    Object[] options = {
+      i18n.get(GlobalPreferencesDlg.class, "Discard_changes", "Discard changes"),
+      i18n.get(GlobalPreferencesDlg.class, "Save_changes", "Save changes")
+    };
+    int answer =
+        JOptionPane.showOptionDialog(
+            this,
+            i18n.get(GlobalPreferencesDlg.class, "Discard_changes_question", "Discard changes?"),
+            i18n.get(GlobalPreferencesDlg.class, "Global_preferences", "Global preferences"),
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[0]);
+
+    if (answer == JOptionPane.YES_OPTION) {
+      setVisible(false);
+    } else if (answer == JOptionPane.NO_OPTION) {
+      saveSettings();
+      setVisible(false);
+    }
+  }
+
+  /** Returns true when the current controls differ from the values loaded when opened. */
+  private boolean hasPendingChanges() {
+    return !getValuesSnapshot().equals(originalValuesSnapshot);
+  }
+
+  /** Captures the current values of all persisted controls. */
+  private String getValuesSnapshot() {
+    return gcIntervalTextField.getText()
+        + '\n'
+        + maxSqlRowsTextField.getText()
+        + '\n'
+        + subframesAlwaysOnCheckBox.isSelected()
+        + '\n'
+        + stickyDrawingToolCheckBox.isSelected()
+        + '\n'
+        + displayFullPathCheckBox.isSelected()
+        + '\n'
+        + reloadLastProjectCheckBox.isSelected()
+        + '\n'
+        + useNativeGroovyConsoleCheckBox.isSelected()
+        + '\n'
+        + checkForUpdatesCheckBox.isSelected()
+        + '\n'
+        + navMouseModeCheckBox.isSelected()
+        + '\n'
+        + antialiasingCheckBox.isSelected()
+        + '\n'
+        + getSelectedDbEngine();
+  }
+
+  /** Returns the selected DB engine constant. */
+  private int getSelectedDbEngine() {
+    if (h2RadioButton.isSelected()) {
+      return JDBCUtils.DB_H2;
+    }
+    if (derbyRadioButton.isSelected()) {
+      return JDBCUtils.DB_DERBY;
+    }
+    if (sqliteRadioButton.isSelected()) {
+      return JDBCUtils.DB_SQLITE;
+    }
+    return JDBCUtils.DB_HSQLDB;
   }
 
   /** Sets the values of the different components. */

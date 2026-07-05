@@ -33,8 +33,11 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FileFilter;
 import java.util.Collections;
@@ -49,8 +52,10 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
+import javax.swing.JOptionPane;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
+import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.PopupMenuEvent;
@@ -106,6 +111,9 @@ public class ProjectPreferencesDlg extends EscapeDialog {
 
   /** . */
   private NodusProject nodusProject;
+
+  /** Snapshot of the values loaded when the dialog opened. */
+  private String originalValuesSnapshot = "";
 
   /** . */
   private JLabel odLabel = new JLabel();
@@ -179,6 +187,14 @@ public class ProjectPreferencesDlg extends EscapeDialog {
   
     initialize();
     getRootPane().setDefaultButton(okButton);
+    setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+    addWindowListener(
+        new WindowAdapter() {
+          @Override
+          public void windowClosing(WindowEvent e) {
+            requestCloseDialog();
+          }
+        });
     setLocationRelativeTo(nodusProject.getNodusMapPanel());
   }
 
@@ -188,7 +204,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
    * @param e ActionEvent
    */
   private void cancelButton_actionPerformed(ActionEvent e) {
-    setVisible(false);
+    requestCloseDialog();
   }
 
   /** Fills the OD table combo with the available OD tables. */
@@ -755,6 +771,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     highlightedAreaCheckBox.setSelected(oldAddHighlightedArea);
 
     updateValues();
+    originalValuesSnapshot = getValuesSnapshot();
     pack();
   }
 
@@ -838,6 +855,86 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     nodusProject.getNodusMapPanel().updateScenarioComboBox(false);
 
     setVisible(false);
+  }
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+    if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+      requestCloseDialog();
+      e.consume();
+      return;
+    }
+    super.keyPressed(e);
+  }
+
+  /** Closes the dialog after resolving pending preference changes, if any. */
+  private void requestCloseDialog() {
+    if (!hasPendingChanges()) {
+      setVisible(false);
+      return;
+    }
+
+    Object[] options = {
+      i18n.get(ProjectPreferencesDlg.class, "Discard_changes", "Discard changes"),
+      i18n.get(ProjectPreferencesDlg.class, "Save_changes", "Save changes")
+    };
+    int answer =
+        JOptionPane.showOptionDialog(
+            this,
+            i18n.get(ProjectPreferencesDlg.class, "Discard_changes_question", "Discard changes?"),
+            i18n.get(ProjectPreferencesDlg.class, "Project_properties", "Project properties"),
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[0]);
+
+    if (answer == JOptionPane.YES_OPTION) {
+      setVisible(false);
+    } else if (answer == JOptionPane.NO_OPTION) {
+      okButton_actionPerformed(null);
+    }
+  }
+
+  /** Returns true when the current controls differ from the values loaded when opened. */
+  private boolean hasPendingChanges() {
+    return !getValuesSnapshot().equals(originalValuesSnapshot);
+  }
+
+  /** Captures the current values of all persisted controls. */
+  private String getValuesSnapshot() {
+    return valueOf(odTablesCombo.getSelectedItem())
+        + '\n'
+        + valueOf(costFilesCombo.getSelectedItem())
+        + '\n'
+        + descriptionTextField.getText()
+        + '\n'
+        + excTextField.getText()
+        + '\n'
+        + virtNetTextField.getText()
+        + '\n'
+        + pathTextField.getText()
+        + '\n'
+        + servicesTextField.getText()
+        + '\n'
+        + boundariesCheckbox.isSelected()
+        + '\n'
+        + highlightedAreaCheckBox.isSelected()
+        + '\n'
+        + saveAllVirtualLinksCheckBox.isSelected()
+        + '\n'
+        + compactCheckBox.isSelected()
+        + '\n'
+        + scenarioSpinner.getValue()
+        + '\n'
+        + radiusSpinner.getValue()
+        + '\n'
+        + widthSpinner.getValue();
+  }
+
+  /** Returns a stable string for nullable combo values. */
+  private String valueOf(Object value) {
+    return value == null ? "" : value.toString();
   }
 
   /** Updates the content of all the components. */

@@ -35,12 +35,17 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.WindowConstants;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 
@@ -87,6 +92,9 @@ public class LocationFieldChooserDlg extends EscapeDialog {
   /** . */
   private NodusLocationHandler nodusLocationHandler;
 
+  /** Snapshot of deferred values loaded when the dialog opened. */
+  private String originalValuesSnapshot = "";
+
   /** . */
   private JButton noFieldButton = new JButton();
 
@@ -112,6 +120,15 @@ public class LocationFieldChooserDlg extends EscapeDialog {
 
     initialize();
     getRootPane().setDefaultButton(okButton);
+    originalValuesSnapshot = getValuesSnapshot();
+    setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+    addWindowListener(
+        new WindowAdapter() {
+          @Override
+          public void windowClosing(WindowEvent e) {
+            requestCloseDialog();
+          }
+        });
     pack();
     setLocationRelativeTo(frame);
     setAlwaysOnTop(true);
@@ -123,7 +140,7 @@ public class LocationFieldChooserDlg extends EscapeDialog {
    * @param e ActionEvent
    */
   private void cancelButton_actionPerformed(ActionEvent e) {
-    setVisible(false);
+    requestCloseDialog();
   }
 
   /**
@@ -426,5 +443,63 @@ public class LocationFieldChooserDlg extends EscapeDialog {
     nodusLocationHandler.setWhereStmt(whereStmt.getText().trim());
     nodusLocationHandler.setDisplayResults(displayResultsCheckBox.isSelected());
     setVisible(false);
+  }
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+    if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+      requestCloseDialog();
+      e.consume();
+      return;
+    }
+    super.keyPressed(e);
+  }
+
+  /** Closes the dialog after resolving pending field/filter changes, if any. */
+  private void requestCloseDialog() {
+    if (!hasPendingChanges()) {
+      setVisible(false);
+      return;
+    }
+
+    Object[] options = {
+      i18n.get(LocationFieldChooserDlg.class, "Discard_changes", "Discard changes"),
+      i18n.get(LocationFieldChooserDlg.class, "Save_changes", "Save changes")
+    };
+    int answer =
+        JOptionPane.showOptionDialog(
+            this,
+            i18n.get(LocationFieldChooserDlg.class, "Discard_changes_question", "Discard changes?"),
+            getTitle(),
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[0]);
+
+    if (answer == JOptionPane.YES_OPTION) {
+      setVisible(false);
+    } else if (answer == JOptionPane.NO_OPTION) {
+      okButton_actionPerformed(null);
+    }
+  }
+
+  /** Returns true when deferred choices differ from the values loaded when opened. */
+  private boolean hasPendingChanges() {
+    return !getValuesSnapshot().equals(originalValuesSnapshot);
+  }
+
+  /** Captures the deferred field/filter/display choices. */
+  private String getValuesSnapshot() {
+    return valueOf(fieldNames.getSelectedValue())
+        + '\n'
+        + whereStmt.getText().trim()
+        + '\n'
+        + displayResultsCheckBox.isSelected();
+  }
+
+  /** Returns a stable string for nullable values. */
+  private String valueOf(Object value) {
+    return value == null ? "" : value.toString();
   }
 }

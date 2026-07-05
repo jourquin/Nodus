@@ -170,7 +170,7 @@ its results in a DBF file that is read by the MLogit.R script. "RJDBC" is indeed
     - New compass image in ScaleAndCompassLayer.
     - Add "font" properties to ScaleAndCompassLayer for label and scale fonts.
     - Add legends in virtual network viewer.
-    - Replace 'importTables" project property by 'import.tables'. Projects with the old property name are still accepted.
+    - Replace "importTables" project property by "import.tables". Projects with the old property name are still accepted.
     - Simplify virtual network visualizer GUI.
     - Allow PLAF change without restarting Nodus.
     - (Partially) language (Locale) change without restarting Nodus.
@@ -453,6 +453,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - More OpenMap GUI windows can be leaved using the ESC key
 - Improved language change workflow
 - Ask the user to confirm if he wants to leave Nodus if left via the window close listener
+- Several safeguards added in the UI
 
 
 

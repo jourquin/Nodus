@@ -35,6 +35,9 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.text.MessageFormat;
 import java.util.Iterator;
@@ -50,6 +53,7 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
+import javax.swing.WindowConstants;
 
 /**
  * Dialog box that offers the possibility to add and remove ESRI layers to a Nodus project. It also
@@ -88,6 +92,9 @@ public class NodusEditLayersDlg extends EscapeDialog implements ShapeConstants {
   /** List of link layers. */
   private LinkedList<String> linkLayerList;
 
+  /** Initial list of link layers. */
+  private LinkedList<String> initialLinkLayerList;
+
   /** Select link layers. */
   private JRadioButton linkRadioButton = new JRadioButton();
 
@@ -102,6 +109,9 @@ public class NodusEditLayersDlg extends EscapeDialog implements ShapeConstants {
 
   /** List of node layers. */
   private LinkedList<String> nodeLayerList;
+
+  /** Initial list of node layers. */
+  private LinkedList<String> initialNodeLayerList;
 
   /** Select node layers. */
   private JRadioButton nodeRadioButton = new JRadioButton();
@@ -163,8 +173,19 @@ public class NodusEditLayersDlg extends EscapeDialog implements ShapeConstants {
       linkLayerList.add(currentName);
     }
 
+    initialNodeLayerList = new LinkedList<>(nodeLayerList);
+    initialLinkLayerList = new LinkedList<>(linkLayerList);
+
     initialize();
     getRootPane().setDefaultButton(saveButton);
+    setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+    addWindowListener(
+        new WindowAdapter() {
+          @Override
+          public void windowClosing(WindowEvent e) {
+            requestCloseDialog();
+          }
+        });
     setLocationRelativeTo(mapPanel);
   }
 
@@ -202,7 +223,7 @@ public class NodusEditLayersDlg extends EscapeDialog implements ShapeConstants {
    * @param e ActionEvent
    */
   void cancelButtonActionPerformed(ActionEvent e) {
-    setVisible(false);
+    requestCloseDialog();
   }
 
   /**
@@ -727,6 +748,8 @@ public class NodusEditLayersDlg extends EscapeDialog implements ShapeConstants {
       s = s.trim();
       nodusProject.setProperty(NodusC.PROP_NETWORK_LINKS, s);
 
+      nodusProject.saveProperties();
+
       // Close the dialog and reload project
       setVisible(false);
       String msg =
@@ -739,5 +762,50 @@ public class NodusEditLayersDlg extends EscapeDialog implements ShapeConstants {
 
       nodusProject.reload();
     }
+  }
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+    if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+      requestCloseDialog();
+      e.consume();
+      return;
+    }
+    super.keyPressed(e);
+  }
+
+  /** Closes the dialog after resolving pending layer-list changes, if any. */
+  private void requestCloseDialog() {
+    if (!hasPendingChanges()) {
+      setVisible(false);
+      return;
+    }
+
+    Object[] options = {
+      i18n.get(NodusEditLayersDlg.class, "Discard_changes", "Discard changes"),
+      i18n.get(NodusEditLayersDlg.class, "Save_changes", "Save changes")
+    };
+    int answer =
+        JOptionPane.showOptionDialog(
+            this,
+            i18n.get(NodusEditLayersDlg.class, "Discard_changes_question", "Discard changes?"),
+            NodusC.APPNAME,
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[0]);
+
+    if (answer == JOptionPane.YES_OPTION) {
+      setVisible(false);
+    } else if (answer == JOptionPane.NO_OPTION) {
+      saveButtonActionPerformed(null);
+    }
+  }
+
+  /** Returns true when the selected layer lists differ from their initial state. */
+  private boolean hasPendingChanges() {
+    return !nodeLayerList.equals(initialNodeLayerList)
+        || !linkLayerList.equals(initialLinkLayerList);
   }
 }

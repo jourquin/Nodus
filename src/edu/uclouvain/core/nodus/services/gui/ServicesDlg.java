@@ -39,6 +39,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.DecimalFormat;
@@ -373,7 +374,7 @@ public class ServicesDlg extends EscapeDialog {
           new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-              leaveEditorCard();
+              requestLeaveEditorCard();
             }
           });
     }
@@ -381,19 +382,18 @@ public class ServicesDlg extends EscapeDialog {
   }
 
   /**
-   * Initializes the "close" button.
+   * Initializes the list-card "cancel" button.
    *
    * @return javax.swing.JButton
    */
   private JButton getCloseButton() {
     if (closeButton == null) {
       closeButton = new JButton();
-      closeButton.setText(i18n.get(ServicesDlg.class, "Close", "Close"));
+      closeButton.setText(i18n.get(ServicesDlg.class, "Cancel", "Cancel"));
       closeButton.addActionListener(
           new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-              discardPendingChanges();
               setVisible(false);
             }
           });
@@ -441,7 +441,7 @@ public class ServicesDlg extends EscapeDialog {
             public void actionPerformed(java.awt.event.ActionEvent e) {
               String keyCopy =
                   JOptionPane.showInputDialog(
-                      nodusMapPanel,
+                      ServicesDlg.this,
                       i18n.get(
                           ServicesDlg.class, "Enter_new_service_name", "Enter new service name"));
 
@@ -467,8 +467,8 @@ public class ServicesDlg extends EscapeDialog {
                     (String) getServiceTable().getValueAt(getServiceTable().getSelectedRow(), 1);
                 TransportService s = serviceHandler.getService(key);
 
-                serviceHandler.displayService(keyCopy);
-                TransportService serviceCopy = serviceHandler.getCurrentService();
+                TransportService serviceCopy =
+                    new TransportService(serviceHandler.getNewServiceId());
                 serviceCopy.setName(keyCopy);
                 serviceCopy.setFrequency(s.getFrequency());
                 serviceCopy.setMode(s.getMode());
@@ -482,11 +482,13 @@ public class ServicesDlg extends EscapeDialog {
 
                 markServicesChanged();
 
-                serviceHandler.resetService();
-
-                getServiceTable()
-                    .setRowSelectionInterval(
-                        getRowInModelbyService(keyCopy), getRowInModelbyService(keyCopy));
+                selectService(keyCopy);
+                showCard(LIST_CARD);
+                if (!isVisible()) {
+                  setVisible(true);
+                }
+                toFront();
+                requestFocus();
               }
             }
           });
@@ -1122,94 +1124,101 @@ public class ServicesDlg extends EscapeDialog {
           new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-
-              if (JDBCUtils.getInt(frequencyField.getText()) == Integer.MIN_VALUE) {
-
-                JOptionPane.showMessageDialog(
-                    null,
-                    MessageFormat.format(
-                        i18n.get(ServicesDlg.class, "not_correct", "{0} not correct."),
-                        i18n.get(ServicesDlg.class, "frequency_value", "frequency value")),
-                    NodusC.APPNAME,
-                    JOptionPane.ERROR_MESSAGE);
-                return;
-              }
-
-              String name = nameField.getText();
-              if (name.compareTo("") != 0) {
-
-                // Limit to 30 characters
-                if (name.length() > 30) {
-                  name = name.substring(0, 30);
-                }
-
-                int id = Integer.valueOf(idxField.getText());
-
-                // Name must be unique
-                if (getRowInModelbyService(name) != -1 && getRowInModelbyService(id) == -1) {
-                  JOptionPane.showMessageDialog(
-                      nodusMapPanel,
-                      i18n.get(
-                          ServicesDlg.class,
-                          "Service_already_exists",
-                          "TransportService already exists"),
-                      i18n.get(ServicesDlg.class, "Service_Editor", "TransportService Editor"),
-                      JOptionPane.ERROR_MESSAGE);
-
-                  return;
-                }
-
-                TransportService s = serviceHandler.getCurrentService();
-                String validationMessage = serviceHandler.getServiceLineValidationMessage(s);
-                if (validationMessage != null) {
-                  JOptionPane.showMessageDialog(
-                      nodusMapPanel,
-                      MessageFormat.format(
-                          i18n.get(
-                              ServicesDlg.class,
-                              "Invalid_service_line",
-                              "The service line is not valid because {0}."),
-                          validationMessage),
-                      NodusC.APPNAME,
-                      JOptionPane.ERROR_MESSAGE);
-                  return;
-                }
-
-                s.setName(name);
-                s.setFrequency(
-                    Integer.valueOf(frequencyField.getText())
-                        * constPeriod[time.getSelectedIndex()]);
-                s.setMode(Byte.valueOf(modeField.getText()));
-                s.setMeans(Byte.valueOf(meansField.getSelectedItem().toString()));
-
-                serviceHandler.saveService(s);
-
-                int row = getRowInModelbyService(id);
-                if (row != -1) {
-                  servicesTableModel.removeRow(row);
-                }
-
-                fillServicesTable(name);
-
-                markServicesChanged();
-                enableButtons();
-                resetEditorDirtyState();
-                serviceHandler.setListening(false);
-                showCard(LIST_CARD);
-                selectService(name);
-              } else {
-                JOptionPane.showMessageDialog(
-                    null,
-                    MessageFormat.format(
-                        i18n.get(ServicesDlg.class, "not_correct", "{0} not correct."),
-                        i18n.get(ServicesDlg.class, "name_value", "name value")),
-                    NodusC.APPNAME,
-                    JOptionPane.ERROR_MESSAGE);
-              }
+              saveEditorChanges();
             }
           });
     }
     return saveButton;
+  }
+
+  /**
+   * Applies the editor-card changes to the pending service list.
+   *
+   * @return true if the editor changes were saved
+   */
+  private boolean saveEditorChanges() {
+    if (JDBCUtils.getInt(frequencyField.getText()) == Integer.MIN_VALUE) {
+
+      JOptionPane.showMessageDialog(
+          null,
+          MessageFormat.format(
+              i18n.get(ServicesDlg.class, "not_correct", "{0} not correct."),
+              i18n.get(ServicesDlg.class, "frequency_value", "frequency value")),
+          NodusC.APPNAME,
+          JOptionPane.ERROR_MESSAGE);
+      return false;
+    }
+
+    String name = nameField.getText();
+    if (name.compareTo("") != 0) {
+
+      // Limit to 30 characters
+      if (name.length() > 30) {
+        name = name.substring(0, 30);
+      }
+
+      int id = Integer.valueOf(idxField.getText());
+
+      // Name must be unique
+      if (getRowInModelbyService(name) != -1 && getRowInModelbyService(id) == -1) {
+        JOptionPane.showMessageDialog(
+            nodusMapPanel,
+            i18n.get(
+                ServicesDlg.class, "Service_already_exists", "TransportService already exists"),
+            i18n.get(ServicesDlg.class, "Service_Editor", "TransportService Editor"),
+            JOptionPane.ERROR_MESSAGE);
+
+        return false;
+      }
+
+      TransportService s = serviceHandler.getCurrentService();
+      String validationMessage = serviceHandler.getServiceLineValidationMessage(s);
+      if (validationMessage != null) {
+        JOptionPane.showMessageDialog(
+            nodusMapPanel,
+            MessageFormat.format(
+                i18n.get(
+                    ServicesDlg.class,
+                    "Invalid_service_line",
+                    "The service line is not valid because {0}."),
+                validationMessage),
+            NodusC.APPNAME,
+            JOptionPane.ERROR_MESSAGE);
+        return false;
+      }
+
+      s.setName(name);
+      s.setFrequency(
+          Integer.valueOf(frequencyField.getText()) * constPeriod[time.getSelectedIndex()]);
+      s.setMode(Byte.valueOf(modeField.getText()));
+      s.setMeans(Byte.valueOf(meansField.getSelectedItem().toString()));
+
+      serviceHandler.saveService(s);
+
+      int row = getRowInModelbyService(id);
+      if (row != -1) {
+        servicesTableModel.removeRow(row);
+      }
+
+      fillServicesTable(name);
+
+      markServicesChanged();
+      enableButtons();
+      resetEditorDirtyState();
+      serviceHandler.setListening(false);
+      showCard(LIST_CARD);
+      selectService(name);
+      return true;
+    }
+
+    JOptionPane.showMessageDialog(
+        null,
+        MessageFormat.format(
+            i18n.get(ServicesDlg.class, "not_correct", "{0} not correct."),
+            i18n.get(ServicesDlg.class, "name_value", "name value")),
+        NodusC.APPNAME,
+        JOptionPane.ERROR_MESSAGE);
+    return false;
   }
 
   /**
@@ -1375,7 +1384,7 @@ public class ServicesDlg extends EscapeDialog {
               public void actionPerformed(ActionEvent e) {
                 if (isEditorCardVisible()) {
                   suppressDialogCloseAfterLeavingEditor();
-                  leaveEditorCard();
+                  requestLeaveEditorCard();
                 } else {
                   setVisible(false);
                 }
@@ -1472,17 +1481,18 @@ public class ServicesDlg extends EscapeDialog {
 
     if (!visible && isEditorCardVisible()) {
       suppressDialogCloseAfterLeavingEditor();
-      leaveEditorCard();
+      requestLeaveEditorCard();
       return;
     }
 
-    if (!visible && hasUnsavedServiceChanges) {
+    if (!visible && !resolvePendingServiceChangesBeforeClose()) {
+      return;
+    }
+
+    if (!visible) {
       showLayerView();
-      discardPendingChanges();
     } else if (visible) {
       refreshServicesTable();
-    } else {
-      showLayerView();
     }
     super.setVisible(visible);
     if (visible) {
@@ -1519,6 +1529,72 @@ public class ServicesDlg extends EscapeDialog {
     SwingUtilities.invokeLater(() -> suppressDialogCloseAfterLeavingEditor = false);
   }
 
+  @Override
+  public void keyPressed(KeyEvent e) {
+    if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+      if (isEditorCardVisible()) {
+        suppressDialogCloseAfterLeavingEditor();
+        requestLeaveEditorCard();
+      } else {
+        setVisible(false);
+      }
+      e.consume();
+      return;
+    }
+    super.keyPressed(e);
+  }
+
+  /** Leaves the editor card after resolving unsaved editor changes, if any. */
+  private void requestLeaveEditorCard() {
+    if (!hasUnsavedEditorChanges) {
+      leaveEditorCard();
+      return;
+    }
+
+    Object[] options = {
+      i18n.get(ServicesDlg.class, "Discard_changes", "Discard changes"),
+      i18n.get(ServicesDlg.class, "Save_changes", "Save changes")
+    };
+    int answer =
+        JOptionPane.showOptionDialog(
+            this,
+            i18n.get(ServicesDlg.class, "Discard_changes_question", "Discard changes?"),
+            i18n.get(ServicesDlg.class, "Service_editor", "Services editor"),
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[0]);
+
+    if (answer == JOptionPane.YES_OPTION) {
+      hasUnsavedEditorChanges = false;
+      updateSaveButtons();
+      leaveEditorCard();
+      keepServicesDialogVisible();
+    } else if (answer == JOptionPane.NO_OPTION) {
+      saveEditorChanges();
+    }
+  }
+
+  /** Keeps the list card visible after an editor discard, even if the request came from closing. */
+  private void keepServicesDialogVisible() {
+    showCard(LIST_CARD);
+    if (!isVisible()) {
+      setVisible(true);
+    }
+    toFront();
+    requestFocus();
+    SwingUtilities.invokeLater(
+        () -> {
+          showCard(LIST_CARD);
+          if (!isVisible()) {
+            setVisible(true);
+          }
+          toFront();
+          requestFocus();
+        });
+  }
+
   private void leaveEditorCard() {
     TransportService s = serviceHandler.getCurrentService();
     serviceHandler.resetService();
@@ -1552,5 +1628,44 @@ public class ServicesDlg extends EscapeDialog {
     }
     cards.show(mainPanel, card);
     pack();
+  }
+
+  /**
+   * Gives the user a chance to save or discard list changes before closing the dialog.
+   *
+   * @return true if the dialog can be closed
+   */
+  private boolean resolvePendingServiceChangesBeforeClose() {
+    if (!hasUnsavedServiceChanges) {
+      return true;
+    }
+
+    Object[] options = {
+      i18n.get(ServicesDlg.class, "Discard_changes", "Discard changes"),
+      i18n.get(ServicesDlg.class, "Save_changes", "Save changes")
+    };
+    int answer =
+        JOptionPane.showOptionDialog(
+            this,
+            i18n.get(ServicesDlg.class, "Discard_changes_question", "Discard changes?"),
+            i18n.get(ServicesDlg.class, "Service_editor", "Services editor"),
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE,
+            null,
+            options,
+            options[0]);
+
+    if (answer == JOptionPane.YES_OPTION) {
+      discardPendingChanges();
+      return false;
+    }
+
+    if (answer == JOptionPane.NO_OPTION && serviceHandler.savePendingChanges()) {
+      hasUnsavedServiceChanges = false;
+      updateSaveButtons();
+      return true;
+    }
+
+    return false;
   }
 }
