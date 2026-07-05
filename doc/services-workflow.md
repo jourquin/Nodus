@@ -1,14 +1,14 @@
 # Service Lines Workflow
 
-This document explains how to create, edit, and use service lines in Nodus. 
+This document explains how to create, edit, and use transport services in Nodus.
 
 ## Main Concepts
 
-A service line describes a scheduled transport service on top of the physical network. A service has:
+A service describes a scheduled transport line on top of the physical network. A service has:
 
 - an ID and a name,
 - one mode and one means,
-- a frequency,
+- an annualized frequency, edited as a number per year, month, week, or day,
 - a connected set of network links,
 - optional stop nodes along those links.
 
@@ -26,6 +26,8 @@ SERVICELINES.3,2 = true
 
 This constrains only mode 3, means 2. Other means of mode 3 remain unconstrained unless they also have their own `SERVICELINES.mode,means` entry.
 
+For constrained combinations, the virtual network is generated per service. A real link only receives virtual movement links for services that use that link and whose service means matches the generated means. Unconstrained mode/means combinations are generated in the usual free-flow way, with service ID 0.
+
 ## Services Editor
 
 Open the services editor from the Project|Edit services menu (or use F3).
@@ -38,7 +40,7 @@ The upper table lists the existing services. The columns are:
 - Name: service name,
 - Mode: transport mode used by the service,
 - Means: transport means used by the service,
-- Frequency: service frequency.
+- Frequency: service frequency, shown in the most readable period and with the equivalent annual value.
 
 Use the buttons at the bottom of the dialog to manage the list:
 
@@ -46,10 +48,11 @@ Use the buttons at the bottom of the dialog to manage the list:
 - Edit opens the selected service for editing. A double-click on a service has the same effect.
 - Copy duplicates the selected service.
 - Delete removes the selected service.
+- Line view hides non-service links on the touched link layers so the selected service can be inspected in isolation.
 - Save writes all pending service changes to the SQL database and closes the dialog.
-- Close closes the dialog without saving pending changes.
+- Cancel closes the dialog. If there are pending service changes, Nodus asks whether to discard them or save them.
 
-The Escape key has the same effect as Close.
+The Escape key has the same effect as Cancel. If an invalid service is loaded from the database, Nodus warns about it and can delete invalid services from the service tables.
 
 ## Creating Or Editing A Service Line
 
@@ -57,29 +60,31 @@ When a service is edited, Nodus switches to the service details view.
 
 [Screenshot: Service details editor]
 
-The details view lets you edit the name, mode, means, and frequency. It also activates line editing on the map.
+The details view lets you edit the name, means, and frequency. The service ID is assigned automatically. The mode is inferred from the first selected link and cannot be typed directly. The means list is populated from the selected link's available means. The details view also activates line editing on the map and switches the map to selection mode.
 
 To define the service line:
 
 1. Select links on the map.
 2. The selected service line is highlighted in green.
-3. Click an already selected end link to remove it.
-4. Press Save in the details view to return to the service list. 
-5. Press Save in the main services editor to commit the changes to the SQL database.
+3. Add links one by one. Each new link must touch exactly one node that is already in the current service line.
+4. Click an already selected end link, or a branch leaf link, to remove it.
+5. Press Save in the details view to apply the edited service to the pending service list and return to the service list.
+6. Press Save in the main services editor to commit the pending service list to the SQL database.
 
-The details Save button is enabled only when the service is valid. A valid service line must satisfy these rules:
+The Save button is enabled only when the edited fields are valid, the service has at least one link, and there are unsaved detail changes. When Save is pressed, Nodus validates the full service line. A valid service line must satisfy these rules:
 
+- the service must contain at least one link,
 - all links must use the same mode,
-- every added link must be connected to the existing service line,
+- every added link must be connected to exactly one node of the existing service line,
 - a cycle is not accepted by the editor,
-- the resulting line may branch,
 - all links must belong to one connected component,
+- the resulting connected tree may branch,
 - the service must have at least two end nodes,
 - every end node must allow operations.
 
-The first link must be connected to at least one node where operations are possible. A service line can also end only at nodes where operations are possible.
+The first link must be connected to at least one node where operations are possible. A service line can also end only at nodes where operations are possible. If a link is removed, stop nodes that are no longer touched by the service are removed from the service.
 
-The Escape key or "Cancel" button leaves the service details view without applying the current details-card changes.
+The Escape key or Cancel button leaves the service details view. If the details contain unsaved changes, Nodus asks whether to discard them or save them. Saving at this level still only applies the service to the pending service list; the SQL tables are written by the main services editor Save button or by choosing Save changes when closing the list.
 
 ## Stop Nodes
 
@@ -92,23 +97,21 @@ To edit stop nodes:
 3. The "Services at this node" dialog lists all services that pass through this node.
 4. Check the services that should stop at the node.
 5. Press Close in the "Services at this node" dialog to apply the checked state back to the DBF editor.
-6. Press Save in the fields editor to commit the stop changes.
+6. Press Save in the fields editor to commit the stop changes to the service SQL tables.
 
 [Screenshot: Services at this node]
 
-If the fields editor is closed with Cancel or Escape, the stop changes are discarded. 
+If the fields editor is closed with Cancel or Escape, the staged stop changes are discarded.
 
 ## The Services Button In The Fields Editor
 
-The Services button appears in the DBF editor when services are enabled.
+For a node, the button is enabled only when the node allows operations and at least one service passes through the node. It opens the "Services at this node" dialog, which is used to mark whether each passing service is allowed to stop there.
 
-For a node, it opens the "Services at this node" dialog. This dialog is used to mark whether each service passing through the node is allowed to stop there.
-
-For a link, it opens the "Services at this link" dialog. This dialog lists the services that use the link. Selecting a service in the list highlights it on the map.
+For a link, the button is enabled only when at least one service uses the link. It opens the "Services at this link" dialog. This dialog lists the services that use the link. Selecting a service in the list highlights it on the map.
 
 [Screenshot: Services at this link]
 
-The Services button does not edit the shape or the database fields of the layer. Service stop changes are stored in SQL service tables.
+The Services button does not edit the shape geometry. Node stop edits are staged in the DBF editor, then stored in SQL service tables when the fields editor is saved.
 
 ## Transhipment Codes And Service Changes
 
@@ -130,6 +133,7 @@ Examples:
 - `tranship = 1` allows loading/unloading, transhipment, and service changes.
 - `tranship = 3` allows loading/unloading, but not service changes.
 
+Codes greater than 4 are interpreted by the virtual-network code as the same operation code minus 5, but with transit links disabled at the node. For example, code 5 behaves like code 0 with transit disabled, code 6 behaves like code 1 with transit disabled, and so on.
 
 ## Service Changes, Stops, And Cost Functions
 
@@ -153,7 +157,14 @@ The usual cost functions are still used:
 - `tr` for transit,
 - `tp` for transhipment between different mode/means combinations.
 
-When traffic switches service, the cost parser sets the `FREQUENCY` variable to the frequency of the destination service. This allows the `sw` cost or duration function to include a waiting-time component.
+Stops affect generated virtual links:
+
+- loading and unloading on a service-constrained mode/means are generated only at nodes where the service stops,
+- service switches are generated only between services of the same mode/means, at service-change nodes where both services stop,
+- stop virtual links use the `stp` cost/duration function,
+- service-change virtual links use the `sw` cost/duration function.
+
+When traffic switches service, the cost parser sets the `FREQUENCY` variable to the annualized frequency of the destination service. This allows the `sw` cost or duration function to include a waiting-time component. For links that do not change service, `FREQUENCY` is set to 0.
 
 ## Database Tables
 
