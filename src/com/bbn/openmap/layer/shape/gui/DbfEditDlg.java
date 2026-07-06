@@ -838,7 +838,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     // Get the num of the object for later use;
     objectNum = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NUM));
     GridBagConstraints servicesButtonConstraints = new GridBagConstraints();
-    servicesButtonConstraints.gridx = 2;
+    servicesButtonConstraints.gridx = 0;
     servicesButtonConstraints.insets = new Insets(5, 5, 5, 5);
     servicesButtonConstraints.gridy = 2;
 
@@ -852,9 +852,9 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
     GridBagConstraints exclusionsButtonConstraints =
         new GridBagConstraints(
-            0,
+            1,
             2,
-            2,
+            1,
             1,
             0.0,
             0.0,
