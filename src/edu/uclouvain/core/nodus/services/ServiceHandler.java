@@ -886,31 +886,6 @@ public class ServiceHandler {
   }
 
   /**
-   * Retrieves the list of the service ID that use a given link.
-   *
-   * @param linkId The ID of the link.
-   * @return Linked list of service ID.
-   */
-  public LinkedList<Integer> getServicesForLink(int linkId) {
-    LinkedList<Integer> serviceIds = null;
-
-    OMGraphic omg = getOMGraphic(linkId, TYPE_LINK);
-
-    Iterator<String> it = getServiceNamesIterator();
-    while (it.hasNext()) {
-      String currentName = it.next();
-      TransportService s = services.get(currentName);
-      if (s.contains(omg)) {
-        if (serviceIds == null) {
-          serviceIds = new LinkedList<>();
-        }
-        serviceIds.add(s.getId());
-      }
-    }
-    return serviceIds;
-  }
-
-  /**
    * Returns the name of the details table for the service.
    *
    * @return The name of the details detable.
@@ -939,6 +914,23 @@ public class ServiceHandler {
       }
     }
     return serviceNames;
+  }
+
+  /**
+   * Tests whether a service uses a given link.
+   *
+   * @param serviceName The service name.
+   * @param linkId The link ID.
+   * @return true if the service exists and contains the link.
+   */
+  public boolean serviceUsesLink(String serviceName, int linkId) {
+    TransportService service = services.get(serviceName);
+    if (service == null) {
+      return false;
+    }
+
+    OMGraphic omg = getOMGraphic(linkId, TYPE_LINK);
+    return omg != null && service.contains(omg);
   }
 
   /**
@@ -1467,6 +1459,15 @@ public class ServiceHandler {
 
   /** Displays the GUI. */
   public void showGUI() {
-    serviceEditorDlg.setVisible(true);
+    serviceEditorDlg.showAllServices();
+  }
+
+  /**
+   * Displays the GUI restricted to services that use a given link.
+   *
+   * @param linkId The link ID.
+   */
+  public void showGUIForLink(int linkId) {
+    serviceEditorDlg.showServicesForLink(linkId);
   }
 }

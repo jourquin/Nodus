@@ -22,35 +22,26 @@
 package com.bbn.openmap.layer.shape.gui;
 
 import com.bbn.openmap.Environment;
-import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.services.ServiceHandler;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
-import edu.uclouvain.core.nodus.swing.TableSorter;
 import edu.uclouvain.swing.DefaultCheckListModel;
 import edu.uclouvain.swing.JCheckList;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.text.DecimalFormat;
+import java.text.MessageFormat;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.TreeMap;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.table.DefaultTableModel;
 
-/**
- * Dialog box for editing lines and services.
- *
- * @author Bart Jourquin
- */
-public class ServicesAtShapeDlg extends EscapeDialog implements ShapeConstants {
+/** Dialog box for editing service stop states at a node. */
+public class ServicesAtShapeDlg extends EscapeDialog {
 
   private static I18n i18n = Environment.getI18n();
 
@@ -69,13 +60,7 @@ public class ServicesAtShapeDlg extends EscapeDialog implements ShapeConstants {
   private JScrollPane scrollPane = null;
 
   /** . */
-  private JTable servicesTable = null;
-
-  /** . */
   private TreeMap<String, Boolean> listNameForNode = null;
-
-  /** . */
-  private DefaultTableModel modeltable = new DefaultTableModel();
 
   /** . */
   private NodusMapPanel nodusMapPanel;
@@ -84,42 +69,19 @@ public class ServicesAtShapeDlg extends EscapeDialog implements ShapeConstants {
   private int objectNum;
 
   /** . */
-  private int objectType;
-
-  /** . */
   private ServiceHandler serviceHandler;
 
   /** Staged stop selections for a node, returned to the parent dialog. */
   private TreeMap<String, Boolean> selectedServiceStops = null;
 
-  /** . */
-  private LinkedList<?> serviceIdsForLink;
-
-  /** . */
-  private LinkedList<?> serviceNamesForLink;
-
-  /** . */
-  private TableSorter sorter = null;
-
   /**
-   * Dialog box that allows edition of lines and services.
+   * Dialog box that allows editing service stop states at a node.
    *
    * @param parent The parent dialog
-   * @param nodusEsriLayer The layer the object to edit belongs to
-   * @param objectNum Node or Link number
-   */
-  public ServicesAtShapeDlg(JDialog parent, NodusEsriLayer nodusEsriLayer, int objectNum) {
-    this(parent, nodusEsriLayer, objectNum, null);
-  }
-
-  /**
-   * Dialog box that allows edition of lines and services.
-   *
-   * @param parent The parent dialog
-   * @param nodusEsriLayer The layer the object to edit belongs to
-   * @param objectNum Node or Link number
-   * @param serviceStopsForNode Staged stop states to display for a node, or null to load current
-   *     service states
+   * @param nodusEsriLayer The layer the node to edit belongs to
+   * @param objectNum Node number
+   * @param serviceStopsForNode Staged stop states to display for the node, or null to load current
+   *     stop states
    */
   public ServicesAtShapeDlg(
       JDialog parent,
@@ -129,7 +91,6 @@ public class ServicesAtShapeDlg extends EscapeDialog implements ShapeConstants {
     super(nodusEsriLayer.getNodusMapPanel().getMainFrame(), "", true);
     this.nodusMapPanel = nodusEsriLayer.getNodusMapPanel();
     serviceHandler = nodusMapPanel.getNodusProject().getServiceHandler();
-    this.objectType = nodusEsriLayer.getType();
     this.objectNum = objectNum;
     if (serviceStopsForNode != null) {
       listNameForNode = new TreeMap<>(serviceStopsForNode);
@@ -154,19 +115,15 @@ public class ServicesAtShapeDlg extends EscapeDialog implements ShapeConstants {
           new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-              if (objectType == SHAPE_TYPE_POINT) {
-                // Object[] selection = checkList.getSelectedValues();
-                // int[] selectionIndice = checkList.getSelectedIndices();
-                TreeMap<String, Boolean> listNodes = new TreeMap<>();
-                for (int i = 0; i < checkList.getModel().getSize(); ++i) {
-                  if (checkList.isChecked(i)) {
-                    listNodes.put((String) checkList.getModel().getElementAt(i), true);
-                  } else {
-                    listNodes.put((String) checkList.getModel().getElementAt(i), false);
-                  }
+              TreeMap<String, Boolean> listNodes = new TreeMap<>();
+              for (int i = 0; i < checkList.getModel().getSize(); ++i) {
+                if (checkList.isChecked(i)) {
+                  listNodes.put((String) checkList.getModel().getElementAt(i), true);
+                } else {
+                  listNodes.put((String) checkList.getModel().getElementAt(i), false);
                 }
-                selectedServiceStops = listNodes;
               }
+              selectedServiceStops = listNodes;
               setVisible(false);
             }
           });
@@ -244,86 +201,9 @@ public class ServicesAtShapeDlg extends EscapeDialog implements ShapeConstants {
   private JScrollPane getJScrollPane() {
     if (scrollPane == null) {
       scrollPane = new JScrollPane();
-      if (objectType == SHAPE_TYPE_POLYLINE) {
-        scrollPane.setViewportView(getServicesTable());
-      } else {
-        scrollPane.setViewportView(getJCheckList());
-      }
+      scrollPane.setViewportView(getJCheckList());
     }
     return scrollPane;
-  }
-
-  /**
-   * This method initializes jList.
-   *
-   * @return javax.swing.JList
-   */
-  private JTable getServicesTable() {
-
-    if (servicesTable == null) {
-
-      modeltable.addColumn(i18n.get(ServicesAtShapeDlg.class, "Service_Index", "Index"));
-      modeltable.addColumn(i18n.get(ServicesAtShapeDlg.class, "Service_Name", "Service Name"));
-
-      DecimalFormat formatter = new DecimalFormat("0000");
-
-      for (int i = 0; i < serviceIdsForLink.size(); i++) {
-        modeltable.addRow(
-            new Object[] {formatter.format(serviceIdsForLink.get(i)), serviceNamesForLink.get(i)});
-      }
-
-      // Make the component editable
-      for (int i = 0; i < modeltable.getRowCount(); ++i) {
-        for (int j = 0; j < modeltable.getColumnCount(); ++j) {
-          modeltable.isCellEditable(i, j);
-        }
-      }
-
-      sorter = new TableSorter(modeltable);
-
-      servicesTable =
-          new JTable(sorter) {
-            private static final long serialVersionUID = 1520266998624805797L;
-
-            @Override
-            public boolean isCellEditable(int row, int column) {
-              return false;
-            }
-          };
-
-      sorter.setTableHeader(servicesTable.getTableHeader());
-
-      /* Intercept the value changed even */
-      servicesTable
-          .getSelectionModel()
-          .addListSelectionListener(
-              new javax.swing.event.ListSelectionListener() {
-                @Override
-                public void valueChanged(javax.swing.event.ListSelectionEvent e) {
-
-                  // Reentrance of not yet consumed event ?
-                  if (!e.getValueIsAdjusting()) {
-                    return;
-                  }
-                  if (getServicesTable().getSelectedRow() == -1) {
-                    return;
-                  }
-                  // Get line ID
-                  String serviceName =
-                      (String)
-                          getServicesTable().getValueAt(getServicesTable().getSelectedRow(), 1);
-                  if (serviceName == null) {
-                    return;
-                  }
-                  // Hide current line
-                  // serviceHandler.paintService(false);
-
-                  // Load new line
-                  serviceHandler.displayService(serviceName);
-                }
-              });
-    }
-    return servicesTable;
   }
 
   /**
@@ -333,24 +213,12 @@ public class ServicesAtShapeDlg extends EscapeDialog implements ShapeConstants {
    */
   private void initialize() {
     this.setSize(300, 200);
-    switch (objectType) {
-      case SHAPE_TYPE_POINT:
-        this.setTitle(
-            i18n.get(ServicesAtShapeDlg.class, "Services_at_this_node", "Services at this node"));
-        if (listNameForNode == null) {
-          listNameForNode = serviceHandler.getServiceNamesForNode(objectNum);
-        }
-        break;
-
-      case SHAPE_TYPE_POLYLINE:
-        this.setTitle(
-            i18n.get(ServicesAtShapeDlg.class, "Services_at_this_link", "Services at this link"));
-        serviceIdsForLink = serviceHandler.getServicesForLink(objectNum);
-        serviceNamesForLink = serviceHandler.getServiceNamesForLink(objectNum);
-        break;
-
-      default:
-        break;
+    this.setTitle(
+        MessageFormat.format(
+            i18n.get(ServicesAtShapeDlg.class, "Services_at_node", "Services at node {0}"),
+            Integer.toString(objectNum)));
+    if (listNameForNode == null) {
+      listNameForNode = serviceHandler.getServiceNamesForNode(objectNum);
     }
     this.setContentPane(getJContentPane());
   }

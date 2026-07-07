@@ -755,6 +755,15 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
           new java.awt.event.ActionListener() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
+              if (nodusEsriLayer.getType() == SHAPE_TYPE_POLYLINE) {
+                nodusEsriLayer
+                    .getNodusMapPanel()
+                    .getNodusProject()
+                    .getServiceHandler()
+                    .showGUIForLink(objectNum);
+                return;
+              }
+
               ServicesAtShapeDlg dlg =
                   new ServicesAtShapeDlg(_this, nodusEsriLayer, objectNum, serviceStopsForNode);
               dlg.setVisible(true);

@@ -34,7 +34,6 @@ import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -63,6 +62,7 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 
+
 /**
  * The service editor allows editing the lines and services.
  *
@@ -77,6 +77,7 @@ public class ServicesDlg extends EscapeDialog {
   private static final String LIST_CARD = "ListCard";
   private static final String EDITOR_CARD = "EditorCard";
   private static final Dimension EDITOR_CARD_SIZE = new Dimension(400, 220);
+  private static final int NO_LINK_FILTER = Integer.MIN_VALUE;
 
   /** . */
   private JButton cancelButton = null;
@@ -174,6 +175,12 @@ public class ServicesDlg extends EscapeDialog {
   /** True when the service details editor contains changes not yet applied to the list. */
   private boolean hasUnsavedEditorChanges = false;
 
+  /** Link ID used to restrict the visible service list, or NO_LINK_FILTER for the full list. */
+  private int linkFilterId = NO_LINK_FILTER;
+
+  /** Mouse mode that was active just before this dialog was shown. */
+  private String mouseModeBeforeOpening = null;
+
   /** Suppresses dirty tracking while editor fields are filled programmatically. */
   private boolean isLoadingEditorFields = false;
 
@@ -189,9 +196,13 @@ public class ServicesDlg extends EscapeDialog {
    * @param serviceHandler The service handler.
    */
   public ServicesDlg(ServiceHandler serviceHandler) {
-    super((Frame) null, i18n.get(ServicesDlg.class, "Service_editor", "Services editor"), false);
+    super(
+        serviceHandler.getNodusMapPanel().getMainFrame(),
+        i18n.get(ServicesDlg.class, "Service_editor", "Services editor"),
+        false);
     this.serviceHandler = serviceHandler;
     nodusMapPanel = serviceHandler.getNodusMapPanel();
+    setModalExclusionType(ModalExclusionType.APPLICATION_EXCLUDE);
     initialize();
   }
 
@@ -241,7 +252,7 @@ public class ServicesDlg extends EscapeDialog {
   /** Enable or disable the buttons. */
   private void enableButtons() {
     boolean hasRows = getServiceTable().getRowCount() != 0;
-    boolean hasSelection = getServiceTable().getSelectedRow() != -1;
+    getAddButton().setEnabled(!isLinkFilterActive());
     if (hasRows) {
       getDeleteButton().setEnabled(true);
       getEditButton().setEnabled(true);
@@ -252,11 +263,16 @@ public class ServicesDlg extends EscapeDialog {
       getCopyButton().setEnabled(false);
     }
     updateLineViewCheckBox();
+    boolean hasSelection = getServiceTable().getSelectedRow() != -1;
     getLineViewCheckBox().setEnabled(hasSelection);
   }
 
   /** Fill the ServicesTable. */
   private void fillServicesTable(String nameService) {
+    if (!isServiceVisibleInCurrentFilter(nameService)) {
+      return;
+    }
+
     DecimalFormat f1 = new DecimalFormat("0000");
     DecimalFormat f2 = new DecimalFormat("00");
     TransportService s = serviceHandler.getService(nameService);
@@ -1207,7 +1223,11 @@ public class ServicesDlg extends EscapeDialog {
       resetEditorDirtyState();
       serviceHandler.setListening(false);
       showCard(LIST_CARD);
-      selectService(name);
+      if (isServiceVisibleInCurrentFilter(name)) {
+        selectService(name);
+      } else {
+        selectFirstService();
+      }
       return true;
     }
 
@@ -1344,6 +1364,7 @@ public class ServicesDlg extends EscapeDialog {
       return;
     }
 
+    serviceTable.clearSelection();
     servicesTableModel.setRowCount(0);
     Iterator<String> it = serviceHandler.getServiceNamesIterator();
 
@@ -1351,6 +1372,45 @@ public class ServicesDlg extends EscapeDialog {
       fillServicesTable(it.next());
     }
     enableButtons();
+
+    String selectedServiceName = getSelectedServiceName();
+    if (selectedServiceName != null && isServiceVisibleInCurrentFilter(selectedServiceName)) {
+      selectService(selectedServiceName);
+    } else {
+      selectFirstService();
+    }
+  }
+
+  /** Clears the visible service rows before hiding so stale rows are not shown on the next open. */
+  private void clearVisibleServicesTable() {
+    if (serviceTable == null) {
+      return;
+    }
+
+    serviceTable.clearSelection();
+    servicesTableModel.setRowCount(0);
+    if (serviceTable.isShowing()) {
+      serviceTable.paintImmediately(serviceTable.getVisibleRect());
+    }
+  }
+
+  /** Returns true when the service list is restricted to services using one link. */
+  private boolean isLinkFilterActive() {
+    return linkFilterId != NO_LINK_FILTER;
+  }
+
+  /** Returns true when the given service should be shown in the current list. */
+  private boolean isServiceVisibleInCurrentFilter(String serviceName) {
+    return !isLinkFilterActive() || serviceHandler.serviceUsesLink(serviceName, linkFilterId);
+  }
+
+  /** Selects the first visible service, or clears the current service when none remains visible. */
+  private void selectFirstService() {
+    if (getServiceTable().getRowCount() > 0) {
+      getServiceTable().setRowSelectionInterval(0, 0);
+    } else {
+      serviceHandler.resetService();
+    }
   }
 
   /**
@@ -1427,6 +1487,68 @@ public class ServicesDlg extends EscapeDialog {
     }
   }
 
+  /** Shows all services in the editor. */
+  public void showAllServices() {
+    rememberMouseModeBeforeOpening();
+    linkFilterId = NO_LINK_FILTER;
+    setTitle(getDialogTitle());
+    refreshServicesTable();
+    showInForeground();
+  }
+
+  /**
+   * Shows only services that currently use a given link.
+   *
+   * @param linkId The link ID used to restrict the visible service list.
+   */
+  public void showServicesForLink(int linkId) {
+    rememberMouseModeBeforeOpening();
+    linkFilterId = linkId;
+    setTitle(getDialogTitle());
+    refreshServicesTable();
+    showInForeground();
+  }
+
+  /** Returns the dialog title for the current list mode. */
+  private String getDialogTitle() {
+    if (isLinkFilterActive()) {
+      return MessageFormat.format(
+          i18n.get(ServicesDlg.class, "Services_at_link", "Services at link {0}"),
+          Integer.toString(linkFilterId));
+    }
+    return i18n.get(ServicesDlg.class, "Service_editor", "Services editor");
+  }
+
+  /** Shows this modeless dialog above the main window and modal DBF editor. */
+  private void showInForeground() {
+    setAlwaysOnTop(true);
+    setVisible(true);
+    toFront();
+    requestFocus();
+    requestFocusInWindow();
+    SwingUtilities.invokeLater(
+        () -> {
+          toFront();
+          requestFocus();
+          requestFocusInWindow();
+        });
+  }
+
+  /** Remembers the active mouse mode before the service dialog changes it. */
+  private void rememberMouseModeBeforeOpening() {
+    if (!isVisible()) {
+      mouseModeBeforeOpening = nodusMapPanel.getActiveMouseMode();
+    }
+  }
+
+  /** Restores the mouse mode that was active before this dialog was opened. */
+  private void restoreMouseModeBeforeOpening() {
+    if (mouseModeBeforeOpening != null) {
+      nodusMapPanel.setActiveMouseMode(mouseModeBeforeOpening);
+      mouseModeBeforeOpening = null;
+    }
+  }
+
   /** Adds a component to a panel using GridBagLayout constraints. */
   private void addToGridBag(JPanel panel, Component component, GridBagConstraints constraints) {
     panel.add(component, constraints);
@@ -1491,7 +1613,9 @@ public class ServicesDlg extends EscapeDialog {
 
     if (!visible) {
       showLayerView();
+      clearVisibleServicesTable();
     } else if (visible) {
+      setTitle(getDialogTitle());
       refreshServicesTable();
     }
     super.setVisible(visible);
@@ -1511,6 +1635,7 @@ public class ServicesDlg extends EscapeDialog {
       enableButtons();
     } else {
       serviceHandler.resetService();
+      restoreMouseModeBeforeOpening();
     }
   }
 
