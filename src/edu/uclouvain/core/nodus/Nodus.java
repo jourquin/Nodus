@@ -375,6 +375,12 @@ public class Nodus {
    * @return true if the user confirms the quit request.
    */
   private boolean confirmQuit(OpenMapFrame openMapFrame) {
+    boolean confirmQuit =
+        Boolean.parseBoolean(nodusProperties.getProperty(NodusC.PROP_CONFIRM_QUIT, "true"));
+    if (!confirmQuit) {
+      return true;
+    }
+
     I18n i18n = Environment.getI18n();
 
     int result =

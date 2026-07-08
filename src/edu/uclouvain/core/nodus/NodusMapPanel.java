@@ -2379,8 +2379,53 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** Tasks that must be performed when the application is closed. */
   public void menuItemFileExitActionPerformed() {
-    closeAndSaveState();
-    // System.exit(0);
+    if (projectHasUnsavedLayerChanges()
+        || projectWillAskForCompactOnClose()
+        || confirmQuit(getMainFrame())) {
+      closeAndSaveState();
+    }
+  }
+
+  /**
+   * Returns true if the open project has unsaved layer changes.
+   *
+   * @return true if a project is open and dirty
+   */
+  private boolean projectHasUnsavedLayerChanges() {
+    return nodusProject != null && nodusProject.isOpen() && nodusProject.isDirty();
+  }
+
+  /**
+   * Returns true if closing the current project will already ask about database compaction.
+   *
+   * @return true if the compact database prompt will be displayed
+   */
+  private boolean projectWillAskForCompactOnClose() {
+    return nodusProject != null && nodusProject.willAskForCompactOnClose();
+  }
+
+  /**
+   * Asks the user to confirm the application quit when the global preference is enabled.
+   *
+   * @param parent The parent component.
+   * @return true if quitting can continue.
+   */
+  private boolean confirmQuit(Component parent) {
+    boolean confirmQuit =
+        Boolean.parseBoolean(nodusProperties.getProperty(NodusC.PROP_CONFIRM_QUIT, "true"));
+    if (!confirmQuit) {
+      return true;
+    }
+
+    int result =
+        JOptionPane.showConfirmDialog(
+            parent,
+            i18n.get(Nodus.class, "Confirm_quit", "Do you really want to quit Nodus?"),
+            i18n.get(Nodus.class, "Quit_Nodus", "Quit Nodus"),
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE);
+
+    return result == JOptionPane.YES_OPTION;
   }
 
   /** Opens the global preferences dialog box. */

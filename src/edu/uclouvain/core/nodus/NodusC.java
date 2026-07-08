@@ -857,6 +857,13 @@ public class NodusC {
    *
    * @hidden
    */
+  public static final String PROP_CONFIRM_QUIT = "confirm.quit";
+
+  /**
+   * Properties strings used in project and/or project local properties.
+   *
+   * @hidden
+   */
   public static final String PROP_REOPEN_LATST_PROJECT = "reloadlastproject";
 
   /**

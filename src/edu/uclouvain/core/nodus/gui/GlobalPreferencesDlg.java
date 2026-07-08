@@ -115,6 +115,9 @@ public class GlobalPreferencesDlg extends EscapeDialog {
   private JCheckBox antialiasingCheckBox;
 
   /** . */
+  private JCheckBox confirmQuitCheckBox;
+
+  /** . */
   private boolean oldAntialiasing;
 
   /** Snapshot of values loaded when the dialog opened. */
@@ -140,7 +143,8 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     getContentPane().add(contentPanel, gbcContentPanel);
     GridBagLayout gblContentPanel = new GridBagLayout();
     gblContentPanel.columnWeights = new double[] {0.0, 1.0};
-    gblContentPanel.rowWeights = new double[] {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    gblContentPanel.rowWeights =
+        new double[] {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     contentPanel.setLayout(gblContentPanel);
 
     final JLabel forcedGcIntervalLabel =
@@ -354,6 +358,17 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     gbcChckbxUseAntialiasing.gridy = 8;
     contentPanel.add(antialiasingCheckBox, gbcChckbxUseAntialiasing);
 
+    confirmQuitCheckBox =
+        new JCheckBox(
+            i18n.get(
+                GlobalPreferencesDlg.class, "Confirm_before_quitting", "Confirm before quitting"));
+    GridBagConstraints gbcChckbxConfirmQuit = new GridBagConstraints();
+    gbcChckbxConfirmQuit.anchor = GridBagConstraints.WEST;
+    gbcChckbxConfirmQuit.insets = new Insets(5, 5, 5, 5);
+    gbcChckbxConfirmQuit.gridx = 0;
+    gbcChckbxConfirmQuit.gridy = 9;
+    contentPanel.add(confirmQuitCheckBox, gbcChckbxConfirmQuit);
+
     checkForUpdatesCheckBox =
         new JCheckBox(
             i18n.get(
@@ -362,14 +377,14 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     gbcChckbxCheckForUpdates.anchor = GridBagConstraints.WEST;
     gbcChckbxCheckForUpdates.insets = new Insets(5, 5, 0, 5);
     gbcChckbxCheckForUpdates.gridx = 0;
-    gbcChckbxCheckForUpdates.gridy = 9;
+    gbcChckbxCheckForUpdates.gridy = 10;
     contentPanel.add(checkForUpdatesCheckBox, gbcChckbxCheckForUpdates);
 
     final JButton checkForUpdateButton =
         new JButton(i18n.get(GlobalPreferencesDlg.class, "CheckForUpdates", "Check for updates"));
     GridBagConstraints gbcCheckForUpdateButton = new GridBagConstraints();
     gbcCheckForUpdateButton.gridx = 1;
-    gbcCheckForUpdateButton.gridy = 9;
+    gbcCheckForUpdateButton.gridy = 10;
     gbcCheckForUpdateButton.insets = new Insets(5, 5, 5, 5);
     contentPanel.add(checkForUpdateButton, gbcCheckForUpdateButton);
     EscapeDialog parent = this;
@@ -509,6 +524,8 @@ public class GlobalPreferencesDlg extends EscapeDialog {
         + '\n'
         + antialiasingCheckBox.isSelected()
         + '\n'
+        + confirmQuitCheckBox.isSelected()
+        + '\n'
         + getSelectedDbEngine();
   }
 
@@ -556,6 +573,9 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_ANTIALIASING, TRUE);
     antialiasingCheckBox.setSelected(Boolean.parseBoolean(value));
     oldAntialiasing = Boolean.parseBoolean(value);
+
+    value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_CONFIRM_QUIT, TRUE);
+    confirmQuitCheckBox.setSelected(Boolean.parseBoolean(value));
 
     value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_REOPEN_LATST_PROJECT, FALSE);
     reloadLastProjectCheckBox.setSelected(Boolean.parseBoolean(value));
@@ -690,5 +710,12 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     if (Boolean.parseBoolean(value) != oldAntialiasing) {
       nodusMapPanel.setAntialising();
     }
+
+    // Ask confirmation when quitting
+    value = FALSE;
+    if (confirmQuitCheckBox.isSelected()) {
+      value = TRUE;
+    }
+    nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_CONFIRM_QUIT, value);
   }
 }
