@@ -147,6 +147,10 @@ You can also import Nodus as an [Eclipse](http://www.eclipse.org/) project.
 
 The [Checkstyle](https://checkstyle.org) and [SpotBugs](https://spotbugs.github.io) plugins are used in Eclipse 
 in order to write code that adheres to the Google Java coding standard and to look for bugs in Java code.
+
+Since Nodus 8.4, OpenAI [Codex](https://github.com/openai/codex) is used to detect potential bugs in the code. The Codex model is a descendant 
+of GPT-3 and is trained on both natural language and billions of lines of source code from publicly available sources,
+including code in public repositories on GitHub. 
    
 ## Uninstall
 
