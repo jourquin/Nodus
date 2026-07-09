@@ -44,12 +44,14 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.TreeMap;
 import javax.swing.JOptionPane;
@@ -97,6 +99,49 @@ public class ServiceHandler {
   private TreeMap<String, TransportService> services = new TreeMap<>();
 
   private String serviceStopsTableName;
+
+  /** Candidate edge used when computing a physical shortest path for a service line. */
+  private static class ServicePathEdge {
+
+    int linkId;
+    int toNode;
+    double weight;
+
+    ServicePathEdge(int toNode, int linkId, double weight) {
+      this.toNode = toNode;
+      this.linkId = linkId;
+      this.weight = weight;
+    }
+  }
+
+  /** Priority queue entry used by Dijkstra's algorithm. */
+  private static class ServicePathQueueEntry implements Comparable<ServicePathQueueEntry> {
+
+    int nodeId;
+    double distance;
+
+    ServicePathQueueEntry(int nodeId, double distance) {
+      this.nodeId = nodeId;
+      this.distance = distance;
+    }
+
+    @Override
+    public int compareTo(ServicePathQueueEntry other) {
+      return Double.compare(distance, other.distance);
+    }
+  }
+
+  /** Predecessor information used to rebuild a service path. */
+  private static class ServicePathStep {
+
+    int linkId;
+    int previousNode;
+
+    ServicePathStep(int previousNode, int linkId) {
+      this.previousNode = previousNode;
+      this.linkId = linkId;
+    }
+  }
 
   /**
    * Creates a new ServiceHandler.
@@ -305,6 +350,246 @@ public class ServiceHandler {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Computes the shortest physical path between two nodes for a mode/means pair.
+   *
+   * <p>The path is computed on enabled real links whose mode matches {@code mode} and whose means
+   * value supports {@code means}. In Nodus link data, a link with means {@code n} supports means
+   * {@code 1..n}. The attached {@link RealLink#getLength()} value is used as the edge weight.
+   *
+   * @param originNodeId Origin node ID.
+   * @param destinationNodeId Destination node ID.
+   * @param mode Transport mode.
+   * @param means Transport means.
+   * @return The ordered link IDs of the shortest path.
+   */
+  public LinkedList<Integer> findShortestServicePath(
+      int originNodeId, int destinationNodeId, int mode, int means) {
+
+    validateServicePathParameters(originNodeId, destinationNodeId, mode, means);
+
+    Map<Integer, LinkedList<ServicePathEdge>> graph = buildServicePathGraph(mode, means);
+    if (!graph.containsKey(originNodeId)) {
+      throw new IllegalArgumentException(
+          MessageFormat.format(
+              "Origin node {0} is not connected to any enabled link for mode {1}, means {2}.",
+              formatIdentifier(originNodeId), formatIdentifier(mode), formatIdentifier(means)));
+    }
+    if (!graph.containsKey(destinationNodeId)) {
+      throw new IllegalArgumentException(
+          MessageFormat.format(
+              "Destination node {0} is not connected to any enabled link for mode {1}, means {2}.",
+              formatIdentifier(destinationNodeId),
+              formatIdentifier(mode),
+              formatIdentifier(means)));
+    }
+
+    Map<Integer, Double> distances = new HashMap<>();
+    Map<Integer, ServicePathStep> predecessors = new HashMap<>();
+    PriorityQueue<ServicePathQueueEntry> queue = new PriorityQueue<>();
+    distances.put(originNodeId, 0.0);
+    queue.add(new ServicePathQueueEntry(originNodeId, 0.0));
+
+    while (!queue.isEmpty()) {
+      ServicePathQueueEntry current = queue.poll();
+      double currentDistance = distances.getOrDefault(current.nodeId, Double.MAX_VALUE);
+      if (current.distance > currentDistance) {
+        continue;
+      }
+      if (current.nodeId == destinationNodeId) {
+        break;
+      }
+
+      LinkedList<ServicePathEdge> edges = graph.get(current.nodeId);
+      if (edges == null) {
+        continue;
+      }
+      for (ServicePathEdge edge : edges) {
+        double nextDistance = currentDistance + edge.weight;
+        double knownDistance = distances.getOrDefault(edge.toNode, Double.MAX_VALUE);
+        if (nextDistance < knownDistance) {
+          distances.put(edge.toNode, nextDistance);
+          predecessors.put(edge.toNode, new ServicePathStep(current.nodeId, edge.linkId));
+          queue.add(new ServicePathQueueEntry(edge.toNode, nextDistance));
+        }
+      }
+    }
+
+    if (!predecessors.containsKey(destinationNodeId)) {
+      throw new IllegalArgumentException(
+          MessageFormat.format(
+              "No path found between nodes {0} and {1} for mode {2}, means {3}.",
+              formatIdentifier(originNodeId),
+              formatIdentifier(destinationNodeId),
+              formatIdentifier(mode),
+              formatIdentifier(means)));
+    }
+
+    LinkedList<Integer> linkIds = new LinkedList<>();
+    int nodeId = destinationNodeId;
+    while (nodeId != originNodeId) {
+      ServicePathStep step = predecessors.get(nodeId);
+      if (step == null) {
+        throw new IllegalArgumentException("The computed service path cannot be rebuilt.");
+      }
+      linkIds.addFirst(step.linkId);
+      nodeId = step.previousNode;
+    }
+
+    return linkIds;
+  }
+
+  /**
+   * Creates or replaces a service line from an ordered list of link IDs and optionally saves it.
+   *
+   * @param serviceId Numeric service ID.
+   * @param serviceName Service name. When blank, a default name based on the ID is used.
+   * @param mode Transport mode.
+   * @param means Transport means.
+   * @param frequency Annualized service frequency.
+   * @param linkIds Ordered link IDs that compose the service.
+   * @param stopNodeIds Optional stop node IDs. When null or empty, the service end nodes are used.
+   * @param overwriteExistingService True to replace an existing service with the same ID or name.
+   * @param saveImmediately True to write the service tables immediately.
+   * @return The created service.
+   */
+  public TransportService createOrReplaceServiceFromLinkIds(
+      int serviceId,
+      String serviceName,
+      int mode,
+      int means,
+      int frequency,
+      List<Integer> linkIds,
+      List<Integer> stopNodeIds,
+      boolean overwriteExistingService,
+      boolean saveImmediately) {
+
+    validateServiceHeader(serviceId, serviceName, mode, means, frequency);
+    if (linkIds == null || linkIds.isEmpty()) {
+      throw new IllegalArgumentException("The service line has no links.");
+    }
+
+    String normalizedName = normalizeServiceName(serviceId, serviceName);
+    validateServiceCanBeSaved(serviceId, normalizedName, overwriteExistingService);
+    TransportService service =
+        new TransportService(serviceId, normalizedName, (byte) mode, (byte) means, frequency);
+
+    for (Integer linkId : linkIds) {
+      if (linkId == null) {
+        throw new IllegalArgumentException("The service line contains an empty link ID.");
+      }
+      OMGraphic graphic = getOMGraphic(linkId.intValue(), TYPE_LINK);
+      if (graphic == null) {
+        throw new IllegalArgumentException(
+            MessageFormat.format("Link {0} was not found.", formatIdentifier(linkId)));
+      }
+      validateServiceLinkModeMeans(linkId.intValue(), mode, means);
+      service.addChunk(graphic);
+    }
+
+    if (stopNodeIds == null || stopNodeIds.isEmpty()) {
+      for (Integer endNodeId : getServiceEndNodes(service)) {
+        service.addStop(endNodeId);
+      }
+    } else {
+      for (Integer stopNodeId : stopNodeIds) {
+        if (stopNodeId == null) {
+          throw new IllegalArgumentException("The service line contains an empty stop node ID.");
+        }
+        if (getOMGraphic(stopNodeId.intValue(), TYPE_NODE) == null) {
+          throw new IllegalArgumentException(
+              MessageFormat.format(
+                  "Stop node {0} was not found.", formatIdentifier(stopNodeId)));
+        }
+        service.addStop(stopNodeId.intValue());
+      }
+    }
+
+    String validationMessage = getServiceLineValidationMessage(service);
+    if (validationMessage != null) {
+      throw new IllegalArgumentException(
+          MessageFormat.format("The service line is not valid because {0}.", validationMessage));
+    }
+
+    saveService(service);
+    mustBeSaved();
+    if (serviceEditorDlg != null) {
+      serviceEditorDlg.markServicesChanged();
+    }
+
+    if (saveImmediately && !savePendingChanges()) {
+      throw new IllegalStateException("The service line could not be saved in the database.");
+    }
+
+    return service;
+  }
+
+  /**
+   * Computes the shortest path between two nodes, creates/replaces the corresponding service, and
+   * saves it in the services tables.
+   *
+   * @param serviceId Numeric service ID.
+   * @param originNodeId Origin node ID.
+   * @param destinationNodeId Destination node ID.
+   * @param mode Transport mode.
+   * @param means Transport means.
+   * @param frequency Annualized service frequency.
+   * @return The created service.
+   */
+  public TransportService createShortestPathService(
+      int serviceId,
+      int originNodeId,
+      int destinationNodeId,
+      int mode,
+      int means,
+      int frequency) {
+    return createShortestPathService(
+        serviceId, null, originNodeId, destinationNodeId, mode, means, frequency, false, true);
+  }
+
+  /**
+   * Computes the shortest path between two nodes and creates/replaces the corresponding service.
+   *
+   * @param serviceId Numeric service ID.
+   * @param serviceName Service name. When blank, a default name based on the ID is used.
+   * @param originNodeId Origin node ID.
+   * @param destinationNodeId Destination node ID.
+   * @param mode Transport mode.
+   * @param means Transport means.
+   * @param frequency Annualized service frequency.
+   * @param overwriteExistingService True to replace an existing service with the same ID or name.
+   * @param saveImmediately True to write the service tables immediately.
+   * @return The created service.
+   */
+  public TransportService createShortestPathService(
+      int serviceId,
+      String serviceName,
+      int originNodeId,
+      int destinationNodeId,
+      int mode,
+      int means,
+      int frequency,
+      boolean overwriteExistingService,
+      boolean saveImmediately) {
+
+    validateServiceHeader(serviceId, serviceName, mode, means, frequency);
+    LinkedList<Integer> linkIds =
+        findShortestServicePath(originNodeId, destinationNodeId, mode, means);
+    LinkedList<Integer> stopNodeIds = new LinkedList<>();
+    stopNodeIds.add(originNodeId);
+    stopNodeIds.add(destinationNodeId);
+    return createOrReplaceServiceFromLinkIds(
+        serviceId,
+        serviceName,
+        mode,
+        means,
+        frequency,
+        linkIds,
+        stopNodeIds,
+        overwriteExistingService,
+        saveImmediately);
   }
 
   /** Discards pending service changes and reloads the services stored in the database. */
@@ -781,6 +1066,221 @@ public class ServiceHandler {
     } while (true);
   }
 
+  /** Validates the editable scalar values of a generated service. */
+  private void validateServiceHeader(
+      int serviceId, String serviceName, int mode, int means, int frequency) {
+    if (serviceId < 1 || serviceId > 9999) {
+      throw new IllegalArgumentException("The service ID must be between 1 and 9999.");
+    }
+    if (normalizeServiceName(serviceId, serviceName).length() > 30) {
+      throw new IllegalArgumentException("The service name must not exceed 30 characters.");
+    }
+    validateModeMeans(mode, means);
+    if (frequency < 0 || frequency > 99999) {
+      throw new IllegalArgumentException("The annualized frequency must be between 0 and 99999.");
+    }
+  }
+
+  /** Checks whether saving a generated service would overwrite an existing one. */
+  private void validateServiceCanBeSaved(
+      int serviceId, String serviceName, boolean overwriteExistingService) {
+    if (overwriteExistingService) {
+      return;
+    }
+
+    Iterator<Map.Entry<String, TransportService>> it = services.entrySet().iterator();
+    while (it.hasNext()) {
+      Map.Entry<String, TransportService> entry = it.next();
+      TransportService service = entry.getValue();
+      if (service.getId() == serviceId) {
+        throw new IllegalArgumentException(
+            MessageFormat.format(
+                "Service ID {0} already exists. Set overwriteExistingService to true to replace"
+                    + " it.",
+                formatIdentifier(serviceId)));
+      }
+      if (entry.getKey().equals(serviceName)) {
+        throw new IllegalArgumentException(
+            MessageFormat.format(
+                "Service name \"{0}\" already exists. Set overwriteExistingService to true to"
+                    + " replace it.",
+                serviceName));
+      }
+    }
+  }
+
+  /** Validates a mode/means pair. */
+  private void validateModeMeans(int mode, int means) {
+    if (mode < 1 || mode >= NodusC.MAXMM) {
+      throw new IllegalArgumentException(
+          MessageFormat.format(
+              "The mode must be between 1 and {0}.", formatIdentifier(NodusC.MAXMM - 1)));
+    }
+    if (means < 1 || means >= NodusC.MAXMM) {
+      throw new IllegalArgumentException(
+          MessageFormat.format(
+              "The means must be between 1 and {0}.", formatIdentifier(NodusC.MAXMM - 1)));
+    }
+  }
+
+  /** Validates the endpoints and mode/means pair used for a generated service path. */
+  private void validateServicePathParameters(
+      int originNodeId, int destinationNodeId, int mode, int means) {
+    validateModeMeans(mode, means);
+    if (originNodeId == destinationNodeId) {
+      throw new IllegalArgumentException("The origin and destination nodes must be different.");
+    }
+    validateServiceEndpoint(originNodeId, "Origin");
+    validateServiceEndpoint(destinationNodeId, "Destination");
+  }
+
+  /** Validates one endpoint of a generated service path. */
+  private void validateServiceEndpoint(int nodeId, String label) {
+    if (!nodeExists(nodeId)) {
+      throw new IllegalArgumentException(
+          MessageFormat.format("{0} node {1} was not found.", label, formatIdentifier(nodeId)));
+    }
+    if (!isValidServiceEndpoint(nodeId)) {
+      throw new IllegalArgumentException(
+          MessageFormat.format(
+              "{0} node {1} does not allow operations.", label, formatIdentifier(nodeId)));
+    }
+  }
+
+  /** Returns the default service name when no name is provided. */
+  private String normalizeServiceName(int serviceId, String serviceName) {
+    if (serviceName == null || serviceName.isBlank()) {
+      return "Service " + serviceId;
+    }
+    return serviceName.trim();
+  }
+
+  /** Tests whether a node ID exists in one of the loaded node layers. */
+  private boolean nodeExists(int nodeId) {
+    for (NodusEsriLayer element : nodeLayer) {
+      if (element.getNumIndex(nodeId) != -1) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Builds the graph used to compute service paths for a mode/means pair. */
+  private Map<Integer, LinkedList<ServicePathEdge>> buildServicePathGraph(int mode, int means) {
+    Map<Integer, LinkedList<ServicePathEdge>> graph = new HashMap<>();
+
+    for (NodusEsriLayer element : linkLayer) {
+      for (int row = 0; row < element.getModel().getRowCount(); row++) {
+        List<Object> values = element.getModel().getRecord(row);
+        if (!isLinkUsableForService(values, mode, means)) {
+          continue;
+        }
+
+        int linkId = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NUM));
+        int node1 = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NODE1));
+        int node2 = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NODE2));
+        OMGraphic graphic = element.getEsriGraphicList().getOMGraphicAt(row);
+        double weight = getServicePathWeight(linkId, graphic);
+        addServicePathEdge(graph, node1, node2, linkId, weight);
+        addServicePathEdge(graph, node2, node1, linkId, weight);
+      }
+    }
+
+    return graph;
+  }
+
+  /** Adds one directed edge to the service path graph. */
+  private void addServicePathEdge(
+      Map<Integer, LinkedList<ServicePathEdge>> graph,
+      int fromNode,
+      int toNode,
+      int linkId,
+      double weight) {
+    LinkedList<ServicePathEdge> edges = graph.get(fromNode);
+    if (edges == null) {
+      edges = new LinkedList<>();
+      graph.put(fromNode, edges);
+    }
+    edges.add(new ServicePathEdge(toNode, linkId, weight));
+  }
+
+  /** Returns true when a real link can be used by a generated service. */
+  private boolean isLinkUsableForService(List<Object> values, int mode, int means) {
+    if (values == null || values.size() <= NodusC.DBF_IDX_MEANS) {
+      return false;
+    }
+
+    int enabled = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_ENABLED));
+    int linkMode = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_MODE));
+    int linkMeans = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_MEANS));
+    return enabled != 0 && linkMode == mode && means <= linkMeans;
+  }
+
+  /** Returns the RealLink length used as weight in the service path graph. */
+  private double getServicePathWeight(int linkId, OMGraphic graphic) {
+    if (graphic != null) {
+      Object attribute = graphic.getAttribute(0);
+      if (attribute instanceof RealLink) {
+        double length = ((RealLink) attribute).getLength();
+        if (length > 0) {
+          return length;
+        }
+      }
+    }
+
+    throw new IllegalStateException(
+        MessageFormat.format(
+            "Link {0} has no positive RealLink length.", formatIdentifier(linkId)));
+  }
+
+  /** Validates that a link supports the requested service mode/means pair. */
+  private void validateServiceLinkModeMeans(int linkId, int mode, int means) {
+    for (NodusEsriLayer element : linkLayer) {
+      int row = element.getNumIndex(linkId);
+      if (row == -1) {
+        continue;
+      }
+      List<Object> values = element.getModel().getRecord(row);
+      if (isLinkUsableForService(values, mode, means)) {
+        return;
+      }
+
+      throw new IllegalArgumentException(
+          MessageFormat.format(
+              "Link {0} is not enabled or does not support mode {1}, means {2}.",
+              formatIdentifier(linkId), formatIdentifier(mode), formatIdentifier(means)));
+    }
+  }
+
+  /** Returns the end nodes of a service line. */
+  private LinkedList<Integer> getServiceEndNodes(TransportService service) {
+    Map<Integer, Integer> occurrences = new HashMap<>();
+    Iterator<OMGraphic> it = service.getLinks().iterator();
+    while (it.hasNext()) {
+      int[] endpoints = getLinkEndpointNodeIds(it.next());
+      if (endpoints == null) {
+        continue;
+      }
+      addNodeOccurrence(occurrences, endpoints[0]);
+      addNodeOccurrence(occurrences, endpoints[1]);
+    }
+
+    LinkedList<Integer> endNodes = new LinkedList<>();
+    for (Map.Entry<Integer, Integer> entry : occurrences.entrySet()) {
+      if (entry.getValue().intValue() == 1) {
+        endNodes.add(entry.getKey());
+      }
+    }
+    Collections.sort(endNodes);
+    return endNodes;
+  }
+
+  /** Increments a node occurrence count. */
+  private void addNodeOccurrence(Map<Integer, Integer> occurrences, int nodeId) {
+    Integer count = occurrences.get(nodeId);
+    occurrences.put(nodeId, count == null ? 1 : count.intValue() + 1);
+  }
+
   /**
    * Get the graphic associated to the given link ID.
    *
@@ -914,6 +1414,30 @@ public class ServiceHandler {
       }
     }
     return serviceNames;
+  }
+
+  /**
+   * Retrieves the list of service IDs that use a given link.
+   *
+   * @param linkId The ID of the link.
+   * @return Linked list of service IDs.
+   */
+  public LinkedList<Integer> getServicesForLink(int linkId) {
+    LinkedList<Integer> serviceIds = new LinkedList<>();
+
+    OMGraphic omg = getOMGraphic(linkId, TYPE_LINK);
+    if (omg == null) {
+      return serviceIds;
+    }
+
+    Iterator<TransportService> it = services.values().iterator();
+    while (it.hasNext()) {
+      TransportService service = it.next();
+      if (service.contains(omg)) {
+        serviceIds.add(Integer.valueOf(service.getId()));
+      }
+    }
+    return serviceIds;
   }
 
   /**
