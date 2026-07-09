@@ -128,6 +128,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -360,6 +362,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** "Tools|Groovy console" menu item. */
   private JMenuItem menuItemToolGroovyScripts = new JMenuItem();
+
+  /** Native Groovy console instance, when the user selected that console implementation. */
+  private groovy.console.ui.Console nativeGroovyConsole;
 
   /** "Tools|Language" menu item. */
   private JMenuItem menuItemToolLanguage = new JMenuItem();
@@ -2497,34 +2502,96 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     if (!useGroovyConsole) {
       new NodusGroovyConsole(this, path, "");
     } else {
-      final groovy.console.ui.Console console = new groovy.console.ui.Console();
+      showNativeGroovyConsole(path);
+    }
+  }
 
-      // Set some defaults in UI
-      console.askToInterruptScript();
-      console.setAutoClearOutput(true);
-      console.setSaveOnRun(true);
+  /** Shows the native Groovy console, or focuses the already open one. */
+  private void showNativeGroovyConsole(String path) {
+    if (focusNativeGroovyConsole()) {
+      return;
+    }
 
-      JCheckBox dummyCheckBox = new JCheckBox();
-      dummyCheckBox.setSelected(false);
-      console.showScriptInOutput(new EventObject(dummyCheckBox));
+    final groovy.console.ui.Console console = new groovy.console.ui.Console();
+    nativeGroovyConsole = console;
 
-      dummyCheckBox.setSelected(true);
-      console.threadInterruption(new EventObject(dummyCheckBox));
+    // Set some defaults in UI
+    console.askToInterruptScript();
+    console.setAutoClearOutput(true);
+    console.setSaveOnRun(true);
 
-      console.setCurrentFileChooserDir(new File(path));
-      console.setVariable("nodusMapPanel", this);
-      console.run();
+    JCheckBox dummyCheckBox = new JCheckBox();
+    dummyCheckBox.setSelected(false);
+    console.showScriptInOutput(new EventObject(dummyCheckBox));
 
-      // Relocate console
-      JFrame consoleFrame = (JFrame) console.getFrame().getRootPane().getParent();
+    dummyCheckBox.setSelected(true);
+    console.threadInterruption(new EventObject(dummyCheckBox));
+
+    console.setCurrentFileChooserDir(new File(path));
+    console.setVariable("nodusMapPanel", this);
+    console.run();
+
+    JFrame consoleFrame = getNativeGroovyConsoleFrame(console);
+    if (consoleFrame != null) {
+      consoleFrame.addWindowListener(
+          new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+              clearNativeGroovyConsole(console);
+            }
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+              clearNativeGroovyConsole(console);
+            }
+          });
+
       consoleFrame.setVisible(false);
       consoleFrame.setLocationRelativeTo(this);
       consoleFrame.setVisible(true);
-
-      // Reset the preferences menu
-      registerMacApplicationHandlers();
-      setGlobalPreferencesMenu();
+      focusFrame(consoleFrame);
     }
+
+    // Reset the preferences menu
+    registerMacApplicationHandlers();
+    setGlobalPreferencesMenu();
+  }
+
+  /** Brings the already open native Groovy console to the front. */
+  private boolean focusNativeGroovyConsole() {
+    JFrame consoleFrame = getNativeGroovyConsoleFrame(nativeGroovyConsole);
+    if (consoleFrame == null || !consoleFrame.isDisplayable()) {
+      nativeGroovyConsole = null;
+      return false;
+    }
+
+    focusFrame(consoleFrame);
+    return true;
+  }
+
+  /** Clears the retained native console reference if it still points to the closed console. */
+  private void clearNativeGroovyConsole(groovy.console.ui.Console console) {
+    if (nativeGroovyConsole == console) {
+      nativeGroovyConsole = null;
+    }
+  }
+
+  /** Returns the Swing frame that hosts a native Groovy console. */
+  private JFrame getNativeGroovyConsoleFrame(groovy.console.ui.Console console) {
+    if (console == null || console.getFrame() == null) {
+      return null;
+    }
+    return (JFrame) console.getFrame().getRootPane().getParent();
+  }
+
+  /** Makes a frame visible, de-iconified and focused. */
+  private void focusFrame(JFrame frame) {
+    if (frame.getState() == Frame.ICONIFIED) {
+      frame.setState(Frame.NORMAL);
+    }
+    frame.setVisible(true);
+    frame.toFront();
+    frame.requestFocus();
   }
 
   /**
