@@ -1529,6 +1529,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
               List<Object> record = getModel().getRecord(graphicIndex);
 
               if (serviceEditor.addOrRemoveLink(omg, record)) {
+                me.consume();
                 repaint();
               }
 

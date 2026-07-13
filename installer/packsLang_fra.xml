@@ -2,7 +2,10 @@
 
 <!-- The French langpack -->
 
-<langpack>
+<izpack:langpack version="5.0"
+    xmlns:izpack="http://izpack.org/schema/langpack"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://izpack.org/schema/langpack http://izpack.org/schema/5.0/izpack-langpack-5.0.xsd">
     <str id="core.package" txt="Fichiers de base"/>
     <str id="core.package.description" txt="Fichiers dont l'installation est obligatoire pour faire fonctionner Nodus."/>
     <str id="help.package" txt="Aide"/>
@@ -17,4 +20,4 @@
     <str id="gvy.package.description" txt="Exemples de scripts Groovy à utiliser avec Nodus."/> 
     <str id="jflowmap.package" txt="JFlowMap"/>
     <str id="jflowmap.package.description" txt="Outil de visualisation de flux JFlowMap."/>
-</langpack>
+</izpack:langpack>

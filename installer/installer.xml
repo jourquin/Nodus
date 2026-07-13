@@ -2,7 +2,10 @@
 
 <!-- Nodus installation file for IzPack -->
 
-<installation version="5.0">
+<izpack:installation version="5.0"
+	xmlns:izpack="http://izpack.org/schema/installation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://izpack.org/schema/installation http://izpack.org/schema/5.0/izpack-installation-5.0.xsd">
 	<!-- The info section. -->
 	<info>
 		<appname>Nodus</appname>
@@ -48,7 +51,6 @@
 		<res id="Installer.image" src="installer/uclouvain-vertical.png" />
 		<res id="packsLang.xml_fra" src="installer/packsLang_fra.xml" />
 		<res id="packsLang.xml_eng" src="installer/packsLang_eng.xml" />
-		id="/>
 	</resources>
 
 	<!-- The panels section -->
@@ -157,4 +159,4 @@
 		</pack>
 
 	</packs>
-</installation>
+</izpack:installation>

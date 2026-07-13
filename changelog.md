@@ -446,7 +446,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 ## v8.4 - Build20260626
 - Fix a bug in SQLConsole (column names not always displayed)
 
-## v8.4 - BuildXXXXXXXX
+## v8.4 - Build20260713
 - The ESC key can now be used to close most GUI components
 - Cleaning I18N resources and Java code
 - Redesign of the Lines and Services workflow, now also better documented
@@ -454,6 +454,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Improved language change workflow
 - Ask the user to confirm if he wants to leave Nodus if left via the window close listener
 - Several safeguards added in the UI
+- Upgrade to IzPack 5.2.4
 
 
 

@@ -77,7 +77,7 @@ public class BinaryHeapDijkstra {
    *
    * @param graph An array of adjacency nodes
    */
-  BinaryHeapDijkstra(AdjacencyNode[] graph) {
+  public BinaryHeapDijkstra(AdjacencyNode[] graph) {
     this.graph = graph;
     weights = new double[graph.length];
 
@@ -145,6 +145,31 @@ public class BinaryHeapDijkstra {
   }
 
   /**
+   * Runs Dijkstra until the given goal is reached.
+   *
+   * @param source Source vertex number.
+   * @param goal Goal vertex number.
+   */
+  public void compute(int source, int goal) {
+    initializeSingleSource(source);
+
+    int min = extractMin();
+
+    while (min != -1) {
+      weights[min] = minWeight;
+      if (min == goal) {
+        break;
+      }
+
+      for (AdjacencyNode cursor = graph[min]; cursor.nextNode != null; cursor = cursor.nextNode) {
+        relax(graph[min].virtualNodeNum, cursor.nextNode.virtualNodeNum, cursor.edgeWeight);
+      }
+
+      min = extractMin();
+    }
+  }
+
+  /**
    * This method lowers the value of a node in the binary heap and restores the heap property. The
    * node is found in the heap using the nodePos array.
    *
@@ -198,6 +223,15 @@ public class BinaryHeapDijkstra {
    */
   public int[] getPredecessors() {
     return pi;
+  }
+
+  /**
+   * Returns the shortest-path weights from the last computation.
+   *
+   * @return double[]
+   */
+  public double[] getWeights() {
+    return weights;
   }
 
   /**

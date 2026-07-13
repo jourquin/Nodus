@@ -24,13 +24,11 @@ package edu.uclouvain.core.nodus.compute.virtual;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.dataAccess.shape.DbfTableModel;
 import com.bbn.openmap.dataAccess.shape.EsriGraphicList;
-import com.bbn.openmap.dataAccess.shape.EsriPolyline;
 import com.bbn.openmap.layer.highlightedarea.HighlightedAreaLayer;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.omGraphics.OMPoint;
 import com.bbn.openmap.omGraphics.OMPoly;
-import com.bbn.openmap.proj.Length;
 import com.bbn.openmap.proj.ProjMath;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
@@ -46,6 +44,7 @@ import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.utils.RealLinkUtils;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
@@ -286,34 +285,13 @@ public class VirtualNetwork {
 
       while (it.hasNext()) {
         OMGraphic omg = it.next();
-
-        // Compute the length of the real link
-        float length = 0;
-        float speed = 0;
-
-        // Get the node1 real num
         List<Object> values = linksDbf[i].getRecord(j);
-
-        int node1 = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NODE1));
-
-        if (omg instanceof EsriPolyline) {
-          EsriPolyline epl = (EsriPolyline) omg;
-          length = NodusEsriLayer.getLength(epl, Length.KM);
-          speed = JDBCUtils.getFloat(values.get(NodusC.DBF_IDX_SPEED));
-        }
-
-        // Be sure we have a RealLink attached to this OMGraphic
-        if (omg.getAttribute(0) == null) {
-          omg.putAttribute(0, new RealLink());
-        }
-
-        // Initializes the real link with the relevant values
-        RealLink rl = (RealLink) omg.getAttribute(0);
-        rl.setOriginNodeId(node1);
-        rl.setLength(length);
-        rl.setSpeed(speed);
-        // rl.setDuration(3600 * length / speed);
-        rl.resetPassengerCarUnits();
+        RealLinkUtils.initializeRealLink(
+            omg,
+            values,
+            getNodeGraphic(JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NODE1))),
+            getNodeGraphic(JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NODE2))),
+            true);
 
         j++;
       }
@@ -328,6 +306,17 @@ public class VirtualNetwork {
     } else {
       filterRealNetworkObjects(false);
     }
+  }
+
+  /** Returns the graphic associated to the given real node ID, or null if it is not loaded. */
+  private OMGraphic getNodeGraphic(int nodeId) {
+    for (NodusEsriLayer layer : nodesEsriLayer) {
+      int index = layer.getNumIndex(nodeId);
+      if (index != -1) {
+        return layer.getEsriGraphicList().getOMGraphicAt(index);
+      }
+    }
+    return null;
   }
 
   /**

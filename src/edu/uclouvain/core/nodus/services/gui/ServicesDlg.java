@@ -38,6 +38,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
+import java.awt.event.ItemEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -63,6 +64,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 
 
+
 /**
  * The service editor allows editing the lines and services.
  *
@@ -76,7 +78,7 @@ public class ServicesDlg extends EscapeDialog {
 
   private static final String LIST_CARD = "ListCard";
   private static final String EDITOR_CARD = "EditorCard";
-  private static final Dimension EDITOR_CARD_SIZE = new Dimension(400, 220);
+  private static final String NO_MODE = "";
   private static final int NO_LINK_FILTER = Integer.MIN_VALUE;
 
   /** . */
@@ -131,7 +133,7 @@ public class ServicesDlg extends EscapeDialog {
   private JComboBox<String> meansField = new JComboBox<>();
 
   /** . */
-  private JLabel modeField = new JLabel();
+  private JComboBox<String> modeField = new JComboBox<>();
 
   /** . */
   private JTextField nameField = new JTextField(20);
@@ -148,6 +150,12 @@ public class ServicesDlg extends EscapeDialog {
   /** . */
   private JButton saveButton = null;
 
+  /** Enables service line creation from two selected nodes. */
+  private JCheckBox shortestPathCheckBox = null;
+
+  /** Explains the current shortest-path selection step. */
+  private JLabel shortestPathStatusLabel = new JLabel();
+
   /** . */
   private JScrollPane scrollPane = null;
 
@@ -162,9 +170,6 @@ public class ServicesDlg extends EscapeDialog {
 
   /** . */
   private TableSorter sorter;
-
-  /** . */
-  Dimension startDimension = null;
 
   /** . */
   private JComboBox<String> time = new JComboBox<>();
@@ -317,31 +322,55 @@ public class ServicesDlg extends EscapeDialog {
 
   /** Returns true if the editor-card fields contain values that can be saved. */
   private boolean hasValidEditorFields() {
-    String meansValue =
-        meansField.getSelectedItem() == null ? "" : meansField.getSelectedItem().toString();
+    String meansValue = getEditorMeansValue();
     return !nameField.getText().isBlank()
         && !frequencyField.getText().isBlank()
-        && !modeField.getText().isBlank()
+        && !getEditorModeValue().isBlank()
         && !meansValue.isBlank()
         && JDBCUtils.getInt(frequencyField.getText()) != Integer.MIN_VALUE
-        && meansField.getSelectedItem() != null
         && JDBCUtils.getInt(meansValue) != Integer.MIN_VALUE
-        && JDBCUtils.getInt(modeField.getText()) != Integer.MIN_VALUE;
+        && JDBCUtils.getInt(getEditorModeValue()) != Integer.MIN_VALUE;
   }
 
   /** Captures the current details editor values for later dirty-state comparisons. */
   private String getEditorValuesSnapshot() {
-    String meansValue =
-        meansField.getSelectedItem() == null ? "" : meansField.getSelectedItem().toString();
+    String meansValue = getEditorMeansValue();
     return nameField.getText()
         + '\n'
         + frequencyField.getText()
         + '\n'
         + time.getSelectedIndex()
         + '\n'
-        + modeField.getText()
+        + getEditorModeValue()
         + '\n'
         + meansValue;
+  }
+
+  /** Returns the mode value currently visible in the editor. */
+  private String getEditorModeValue() {
+    Object value = modeField.getSelectedItem();
+    return value == null ? "" : value.toString();
+  }
+
+  /** Returns the means value currently visible in the editor. */
+  private String getEditorMeansValue() {
+    Object value = meansField.getSelectedItem();
+    return value == null ? "" : value.toString();
+  }
+
+  /** Gives compact mode/means controls enough room for their editor and arrows. */
+  private void setModeMeansControlSizes() {
+    Dimension modeSize = new Dimension(100, modeField.getPreferredSize().height);
+    modeField.setPreferredSize(modeSize);
+    modeField.setMinimumSize(modeSize);
+
+    Dimension meansSize = new Dimension(110, meansField.getPreferredSize().height);
+    meansField.setPreferredSize(meansSize);
+    meansField.setMinimumSize(meansSize);
+
+    Dimension statusSize = new Dimension(360, modeField.getPreferredSize().height);
+    shortestPathStatusLabel.setPreferredSize(statusSize);
+    shortestPathStatusLabel.setMinimumSize(statusSize);
   }
 
   /** Resets dirty tracking for the details editor. */
@@ -575,6 +604,87 @@ public class ServicesDlg extends EscapeDialog {
     return lineViewCheckBox;
   }
 
+  /** Initializes the shortest-path service line creation checkbox. */
+  private JCheckBox getShortestPathCheckBox() {
+    if (shortestPathCheckBox == null) {
+      shortestPathCheckBox = new JCheckBox();
+      shortestPathCheckBox.setText(i18n.get(ServicesDlg.class, "Shortest_path", "Shortest path"));
+      shortestPathCheckBox.setToolTipText(
+          i18n.get(
+              ServicesDlg.class,
+              "Shortest_path_tip",
+              "Click two valid nodes to compute the service line"));
+      shortestPathCheckBox.addItemListener(
+          e -> {
+            boolean enabled = shortestPathCheckBox.isSelected();
+            updateShortestPathEditorState(enabled);
+            serviceHandler.setShortestPathSelectionEnabled(enabled);
+          });
+    }
+    return shortestPathCheckBox;
+  }
+
+  /** Updates editor fields that differ between manual and shortest-path creation. */
+  private void updateShortestPathEditorState(boolean enabled) {
+    modeField.setEnabled(enabled);
+    if (enabled) {
+      populateShortestPathModes();
+      updateShortestPathMeansForSelectedMode();
+      updateShortestPathStatus();
+    } else {
+      shortestPathStatusLabel.setText("");
+    }
+    updateSaveButtons();
+  }
+
+  /** Loads the shortest-path mode combo box with the modes available in enabled link layers. */
+  private void populateShortestPathModes() {
+    modeField.removeAllItems();
+    modeField.addItem(NO_MODE);
+    for (Integer mode : serviceHandler.getAvailableServiceModes()) {
+      modeField.addItem(mode.toString());
+    }
+    modeField.setSelectedItem(NO_MODE);
+  }
+
+  /** Updates the means list for the mode currently selected in shortest-path mode. */
+  private void updateShortestPathMeansForSelectedMode() {
+    meansField.removeAllItems();
+    int mode = getEditorMode();
+    if (mode == Integer.MIN_VALUE) {
+      return;
+    }
+
+    for (Integer means : serviceHandler.getAvailableServiceMeans(mode)) {
+      meansField.addItem(means.toString());
+    }
+    if (meansField.getItemCount() > 0) {
+      meansField.setSelectedIndex(0);
+    }
+  }
+
+  /** Updates the shortest-path status according to the current mode/means readiness. */
+  private void updateShortestPathStatus() {
+    if (shortestPathCheckBox == null || !shortestPathCheckBox.isSelected()) {
+      shortestPathStatusLabel.setText("");
+      return;
+    }
+
+    if (getEditorMode() == Integer.MIN_VALUE || getEditorMeans() == Integer.MIN_VALUE) {
+      shortestPathStatusLabel.setText(
+          i18n.get(
+              ServicesDlg.class,
+              "Shortest_path_select_mode",
+              "Choose a mode and means first"));
+    } else {
+      shortestPathStatusLabel.setText(
+          i18n.get(
+              ServicesDlg.class,
+              "Shortest_path_select_origin",
+              "Select the origin node on the map"));
+    }
+  }
+
   /** Updates the state of the line-view toggle check box. */
   private void updateLineViewCheckBox() {
     if (lineViewCheckBox == null) {
@@ -675,6 +785,7 @@ public class ServicesDlg extends EscapeDialog {
     isLoadingEditorFields = false;
     resetEditorDirtyState();
 
+    setShortestPathControlsSelected(false);
     serviceHandler.setListening(true);
     showCard(EDITOR_CARD);
   }
@@ -698,6 +809,12 @@ public class ServicesDlg extends EscapeDialog {
       modeMeansPanel.add(modeField);
       modeMeansPanel.add(new JLabel(i18n.get(ServicesDlg.class, "Service_Means", "Means")));
       modeMeansPanel.add(meansField);
+      setModeMeansControlSizes();
+
+      JPanel shortestPathPanel = new JPanel();
+      shortestPathPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+      shortestPathPanel.add(getShortestPathCheckBox());
+      shortestPathPanel.add(shortestPathStatusLabel);
 
       JPanel frequencyPanel = new JPanel();
       frequencyPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
@@ -812,7 +929,7 @@ public class ServicesDlg extends EscapeDialog {
           buttonsPanel,
           createConstraints(
               0,
-              4,
+              5,
               4,
               1,
               0,
@@ -820,6 +937,22 @@ public class ServicesDlg extends EscapeDialog {
               GridBagConstraints.CENTER,
               GridBagConstraints.NONE,
               new Insets(0, 0, 5, 0),
+              0,
+              0));
+
+      addToGridBag(
+          editorCard,
+          shortestPathPanel,
+          createConstraints(
+              0,
+              4,
+              4,
+              1,
+              0,
+              0,
+              GridBagConstraints.WEST,
+              GridBagConstraints.HORIZONTAL,
+              new Insets(0, 0, 0, 0),
               0,
               0));
 
@@ -850,9 +983,32 @@ public class ServicesDlg extends EscapeDialog {
             }
           };
       nameField.getDocument().addDocumentListener(saveStateDocumentListener);
+      modeField.addItemListener(
+          e -> {
+            if (e.getStateChange() != ItemEvent.SELECTED) {
+              return;
+            }
+            if (shortestPathCheckBox != null && shortestPathCheckBox.isSelected()) {
+              updateShortestPathMeansForSelectedMode();
+              serviceHandler.resetShortestPathOriginSelection();
+              updateShortestPathStatus();
+            }
+            updateEditorDirtyState();
+          });
       frequencyField.getDocument().addDocumentListener(saveStateDocumentListener);
-      meansField.addItemListener(e -> updateEditorDirtyState());
+      meansField.addItemListener(
+          e -> {
+            if (e.getStateChange() != ItemEvent.SELECTED) {
+              return;
+            }
+            if (shortestPathCheckBox != null && shortestPathCheckBox.isSelected()) {
+              serviceHandler.resetShortestPathOriginSelection();
+              updateShortestPathStatus();
+            }
+            updateEditorDirtyState();
+          });
       time.addItemListener(e -> updateEditorDirtyState());
+      modeField.setEnabled(false);
     }
 
     return editorCard;
@@ -1056,13 +1212,14 @@ public class ServicesDlg extends EscapeDialog {
               frequencyField.setText(12 + "");
               time.setSelectedIndex(0);
               descriptionField.setText("");
-              nameField.setText("");
+              nameField.setText(Integer.toString(idx));
 
               loadModeMeans((byte) -1, (byte) -1);
               isLoadingEditorFields = false;
-              resetEditorDirtyState();
 
               nameField.setEditable(true);
+              setShortestPathControlsSelected(false);
+              resetEditorDirtyState();
 
               showCard(EDITOR_CARD);
 
@@ -1206,8 +1363,8 @@ public class ServicesDlg extends EscapeDialog {
       s.setName(name);
       s.setFrequency(
           Integer.valueOf(frequencyField.getText()) * constPeriod[time.getSelectedIndex()]);
-      s.setMode(Byte.valueOf(modeField.getText()));
-      s.setMeans(Byte.valueOf(meansField.getSelectedItem().toString()));
+      s.setMode(Byte.valueOf(getEditorModeValue()));
+      s.setMeans(Byte.valueOf(getEditorMeansValue()));
 
       serviceHandler.saveService(s);
 
@@ -1221,6 +1378,7 @@ public class ServicesDlg extends EscapeDialog {
       markServicesChanged();
       enableButtons();
       resetEditorDirtyState();
+      setShortestPathControlsSelected(false);
       serviceHandler.setListening(false);
       showCard(LIST_CARD);
       if (isServiceVisibleInCurrentFilter(name)) {
@@ -1459,7 +1617,9 @@ public class ServicesDlg extends EscapeDialog {
    * @param means Means to add, or -1
    */
   public void loadModeMeans(int mode, int means) {
-    modeField.setText(mode + "");
+    modeField.removeAllItems();
+    modeField.addItem(Integer.toString(mode));
+    modeField.setSelectedItem(Integer.toString(mode));
     meansField.removeAllItems();
     if (mode == -1) {
       meansField.addItem("-1");
@@ -1473,6 +1633,92 @@ public class ServicesDlg extends EscapeDialog {
       }
     }
     updateSaveButtons();
+  }
+
+  /**
+   * Returns the mode currently typed in the details editor.
+   *
+   * @return The mode, or Integer.MIN_VALUE if invalid.
+   */
+  public int getEditorMode() {
+    String modeValue = getEditorModeValue();
+    return modeValue.isBlank() ? Integer.MIN_VALUE : JDBCUtils.getInt(modeValue);
+  }
+
+  /**
+   * Returns the means currently selected or typed in the details editor.
+   *
+   * @return The means, or Integer.MIN_VALUE if invalid.
+   */
+  public int getEditorMeans() {
+    String meansValue = getEditorMeansValue();
+    return meansValue.isBlank() ? Integer.MIN_VALUE : JDBCUtils.getInt(meansValue);
+  }
+
+  /**
+   * Updates the shortest-path status text when the handler toggles this creation mode.
+   *
+   * @param enabled True if shortest-path creation is active.
+   */
+  public void showShortestPathSelectionEnabled(boolean enabled) {
+    if (shortestPathStatusLabel == null) {
+      return;
+    }
+    if (enabled) {
+      updateShortestPathStatus();
+    } else {
+      shortestPathStatusLabel.setText("");
+    }
+  }
+
+  /** Updates the shortest-path status text when mode or means are missing. */
+  public void showShortestPathModeMeansRequired() {
+    shortestPathStatusLabel.setText(
+        i18n.get(
+            ServicesDlg.class, "Shortest_path_select_mode", "Choose a mode and means first"));
+  }
+
+  /**
+   * Updates the shortest-path status text after the origin node was selected.
+   *
+   * @param nodeId The selected origin node.
+   */
+  public void showShortestPathOriginNode(int nodeId) {
+    shortestPathStatusLabel.setText(
+        MessageFormat.format(
+            i18n.get(
+                ServicesDlg.class,
+                "Shortest_path_origin_selected",
+                "Origin: {0}. Select destination."),
+            Integer.toString(nodeId)));
+  }
+
+  /**
+   * Updates the shortest-path status text after a path was computed.
+   *
+   * @param originNodeId The origin node.
+   * @param destinationNodeId The destination node.
+   */
+  public void showShortestPathComputed(int originNodeId, int destinationNodeId) {
+    setShortestPathControlsSelected(false);
+    shortestPathStatusLabel.setText(
+        MessageFormat.format(
+            i18n.get(
+                ServicesDlg.class,
+                "Shortest_path_computed",
+                "Computed path from node {0} to node {1}."),
+            Integer.toString(originNodeId),
+            Integer.toString(destinationNodeId)));
+  }
+
+  /** Selects or deselects shortest-path mode without assuming the checkbox is initialized. */
+  private void setShortestPathControlsSelected(boolean selected) {
+    if (shortestPathCheckBox != null && shortestPathCheckBox.isSelected() != selected) {
+      shortestPathCheckBox.setSelected(selected);
+    } else {
+      updateShortestPathEditorState(selected);
+      serviceHandler.setShortestPathSelectionEnabled(selected);
+    }
   }
 
   /**
@@ -1671,7 +1917,9 @@ public class ServicesDlg extends EscapeDialog {
 
   /** Leaves the editor card after resolving unsaved editor changes, if any. */
   private void requestLeaveEditorCard() {
-    if (!hasUnsavedEditorChanges) {
+    if (!hasUnsavedEditorChanges || !hasCurrentServiceLinks()) {
+      hasUnsavedEditorChanges = false;
+      updateSaveButtons();
       leaveEditorCard();
       return;
     }
@@ -1722,6 +1970,7 @@ public class ServicesDlg extends EscapeDialog {
 
   private void leaveEditorCard() {
     TransportService s = serviceHandler.getCurrentService();
+    setShortestPathControlsSelected(false);
     serviceHandler.resetService();
 
     String key = s.getName();
@@ -1743,15 +1992,15 @@ public class ServicesDlg extends EscapeDialog {
   }
 
   private void showCard(String card) {
-    if (card.equals(EDITOR_CARD)) {
-      if (startDimension == null) {
-        startDimension = getSize();
-      }
-      setPreferredSize(EDITOR_CARD_SIZE);
-    } else {
-      setPreferredSize(startDimension);
-    }
     cards.show(mainPanel, card);
+    if (card.equals(EDITOR_CARD)) {
+      mainPanel.setPreferredSize(getEditorCard().getPreferredSize());
+      mainPanel.setMinimumSize(getEditorCard().getMinimumSize());
+    } else {
+      mainPanel.setPreferredSize(null);
+      mainPanel.setMinimumSize(null);
+    }
+    mainPanel.revalidate();
     pack();
   }
 
