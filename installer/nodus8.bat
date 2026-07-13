@@ -7,7 +7,7 @@ set NODUS8_HOME=%HERE:~0,-1%
 
 set JAVABIN=javaw.exe
 
-set "LIBDIR=%NODUS8_HOME%/lib/*;%NODUS8_HOME%/lib/groovy/*";%NODUS8_HOME%/lib/oshi/*"
+set "LIBDIR=%NODUS8_HOME%/lib/*;%NODUS8_HOME%/lib/groovy/*;%NODUS8_HOME%/lib/oshi/*"
 set "JDBCDIR=%NODUS8_HOME%/jdbcDrivers/*"
 set "NODUSJAR=%NODUS8_HOME%/nodus8.jar"
 
@@ -16,6 +16,6 @@ set NODUSCP="%NODUSJAR%;%LIBDIR%;%JDBCDIR%;%NODUS8_HOME%;"
 
 rem Set default values for the JVM heap sizes if not yet set
 %JAVABIN% -cp %NODUSCP% -DNODUS_HOME="%NODUS8_HOME%" edu.uclouvain.core.nodus.utils.SetJVMArgs
-call jvmargs.bat
+call "%NODUS8_HOME%\jvmargs.bat"
 
 start %JAVABIN% -cp %NODUSCP% %JVMARGS% -DNODUS_HOME="%NODUS8_HOME%" edu.uclouvain.core.nodus.Nodus "%~1" 
