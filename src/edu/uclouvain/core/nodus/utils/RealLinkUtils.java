@@ -89,12 +89,26 @@ public final class RealLinkUtils {
     return realLink;
   }
 
-  /** Computes the length of a link graphic in kilometers. */
+  /** 
+   * Computes the length of a link graphic in kilometers. 
+   * 
+   * @param linkGraphic The link graphic.
+   * 
+   * @return The length of the link graphic in kilometers.
+   **/
   public static float computeLength(OMGraphic linkGraphic) {
     return computeLength(linkGraphic, null, null);
   }
 
-  /** Computes the length of a link graphic in kilometers, with optional endpoint fallback. */
+  /** 
+   * Computes the length of a link graphic in kilometers, with optional endpoint fallback.
+   * 
+   * @param linkGraphic The link graphic.
+   * @param node1Graphic First endpoint node graphic, or null.
+   * @param node2Graphic Second endpoint node graphic, or null.
+   * 
+   * @return The length of the link graphic in kilometers.
+   **/
   public static float computeLength(
       OMGraphic linkGraphic, OMGraphic node1Graphic, OMGraphic node2Graphic) {
     float length = 0;

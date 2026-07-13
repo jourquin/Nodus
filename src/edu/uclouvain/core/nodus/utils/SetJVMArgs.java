@@ -28,6 +28,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.management.ManagementFactory;
 import java.util.Locale;
 import org.apache.commons.io.FileUtils;
 
@@ -44,6 +45,9 @@ import org.apache.commons.io.FileUtils;
  * <p>For 32bits JVM, max heap is set to 1.4Go
  *
  * <p>Since Nodus 8.1, the additional -Dfile.encoding=UTF8 flag is set.
+ *
+ * <p>Since Nodus 8.4, version-dependent JVM flags are set dynamically in the generated JVM
+ * arguments file.
  *
  * <p>Since Nodus 8.1 Build 20220103, the Times font is also installed on Mac OS Monterey machines
  * if needed.
@@ -72,12 +76,6 @@ public class SetJVMArgs {
       // Get the heap settings and add UTF-8 encoding flag
       String parameters = getDefaultHeapSettings() + " -Dfile.encoding=UTF-8";
 
-      int javaFeature = Runtime.version().feature();
-
-      if (javaFeature >= 9 && javaFeature <= 16) {
-        parameters += " --illegal-access=deny";
-      }
-
       // Update the script
       createScript(envtFileName, parameters);
     }
@@ -99,7 +97,7 @@ public class SetJVMArgs {
     int arch = Integer.parseInt(System.getProperty("sun.arch.data.model"));
 
     // Get total memory
-    long memorySize = HardwareUtils.getTotalMemory();
+    long memorySize = getTotalMemory();
 
     // Define the default max heap size
     long maxHeap = memorySize / 2;
@@ -118,6 +116,24 @@ public class SetJVMArgs {
     }
 
     return heapSettings;
+  }
+
+  /**
+   * Returns the total amount of RAM of the computer system.
+   *
+   * <p>This deliberately avoids HardwareUtils, which uses OSHI/JNA and can trigger Java 24+ native
+   * access warnings before jvmargs.sh or jvmargs.bat has been generated.
+   *
+   * @return The total amount of RAM as a long integer.
+   */
+  private long getTotalMemory() {
+    java.lang.management.OperatingSystemMXBean bean = ManagementFactory.getOperatingSystemMXBean();
+
+    if (bean instanceof com.sun.management.OperatingSystemMXBean) {
+      return ((com.sun.management.OperatingSystemMXBean) bean).getTotalPhysicalMemorySize();
+    }
+
+    return 4L * 1024 * 1024 * 1024;
   }
 
   /**
@@ -162,14 +178,49 @@ public class SetJVMArgs {
 
     try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(scriptFileName))) {
 
-      String line;
       if (isRunningOnWindows()) {
-        line = "set JVMARGS=" + parameters;
+        bufferedWriter.write("set JVMARGS=" + parameters);
+        bufferedWriter.newLine();
+        bufferedWriter.write("set JAVA_FEATURE=0");
+        bufferedWriter.newLine();
+        bufferedWriter.write(
+            "for /f \"tokens=3\" %%v in ('java.exe -version 2^>^&1 ^| findstr /i"
+                + " \"version\"') do set JAVA_VERSION=%%~v");
+        bufferedWriter.newLine();
+        bufferedWriter.write(
+            "for /f \"tokens=1 delims=.-\" %%v in (\"%JAVA_VERSION%\") do set"
+                + " JAVA_FEATURE=%%v");
+        bufferedWriter.newLine();
+        bufferedWriter.write(
+            "if %JAVA_FEATURE% GEQ 9 if %JAVA_FEATURE% LEQ 16 set"
+                + " \"JVMARGS=%JVMARGS% --illegal-access=deny\"");
+        bufferedWriter.newLine();
+        bufferedWriter.write(
+            "if %JAVA_FEATURE% GEQ 24 set \"JVMARGS=%JVMARGS%"
+                + " --enable-native-access=ALL-UNNAMED\"");
       } else {
-        line = "JVMARGS=\"" + parameters + "\"";
+        bufferedWriter.write("JVMARGS=\"" + parameters + "\"");
+        bufferedWriter.newLine();
+        bufferedWriter.write(
+            "JAVA_FEATURE=$(java -version 2>&1 | sed -n 's/.*version"
+                + " \"\\([0-9][0-9]*\\).*/\\1/p' | head -n 1)");
+        bufferedWriter.newLine();
+        bufferedWriter.write(
+            "if [ -n \"$JAVA_FEATURE\" ] && [ \"$JAVA_FEATURE\" -ge 9 ]"
+                + " && [ \"$JAVA_FEATURE\" -le 16 ] 2>/dev/null; then");
+        bufferedWriter.newLine();
+        bufferedWriter.write("    JVMARGS=\"$JVMARGS --illegal-access=deny\"");
+        bufferedWriter.newLine();
+        bufferedWriter.write("fi");
+        bufferedWriter.newLine();
+        bufferedWriter.write(
+            "if [ -n \"$JAVA_FEATURE\" ] && [ \"$JAVA_FEATURE\" -ge 24 ]"
+                + " 2>/dev/null; then");
+        bufferedWriter.newLine();
+        bufferedWriter.write("    JVMARGS=\"$JVMARGS --enable-native-access=ALL-UNNAMED\"");
+        bufferedWriter.newLine();
+        bufferedWriter.write("fi");
       }
-
-      bufferedWriter.write(line);
 
     } catch (IOException e) {
       e.printStackTrace();

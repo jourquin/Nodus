@@ -12,7 +12,7 @@ Beside this [GitHib Pages website](http://nodus.uclouvain.be), the **Nodus insta
 
 ## Introduction
 
-Nodus ([Screenshots](http://htmlpreview.github.io/?https://github.com/jourquin/Nodus/blob/master/doc/images/screenshots.html)) 
+Nodus ([Screenshots](http://htmlpreview.github.io/?https%3A%2F%2Fgithub.com%2Fjourquin%2FNodus%2Fblob%2Fmaster%2Fdoc%2Fimages%2Fscreenshots.html)) 
 implements the "Virtual networks" methodology developed at UCLouvain, an alternative to the classical "four steps" 
 technique to model multimodal and intermodal transport flows over networks, as it combines the "modal choice" 
 and "assignment" phases of the latter in a single step.
@@ -45,7 +45,7 @@ or plugins (in Java jar files).
 [H2](http://h2database.com/) and [Apache Derby](https://db.apache.org/derby/).  
 - Flexible: user defined database fields, variables, cost functions, mode choice models…
 
-See also the [documentation](http://htmlpreview.github.io/?https://github.com/jourquin/Nodus/blob/master/doc/help.html) and
+See also the [documentation](http://htmlpreview.github.io/?https%3A%2F%2Fgithub.com%2Fjourquin%2FNodus%2Fblob%2Fmaster%2Fdoc%2Fhelp.html) and
 the [Demo project](https://github.com/jourquin/Nodus/blob/master/demo).
 
 ## History of the releases
@@ -108,6 +108,10 @@ of 6Go.
 These values are stored in "jvmargs.sh" or "jvmargs.bat", a file created in the installation directory by
 Nodus at launch time if it doesn't exist yet. This file can be edited if other values (or even other JVM parameters)
 are desired.
+
+Since Nodus 8.4, version-dependent JVM parameters are also added dynamically in this file. This includes
+`--illegal-access=deny` with Java 9 to 16, and `--enable-native-access=ALL-UNNAMED` with Java 24
+or later to enable native access for classpath libraries used by Nodus, such as JNA/OSHI.
    
 ## License
 
@@ -163,6 +167,3 @@ You can also delete the small ".nodus8.properties" file that is located at the r
 
 Jourquin, Bart. (2022) Nodus, the Transportation Network Modeling Software Designed for Multimodal and Intermodal 
 Freight Transport. http://nodus.uclouvain.be. [DOI 10.5281/zenodo.3634540](https://doi.org/10.5281/zenodo.3634540).
-
-
-

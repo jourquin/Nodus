@@ -237,8 +237,8 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Pass startNodus and quitNodus boolean variables to Groovy when it tries to run the nodus.groovy script
 - Add the storeObject and retrieveObject methods in NodusMapPanel. 
 - The nodus.groovy script is now also run when Nodus is shutdown
-- Pass openProject and closeProject boolean variables to Groovy when it tries to run the "project".groovy script
-- The "project".groovy script is now also run when a project is closed
+- Pass openProject and closeProject boolean variables to Groovy when it tries to run the `project.groovy` script
+- The `project.groovy` script is now also run when a project is closed
 - Improved Python example script
 - The Py4J server is now launched from the nodus.groovy script (not anymore hard coded)
 - Allows R scripting through a J4R bridge (version >= 1.1). The server is launched and stopped via the nodus.groovy script (same as for Py4J)
@@ -268,7 +268,7 @@ value set to "permit". This is not anymore the case since Java 16. It must there
 - Upgrade to Parsii 5.0.1 (handles scientific notation)
 
 ## v8.1 - Build20211223
-- Remove support for MacBook touchbar. Not useful and not anymore present on the latest MacBook's
+- Remove support for MacBook touchbar. Not useful and not anymore present on the latest MacBooks
 - Reformat some code to apply latest checkstyle rules.
 - Upgrade to Groovy 3.0.9
 - Upgrade to commons-io-2.11.0 and commons-csc-1.9.0
@@ -455,6 +455,10 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Ask the user to confirm if he wants to leave Nodus if left via the window close listener
 - Several safeguards added in the UI
 - Upgrade to IzPack 5.2.4
+
+## v8.4 - BuildXXXXXXXX
+- Introduce a more flexible runtime mechanism to pass arguments to the JVM
+- Fix some MarkDown syntax issues
 
 
 
