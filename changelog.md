@@ -459,7 +459,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 ## v8.4 - BuildXXXXXXXX
 - Introduce a more flexible runtime mechanism to pass arguments to the JVM
 - Fix some MarkDown syntax issues
-
+- Upgrade to HSQLDB 2.7.4
 
 
 

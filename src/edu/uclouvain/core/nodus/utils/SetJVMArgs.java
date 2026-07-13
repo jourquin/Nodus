@@ -198,6 +198,14 @@ public class SetJVMArgs {
         bufferedWriter.write(
             "if %JAVA_FEATURE% GEQ 24 set \"JVMARGS=%JVMARGS%"
                 + " --enable-native-access=ALL-UNNAMED\"");
+        bufferedWriter.newLine();
+        bufferedWriter.write(
+            "if %JAVA_FEATURE% GEQ 24 if %JAVA_FEATURE% LEQ 25 set"
+                + " \"JVMARGS=%JVMARGS% --sun-misc-unsafe-memory-access=allow\"");
+        bufferedWriter.newLine();
+        bufferedWriter.write(
+            "if %JAVA_FEATURE% GEQ 26 set \"JVMARGS=%JVMARGS%"
+                + " --sun-misc-unsafe-memory-access=warn\"");
       } else {
         bufferedWriter.write("JVMARGS=\"" + parameters + "\"");
         bufferedWriter.newLine();
@@ -218,6 +226,22 @@ public class SetJVMArgs {
                 + " 2>/dev/null; then");
         bufferedWriter.newLine();
         bufferedWriter.write("    JVMARGS=\"$JVMARGS --enable-native-access=ALL-UNNAMED\"");
+        bufferedWriter.newLine();
+        bufferedWriter.write("fi");
+        bufferedWriter.newLine();
+        bufferedWriter.write(
+            "if [ -n \"$JAVA_FEATURE\" ] && [ \"$JAVA_FEATURE\" -ge 24 ]"
+                + " && [ \"$JAVA_FEATURE\" -le 25 ] 2>/dev/null; then");
+        bufferedWriter.newLine();
+        bufferedWriter.write("    JVMARGS=\"$JVMARGS --sun-misc-unsafe-memory-access=allow\"");
+        bufferedWriter.newLine();
+        bufferedWriter.write("fi");
+        bufferedWriter.newLine();
+        bufferedWriter.write(
+            "if [ -n \"$JAVA_FEATURE\" ] && [ \"$JAVA_FEATURE\" -ge 26 ]"
+                + " 2>/dev/null; then");
+        bufferedWriter.newLine();
+        bufferedWriter.write("    JVMARGS=\"$JVMARGS --sun-misc-unsafe-memory-access=warn\"");
         bufferedWriter.newLine();
         bufferedWriter.write("fi");
       }

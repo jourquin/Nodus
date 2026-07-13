@@ -111,7 +111,9 @@ are desired.
 
 Since Nodus 8.4, version-dependent JVM parameters are also added dynamically in this file. This includes
 `--illegal-access=deny` with Java 9 to 16, and `--enable-native-access=ALL-UNNAMED` with Java 24
-or later to enable native access for classpath libraries used by Nodus, such as JNA/OSHI.
+or later to enable native access for classpath libraries used by Nodus, such as JNA/OSHI. With
+Java 24 or later, the `sun.misc.Unsafe` warning policy is also set explicitly for compatibility
+with libraries that still use deprecated memory-access methods.
    
 ## License
 

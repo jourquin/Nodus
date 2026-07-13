@@ -14,7 +14,6 @@
         <pathelement location="classes"/>
         <pathelement location="lib/derbyLocale_fr.jar"/>
         <pathelement location="lib/guava-19.0.jar"/>
-        <pathelement location="lib/hsqldb.jar"/>
         <pathelement location="lib/j4r-1.1.1.jar"/>
         <pathelement location="lib/javadbf4nodus-1.12.2.jar"/>
         <pathelement location="lib/JCheckList.jar"/>
@@ -118,12 +117,12 @@
         <pathelement location="lib/oshi/jna-platform-5.19.1.jar"/>
         <pathelement location="lib/slf4j-api-1.7.35.jar"/>
         <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
+        <pathelement location="lib/hsqldb-2.7.4.jar"/>
     </path>
     <path id="run.Nodus.classpath">
         <path refid="Nodus.classpath"/>
         <pathelement location="lib/derbyLocale_fr.jar"/>
         <pathelement location="lib/guava-19.0.jar"/>
-        <pathelement location="lib/hsqldb.jar"/>
         <pathelement location="lib"/>
         <pathelement location="lib/j4r-1.1.1.jar"/>
         <pathelement location="lib/javadbf4nodus-1.12.2.jar"/>
@@ -228,6 +227,7 @@
         <pathelement location="lib/oshi/jna-platform-5.19.1.jar"/>
         <pathelement location="lib/slf4j-api-1.7.35.jar"/>
         <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
+        <pathelement location="lib/hsqldb-2.7.4.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>
@@ -254,7 +254,7 @@
     <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
     <target name="Nodus">
         <java classname="edu.uclouvain.core.nodus.Nodus" failonerror="true" fork="yes">
-            <jvmarg line="-Xmx6144m -Xms2048m -Dfile.encoding=UTF8 --illegal-access=deny"/>
+            <jvmarg line="-Xmx6G -Xms4G -Dfile.encoding=UTF-8"/>
             <classpath refid="run.Nodus.classpath"/>
         </java>
     </target>
