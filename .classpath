@@ -104,11 +104,6 @@
 	<classpathentry kind="lib" path="lib/groovy/snakeyaml-2.5.jar"/>
 	<classpathentry kind="lib" path="lib/groovy/testng-7.12.0.jar"/>
 	<classpathentry kind="lib" path="lib/h2-2.4.240.jar"/>
-	<classpathentry kind="lib" path="lib/oshi/oshi-common-7.3.1.jar"/>
-	<classpathentry kind="lib" path="lib/oshi/oshi-core-7.3.1.jar"/>
-	<classpathentry kind="lib" path="lib/oshi/oshi-demo-7.3.1.jar"/>
-	<classpathentry kind="lib" path="lib/oshi/jna-5.19.1.jar"/>
-	<classpathentry kind="lib" path="lib/oshi/jna-platform-5.19.1.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-api-1.7.35.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-nop-1.7.35.jar"/>
 	<classpathentry kind="lib" path="lib/hsqldb-2.7.4.jar"/>

@@ -22,28 +22,21 @@
 package edu.uclouvain.core.nodus.utils;
 
 import java.awt.Frame;
-import java.util.Iterator;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import javax.swing.JFrame;
 import org.uclouvain.gtm.util.gui.JResourcesMonitor;
-import oshi.SystemInfo;
-import oshi.hardware.CentralProcessor;
-import oshi.hardware.ComputerSystem;
-import oshi.hardware.Display;
-import oshi.hardware.GlobalMemory;
-import oshi.hardware.GraphicsCard;
-import oshi.hardware.HardwareAbstractionLayer;
-import oshi.software.os.OperatingSystem;
-import oshi.util.EdidUtil;
-import oshi.util.FormatUtil;
 
 /**
- * Some utilities to gather hardware information.
+ * Some utilities to gather system information with the Java runtime API.
  *
  * @author Bart Jourquin
  */
 public class HardwareUtils {
 
-  static SystemInfo si = new SystemInfo();
+  private static final OperatingSystemMXBean OS_BEAN = ManagementFactory.getOperatingSystemMXBean();
 
   /** Default constructor. */
   public HardwareUtils() {}
@@ -67,28 +60,12 @@ public class HardwareUtils {
   }
 
   /**
-   * Return the number of physical cores of the computer.
-   *
-   * @return The number of physical cores.
-   */
-  public static int getNbPhysicalCores() {
-
-    HardwareAbstractionLayer hal = si.getHardware();
-    CentralProcessor cpu = hal.getProcessor();
-    return cpu.getPhysicalProcessorCount();
-  }
-
-  /**
    * Return the number of logical cores of the computer.
    *
    * @return The number of logical cores.
    */
-  public static int getNbLogicalCores() {
-
-    HardwareAbstractionLayer hal = si.getHardware();
-    CentralProcessor cpu = hal.getProcessor();
-
-    return cpu.getLogicalProcessorCount();
+  public static int getNbCores() {
+    return Math.max(1, OS_BEAN.getAvailableProcessors());
   }
 
   /**
@@ -97,112 +74,95 @@ public class HardwareUtils {
    * @return Name and version of the OS.
    */
   public static String getOsInfo() {
-    OperatingSystem os = si.getOperatingSystem();
-    return os.toString();
+    return OS_BEAN.getName() + " " + OS_BEAN.getVersion() + " (" + OS_BEAN.getArch() + ")";
   }
 
   /**
-   * Returns the name of the computer.
+   * Returns the host name of the computer.
    *
-   * @return Name of the computer system.
+   * @return Host name of the computer system.
    */
   public static String getComputerInfo() {
-    ComputerSystem computerSystem = si.getHardware().getComputerSystem();
-    return computerSystem.getManufacturer() + " " + computerSystem.getModel();
+    try {
+      return InetAddress.getLocalHost().getHostName();
+    } catch (UnknownHostException e) {
+      return System.getProperty("user.name", "Unknown host");
+    }
   }
 
   /**
-   * Returns a complete description of the CPU(s).
+   * Returns a description of the CPU information available through the Java API.
    *
-   * @return Description of the CPU's.
+   * @return Description of the available CPU information.
    */
   public static String getProcessorInfo() {
-    CentralProcessor proc = si.getHardware().getProcessor();
-    return proc.toString();
+    return "Architecture: "
+        + OS_BEAN.getArch()
+        + System.lineSeparator()
+        + "Logical processors: "
+        + getNbCores();
   }
 
   /**
-   * Returns a description of the computer system display(s).
+   * Returns a description of the computer system display(s), when available.
    *
    * @return Description of the display(s).
    */
   public static String getDisplayInfo() {
-    StringBuilder sb = new StringBuilder();
-    java.util.List<Display> displays = si.getHardware().getDisplays();
-    if (displays.isEmpty()) {
-      sb.append("None detected.");
-    } else {
-      int i = 0;
-      for (Display display : displays) {
-        byte[] edid = display.getEdid();
-        byte[][] desc = EdidUtil.getDescriptors(edid);
-        String name = "Display " + i;
-        for (byte[] b : desc) {
-          if (EdidUtil.getDescriptorType(b) == 0xfc) {
-            name = EdidUtil.getDescriptorText(b);
-          }
-        }
-        if (i++ > 0) {
-          sb.append('\n');
-        }
-        sb.append(name).append(": ");
-        int horizontalSize = EdidUtil.getHcm(edid);
-        int verticalSize = EdidUtil.getVcm(edid);
-        sb.append(
-            String.format(
-                "%d x %d cm (%.1f x %.1f in)",
-                horizontalSize, verticalSize, horizontalSize / 2.54, verticalSize / 2.54));
-      }
-    }
-    return sb.toString();
+    return "Not available with the Java API.";
   }
 
   /**
-   * Returns the description of installed the graphics card(s).
+   * Returns the description of installed graphics card(s), when available.
    *
    * @return Description of the graphics card(s).
    */
   public static String getGraphicsCardInfo() {
-    java.util.List<GraphicsCard> graphicsCards = si.getHardware().getGraphicsCards();
-    Iterator<GraphicsCard> it = graphicsCards.iterator();
-    String s = "";
-    while (it.hasNext()) {
-      GraphicsCard gc = it.next();
-      s += gc.getVendor() + " ";
-      s += gc.getName();
-      if (it.hasNext()) {
-        s += System.lineSeparator();
-      }
-    }
-    return s;
+    return "Not available with the Java API.";
   }
 
   /**
-   * Returns the total amount of RAM of the computer system.
+   * Returns the maximum amount of memory the JVM will attempt to use.
    *
-   * @return The total amount of RAM as a long integer.
+   * @return The maximum JVM heap size as a long integer.
    */
   public static long getTotalMemory() {
-    GlobalMemory memory = si.getHardware().getMemory();
-    return memory.getTotal();
+    return Runtime.getRuntime().maxMemory();
   }
 
   /**
-   * Returns the total amount of RAM of the computer system.
+   * Returns the maximum amount of memory the JVM will attempt to use.
    *
-   * @return The total amount of RAM with the appropriate unit suffix.
+   * @return The maximum JVM heap size with the appropriate unit suffix.
    */
   public static String getTotalMemoryInfo() {
-    return FormatUtil.formatBytes(getTotalMemory());
+    return formatBytes(getTotalMemory());
   }
 
   /**
-   * Returns the available amount of RAM of the computer system.
+   * Returns the amount of JVM heap still available before reaching the maximum heap size.
    *
-   * @return The available amount of RAM with the appropriate unit suffix.
+   * @return The available JVM heap size with the appropriate unit suffix.
    */
   public static String getAvailableMemoryInfo() {
-    GlobalMemory memory = si.getHardware().getMemory();
-    return FormatUtil.formatBytes(memory.getAvailable());
+    Runtime runtime = Runtime.getRuntime();
+    long availableMemory = runtime.maxMemory() - runtime.totalMemory() + runtime.freeMemory();
+    return formatBytes(availableMemory);
+  }
+
+  private static String formatBytes(long bytes) {
+    if (bytes < 1024) {
+      return bytes + " B";
+    }
+
+    String[] units = {"KB", "MB", "GB", "TB"};
+    double value = bytes;
+    int unitIndex = -1;
+    do {
+      value = value / 1024;
+      unitIndex++;
+    } while (value >= 1024 && unitIndex < units.length - 1);
+
+    return String.format("%.1f %s", value, units[unitIndex]);
   }
 }

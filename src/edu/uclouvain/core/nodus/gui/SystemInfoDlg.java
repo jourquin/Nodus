@@ -29,8 +29,6 @@ import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JEditorPane;
@@ -67,12 +65,6 @@ public class SystemInfoDlg extends EscapeDialog {
   private String processorInfo = HardwareUtils.getProcessorInfo();
 
   /** . */
-  private String displayInfo = HardwareUtils.getDisplayInfo();
-
-  /** . */
-  private String graphicCardsInfo = HardwareUtils.getGraphicsCardInfo();
-
-  /** . */
   private String osInfo = HardwareUtils.getOsInfo();
 
   /** . */
@@ -84,9 +76,6 @@ public class SystemInfoDlg extends EscapeDialog {
   /** . */
   private String htmlDescription;
 
-  /** . */
-  private JDialog aboutDlg;
-
   /**
    * Creates the dialog box.
    *
@@ -94,8 +83,6 @@ public class SystemInfoDlg extends EscapeDialog {
    */
   public SystemInfoDlg(JDialog parent) {
     super(parent, i18n.get(SystemInfoDlg.class, "System_info", "System info"), true);
-
-    aboutDlg = parent;
 
     this.setContentPane(getMainPanel());
     pack();
@@ -152,8 +139,6 @@ public class SystemInfoDlg extends EscapeDialog {
 
       computerInfo = computerInfo.replace("\n", "<br>");
       processorInfo = processorInfo.replace("\n", "<br>");
-      displayInfo = displayInfo.replace("\n", "<br>");
-      graphicCardsInfo = graphicCardsInfo.replace("\n", "<br>");
       osInfo = osInfo.replace("\n", "<br>");
 
       /* Build a html page with the version info of the JVM and the OS. */
@@ -176,40 +161,23 @@ public class SystemInfoDlg extends EscapeDialog {
               + "<br>"
               + "MaxHeap = "
               + maxHeap
-              + "Mb"
+              + " Mb"
               + "<br><br>"
+              + "Host: "
               + computerInfo
-              + "<br>"
+              + "<br><br>"
               + processorInfo
               + "<br><br>"
-              + displayInfo
-              + "<br>"
-              + graphicCardsInfo
-              + "<br><br>"
               + totalMemoryInfo
-              + " total RAM / "
+              + " maximum JVM heap / "
               + availableMemoryInfo
-              + " free RAM"
-              + "<br><br>"
+              + " available JVM heap"
+              + "<br>"
               + osInfo
               + "</div></body>"
               + suffix;
 
       systemInfo = new JEditorPane();
-
-      // Display Oshi gui on double-click
-      systemInfo.addMouseListener(
-          new MouseAdapter() {
-
-            public void mouseClicked(MouseEvent e) {
-              if (e.getClickCount() == 2 && !e.isConsumed()) {
-                e.consume();
-                closeButton.doClick();
-                aboutDlg.setVisible(false);
-                new OshiGui();
-              }
-            }
-          });
       systemInfo.setContentType("text/html");
       systemInfo.setEditable(false);
       systemInfo.setText(htmlDescription);

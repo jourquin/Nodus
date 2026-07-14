@@ -26,8 +26,6 @@
 
 [openmap](http://openmap-java.org), Openmap
 
-[oshi](https://github.com/oshi/oshi), MIT
-
 [parsii](https://github.com/scireum/parsii), MIT
 
 [Py4J](https://www.py4j.org/index.html), modified BSD

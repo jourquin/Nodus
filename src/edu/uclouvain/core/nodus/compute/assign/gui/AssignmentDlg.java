@@ -298,10 +298,7 @@ public class AssignmentDlg extends EscapeDialog {
   private final JButton saveButton = new JButton();
 
   /** . */
-  private int nbPhysicalCores = 1;
-
-  /** . */
-  private int nbLogicalCores = 1;
+  private int nbCores = 1;
 
   /**
    * Initializes the dialog box.
@@ -312,9 +309,8 @@ public class AssignmentDlg extends EscapeDialog {
     super(mapPanel.getMainFrame(), "", true);
     setTitle(i18n.get(AssignmentDlg.class, "Assignment", "Assignment"));
 
-    // Get the number of physical and logical cores
-    nbPhysicalCores = HardwareUtils.getNbPhysicalCores();
-    nbLogicalCores = HardwareUtils.getNbLogicalCores();
+    // Get the number of cores
+    nbCores = HardwareUtils.getNbCores();
 
     nodusMapPanel = mapPanel;
 
@@ -387,7 +383,7 @@ public class AssignmentDlg extends EscapeDialog {
   private void assignButton_actionPerformed(ActionEvent e) {
 
     int nbThreads = Integer.parseInt(threadsSpinner.getValue().toString());
-    if (nbThreads > nbPhysicalCores) {
+    if (nbThreads > nbCores) {
       int check =
           JOptionPane.showConfirmDialog(
               null,
@@ -1990,21 +1986,22 @@ public class AssignmentDlg extends EscapeDialog {
     descriptionTextField.setText(stringValue);
 
     // Fill the "threads" spinner. The number of threads is limited to the number of cores
-    String[] v = new String[nbLogicalCores];
-    for (int i = 0; i < nbLogicalCores; i++) {
+    String[] v = new String[nbCores];
+    for (int i = 0; i < nbCores; i++) {
       v[i] = String.valueOf(i + 1);
     }
     SpinnerListModel threadsSpinnerModel = new SpinnerListModel(v);
     threadsSpinner.setModel(threadsSpinnerModel);
+
     intValue =
         nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_THREADS + scenarioSuffix, -1);
-    // Default to number of physical cores
+
+    // Default to number of logical cores
     if (intValue == -1) {
-      intValue =
-          nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_THREADS, nbPhysicalCores);
+      intValue = nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_THREADS, nbCores);
     }
-    if (intValue > nbLogicalCores) {
-      intValue = nbLogicalCores;
+    if (intValue > nbCores) {
+      intValue = nbCores;
     }
     stringValue = String.valueOf(intValue);
     try {

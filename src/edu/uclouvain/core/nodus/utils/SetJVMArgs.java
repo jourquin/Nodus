@@ -121,9 +121,6 @@ public class SetJVMArgs {
   /**
    * Returns the total amount of RAM of the computer system.
    *
-   * <p>This deliberately avoids HardwareUtils, which uses OSHI/JNA and can trigger Java 24+ native
-   * access warnings before jvmargs.sh or jvmargs.bat has been generated.
-   *
    * @return The total amount of RAM as a long integer.
    */
   private long getTotalMemory() {
@@ -222,8 +219,7 @@ public class SetJVMArgs {
         bufferedWriter.write("fi");
         bufferedWriter.newLine();
         bufferedWriter.write(
-            "if [ -n \"$JAVA_FEATURE\" ] && [ \"$JAVA_FEATURE\" -ge 24 ]"
-                + " 2>/dev/null; then");
+            "if [ -n \"$JAVA_FEATURE\" ] && [ \"$JAVA_FEATURE\" -ge 24 ]" + " 2>/dev/null; then");
         bufferedWriter.newLine();
         bufferedWriter.write("    JVMARGS=\"$JVMARGS --enable-native-access=ALL-UNNAMED\"");
         bufferedWriter.newLine();
@@ -238,8 +234,7 @@ public class SetJVMArgs {
         bufferedWriter.write("fi");
         bufferedWriter.newLine();
         bufferedWriter.write(
-            "if [ -n \"$JAVA_FEATURE\" ] && [ \"$JAVA_FEATURE\" -ge 26 ]"
-                + " 2>/dev/null; then");
+            "if [ -n \"$JAVA_FEATURE\" ] && [ \"$JAVA_FEATURE\" -ge 26 ]" + " 2>/dev/null; then");
         bufferedWriter.newLine();
         bufferedWriter.write("    JVMARGS=\"$JVMARGS --sun-misc-unsafe-memory-access=warn\"");
         bufferedWriter.newLine();
