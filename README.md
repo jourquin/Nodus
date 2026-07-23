@@ -12,7 +12,7 @@ Beside this [GitHib Pages website](http://nodus.uclouvain.be), the **Nodus insta
 
 ## Introduction
 
-Nodus ([Screenshots](http://htmlpreview.github.io/?https%3A%2F%2Fgithub.com%2Fjourquin%2FNodus%2Fblob%2Fmaster%2Fdoc%2Fimages%2Fscreenshots.html)) 
+Nodus ([Screenshots](https://nodus.uclouvain.be/doc/images/screenshots.html)) 
 implements the "Virtual networks" methodology developed at UCLouvain, an alternative to the classical "four steps" 
 technique to model multimodal and intermodal transport flows over networks, as it combines the "modal choice" 
 and "assignment" phases of the latter in a single step.
@@ -45,7 +45,7 @@ or plugins (in Java jar files).
 [H2](http://h2database.com/) and [Apache Derby](https://db.apache.org/derby/).  
 - Flexible: user defined database fields, variables, cost functions, mode choice models…
 
-See also the [documentation](http://htmlpreview.github.io/?https%3A%2F%2Fgithub.com%2Fjourquin%2FNodus%2Fblob%2Fmaster%2Fdoc%2Fhelp.html) and
+See also the [documentation](https://nodus.uclouvain.be/doc/help.html) and
 the [Demo project](https://github.com/jourquin/Nodus/blob/master/demo).
 
 ## History of the releases
