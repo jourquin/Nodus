@@ -3,7 +3,7 @@
 
 Nodus is a transportation network modeling software especially designed for multimodal and
 intermodal freight transport. It is developed at the Center for Operations Research and 
-Econometrics ([CORE](https://uclouvain.be/fr/node/4474)) of the Université catholique de Louvain
+Econometrics ([CORE](https://www.uclouvain.be/en/research-institutes/lidam/core)) of the Université catholique de Louvain
 ([UCLouvain](https://uclouvain.be/en/index.html), Belgium). The software is developed  and maintained mainly by 
 [Pr Bart Jourquin](https://uclouvain.be/en/directories/bart.jourquin). 
   
