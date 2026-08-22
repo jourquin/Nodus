@@ -167,5 +167,5 @@ You can also delete the small ".nodus8.properties" file that is located at the r
 
 ## How to cite?
 
-Jourquin, Bart. (2022) Nodus, the Transportation Network Modeling Software Designed for Multimodal and Intermodal 
-Freight Transport. http://nodus.uclouvain.be. [DOI 10.5281/zenodo.3634540](https://doi.org/10.5281/zenodo.3634540).
+Jourquin, Bart. (2026) Nodus, the Transportation Network Modeling Software Designed for Multimodal and Intermodal 
+Freight Transport. http://nodus.uclouvain.be. [DOI 10.5281/zenodo.21336779](https://doi.org/10.5281/zenodo.21336779).
