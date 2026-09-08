@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.11" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Service Lines Workflow</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+<h1 id="service-lines-workflow">Service Lines Workflow</h1>
+<p>This document explains how to create, edit, and use transport
+services in Nodus.</p>
+<h2 id="main-concepts">Main Concepts</h2>
+<p>A service describes a scheduled transport line on top of the physical
+network. A service has:</p>
+<ul>
+<li>an ID and a name,</li>
+<li>one mode and one means,</li>
+<li>an annualized frequency, edited as a number per year, month, week,
+or day,</li>
+<li>a connected set of network links,</li>
+<li>optional stop nodes along those links.</li>
+</ul>
+<p>When a mode/means combination is declared as service-constrained,
+traffic for that mode/means can only use links that belong to a defined
+service. This is controlled in the cost functions file with:</p>
+<pre class="properties"><code>SERVICELINES.mode,means = true</code></pre>
+<p>For example:</p>
+<pre class="properties"><code>SERVICELINES.3,2 = true</code></pre>
+<p>This constrains only mode 3, means 2. Other means of mode 3 remain
+unconstrained unless they also have their own
+<code>SERVICELINES.mode,means</code> entry.</p>
+<p>For constrained combinations, the virtual network is generated per
+service. A real link only receives virtual movement links for services
+that use that link and whose service means matches the generated means.
+Unconstrained mode/means combinations are generated in the usual
+free-flow way, with service ID 0.</p>
+<h2 id="services-editor">Services Editor</h2>
+<p>Open the services editor from the Project|Edit services menu (or use
+F3).</p>
+<p>[Screenshot: Services editor]</p>
+<p>The upper table lists the existing services. The columns are:</p>
+<ul>
+<li>ID: numeric identifier of the service,</li>
+<li>Name: service name,</li>
+<li>Mode: transport mode used by the service,</li>
+<li>Means: transport means used by the service,</li>
+<li>Frequency: service frequency, shown in the most readable period and
+with the equivalent annual value.</li>
+</ul>
+<p>Use the buttons at the bottom of the dialog to manage the list:</p>
+<ul>
+<li>Add creates a new service.</li>
+<li>Edit opens the selected service for editing. A double-click on a
+service has the same effect.</li>
+<li>Copy duplicates the selected service.</li>
+<li>Delete removes the selected service.</li>
+<li>Line view hides non-service links on the touched link layers so the
+selected service can be inspected in isolation.</li>
+<li>Save writes all pending service changes to the SQL database and
+closes the dialog.</li>
+<li>Cancel closes the dialog. If there are pending service changes,
+Nodus asks whether to discard them or save them.</li>
+</ul>
+<p>The Escape key has the same effect as Cancel. If an invalid service
+is loaded from the database, Nodus warns about it and can delete invalid
+services from the service tables.</p>
+<h2 id="creating-or-editing-a-service-line">Creating Or Editing A
+Service Line</h2>
+<p>When a service is added or edited, Nodus switches to the service
+details view.</p>
+<p>[Screenshot: Service details editor]</p>
+<p>The details view lets you edit the name, means, and frequency. The
+service ID is assigned automatically. The details view also activates
+line editing on the map and switches the map to selection mode.</p>
+<p>When a new service is added, Shortest path is checked by default. The
+checkbox remains enabled until the first route node is selected, so it
+can be unchecked if the service must be edited manually. During node
+selection it is disabled to keep the workflow mode stable.</p>
+<p>When an existing service is edited, Shortest path is unchecked by
+default. Leave it unchecked to modify the existing line manually, or
+check it to replace the whole route with a newly computed shortest-path
+line. The existing service name, frequency, mode, and means are kept
+when Shortest path is checked.</p>
+<p>To define or edit a service line manually:</p>
+<ol type="1">
+<li>Uncheck Shortest path if a new service should be edited
+manually.</li>
+<li>Select links on the map.</li>
+<li>The mode is inferred from the first selected link and cannot be
+typed directly. The means list is populated from the selected link's
+available means.</li>
+<li>The selected service line is highlighted in green.</li>
+<li>Add links one by one. Each new link must touch exactly one node that
+is already in the current service line.</li>
+<li>Click an already selected end link, or a branch leaf link, to remove
+it.</li>
+<li>Press Save in the details view to apply the edited service to the
+pending service list and return to the service list.</li>
+<li>Press Save in the main services editor to commit the pending service
+list to the SQL database.</li>
+</ol>
+<p>To create or replace the service line from a computed shortest
+path:</p>
+<ol type="1">
+<li>Keep Shortest path checked when adding a new service, or check it
+explicitly while editing an existing service.</li>
+<li>Choose the mode and means to use for the computation.</li>
+<li>Select the origin node on the map. After this selection, Shortest
+path is disabled until the workflow ends.</li>
+<li>Select zero or more intermediate route nodes in the order they must
+be visited.</li>
+<li>Select the destination node.</li>
+<li>Press Compute to replace the edited service line with the
+concatenated shortest paths between each selected node.</li>
+<li>Press Save in the details view, then Save in the main services
+editor.</li>
+</ol>
+<p>The service editor displays the number of selected route nodes. The
+full ordered node sequence is printed in the service log. The selected
+intermediate nodes are routing waypoints. The service stops created by
+this workflow are the first and last selected nodes.</p>
+<p>The Save button is enabled only when the edited fields are valid, the
+service has at least one link, and there are unsaved detail changes.
+When Save is pressed, Nodus validates the full service line. A valid
+service line must satisfy these rules:</p>
+<ul>
+<li>the service must contain at least one link,</li>
+<li>all links must use the same mode,</li>
+<li>every added link must be connected to exactly one node of the
+existing service line,</li>
+<li>a cycle is not accepted by the editor,</li>
+<li>all links must belong to one connected component,</li>
+<li>the resulting connected tree may branch,</li>
+<li>the service must have at least two end nodes,</li>
+<li>every end node must allow operations.</li>
+</ul>
+<p>The first link must be connected to at least one node where
+operations are possible. A service line can also end only at nodes where
+operations are possible. If a link is removed, stop nodes that are no
+longer touched by the service are removed from the service.</p>
+<p>The Escape key or Cancel button leaves the service details view. If
+the details contain unsaved changes, Nodus asks whether to discard them
+or save them. Saving at this level still only applies the service to the
+pending service list; the SQL tables are written by the main services
+editor Save button or by choosing Save changes when closing the
+list.</p>
+<h2 id="stop-nodes">Stop Nodes</h2>
+<p>A stop node is a node where a service is allowed to stop. It is not
+defined directly by the node <code>tranship</code> field. It is stored
+separately in the services stop table.</p>
+<p>To edit stop nodes:</p>
+<ol type="1">
+<li>Open the database fields editor for a node.</li>
+<li>Press the Services button.</li>
+<li>The "Services at this node" dialog lists all services that pass
+through this node.</li>
+<li>Check the services that should stop at the node.</li>
+<li>Press Close in the "Services at this node" dialog to apply the
+checked state back to the DBF editor.</li>
+<li>Press Save in the fields editor to commit the stop changes to the
+service SQL tables.</li>
+</ol>
+<p>[Screenshot: Services at this node]</p>
+<p>If the fields editor is closed with Cancel or Escape, the staged stop
+changes are discarded.</p>
+<h2 id="the-services-button-in-the-fields-editor">The Services Button In
+The Fields Editor</h2>
+<p>For a node, the button is enabled only when the node allows
+operations and at least one service passes through the node. It opens
+the "Services at this node" dialog, which is used to mark whether each
+passing service is allowed to stop there.</p>
+<p>For a link, the button is enabled only when at least one service uses
+the link. It opens the "Services at this link" dialog. This dialog lists
+the services that use the link. Selecting a service in the list
+highlights it on the map.</p>
+<p>[Screenshot: Services at this link]</p>
+<p>The Services button does not edit the shape geometry. Node stop edits
+are staged in the DBF editor, then stored in SQL service tables when the
+fields editor is saved.</p>
+<h2 id="transhipment-codes-and-service-changes">Transhipment Codes And
+Service Changes</h2>
+<p>The node <code>tranship</code> field controls which operations are
+allowed at a node. The fields editor offers these operation types:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: right;">Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: right;">0</td>
+<td>No operation</td>
+</tr>
+<tr>
+<td style="text-align: right;">1</td>
+<td>All operations</td>
+</tr>
+<tr>
+<td style="text-align: right;">2</td>
+<td>Transhipment only</td>
+</tr>
+<tr>
+<td style="text-align: right;">3</td>
+<td>Loading/unloading only</td>
+</tr>
+<tr>
+<td style="text-align: right;">4</td>
+<td>Service change only</td>
+</tr>
+</tbody>
+</table>
+<p>Code 4 is specific to services. It means that traffic may switch from
+one service to another service of the same mode/means at this node,
+provided that both services also stop at the node.</p>
+<p>Examples:</p>
+<ul>
+<li><code>tranship = 4</code> allows service changes, but does not make
+the node a loading/unloading point.</li>
+<li><code>tranship = 1</code> allows loading/unloading, transhipment,
+and service changes.</li>
+<li><code>tranship = 3</code> allows loading/unloading, but not service
+changes.</li>
+</ul>
+<p>Codes greater than 4 are interpreted by the virtual-network code as
+the same operation code minus 5, but with transit links disabled at the
+node. For example, code 5 behaves like code 0 with transit disabled,
+code 6 behaves like code 1 with transit disabled, and so on.</p>
+<h2 id="service-changes-stops-and-cost-functions">Service Changes,
+Stops, And Cost Functions</h2>
+<p>Services add two virtual-link operation types:</p>
+<ul>
+<li><code>stp.mode,means</code>: cost of stopping on a service,</li>
+<li><code>sw.fromMode,fromMeans-toMode,toMeans</code>: cost of switching
+between services.</li>
+</ul>
+<p>If duration functions are used, the equivalent keys are:</p>
+<pre class="properties"><code>stp@mode,means = ...
+sw@fromMode,fromMeans-toMode,toMeans = ...</code></pre>
+<p>The usual cost functions are still used:</p>
+<ul>
+<li><code>mv</code> for movement,</li>
+<li><code>ld</code> for loading,</li>
+<li><code>ul</code> for unloading,</li>
+<li><code>tr</code> for transit,</li>
+<li><code>tp</code> for transhipment between different mode/means
+combinations.</li>
+</ul>
+<p>Stops affect generated virtual links:</p>
+<ul>
+<li>loading and unloading on a service-constrained mode/means are
+generated only at nodes where the service stops,</li>
+<li>service switches are generated only between services of the same
+mode/means, at service-change nodes where both services stop,</li>
+<li>stop virtual links use the <code>stp</code> cost/duration
+function,</li>
+<li>service-change virtual links use the <code>sw</code> cost/duration
+function.</li>
+</ul>
+<p>When traffic switches service, the cost parser sets the
+<code>FREQUENCY</code> variable to the annualized frequency of the
+destination service. This allows the <code>sw</code> cost or duration
+function to include a waiting-time component. For links that do not
+change service, <code>FREQUENCY</code> is set to 0.</p>
+<h2 id="database-tables">Database Tables</h2>
+<p>Services are stored in three SQL tables. These tables are not part of
+the shapefile DBF. The default table prefix is:</p>
+<pre class="text"><code>&lt;project-name&gt;_services</code></pre>
+<p>It can be changed with the <code>servicestableprefix</code> project
+property, that can be set in the Project|Preferences dialog. With the
+default prefix, the three tables are:</p>
+<pre class="text"><code>&lt;project-name&gt;_services_header
+&lt;project-name&gt;_services_links
+&lt;project-name&gt;_services_stops</code></pre>
+<h3 id="header-table">Header Table</h3>
+<p>The header table contains one row per service.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>NUMERIC(4,0)</code></td>
+<td>Service ID</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td><code>VARCHAR(30)</code></td>
+<td>Service name</td>
+</tr>
+<tr>
+<td><code>mode</code></td>
+<td><code>NUMERIC(2,0)</code></td>
+<td>Service mode</td>
+</tr>
+<tr>
+<td><code>means</code></td>
+<td><code>NUMERIC(2,0)</code></td>
+<td>Service means</td>
+</tr>
+<tr>
+<td><code>frequency</code></td>
+<td><code>NUMERIC(5,0)</code></td>
+<td>Service frequency</td>
+</tr>
+</tbody>
+</table>
+<h3 id="links-table">Links Table</h3>
+<p>The links table contains the links used by each service.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>NUMERIC(4,0)</code></td>
+<td>Service ID</td>
+</tr>
+<tr>
+<td><code>link</code></td>
+<td><code>NUMERIC(10,0)</code></td>
+<td>Link ID</td>
+</tr>
+</tbody>
+</table>
+<h3 id="stops-table">Stops Table</h3>
+<p>The stops table contains the stop nodes of each service.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>NUMERIC(4,0)</code></td>
+<td>Service ID</td>
+</tr>
+<tr>
+<td><code>stop</code></td>
+<td><code>NUMERIC(10,0)</code></td>
+<td>Node ID where the service may stop</td>
+</tr>
+</tbody>
+</table>
+<h2 id="practical-checklist">Practical Checklist</h2>
+<p>To create a usable service-constrained network:</p>
+<ol type="1">
+<li>Define <code>SERVICELINES.mode,means = true</code> in the cost
+functions file for each constrained mode/means.</li>
+<li>Add the needed <code>stp</code> and <code>sw</code> cost functions,
+and duration functions if durations are used.</li>
+<li>Create services in the services editor.</li>
+<li>Draw each service line by selecting connected links on the map, or
+generate it with Shortest path and optional route waypoints.</li>
+<li>Ensure all service end nodes allow operations.</li>
+<li>Use the Node fields editor Services button on nodes to mark service
+stop nodes.</li>
+<li>Use transhipment code 4 on nodes where service changes are
+allowed.</li>
+<li>Save the service details, then save the services editor.</li>
+</ol>
+</body>
+</html>

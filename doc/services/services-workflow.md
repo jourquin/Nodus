@@ -64,7 +64,7 @@ The details view lets you edit the name, means, and frequency. The service ID is
 
 When a new service is added, Shortest path is checked by default. The checkbox remains enabled until the first route node is selected, so it can be unchecked if the service must be edited manually. During node selection it is disabled to keep the workflow mode stable.
 
-When an existing service is edited, Shortest path is unchecked and disabled. Existing service lines are modified manually by selecting links on the map.
+When an existing service is edited, Shortest path is unchecked by default. Leave it unchecked to modify the existing line manually, or check it to replace the whole route with a newly computed shortest-path line. The existing service name, frequency, mode, and means are kept when Shortest path is checked.
 
 To define or edit a service line manually:
 
@@ -77,9 +77,9 @@ To define or edit a service line manually:
 7. Press Save in the details view to apply the edited service to the pending service list and return to the service list.
 8. Press Save in the main services editor to commit the pending service list to the SQL database.
 
-To create the service line from a computed shortest path:
+To create or replace the service line from a computed shortest path:
 
-1. Keep Shortest path checked when adding a new service.
+1. Keep Shortest path checked when adding a new service, or check it explicitly while editing an existing service.
 2. Choose the mode and means to use for the computation.
 3. Select the origin node on the map. After this selection, Shortest path is disabled until the workflow ends.
 4. Select zero or more intermediate route nodes in the order they must be visited.

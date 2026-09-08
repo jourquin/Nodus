@@ -652,11 +652,13 @@ public class ServicesDlg extends EscapeDialog {
 
   /** Updates editor fields that differ between manual and shortest-path creation. */
   private void updateShortestPathEditorState(boolean enabled) {
+    String selectedMode = getEditorModeValue();
+    String selectedMeans = getEditorMeansValue();
     modeField.setEnabled(enabled);
     updateShortestPathCheckBoxEnabled();
     if (enabled) {
-      populateShortestPathModes();
-      updateShortestPathMeansForSelectedMode();
+      populateShortestPathModes(selectedMode);
+      updateShortestPathMeansForSelectedMode(selectedMeans);
       updateShortestPathStatus();
     } else {
       shortestPathStatusLabel.setText("");
@@ -666,29 +668,67 @@ public class ServicesDlg extends EscapeDialog {
   }
 
   /** Loads the shortest-path mode combo box with the modes available in enabled link layers. */
-  private void populateShortestPathModes() {
+  private void populateShortestPathModes(String preferredMode) {
     modeField.removeAllItems();
     modeField.addItem(NO_MODE);
     for (Integer mode : serviceHandler.getAvailableServiceModes()) {
       modeField.addItem(mode.toString());
     }
-    modeField.setSelectedItem(NO_MODE);
+
+    if (isPositiveIdentifier(preferredMode)) {
+      if (!comboBoxContainsItem(modeField, preferredMode)) {
+        modeField.addItem(preferredMode);
+      }
+      modeField.setSelectedItem(preferredMode);
+    } else {
+      modeField.setSelectedItem(NO_MODE);
+    }
   }
 
   /** Updates the means list for the mode currently selected in shortest-path mode. */
   private void updateShortestPathMeansForSelectedMode() {
+    updateShortestPathMeansForSelectedMode(null);
+  }
+
+  /** Updates the means list for the mode currently selected in shortest-path mode. */
+  private void updateShortestPathMeansForSelectedMode(String preferredMeans) {
     meansField.removeAllItems();
     int mode = getEditorMode();
-    if (mode == Integer.MIN_VALUE) {
+    if (mode == Integer.MIN_VALUE || mode <= 0) {
       return;
     }
 
     for (Integer means : serviceHandler.getAvailableServiceMeans(mode)) {
       meansField.addItem(means.toString());
     }
-    if (meansField.getItemCount() > 0) {
+
+    if (isPositiveIdentifier(preferredMeans)) {
+      if (!comboBoxContainsItem(meansField, preferredMeans)) {
+        meansField.addItem(preferredMeans);
+      }
+      meansField.setSelectedItem(preferredMeans);
+    } else if (meansField.getItemCount() > 0) {
       meansField.setSelectedIndex(0);
     }
+  }
+
+  /** Tests if a combo box already contains a value. */
+  private boolean comboBoxContainsItem(JComboBox<String> comboBox, String value) {
+    for (int i = 0; i < comboBox.getItemCount(); i++) {
+      if (comboBox.getItemAt(i).equals(value)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Tests if a string is a positive numeric identifier. */
+  private boolean isPositiveIdentifier(String value) {
+    if (value == null || value.isBlank()) {
+      return false;
+    }
+    int numericValue = JDBCUtils.getInt(value);
+    return numericValue != Integer.MIN_VALUE && numericValue > 0;
   }
 
   /** Updates the shortest-path status according to the current mode/means readiness. */
@@ -839,7 +879,7 @@ public class ServicesDlg extends EscapeDialog {
     isLoadingEditorFields = false;
     resetEditorDirtyState();
 
-    setShortestPathCreationAllowed(false);
+    setShortestPathCreationAllowed(true);
     setShortestPathControlsSelected(false);
     serviceHandler.setListening(true);
     showCard(EDITOR_CARD);

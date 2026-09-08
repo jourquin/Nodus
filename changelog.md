@@ -465,5 +465,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 
 ## v8.4 - BuildXXXXXXXX
 - Translate "Equal Earth" to "Aires égales" for French.
+- More resources in the help system
+- More work on the Lines and Services workflow. Not yet enabled.
 
 
