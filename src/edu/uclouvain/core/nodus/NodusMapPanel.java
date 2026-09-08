@@ -63,6 +63,7 @@ import com.bbn.openmap.layer.shape.ShapeLayer;
 import com.bbn.openmap.omGraphics.OMColorChooser;
 import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.proj.CADRGLoader;
+import com.bbn.openmap.proj.EqualEarthLoader;
 import com.bbn.openmap.proj.GnomonicLoader;
 import com.bbn.openmap.proj.LLXYLoader;
 import com.bbn.openmap.proj.Length;
@@ -1718,6 +1719,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     CADRGLoader cadrgl = new CADRGLoader();
     OrthographicLoader orthol = new OrthographicLoader();
     GnomonicLoader gnomonicl = new GnomonicLoader();
+    EqualEarthLoader equalEarthl = new EqualEarthLoader();
 
     Vector<ProjectionLoader> loaders = new Vector<>();
     loaders.add(llxyl);
@@ -1725,8 +1727,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     loaders.add(cadrgl);
     loaders.add(orthol);
     loaders.add(gnomonicl);
+    loaders.add(equalEarthl);
 
+    registerProjectionLoaders(loaders);
     menuProjection.configure(loaders);
+    menuProjection.setProjectionFactory(mapBean.getProjectionFactory());
 
     menuProjection.findAndInit(mapBean);
 
@@ -1743,6 +1748,28 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
                 projection.getWidth(),
                 projection.getHeight());
     mapBean.setProjection(newProj);
+  }
+
+  /**
+   * Registers the projection loaders used by the menu in the MapBean's projection factory.
+   *
+   * @param loaders projection loaders to register
+   */
+  private void registerProjectionLoaders(Vector<ProjectionLoader> loaders) {
+    ProjectionFactory projectionFactory = mapBean.getProjectionFactory();
+    for (ProjectionLoader loader : loaders) {
+      boolean alreadyRegistered = false;
+      for (ProjectionLoader registeredLoader : projectionFactory.getProjectionLoaders()) {
+        if (registeredLoader.getProjectionClass() == loader.getProjectionClass()) {
+          alreadyRegistered = true;
+          break;
+        }
+      }
+
+      if (!alreadyRegistered) {
+        projectionFactory.addProjectionLoader(loader);
+      }
+    }
   }
 
   /**

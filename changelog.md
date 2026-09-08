@@ -456,11 +456,12 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Several safeguards added in the UI
 - Upgrade to IzPack 5.2.4
 
-## v8.4 - BuildXXXXXXXX
+## v8.4 - Build20260908
 - Introduce a more flexible runtime mechanism to pass arguments to the JVM
 - Fix some MarkDown syntax issues
 - Upgrade to HSQLDB 2.7.4
 - Remove OSHI and JNA from the core lib, as they are not used anymore.
+- Add Equal Earth projection
 
 
 
