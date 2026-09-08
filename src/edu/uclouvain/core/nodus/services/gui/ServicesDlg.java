@@ -566,13 +566,16 @@ public class ServicesDlg extends EscapeDialog {
               if (getServiceTable().getSelectedRow() == -1) {
                 return;
               }
-              showLayerView();
 
               String serviceName =
                   (String) getServiceTable().getValueAt(getServiceTable().getSelectedRow(), 1);
               if (serviceName == null) {
                 return;
               }
+              if (!confirmDeleteService(serviceName)) {
+                return;
+              }
+              showLayerView();
 
               serviceHandler.removeService(serviceName);
               hasUnsavedServiceChanges = true;
@@ -590,6 +593,25 @@ public class ServicesDlg extends EscapeDialog {
           });
     }
     return deleteButton;
+  }
+
+  /** Asks the user to confirm deletion of a service. */
+  private boolean confirmDeleteService(String serviceName) {
+    String message =
+        MessageFormat.format(
+            i18n.get(
+                ServicesDlg.class,
+                "Delete_service_confirmation",
+                "Delete service \"{0}\" from the services list?"),
+            serviceName);
+    int answer =
+        JOptionPane.showConfirmDialog(
+            this,
+            message,
+            i18n.get(ServicesDlg.class, "Delete_service_confirmation_title", "Confirm deletion"),
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE);
+    return answer == JOptionPane.YES_OPTION;
   }
 
   /**

@@ -473,9 +473,4 @@ This means the two candidate lines have different descriptive attributes. Keep t
 - Reload the project after a successful non-dry-run simplification.
 
 
-## License and third-party components
-
-This script is intended to run inside Nodus and uses Nodus/OpenMap classes available in the Nodus runtime.
-
-If you distribute the script, include the license you choose for the script itself and keep the license notices for Nodus, OpenMap, JavaDBF4Nodus, and any other bundled third-party components. The script does not bundle these libraries; it relies on the Nodus runtime.
 

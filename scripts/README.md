@@ -22,8 +22,6 @@ Note: the examples were tested with Groovy 3.0, Python 3.9 and R 4.0.
 - `nodus.groovy`: auto-executable script that zooms onto Europe when Nodus is launched. It must be put in the main Nodus installation directory. It also launches a Py4J and a J4R server.
 - `AddDistancesODTable.groovy`: takes the OD table of a project and creates a new OD table that contains the computed distance between each OD pair.
 - `ExtractView.groovy`: extracts the shapes and the OD entries located within the screen rectangle currently displayed.
-- `CreateShortestPathService.groovy`: computes the shortest enabled path between two nodes for a given mode and means, then creates and saves the corresponding service line.
+- `CreateShortestPathServicesFromOD.groovy`: creates one shortest-path service line for each distinct origin-destination pair in an OD table.
 - `ARGBConverter.groovy`: generates the ARGB string for a chosen color.
-- `NetworkSimplifier.groovy`: simplifies loaded freight transport network layers by removing unnecessary intermediate transit nodes and merging the two connected line objects when the merge is topologically safe.
-
-See `NetworkSimplifier.md` for a complete description of the network simplifier script.
+- `NetworkSimplifier.groovy`: simplifies loaded transport network layers by removing unnecessary intermediate transit nodes and merging the two connected line objects when the merge is topologically safe. See `NetworkSimplifier.md` for a complete description of the network simplifier script.
