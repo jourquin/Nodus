@@ -42,6 +42,7 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.services.gui.ServicesDlg;
 import edu.uclouvain.core.nodus.utils.RealLinkUtils;
 import java.awt.Graphics;
+import java.awt.event.MouseEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -73,6 +74,8 @@ public class ServiceHandler {
 
   private static final int TYPE_LINK = 1;
   private static final int TYPE_NODE = 0;
+
+  private static final float SHORTEST_PATH_NODE_PICK_DISTANCE = 12.0f;
 
   /** Current service to edit. */
   private TransportService currentService;
@@ -109,8 +112,8 @@ public class ServiceHandler {
   /** True when service editing expects origin/destination node clicks instead of link clicks. */
   private boolean shortestPathSelectionEnabled = false;
 
-  /** First node selected while creating a shortest-path service line. */
-  private Integer shortestPathOriginNodeId = null;
+  /** Ordered nodes selected while creating a shortest-path service line. */
+  private LinkedList<Integer> shortestPathNodeIds = new LinkedList<>();
 
   /** Physical link that can be used while computing a service path. */
   private static class ServicePathEdge {
@@ -123,12 +126,7 @@ public class ServiceHandler {
     double weight;
 
     ServicePathEdge(
-        int node1,
-        int node2,
-        int layerIndex,
-        int rowIndex,
-        RealLink realLink,
-        double weight) {
+        int node1, int node2, int layerIndex, int rowIndex, RealLink realLink, double weight) {
       this.node1 = node1;
       this.node2 = node2;
       this.layerIndex = layerIndex;
@@ -187,9 +185,21 @@ public class ServiceHandler {
    * @return True on success
    */
   public boolean addOrRemoveLink(OMGraphic omg, List<Object> record) {
+    return addOrRemoveLink(omg, record, null);
+  }
+
+  /**
+   * Adds or removes a link to the service.
+   *
+   * @param omg The link to add or remove. Must be an OMPoly
+   * @param record The DBF Record attached to the link.
+   * @param mouseEvent Mouse event that selected the graphic.
+   * @return True on success
+   */
+  public boolean addOrRemoveLink(OMGraphic omg, List<Object> record, MouseEvent mouseEvent) {
 
     if (shortestPathSelectionEnabled) {
-      return addShortestPathNode(omg, record);
+      return addShortestPathNode(omg, mouseEvent);
     }
 
     // Only polylines can be taken into account
@@ -289,14 +299,14 @@ public class ServiceHandler {
   }
 
   /**
-   * Adds an origin or destination node while creating a service line from a computed shortest path.
+   * Adds a node while creating a service line from a computed shortest path.
    *
    * @param omg The selected graphic. Must be a node.
-   * @param record DBF record attached to the selected node.
    * @return True when the selection was handled.
    */
-  private boolean addShortestPathNode(OMGraphic omg, List<Object> record) {
-    if (record == null || omg instanceof OMPoly) {
+  private boolean addShortestPathNode(OMGraphic omg, MouseEvent mouseEvent) {
+    Integer selectedNodeId = getShortestPathSelectedNodeId(omg, mouseEvent);
+    if (selectedNodeId == null) {
       logServiceLineEdit(
           "Log_Shortest_path_select_node",
           "Select origin and destination nodes while shortest-path service creation is active");
@@ -319,8 +329,8 @@ public class ServiceHandler {
       return false;
     }
 
-    int nodeId = JDBCUtils.getInt(record.get(NodusC.DBF_IDX_NUM));
-    if (!isValidServiceEndpoint(nodeId)) {
+    int nodeId = selectedNodeId.intValue();
+    if (shortestPathNodeIds.isEmpty() && !isValidServiceEndpoint(nodeId)) {
       showShortestPathError(
           MessageFormat.format(
               i18n.get(
@@ -331,39 +341,82 @@ public class ServiceHandler {
       return false;
     }
 
-    if (shortestPathOriginNodeId == null) {
-      shortestPathOriginNodeId = Integer.valueOf(nodeId);
+    Integer nodeIdValue = Integer.valueOf(nodeId);
+    if (shortestPathNodeIds.contains(nodeIdValue)) {
       if (serviceEditorDlg != null) {
-        serviceEditorDlg.showShortestPathOriginNode(nodeId);
+        serviceEditorDlg.showShortestPathRouteNodes(shortestPathNodeIds);
+      }
+      return true;
+    }
+
+    shortestPathNodeIds.add(nodeIdValue);
+    if (serviceEditorDlg != null) {
+      serviceEditorDlg.showShortestPathRouteNodes(shortestPathNodeIds);
+    }
+    logServiceLineEdit(
+        "Log_Shortest_path_node_selected", "Node {0} selected", formatIdentifier(nodeId));
+    return true;
+  }
+
+  /**
+   * Computes the current shortest-path route selection and replaces the edited service path.
+   *
+   * @return True if the shortest-path service line was computed.
+   */
+  public boolean computeShortestPathSelection() {
+    int mode = serviceEditorDlg == null ? Integer.MIN_VALUE : serviceEditorDlg.getEditorMode();
+    int means = serviceEditorDlg == null ? Integer.MIN_VALUE : serviceEditorDlg.getEditorMeans();
+    if (mode == Integer.MIN_VALUE || means == Integer.MIN_VALUE) {
+      if (serviceEditorDlg != null) {
+        serviceEditorDlg.showShortestPathModeMeansRequired();
       }
       logServiceLineEdit(
-          "Log_Shortest_path_origin_selected",
-          "Origin node {0} selected",
-          formatIdentifier(nodeId));
-      return true;
+          "Log_Shortest_path_error",
+          "{0}",
+          i18n.get(
+              ServiceHandler.class,
+              "Shortest_path_invalid_mode_means",
+              "Enter a valid mode and means before computing the service line"));
+      return false;
     }
-
-    int originNodeId = shortestPathOriginNodeId.intValue();
-    if (originNodeId == nodeId) {
+    if (shortestPathNodeIds.size() < 2) {
       if (serviceEditorDlg != null) {
-        serviceEditorDlg.showShortestPathOriginNode(originNodeId);
+        serviceEditorDlg.showShortestPathRouteNodes(shortestPathNodeIds);
       }
-      return true;
+      logServiceLineEdit(
+          "Log_Shortest_path_error",
+          "{0}",
+          i18n.get(
+              ServiceHandler.class,
+              "Shortest_path_not_enough_nodes",
+              "Select at least an origin and a destination node"));
+      return false;
     }
 
+    int originNodeId = shortestPathNodeIds.getFirst().intValue();
+    int destinationNodeId = shortestPathNodeIds.getLast().intValue();
+    String routeNodeIds = formatRouteNodeIds(shortestPathNodeIds);
+    boolean hasRouteWaypoints = shortestPathNodeIds.size() > 2;
     try {
-      LinkedList<Integer> linkIds = findShortestServicePath(originNodeId, nodeId, mode, means);
-      replaceCurrentServicePath(linkIds, originNodeId, nodeId, mode, means);
-      shortestPathOriginNodeId = null;
+      LinkedList<Integer> linkIds = findShortestServicePath(shortestPathNodeIds, mode, means);
+      replaceCurrentServicePath(linkIds, shortestPathNodeIds, mode, means);
+      shortestPathNodeIds.clear();
       if (serviceEditorDlg != null) {
-        serviceEditorDlg.showShortestPathComputed(originNodeId, nodeId);
+        serviceEditorDlg.showShortestPathComputed(originNodeId, destinationNodeId);
         serviceEditorDlg.markServicesChanged();
       }
-      logServiceLineEdit(
-          "Log_Shortest_path_computed",
-          "Shortest path computed from node {0} to node {1}",
-          formatIdentifier(originNodeId),
-          formatIdentifier(nodeId));
+      if (hasRouteWaypoints) {
+        logServiceLineEdit(
+            "Log_Shortest_path_route_computed",
+            "Shortest path computed through nodes {0}",
+            routeNodeIds);
+      } else {
+        logServiceLineEdit(
+            "Log_Shortest_path_computed",
+            "Shortest path computed from node {0} to node {1}",
+            formatIdentifier(originNodeId),
+            formatIdentifier(destinationNodeId));
+      }
       return true;
     } catch (Exception ex) {
       showShortestPathError(ex.getMessage());
@@ -425,6 +478,18 @@ public class ServiceHandler {
     return Integer.toString(identifier);
   }
 
+  /** Formats an ordered route node list for service log messages. */
+  private String formatRouteNodeIds(List<Integer> routeNodeIds) {
+    StringBuilder buffer = new StringBuilder();
+    for (Integer nodeId : routeNodeIds) {
+      if (buffer.length() > 0) {
+        buffer.append(" -> ");
+      }
+      buffer.append(formatIdentifier(nodeId.intValue()));
+    }
+    return buffer.toString();
+  }
+
   /** Notify that the service needs to be saved. */
   public void mustBeSaved() {
     mustBeSaved = true;
@@ -453,7 +518,7 @@ public class ServiceHandler {
    */
   public void setShortestPathSelectionEnabled(boolean enabled) {
     shortestPathSelectionEnabled = enabled;
-    shortestPathOriginNodeId = null;
+    shortestPathNodeIds.clear();
     if (serviceEditorDlg != null) {
       serviceEditorDlg.showShortestPathSelectionEnabled(enabled);
     }
@@ -470,7 +535,16 @@ public class ServiceHandler {
 
   /** Clears any origin node already selected for shortest-path service creation. */
   public void resetShortestPathOriginSelection() {
-    shortestPathOriginNodeId = null;
+    shortestPathNodeIds.clear();
+  }
+
+  /**
+   * Gets the number of nodes selected for shortest-path service creation.
+   *
+   * @return Number of selected route nodes.
+   */
+  public int getShortestPathSelectionCount() {
+    return shortestPathNodeIds.size();
   }
 
   /**
@@ -550,40 +624,36 @@ public class ServiceHandler {
       int originNodeId, int destinationNodeId, int mode, int means) {
 
     validateServicePathParameters(originNodeId, destinationNodeId, mode, means);
+    LinkedList<Integer> routeNodeIds = new LinkedList<>();
+    routeNodeIds.add(Integer.valueOf(originNodeId));
+    routeNodeIds.add(Integer.valueOf(destinationNodeId));
+    return findShortestServicePath(routeNodeIds, mode, means);
+  }
+
+  /**
+   * Computes the shortest physical path through a sequence of selected route nodes.
+   *
+   * @param routeNodeIds Ordered route nodes. The first and last nodes are the service endpoints.
+   * @param mode Transport mode.
+   * @param means Transport means.
+   * @return The ordered link IDs of the concatenated shortest path.
+   */
+  public LinkedList<Integer> findShortestServicePath(
+      List<Integer> routeNodeIds, int mode, int means) {
+
+    validateServicePathParameters(routeNodeIds, mode, means);
 
     ServicePathGraph servicePathGraph = buildServicePathGraph(mode, means);
-    Integer originGraphIndex = servicePathGraph.nodeToGraphIndex.get(originNodeId);
-    if (originGraphIndex == null) {
-      throw new IllegalArgumentException(
-          MessageFormat.format(
-              "Origin node {0} is not connected to any enabled link for mode {1}, means {2}.",
-              formatIdentifier(originNodeId), formatIdentifier(mode), formatIdentifier(means)));
-    }
-    Integer destinationGraphIndex = servicePathGraph.nodeToGraphIndex.get(destinationNodeId);
-    if (destinationGraphIndex == null) {
-      throw new IllegalArgumentException(
-          MessageFormat.format(
-              "Destination node {0} is not connected to any enabled link for mode {1}, means {2}.",
-              formatIdentifier(destinationNodeId),
-              formatIdentifier(mode),
-              formatIdentifier(means)));
-    }
-
-    BinaryHeapDijkstra shortestPath = new BinaryHeapDijkstra(servicePathGraph.graph);
-    shortestPath.compute(originGraphIndex.intValue(), destinationGraphIndex.intValue());
-
     LinkedList<Integer> linkIds = new LinkedList<>();
-    rebuildShortestServicePath(
-        servicePathGraph,
-        shortestPath.getPredecessors(),
-        shortestPath.getWeights(),
-        originGraphIndex.intValue(),
-        destinationGraphIndex.intValue(),
-        originNodeId,
-        destinationNodeId,
-        mode,
-        means,
-        linkIds);
+    for (int i = 0; i < routeNodeIds.size() - 1; i++) {
+      appendShortestServicePathSegment(
+          servicePathGraph,
+          routeNodeIds.get(i).intValue(),
+          routeNodeIds.get(i + 1).intValue(),
+          mode,
+          means,
+          linkIds);
+    }
     return linkIds;
   }
 
@@ -1276,6 +1346,33 @@ public class ServiceHandler {
     validateServiceEndpoint(destinationNodeId, "Destination");
   }
 
+  /** Validates the node sequence used for a generated service path with optional waypoints. */
+  private void validateServicePathParameters(List<Integer> routeNodeIds, int mode, int means) {
+    validateModeMeans(mode, means);
+    if (routeNodeIds == null || routeNodeIds.size() < 2) {
+      throw new IllegalArgumentException("Select at least an origin and a destination node.");
+    }
+
+    Set<Integer> uniqueNodeIds = new HashSet<>();
+    for (int i = 0; i < routeNodeIds.size(); i++) {
+      Integer nodeId = routeNodeIds.get(i);
+      if (nodeId == null) {
+        throw new IllegalArgumentException("The route contains an empty node.");
+      }
+      if (!uniqueNodeIds.add(nodeId)) {
+        throw new IllegalArgumentException(
+            MessageFormat.format("Node {0} is selected more than once.", formatIdentifier(nodeId)));
+      }
+      if (!nodeExists(nodeId.intValue())) {
+        throw new IllegalArgumentException(
+            MessageFormat.format("Node {0} was not found.", formatIdentifier(nodeId)));
+      }
+    }
+
+    validateServiceEndpoint(routeNodeIds.get(0).intValue(), "Origin");
+    validateServiceEndpoint(routeNodeIds.get(routeNodeIds.size() - 1).intValue(), "Destination");
+  }
+
   /** Validates one endpoint of a generated service path. */
   private void validateServiceEndpoint(int nodeId, String label) {
     if (!nodeExists(nodeId)) {
@@ -1327,12 +1424,7 @@ public class ServiceHandler {
         RealLink realLink = getServicePathRealLink(linkId, graphic, values);
         edges.add(
             new ServicePathEdge(
-                node1,
-                node2,
-                layer,
-                row,
-                realLink,
-                getServicePathWeight(linkId, realLink)));
+                node1, node2, layer, row, realLink, getServicePathWeight(linkId, realLink)));
         registerServicePathNode(nodeToGraphIndex, node1);
         registerServicePathNode(nodeToGraphIndex, node2);
       }
@@ -1467,6 +1559,50 @@ public class ServiceHandler {
     }
   }
 
+  /** Appends the shortest path segment between two selected route nodes. */
+  private void appendShortestServicePathSegment(
+      ServicePathGraph servicePathGraph,
+      int originNodeId,
+      int destinationNodeId,
+      int mode,
+      int means,
+      LinkedList<Integer> linkIds) {
+    Integer originGraphIndex = servicePathGraph.nodeToGraphIndex.get(Integer.valueOf(originNodeId));
+    if (originGraphIndex == null) {
+      throw new IllegalArgumentException(
+          MessageFormat.format(
+              "Node {0} is not connected to any enabled link for mode {1}, means {2}.",
+              formatIdentifier(originNodeId), formatIdentifier(mode), formatIdentifier(means)));
+    }
+    Integer destinationGraphIndex =
+        servicePathGraph.nodeToGraphIndex.get(Integer.valueOf(destinationNodeId));
+    if (destinationGraphIndex == null) {
+      throw new IllegalArgumentException(
+          MessageFormat.format(
+              "Node {0} is not connected to any enabled link for mode {1}, means {2}.",
+              formatIdentifier(destinationNodeId),
+              formatIdentifier(mode),
+              formatIdentifier(means)));
+    }
+
+    BinaryHeapDijkstra shortestPath = new BinaryHeapDijkstra(servicePathGraph.graph);
+    shortestPath.compute(originGraphIndex.intValue(), destinationGraphIndex.intValue());
+
+    LinkedList<Integer> segmentLinkIds = new LinkedList<>();
+    rebuildShortestServicePath(
+        servicePathGraph,
+        shortestPath.getPredecessors(),
+        shortestPath.getWeights(),
+        originGraphIndex.intValue(),
+        destinationGraphIndex.intValue(),
+        originNodeId,
+        destinationNodeId,
+        mode,
+        means,
+        segmentLinkIds);
+    linkIds.addAll(segmentLinkIds);
+  }
+
   /** Finds the virtual link used between one predecessor and the current node. */
   private VirtualLink findServicePathPredecessorLink(
       AdjacencyNode[] graph, int predecessor, int currentNode, double[] weights) {
@@ -1579,9 +1715,9 @@ public class ServiceHandler {
     occurrences.put(nodeId, count == null ? 1 : count.intValue() + 1);
   }
 
-  /** Replaces the currently edited service path with a computed path. */
+  /** Replaces the currently edited service path with a computed route. */
   private void replaceCurrentServicePath(
-      LinkedList<Integer> linkIds, int originNodeId, int destinationNodeId, int mode, int means) {
+      LinkedList<Integer> linkIds, List<Integer> routeNodeIds, int mode, int means) {
     if (currentService == null) {
       currentService = new TransportService(getNewServiceId());
     }
@@ -1601,8 +1737,8 @@ public class ServiceHandler {
     }
 
     LinkedList<Integer> stops = new LinkedList<>();
-    stops.add(Integer.valueOf(originNodeId));
-    stops.add(Integer.valueOf(destinationNodeId));
+    stops.add(routeNodeIds.get(0));
+    stops.add(routeNodeIds.get(routeNodeIds.size() - 1));
 
     currentService.setChunks(links);
     currentService.setStops(stops);
@@ -1665,6 +1801,86 @@ public class ServiceHandler {
 
     System.err.println("Line chunk " + linkId + " not found!");
     return null;
+  }
+
+  /**
+   * Resolves the node selected for shortest-path service creation.
+   *
+   * @param omg Graphic reported by the layer.
+   * @param mouseEvent Mouse event that selected the graphic.
+   * @return The selected node ID, or null when no nearby node can be found.
+   */
+  private Integer getShortestPathSelectedNodeId(OMGraphic omg, MouseEvent mouseEvent) {
+    int nodeId = getNodeIdForGraphic(omg);
+    if (nodeId != -1) {
+      return Integer.valueOf(nodeId);
+    }
+
+    if (mouseEvent == null) {
+      return null;
+    }
+
+    return getClosestNodeId(mouseEvent.getX(), mouseEvent.getY());
+  }
+
+  /**
+   * Gets the ID associated to a node graphic without logging failures.
+   *
+   * @param omg Graphic to look up.
+   * @return The node ID, or -1 if the graphic is not in a node layer.
+   */
+  private int getNodeIdForGraphic(OMGraphic omg) {
+    if (omg == null || nodeLayer == null) {
+      return -1;
+    }
+
+    for (NodusEsriLayer element : nodeLayer) {
+      if (element == null || element.getEsriGraphicList() == null) {
+        continue;
+      }
+      int idx = element.getEsriGraphicList().indexOf(omg);
+      if (idx != -1) {
+        return JDBCUtils.getInt(element.getModel().getValueAt(idx, NodusC.DBF_IDX_NUM));
+      }
+    }
+    return -1;
+  }
+
+  /**
+   * Finds the closest visible node around a map click.
+   *
+   * @param x Mouse x-coordinate.
+   * @param y Mouse y-coordinate.
+   * @return The closest node ID, or null when the click is not close enough to a node.
+   */
+  private Integer getClosestNodeId(int x, int y) {
+    if (nodeLayer == null) {
+      return null;
+    }
+
+    Integer closestNodeId = null;
+    float closestDistance = SHORTEST_PATH_NODE_PICK_DISTANCE;
+    for (NodusEsriLayer element : nodeLayer) {
+      if (element == null || !element.isVisible() || element.getEsriGraphicList() == null) {
+        continue;
+      }
+      for (int i = 0; i < element.getEsriGraphicList().size(); i++) {
+        OMGraphic nodeGraphic = element.getEsriGraphicList().getOMGraphicAt(i);
+        if (nodeGraphic == null || !nodeGraphic.isVisible()) {
+          continue;
+        }
+
+        float distance = nodeGraphic.distance(x, y);
+        if (distance <= closestDistance) {
+          closestDistance = distance;
+          closestNodeId =
+              Integer.valueOf(
+                  JDBCUtils.getInt(element.getModel().getValueAt(i, NodusC.DBF_IDX_NUM)));
+        }
+      }
+    }
+
+    return closestNodeId;
   }
 
   /**
@@ -2245,7 +2461,7 @@ public class ServiceHandler {
 
   /** Resets the currently edited service. */
   public void resetService() {
-    shortestPathOriginNodeId = null;
+    shortestPathNodeIds.clear();
     if (currentService != null) {
       setListening(false);
       paintService(false);

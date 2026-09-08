@@ -1528,7 +1528,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
             if (me.getButton() == MouseEvent.BUTTON1 && serviceEditor.isListening()) {
               List<Object> record = getModel().getRecord(graphicIndex);
 
-              if (serviceEditor.addOrRemoveLink(omg, record)) {
+              if (serviceEditor.addOrRemoveLink(omg, record, me)) {
                 me.consume();
                 repaint();
               }

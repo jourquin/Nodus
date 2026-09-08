@@ -56,20 +56,38 @@ The Escape key has the same effect as Cancel. If an invalid service is loaded fr
 
 ## Creating Or Editing A Service Line
 
-When a service is edited, Nodus switches to the service details view.
+When a service is added or edited, Nodus switches to the service details view.
 
 [Screenshot: Service details editor]
 
-The details view lets you edit the name, means, and frequency. The service ID is assigned automatically. The mode is inferred from the first selected link and cannot be typed directly. The means list is populated from the selected link's available means. The details view also activates line editing on the map and switches the map to selection mode.
+The details view lets you edit the name, means, and frequency. The service ID is assigned automatically. The details view also activates line editing on the map and switches the map to selection mode.
 
-To define the service line:
+When a new service is added, Shortest path is checked by default. The checkbox remains enabled until the first route node is selected, so it can be unchecked if the service must be edited manually. During node selection it is disabled to keep the workflow mode stable.
 
-1. Select links on the map.
-2. The selected service line is highlighted in green.
-3. Add links one by one. Each new link must touch exactly one node that is already in the current service line.
-4. Click an already selected end link, or a branch leaf link, to remove it.
-5. Press Save in the details view to apply the edited service to the pending service list and return to the service list.
-6. Press Save in the main services editor to commit the pending service list to the SQL database.
+When an existing service is edited, Shortest path is unchecked and disabled. Existing service lines are modified manually by selecting links on the map.
+
+To define or edit a service line manually:
+
+1. Uncheck Shortest path if a new service should be edited manually.
+2. Select links on the map.
+3. The mode is inferred from the first selected link and cannot be typed directly. The means list is populated from the selected link's available means.
+4. The selected service line is highlighted in green.
+5. Add links one by one. Each new link must touch exactly one node that is already in the current service line.
+6. Click an already selected end link, or a branch leaf link, to remove it.
+7. Press Save in the details view to apply the edited service to the pending service list and return to the service list.
+8. Press Save in the main services editor to commit the pending service list to the SQL database.
+
+To create the service line from a computed shortest path:
+
+1. Keep Shortest path checked when adding a new service.
+2. Choose the mode and means to use for the computation.
+3. Select the origin node on the map. After this selection, Shortest path is disabled until the workflow ends.
+4. Select zero or more intermediate route nodes in the order they must be visited.
+5. Select the destination node.
+6. Press Compute to replace the edited service line with the concatenated shortest paths between each selected node.
+7. Press Save in the details view, then Save in the main services editor.
+
+The service editor displays the number of selected route nodes. The full ordered node sequence is printed in the service log. The selected intermediate nodes are routing waypoints. The service stops created by this workflow are the first and last selected nodes.
 
 The Save button is enabled only when the edited fields are valid, the service has at least one link, and there are unsaved detail changes. When Save is pressed, Nodus validates the full service line. A valid service line must satisfy these rules:
 
@@ -219,7 +237,7 @@ To create a usable service-constrained network:
 1. Define `SERVICELINES.mode,means = true` in the cost functions file for each constrained mode/means.
 2. Add the needed `stp` and `sw` cost functions, and duration functions if durations are used.
 3. Create services in the services editor.
-4. Draw each service line by selecting connected links on the map.
+4. Draw each service line by selecting connected links on the map, or generate it with Shortest path and optional route waypoints.
 5. Ensure all service end nodes allow operations.
 6. Use the Node fields editor Services button on nodes to mark service stop nodes.
 7. Use transhipment code 4 on nodes where service changes are allowed.

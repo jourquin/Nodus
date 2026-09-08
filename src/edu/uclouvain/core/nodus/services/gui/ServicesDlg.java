@@ -45,6 +45,7 @@ import java.awt.event.MouseEvent;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.util.Iterator;
+import java.util.List;
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -150,8 +151,14 @@ public class ServicesDlg extends EscapeDialog {
   /** . */
   private JButton saveButton = null;
 
-  /** Enables service line creation from two selected nodes. */
+  /** Enables service line creation from selected route nodes. */
   private JCheckBox shortestPathCheckBox = null;
+
+  /** True when the current editor session may create a line from shortest-path nodes. */
+  private boolean shortestPathCreationAllowed = true;
+
+  /** Computes the shortest-path service line through the selected route nodes. */
+  private JButton shortestPathComputeButton = null;
 
   /** Explains the current shortest-path selection step. */
   private JLabel shortestPathStatusLabel = new JLabel();
@@ -368,7 +375,7 @@ public class ServicesDlg extends EscapeDialog {
     meansField.setPreferredSize(meansSize);
     meansField.setMinimumSize(meansSize);
 
-    Dimension statusSize = new Dimension(360, modeField.getPreferredSize().height);
+    Dimension statusSize = new Dimension(460, modeField.getPreferredSize().height);
     shortestPathStatusLabel.setPreferredSize(statusSize);
     shortestPathStatusLabel.setMinimumSize(statusSize);
   }
@@ -399,6 +406,8 @@ public class ServicesDlg extends EscapeDialog {
 
   /** Discards changes made in this editor and reloads the persisted services. */
   public void discardPendingChanges() {
+    setShortestPathCreationAllowed(true);
+    setShortestPathControlsSelected(false);
     serviceHandler.discardPendingChanges();
     hasUnsavedServiceChanges = false;
     refreshServicesTable();
@@ -613,7 +622,7 @@ public class ServicesDlg extends EscapeDialog {
           i18n.get(
               ServicesDlg.class,
               "Shortest_path_tip",
-              "Click two valid nodes to compute the service line"));
+              "Select route nodes on the map, then compute the service line"));
       shortestPathCheckBox.addItemListener(
           e -> {
             boolean enabled = shortestPathCheckBox.isSelected();
@@ -624,9 +633,27 @@ public class ServicesDlg extends EscapeDialog {
     return shortestPathCheckBox;
   }
 
+  /** Initializes the shortest-path compute button. */
+  private JButton getShortestPathComputeButton() {
+    if (shortestPathComputeButton == null) {
+      shortestPathComputeButton = new JButton();
+      shortestPathComputeButton.setText(i18n.get(ServicesDlg.class, "Compute", "Compute"));
+      shortestPathComputeButton.setToolTipText(
+          i18n.get(
+              ServicesDlg.class,
+              "Shortest_path_compute_tip",
+              "Compute the shortest path through the selected nodes"));
+      shortestPathComputeButton.setEnabled(false);
+      shortestPathComputeButton.addActionListener(
+          e -> serviceHandler.computeShortestPathSelection());
+    }
+    return shortestPathComputeButton;
+  }
+
   /** Updates editor fields that differ between manual and shortest-path creation. */
   private void updateShortestPathEditorState(boolean enabled) {
     modeField.setEnabled(enabled);
+    updateShortestPathCheckBoxEnabled();
     if (enabled) {
       populateShortestPathModes();
       updateShortestPathMeansForSelectedMode();
@@ -634,6 +661,7 @@ public class ServicesDlg extends EscapeDialog {
     } else {
       shortestPathStatusLabel.setText("");
     }
+    updateShortestPathComputeButton();
     updateSaveButtons();
   }
 
@@ -682,6 +710,32 @@ public class ServicesDlg extends EscapeDialog {
               ServicesDlg.class,
               "Shortest_path_select_origin",
               "Select the origin node on the map"));
+    }
+    updateShortestPathCheckBoxEnabled();
+    updateShortestPathComputeButton();
+  }
+
+  /** Enables shortest-path computation only when the selected route is complete enough. */
+  private void updateShortestPathComputeButton() {
+    if (shortestPathComputeButton == null) {
+      return;
+    }
+    boolean enabled =
+        shortestPathCheckBox != null
+            && shortestPathCheckBox.isSelected()
+            && getEditorMode() != Integer.MIN_VALUE
+            && getEditorMeans() != Integer.MIN_VALUE
+            && serviceHandler.getShortestPathSelectionCount() >= 2;
+    shortestPathComputeButton.setEnabled(enabled);
+  }
+
+  /** Disables the shortest-path checkbox once route node selection has started. */
+  private void updateShortestPathCheckBoxEnabled() {
+    if (shortestPathCheckBox != null) {
+      shortestPathCheckBox.setEnabled(
+          shortestPathCreationAllowed
+              && (!shortestPathCheckBox.isSelected()
+                  || serviceHandler.getShortestPathSelectionCount() == 0));
     }
   }
 
@@ -785,6 +839,7 @@ public class ServicesDlg extends EscapeDialog {
     isLoadingEditorFields = false;
     resetEditorDirtyState();
 
+    setShortestPathCreationAllowed(false);
     setShortestPathControlsSelected(false);
     serviceHandler.setListening(true);
     showCard(EDITOR_CARD);
@@ -814,6 +869,7 @@ public class ServicesDlg extends EscapeDialog {
       JPanel shortestPathPanel = new JPanel();
       shortestPathPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
       shortestPathPanel.add(getShortestPathCheckBox());
+      shortestPathPanel.add(getShortestPathComputeButton());
       shortestPathPanel.add(shortestPathStatusLabel);
 
       JPanel frequencyPanel = new JPanel();
@@ -1218,7 +1274,6 @@ public class ServicesDlg extends EscapeDialog {
               isLoadingEditorFields = false;
 
               nameField.setEditable(true);
-              setShortestPathControlsSelected(false);
               resetEditorDirtyState();
 
               showCard(EDITOR_CARD);
@@ -1228,6 +1283,8 @@ public class ServicesDlg extends EscapeDialog {
               serviceHandler.displayService("");
               // setListening(true);
               serviceHandler.setListening(true);
+              setShortestPathCreationAllowed(true);
+              setShortestPathControlsSelected(true);
             }
           });
     }
@@ -1664,6 +1721,7 @@ public class ServicesDlg extends EscapeDialog {
     if (shortestPathStatusLabel == null) {
       return;
     }
+    updateShortestPathCheckBoxEnabled();
     if (enabled) {
       updateShortestPathStatus();
     } else {
@@ -1684,13 +1742,40 @@ public class ServicesDlg extends EscapeDialog {
    * @param nodeId The selected origin node.
    */
   public void showShortestPathOriginNode(int nodeId) {
-    shortestPathStatusLabel.setText(
-        MessageFormat.format(
-            i18n.get(
-                ServicesDlg.class,
-                "Shortest_path_origin_selected",
-                "Origin: {0}. Select destination."),
-            Integer.toString(nodeId)));
+    List<Integer> nodeIds = java.util.Collections.singletonList(Integer.valueOf(nodeId));
+    showShortestPathRouteNodes(nodeIds);
+  }
+
+  /**
+   * Updates the shortest-path status text after route nodes were selected.
+   *
+   * @param nodeIds The selected route nodes.
+   */
+  public void showShortestPathRouteNodes(List<Integer> nodeIds) {
+    if (nodeIds == null || nodeIds.isEmpty()) {
+      updateShortestPathStatus();
+      return;
+    }
+
+    if (nodeIds.size() == 1) {
+      shortestPathStatusLabel.setText(
+          MessageFormat.format(
+              i18n.get(
+                  ServicesDlg.class,
+                  "Shortest_path_origin_selected",
+                  "Origin: {0}. Select waypoints or destination, then Compute."),
+              Integer.toString(nodeIds.get(0).intValue())));
+    } else {
+      shortestPathStatusLabel.setText(
+          MessageFormat.format(
+              i18n.get(
+                  ServicesDlg.class,
+                  "Shortest_path_route_selected",
+                  "{0} nodes selected. Select more nodes or Compute."),
+              Integer.toString(nodeIds.size())));
+    }
+    updateShortestPathCheckBoxEnabled();
+    updateShortestPathComputeButton();
   }
 
   /**
@@ -1701,6 +1786,7 @@ public class ServicesDlg extends EscapeDialog {
    */
   public void showShortestPathComputed(int originNodeId, int destinationNodeId) {
     setShortestPathControlsSelected(false);
+    updateShortestPathCheckBoxEnabled();
     shortestPathStatusLabel.setText(
         MessageFormat.format(
             i18n.get(
@@ -1719,6 +1805,13 @@ public class ServicesDlg extends EscapeDialog {
       updateShortestPathEditorState(selected);
       serviceHandler.setShortestPathSelectionEnabled(selected);
     }
+    updateShortestPathCheckBoxEnabled();
+  }
+
+  /** Allows or forbids shortest-path creation in the current editor session. */
+  private void setShortestPathCreationAllowed(boolean allowed) {
+    shortestPathCreationAllowed = allowed;
+    updateShortestPathCheckBoxEnabled();
   }
 
   /**
