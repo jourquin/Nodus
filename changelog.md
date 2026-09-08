@@ -463,5 +463,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Remove OSHI and JNA from the core lib, as they are not used anymore.
 - Add Equal Earth projection
 
+## v8.4 - BuildXXXXXXXX
+- Translate "Equal Earth" to "Aires égales" for French.
 
 
