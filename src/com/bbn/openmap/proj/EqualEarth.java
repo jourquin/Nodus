@@ -35,7 +35,7 @@ import java.awt.geom.Point2D;
 @SuppressWarnings("unchecked")
 public class EqualEarth extends Cylindrical {
 
-  private static final long serialVersionUID = 6167369353155818510L;
+  static final long serialVersionUID = 6167369353155818510L;
 
   /** Projection name. */
   public static final transient String EqualEarthName = "Equal Earth";
@@ -51,11 +51,20 @@ public class EqualEarth extends Cylindrical {
   private static final double INVERSE_TOLERANCE = 1.0E-11;
   private static final int MAX_INVERSE_ITERATIONS = 12;
 
+  /** Half of the projection window height, in pixels. */
   protected transient double hy;
+
+  /** Half of the projection window width, in pixels. */
   protected transient double wx;
-  protected transient double cLonRad;
-  protected transient double cLatRad;
-  protected transient double cY;
+
+  /** Projection center longitude, in radians. */
+  protected transient double centerLonRad;
+
+  /** Projection center latitude, in radians. */
+  protected transient double centerLatRad;
+
+  /** Equal Earth projected Y coordinate of the projection center. */
+  protected transient double centerYProjected;
 
   /**
    * Constructs an Equal Earth projection.
@@ -95,13 +104,13 @@ public class EqualEarth extends Cylindrical {
 
     hy = height / 2.0;
     wx = width / 2.0;
-    cLonRad = centerX;
-    cLatRad = normalizeLatitude(centerY);
-    centerY = cLatRad;
-    double centerTheta = theta(cLatRad);
+    centerLonRad = centerX;
+    centerLatRad = normalizeLatitude(centerY);
+    centerY = centerLatRad;
+    double centerTheta = theta(centerLatRad);
     double centerTheta2 = centerTheta * centerTheta;
     double centerTheta6 = centerTheta2 * centerTheta2 * centerTheta2;
-    cY = polynomial(centerTheta, centerTheta2, centerTheta6);
+    centerYProjected = polynomial(centerTheta, centerTheta2, centerTheta6);
   }
 
   @Override
@@ -130,10 +139,10 @@ public class EqualEarth extends Cylindrical {
     double lonRad;
     if (isRadian) {
       latRad = normalizeLatitude(lat);
-      lonRad = ProjMath.wrapLongitude(lon - cLonRad);
+      lonRad = ProjMath.wrapLongitude(lon - centerLonRad);
     } else {
       latRad = normalizeLatitude(Math.toRadians(lat));
-      lonRad = ProjMath.wrapLongitude(Math.toRadians(lon) - cLonRad);
+      lonRad = ProjMath.wrapLongitude(Math.toRadians(lon) - centerLonRad);
     }
 
     double theta = theta(latRad);
@@ -143,7 +152,8 @@ public class EqualEarth extends Cylindrical {
     double projectedX = lonRad * Math.cos(theta) / denominator;
     double projectedY = polynomial(theta, theta2, theta6);
 
-    point.setLocation(wx + scaled_radius * projectedX, hy - scaled_radius * (projectedY - cY));
+    point.setLocation(
+        wx + scaled_radius * projectedX, hy - scaled_radius * (projectedY - centerYProjected));
     return point;
   }
 
@@ -153,12 +163,12 @@ public class EqualEarth extends Cylindrical {
       point = (T) new LatLonPoint.Double();
     }
 
-    double projectedY = cY + (hy - y) / scaled_radius;
+    double projectedY = centerYProjected + (hy - y) / scaled_radius;
     double theta = inverseTheta(projectedY);
     double theta2 = theta * theta;
     double theta6 = theta2 * theta2 * theta2;
     double cosTheta = Math.cos(theta);
-    double lonRad = cLonRad;
+    double lonRad = centerLonRad;
 
     if (Math.abs(cosTheta) > INVERSE_TOLERANCE) {
       double projectedX = (x - wx) / scaled_radius;

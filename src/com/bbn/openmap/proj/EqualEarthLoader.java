@@ -31,7 +31,7 @@ import java.util.Properties;
 /** ProjectionLoader to add the Equal Earth projection to an OpenMap application. */
 public class EqualEarthLoader extends BasicProjectionLoader implements ProjectionLoader {
 
-  private static final long serialVersionUID = 8314960950824233012L;
+  static final long serialVersionUID = 8314960950824233012L;
 
   /** Default constructor. */
   public EqualEarthLoader() {
@@ -41,8 +41,7 @@ public class EqualEarthLoader extends BasicProjectionLoader implements Projectio
   @Override
   public Projection create(Properties properties) throws ProjectionException {
     try {
-      LatLonPoint center =
-          convertToLLP((Point2D) properties.get(ProjectionFactory.CENTER));
+      LatLonPoint center = convertToLLP((Point2D) properties.get(ProjectionFactory.CENTER));
       float scale = PropUtils.floatFromProperties(properties, ProjectionFactory.SCALE, 10000000f);
       int height = PropUtils.intFromProperties(properties, ProjectionFactory.HEIGHT, 100);
       int width = PropUtils.intFromProperties(properties, ProjectionFactory.WIDTH, 100);
@@ -50,8 +49,7 @@ public class EqualEarthLoader extends BasicProjectionLoader implements Projectio
       Projection projection = new EqualEarth(center, scale, width, height);
       Ellipsoid datum = (Ellipsoid) properties.get(ProjectionFactory.DATUM);
       if (datum != null && datum != Ellipsoid.WGS_84) {
-        projection =
-            new DatumShiftProjection((GeoProj) projection, new DatumShiftGCT(datum));
+        projection = new DatumShiftProjection((GeoProj) projection, new DatumShiftGCT(datum));
       }
       return projection;
     } catch (Exception e) {
