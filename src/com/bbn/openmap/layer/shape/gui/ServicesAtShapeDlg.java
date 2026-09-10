@@ -37,6 +37,7 @@ import java.util.Iterator;
 import java.util.TreeMap;
 import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
@@ -88,7 +89,7 @@ public class ServicesAtShapeDlg extends EscapeDialog {
       NodusEsriLayer nodusEsriLayer,
       int objectNum,
       TreeMap<String, Boolean> serviceStopsForNode) {
-    super(nodusEsriLayer.getNodusMapPanel().getMainFrame(), "", true);
+    super(parent, "", true);
     this.nodusMapPanel = nodusEsriLayer.getNodusMapPanel();
     serviceHandler = nodusMapPanel.getNodusProject().getServiceHandler();
     this.objectNum = objectNum;
@@ -98,7 +99,6 @@ public class ServicesAtShapeDlg extends EscapeDialog {
     initialize();
 
     getRootPane().setDefaultButton(getCloseButton());
-    setAlwaysOnTop(true);
     setLocationRelativeTo(parent);
   }
 
@@ -176,8 +176,14 @@ public class ServicesAtShapeDlg extends EscapeDialog {
    */
   private JPanel getJContentPane() {
     if (contentPane == null) {
+      GridBagConstraints titleConstraints = new GridBagConstraints();
+      titleConstraints.gridx = 0;
+      titleConstraints.gridy = 0;
+      titleConstraints.anchor = GridBagConstraints.WEST;
+      titleConstraints.insets = new Insets(5, 5, 0, 5);
       GridBagConstraints gridBagConstraints1 = new GridBagConstraints();
       gridBagConstraints1.gridx = 0;
+      gridBagConstraints1.gridy = 2;
       gridBagConstraints1.insets = new Insets(6, 6, 5, 5);
       GridBagConstraints gridBagConstraints = new GridBagConstraints();
       gridBagConstraints.fill = GridBagConstraints.BOTH;
@@ -185,8 +191,16 @@ public class ServicesAtShapeDlg extends EscapeDialog {
       gridBagConstraints.gridheight = 1;
       gridBagConstraints.insets = new Insets(5, 5, 0, 5);
       gridBagConstraints.weightx = 1.0;
+      gridBagConstraints.gridy = 1;
       contentPane = new JPanel();
       contentPane.setLayout(new GridBagLayout());
+      contentPane.add(
+          new JLabel(
+              i18n.get(
+                  ServicesAtShapeDlg.class,
+                  "Checked_services_stop_at_node",
+                  "Service stops if checked")),
+          titleConstraints);
       contentPane.add(getJScrollPane(), gridBagConstraints);
       contentPane.add(getCloseButton(), gridBagConstraints1);
     }
