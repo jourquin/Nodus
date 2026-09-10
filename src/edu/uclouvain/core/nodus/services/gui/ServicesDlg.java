@@ -34,6 +34,7 @@ import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -209,7 +210,7 @@ public class ServicesDlg extends EscapeDialog {
    */
   public ServicesDlg(ServiceHandler serviceHandler) {
     super(
-        serviceHandler.getNodusMapPanel().getMainFrame(),
+        (Frame) null,
         i18n.get(ServicesDlg.class, "Service_editor", "Services editor"),
         false);
     this.serviceHandler = serviceHandler;
@@ -307,6 +308,12 @@ public class ServicesDlg extends EscapeDialog {
       hasUnsavedEditorChanges = true;
     }
     serviceHandler.mustBeSaved();
+    updateSaveButtons();
+  }
+
+  /** Marks the persisted service list as clean. */
+  public void markServicesSaved() {
+    hasUnsavedServiceChanges = false;
     updateSaveButtons();
   }
 
@@ -470,8 +477,6 @@ public class ServicesDlg extends EscapeDialog {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
               if (serviceHandler.savePendingChanges()) {
-                hasUnsavedServiceChanges = false;
-                updateSaveButtons();
                 setVisible(false);
               }
             }
@@ -1703,6 +1708,7 @@ public class ServicesDlg extends EscapeDialog {
     cards.show(mainPanel, LIST_CARD);
     pack();
     setLocationRelativeTo(nodusMapPanel.getMainFrame());
+    syncAlwaysOnTop();
   }
 
   /** Handles Escape consistently from any component in the dialog. */
@@ -1920,9 +1926,9 @@ public class ServicesDlg extends EscapeDialog {
     return i18n.get(ServicesDlg.class, "Service_editor", "Services editor");
   }
 
-  /** Shows this modeless dialog above the main window and modal DBF editor. */
+  /** Shows this modeless dialog in front of the main Nodus window. */
   private void showInForeground() {
-    setAlwaysOnTop(true);
+    syncAlwaysOnTop();
     setVisible(true);
     toFront();
     requestFocus();
@@ -1997,6 +2003,10 @@ public class ServicesDlg extends EscapeDialog {
   @Override
   public void setVisible(boolean visible) {
 
+    if (visible) {
+      syncAlwaysOnTop();
+    }
+
     if (!visible && suppressDialogCloseAfterLeavingEditor && !isEditorCardVisible()) {
       suppressDialogCloseAfterLeavingEditor = false;
       return;
@@ -2068,6 +2078,13 @@ public class ServicesDlg extends EscapeDialog {
       return;
     }
     super.keyPressed(e);
+  }
+
+  /** Updates this dialog's always-on-top state from the global subframes preference. */
+  public void syncAlwaysOnTop() {
+    if (nodusMapPanel != null) {
+      setAlwaysOnTop(nodusMapPanel.getAlwaysOnTop());
+    }
   }
 
   /** Leaves the editor card after resolving unsaved editor changes, if any. */
@@ -2186,7 +2203,7 @@ public class ServicesDlg extends EscapeDialog {
 
     if (answer == JOptionPane.YES_OPTION) {
       discardPendingChanges();
-      return false;
+      return true;
     }
 
     if (answer == JOptionPane.NO_OPTION && serviceHandler.savePendingChanges()) {

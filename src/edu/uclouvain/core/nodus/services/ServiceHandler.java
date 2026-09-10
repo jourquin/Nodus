@@ -148,6 +148,36 @@ public class ServiceHandler {
     }
   }
 
+  /** Undirected real link endpoints used while validating service-line topology. */
+  private static class ServiceEdgeKey {
+
+    int node1;
+    int node2;
+
+    ServiceEdgeKey(int firstNode, int secondNode) {
+      node1 = Math.min(firstNode, secondNode);
+      node2 = Math.max(firstNode, secondNode);
+    }
+
+    boolean contains(int nodeId) {
+      return node1 == nodeId || node2 == nodeId;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (!(other instanceof ServiceEdgeKey)) {
+        return false;
+      }
+      ServiceEdgeKey otherKey = (ServiceEdgeKey) other;
+      return node1 == otherKey.node1 && node2 == otherKey.node2;
+    }
+
+    @Override
+    public int hashCode() {
+      return 31 * node1 + node2;
+    }
+  }
+
   /**
    * Creates a new ServiceHandler.
    *
@@ -341,6 +371,20 @@ public class ServiceHandler {
       return false;
     }
 
+    if (!isNodeConnectedToServiceModeMeans(nodeId, mode, means)) {
+      showShortestPathError(
+          MessageFormat.format(
+              i18n.get(
+                  ServiceHandler.class,
+                  "Shortest_path_node_not_connected",
+                  "Node {0} cannot be selected because it is not connected to any enabled link"
+                      + " supporting mode {1}, means {2}"),
+              formatIdentifier(nodeId),
+              formatIdentifier(mode),
+              formatIdentifier(means)));
+      return false;
+    }
+
     Integer nodeIdValue = Integer.valueOf(nodeId);
     if (shortestPathNodeIds.contains(nodeIdValue)) {
       if (serviceEditorDlg != null) {
@@ -502,13 +546,29 @@ public class ServiceHandler {
    */
   public boolean savePendingChanges() {
     if (!mustBeSaved) {
+      markServiceEditorSaved();
       return true;
     }
     if (saveServices()) {
       mustBeSaved = false;
+      markServiceEditorSaved();
       return true;
     }
     return false;
+  }
+
+  /** Synchronizes the service editor dirty state after services are persisted. */
+  private void markServiceEditorSaved() {
+    if (serviceEditorDlg != null) {
+      serviceEditorDlg.markServicesSaved();
+    }
+  }
+
+  /** Synchronizes the service editor window flags with the global preferences. */
+  public void syncServiceEditorAlwaysOnTop() {
+    if (serviceEditorDlg != null) {
+      serviceEditorDlg.syncAlwaysOnTop();
+    }
   }
 
   /**
@@ -1109,7 +1169,7 @@ public class ServiceHandler {
           "the links do not form a single connected line");
     }
 
-    if (serviceEdges.size() > serviceNodes.size() - 1) {
+    if (hasUnsupportedServiceCycle(serviceEdges, serviceNodes, endNodes, service.getStopNodes())) {
       return i18n.get(ServiceHandler.class, "InvalidLine_Cycle", "the line contains a cycle");
     }
 
@@ -1139,6 +1199,93 @@ public class ServiceHandler {
     }
 
     return null;
+  }
+
+  /**
+   * Checks if the service contains a real cycle.
+   *
+   * <p>A route computed through an intermediate stop may legitimately use the same connector to
+   * enter and leave a dead-end station. This creates a repeated edge in the service walk, but not a
+   * distinct network cycle.
+   */
+  private boolean hasUnsupportedServiceCycle(
+      LinkedList<int[]> serviceEdges,
+      Set<Integer> serviceNodes,
+      LinkedList<Integer> endNodes,
+      LinkedList<Integer> stopNodes) {
+    if (serviceEdges.size() <= serviceNodes.size() - 1) {
+      return false;
+    }
+
+    Map<ServiceEdgeKey, Integer> edgeOccurrences = new HashMap<>();
+    for (int[] edge : serviceEdges) {
+      ServiceEdgeKey edgeKey = new ServiceEdgeKey(edge[0], edge[1]);
+      Integer count = edgeOccurrences.get(edgeKey);
+      edgeOccurrences.put(edgeKey, count == null ? 1 : count.intValue() + 1);
+    }
+
+    Set<Integer> endNodeIds = new HashSet<>(endNodes);
+    Set<Integer> stopNodeIds = new HashSet<>(stopNodes);
+    Map<Integer, Integer> uniqueNodeDegrees = getUniqueNodeDegrees(edgeOccurrences.keySet());
+    for (Map.Entry<ServiceEdgeKey, Integer> entry : edgeOccurrences.entrySet()) {
+      if (entry.getValue().intValue() == 1) {
+        continue;
+      }
+      if (entry.getValue().intValue() != 2
+          || !touchesAllowedRepeatedConnectorNode(
+              entry.getKey(), stopNodeIds, endNodeIds, uniqueNodeDegrees)) {
+        return true;
+      }
+    }
+
+    return edgeOccurrences.size() > serviceNodes.size() - 1;
+  }
+
+  /** Computes node degrees in the graph formed by unique service edges. */
+  private Map<Integer, Integer> getUniqueNodeDegrees(Set<ServiceEdgeKey> edgeKeys) {
+    Map<Integer, Integer> nodeDegrees = new HashMap<>();
+    Iterator<ServiceEdgeKey> it = edgeKeys.iterator();
+    while (it.hasNext()) {
+      ServiceEdgeKey edgeKey = it.next();
+      addNodeOccurrence(nodeDegrees, edgeKey.node1);
+      addNodeOccurrence(nodeDegrees, edgeKey.node2);
+    }
+    return nodeDegrees;
+  }
+
+  /**
+   * Tests if a repeated edge touches a legitimate intermediate station connector node.
+   *
+   * <p>New shortest-path services store selected waypoints as stops. Older services may not have
+   * persisted these waypoints, so a non-end leaf node that allows operations is accepted too.
+   */
+  private boolean touchesAllowedRepeatedConnectorNode(
+      ServiceEdgeKey edgeKey,
+      Set<Integer> stopNodeIds,
+      Set<Integer> endNodeIds,
+      Map<Integer, Integer> uniqueNodeDegrees) {
+    Iterator<Integer> it = stopNodeIds.iterator();
+    while (it.hasNext()) {
+      int stopNodeId = it.next().intValue();
+      if (!endNodeIds.contains(Integer.valueOf(stopNodeId)) && edgeKey.contains(stopNodeId)) {
+        return true;
+      }
+    }
+
+    if (isAllowedRepeatedConnectorLeaf(edgeKey.node1, endNodeIds, uniqueNodeDegrees)) {
+      return true;
+    }
+    return isAllowedRepeatedConnectorLeaf(edgeKey.node2, endNodeIds, uniqueNodeDegrees);
+  }
+
+  /** Tests if a node can be the dead-end side of a repeated connector. */
+  private boolean isAllowedRepeatedConnectorLeaf(
+      int nodeId, Set<Integer> endNodeIds, Map<Integer, Integer> uniqueNodeDegrees) {
+    Integer degree = uniqueNodeDegrees.get(Integer.valueOf(nodeId));
+    if (degree == null || degree.intValue() != 1 || endNodeIds.contains(Integer.valueOf(nodeId))) {
+      return false;
+    }
+    return isValidServiceEndpoint(nodeId);
   }
 
   /** Checks if all service links belong to a single connected graph component. */
@@ -1644,6 +1791,28 @@ public class ServiceHandler {
     return enabled != 0 && linkMode == mode && means <= linkMeans;
   }
 
+  /** Returns true when a node touches at least one link usable by the generated service. */
+  private boolean isNodeConnectedToServiceModeMeans(int nodeId, int mode, int means) {
+    if (linkLayer == null) {
+      return false;
+    }
+
+    for (NodusEsriLayer element : linkLayer) {
+      for (int row = 0; row < element.getModel().getRowCount(); row++) {
+        List<Object> values = element.getModel().getRecord(row);
+        if (!isLinkUsableForService(values, mode, means)) {
+          continue;
+        }
+        int node1 = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NODE1));
+        int node2 = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NODE2));
+        if (node1 == nodeId || node2 == nodeId) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   /** Returns the RealLink used by the service path graph. */
   private RealLink getServicePathRealLink(int linkId, OMGraphic graphic, List<Object> values) {
     if (graphic == null) {
@@ -1736,12 +1905,8 @@ public class ServiceHandler {
       links.add(link);
     }
 
-    LinkedList<Integer> stops = new LinkedList<>();
-    stops.add(routeNodeIds.get(0));
-    stops.add(routeNodeIds.get(routeNodeIds.size() - 1));
-
     currentService.setChunks(links);
-    currentService.setStops(stops);
+    currentService.setStops(new LinkedList<>(routeNodeIds));
     currentService.setMode(mode);
     currentService.setMeans(means);
 

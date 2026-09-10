@@ -696,6 +696,10 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     // Update state of OnTopKeeper
     nodusMapPanel.runOnTopKeeper(
         subframesAlwaysOnCheckBox.isSelected(), stickyDrawingToolCheckBox.isSelected());
+    if (nodusMapPanel.getNodusProject() != null
+        && nodusMapPanel.getNodusProject().getServiceHandler() != null) {
+      nodusMapPanel.getNodusProject().getServiceHandler().syncServiceEditorAlwaysOnTop();
+    }
 
     // Update type of navigation mode
     nodusMapPanel.addNavMouseMode();

@@ -38,8 +38,8 @@ public class CreateShortestPathServicesFromOD_ {
    * Editable parameters.
    *
    * odTableName must name an OD matrix table containing at least the standard Nodus fields:
-   * grp, org, dst and qty. One service line is generated for each distinct org/dst pair, even if
-   * several groups exist for the same pair.
+   * grp, org, dst and qty. One service line is generated for each unordered org/dst pair, even if
+   * several groups or both directions exist for the same pair.
    */
   String odTableName = "OD";
   int mode = 1;
@@ -92,6 +92,8 @@ public class CreateShortestPathServicesFromOD_ {
 
     int created = 0;
     int failed = 0;
+    int skipped = 0;
+    HashSet<String> generatedOdPairKeys = new HashSet<String>();
 
     try {
       Connection jdbcConnection = nodusProject.getMainJDBCConnection();
@@ -114,11 +116,28 @@ public class CreateShortestPathServicesFromOD_ {
       try (Statement stmt = jdbcConnection.createStatement();
           ResultSet rs = stmt.executeQuery(sqlStmt)) {
         while (rs.next()) {
-          int originNodeId = JDBCUtils.getInt(rs.getObject(1));
-          int destinationNodeId = JDBCUtils.getInt(rs.getObject(2));
+          int odOriginNodeId = JDBCUtils.getInt(rs.getObject(1));
+          int odDestinationNodeId = JDBCUtils.getInt(rs.getObject(2));
+          int originNodeId = Math.min(odOriginNodeId, odDestinationNodeId);
+          int destinationNodeId = Math.max(odOriginNodeId, odDestinationNodeId);
+          String odPairKey = originNodeId + "-" + destinationNodeId;
+          if (generatedOdPairKeys.contains(odPairKey)) {
+            skipped++;
+            System.out.println(
+                "Skipped reverse OD relation " +
+                    odOriginNodeId +
+                    "-" +
+                    odDestinationNodeId +
+                    " because service " +
+                    odPairKey +
+                    " was already generated.");
+            continue;
+          }
+          generatedOdPairKeys.add(odPairKey);
+
           String serviceName =
               originNodeId + "-" + destinationNodeId + "-" + mode + "-" + means + "-" +
-                  frequencyPerWeek;
+                  annualFrequency;
 
           try {
             LinkedList<Integer> linkIds =
@@ -177,7 +196,13 @@ public class CreateShortestPathServicesFromOD_ {
       }
 
       System.out.println(
-          "Done. Services created: " + created + ". OD relations failed: " + failed + ".");
+          "Done. Services created: " +
+              created +
+              ". OD relations skipped: " +
+              skipped +
+              ". OD relations failed: " +
+              failed +
+              ".");
     } catch (Exception ex) {
       System.err.println("Could not generate services from OD table: " + ex.getMessage());
       ex.printStackTrace();
