@@ -51,6 +51,84 @@
 			classpathref="Nodus.classpath" failonerror="false" />
 	</target>
 
+	<!-- Build Markdown based help pages -->
+	<property name="services.workflow.md" value="${basedir}/doc/services/services-workflow.md" />
+	<property name="services.workflow.html" value="${basedir}/doc/services/services-workflow.html" />
+
+	<target name="CheckPandoc">
+		<condition property="pandoc.executable" value="/opt/homebrew/bin/pandoc">
+			<and>
+				<not>
+					<isset property="pandoc.executable" />
+				</not>
+				<available file="/opt/homebrew/bin/pandoc" />
+			</and>
+		</condition>
+		<condition property="pandoc.executable" value="/usr/local/bin/pandoc">
+			<and>
+				<not>
+					<isset property="pandoc.executable" />
+				</not>
+				<available file="/usr/local/bin/pandoc" />
+			</and>
+		</condition>
+		<property name="pandoc.executable" value="pandoc" />
+		<condition property="pandoc.available">
+			<or>
+				<available file="${pandoc.executable}" />
+				<available file="${pandoc.executable}" filepath="${env.PATH}" />
+				<available file="pandoc.exe" filepath="${env.PATH}" />
+			</or>
+		</condition>
+	</target>
+
+	<target name="RunServicesWorkflowHtml" depends="CheckPandoc" if="pandoc.available">
+		<echo message="Generating ${services.workflow.html} with ${pandoc.executable}" />
+		<exec executable="${pandoc.executable}" searchpath="true" failonerror="false" failifexecutionfails="false" resultproperty="services.workflow.html.result">
+			<arg value="${services.workflow.md}" />
+			<arg value="-f" />
+			<arg value="markdown-smart" />
+			<arg value="-s" />
+			<arg value="--metadata" />
+			<arg value="pagetitle=Service Lines Workflow" />
+			<arg value="-c" />
+			<arg value="../style.css" />
+			<arg value="-o" />
+			<arg value="${services.workflow.html}" />
+		</exec>
+		<condition property="services.workflow.html.failed">
+			<not>
+				<equals arg1="${services.workflow.html.result}" arg2="0" />
+			</not>
+		</condition>
+		<available file="${services.workflow.html}" property="services.workflow.html.exists" />
+		<condition property="services.workflow.html.missing">
+			<not>
+				<isset property="services.workflow.html.exists" />
+			</not>
+		</condition>
+	</target>
+
+	<target name="WarnMissingPandoc" depends="CheckPandoc" unless="pandoc.available">
+		<echo level="warning" message="Pandoc not found. Skipping generation of doc/services/services-workflow.html. If Pandoc is installed outside Ant's PATH, run Ant with -Dpandoc.executable=/path/to/pandoc." />
+	</target>
+
+	<target name="WarnServicesWorkflowHtmlFailed" if="services.workflow.html.failed">
+		<echo level="warning" message="Pandoc failed while generating ${services.workflow.html}. Continuing with the existing file." />
+	</target>
+
+	<target name="WarnServicesWorkflowHtmlMissing" if="services.workflow.html.missing">
+		<echo level="warning" message="Pandoc finished, but ${services.workflow.html} was not found." />
+	</target>
+
+	<target name="ConfirmServicesWorkflowHtml" if="services.workflow.html.exists">
+		<echo message="Generated ${services.workflow.html}" />
+	</target>
+
+	<target name="GenerateServicesWorkflowHtml" depends="RunServicesWorkflowHtml,WarnMissingPandoc,WarnServicesWorkflowHtmlFailed,WarnServicesWorkflowHtmlMissing,ConfirmServicesWorkflowHtml" description="Generates doc/services/services-workflow.html from Markdown when Pandoc is available." />
+	
+	<target name="ServicesWorkflowHtml" depends="GenerateServicesWorkflowHtml" description="Generates doc/services/services-workflow.html from Markdown when Pandoc is available." />
+	
 
 	<!-- Launches IzPack installer -->
 	<path id="lib.path">
@@ -61,6 +139,7 @@
 
 	<target name="Installer" description="Builds the Nodus installer jar file.">
 		<echo message="Creating a Nodus installer" />
+		<antcall target="ServicesWorkflowHtml" />
 		<antcall target="Jar" />
 		<antcall target="ApiDoc" />
 		<mkdir dir="${basedir}/BinaryDistribution"/>

@@ -43,3 +43,24 @@ info instead of warnings (to avoid warnings for classes developed in OpenMap pac
 
 Some IzPack (v5) application installer libraries. Used by "Installer" ant task.
 
+## [Pandoc](https://pandoc.org/):
+
+Used to generate HTML help pages from Markdown sources. The service lines workflow help page can
+be regenerated with this Ant target:
+
+```sh
+ant ServicesWorkflowHtml
+```
+
+The target warns and keeps going if Pandoc is not installed. The same target is called by the
+"Installer" target. The equivalent direct command, run from the project root, is:
+
+```sh
+pandoc doc/services/services-workflow.md -f markdown-smart -s --metadata pagetitle='Service Lines Workflow' -c ../style.css -o doc/services/services-workflow.html
+```
+
+If Ant cannot find Pandoc because it was launched with a reduced `PATH`, pass the executable path:
+
+```sh
+ant ServicesWorkflowHtml -Dpandoc.executable=/opt/homebrew/bin/pandoc
+```

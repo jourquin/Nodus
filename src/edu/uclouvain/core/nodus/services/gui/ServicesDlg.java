@@ -82,6 +82,8 @@ public class ServicesDlg extends EscapeDialog {
   private static final String EDITOR_CARD = "EditorCard";
   private static final String NO_MODE = "";
   private static final int NO_LINK_FILTER = Integer.MIN_VALUE;
+  private static final Dimension DEFAULT_SERVICE_TABLE_VIEWPORT_SIZE = new Dimension(760, 520);
+  private static final Dimension LINK_SERVICE_TABLE_VIEWPORT_SIZE = new Dimension(760, 220);
 
   /** . */
   private JButton cancelButton = null;
@@ -1630,7 +1632,7 @@ public class ServicesDlg extends EscapeDialog {
     setServiceTableColumnWidth(columnModel, 3, 80, 60);
     setServiceTableColumnWidth(columnModel, 4, 240, 220);
 
-    serviceTable.setPreferredScrollableViewportSize(new Dimension(760, 520));
+    updateServiceTableViewportSize();
   }
 
   /** Sets preferred and minimum widths for a service table column. */
@@ -1679,6 +1681,34 @@ public class ServicesDlg extends EscapeDialog {
   /** Returns true when the service list is restricted to services using one link. */
   private boolean isLinkFilterActive() {
     return linkFilterId != NO_LINK_FILTER;
+  }
+
+  /** Uses a compact table height when the dialog only lists services for one link. */
+  private void updateServiceTableViewportSize() {
+    if (serviceTable == null) {
+      return;
+    }
+
+    if (isLinkFilterActive()) {
+      serviceTable.setPreferredScrollableViewportSize(LINK_SERVICE_TABLE_VIEWPORT_SIZE);
+    } else {
+      serviceTable.setPreferredScrollableViewportSize(DEFAULT_SERVICE_TABLE_VIEWPORT_SIZE);
+    }
+  }
+
+  /** Recomputes the list-card size after switching between full and link-filter views. */
+  private void updateListCardSize() {
+    updateServiceTableViewportSize();
+    if (scrollPane != null) {
+      scrollPane.revalidate();
+    }
+    if (listCard != null) {
+      listCard.revalidate();
+    }
+    if (mainPanel != null && !isEditorCardVisible()) {
+      mainPanel.setPreferredSize(null);
+      pack();
+    }
   }
 
   /** Returns true when the given service should be shown in the current list. */
@@ -1900,6 +1930,7 @@ public class ServicesDlg extends EscapeDialog {
     linkFilterId = NO_LINK_FILTER;
     setTitle(getDialogTitle());
     refreshServicesTable();
+    updateListCardSize();
     showInForeground();
   }
 
@@ -1913,6 +1944,7 @@ public class ServicesDlg extends EscapeDialog {
     linkFilterId = linkId;
     setTitle(getDialogTitle());
     refreshServicesTable();
+    updateListCardSize();
     showInForeground();
   }
 
