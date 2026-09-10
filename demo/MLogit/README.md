@@ -4,9 +4,8 @@ This is an example of how to develop specific modal split methods as plugin's fo
 which utility function is explained in the documentation of the "demo" project.
 
 - The explanatory variable (cost) is gathered from an uncalibrated multimodal assignment, i.e., the total travel cost for all the
-modes and origin-destination pairs. This information is read from the assignment "header" table, along with the expected quantities
-for each mode (in the modal OD matrixes). The result is written in the "mlogit_input" table by the "CreateMLogitInput.groovy" 
-script.
+modes and origin-destination pairs. This information is read by the "CreateMLogitInput.groovy" script from the assignment "header" table, 
+along with the expected quantities for each mode (in the modal OD matrixes). The result is written in the "mlogit_input" table.
 
 - The estimators are then computed using by the "MLogit.R" script. To run it, [R](https://www.r-project.org/) must be installed on 
 your computer, along with the [RJDBC](https://cran.r-project.org/package=RJDBC) and
