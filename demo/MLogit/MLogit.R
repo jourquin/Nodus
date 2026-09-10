@@ -23,7 +23,6 @@
 # based on a single variable gathered from an uncalibrated assignment.
 # See https://cran.r-project.org/web/packages/mlogit/vignettes/mlogit.pdf
 
-library(Formula)
 library(mlogit)
 library(RJDBC)
 
@@ -41,7 +40,7 @@ silent = TRUE
 # Create JDBC connection to the HSQLDB database engine. Note that Nodus
 # must run with the "demo" project loaded.
 drv <- JDBC("org.hsqldb.jdbcDriver",
-            "../../lib/hsqldb.jar")
+            "../../lib/hsqldb-2.7.4.jar")
 conn <- dbConnect(drv, "jdbc:hsqldb:hsql://localhost/demo", "SA", "")            
 
 # Load data and transform all column name to lower cases
@@ -118,11 +117,12 @@ for (i in 1:length(groups)) {
                 varying = 2:4
     )
   
-  # Define the formula to estimate (logs of costs + intercept)
-  f <- Formula(mode ~ log(cost) | 1 | 1)
-  
   # Solve the model
-  model <- mlogit(f, longData, weights = tons)
+  #
+  # The formula is passed directly to mlogit(). Creating a separate Formula object here can
+  # trigger an RStudio object-inspection error with recent R/Formula versions:
+  # "length = 2 in coercion to logical(1)".
+  model <- mlogit(mode ~ log(cost) | 1 | 1, data = longData, weights = tons)
   
   # Retrieve the output of the model for this group and save it
   sink(txtFile1, append = TRUE)

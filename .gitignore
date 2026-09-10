@@ -6,3 +6,9 @@
 /jvmargs.bat
 /nodus7.jar
 /.pydevproject
+__pycache__/
+*.pyc
+biogeme.toml
+LogCost-*.html
+LogCost-*.yaml
+__LogCost-*.iter

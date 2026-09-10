@@ -1,0 +1,5 @@
+JayDeBeApi
+JPype1
+pandas
+numpy
+biogeme

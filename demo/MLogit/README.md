@@ -19,5 +19,7 @@ to generate the MLogit.jar file (which can already be found in the "demo" projec
 stored in the Nodus cost file and applies them to compute the utility of each alternative mode and to estimate their modal share. 
 
 - The logit model can also be solved using the [Biogeme](https://biogeme.epfl.ch) toolbox. This is illustrated by the "MLogit.py" 
-[Python](https://www.python.org) script. Before running the Python script, run the "CreateBiogeme.sql" script in Nodus to create the
-"biogeme_input" table, a "wide" format presentation of the "mnlogit_input" table. 
+[Python](https://www.python.org) script. It reads the same "wide format" "mlogit_input" table as the R script and estimates the model
+with one row per origin-destination pair and commodity group. The observed modal quantities are converted to modal shares inside the
+script. The Python script requires the packages listed in "Python-requirements.txt". From the "demo/MLogit" directory, they can be installed
+with: ```sh python3 -m pip install -r Python-requirements.txt ```

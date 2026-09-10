@@ -165,6 +165,7 @@ public class CreateMLogitInput_ {
       }
 
       // Save the content of the hashmap
+      JDBCUtils.dropTable("tmp");
       JDBCField[] fields = new JDBCField[5];
       int idx = 0;
       fields[idx++] = new JDBCField("grp", "NUMERIC(2)");

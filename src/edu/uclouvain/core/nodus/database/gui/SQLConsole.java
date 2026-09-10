@@ -375,7 +375,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     jdbcConnection = nodusProject.getMainJDBCConnection();
     try {
       metaData = jdbcConnection.getMetaData();
-      statement = jdbcConnection.createStatement();
+      openStatement();
     } catch (SQLException e) {
       e.printStackTrace();
     }
@@ -397,6 +397,25 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       e.printStackTrace();
     } finally {
       statement = null;
+    }
+  }
+
+  /**
+   * Opens the shared statement if it is not already available.
+   *
+   * @return True if the statement is ready to execute SQL.
+   */
+  private boolean openStatement() {
+    if (statement != null) {
+      return true;
+    }
+
+    try {
+      statement = jdbcConnection.createStatement();
+      return true;
+    } catch (SQLException e) {
+      e.printStackTrace();
+      return false;
     }
   }
 
@@ -582,6 +601,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    */
   private boolean execute() {
     setBusy(true);
+
+    if (!openStatement()) {
+      setBusy(false);
+      return false;
+    }
 
     // Decompose all the statements
     String sqlCommandsText = getSqlCommandsText();

@@ -32,24 +32,101 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import javax.swing.JOptionPane;
 
+/*
+ * Create shortest-path service lines from an OD matrix.
+ *
+ * Purpose
+ * -------
+ * This script is intended for Nodus users who already have a project with an OD matrix and want
+ * to quickly create a first set of service lines. It reads the OD table, extracts the distinct
+ * origin-destination relations, computes the shortest physical path for each relation, and stores
+ * the result in the Nodus service tables.
+ *
+ * Typical use
+ * -----------
+ * 1. Open the Nodus project that contains the OD matrix and the transport network.
+ * 2. Adjust the editable parameters below:
+ *    - odTableName: name of the OD matrix table.
+ *    - mode: transport mode used to compute and create the services.
+ *    - means: transport means used to compute and create the services.
+ *    - frequencyPerWeek: weekly service frequency to assign to every generated service.
+ *    - previewOnly: set to true for a dry run.
+ * 3. Run this script from Nodus.
+ * 4. Review the generated services in Project | Edit services.
+ * 5. If the mode/means is service-constrained, make sure the corresponding SERVICELINES,
+ *    stp and sw cost/duration functions are defined in the cost functions file.
+ *
+ * OD table requirements
+ * ---------------------
+ * The OD table must be a valid Nodus OD matrix table. At minimum, it must contain the standard
+ * fields grp, org, dst and qty. The quantity values are not used by this script; the table is used
+ * only to know which origin-destination relations exist.
+ *
+ * What is generated
+ * -----------------
+ * - One service is generated for each distinct unordered OD pair. If the table contains both
+ *   A->B and B->A, only one service is created.
+ * - The lower node ID is used as the service origin and the higher node ID as the service
+ *   destination. This keeps service names stable and avoids duplicate reverse services.
+ * - The route is the shortest path by physical link length on enabled links whose mode matches
+ *   the selected mode and whose means value supports the selected means.
+ * - The service name is built as:
+ *     origin-destination-mode-means-annualFrequency
+ * - The service stop nodes are initially limited to the service origin and destination. Additional
+ *   stops can be edited later with the node fields editor Services button.
+ *
+ * Existing service tables
+ * -----------------------
+ * If service tables already exist, the script asks whether to:
+ * - Add the generated services to the existing ones.
+ * - Clear the currently loaded services before generating.
+ * - Cancel the operation.
+ *
+ * The generated services are saved to the SQL service tables at the end of the script. In preview
+ * mode, no service table is modified and no save is performed.
+ *
+ * Practical notes
+ * ---------------
+ * - If no path can be found for one OD pair, that service is skipped and the script continues with
+ *   the next pair.
+ * - This script does not create intermediate stops. It creates a first operational service set
+ *   that can then be refined in the graphical services editor.
+ * - The service frequency stored by Nodus is annualized. Here it is computed as
+ *   frequencyPerWeek * 52.
+ */
 public class CreateShortestPathServicesFromOD_ {
 
   /*
    * Editable parameters.
    *
-   * odTableName must name an OD matrix table containing at least the standard Nodus fields:
-   * grp, org, dst and qty. One service line is generated for each unordered org/dst pair, even if
-   * several groups or both directions exist for the same pair.
+   * These values are the normal customization points for power users. They can be edited without
+   * touching the rest of the script.
+   */
+
+  /*
+   * Name of the OD matrix table to scan. The table name is checked and converted to the database
+   * compliant spelling used by the current project database.
    */
   String odTableName = "OD";
+
+  /*
+   * Mode and means used both for shortest-path computation and for the generated service headers.
+   * The shortest path will use only enabled links of this mode that support this means.
+   */
   int mode = 1;
   int means = 1;
+
+  /*
+   * Weekly frequency assigned to each generated service. Nodus stores service frequency as an
+   * annual value, so the script saves frequencyPerWeek * 52.
+   */
   int frequencyPerWeek = 5;
 
   /*
    * Optional parameters.
    *
-   * Set previewOnly to true to print what would be created without saving service tables.
+   * Set previewOnly to true to print what would be created without modifying or saving the service
+   * tables. This is useful before running the script on a large OD matrix.
    */
   boolean previewOnly = false;
 
@@ -83,6 +160,7 @@ public class CreateShortestPathServicesFromOD_ {
       return;
     }
 
+    // Service frequencies are stored as annual values in the service header table.
     int annualFrequency = getAnnualFrequency(frequencyPerWeek);
     ServiceHandler serviceHandler = nodusProject.getServiceHandler();
     if (!prepareServiceTables(serviceHandler)) {
@@ -118,6 +196,11 @@ public class CreateShortestPathServicesFromOD_ {
         while (rs.next()) {
           int odOriginNodeId = JDBCUtils.getInt(rs.getObject(1));
           int odDestinationNodeId = JDBCUtils.getInt(rs.getObject(2));
+
+          /*
+           * Treat A->B and B->A as the same relation. This generates one stable service name per
+           * unordered OD pair and avoids duplicate reverse services.
+           */
           int originNodeId = Math.min(odOriginNodeId, odDestinationNodeId);
           int destinationNodeId = Math.max(odOriginNodeId, odDestinationNodeId);
           String odPairKey = originNodeId + "-" + destinationNodeId;
@@ -152,6 +235,11 @@ public class CreateShortestPathServicesFromOD_ {
                       " links.");
             } else {
               LinkedList<Integer> stopNodeIds = new LinkedList<Integer>();
+
+              /*
+               * Initial stops are limited to the end nodes. Additional service stops can be added
+               * afterwards from the node fields editor.
+               */
               stopNodeIds.add(originNodeId);
               stopNodeIds.add(destinationNodeId);
 
@@ -210,6 +298,11 @@ public class CreateShortestPathServicesFromOD_ {
   }
 
   private boolean prepareServiceTables(ServiceHandler serviceHandler) {
+    /*
+     * Existing service tables are not silently overwritten. The user decides whether the generated
+     * services are appended to the current service set or whether the loaded services are cleared
+     * before generation.
+     */
     boolean serviceTablesExist =
         JDBCUtils.tableExists(serviceHandler.getServiceHeaderTableName())
             || JDBCUtils.tableExists(serviceHandler.getServiceLinkDetailTableName())
