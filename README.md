@@ -1,4 +1,4 @@
-# Nodus 8.4 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
+# Nodus 8.5 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
 
 
 Nodus is a transportation network modeling software especially designed for multimodal and
@@ -60,6 +60,7 @@ Many under the hood improvements.
 external connections. Upgrade to Groovy 4.
 - 8.3 - November 2025: Tested with Java 25, but still runs on Java 11 and Groovy is upgraded to version 5.
 - 8.4 - June 2026: The Frank-Wolfe based algorithms are reintroduced. Major code refactoring with a focus on code robustness.
+- 8.5 - September 2026: Lines & services are reintroduced with a completely redesigned workflow.
 
 See the [change log](changelog.md) for a detailed build history.
 
