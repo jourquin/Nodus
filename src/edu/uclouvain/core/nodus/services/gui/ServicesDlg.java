@@ -100,6 +100,9 @@ public class ServicesDlg extends EscapeDialog {
   /** Toggles the filtered service line view on the map. */
   private JCheckBox lineViewCheckBox = null;
 
+  /** Hides node and link layers that do not contain the selected service. */
+  private JCheckBox hideIrrelevantLayersCheckBox = null;
+
   /** True when the map is filtered to the selected service line. */
   private boolean lineViewActive = false;
 
@@ -297,7 +300,9 @@ public class ServicesDlg extends EscapeDialog {
             f1.format(s.getId()),
             nameService,
             f2.format(s.getMode()),
-            f2.format(s.getMeans()),
+            s.getMeans() == TransportService.ALL_MEANS
+                ? Integer.toString(TransportService.ALL_MEANS)
+                : f2.format(s.getMeans()),
             formatFrequency(s.getFrequency())
           });
     }
@@ -338,14 +343,31 @@ public class ServicesDlg extends EscapeDialog {
 
   /** Returns true if the editor-card fields contain values that can be saved. */
   private boolean hasValidEditorFields() {
+    String modeValue = getEditorModeValue();
     String meansValue = getEditorMeansValue();
+    int frequency = getIntegerOrMinimum(frequencyField.getText());
+    int mode = getIntegerOrMinimum(modeValue);
+    int means = getIntegerOrMinimum(meansValue);
     return !nameField.getText().isBlank()
         && !frequencyField.getText().isBlank()
-        && !getEditorModeValue().isBlank()
+        && !modeValue.isBlank()
         && !meansValue.isBlank()
-        && JDBCUtils.getInt(frequencyField.getText()) != Integer.MIN_VALUE
-        && JDBCUtils.getInt(meansValue) != Integer.MIN_VALUE
-        && JDBCUtils.getInt(getEditorModeValue()) != Integer.MIN_VALUE;
+        && frequency != Integer.MIN_VALUE
+        && mode >= 1
+        && mode < NodusC.MAXMM
+        && (means == TransportService.ALL_MEANS || means >= 1 && means < NodusC.MAXMM);
+  }
+
+  /** Parses an editor value without leaking transient Swing field states as exceptions. */
+  private int getIntegerOrMinimum(String value) {
+    if (value == null || value.isBlank()) {
+      return Integer.MIN_VALUE;
+    }
+    try {
+      return JDBCUtils.getInt(value);
+    } catch (NumberFormatException ex) {
+      return Integer.MIN_VALUE;
+    }
   }
 
   /** Captures the current details editor values for later dirty-state comparisons. */
@@ -642,6 +664,19 @@ public class ServicesDlg extends EscapeDialog {
     return lineViewCheckBox;
   }
 
+  /** Initializes the toggle that hides layers unrelated to the selected service. */
+  private JCheckBox getHideIrrelevantLayersCheckBox() {
+    if (hideIrrelevantLayersCheckBox == null) {
+      hideIrrelevantLayersCheckBox = new JCheckBox();
+      hideIrrelevantLayersCheckBox.setText(
+          i18n.get(
+              ServicesDlg.class, "Hide_irrelevant_layers", "Hide irrelevant layers"));
+      hideIrrelevantLayersCheckBox.setEnabled(false);
+      hideIrrelevantLayersCheckBox.addActionListener(e -> refreshLineViewForSelection());
+    }
+    return hideIrrelevantLayersCheckBox;
+  }
+
   /** Initializes the shortest-path service line creation checkbox. */
   private JCheckBox getShortestPathCheckBox() {
     if (shortestPathCheckBox == null) {
@@ -727,16 +762,19 @@ public class ServicesDlg extends EscapeDialog {
       return;
     }
 
+    meansField.addItem(Integer.toString(TransportService.ALL_MEANS));
     for (Integer means : serviceHandler.getAvailableServiceMeans(mode)) {
       meansField.addItem(means.toString());
     }
 
-    if (isPositiveIdentifier(preferredMeans)) {
+    if (isValidMeansIdentifier(preferredMeans)) {
       if (!comboBoxContainsItem(meansField, preferredMeans)) {
         meansField.addItem(preferredMeans);
       }
       meansField.setSelectedItem(preferredMeans);
-    } else if (meansField.getItemCount() > 0) {
+    } else if (meansField.getItemCount() > 1) {
+      meansField.setSelectedIndex(1);
+    } else {
       meansField.setSelectedIndex(0);
     }
   }
@@ -753,11 +791,15 @@ public class ServicesDlg extends EscapeDialog {
 
   /** Tests if a string is a positive numeric identifier. */
   private boolean isPositiveIdentifier(String value) {
-    if (value == null || value.isBlank()) {
-      return false;
-    }
-    int numericValue = JDBCUtils.getInt(value);
+    int numericValue = getIntegerOrMinimum(value);
     return numericValue != Integer.MIN_VALUE && numericValue > 0;
+  }
+
+  /** Tests if a string is a concrete means ID or the all-means wildcard. */
+  private boolean isValidMeansIdentifier(String value) {
+    int numericValue = getIntegerOrMinimum(value);
+    return numericValue == TransportService.ALL_MEANS
+        || numericValue > 0 && numericValue < NodusC.MAXMM;
   }
 
   /** Updates the shortest-path status according to the current mode/means readiness. */
@@ -815,6 +857,17 @@ public class ServicesDlg extends EscapeDialog {
     }
     lineViewCheckBox.setText(i18n.get(ServicesDlg.class, "Line_view", "Line view"));
     lineViewCheckBox.setSelected(lineViewActive);
+    if (hideIrrelevantLayersCheckBox != null) {
+      hideIrrelevantLayersCheckBox.setText(
+          i18n.get(
+              ServicesDlg.class, "Hide_irrelevant_layers", "Hide irrelevant layers"));
+      hideIrrelevantLayersCheckBox.setEnabled(lineViewActive);
+    }
+  }
+
+  /** Returns whether unrelated node and link layers should be hidden in line view. */
+  private boolean isHideIrrelevantLayersSelected() {
+    return hideIrrelevantLayersCheckBox != null && hideIrrelevantLayersCheckBox.isSelected();
   }
 
   /** Enables or disables the filtered service line view. */
@@ -826,7 +879,8 @@ public class ServicesDlg extends EscapeDialog {
         serviceHandler.clearLineView();
       } else {
         lineViewActive = true;
-        serviceHandler.displayLineView(serviceHandler.getService(serviceName));
+        serviceHandler.displayLineView(
+            serviceHandler.getService(serviceName), isHideIrrelevantLayersSelected());
       }
     } else {
       lineViewActive = false;
@@ -844,7 +898,8 @@ public class ServicesDlg extends EscapeDialog {
       if (serviceName == null) {
         setLineViewActive(false);
       } else {
-        serviceHandler.displayLineView(serviceHandler.getService(serviceName));
+        serviceHandler.displayLineView(
+            serviceHandler.getService(serviceName), isHideIrrelevantLayersSelected());
       }
     }
   }
@@ -1249,9 +1304,25 @@ public class ServicesDlg extends EscapeDialog {
 
       addToGridBag(
           listCard,
-          new JPanel(),
+          getHideIrrelevantLayersCheckBox(),
           createConstraints(
               5,
+              2,
+              1,
+              1,
+              0,
+              0,
+              GridBagConstraints.WEST,
+              GridBagConstraints.NONE,
+              new Insets(5, 5, 5, 5),
+              0,
+              0));
+
+      addToGridBag(
+          listCard,
+          new JPanel(),
+          createConstraints(
+              6,
               2,
               1,
               1,
@@ -1267,7 +1338,7 @@ public class ServicesDlg extends EscapeDialog {
           listCard,
           getListSaveButton(),
           createConstraints(
-              6,
+              7,
               2,
               1,
               1,
@@ -1283,7 +1354,7 @@ public class ServicesDlg extends EscapeDialog {
           listCard,
           getCloseButton(),
           createConstraints(
-              7,
+              8,
               2,
               1,
               1,
@@ -1436,7 +1507,7 @@ public class ServicesDlg extends EscapeDialog {
    * @return true if the editor changes were saved
    */
   private boolean saveEditorChanges() {
-    if (JDBCUtils.getInt(frequencyField.getText()) == Integer.MIN_VALUE) {
+    if (getIntegerOrMinimum(frequencyField.getText()) == Integer.MIN_VALUE) {
 
       JOptionPane.showMessageDialog(
           null,
@@ -1471,8 +1542,14 @@ public class ServicesDlg extends EscapeDialog {
       }
 
       TransportService s = serviceHandler.getCurrentService();
+      int previousMode = s.getMode();
+      int previousMeans = s.getMeans();
+      s.setMode(Byte.valueOf(getEditorModeValue()));
+      s.setMeans(Byte.valueOf(getEditorMeansValue()));
       String validationMessage = serviceHandler.getServiceLineValidationMessage(s);
       if (validationMessage != null) {
+        s.setMode(previousMode);
+        s.setMeans(previousMeans);
         JOptionPane.showMessageDialog(
             nodusMapPanel,
             MessageFormat.format(
@@ -1489,8 +1566,6 @@ public class ServicesDlg extends EscapeDialog {
       s.setName(name);
       s.setFrequency(
           Integer.valueOf(frequencyField.getText()) * constPeriod[time.getSelectedIndex()]);
-      s.setMode(Byte.valueOf(getEditorModeValue()));
-      s.setMeans(Byte.valueOf(getEditorMeansValue()));
 
       serviceHandler.saveService(s);
 
@@ -1776,16 +1851,19 @@ public class ServicesDlg extends EscapeDialog {
     modeField.addItem(Integer.toString(mode));
     modeField.setSelectedItem(Integer.toString(mode));
     meansField.removeAllItems();
-    if (mode == -1) {
-      meansField.addItem("-1");
-      meansField.setSelectedIndex(0);
+    meansField.addItem(Integer.toString(TransportService.ALL_MEANS));
+    if (mode > 0) {
+      for (Integer availableMeans : serviceHandler.getAvailableServiceMeans(mode)) {
+        meansField.addItem(availableMeans.toString());
+      }
+      String selectedMeans = Integer.toString(means);
+      if (isValidMeansIdentifier(selectedMeans)
+          && !comboBoxContainsItem(meansField, selectedMeans)) {
+        meansField.addItem(selectedMeans);
+      }
+      meansField.setSelectedItem(selectedMeans);
     } else {
-      for (int i = 0; i < means; ++i) {
-        meansField.addItem("" + (i + 1));
-      }
-      if (meansField.getItemCount() > 0) {
-        meansField.setSelectedItem("" + means);
-      }
+      meansField.setSelectedIndex(0);
     }
     updateSaveButtons();
   }
@@ -1796,8 +1874,7 @@ public class ServicesDlg extends EscapeDialog {
    * @return The mode, or Integer.MIN_VALUE if invalid.
    */
   public int getEditorMode() {
-    String modeValue = getEditorModeValue();
-    return modeValue.isBlank() ? Integer.MIN_VALUE : JDBCUtils.getInt(modeValue);
+    return getIntegerOrMinimum(getEditorModeValue());
   }
 
   /**
@@ -1806,8 +1883,7 @@ public class ServicesDlg extends EscapeDialog {
    * @return The means, or Integer.MIN_VALUE if invalid.
    */
   public int getEditorMeans() {
-    String meansValue = getEditorMeansValue();
-    return meansValue.isBlank() ? Integer.MIN_VALUE : JDBCUtils.getInt(meansValue);
+    return getIntegerOrMinimum(getEditorMeansValue());
   }
 
   /**

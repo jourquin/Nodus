@@ -2573,9 +2573,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             }
           });
 
-      consoleFrame.setVisible(false);
-      consoleFrame.setLocationRelativeTo(this);
-      consoleFrame.setVisible(true);
+      consoleFrame.setLocationRelativeTo(null);
       focusFrame(consoleFrame);
     }
 

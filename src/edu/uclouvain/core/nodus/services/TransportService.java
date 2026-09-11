@@ -31,6 +31,9 @@ import java.util.LinkedList;
  */
 public class TransportService {
 
+  /** Means value used when a service is available to every means supported by its complete line. */
+  public static final int ALL_MEANS = -1;
+
   /** The list of OMGraphics along the service. */
   private LinkedList<OMGraphic> links;
 
@@ -41,7 +44,7 @@ public class TransportService {
   private int id;
 
   /** Transportation means used on the service. */
-  private int means = -1;
+  private int means = ALL_MEANS;
 
   /** Transportation mode on the service. */
   private int mode = -1;
@@ -60,7 +63,7 @@ public class TransportService {
   public TransportService(int id) {
     this.id = id;
     this.mode = -1;
-    this.means = -1;
+    this.means = ALL_MEANS;
     links = new LinkedList<>();
     stopNodes = new LinkedList<>();
   }
@@ -71,7 +74,8 @@ public class TransportService {
    * @param id The numeric ID of the service.
    * @param name The name of the service.
    * @param mode The mode used for this service.
-   * @param means The means used along the service.
+   * @param means The means used along the service, or {@link #ALL_MEANS} for all means supported by
+   *     its complete line.
    * @param frequency The frequency of the service.
    */
   public TransportService(int id, String name, Byte mode, Byte means, int frequency) {
@@ -162,7 +166,7 @@ public class TransportService {
   /**
    * Get the transportation means used on the service.
    *
-   * @return The means used on the service.
+   * @return The means used on the service, or {@link #ALL_MEANS} for all supported means.
    */
   public int getMeans() {
     return means;
@@ -258,7 +262,8 @@ public class TransportService {
   /**
    * Set the transportation means used on the service.
    *
-   * @param means Transportation means used on the service.
+   * @param means Transportation means used on the service, or {@link #ALL_MEANS} for all means
+   *     supported by its complete line.
    */
   public void setMeans(int means) {
     this.means = means;

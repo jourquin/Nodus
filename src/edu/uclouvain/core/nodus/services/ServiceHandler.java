@@ -104,8 +104,17 @@ public class ServiceHandler {
   /** Layers touched by the line-view mode. */
   private Set<NodusEsriLayer> lineViewLayers = new HashSet<>();
 
+  /** Original visibility of layers hidden by the line-view mode. */
+  private Map<NodusEsriLayer, Boolean> lineViewLayerVisibility = new HashMap<>();
+
   /** TreeMap that contains the services. */
   private TreeMap<String, TransportService> services = new TreeMap<>();
+
+  /** Highest concrete means supported over every link of each service. */
+  private Map<Integer, Integer> serviceMaximumMeans = new HashMap<>();
+
+  /** Numeric service lookup prepared for virtual-network generation. */
+  private Map<Integer, TransportService> servicesByIdForVirtualNetwork = new HashMap<>();
 
   private String serviceStopsTableName;
 
@@ -672,12 +681,13 @@ public class ServiceHandler {
    *
    * <p>The path is computed on enabled real links whose mode matches {@code mode} and whose means
    * value supports {@code means}. In Nodus link data, a link with means {@code n} supports means
-   * {@code 1..n}. The attached {@link RealLink#getLength()} value is used as the edge weight.
+   * {@code 1..n}. When means is {@link TransportService#ALL_MEANS}, means 1 is used to compute the
+   * path. The attached {@link RealLink#getLength()} value is used as the edge weight.
    *
    * @param originNodeId Origin node ID.
    * @param destinationNodeId Destination node ID.
    * @param mode Transport mode.
-   * @param means Transport means.
+   * @param means Transport means, or {@link TransportService#ALL_MEANS}.
    * @return The ordered link IDs of the shortest path.
    */
   public LinkedList<Integer> findShortestServicePath(
@@ -693,9 +703,13 @@ public class ServiceHandler {
   /**
    * Computes the shortest physical path through a sequence of selected route nodes.
    *
+   * <p>When {@code means} is {@link TransportService#ALL_MEANS}, the path is computed for means 1.
+   * The saved service is later expanded through the highest means supported by every link of the
+   * resulting line.
+   *
    * @param routeNodeIds Ordered route nodes. The first and last nodes are the service endpoints.
    * @param mode Transport mode.
-   * @param means Transport means.
+   * @param means Transport means, or {@link TransportService#ALL_MEANS}.
    * @return The ordered link IDs of the concatenated shortest path.
    */
   public LinkedList<Integer> findShortestServicePath(
@@ -703,7 +717,8 @@ public class ServiceHandler {
 
     validateServicePathParameters(routeNodeIds, mode, means);
 
-    ServicePathGraph servicePathGraph = buildServicePathGraph(mode, means);
+    int pathMeans = means == TransportService.ALL_MEANS ? 1 : means;
+    ServicePathGraph servicePathGraph = buildServicePathGraph(mode, pathMeans);
     LinkedList<Integer> linkIds = new LinkedList<>();
     for (int i = 0; i < routeNodeIds.size() - 1; i++) {
       appendShortestServicePathSegment(
@@ -723,7 +738,7 @@ public class ServiceHandler {
    * @param serviceId Numeric service ID.
    * @param serviceName Service name. When blank, a default name based on the ID is used.
    * @param mode Transport mode.
-   * @param means Transport means.
+   * @param means Transport means, or {@link TransportService#ALL_MEANS}.
    * @param frequency Annualized service frequency.
    * @param linkIds Ordered link IDs that compose the service.
    * @param stopNodeIds Optional stop node IDs. When null or empty, the service end nodes are used.
@@ -809,7 +824,7 @@ public class ServiceHandler {
    * @param originNodeId Origin node ID.
    * @param destinationNodeId Destination node ID.
    * @param mode Transport mode.
-   * @param means Transport means.
+   * @param means Transport means, or {@link TransportService#ALL_MEANS}.
    * @param frequency Annualized service frequency.
    * @return The created service.
    */
@@ -827,7 +842,7 @@ public class ServiceHandler {
    * @param originNodeId Origin node ID.
    * @param destinationNodeId Destination node ID.
    * @param mode Transport mode.
-   * @param means Transport means.
+   * @param means Transport means, or {@link TransportService#ALL_MEANS}.
    * @param frequency Annualized service frequency.
    * @param overwriteExistingService True to replace an existing service with the same ID or name.
    * @param saveImmediately True to write the service tables immediately.
@@ -870,6 +885,8 @@ public class ServiceHandler {
     if (services != null) {
       services.clear();
     }
+    serviceMaximumMeans.clear();
+    servicesByIdForVirtualNetwork.clear();
     loadService();
     mustBeSaved = false;
   }
@@ -902,6 +919,8 @@ public class ServiceHandler {
     if (services != null) {
       services.clear();
     }
+    serviceMaximumMeans.clear();
+    servicesByIdForVirtualNetwork.clear();
 
     jdbcConnection = null;
     linkLayer = null;
@@ -909,6 +928,7 @@ public class ServiceHandler {
     nodusProject = null;
     lineViewGraphicVisibility = null;
     lineViewLayers = null;
+    lineViewLayerVisibility = null;
     servicesHeaderTableName = null;
     servicesLinksTableName = null;
     serviceStopsTableName = null;
@@ -1046,7 +1066,7 @@ public class ServiceHandler {
    * Retrieves the transportation means for the given service ID.
    *
    * @param serviceId service number
-   * @return The transportation means of service.
+   * @return The transportation means of the service, or {@link TransportService#ALL_MEANS}.
    */
   public int getMeansForService(int serviceId) {
     Iterator<TransportService> it = services.values().iterator();
@@ -1057,6 +1077,40 @@ public class ServiceHandler {
       }
     }
     return 0;
+  }
+
+  /**
+   * Tests whether a service applies to a concrete mode/means pair during virtual-network
+   * generation.
+   *
+   * <p>A service stored with means {@link TransportService#ALL_MEANS} is expanded only through the
+   * highest means supported by every link of its line. Generated virtual nodes therefore always
+   * retain a positive, concrete means value.
+   *
+   * @param serviceId Service ID.
+   * @param mode Concrete transport mode.
+   * @param means Concrete transport means.
+   * @return true if the service applies to the mode/means pair.
+   */
+  public boolean serviceSupportsModeMeans(int serviceId, int mode, int means) {
+    if (means < 1) {
+      return false;
+    }
+
+    TransportService service = servicesByIdForVirtualNetwork.get(Integer.valueOf(serviceId));
+    if (service == null) {
+      service = getServiceById(serviceId);
+    }
+    if (service == null || service.getMode() != mode) {
+      return false;
+    }
+
+    Integer maximumMeans = serviceMaximumMeans.get(Integer.valueOf(serviceId));
+    if (maximumMeans == null) {
+      maximumMeans = Integer.valueOf(getMaximumMeansForService(service));
+    }
+    return means <= maximumMeans.intValue()
+        && (service.getMeans() == TransportService.ALL_MEANS || service.getMeans() == means);
   }
 
   /**
@@ -1121,6 +1175,13 @@ public class ServiceHandler {
       return i18n.get(ServiceHandler.class, "InvalidLine_No_links", "the line has no links");
     }
 
+    if (!isValidModeMeans(service.getMode(), service.getMeans())) {
+      return i18n.get(
+          ServiceHandler.class,
+          "InvalidLine_Invalid_mode_means",
+          "the service mode or means is invalid");
+    }
+
     LinkedList<Integer> endNodes = new LinkedList<>();
     LinkedList<int[]> serviceEdges = new LinkedList<>();
     Set<Integer> serviceNodes = new HashSet<>();
@@ -1134,22 +1195,34 @@ public class ServiceHandler {
             "InvalidLine_Link_not_found",
             "one of the links was not found in the network");
       }
-      int[] linkMode = getLinkIdAndMode(link);
-      if (linkMode == null) {
+      int[] linkData = getServiceLinkData(link);
+      if (linkData == null) {
         return i18n.get(
             ServiceHandler.class,
             "InvalidLine_Link_not_found",
             "one of the links was not found in the network");
       }
-      if (linkMode[1] != service.getMode()) {
+      if (linkData[1] != service.getMode()) {
         return MessageFormat.format(
             i18n.get(
                 ServiceHandler.class,
                 "InvalidLine_Mode_mismatch",
                 "{0} has mode {1}, but the service uses mode {2}"),
-            formatLink(linkMode[0]),
-            formatIdentifier(linkMode[1]),
+            formatLink(linkData[0]),
+            formatIdentifier(linkData[1]),
             formatIdentifier(service.getMode()));
+      }
+      if (linkData[2] < 1
+          || service.getMeans() != TransportService.ALL_MEANS
+              && service.getMeans() > linkData[2]) {
+        return MessageFormat.format(
+            i18n.get(
+                ServiceHandler.class,
+                "InvalidLine_Means_mismatch",
+                "{0} supports means 1 through {1}, but the service uses means {2}"),
+            formatLink(linkData[0]),
+            formatIdentifier(linkData[2]),
+            formatIdentifier(service.getMeans()));
       }
       serviceEdges.add(nodes);
       serviceNodes.add(nodes[0]);
@@ -1353,18 +1426,20 @@ public class ServiceHandler {
   }
 
   /**
-   * Returns the link ID and mode of a service link.
+   * Returns the link ID, mode, maximum means and enabled state of a service link.
    *
    * @param link The link.
-   * @return The link ID and mode, or null if the link is not found.
+   * @return The link data, or null if the link is not found.
    */
-  private int[] getLinkIdAndMode(OMGraphic link) {
+  private int[] getServiceLinkData(OMGraphic link) {
     for (NodusEsriLayer element : linkLayer) {
       int idx = element.getEsriGraphicList().indexOf(link);
       if (idx != -1) {
         return new int[] {
           JDBCUtils.getInt(element.getModel().getValueAt(idx, NodusC.DBF_IDX_NUM)),
-          JDBCUtils.getInt(element.getModel().getValueAt(idx, NodusC.DBF_IDX_MODE))
+          JDBCUtils.getInt(element.getModel().getValueAt(idx, NodusC.DBF_IDX_MODE)),
+          JDBCUtils.getInt(element.getModel().getValueAt(idx, NodusC.DBF_IDX_MEANS)),
+          JDBCUtils.getInt(element.getModel().getValueAt(idx, NodusC.DBF_IDX_ENABLED))
         };
       }
     }
@@ -1475,11 +1550,19 @@ public class ServiceHandler {
           MessageFormat.format(
               "The mode must be between 1 and {0}.", formatIdentifier(NodusC.MAXMM - 1)));
     }
-    if (means < 1 || means >= NodusC.MAXMM) {
+    if (means != TransportService.ALL_MEANS && (means < 1 || means >= NodusC.MAXMM)) {
       throw new IllegalArgumentException(
           MessageFormat.format(
-              "The means must be between 1 and {0}.", formatIdentifier(NodusC.MAXMM - 1)));
+              "The means must be -1 or between 1 and {0}.",
+              formatIdentifier(NodusC.MAXMM - 1)));
     }
+  }
+
+  /** Returns true for a valid service mode and either a concrete means or the wildcard. */
+  private boolean isValidModeMeans(int mode, int means) {
+    return mode >= 1
+        && mode < NodusC.MAXMM
+        && (means == TransportService.ALL_MEANS || means >= 1 && means < NodusC.MAXMM);
   }
 
   /** Validates the endpoints and mode/means pair used for a generated service path. */
@@ -1779,7 +1862,12 @@ public class ServiceHandler {
     return getLinkId(values);
   }
 
-  /** Returns true when a real link can be used by a generated service. */
+  /**
+   * Returns true when a real link can be used by a generated service.
+   *
+   * <p>The all-means wildcard accepts every link of the selected mode with at least one means. A
+   * complete wildcard service is subsequently capped to the smallest means value along its line.
+   */
   private boolean isLinkUsableForService(List<Object> values, int mode, int means) {
     if (values == null || values.size() <= NodusC.DBF_IDX_MEANS) {
       return false;
@@ -1788,7 +1876,9 @@ public class ServiceHandler {
     int enabled = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_ENABLED));
     int linkMode = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_MODE));
     int linkMeans = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_MEANS));
-    return enabled != 0 && linkMode == mode && means <= linkMeans;
+    boolean supportedMeans =
+        means == TransportService.ALL_MEANS ? linkMeans >= 1 : means >= 1 && means <= linkMeans;
+    return enabled != 0 && linkMode == mode && supportedMeans;
   }
 
   /** Returns true when a node touches at least one link usable by the generated service. */
@@ -2470,7 +2560,7 @@ public class ServiceHandler {
 
   /** Restores the normal layer view after the filtered service line view was used. */
   public void clearLineView() {
-    if (lineViewGraphicVisibility == null || lineViewGraphicVisibility.isEmpty()) {
+    if (lineViewGraphicVisibility == null || lineViewLayerVisibility == null) {
       return;
     }
 
@@ -2481,9 +2571,31 @@ public class ServiceHandler {
       }
     }
 
+    for (Map.Entry<NodusEsriLayer, Boolean> entry : lineViewLayerVisibility.entrySet()) {
+      NodusEsriLayer layer = entry.getKey();
+      if (layer != null) {
+        boolean visible = entry.getValue().booleanValue();
+        layer.setVisible(visible);
+        if (layer.getLocationHandler() != null) {
+          layer.getLocationHandler().setVisible(visible);
+        }
+      }
+    }
+
     repaintLineViewLayers();
     lineViewGraphicVisibility.clear();
+    lineViewLayerVisibility.clear();
     lineViewLayers.clear();
+  }
+
+  /**
+   * Filters the map so only links belonging to the selected service remain visible on their
+   * layers.
+   *
+   * @param service The service to isolate on the map.
+   */
+  public void displayLineView(TransportService service) {
+    displayLineView(service, false);
   }
 
   /**
@@ -2491,8 +2603,10 @@ public class ServiceHandler {
    * touched by that service.
    *
    * @param service The service to isolate on the map.
+   * @param hideIrrelevantLayers True to hide complete node and link layers that do not contain any
+   *     part of the service.
    */
-  public void displayLineView(TransportService service) {
+  public void displayLineView(TransportService service, boolean hideIrrelevantLayers) {
     clearLineView();
     if (service == null || service.getNbLinks() == 0 || linkLayer == null) {
       return;
@@ -2515,12 +2629,80 @@ public class ServiceHandler {
         }
       }
     }
+    if (hideIrrelevantLayers) {
+      hideIrrelevantLineViewLayers(serviceLinks);
+    }
     repaintLineViewLayers();
+  }
+
+  /** Hides link layers without a service link and node layers without a service-link endpoint. */
+  private void hideIrrelevantLineViewLayers(Set<OMGraphic> serviceLinks) {
+    Set<Integer> serviceNodeIds = getLineViewServiceNodeIds(serviceLinks);
+
+    for (NodusEsriLayer layer : linkLayer) {
+      setLineViewLayerRelevant(layer, lineViewLayerContainsServiceLink(layer, serviceLinks));
+    }
+    if (nodeLayer != null) {
+      for (NodusEsriLayer layer : nodeLayer) {
+        setLineViewLayerRelevant(layer, lineViewLayerContainsServiceNode(layer, serviceNodeIds));
+      }
+    }
+  }
+
+  /** Returns all node IDs touched by the selected service links. */
+  private Set<Integer> getLineViewServiceNodeIds(Set<OMGraphic> serviceLinks) {
+    Set<Integer> serviceNodeIds = new HashSet<>();
+    for (NodusEsriLayer layer : linkLayer) {
+      if (layer == null || layer.getEsriGraphicList() == null || layer.getModel() == null) {
+        continue;
+      }
+      for (OMGraphic serviceLink : serviceLinks) {
+        int row = layer.getEsriGraphicList().indexOf(serviceLink);
+        if (row != -1) {
+          List<Object> record = layer.getModel().getRecord(row);
+          serviceNodeIds.add(Integer.valueOf(JDBCUtils.getInt(record.get(NodusC.DBF_IDX_NODE1))));
+          serviceNodeIds.add(Integer.valueOf(JDBCUtils.getInt(record.get(NodusC.DBF_IDX_NODE2))));
+        }
+      }
+    }
+    return serviceNodeIds;
+  }
+
+  /** Returns true when a node layer contains an endpoint of a selected service link. */
+  private boolean lineViewLayerContainsServiceNode(
+      NodusEsriLayer layer, Set<Integer> serviceNodeIds) {
+    if (layer == null) {
+      return false;
+    }
+    for (Integer nodeId : serviceNodeIds) {
+      if (layer.getNumIndex(nodeId.intValue()) != -1) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Hides an irrelevant layer while preserving its previous visibility. */
+  private void setLineViewLayerRelevant(NodusEsriLayer layer, boolean relevant) {
+    if (layer == null) {
+      return;
+    }
+    lineViewLayerVisibility.put(layer, Boolean.valueOf(layer.isVisible()));
+    lineViewLayers.add(layer);
+    if (!relevant) {
+      layer.setVisible(false);
+      if (layer.getLocationHandler() != null) {
+        layer.getLocationHandler().setVisible(false);
+      }
+    }
   }
 
   /** Returns true if a layer contains at least one link of the given service. */
   private boolean lineViewLayerContainsServiceLink(
       NodusEsriLayer layer, Set<OMGraphic> serviceLinks) {
+    if (layer == null || layer.getEsriGraphicList() == null) {
+      return false;
+    }
     Iterator<OMGraphic> it = serviceLinks.iterator();
     while (it.hasNext()) {
       if (layer.getEsriGraphicList().contains(it.next())) {
@@ -2551,6 +2733,9 @@ public class ServiceHandler {
 
   /** Associate the service ID to the real links. */
   public void loadServicesForVirtualNetwork() {
+    serviceMaximumMeans.clear();
+    servicesByIdForVirtualNetwork.clear();
+
     // * Clear the already loaded lines
     for (NodusEsriLayer element : linkLayer) {
       Iterator<?> it = element.getEsriGraphicList().iterator();
@@ -2565,6 +2750,9 @@ public class ServiceHandler {
     Iterator<TransportService> it = services.values().iterator();
     while (it.hasNext()) {
       TransportService s = it.next();
+      Integer serviceId = Integer.valueOf(s.getId());
+      servicesByIdForVirtualNetwork.put(serviceId, s);
+      serviceMaximumMeans.put(serviceId, Integer.valueOf(getMaximumMeansForService(s)));
       Iterator<OMGraphic> it2 = s.getLinks().iterator();
       while (it2.hasNext()) {
         OMGraphic omg = it2.next();
@@ -2572,6 +2760,34 @@ public class ServiceHandler {
         rl.addService(s.getId());
       }
     }
+  }
+
+  /** Returns a service by numeric ID, or null when no such service exists. */
+  private TransportService getServiceById(int serviceId) {
+    Iterator<TransportService> it = services.values().iterator();
+    while (it.hasNext()) {
+      TransportService service = it.next();
+      if (service.getId() == serviceId) {
+        return service;
+      }
+    }
+    return null;
+  }
+
+  /** Returns the highest means supported by every enabled link of a service line. */
+  private int getMaximumMeansForService(TransportService service) {
+    int maximumMeans = NodusC.MAXMM - 1;
+    boolean foundLink = false;
+    Iterator<OMGraphic> it = service.getLinks().iterator();
+    while (it.hasNext()) {
+      int[] linkData = getServiceLinkData(it.next());
+      if (linkData == null || linkData[3] == 0 || linkData[1] != service.getMode()) {
+        return 0;
+      }
+      maximumMeans = Math.min(maximumMeans, linkData[2]);
+      foundLink = true;
+    }
+    return foundLink ? Math.max(0, maximumMeans) : 0;
   }
 
   /**

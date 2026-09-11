@@ -48,7 +48,7 @@ import javax.swing.JOptionPane;
  * 2. Adjust the editable parameters below:
  *    - odTableName: name of the OD matrix table.
  *    - mode: transport mode used to compute and create the services.
- *    - means: transport means used to compute and create the services.
+ *    - means: transport means used to compute and create the services; use -1 for all means.
  *    - frequencyPerWeek: weekly service frequency to assign to every generated service.
  *    - previewOnly: set to true for a dry run.
  * 3. Run this script from Nodus.
@@ -69,7 +69,9 @@ import javax.swing.JOptionPane;
  * - The lower node ID is used as the service origin and the higher node ID as the service
  *   destination. This keeps service names stable and avoids duplicate reverse services.
  * - The route is the shortest path by physical link length on enabled links whose mode matches
- *   the selected mode and whose means value supports the selected means.
+ *   the selected mode and whose means value supports the selected means. With means = -1, the
+ *   route is computed for means 1, and the resulting service applies to every means supported by
+ *   every link of the complete line.
  * - The service name is built as:
  *     origin-destination-mode-means-annualFrequency
  * - The service stop nodes are initially limited to the service origin and destination. Additional
@@ -111,10 +113,12 @@ public class CreateShortestPathServicesFromOD_ {
 
   /*
    * Mode and means used both for shortest-path computation and for the generated service headers.
-   * The shortest path will use only enabled links of this mode that support this means.
+   * The shortest path will use only enabled links of this mode that support this means. Set means
+   * to TransportService.ALL_MEANS (-1) to make each generated service available to all means
+   * supported over its complete line.
    */
   int mode = 1;
-  int means = 1;
+  int means = 1; // Or TransportService.ALL_MEANS.
 
   /*
    * Weekly frequency assigned to each generated service. Nodus stores service frequency as an
@@ -224,7 +228,8 @@ public class CreateShortestPathServicesFromOD_ {
 
           try {
             LinkedList<Integer> linkIds =
-                serviceHandler.findShortestServicePath(originNodeId, destinationNodeId, mode, means);
+                serviceHandler.findShortestServicePath(
+                    originNodeId, destinationNodeId, mode, means);
 
             if (previewOnly) {
               System.out.println(

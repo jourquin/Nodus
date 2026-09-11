@@ -44,6 +44,7 @@ import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.services.TransportService;
 import edu.uclouvain.core.nodus.utils.RealLinkUtils;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.text.DecimalFormat;
@@ -785,10 +786,11 @@ public class VirtualNetwork {
                  * A virtualLink is created for all thes line of the mode /means.
                  */
                 int service = it.next();
-                int meansByService =
-                    nodusMapPanel.getNodusProject().getServiceHandler().getMeansForService(service);
                 // Virtual nodes
-                if (meansByService == k) {
+                if (nodusMapPanel
+                    .getNodusProject()
+                    .getServiceHandler()
+                    .serviceSupportsModeMeans(service, mode, k)) {
                   NodeLayerAndRowIndex idx = nodeIndex.get(node1);
                   double lat = vnl[idx.indexInVirtualNodeList].getGraphic().getLat();
                   double lon = vnl[idx.indexInVirtualNodeList].getGraphic().getLon();
@@ -1374,15 +1376,24 @@ public class VirtualNetwork {
 
   /**
    * Loads the matrix of mode/means combinations for which services must be generated, i.e. if the
-   * "SERVICELINES.mode,means" variable exists in the cost functions.
+   * "SERVICELINES.mode,means" variable exists in the cost functions. A means value of -1 supplies
+   * the default for all positive means of that mode; a concrete entry takes precedence.
    */
   private void loadLinesForModeMeans() {
 
     for (int mode = 0; mode < NodusC.MAXMM; mode++) {
       for (int means = 0; means < NodusC.MAXMM; means++) {
         String key = NodusC.VARNAME_SERVICELINES + "." + mode + "," + means;
-
-        String value = costFunctions.getProperty(key, "false");
+        String value = costFunctions.getProperty(key);
+        if (value == null && means > 0) {
+          String wildcardKey =
+              NodusC.VARNAME_SERVICELINES
+                  + "."
+                  + mode
+                  + ","
+                  + TransportService.ALL_MEANS;
+          value = costFunctions.getProperty(wildcardKey, "false");
+        }
         linesForModeMeans[mode][means] = Boolean.parseBoolean(value);
       }
     }

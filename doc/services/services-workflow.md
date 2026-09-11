@@ -7,7 +7,7 @@ This document explains how to create, edit, and use transport services in Nodus.
 A service describes a scheduled transport line on top of the physical network. A service has:
 
 - an ID and a name,
-- one mode and one means,
+- one mode and either one means or `-1` for all means supported over the complete line,
 - an annualized frequency, edited as a number per year, month, week, or day,
 - a connected set of network links,
 - optional stop nodes along those links.
@@ -26,7 +26,17 @@ SERVICELINES.3,2 = true
 
 This constrains only mode 3, means 2. Other means of mode 3 remain unconstrained unless they also have their own `SERVICELINES.mode,means` entry.
 
-For constrained combinations, the virtual network is generated per service. A real link only receives virtual movement links for services that use that link and whose service means matches the generated means. Unconstrained mode/means combinations are generated in the usual free-flow way, with service ID 0.
+Use `-1` as a wildcard to constrain every positive means of a mode:
+
+```properties
+SERVICELINES.3,-1 = true
+```
+
+A concrete entry overrides the wildcard for that mode. For example, adding `SERVICELINES.3,2 = false` leaves means 2 unconstrained while the other means of mode 3 remain constrained.
+
+For constrained combinations, the virtual network is generated per service. A real link only receives virtual movement links for services that use that link and whose service means matches the generated means. A service with means `-1` is expanded into separate virtual-network layers for every concrete means supported by every link of its complete line. All those links must be enabled. If the smallest `means` value among its links is 3, the service is generated for means 1, 2, and 3. If one of its links is disabled, no incomplete variant of the service is generated, but the stored service definition is retained. The generated virtual nodes and tables always contain concrete positive means; `-1` remains limited to the service definition. Unconstrained mode/means combinations are generated in the usual free-flow way, with service ID 0.
+
+All concrete variants of a wildcard service share its service ID, stops, and annualized frequency. Moving from one means to another remains a transhipment, even when both variants come from the same wildcard service; it is not treated as a service switch.
 
 ## Services Editor
 
@@ -39,7 +49,7 @@ The upper table lists the existing services. The columns are:
 - ID: numeric identifier of the service,
 - Name: service name,
 - Mode: transport mode used by the service,
-- Means: transport means used by the service,
+- Means: transport means used by the service; `-1` means all means supported over the complete line,
 - Frequency: service frequency, shown in the most readable period and with the equivalent annual value.
 
 Use the buttons at the bottom of the dialog to manage the list:
@@ -49,6 +59,7 @@ Use the buttons at the bottom of the dialog to manage the list:
 - Copy duplicates the selected service.
 - Delete removes the selected service.
 - Line view hides non-service links on the touched link layers so the selected service can be inspected in isolation.
+- Hide irrelevant layers is available only when Line view is checked. It also turns off complete link layers that contain no part of the selected service and node layers that contain none of the service link endpoints. Unchecking either option or closing the dialog restores the previous layer visibility.
 - Save writes all pending service changes to the SQL database and closes the dialog.
 - Cancel closes the dialog. If there are pending service changes, Nodus asks whether to discard them or save them.
 
@@ -60,7 +71,7 @@ When a service is added or edited, Nodus switches to the service details view.
 
 <img src="../images/services/service-details-editor.png" alt="Service details editor" style="display:block; width:100%; max-width:850px; height:auto; margin:0.8em auto;">
 
-The details view lets you edit the name, means, and frequency. The service ID is assigned automatically. The details view also activates line editing on the map and switches the map to selection mode.
+The details view lets you edit the name, means, and frequency. The service ID is assigned automatically. The means list uses the same wildcard convention as the node-rules dialog: `-1` means all means supported over the complete line. The details view also activates line editing on the map and switches the map to selection mode.
 
 When a new service is added, Shortest path is checked by default. The checkbox remains enabled until the first route node is selected, so it can be unchecked if the service must be edited manually. During node selection it is disabled to keep the workflow mode stable.
 
@@ -70,7 +81,7 @@ To define or edit a service line manually:
 
 1. Uncheck Shortest path if a new service should be edited manually.
 2. Select links on the map.
-3. The mode is inferred from the first selected link and cannot be typed directly. The means list is populated from the selected link's available means.
+3. The mode is inferred from the first selected link and cannot be typed directly. The means list contains `-1` and the means available for that mode.
 4. The selected service line is highlighted in green.
 5. Add links one by one. Each new link must touch exactly one node that is already in the current service line.
 6. Click an already selected end link, or a branch leaf link, to remove it.
@@ -80,7 +91,7 @@ To define or edit a service line manually:
 To create or replace the service line from a computed shortest path:
 
 1. Keep Shortest path checked when adding a new service, or check it explicitly while editing an existing service.
-2. Choose the mode and means to use for the computation.
+2. Choose the mode and means to use for the computation. Positive values compute the route for that concrete means. With `-1`, the route is computed on means 1, which has the widest link availability, and the completed service is then made available to all means supported over every link of that route.
 3. Select the origin node on the map. After this selection, Shortest path is disabled until the workflow ends.
 4. Select zero or more intermediate route nodes in the order they must be visited.
 5. Select the destination node.
@@ -93,6 +104,7 @@ The Save button is enabled only when the edited fields are valid, the service ha
 
 - the service must contain at least one link,
 - all links must use the same mode,
+- every link must support the selected concrete means; for means `-1`, the supported range is derived from the complete line,
 - every added link must be connected to exactly one node of the existing service line,
 - a cycle is not accepted by the editor,
 - all links must belong to one connected component,
@@ -178,7 +190,7 @@ The usual cost functions are still used:
 Stops affect generated virtual links:
 
 - loading and unloading on a service-constrained mode/means are generated only at nodes where the service stops,
-- service switches are generated only between services of the same mode/means, at service-change nodes where both services stop,
+- service switches are generated only between services of the same concrete mode/means, at service-change nodes where both services stop,
 - stop virtual links use the `stp` cost/duration function,
 - service-change virtual links use the `sw` cost/duration function.
 
@@ -209,7 +221,7 @@ The header table contains one row per service.
 | `id` | `NUMERIC(4,0)` | Service ID |
 | `name` | `VARCHAR(30)` | Service name |
 | `mode` | `NUMERIC(2,0)` | Service mode |
-| `means` | `NUMERIC(2,0)` | Service means |
+| `means` | `NUMERIC(2,0)` | Service means, or `-1` for all means supported over the complete line |
 | `frequency` | `NUMERIC(5,0)` | Service frequency |
 
 ### Links Table
@@ -234,7 +246,7 @@ The stops table contains the stop nodes of each service.
 
 To create a usable service-constrained network:
 
-1. Define `SERVICELINES.mode,means = true` in the cost functions file for each constrained mode/means.
+1. Define `SERVICELINES.mode,means = true` in the cost functions file for each constrained mode/means, or use means `-1` to constrain every means of a mode.
 2. Add the needed `stp` and `sw` cost functions, and duration functions if durations are used.
 3. Create services in the services editor.
 4. Draw each service line by selecting connected links on the map, or generate it with Shortest path and optional route waypoints.
