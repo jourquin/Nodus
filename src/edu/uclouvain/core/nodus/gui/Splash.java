@@ -35,6 +35,8 @@ import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JWindow;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 
 /**
  * The splash screen to show while the main program is loading.
@@ -99,18 +101,35 @@ public class Splash extends JWindow {
   /** . */
   private int width = 0;
 
+  /** Time to keep the splash visible after the main window is ready. */
+  private int displayDelay = 0;
+
   /** Default constructor. */
   public Splash() {
     super();
   }
 
   /**
-   * Creates a Splash that will appear until another frame hides it, but at least during "delay"
-   * milliseconds.
+   * Creates a splash that remains visible while the application starts and for {@code delay}
+   * milliseconds after the main window is ready.
    *
    * @param delay The delay in milliseconds.
    */
   public void display(int delay) {
+    if (!SwingUtilities.isEventDispatchThread()) {
+      try {
+        SwingUtilities.invokeAndWait(() -> display(delay));
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException("Interrupted while displaying the splash screen", e);
+      } catch (Exception e) {
+        throw new IllegalStateException("Unable to display the splash screen", e);
+      }
+      return;
+    }
+
+    displayDelay = Math.max(0, delay);
+
     JPanel p = new JPanel();
     GridBagLayout gridBagLayout1 = new GridBagLayout();
     p.setLayout(gridBagLayout1);
@@ -165,22 +184,66 @@ public class Splash extends JWindow {
     setLocationRelativeTo(null);
 
     // Display and set in foreground
-    setVisible(true);
     setAlwaysOnTop(true);
-
-    try {
-      Thread.sleep(delay);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
+    setVisible(true);
+    toFront();
   }
 
   /**
-   * Hides the Splash.
-   *
-   * @param delay the delay in milliseconds.
+   * Hides the splash after the configured delay. This method never blocks the calling thread.
    */
+  public void disposeWhenReady() {
+    disposeWhenReady(null);
+  }
+
+  /**
+   * Hides the splash after the configured delay, then runs a callback on the event dispatch thread.
+   * This method never blocks the calling thread.
+   *
+   * @param afterDispose Action to run after the splash is hidden, or {@code null}.
+   */
+  public void disposeWhenReady(Runnable afterDispose) {
+    if (!SwingUtilities.isEventDispatchThread()) {
+      SwingUtilities.invokeLater(() -> disposeWhenReady(afterDispose));
+      return;
+    }
+
+    Runnable closeSplash =
+        () -> {
+          dispose();
+          if (afterDispose != null) {
+            afterDispose.run();
+          }
+        };
+
+    setAlwaysOnTop(true);
+    toFront();
+
+    if (displayDelay == 0) {
+      closeSplash.run();
+      return;
+    }
+
+    Timer timer = new Timer(displayDelay, e -> closeSplash.run());
+    timer.setRepeats(false);
+    timer.start();
+  }
+
+  /**
+   * Hides the splash after an additional delay without blocking the calling thread.
+   *
+   * @param delay Additional delay in milliseconds.
+   * @deprecated Use {@link #disposeWhenReady()} to honor the delay supplied to {@link
+   *     #display(int)}.
+   */
+  @Deprecated
   public void dispose(int delay) {
-    this.dispose();
+    if (!SwingUtilities.isEventDispatchThread()) {
+      SwingUtilities.invokeLater(() -> dispose(delay));
+      return;
+    }
+
+    displayDelay = Math.max(0, delay);
+    disposeWhenReady();
   }
 }

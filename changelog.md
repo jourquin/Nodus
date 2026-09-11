@@ -460,12 +460,13 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Introduce a more flexible runtime mechanism to pass arguments to the JVM
 - Fix some MarkDown syntax issues
 - Upgrade to HSQLDB 2.7.4
-- Remove OSHI and JNA from the core lib, as they are not used anymore.
+- Remove OSHI and JNA from the core lib, as they are not used anymore
 - Add Equal Earth projection
 
 ## v8.5 - BuildXXXXXXXX
 - Enable the revamped Lines and Services workflow.
 - More resources in the help system
 - Fix some issues in the demo project and documentation
+- Improved splash screen delay measure
 
 

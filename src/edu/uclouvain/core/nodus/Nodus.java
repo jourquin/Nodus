@@ -88,9 +88,9 @@ public class Nodus {
    */
   public static void main(String[] args) {
 
-    // Display splash screen for at least 100 milliseconds
+    // Keep the splash visible for one second after startup without blocking initialization
     Splash splash = new Splash();
-    splash.display(100);
+    splash.display(1000);
 
     nodusLogger = Logger.getLogger(Nodus.class.getName());
     nodusLogger.setUseParentHandlers(false);
@@ -181,9 +181,7 @@ public class Nodus {
       }
     }
 
-    new Nodus(projectToLoad);
-
-    splash.dispose();
+    new Nodus(projectToLoad, splash);
   }
 
   /**
@@ -192,6 +190,16 @@ public class Nodus {
    * @param projectToLoad Full path to the Nodus project file to load at startup.
    */
   public Nodus(final String projectToLoad) {
+    this(projectToLoad, null);
+  }
+
+  /**
+   * Initializes the application and closes the splash once the main window is ready.
+   *
+   * @param projectToLoad Full path to the Nodus project file to load at startup.
+   * @param splash Splash screen displayed during initialization, or {@code null}.
+   */
+  private Nodus(final String projectToLoad, final Splash splash) {
 
     /*
      * Register the NodusSQL language (Nodus specific convenient commands added,
@@ -210,11 +218,18 @@ public class Nodus {
             nodusMapPanel = new NodusMapPanel(nodusProperties, projectToLoad != null);
             showInFrame();
 
-            // Be sure window is in foreground
-            boolean b = nodusMapPanel.getMainFrame().isAlwaysOnTop();
-            nodusMapPanel.getMainFrame().setAlwaysOnTop(true);
-            nodusMapPanel.getMainFrame().setAlwaysOnTop(b);
-            nodusMapPanel.requestFocus();
+            Runnable bringMainWindowToFront =
+                () -> {
+                  boolean alwaysOnTop = nodusMapPanel.getMainFrame().isAlwaysOnTop();
+                  nodusMapPanel.getMainFrame().setAlwaysOnTop(true);
+                  nodusMapPanel.getMainFrame().setAlwaysOnTop(alwaysOnTop);
+                  nodusMapPanel.requestFocus();
+                };
+            if (splash != null) {
+              splash.disposeWhenReady(bringMainWindowToFront);
+            } else {
+              bringMainWindowToFront.run();
+            }
 
             // Run the "nodus.groovy" script if exists
             String scriptFileName =
