@@ -168,10 +168,6 @@ public class ServiceHandler {
       node2 = Math.max(firstNode, secondNode);
     }
 
-    boolean contains(int nodeId) {
-      return node1 == nodeId || node2 == nodeId;
-    }
-
     @Override
     public boolean equals(Object other) {
       if (!(other instanceof ServiceEdgeKey)) {
@@ -1277,9 +1273,9 @@ public class ServiceHandler {
   /**
    * Checks if the service contains a real cycle.
    *
-   * <p>A route computed through an intermediate stop may legitimately use the same connector to
-   * enter and leave a dead-end station. This creates a repeated edge in the service walk, but not a
-   * distinct network cycle.
+   * <p>A route computed through an intermediate stop may legitimately enter and leave a dead-end
+   * station over the same access branch. This repeats every edge of that branch in the service
+   * walk, but does not create a distinct network cycle.
    */
   private boolean hasUnsupportedServiceCycle(
       LinkedList<int[]> serviceEdges,
@@ -1297,21 +1293,76 @@ public class ServiceHandler {
       edgeOccurrences.put(edgeKey, count == null ? 1 : count.intValue() + 1);
     }
 
-    Set<Integer> endNodeIds = new HashSet<>(endNodes);
-    Set<Integer> stopNodeIds = new HashSet<>(stopNodes);
-    Map<Integer, Integer> uniqueNodeDegrees = getUniqueNodeDegrees(edgeOccurrences.keySet());
+    if (edgeOccurrences.size() > serviceNodes.size() - 1) {
+      return true;
+    }
+
+    Set<ServiceEdgeKey> repeatedEdges = new HashSet<>();
     for (Map.Entry<ServiceEdgeKey, Integer> entry : edgeOccurrences.entrySet()) {
       if (entry.getValue().intValue() == 1) {
         continue;
       }
-      if (entry.getValue().intValue() != 2
-          || !touchesAllowedRepeatedConnectorNode(
-              entry.getKey(), stopNodeIds, endNodeIds, uniqueNodeDegrees)) {
+      if (entry.getValue().intValue() != 2) {
+        return true;
+      }
+      repeatedEdges.add(entry.getKey());
+    }
+
+    if (repeatedEdges.isEmpty()) {
+      return false;
+    }
+
+    Set<Integer> endNodeIds = new HashSet<>(endNodes);
+    Set<Integer> stopNodeIds = new HashSet<>(stopNodes);
+    stopNodeIds.removeAll(endNodeIds);
+    Map<Integer, Integer> uniqueNodeDegrees = getUniqueNodeDegrees(edgeOccurrences.keySet());
+    return hasRepeatedBranchWithoutStop(
+        repeatedEdges, stopNodeIds, endNodeIds, uniqueNodeDegrees);
+  }
+
+  /** Returns true if a connected group of repeated edges has no legitimate intermediate stop. */
+  private boolean hasRepeatedBranchWithoutStop(
+      Set<ServiceEdgeKey> repeatedEdges,
+      Set<Integer> stopNodeIds,
+      Set<Integer> endNodeIds,
+      Map<Integer, Integer> uniqueNodeDegrees) {
+    Set<ServiceEdgeKey> remainingEdges = new HashSet<>(repeatedEdges);
+    while (!remainingEdges.isEmpty()) {
+      Iterator<ServiceEdgeKey> firstEdgeIterator = remainingEdges.iterator();
+      ServiceEdgeKey firstEdge = firstEdgeIterator.next();
+      firstEdgeIterator.remove();
+
+      Set<Integer> componentNodes = new HashSet<>();
+      componentNodes.add(Integer.valueOf(firstEdge.node1));
+      componentNodes.add(Integer.valueOf(firstEdge.node2));
+      collectConnectedRepeatedEdges(remainingEdges, componentNodes);
+
+      if (!containsAllowedRepeatedBranchStop(
+          componentNodes, stopNodeIds, endNodeIds, uniqueNodeDegrees)) {
         return true;
       }
     }
+    return false;
+  }
 
-    return edgeOccurrences.size() > serviceNodes.size() - 1;
+  /** Adds to a component every remaining repeated edge connected to one of its nodes. */
+  private void collectConnectedRepeatedEdges(
+      Set<ServiceEdgeKey> remainingEdges, Set<Integer> componentNodes) {
+    boolean expanded;
+    do {
+      expanded = false;
+      Iterator<ServiceEdgeKey> edgeIterator = remainingEdges.iterator();
+      while (edgeIterator.hasNext()) {
+        ServiceEdgeKey edge = edgeIterator.next();
+        if (componentNodes.contains(Integer.valueOf(edge.node1))
+            || componentNodes.contains(Integer.valueOf(edge.node2))) {
+          componentNodes.add(Integer.valueOf(edge.node1));
+          componentNodes.add(Integer.valueOf(edge.node2));
+          edgeIterator.remove();
+          expanded = true;
+        }
+      }
+    } while (expanded);
   }
 
   /** Computes node degrees in the graph formed by unique service edges. */
@@ -1326,29 +1377,28 @@ public class ServiceHandler {
     return nodeDegrees;
   }
 
-  /**
-   * Tests if a repeated edge touches a legitimate intermediate station connector node.
-   *
-   * <p>New shortest-path services store selected waypoints as stops. Older services may not have
-   * persisted these waypoints, so a non-end leaf node that allows operations is accepted too.
-   */
-  private boolean touchesAllowedRepeatedConnectorNode(
-      ServiceEdgeKey edgeKey,
+  /** Tests if a repeated branch contains a legitimate intermediate station. */
+  private boolean containsAllowedRepeatedBranchStop(
+      Set<Integer> componentNodes,
       Set<Integer> stopNodeIds,
       Set<Integer> endNodeIds,
       Map<Integer, Integer> uniqueNodeDegrees) {
     Iterator<Integer> it = stopNodeIds.iterator();
     while (it.hasNext()) {
       int stopNodeId = it.next().intValue();
-      if (!endNodeIds.contains(Integer.valueOf(stopNodeId)) && edgeKey.contains(stopNodeId)) {
+      if (componentNodes.contains(Integer.valueOf(stopNodeId))) {
         return true;
       }
     }
 
-    if (isAllowedRepeatedConnectorLeaf(edgeKey.node1, endNodeIds, uniqueNodeDegrees)) {
-      return true;
+    // Older services may not have persisted intermediate waypoints as stops.
+    it = componentNodes.iterator();
+    while (it.hasNext()) {
+      if (isAllowedRepeatedConnectorLeaf(it.next().intValue(), endNodeIds, uniqueNodeDegrees)) {
+        return true;
+      }
     }
-    return isAllowedRepeatedConnectorLeaf(edgeKey.node2, endNodeIds, uniqueNodeDegrees);
+    return false;
   }
 
   /** Tests if a node can be the dead-end side of a repeated connector. */
