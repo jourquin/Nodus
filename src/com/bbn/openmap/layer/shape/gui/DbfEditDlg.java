@@ -91,6 +91,8 @@ import javax.swing.table.TableColumn;
  */
 public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
 
+  private static final int NO_TRANSIT_OFFSET = NodusC.SERVICE_CHANGE + 1;
+
   /**
    * Private class used control the type of data entered in a cell. Only a data compatible with the
    * related column in the .dbf file can be entered
@@ -803,13 +805,11 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
               if (e.getStateChange() == ItemEvent.SELECTED) {
                 // Get the affected item
                 int idx = cb.getSelectedIndex();
-                String value = String.valueOf(idx);
 
-                // Update table
-                dbfTable.setValueAt(value, NodusC.DBF_IDX_TRANSHIP, 1);
+                updateHandlingValue();
 
                 // Rules are only available for (un)loading and transhipment operations
-                int operationType = Integer.valueOf(value);
+                int operationType = idx;
                 if (operationType == NodusC.HANDLING_LOAD_UNLOAD
                     || operationType == NodusC.HANDLING_ALL
                     || operationType == NodusC.HANDLING_TRANSHIP) {
@@ -824,6 +824,20 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
           });
     }
     return transhipComboBox;
+  }
+
+  /** Stores the operation type while preserving the independent transit setting. */
+  private void updateHandlingValue() {
+    int operationType = transhipComboBox.getSelectedIndex();
+    if (operationType < 0) {
+      return;
+    }
+
+    int handlingValue = operationType;
+    if (!transitCheckBox.isSelected()) {
+      handlingValue += NO_TRANSIT_OFFSET;
+    }
+    dbfTable.setValueAt(String.valueOf(handlingValue), NodusC.DBF_IDX_TRANSHIP, 1);
   }
 
   /**
@@ -1022,20 +1036,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     transitCheckBox.addItemListener(
         new ItemListener() {
           public void itemStateChanged(ItemEvent e) {
-            boolean transit = transitCheckBox.isSelected();
-
-            // Get the current value of the tranship operation
-            int idx = transhipComboBox.getSelectedIndex();
-            if (!transit) {
-              idx += 5;
-            }
-
-            // Update the value (>= 5 if no transit is allowed)
-            String value = String.valueOf(idx);
-
-            // Update table
-            dbfTable.setValueAt(value, NodusC.DBF_IDX_TRANSHIP, 1);
-
+            updateHandlingValue();
             setSaveButtonState();
           }
         });
@@ -1258,10 +1259,10 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
       // Value of tranship in dbf
       int t = JDBCUtils.getInt(values.get(NodusC.DBF_IDX_TRANSHIP));
 
-      // If the value of t is larger than 4, it means that no transit is permitted
+      // Values offset by the number of operation types mean that transit is not permitted.
       boolean transit = true;
-      if (t >= 5) {
-        t -= 5;
+      if (t >= NO_TRANSIT_OFFSET) {
+        t -= NO_TRANSIT_OFFSET;
         transit = false;
       }
       transitCheckBox.setSelected(transit);
