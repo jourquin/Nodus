@@ -134,7 +134,11 @@ public class JungVirtualLink implements Comparable<Object> {
       returnType = VirtualLink.TYPE_MOVE;
     } else if (originJungVirtualNode.getMode() == destinationJungVirtualNode.getMode()
         && originJungVirtualNode.getMeans() == destinationJungVirtualNode.getMeans()) {
-      returnType = VirtualLink.TYPE_TRANSIT;
+      if (originJungVirtualNode.getService() != destinationJungVirtualNode.getService()) {
+        returnType = VirtualLink.TYPE_SWITCH;
+      } else {
+        returnType = VirtualLink.TYPE_TRANSIT;
+      }
     } else {
       returnType = VirtualLink.TYPE_TRANSHIP;
     }
