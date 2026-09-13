@@ -473,4 +473,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Improved splash screen delay measure
 - Avoid blinking "ghost window" when the Groovy console is launched
 - Fix "Transit only" checkbox in DbfEdirDlg that was sometimes checked unexpectedly
+- Report whether an equilibrium assignment converged or reached its iteration limit, and clarify
+  iteration and convergence controls in the assignment dialog.
  

@@ -217,7 +217,11 @@ public class IncFrankWolfeAssignment extends Assignment {
     // Get the number of threads
     int threads = assignmentParameters.getThreads();
 
+    boolean converged = false;
+    int frankWolfeIterations = 0;
+
     for (int iteration = start; iteration < end; iteration++) {
+      frankWolfeIterations++;
       // --- Assign all od classes
       for (byte odClass = 0; odClass < virtualNet.getNbODClasses(); odClass++) {
 
@@ -301,13 +305,19 @@ public class IncFrankWolfeAssignment extends Assignment {
 
       // Test if the stop rule is satisfied
       if (stopRule(iteration, assignmentParameters.getPrecision())) {
+        converged = true;
         break;
       }
     }
 
     // Save the volumes
     VirtualNetworkWriter vnw = new VirtualNetworkWriter(assignmentParameters, virtualNet);
-    return vnw.save();
+    boolean saved = vnw.save();
+    if (saved) {
+      setConvergenceCompletion(
+          converged, frankWolfeIterations, assignmentParameters.getNbIterations(), nbIterationsInc);
+    }
+    return saved;
   }
 
   /**
@@ -390,7 +400,7 @@ public class IncFrankWolfeAssignment extends Assignment {
    * <p>New current volume = (1-lambda) x current volume + lambda x auxiliary volume
    *
    * @param lambda double
-   * @return true on success. 
+   * @return true on success.
    */
   public boolean splitVolumes(double lambda) {
     // Update current volumes on virtual links
@@ -424,60 +434,14 @@ public class IncFrankWolfeAssignment extends Assignment {
   }
 
   /**
-   * Returns true if max of allowed iterations is reached, or if the maximum gap in the computed
-   * volumes between two successive iterations doesn't vary more than the expected precision.
+   * Returns true if the maximum gap in the computed volumes between two successive iterations is
+   * smaller than the requested precision.
    *
    * @param iteration int
    * @param precision double
    * @return boolean
    */
   public boolean stopRule(int iteration, double precision) {
-    double currentGap = 0.0;
-    double numerator = 0.0;
-    double denominator = 0.0;
-    double maxGap = 0.0;
-
-    if (iteration > 1) {
-      // Update current volumes on virtual links
-      VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();
-
-      for (VirtualNodeList element : vnl) {
-        // Iterate through all the virtual nodes generated for this real
-        // node
-        Iterator<VirtualNode> nodeLit = element.getVirtualNodeList().iterator();
-
-        while (nodeLit.hasNext()) {
-          VirtualNode vn = nodeLit.next();
-
-          // Iterate through all the virtual links that start from
-          // this virtual node
-          Iterator<VirtualLink> linkLit = vn.getVirtualLinkList().iterator();
-
-          while (linkLit.hasNext()) {
-            VirtualLink vl = linkLit.next();
-            byte[] groups = virtualNet.getGroups();
-
-            for (byte k = 0; k < (byte) groups.length; k++) {
-              numerator += Math.abs(vl.getCurrentVolume(k) - vl.getPreviousVolume(k));
-              denominator += vl.getCurrentVolume(k);
-            }
-          }
-
-          currentGap = numerator / denominator;
-
-          if (currentGap > maxGap) {
-            maxGap = currentGap;
-          }
-        }
-      }
-
-      if (maxGap < precision) {
-        return true;
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
+    return convergenceReached(iteration, precision);
   }
 }

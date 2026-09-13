@@ -123,7 +123,11 @@ public class MSAAssignment extends Assignment {
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
     startGarbageCollectionRunner();
 
+    boolean converged = false;
+    int iterationsPerformed = 0;
+
     for (int iteration = 1; iteration <= assignmentParameters.getNbIterations(); iteration++) {
+      iterationsPerformed = iteration;
       double split = 1.0 / iteration;
 
       for (byte odClass = 0; odClass < virtualNet.getNbODClasses(); odClass++) {
@@ -207,6 +211,7 @@ public class MSAAssignment extends Assignment {
 
       // Test if the stop rule is satisfied
       if (stopRule(iteration, assignmentParameters.getPrecision())) {
+        converged = true;
         break;
       }
     }
@@ -216,7 +221,12 @@ public class MSAAssignment extends Assignment {
     // long end = System.currentTimeMillis();
     // System.out.println("Duration : " + (end - Start) / 1000);
 
-    return vnw.save();
+    boolean saved = vnw.save();
+    if (saved) {
+      setConvergenceCompletion(
+          converged, iterationsPerformed, assignmentParameters.getNbIterations(), 0);
+    }
+    return saved;
   }
 
   /**
@@ -263,58 +273,14 @@ public class MSAAssignment extends Assignment {
   }
 
   /**
-   * Returns true if max of allowed iterations is reached, or if the maximum gap in the computed
-   * volumes between two successive iterations doesn't vary more than the expected precision.
+   * Returns true if the maximum gap in the computed volumes between two successive iterations is
+   * smaller than the requested precision.
    *
    * @param iteration int
    * @param precision double
    * @return boolean
    */
   public boolean stopRule(int iteration, double precision) {
-    double currentGap = 0.0;
-    double numerator = 0.0;
-    double denominator = 0.0;
-    double maxGap = 0.0;
-
-    if (iteration > 1) {
-      // Update current volume on virtual links
-      VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();
-
-      for (VirtualNodeList element : vnl) {
-        // Iterate through all the virtual nodes generated for this real node
-        Iterator<VirtualNode> nodeLit = element.getVirtualNodeList().iterator();
-
-        while (nodeLit.hasNext()) {
-          VirtualNode vn = nodeLit.next();
-
-          // Iterate through all the virtual links that start from this virtual node
-          Iterator<VirtualLink> linkLit = vn.getVirtualLinkList().iterator();
-
-          while (linkLit.hasNext()) {
-            VirtualLink vl = linkLit.next();
-            byte[] groups = virtualNet.getGroups();
-
-            for (byte k = 0; k < (byte) groups.length; k++) {
-              numerator += Math.abs(vl.getCurrentVolume(k) - vl.getPreviousVolume(k));
-              denominator += vl.getCurrentVolume(k);
-            }
-          }
-
-          currentGap = numerator / denominator;
-
-          if (currentGap > maxGap) {
-            maxGap = currentGap;
-          }
-        }
-      }
-
-      if (maxGap < precision) {
-        return true;
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
+    return convergenceReached(iteration, precision);
   }
 }

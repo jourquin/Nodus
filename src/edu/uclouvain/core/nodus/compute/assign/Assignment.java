@@ -29,7 +29,10 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
+import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
+import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
+import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
@@ -43,6 +46,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.MessageFormat;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
 import javax.swing.JOptionPane;
@@ -106,6 +113,12 @@ public abstract class Assignment implements Runnable {
 
   private String errorMessage = "";
 
+  /** Normal termination details for iterative assignments. */
+  private volatile AssignmentCompletion completion;
+
+  /** Most recently computed relative volume gap. */
+  private double lastRelativeVolumeGap = Double.NaN;
+
   /** A parser and place holder for the vehicles characteristics (average load and PCU. */
   protected VehiclesParser vehiclesParser = null;
 
@@ -142,6 +155,16 @@ public abstract class Assignment implements Runnable {
    */
   public AssignmentParameters getAssignmentParameters() {
     return assignmentParameters;
+  }
+
+  /**
+   * Returns the normal termination details, or null if the assignment has not completed normally or
+   * does not use an iterative equilibrium algorithm.
+   *
+   * @return The assignment completion details.
+   */
+  public AssignmentCompletion getCompletion() {
+    return completion;
   }
 
   /**
@@ -307,6 +330,8 @@ public abstract class Assignment implements Runnable {
 
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
     nodusMapPanel.getAssignmentMenuItem().setEnabled(false);
+    completion = null;
+    lastRelativeVolumeGap = Double.NaN;
 
     // Update the scenario combo of the main window
     nodusMapPanel.updateScenarioComboBox(true);
@@ -343,6 +368,7 @@ public abstract class Assignment implements Runnable {
       // Play a sound
       if (success) {
         nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_OK);
+        showCompletionMessage();
       } else {
         nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
         discardPathWriter();
@@ -424,6 +450,163 @@ public abstract class Assignment implements Runnable {
    */
   public void setErrorMessage(String msg) {
     errorMessage = msg;
+  }
+
+  /**
+   * Evaluates the convergence rule and retains the gap for the completion report.
+   *
+   * @param iteration Current iteration number.
+   * @param threshold Requested convergence threshold.
+   * @return True if the convergence threshold was reached.
+   */
+  protected final boolean convergenceReached(int iteration, double threshold) {
+    if (iteration <= 1) {
+      lastRelativeVolumeGap = Double.NaN;
+      return false;
+    }
+
+    double numerator = 0.0;
+    double denominator = 0.0;
+    double maxGap = 0.0;
+
+    for (VirtualNodeList nodeList : virtualNet.getVirtualNodeLists()) {
+      Iterator<VirtualNode> nodeIterator = nodeList.getVirtualNodeList().iterator();
+
+      while (nodeIterator.hasNext()) {
+        VirtualNode node = nodeIterator.next();
+        Iterator<VirtualLink> linkIterator = node.getVirtualLinkList().iterator();
+
+        while (linkIterator.hasNext()) {
+          VirtualLink link = linkIterator.next();
+
+          for (byte groupIndex = 0;
+              groupIndex < (byte) virtualNet.getGroups().length;
+              groupIndex++) {
+            numerator +=
+                Math.abs(link.getCurrentVolume(groupIndex) - link.getPreviousVolume(groupIndex));
+            denominator += link.getCurrentVolume(groupIndex);
+          }
+        }
+
+        double currentGap = numerator / denominator;
+        if (currentGap > maxGap) {
+          maxGap = currentGap;
+        }
+      }
+    }
+
+    lastRelativeVolumeGap = maxGap;
+    return maxGap < threshold;
+  }
+
+  /** Records the normal completion of a convergence-controlled assignment. */
+  protected final void setConvergenceCompletion(
+      boolean converged, int iterations, int maximumIterations, int initializationIterations) {
+    AssignmentCompletion.Reason reason =
+        converged
+            ? AssignmentCompletion.Reason.CONVERGED
+            : AssignmentCompletion.Reason.MAX_ITERATIONS_REACHED;
+    completion =
+        new AssignmentCompletion(
+            reason,
+            iterations,
+            maximumIterations,
+            initializationIterations,
+            lastRelativeVolumeGap,
+            assignmentParameters.getPrecision());
+  }
+
+  /** Records the normal completion of an assignment with a fixed iteration count. */
+  protected final void setFixedIterationsCompletion(int iterations) {
+    completion =
+        new AssignmentCompletion(
+            AssignmentCompletion.Reason.FIXED_ITERATIONS_COMPLETED,
+            iterations,
+            iterations,
+            0,
+            Double.NaN,
+            Double.NaN);
+  }
+
+  /** Displays the stopping condition of an iterative equilibrium assignment. */
+  private void showCompletionMessage() {
+    if (completion == null) {
+      return;
+    }
+
+    String message;
+    int messageType = JOptionPane.INFORMATION_MESSAGE;
+
+    if (completion.getReason() == AssignmentCompletion.Reason.FIXED_ITERATIONS_COMPLETED) {
+      message =
+          MessageFormat.format(
+              i18n.get(
+                  Assignment.class,
+                  "Fixed_iterations_completed",
+                  "Assignment completed after the configured {0} iterations."),
+              completion.getIterationsPerformed());
+    } else {
+      message = getConvergenceCompletionMessage();
+      if (completion.getReason() == AssignmentCompletion.Reason.MAX_ITERATIONS_REACHED) {
+        messageType = JOptionPane.WARNING_MESSAGE;
+      }
+    }
+
+    JOptionPane.showMessageDialog(
+        nodusProject.getNodusMapPanel(), message, NodusC.APPNAME, messageType);
+  }
+
+  /** Builds the localized completion message for a convergence-controlled assignment. */
+  private String getConvergenceCompletionMessage() {
+    DecimalFormat formatter = new DecimalFormat("0.#####", DecimalFormatSymbols.getInstance());
+    String gap =
+        completion.hasFinalRelativeGap()
+            ? formatter.format(completion.getFinalRelativeGap())
+            : i18n.get(Assignment.class, "Not_available", "not available");
+    String threshold = formatter.format(completion.getConvergenceThreshold());
+    boolean converged = completion.getReason() == AssignmentCompletion.Reason.CONVERGED;
+    String message;
+
+    if (converged) {
+      message =
+          MessageFormat.format(
+              i18n.get(
+                  Assignment.class,
+                  "Assignment_converged",
+                  "Assignment converged after {0} of {1} iterations.\n"
+                      + "Final relative gap: {2}; threshold: {3}."),
+              completion.getIterationsPerformed(),
+              completion.getMaximumIterations(),
+              gap,
+              threshold);
+    } else {
+      message =
+          MessageFormat.format(
+              i18n.get(
+                  Assignment.class,
+                  "Maximum_iterations_reached",
+                  "Assignment completed after the maximum of {0} iterations without reaching "
+                      + "convergence.\nFinal relative gap: {1}; threshold: {2}.\n"
+                      + "Results were saved."),
+              completion.getMaximumIterations(),
+              gap,
+              threshold);
+    }
+
+    if (completion.getInitializationIterations() > 0) {
+      message +=
+          "\n"
+              + MessageFormat.format(
+                  i18n.get(
+                      Assignment.class,
+                      "Initialization_iterations",
+                      "Count shown above: Frank-Wolfe phase.\n"
+                          + "Incremental initialization: {0} iterations ({1} in total)."),
+                  completion.getInitializationIterations(),
+                  completion.getTotalIterationsPerformed());
+    }
+
+    return message;
   }
 
   /**

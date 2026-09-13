@@ -1178,7 +1178,7 @@ public class AssignmentDlg extends EscapeDialog {
           }
         });
 
-    precisionLabel.setText(i18n.get(AssignmentDlg.class, "Precision", "Precision"));
+    precisionLabel.setText(i18n.get(AssignmentDlg.class, "Tolerance", "Tolerance"));
     scenarioLabel.setHorizontalAlignment(SwingConstants.CENTER);
     scenarioLabel.setBorder(new LineBorder(Color.GRAY));
     scenarioLabel.setText(i18n.get(AssignmentDlg.class, "Scenario", "Scenario"));
@@ -2307,9 +2307,19 @@ public class AssignmentDlg extends EscapeDialog {
 
     iterationLabel.setEnabled(enabled);
     iterationLabel.setText(i18n.get(AssignmentDlg.class, "Iterations", "Iterations"));
+    iterationLabel.setToolTipText(
+        i18n.get(AssignmentDlg.class, "Iterations_tooltip", "Number of iterations to perform."));
     iterationSpinner.setEnabled(enabled);
+    iterationSpinner.setToolTipText(iterationLabel.getToolTipText());
     precisionLabel.setEnabled(enabled);
+    precisionLabel.setText(i18n.get(AssignmentDlg.class, "Tolerance", "Tolerance"));
+    precisionLabel.setToolTipText(
+        i18n.get(
+            AssignmentDlg.class,
+            "Tolerance_tooltip",
+            "Stop when the relative volume gap is below this value."));
     precisionSpinner.setEnabled(enabled);
+    precisionSpinner.setToolTipText(precisionLabel.getToolTipText());
     costMarkUpLabel.setEnabled(enabled);
     costMarkupSpinner.setEnabled(enabled);
     maxDetourLabel.setEnabled(enabled);
@@ -2338,6 +2348,7 @@ public class AssignmentDlg extends EscapeDialog {
     }
 
     if (msaRadioButton.isSelected()) {
+      setMaximumIterationsLabel();
       precisionLabel.setEnabled(true);
       precisionSpinner.setEnabled(true);
       iterationLabel.setEnabled(true);
@@ -2354,6 +2365,7 @@ public class AssignmentDlg extends EscapeDialog {
     }
 
     if (frankWolfeRadioButton.isSelected()) {
+      setMaximumIterationsLabel();
       precisionLabel.setEnabled(true);
       precisionSpinner.setEnabled(true);
       iterationLabel.setEnabled(true);
@@ -2363,6 +2375,7 @@ public class AssignmentDlg extends EscapeDialog {
     }
 
     if (incFrankWolfeRadioButton.isSelected()) {
+      setMaximumIterationsLabel();
       precisionLabel.setEnabled(true);
       precisionSpinner.setEnabled(true);
       iterationLabel.setEnabled(true);
@@ -2374,6 +2387,7 @@ public class AssignmentDlg extends EscapeDialog {
     if (fastMFRadioButton.isSelected()) {
       iterationLabel.setEnabled(true);
       iterationLabel.setText(i18n.get(AssignmentDlg.class, "NbRoutes", "Nb routes"));
+      setRoutesTooltip();
       iterationSpinner.setEnabled(true);
       costMarkUpLabel.setEnabled(true);
       costMarkupSpinner.setEnabled(true);
@@ -2391,6 +2405,7 @@ public class AssignmentDlg extends EscapeDialog {
     if (exactMFRadioButton.isSelected()) {
       iterationLabel.setEnabled(true);
       iterationLabel.setText(i18n.get(AssignmentDlg.class, "NbRoutes", "Nb routes"));
+      setRoutesTooltip();
       iterationSpinner.setEnabled(true);
       costMarkUpLabel.setEnabled(true);
       costMarkupSpinner.setEnabled(true);
@@ -2404,5 +2419,24 @@ public class AssignmentDlg extends EscapeDialog {
 
       return;
     }
+  }
+
+  /** Uses the convergence-aware iteration label for methods that can stop early. */
+  private void setMaximumIterationsLabel() {
+    iterationLabel.setText(i18n.get(AssignmentDlg.class, "MaxIterations", "Max. iter."));
+    iterationLabel.setToolTipText(
+        i18n.get(
+            AssignmentDlg.class,
+            "MaxIterations_tooltip",
+            "Maximum number of iterations. The algorithm may stop earlier if it converges."));
+    iterationSpinner.setToolTipText(iterationLabel.getToolTipText());
+  }
+
+  /** Uses the route-count tooltip for multi-flow methods. */
+  private void setRoutesTooltip() {
+    iterationLabel.setToolTipText(
+        i18n.get(
+            AssignmentDlg.class, "NbRoutes_tooltip", "Number of alternative routes to compute."));
+    iterationSpinner.setToolTipText(iterationLabel.getToolTipText());
   }
 }

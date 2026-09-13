@@ -205,6 +205,10 @@ public class IncrementalAssignment extends Assignment {
 
     // Now save virtual network
     VirtualNetworkWriter vnw = new VirtualNetworkWriter(assignmentParameters, virtualNet);
-    return vnw.save();
+    boolean saved = vnw.save();
+    if (saved) {
+      setFixedIterationsCompletion(assignmentParameters.getNbIterations());
+    }
+    return saved;
   }
 }
