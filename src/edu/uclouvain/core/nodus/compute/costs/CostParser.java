@@ -48,7 +48,6 @@ import parsii.eval.Parser;
 import parsii.eval.Scope;
 import parsii.tokenizer.ParseException;
 
-// TODO (services) Add the cost functions for stops and switch in example.
 /**
  * This cost parser is able to compute the cost of a virtual link given the cost functions written
  * in a "properties like" file. A cost parser is initialized for each group of commodities, OD class
@@ -104,6 +103,30 @@ import parsii.tokenizer.ParseException;
  * # tranship.FromModeMeans-ToModeMeans <br>
  * tp.2,1-4,1 = 10 <br>
  * tp.4,1-2,1 = 10 <br>
+ * <br>
+ * # Service-related functions <br>
+ * # Constrain all means of mode 3 to the defined services <br>
+ * SERVICELINES.3,-1 = true <br>
+ * VALUE_OF_TIME = 0.05 <br>
+ * SWITCH_COST = 0.2 <br>
+ * DWELL_TIME = 600 <br>
+ * HOURS_PER_YEAR = 52 * 7 * 24 <br>
+ * <br>
+ * # Stop cost and duration for means 1 and 2 <br>
+ * stp.3,1 = VALUE_OF_TIME * DWELL_TIME / 3600 <br>
+ * stp.3,2 = VALUE_OF_TIME * DWELL_TIME / 3600 <br>
+ * stp@3,1 = DWELL_TIME <br>
+ * stp@3,2 = DWELL_TIME <br>
+ * <br>
+ * # Switch between services using the same mode and means <br>
+ * sw.3,1-3,1 = SWITCH_COST + VALUE_OF_TIME * HOURS_PER_YEAR / (2 * FREQUENCY) <br>
+ * sw@3,1-3,1 = HOURS_PER_YEAR * 3600 / (2 * FREQUENCY) <br>
+ * <br>
+ * # Switch from an electric service (means 2) to a diesel service (means 1) <br>
+ * sw.3,2-3,1 = SWITCH_COST + VALUE_OF_TIME * HOURS_PER_YEAR / (2 * FREQUENCY) <br>
+ * sw@3,2-3,1 = HOURS_PER_YEAR * 3600 / (2 * FREQUENCY) <br>
+ * # FREQUENCY is the annualized frequency of the destination service. <br>
+ * # Define sw.3,1-3,2 and sw@3,1-3,2 separately when the reverse switch is allowed. <br>
  * <br>
  * # moving.modeMeans <br>
  * mv.2,1 = speed*length <br>
