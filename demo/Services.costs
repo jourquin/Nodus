@@ -5,7 +5,6 @@
 
 roadCost = 1.00
 
-SERVICELINES.3,1 = true
 
 # Means defined for IWW
 # Means 2 = CEMT 2 barges
@@ -130,35 +129,64 @@ ld.1,1 = Loading_M01m01 * roadCost
 ld.2,2 = Loading_M02m02
 ld.2,4 = Loading_M02m04
 ld.3,1 = Loading_M03m01
+ld.3,2 = Loading_M03m01
+
 
 # Unload.Mode,Means  
 ul.1,1 = Unloading_M01m01 * roadCost
 ul.2,2 = Unloading_M02m02
 ul.2,4 = Unloading_M02m04
 ul.3,1 = Unloading_M03m01
+ul.3,2 = Unloading_M03m01
 
 # Transit.Mode,Means    
 tr.1,1 = 0
 tr.2,2 = 0
 tr.2,4 = 0
 tr.3,1 = 0
-
-stp.3,1 = 0
-sw.3,1-3,1 = 0
-#sw.3,1-3,1 = 365 / FREQUENCY
+tr.3,2 = 0
 
 # Move.Mode,Means  
 mv.1,1 = (AVGSPEED1/SPEED)*LENGTH*Moving_M01m01 * roadCost
 mv.2,2 = (AVGSPEED2/SPEED)*LENGTH*Moving_M02m02
 mv.2,4 = (AVGSPEED2/SPEED)*LENGTH*Moving_M02m04
 mv.3,1 = (AVGSPEED3/SPEED)*LENGTH*Moving_M03m01
+mv.3,2 = (AVGSPEED3/SPEED)*LENGTH*Moving_M03m01
+
 
 # Move.Mode,Means duration
 mv@1,1 = 3600*LENGTH/SPEED
 mv@2,2 = 3600*LENGTH/SPEED
 mv@2,4 = 3600*LENGTH/SPEED
 mv@3,1 = 3600*LENGTH/SPEED
+mv@3,2 = 3600*LENGTH/SPEED
 
-stp@3,1 = 0
-sw@3,1-3,1 = 0
 
+###########################################
+# Specific cost functions for service lines
+###########################################
+
+# Mode and means for which services are defined
+SERVICELINES.3,-1 = true
+
+# Value of time (EUR per ton per hour)
+VALUE_OF_TIME = 0.05
+
+# Transfert cost (EUR per ton per hour)
+TRANSFER_COST = 0.2
+
+# Dwell time at stop, 10 min = 600 seconds
+DWELL_TIME=600
+
+# Cost of a stop
+stp.3,1 = VALUE_OF_TIME / (3600/DWELL_TIME)
+
+# Cost of a switch to another service, with an average waiting time
+sw.3,1-3,1 = TRANSFER_COST + VALUE_OF_TIME * (52 * 7 * 24) / (2 * FREQUENCY)
+
+
+# Dwell time at a stop: 10 minutes
+stp@3,1 = DWELL_TIME
+
+# Average waiting duration in seconds
+sw@3,1-3,1 = (52 * 7 * 24 * 3600) / (2 * FREQUENCY)

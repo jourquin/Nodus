@@ -42,6 +42,9 @@ public class JungVirtualLink implements Comparable<Object> {
 
   private double vehicles;
 
+  /** Explicit type loaded from the virtual-network table, or -1 when it must be inferred. */
+  private int virtualLinkType;
+
   /**
    * Creates a new JungVirtualLink.
    *
@@ -60,12 +63,42 @@ public class JungVirtualLink implements Comparable<Object> {
       double unitCost,
       double vehicles,
       int time) {
+    this(
+        originJungVirtualNode,
+        destinationJungVirtualNode,
+        quantity,
+        unitCost,
+        vehicles,
+        time,
+        -1);
+  }
+
+  /**
+   * Creates a new JungVirtualLink with an explicit virtual-link type.
+   *
+   * @param originJungVirtualNode The origin virtual node.
+   * @param destinationJungVirtualNode The destination virtual node.
+   * @param quantity The quantity (tons) transported on the virtual link.
+   * @param unitCost The cost per unit (ton) transported on the virtual link.
+   * @param vehicles The number of vehicles needed to transport the quantity.
+   * @param time The time (minutes after midnight) for this volume.
+   * @param virtualLinkType The type defined by {@link VirtualLink}.
+   */
+  public JungVirtualLink(
+      JungVirtualNode originJungVirtualNode,
+      JungVirtualNode destinationJungVirtualNode,
+      double quantity,
+      double unitCost,
+      double vehicles,
+      int time,
+      int virtualLinkType) {
     this.originJungVirtualNode = originJungVirtualNode;
     this.destinationJungVirtualNode = destinationJungVirtualNode;
     this.quantity = quantity;
     this.unitCost = unitCost;
     this.vehicles = vehicles;
     this.time = time;
+    this.virtualLinkType = virtualLinkType;
   }
 
   /**
@@ -122,6 +155,26 @@ public class JungVirtualLink implements Comparable<Object> {
    * @return The type of virtual link.
    */
   public int getType() {
+
+    if (virtualLinkType >= 0) {
+      return virtualLinkType;
+    }
+
+    return inferType(originJungVirtualNode, destinationJungVirtualNode);
+  }
+
+  /**
+   * Infers a virtual-link type from its endpoints when an older table has no explicit type field.
+   *
+   * <p>A stop cannot be distinguished from transit using endpoint attributes alone and is
+   * therefore returned as transit by this method.
+   *
+   * @param originJungVirtualNode The origin virtual node.
+   * @param destinationJungVirtualNode The destination virtual node.
+   * @return The inferred type.
+   */
+  public static int inferType(
+      JungVirtualNode originJungVirtualNode, JungVirtualNode destinationJungVirtualNode) {
 
     int returnType;
 

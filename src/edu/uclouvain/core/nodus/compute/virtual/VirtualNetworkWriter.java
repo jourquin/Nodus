@@ -86,13 +86,10 @@ public class VirtualNetworkWriter {
 
     JDBCField[] field = null;
 
-    field = new JDBCField[12 + 3 * (groups.length + 1)];
+    field = new JDBCField[13 + 3 * (groups.length + 1)];
 
     int idx = 0;
-    /*
-     * With the virtual network 3, create a table with line origin and the line destination.
-     * With the virtual network 2, don't make any change.
-     */
+    // Store complete descriptors for the origin and destination virtual nodes.
     field[idx++] = new JDBCField(NodusC.DBF_NODE1, "NUMERIC(11)");
     field[idx++] = new JDBCField(NodusC.DBF_LINK1, "NUMERIC(10)");
     field[idx++] = new JDBCField(NodusC.DBF_MODE1, "NUMERIC(2)");
@@ -105,6 +102,7 @@ public class VirtualNetworkWriter {
     field[idx++] = new JDBCField(NodusC.DBF_SERVICE2, "NUMERIC(4)");
     field[idx++] = new JDBCField(NodusC.DBF_TIME, "NUMERIC(5,0)");
     field[idx++] = new JDBCField(NodusC.DBF_LENGTH, "NUMERIC(8,3)");
+    field[idx++] = new JDBCField(NodusC.DBF_VIRTUAL_LINK_TYPE, "NUMERIC(1,0)");
 
     // Detailed data per group
     for (byte element : groups) {
@@ -218,7 +216,7 @@ public class VirtualNetworkWriter {
       String sqlStmt =
           "INSERT INTO "
               + JDBCUtils.getQuotedCompliantIdentifier(vNetTableName)
-              + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,";
+              + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,";
 
       byte[] groups = virtualNet.getGroups();
       for (byte k = 0; k < (byte) groups.length; k++) {
@@ -262,10 +260,7 @@ public class VirtualNetworkWriter {
                 if (vl.hasVolume(timeSlice) || saveCompleteVirtualNetwork) {
 
                   int idx = 1;
-                  /*
-                   * With the virtual network 3, insert in the table the line origin and the line
-                   * destination. With the virtual network 2, don't make any change.
-                   */
+                  // Store complete descriptors for the origin and destination virtual nodes.
                   prepStmt.setInt(idx++, vl.getBeginVirtualNode().getRealNodeId(true));
                   prepStmt.setInt(idx++, vl.getBeginVirtualNode().getRealLinkId());
                   prepStmt.setInt(idx++, vl.getBeginVirtualNode().getMode());
@@ -278,6 +273,7 @@ public class VirtualNetworkWriter {
                   prepStmt.setInt(idx++, vl.getEndVirtualNode().getService());
                   prepStmt.setInt(idx++, currentTime);
                   prepStmt.setDouble(idx++, vl.getLength());
+                  prepStmt.setInt(idx++, vl.getType());
 
                   double totalQty = 0.0;
                   double averageWeight = 0.0;

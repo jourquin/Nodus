@@ -1918,7 +1918,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Verifies that the existing virtual network tables are compatible with this version of Nodus.
+   * Verifies that existing virtual-network result tables use a compatible persisted format.
    *
    * @return True if the tables are compatible.
    */
@@ -1928,7 +1928,7 @@ public class NodusProject implements ShapeConstants {
      * The test was perhaps already performed
      */
     int version = getLocalProperty(NodusC.PROP_VIRTUAL_NETWORK_VERSION, 0);
-    if (version == 4) {
+    if (version == NodusC.VIRTUAL_NETWORK_TABLE_FORMAT_VERSION) {
       return true;
     }
 
@@ -1943,20 +1943,24 @@ public class NodusProject implements ShapeConstants {
       }
 
       if (!JDBCUtils.hasField(tableName, NodusC.DBF_SERVICE1)) {
-        // This is a version 2 virtual network
+        // This is a version 2 virtual-network table.
         JOptionPane.showMessageDialog(
             null,
-            "This project has virtual network version 2 tables.\nPlease upgrade to version 4.",
+            "This project has virtual network version 2 tables.\nPlease upgrade to version "
+                + NodusC.VIRTUAL_NETWORK_TABLE_FORMAT_VERSION
+                + ".",
             NodusC.APPNAME,
             JOptionPane.ERROR_MESSAGE);
         return false;
       }
 
       if (!JDBCUtils.hasField(tableName, NodusC.DBF_TIME)) {
-        // This is a version 3 virtual network
+        // This is a version 3 virtual-network table.
         JOptionPane.showMessageDialog(
             null,
-            "This project has virtual network version 3 tables.\nPlease upgrade to version 4.",
+            "This project has virtual network version 3 tables.\nPlease upgrade to version "
+                + NodusC.VIRTUAL_NETWORK_TABLE_FORMAT_VERSION
+                + ".",
             NodusC.APPNAME,
             JOptionPane.ERROR_MESSAGE);
         return false;
@@ -1965,14 +1969,16 @@ public class NodusProject implements ShapeConstants {
       /*
        * The table is OK
        */
-      setLocalProperty(NodusC.PROP_VIRTUAL_NETWORK_VERSION, 4);
+      setLocalProperty(
+          NodusC.PROP_VIRTUAL_NETWORK_VERSION, NodusC.VIRTUAL_NETWORK_TABLE_FORMAT_VERSION);
       return true;
     }
 
     /*
      * No virtual network table exist.
      */
-    setLocalProperty(NodusC.PROP_VIRTUAL_NETWORK_VERSION, 4);
+    setLocalProperty(
+        NodusC.PROP_VIRTUAL_NETWORK_VERSION, NodusC.VIRTUAL_NETWORK_TABLE_FORMAT_VERSION);
     return true;
   }
 

@@ -86,6 +86,8 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
 
   private static final Color SWITCH_COLOR = new Color(204, 102, 0);
 
+  private static final Color STOP_COLOR = new Color(0, 128, 128);
+
   /** . */
   private FormattedTime[] availableTimes;
 
@@ -155,6 +157,9 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
   /** . */
   private boolean hasSW = false;
 
+  /** . */
+  private boolean hasSTP = false;
+
   /**
    * Formating of edge label.
    */
@@ -215,6 +220,8 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
               return Color.BLUE;
             case VirtualLink.TYPE_TRANSIT:
               return Color.DARK_GRAY;
+            case VirtualLink.TYPE_STOP:
+              return STOP_COLOR;
             case VirtualLink.TYPE_SWITCH:
               return SWITCH_COLOR;
             case VirtualLink.TYPE_TRANSHIP:
@@ -298,6 +305,8 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
             case VirtualLink.TYPE_TRANSIT:
               return new BasicStroke(
                   1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, dash, 0.0f);
+            case VirtualLink.TYPE_STOP:
+              return new BasicStroke(2.0f);
             case VirtualLink.TYPE_SWITCH:
               return new BasicStroke(2.0f);
             case VirtualLink.TYPE_TRANSHIP:
@@ -552,6 +561,10 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
           hasTR = true;
         }
 
+        if (jvl.getType() == VirtualLink.TYPE_STOP) {
+          hasSTP = true;
+        }
+
         if (jvl.getType() == VirtualLink.TYPE_SWITCH) {
           hasSW = true;
         }
@@ -659,12 +672,13 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
         }
       }
 
-      /* Add transit, service-switch and transhipment links */
+      /* Add transit, stop, service-switch and transhipment links */
       it2 = linksList.iterator();
       while (it2.hasNext()) {
         JungVirtualLink jvl = it2.next();
 
         if (jvl.getType() == VirtualLink.TYPE_TRANSIT
+            || jvl.getType() == VirtualLink.TYPE_STOP
             || jvl.getType() == VirtualLink.TYPE_SWITCH
             || jvl.getType() == VirtualLink.TYPE_TRANSHIP) {
           graph.removeEdge(jvl.toString(false));
@@ -938,6 +952,15 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
         legend.add(labelTr);
       }
 
+      // Stop
+      if (hasSTP) {
+        JLabel labelStp =
+            new JLabel(i18n.get(VirtualNetworkGraphViewerDlg.class, "Stop", "Stop"));
+        labelStp.setBackground(transparentColor);
+        labelStp.setForeground(STOP_COLOR);
+        legend.add(labelStp);
+      }
+
       // Service switch
       if (hasSW) {
         JLabel labelSw =
@@ -1008,6 +1031,14 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
    * @return Type of virtual link.
    */
   private int getVirtualLinkType(String vl) {
+
+    Iterator<JungVirtualLink> it = linksList.iterator();
+    while (it.hasNext()) {
+      JungVirtualLink virtualLink = it.next();
+      if (virtualLink.toString(false).equals(vl)) {
+        return virtualLink.getType();
+      }
+    }
 
     StringTokenizer stringTokenizer = new StringTokenizer(vl, "#");
     String vn1 = stringTokenizer.nextElement().toString();

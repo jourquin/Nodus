@@ -116,6 +116,10 @@ public class ServiceHandler {
   /** Numeric service lookup prepared for virtual-network generation. */
   private Map<Integer, TransportService> servicesByIdForVirtualNetwork = new HashMap<>();
 
+  /** Ordered service-link occurrences grouped by physical link ID. */
+  private Map<Integer, LinkedList<ServiceLinkOccurrence>> serviceLinkOccurrencesForVirtualNetwork =
+      new HashMap<>();
+
   private String serviceStopsTableName;
 
   /** True when service editing expects origin/destination node clicks instead of link clicks. */
@@ -180,6 +184,47 @@ public class ServiceHandler {
     @Override
     public int hashCode() {
       return 31 * node1 + node2;
+    }
+  }
+
+  /** One occurrence of a physical link in an ordered service route. */
+  public static final class ServiceLinkOccurrence {
+
+    private final int pathIndex;
+    private final int routeEndNodeId;
+    private final int serviceId;
+
+    ServiceLinkOccurrence(int serviceId, int pathIndex, int routeEndNodeId) {
+      this.serviceId = serviceId;
+      this.pathIndex = pathIndex;
+      this.routeEndNodeId = routeEndNodeId;
+    }
+
+    /**
+     * Returns the zero-based position of this link in the service route.
+     *
+     * @return The route position.
+     */
+    public int getPathIndex() {
+      return pathIndex;
+    }
+
+    /**
+     * Returns the node reached after this link in the stored route direction.
+     *
+     * @return The route-end node ID.
+     */
+    public int getRouteEndNodeId() {
+      return routeEndNodeId;
+    }
+
+    /**
+     * Returns the numeric service ID.
+     *
+     * @return The service ID.
+     */
+    public int getServiceId() {
+      return serviceId;
     }
   }
 
@@ -307,16 +352,26 @@ public class ServiceHandler {
           return false;
         }
 
-        if (n1 > 0 || n2 > 0) {
-          currentService.addChunk(omg);
+        int[] routeNodes = getOrderedServiceRouteNodes(currentService);
+        int routeStartNode = routeNodes == null ? -1 : routeNodes[0];
+        int routeEndNode = routeNodes == null ? -1 : routeNodes[routeNodes.length - 1];
+        boolean connectsToRouteStart = node1 == routeStartNode || node2 == routeStartNode;
+        boolean connectsToRouteEnd = node1 == routeEndNode || node2 == routeEndNode;
+
+        if (connectsToRouteStart || connectsToRouteEnd) {
+          if (connectsToRouteStart) {
+            currentService.addFirstChunk(omg);
+          } else {
+            currentService.addChunk(omg);
+          }
           addStopNode(n1, node1);
           addStopNode(n2, node2);
           logServiceLineEdit("Log_Link_added", "{0} added to line", formatLink(linkId));
         } else {
           logServiceLineEdit(
               "Log_Not_connected_to_one_end",
-              "{0} cannot be added because it is not connected to exactly one node of the current"
-                  + " service line",
+              "{0} cannot be added because it is not connected to an end of the current service"
+                  + " route",
               formatLink(linkId));
           return false;
         }
@@ -883,6 +938,7 @@ public class ServiceHandler {
     }
     serviceMaximumMeans.clear();
     servicesByIdForVirtualNetwork.clear();
+    serviceLinkOccurrencesForVirtualNetwork.clear();
     loadService();
     mustBeSaved = false;
   }
@@ -917,6 +973,7 @@ public class ServiceHandler {
     }
     serviceMaximumMeans.clear();
     servicesByIdForVirtualNetwork.clear();
+    serviceLinkOccurrencesForVirtualNetwork.clear();
 
     jdbcConnection = null;
     linkLayer = null;
@@ -956,7 +1013,7 @@ public class ServiceHandler {
       String servicesLinksSql =
           "INSERT INTO "
               + JDBCUtils.getQuotedCompliantIdentifier(servicesLinksTableName)
-              + " VALUES(?,?)";
+              + " VALUES(?,?,?)";
       String serviceStopsSql =
           "INSERT INTO "
               + JDBCUtils.getQuotedCompliantIdentifier(serviceStopsTableName)
@@ -988,15 +1045,18 @@ public class ServiceHandler {
 
           // Chunks
           Iterator<OMGraphic> it2 = s.getLinks().iterator();
+          int pathIndex = 0;
           while (it2.hasNext()) {
             // Get the num of the graphic
             int num = getOMGraphicID(it2.next(), TYPE_LINK);
 
             if (num != -1) {
               pstmt2.setInt(1, s.getId());
-              pstmt2.setInt(2, num);
+              pstmt2.setInt(2, pathIndex);
+              pstmt2.setInt(3, num);
               pstmt2.executeUpdate();
             }
+            pathIndex++;
           }
         }
       }
@@ -1236,6 +1296,13 @@ public class ServiceHandler {
           ServiceHandler.class,
           "InvalidLine_Disconnected",
           "the links do not form a single connected line");
+    }
+
+    if (getOrderedServiceRouteNodes(service) == null) {
+      return i18n.get(
+          ServiceHandler.class,
+          "InvalidLine_Unordered",
+          "the links are not stored in travel order");
     }
 
     if (hasUnsupportedServiceCycle(serviceEdges, serviceNodes, endNodes, service.getStopNodes())) {
@@ -2018,6 +2085,55 @@ public class ServiceHandler {
     return endNodes;
   }
 
+  /**
+   * Returns the node walk represented by the ordered links of a service.
+   *
+   * <p>Each link occurrence is kept separately, so a dead-end access link may appear twice in
+   * succession or at different positions in the route.
+   */
+  private int[] getOrderedServiceRouteNodes(TransportService service) {
+    if (service == null || service.getNbLinks() == 0) {
+      return null;
+    }
+
+    int[][] endpoints = new int[service.getNbLinks()][];
+    for (int i = 0; i < endpoints.length; i++) {
+      endpoints[i] = getLinkEndpointNodeIds(service.getLinks().get(i));
+      if (endpoints[i] == null) {
+        return null;
+      }
+    }
+
+    int[] routeNodes = buildRouteNodes(endpoints, endpoints[0][0]);
+    if (routeNodes != null) {
+      return routeNodes;
+    }
+    return buildRouteNodes(endpoints, endpoints[0][1]);
+  }
+
+  /** Builds a route node sequence by orienting the first undirected link from a given endpoint. */
+  private int[] buildRouteNodes(int[][] endpoints, int startNodeId) {
+    int[] routeNodes = new int[endpoints.length + 1];
+    routeNodes[0] = startNodeId;
+    for (int i = 0; i < endpoints.length; i++) {
+      if (!containsNode(endpoints[i], routeNodes[i])) {
+        return null;
+      }
+      routeNodes[i + 1] = otherEndpoint(endpoints[i], routeNodes[i]);
+    }
+    return routeNodes;
+  }
+
+  /** Returns true if an undirected edge contains a node. */
+  private boolean containsNode(int[] endpoints, int nodeId) {
+    return endpoints[0] == nodeId || endpoints[1] == nodeId;
+  }
+
+  /** Returns the endpoint opposite the supplied node on an undirected edge. */
+  private int otherEndpoint(int[] endpoints, int nodeId) {
+    return endpoints[0] == nodeId ? endpoints[1] : endpoints[0];
+  }
+
   /** Increments a node occurrence count. */
   private void addNodeOccurrence(Map<Integer, Integer> occurrences, int nodeId) {
     Integer count = occurrences.get(nodeId);
@@ -2314,6 +2430,21 @@ public class ServiceHandler {
   }
 
   /**
+   * Returns every ordered service-route occurrence that uses a physical link.
+   *
+   * <p>The same service can occur more than once when a route enters and leaves a dead-end stop
+   * over the same access link.
+   *
+   * @param linkId The physical link ID.
+   * @return Ordered route occurrences for the link.
+   */
+  public LinkedList<ServiceLinkOccurrence> getServiceLinkOccurrencesForLink(int linkId) {
+    LinkedList<ServiceLinkOccurrence> occurrences =
+        serviceLinkOccurrencesForVirtualNetwork.get(Integer.valueOf(linkId));
+    return occurrences == null ? new LinkedList<>() : occurrences;
+  }
+
+  /**
    * Tests whether a service uses a given link.
    *
    * @param serviceName The service name.
@@ -2459,6 +2590,8 @@ public class ServiceHandler {
     try {
       // connect to database and execute query
       jdbcConnection = nodusProject.getMainJDBCConnection();
+      boolean linksHavePathIndex =
+          JDBCUtils.hasField(servicesLinksTableName, NodusC.DBF_PATH_INDEX);
 
       try (Statement stmt1 = jdbcConnection.createStatement();
           Statement stmt2 = jdbcConnection.createStatement();
@@ -2487,7 +2620,11 @@ public class ServiceHandler {
                   + " WHERE "
                   + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ID)
                   + " = "
-                  + idService;
+                  + idService
+                  + (linksHavePathIndex
+                      ? " ORDER BY "
+                          + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_PATH_INDEX)
+                      : "");
           try (ResultSet rs2 = stmt2.executeQuery(sqlStmt2)) {
             while (rs2.next()) {
               int linkId = JDBCUtils.getInt(rs2.getObject(1));
@@ -2519,6 +2656,9 @@ public class ServiceHandler {
       }
 
       validateLoadedServices();
+      if (!linksHavePathIndex) {
+        saveServices();
+      }
 
     } catch (Exception ex) {
       JOptionPane.showMessageDialog(null, ex.getMessage(), "SQL error", JOptionPane.ERROR_MESSAGE);
@@ -2785,6 +2925,7 @@ public class ServiceHandler {
   public void loadServicesForVirtualNetwork() {
     serviceMaximumMeans.clear();
     servicesByIdForVirtualNetwork.clear();
+    serviceLinkOccurrencesForVirtualNetwork.clear();
 
     // * Clear the already loaded lines
     for (NodusEsriLayer element : linkLayer) {
@@ -2803,11 +2944,27 @@ public class ServiceHandler {
       Integer serviceId = Integer.valueOf(s.getId());
       servicesByIdForVirtualNetwork.put(serviceId, s);
       serviceMaximumMeans.put(serviceId, Integer.valueOf(getMaximumMeansForService(s)));
+      int[] routeNodes = getOrderedServiceRouteNodes(s);
       Iterator<OMGraphic> it2 = s.getLinks().iterator();
+      int pathIndex = 0;
       while (it2.hasNext()) {
         OMGraphic omg = it2.next();
         RealLink rl = (RealLink) omg.getAttribute(0);
         rl.addService(s.getId());
+
+        int linkId = getOMGraphicID(omg, TYPE_LINK);
+        if (linkId != -1 && routeNodes != null) {
+          Integer linkKey = Integer.valueOf(linkId);
+          LinkedList<ServiceLinkOccurrence> occurrences =
+              serviceLinkOccurrencesForVirtualNetwork.get(linkKey);
+          if (occurrences == null) {
+            occurrences = new LinkedList<>();
+            serviceLinkOccurrencesForVirtualNetwork.put(linkKey, occurrences);
+          }
+          occurrences.add(
+              new ServiceLinkOccurrence(s.getId(), pathIndex, routeNodes[pathIndex + 1]));
+        }
+        pathIndex++;
       }
     }
   }
@@ -2915,9 +3072,10 @@ public class ServiceHandler {
     JDBCUtils.createTable(servicesHeaderTableName, fields);
 
     // Create details table
-    fields = new JDBCField[2];
+    fields = new JDBCField[3];
     fields[0] = new JDBCField(NodusC.DBF_ID, "NUMERIC(4,0)");
-    fields[1] = new JDBCField(NodusC.DBF_LINK, "NUMERIC(10,0)");
+    fields[1] = new JDBCField(NodusC.DBF_PATH_INDEX, "NUMERIC(8,0)");
+    fields[2] = new JDBCField(NodusC.DBF_LINK, "NUMERIC(10,0)");
     JDBCUtils.createTable(servicesLinksTableName, fields);
 
     // Create details table

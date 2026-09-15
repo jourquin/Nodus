@@ -75,8 +75,14 @@ definition. Unconstrained mode/means combinations are generated in the
 usual free-flow way, with service ID 0.</p>
 <p>All concrete variants of a wildcard service share its service ID,
 stops, and annualized frequency. Moving from one means to another
-remains a transhipment, even when both variants come from the same
-wildcard service; it is not treated as a service switch.</p>
+without changing service remains a transhipment, even when both means
+are variants of the same wildcard service.</p>
+<p>This ordered, service-aware representation is called <strong>Virtual
+Network Version 4</strong>. It extends Version 3 by retaining the
+position of every physical-link occurrence along a service route and by
+representing stops and service switches explicitly. This prevents an
+assignment path from bypassing a selected intermediate stop, including a
+stop reached and left over the same connector.</p>
 <h2 id="services-editor">Services Editor</h2>
 <p>Open the services editor from the Project|Edit services menu (or use
 F3).</p>
@@ -113,7 +119,7 @@ Nodus asks whether to discard them or save them.</li>
 <p>The Escape key has the same effect as Cancel. If an invalid service
 is loaded from the database, Nodus warns about it and can delete invalid
 services from the service tables.</p>
-<h2 id="creating-or-editing-a-service-line">Creating Or Editing A
+<h2 id="creating-or-editing-a-service-line">Creating or Editing a
 Service Line</h2>
 <p>When a service is added or edited, Nodus switches to the service
 details view.</p>
@@ -141,10 +147,9 @@ manually.</li>
 typed directly. The means list contains <code>-1</code> and the means
 available for that mode.</li>
 <li>The selected service line is highlighted in green.</li>
-<li>Add links one by one. Each new link must touch exactly one node that
-is already in the current service line.</li>
-<li>Click an already selected end link, or a branch leaf link, to remove
-it.</li>
+<li>Add links one by one. Each new link must extend one of the two ends
+of the current ordered route.</li>
+<li>Click an already selected end link to remove it.</li>
 <li>Press Save in the details view to apply the edited service to the
 pending service list and return to the service list.</li>
 <li>Press Save in the main services editor to commit the pending service
@@ -172,8 +177,8 @@ editor.</li>
 </ol>
 <p>The service editor displays the number of selected route nodes. The
 full ordered node sequence is printed in the service log. The selected
-intermediate nodes are routing waypoints. The service stops created by
-this workflow are the first and last selected nodes.</p>
+intermediate nodes are routing waypoints and stops. The service stops
+created by this workflow are all the selected nodes.</p>
 <p>The Save button is enabled only when the edited fields are valid, the
 service has at least one link, and there are unsaved detail changes.
 When Save is pressed, Nodus validates the full service line. A valid
@@ -184,11 +189,12 @@ service line must satisfy these rules:</p>
 <li>every link must support the selected concrete means; for means
 <code>-1</code>, the supported range is derived from the complete
 line,</li>
-<li>every added link must be connected to exactly one node of the
-existing service line,</li>
-<li>a cycle is not accepted by the editor,</li>
+<li>the links must be stored in travel order and consecutive link
+occurrences must share a node,</li>
+<li>a network cycle is not accepted; an out-and-back access branch is
+accepted when its links occur twice and lead to an intermediate
+stop,</li>
 <li>all links must belong to one connected component,</li>
-<li>the resulting connected tree may branch,</li>
 <li>the service must have at least two end nodes,</li>
 <li>every end node must allow operations.</li>
 </ul>
@@ -222,8 +228,8 @@ service SQL tables.</li>
 <p><img src="../images/services/services-at-node.png" alt="Services at node" style="display:block; width:65%; max-width:430px; height:auto; margin:0.8em auto;"></p>
 <p>If the fields editor is closed with Cancel or Escape, the staged stop
 changes are discarded.</p>
-<h2 id="the-services-button-in-the-fields-editor">The Services Button In
-The Fields Editor</h2>
+<h2 id="the-services-button-in-the-fields-editor">The Services Button in
+the Fields Editor</h2>
 <p>For a node, the button is enabled only when the node allows
 operations and at least one service passes through the node. It opens
 the "Services at node xxx" dialog, whose list is headed "Service stops
@@ -237,7 +243,7 @@ highlights it on the map.</p>
 <p>The Services button does not edit the shape geometry. Node stop edits
 are staged in the DBF editor, then stored in SQL service tables when the
 fields editor is saved.</p>
-<h2 id="transhipment-codes-and-service-changes">Transhipment Codes And
+<h2 id="transhipment-codes-and-service-changes">Transhipment Codes and
 Service Changes</h2>
 <p>The node <code>tranship</code> field controls which operations are
 allowed at a node. The fields editor offers these operation types:</p>
@@ -288,7 +294,7 @@ the same operation code minus 5, but with transit links disabled at the
 node. For example, code 5 behaves like code 0 with transit disabled,
 code 6 behaves like code 1 with transit disabled, and so on.</p>
 <h2 id="service-changes-stops-and-cost-functions">Service Changes,
-Stops, And Cost Functions</h2>
+Stops, and Cost Functions</h2>
 <p>Services add two virtual-link operation types:</p>
 <ul>
 <li><code>stp.mode,means</code>: cost of stopping on a service,</li>
@@ -311,19 +317,88 @@ combinations.</li>
 <ul>
 <li>loading and unloading on a service-constrained mode/means are
 generated only at nodes where the service stops,</li>
-<li>service switches are generated only between services of the same
-concrete mode/means, at service-change nodes where both services
-stop,</li>
+<li>service switches are generated only between different services of
+the same mode, at service-change nodes where both services stop; the
+means may differ,</li>
 <li>stop virtual links use the <code>stp</code> cost/duration
 function,</li>
 <li>service-change virtual links use the <code>sw</code> cost/duration
 function.</li>
 </ul>
+<p>A service switch may change means within the same mode. For example,
+a train service using an electric locomotive can switch to a service
+using a diesel locomotive where electrification ends, without modelling
+the operation as cargo transhipment. Switching between different modes
+remains a transhipment.</p>
+<p>When two services of the same mode but different means meet at a node
+that allows all operations, Nodus generates both alternatives: a
+service-switch link using <code>sw</code> and a transhipment link using
+<code>tp</code>. Their respective cost and duration functions determine
+which operation an assignment may use. A node configured for service
+changes only generates the <code>sw</code> alternative; a node
+configured for transhipment only generates the <code>tp</code>
+alternative.</p>
+<p>The links of a service form an ordered walk. The virtual network
+keeps each occurrence of a physical link as a separate route state and
+connects only consecutive occurrences. Consequently, a route that enters
+and leaves a dead-end stop over the same connector must store that
+connector twice, and assignment traffic cannot bypass the stop.</p>
+<p>Assignment virtual-network tables store the generated operation in
+the <code>vtype</code> field: <code>0</code> moving, <code>1</code>
+transit, <code>2</code> loading, <code>3</code> unloading,
+<code>4</code> transhipment, <code>5</code> service switch, and
+<code>6</code> stop. The virtual-network drawing uses this field to
+distinguish stop links from transit links. For older tables without
+<code>vtype</code>, the drawing derives stops from the current
+service-stop table.</p>
 <p>When traffic switches service, the cost parser sets the
 <code>FREQUENCY</code> variable to the annualized frequency of the
 destination service. This allows the <code>sw</code> cost or duration
 function to include a waiting-time component. For links that do not
 change service, <code>FREQUENCY</code> is set to 0.</p>
+<h2 id="generating-services-from-an-od-matrix">Generating Services From
+an OD Matrix</h2>
+<p>The bundled <a
+href="../../scripts/CreateShortestPathServicesFromOD.groovy"><code>CreateShortestPathServicesFromOD.groovy</code></a>
+script can generate an initial set of service lines from an OD matrix.
+Run it from the Nodus Groovy console while the project containing the
+matrix and physical network is open.</p>
+<p>Before running the script, edit these variables near the beginning of
+the file:</p>
+<ul>
+<li><code>odTableName</code>: name of the OD matrix table,</li>
+<li><code>mode</code>: mode used by the generated services and their
+shortest paths,</li>
+<li><code>means</code>: means used by the generated services and their
+shortest paths; use <code>-1</code> for all means,</li>
+<li><code>frequencyPerWeek</code>: weekly frequency, which the script
+converts to the annual frequency stored by Nodus,</li>
+<li><code>previewOnly</code>: optional dry-run switch that leaves the
+service tables unchanged.</li>
+</ul>
+<p>For each distinct unordered origin-destination pair, the script
+computes the shortest physical path for the selected mode and means.
+Multiple commodity groups for the same pair do not create duplicate
+services, and reverse relations such as A-B and B-A are represented by
+one service. The lower node ID is used first so that the generated name
+remains stable:</p>
+<pre class="text"><code>origin-destination-mode-means-annualFrequency</code></pre>
+<p>Only the origin and destination are initially marked as stops.
+Additional stops can be selected later with the Services button in the
+node fields editor. If service tables already exist, the script asks
+whether the generated services must be added, whether the currently
+loaded services must first be cleared, or whether the operation must be
+canceled.</p>
+<p>The script uses the public <code>ServiceHandler</code> API to create
+routes and calls <code>savePendingChanges()</code> once generation is
+complete; it does not insert rows directly into the service tables. It
+therefore needs no update for the ordered <code>pathidx</code> schema:
+the handler stores every physical-link occurrence in route order and
+migrates an older links table when necessary.</p>
+<p>The script also does not create assignment virtual-network tables.
+Their <code>vtype</code> field, including explicit service-switch and
+stop types, is written later when the virtual network is generated for
+an assignment.</p>
 <h2 id="database-tables">Database Tables</h2>
 <p>Services are stored in three SQL tables. These tables are not part of
 the shapefile DBF. The default table prefix is:</p>
@@ -381,6 +456,11 @@ complete line</td>
 <h3 id="links-table">Links Table</h3>
 <p>The links table contains the links used by each service.</p>
 <table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
 <thead>
 <tr>
 <th>Field</th>
@@ -395,12 +475,21 @@ complete line</td>
 <td>Service ID</td>
 </tr>
 <tr>
+<td><code>pathidx</code></td>
+<td><code>NUMERIC(8,0)</code></td>
+<td>Zero-based position of this link occurrence in the ordered
+route</td>
+</tr>
+<tr>
 <td><code>link</code></td>
 <td><code>NUMERIC(10,0)</code></td>
 <td>Link ID</td>
 </tr>
 </tbody>
 </table>
+<p>When an older links table has no <code>pathidx</code> field, Nodus
+loads its rows and rewrites the service tables once in the ordered
+format.</p>
 <h3 id="stops-table">Stops Table</h3>
 <p>The stops table contains the stop nodes of each service.</p>
 <table>

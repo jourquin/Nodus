@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.compute.scenario;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.sql.Connection;
@@ -91,6 +92,8 @@ public class Scenarios {
 
     public int time;
 
+    public int virtualLinkType;
+
     public int[] vehicles;
 
     public VnetRecord(int nbGroups) {
@@ -132,8 +135,35 @@ public class Scenarios {
           + format2.format(mode2)
           + format2.format(means2)
           + format4.format(line2)
+          + format2.format(virtualLinkType)
           + format5.format(time);
     }
+  }
+
+  /** Infers the type needed when comparing a virtual-network table created before vtype existed. */
+  private int inferVirtualLinkType(VnetRecord record) {
+    if (record.mode1 == 0) {
+      return VirtualLink.TYPE_LOAD;
+    }
+    if (record.mode2 == 0) {
+      return VirtualLink.TYPE_UNLOAD;
+    }
+    if (Math.abs(record.node1) != Math.abs(record.node2)) {
+      return VirtualLink.TYPE_MOVE;
+    }
+    if (record.mode1 == record.mode2 && record.means1 == record.means2) {
+      if (record.line1 != record.line2) {
+        return VirtualLink.TYPE_SWITCH;
+      }
+      if (record.line1 > 0
+          && nodusProject
+              .getServiceHandler()
+              .isNodeStopService(Math.abs(record.node1), record.line1)) {
+        return VirtualLink.TYPE_STOP;
+      }
+      return VirtualLink.TYPE_TRANSIT;
+    }
+    return VirtualLink.TYPE_TRANSHIP;
   }
 
   private NodusProject nodusProject;
@@ -300,6 +330,8 @@ public class Scenarios {
     tableName =
         nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + referenceScenario;
     tableName = JDBCUtils.getCompliantIdentifier(tableName);
+    boolean referenceHasVirtualLinkType =
+        JDBCUtils.hasField(tableName, NodusC.DBF_VIRTUAL_LINK_TYPE);
 
     String sqlStmt = "SELECT * from " + tableName;
 
@@ -338,6 +370,11 @@ public class Scenarios {
 
         // Fetch group related results
         int offset = 13;
+        if (referenceHasVirtualLinkType) {
+          vnr.virtualLinkType = JDBCUtils.getInt(rs.getObject(offset++));
+        } else {
+          vnr.virtualLinkType = inferVirtualLinkType(vnr);
+        }
 
         for (int i = 0; i < indexesForTable1.length; i++) {
           int index = indexesForTable1[i];
@@ -359,6 +396,8 @@ public class Scenarios {
     tableName =
         nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenarioToCompare;
     tableName = JDBCUtils.getCompliantIdentifier(tableName);
+    boolean comparisonHasVirtualLinkType =
+        JDBCUtils.hasField(tableName, NodusC.DBF_VIRTUAL_LINK_TYPE);
 
     sqlStmt = "SELECT * from " + tableName;
 
@@ -387,6 +426,12 @@ public class Scenarios {
         vnr.line2 = JDBCUtils.getInt(rs.getObject(10));
         vnr.time = JDBCUtils.getInt(rs.getObject(11));
         vnr.length = JDBCUtils.getDouble(rs.getObject(12));
+        int offset = 13;
+        if (comparisonHasVirtualLinkType) {
+          vnr.virtualLinkType = JDBCUtils.getInt(rs.getObject(offset++));
+        } else {
+          vnr.virtualLinkType = inferVirtualLinkType(vnr);
+        }
 
         // Look if this virtual links already exists
         String key = vnr.getKey();
@@ -400,8 +445,6 @@ public class Scenarios {
 
         // Fetch group related results and substract values from the
         // scenario 1
-        int offset = 13;
-
         for (int i = 0; i < indexesForTable2.length; i++) {
           int index = indexesForTable2[i];
           if (compare) {
@@ -446,7 +489,7 @@ public class Scenarios {
       sqlStmt =
           "INSERT INTO "
               + VirtualNetworkWriter.getTableName()
-              + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,";
+              + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,";
 
       for (byte k = 0; k < (byte) groupsInResults.length; k++) {
         sqlStmt += "?,?,?,";
@@ -459,10 +502,7 @@ public class Scenarios {
           VnetRecord vnr = it.next();
 
           int idx = 1;
-          /*
-           * With the virtual network 3, insert in the table the line origin and the line
-           * destination. With the virtual network 2, don't make any change.
-           */
+          // Store complete descriptors for the origin and destination virtual nodes.
           prepStmt.setInt(idx++, vnr.node1);
           prepStmt.setInt(idx++, vnr.link1);
           prepStmt.setInt(idx++, vnr.mode1);
@@ -475,6 +515,7 @@ public class Scenarios {
           prepStmt.setInt(idx++, vnr.line2);
           prepStmt.setInt(idx++, vnr.time);
           prepStmt.setDouble(idx++, vnr.length);
+          prepStmt.setInt(idx++, vnr.virtualLinkType);
 
           // double totalCost = 0.0;
           double totalQty = 0.0;

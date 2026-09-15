@@ -57,6 +57,12 @@ public class VirtualNode {
   /** "TransportService" element of the virtual node (0-9999). */
   private int service;
 
+  /** Position of the physical link occurrence in the ordered service route. */
+  private int servicePathIndex;
+
+  /** Node reached after this link occurrence in the stored service direction. */
+  private int serviceRouteEndNodeId;
+
   /** Sign of the virtual node. */
   private boolean sign;
 
@@ -87,6 +93,34 @@ public class VirtualNode {
       short service,
       double latitude,
       double longitude) {
+    this(id, realNodeId, realLinkId, mode, means, service, -1, -1, latitude, longitude);
+  }
+
+  /**
+   * Creates a virtual node for one occurrence of a link in an ordered service route.
+   *
+   * @param id ID to give to the new virtual node.
+   * @param realNodeId "real node" element of the virtual node.
+   * @param realLinkId "real link" element of the virtual node.
+   * @param mode "Mode" element of the virtual node.
+   * @param means "Means" element of the virtual node.
+   * @param service "TransportService" element of the virtual node.
+   * @param servicePathIndex Zero-based position of the link occurrence in the service route.
+   * @param serviceRouteEndNodeId Node reached after this occurrence in the stored direction.
+   * @param latitude Latitude of the real node.
+   * @param longitude Longitude of the real node.
+   */
+  public VirtualNode(
+      int id,
+      int realNodeId,
+      int realLinkId,
+      byte mode,
+      byte means,
+      short service,
+      int servicePathIndex,
+      int serviceRouteEndNodeId,
+      double latitude,
+      double longitude) {
     virtualNodeId = id;
 
     this.realNodeId = realNodeId;
@@ -94,6 +128,8 @@ public class VirtualNode {
     this.mode = mode;
     this.means = means;
     this.service = service;
+    this.servicePathIndex = servicePathIndex;
+    this.serviceRouteEndNodeId = serviceRouteEndNodeId;
 
     this.latitude = latitude;
     this.longitude = longitude;
@@ -224,6 +260,24 @@ public class VirtualNode {
    */
   public int getService() {
     return service;
+  }
+
+  /**
+   * Returns the position of this link occurrence in its ordered service route.
+   *
+   * @return The zero-based path index, or -1 for a non-service virtual node.
+   */
+  public int getServicePathIndex() {
+    return servicePathIndex;
+  }
+
+  /**
+   * Returns the node reached after this link occurrence in the stored service direction.
+   *
+   * @return The route-end node ID, or -1 for a non-service virtual node.
+   */
+  public int getServiceRouteEndNodeId() {
+    return serviceRouteEndNodeId;
   }
 
   /**

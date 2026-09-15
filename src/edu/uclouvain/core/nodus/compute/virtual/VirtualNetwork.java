@@ -44,6 +44,7 @@ import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.services.ServiceHandler.ServiceLinkOccurrence;
 import edu.uclouvain.core.nodus.services.TransportService;
 import edu.uclouvain.core.nodus.utils.RealLinkUtils;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
@@ -699,16 +700,60 @@ public class VirtualNetwork {
   }
 
   /**
-   * Generates a Version 3 virtual network: <br>
+   * Tests whether two virtual nodes represent a valid transition in an ordered service route.
+   *
+   * <p>For a service, only adjacent link occurrences may be joined, and only at the node between
+   * those occurrences. Free-flow virtual nodes retain the historical connectivity rules.
+   */
+  private static boolean followsOrderedServiceRoute(VirtualNode firstNode, VirtualNode secondNode) {
+    if (firstNode.getService() != secondNode.getService()) {
+      return false;
+    }
+    if (firstNode.getService() == 0) {
+      return true;
+    }
+
+    int firstPathIndex = firstNode.getServicePathIndex();
+    int secondPathIndex = secondNode.getServicePathIndex();
+    if (firstPathIndex < 0
+        || secondPathIndex < 0
+        || Math.abs(firstPathIndex - secondPathIndex) != 1) {
+      return false;
+    }
+
+    VirtualNode earlierNode = firstPathIndex < secondPathIndex ? firstNode : secondNode;
+    return firstNode.getRealNodeId(false) == earlierNode.getServiceRouteEndNodeId();
+  }
+
+  /** Adds an operation link at a real node, oriented from the positive to the negative state. */
+  private void addNodeOperationLink(
+      NodeLayerAndRowIndex index, VirtualNode firstNode, VirtualNode secondNode, byte type) {
+    VirtualNode beginNode = firstNode.getSign() == VirtualNode.POSITIVE ? firstNode : secondNode;
+    VirtualNode endNode = firstNode.getSign() == VirtualNode.POSITIVE ? secondNode : firstNode;
+    beginNode.add(
+        new VirtualLink(
+            nbVirtualLinks++,
+            index.layerIndex,
+            index.rowInLayer,
+            beginNode,
+            endNode,
+            type));
+  }
+
+  /**
+   * Generates a Version 4 virtual network: <br>
    * - Version 1 : The one described in Jourquin B. and Beuthe M., Transportation Policy Analysis
    * with a GIS: The virtual Network of Freight Transportation in Europe, Transportation Research C,
    * Vol 4, pp. 359-371, n°6, 1996. <br>
    * - Version 2 : Used since Nodus 4, in which the virtual links are oriented.<br>
-   * - Version 3 : Includes lines an services, as explained in Jourquin B., Iassinovskaia G.,
+   * - Version 3 : Includes lines and services, as explained in Jourquin B., Iassinovskaia G.,
    * Lechien J., and Pinna J., Lines and services in a strategic multi-modal freight network model:
    * Methodology and application, presented to European Regional Science Association annual
    * congress, Liverpool (UK), August 2008 and to the European Transport Conference, Leiden (The
-   * Netherlands), 6-8 October, 2008.
+   * Netherlands), 6-8 October, 2008.<br>
+   * - Version 4 : Represents a service as an ordered walk. Physical-link occurrences retain their
+   * route position, intermediate stops cannot be bypassed, and stop and service-switch operations
+   * are represented explicitly. A service switch may join different means of the same mode.
    *
    * @return boolean True on success.
    */
@@ -760,8 +805,11 @@ public class VirtualNetwork {
         byte mode = JDBCUtils.getByte(values.get(NodusC.DBF_IDX_MODE));
 
         byte means = JDBCUtils.getByte(values.get(NodusC.DBF_IDX_MEANS));
-        LinkedList<Integer> services =
-            nodusMapPanel.getNodusProject().getServiceHandler().getServicesForLink(link);
+        LinkedList<ServiceLinkOccurrence> serviceOccurrences =
+            nodusMapPanel
+                .getNodusProject()
+                .getServiceHandler()
+                .getServiceLinkOccurrencesForLink(link);
 
         /* iterate through all means of the link */
         for (byte k = 1; k <= means; k++) {
@@ -775,17 +823,18 @@ public class VirtualNetwork {
            */
           if (isServiceForModeMeans(mode, k)) {
 
-            if (services != null) {
+            if (serviceOccurrences != null) {
               /*
                * test if the link has a line. If false a virtual Link is not created
                * for this real link.
                */
-              Iterator<Integer> it = services.iterator();
+              Iterator<ServiceLinkOccurrence> it = serviceOccurrences.iterator();
               while (it.hasNext()) {
                 /*
                  * A virtualLink is created for all thes line of the mode /means.
                  */
-                int service = it.next();
+                ServiceLinkOccurrence occurrence = it.next();
+                int service = occurrence.getServiceId();
                 // Virtual nodes
                 if (nodusMapPanel
                     .getNodusProject()
@@ -803,6 +852,8 @@ public class VirtualNetwork {
                           mode,
                           k,
                           (short) service,
+                          occurrence.getPathIndex(),
+                          occurrence.getRouteEndNodeId(),
                           lat,
                           lon);
                   vnl[idx.indexInVirtualNodeList].addVirtualNode(n1p);
@@ -815,6 +866,8 @@ public class VirtualNetwork {
                           mode,
                           k,
                           (short) service,
+                          occurrence.getPathIndex(),
+                          occurrence.getRouteEndNodeId(),
                           lat,
                           lon);
                   vnl[idx.indexInVirtualNodeList].addVirtualNode(n1n);
@@ -831,6 +884,8 @@ public class VirtualNetwork {
                           mode,
                           k,
                           (short) service,
+                          occurrence.getPathIndex(),
+                          occurrence.getRouteEndNodeId(),
                           lat,
                           lon);
                   vnl[idx.indexInVirtualNodeList].addVirtualNode(n2p);
@@ -843,6 +898,8 @@ public class VirtualNetwork {
                           mode,
                           k,
                           (short) service,
+                          occurrence.getPathIndex(),
+                          occurrence.getRouteEndNodeId(),
                           lat,
                           lon);
                   vnl[idx.indexInVirtualNodeList].addVirtualNode(n2n);
@@ -918,10 +975,7 @@ public class VirtualNetwork {
           // These virtual links are always from + to -
           if (beginNode.getSign() != endNode.getSign()) {
 
-            /*
-             * Transhipment links are generated for transhipment nodes only and Transit
-             * links are generated for same mode/means combinations
-             */
+            // A service operation requires both participating services to stop at this node.
             boolean n1 =
                 nodusMapPanel
                     .getNodusProject()
@@ -940,63 +994,56 @@ public class VirtualNetwork {
               n2 = true;
             }
 
-            if (element.isTranshipmentNode() && n1 && n2
-                || beginNode.getModeMeansServiceKey() == endNode.getModeMeansServiceKey()
-                || beginNode.getModeMeansKey() == endNode.getModeMeansKey()
+            boolean sameService = beginNode.getService() == endNode.getService();
+            boolean sameModeMeansService =
+                beginNode.getModeMeansServiceKey() == endNode.getModeMeansServiceKey();
+            boolean sameModeMeans = beginNode.getModeMeansKey() == endNode.getModeMeansKey();
+            boolean sameMode = beginNode.getMode() == endNode.getMode();
+            boolean followsServiceRoute = followsOrderedServiceRoute(beginNode, endNode);
+            boolean generateTransit = sameModeMeansService && followsServiceRoute;
+            boolean generateTranshipment =
+                element.isTranshipmentNode()
+                    && n1
+                    && n2
+                    && !sameModeMeans
+                    && (!sameService || followsServiceRoute);
+            boolean generateServiceSwitch =
+                sameMode
+                    && beginNode.getService() > 0
+                    && endNode.getService() > 0
+                    && !sameService
                     && element.isChangingServiceNode()
                     && n1
-                    && n2) {
+                    && n2;
+
+            if (generateTranshipment || generateTransit || generateServiceSwitch) {
               NodeLayerAndRowIndex idx = nodeIndex.get(Integer.valueOf(element.getRealNodeId()));
 
-              // Find out which type of virtual link it is
-              byte type;
-
-              if (beginNode.getModeMeansServiceKey() == endNode.getModeMeansServiceKey()
-                  && nodusMapPanel
-                      .getNodusProject()
-                      .getServiceHandler()
-                      .isNodeStopService(beginNode.getRealNodeId(false), beginNode.getService())
-                  && beginNode.getRealNodeId(false) == endNode.getRealNodeId(false)) {
-                type = VirtualLink.TYPE_STOP;
-              } else if (beginNode.getModeMeansServiceKey() == endNode.getModeMeansServiceKey()) {
-                type = VirtualLink.TYPE_TRANSIT;
-              } else if (beginNode.getModeMeansKey() == endNode.getModeMeansKey()) {
-                type = VirtualLink.TYPE_SWITCH;
-              } else {
-                type = VirtualLink.TYPE_TRANSHIP;
+              if (generateTransit) {
+                boolean isStop =
+                    nodusMapPanel
+                        .getNodusProject()
+                        .getServiceHandler()
+                        .isNodeStopService(
+                            beginNode.getRealNodeId(false), beginNode.getService());
+                byte type = isStop ? VirtualLink.TYPE_STOP : VirtualLink.TYPE_TRANSIT;
+                boolean joinsDifferentLinkStates =
+                    beginNode.getRealLinkId() != endNode.getRealLinkId()
+                        || beginNode.getService() > 0
+                            && beginNode.getServicePathIndex()
+                                != endNode.getServicePathIndex();
+                if (joinsDifferentLinkStates
+                    && (type != VirtualLink.TYPE_TRANSIT || element.isTransitAllowed())) {
+                  addNodeOperationLink(idx, beginNode, endNode, type);
+                }
               }
 
-              if (type == VirtualLink.TYPE_TRANSHIP
-                  || type == VirtualLink.TYPE_SWITCH
-                  || beginNode.getRealLinkId() != endNode.getRealLinkId()) {
+              if (generateTranshipment) {
+                addNodeOperationLink(idx, beginNode, endNode, VirtualLink.TYPE_TRANSHIP);
+              }
 
-                // test if transit is allowed here
-                boolean generateVirtualLink = true;
-                if (type == VirtualLink.TYPE_TRANSIT && !element.isTransitAllowed()) {
-                  generateVirtualLink = false;
-                }
-
-                if (generateVirtualLink) {
-                  if (beginNode.getSign() == VirtualNode.POSITIVE) {
-                    beginNode.add(
-                        new VirtualLink(
-                            nbVirtualLinks++,
-                            idx.layerIndex,
-                            idx.rowInLayer,
-                            beginNode,
-                            endNode,
-                            type));
-                  } else {
-                    endNode.add(
-                        new VirtualLink(
-                            nbVirtualLinks++,
-                            idx.layerIndex,
-                            idx.rowInLayer,
-                            endNode,
-                            beginNode,
-                            type));
-                  }
-                }
+              if (generateServiceSwitch) {
+                addNodeOperationLink(idx, beginNode, endNode, VirtualLink.TYPE_SWITCH);
               }
             }
           }

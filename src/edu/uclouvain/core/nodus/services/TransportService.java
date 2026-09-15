@@ -100,6 +100,17 @@ public class TransportService {
   }
 
   /**
+   * Adds a given link at the beginning of the ordered service route.
+   *
+   * @param omg The link to add.
+   */
+  public void addFirstChunk(OMGraphic omg) {
+    if (omg != null) {
+      links.addFirst(omg);
+    }
+  }
+
+  /**
    * Adds a given node as stop point to the service.
    *
    * @param nodeId The ID of the node to add.

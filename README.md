@@ -60,7 +60,7 @@ Many under the hood improvements.
 external connections. Upgrade to Groovy 4.
 - 8.3 - November 2025: Tested with Java 25, but still runs on Java 11 and Groovy is upgraded to version 5.
 - 8.4 - June 2026: The Frank-Wolfe based algorithms are reintroduced. Major code refactoring with a focus on code robustness.
-- 8.5 - September 2026: Lines & services are reintroduced with a completely redesigned workflow.
+- 8.5 - September 2026: Lines & services are reintroduced with a completely redesigned workflow based on Virtual Network Version 4.
 
 See the [change log](changelog.md) for a detailed build history.
 

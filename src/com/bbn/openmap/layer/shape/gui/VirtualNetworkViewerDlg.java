@@ -31,6 +31,7 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import edu.uclouvain.core.nodus.swing.GridSwing;
@@ -82,6 +83,9 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
 
   /** . */
   private boolean hasTime;
+
+  /** True if the virtual-network table stores the generated virtual-link type. */
+  private boolean hasVirtualLinkType;
 
   /** . */
   private boolean isNode;
@@ -173,7 +177,11 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
         int col = m.getColumnCount();
         String[] h = new String[col];
         int nbFieldsOk = 0;
-        int nbNeededFields = 11;
+        boolean queryHasVirtualLinkType =
+            col > 11
+                && m.getColumnName(11)
+                    .equalsIgnoreCase(NodusC.DBF_VIRTUAL_LINK_TYPE);
+        int nbNeededFields = queryHasVirtualLinkType ? 12 : 11;
 
         for (int i = 1; i <= col; i++) {
           String n = m.getColumnName(i);
@@ -241,7 +249,14 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
               break;
 
             case 11:
-              if (n.equalsIgnoreCase(NodusC.DBF_TIME)) {
+              if (n.equalsIgnoreCase(
+                  queryHasVirtualLinkType ? NodusC.DBF_VIRTUAL_LINK_TYPE : NodusC.DBF_TIME)) {
+                nbFieldsOk++;
+              }
+              break;
+
+            case 12:
+              if (queryHasVirtualLinkType && n.equalsIgnoreCase(NodusC.DBF_TIME)) {
                 nbFieldsOk++;
               }
               break;
@@ -276,12 +291,20 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
             line1 = line2 = 0;
           }
 
-          int time = rs.getInt(11);
+          int virtualLinkType = -1;
+          int time;
+          int idx;
+          if (queryHasVirtualLinkType) {
+            virtualLinkType = rs.getInt(11);
+            time = rs.getInt(12);
+            idx = 13;
+          } else {
+            time = rs.getInt(11);
+            idx = 12;
+          }
           if (!hasTime) {
             time = 0;
           }
-
-          int idx = 12;
 
           final double quantity = rs.getDouble(idx++);
           final double unitCost = rs.getDouble(idx++);
@@ -305,7 +328,21 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
             n2 = n;
           }
 
-          JungVirtualLink jvl = new JungVirtualLink(n1, n2, quantity, unitCost, vehicles, time);
+          if (virtualLinkType < VirtualLink.TYPE_MOVE
+              || virtualLinkType > VirtualLink.TYPE_STOP) {
+            virtualLinkType = JungVirtualLink.inferType(n1, n2);
+            if (virtualLinkType == VirtualLink.TYPE_TRANSIT
+                && n1.getService() > 0
+                && nodusProject
+                    .getServiceHandler()
+                    .isNodeStopService(Math.abs(n1.getNode()), n1.getService())) {
+              virtualLinkType = VirtualLink.TYPE_STOP;
+            }
+          }
+
+          JungVirtualLink jvl =
+              new JungVirtualLink(
+                  n1, n2, quantity, unitCost, vehicles, time, virtualLinkType);
 
           linksHashMap.put(jvl.toString(), jvl);
         }
@@ -439,9 +476,9 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
     /*
      * Example query for nodes.
      *
-     * <p>select link1, link2, mode1, means1, service1, mode2, means2, service2, time, qty, ucost,
-     * veh from vnet0 where abs(node1) = 1000 and abs(node2) = 1000 Example query for links: select
-     * node1, node2, mode1, means1, cost, qty from vnet0 where link1 = 1000 and link2 = 1000
+     * <p>select link1, link2, mode1, means1, service1, mode2, means2, service2, vtype, time, qty,
+     * ucost, veh from vnet0 where abs(node1) = 1000 and abs(node2) = 1000 Example query for links:
+     * select node1, node2, mode1, means1, cost, qty from vnet0 where link1 = 1000 and link2 = 1000
      */
     int scenario = nodusProject.getLocalProperty(NodusC.PROP_SCENARIO, 0);
     tableName = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
@@ -449,6 +486,7 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
 
     hasTime = JDBCUtils.hasSeveralValues(tableName, NodusC.DBF_TIME);
     hasServices = JDBCUtils.hasSeveralValues(tableName, NodusC.DBF_SERVICE1);
+    hasVirtualLinkType = JDBCUtils.hasField(tableName, NodusC.DBF_VIRTUAL_LINK_TYPE);
 
     String sqlStmt =
         " SELECT "
@@ -472,6 +510,9 @@ public class VirtualNetworkViewerDlg extends EscapeDialog implements ShapeConsta
             + ", "
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SERVICE2)
             + ", "
+            + (hasVirtualLinkType
+                ? JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_VIRTUAL_LINK_TYPE) + ", "
+                : "")
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_TIME)
             + ", "
             + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_QUANTITY)

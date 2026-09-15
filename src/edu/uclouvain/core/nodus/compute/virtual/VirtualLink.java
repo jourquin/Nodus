@@ -100,7 +100,7 @@ public class VirtualLink {
   /* Virtual link number */
   private int virtualLinkId;
 
-  /** Type of virtual link. Can be TypeMOVE, TypeTRANSIT, TypeLOAD, TypeUNLOAD or TypeTRANSHIP */
+  /** Type of virtual link, such as moving, transit, loading, transhipment, switch, or stop. */
   private byte virtualLinkType;
 
   /* This variable will contain the cost computed for this particular virtual link */
@@ -119,7 +119,7 @@ public class VirtualLink {
    * @param indexInLayer The index into the layer the real link belongs to.
    * @param beginVirtualNode The ID of virtual node at the origin.
    * @param endVirtualNode The ID of virtual node at the end.
-   * @param type The type of virtual link (load, unload, transit or tranship).
+   * @param type The type of non-moving virtual link.
    */
   public VirtualLink(
       int id,
