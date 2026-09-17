@@ -58,42 +58,80 @@ public final class AssignmentCompletion {
     this.convergenceThreshold = convergenceThreshold;
   }
 
-  /** Returns the reason why the iteration process stopped. */
+  
+  /**
+   * Returns the reason why the iteration process stopped.
+   * 
+   * @return the reason why the iteration process stopped
+   */
   public Reason getReason() {
     return reason;
   }
 
-  /** Returns the number of iterations performed in the main algorithm phase. */
+ 
+  /**
+   * Returns the number of iterations performed in the main algorithm phase.
+   * 
+   * @return the number of iterations performed in the main algorithm phase
+   */
   public int getIterationsPerformed() {
     return iterationsPerformed;
   }
 
-  /** Returns the configured iteration limit. */
+  /**
+   * Returns the maximum number of iterations allowed for the main algorithm phase.
+   * 
+   * @return the maximum number of iterations allowed for the main algorithm phase
+   */
   public int getMaximumIterations() {
     return maximumIterations;
   }
 
-  /** Returns the number of preliminary initialization iterations. */
+  
+  /**
+   * Returns the number of preliminary initialization iterations.
+   * 
+   * @return the number of preliminary initialization iterations
+   */
   public int getInitializationIterations() {
     return initializationIterations;
   }
 
-  /** Returns the total number of iterations, including initialization iterations. */
+  
+  /**
+   * Returns the total number of iterations performed, including initialization iterations.
+   * 
+   * @return the total number of iterations performed, including initialization iterations
+   */
   public int getTotalIterationsPerformed() {
     return initializationIterations + iterationsPerformed;
   }
 
-  /** Returns the relative volume gap at termination, or NaN if it was not available. */
+  /**
+   * Returns the relative volume gap at termination, or NaN if it was not available.
+   * 
+   * @return the relative volume gap at termination, or NaN if it was not available
+   */
   public double getFinalRelativeGap() {
     return finalRelativeGap;
   }
 
-  /** Returns true if a final relative volume gap was computed. */
+  
+  /**
+   * Returns true if a final relative volume gap was computed.
+   * 
+   * @return true if a final relative volume gap was computed
+   */
   public boolean hasFinalRelativeGap() {
     return Double.isFinite(finalRelativeGap);
   }
 
-  /** Returns the requested convergence threshold, or NaN for fixed-iteration algorithms. */
+  
+  /**
+   * Returns the requested convergence threshold, or NaN for fixed-iteration algorithms.
+   * 
+   * @return the requested convergence threshold, or NaN for fixed-iteration algorithms
+   */
   public double getConvergenceThreshold() {
     return convergenceThreshold;
   }

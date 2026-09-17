@@ -3032,7 +3032,12 @@ public class ServiceHandler {
     }
   }
 
-  /** Draws the edited route above a link layer without relying on its transient selection state. */
+  /**
+   * Draws the edited route above a link layer without relying on its transient selection state.
+   * 
+   * @param graphics The graphics context to draw on.
+   * @param visibleGraphics The list of graphics currently visible on the map.
+   */
   public void renderCurrentServiceOverlay(Graphics graphics, OMGraphicList visibleGraphics) {
     if (graphics == null || visibleGraphics == null || currentService == null) {
       return;

@@ -89,12 +89,24 @@ public class GUIUtils {
     }
   }
 
-  /** Enables or disables every Swing tooltip in the application. */
+  /**
+   * Enables or disables every Swing tooltip in the application.
+   *
+   * @param enabled true to enable tooltips, false to disable them
+   */
   public static void setToolTipsEnabled(boolean enabled) {
     ToolTipManager.sharedInstance().setEnabled(enabled);
   }
 
-  /** Sets one localized tooltip from the owning class's package catalogue. */
+  /**
+   * Sets one localized tooltip from the owning class's package catalogue.
+   *
+   * @param component the Swing component to set the tooltip for
+   * @param ownerClass the class whose package contains the resource bundle for the tooltip
+   * @param key the key for the tooltip in the resource bundle
+   * @param defaultValue the default tooltip text to use if the key is not found in the resource
+   *     bundle
+   */
   public static void setToolTip(
       JComponent component, Class<?> ownerClass, String key, String defaultValue) {
     component.setToolTipText(I18N.get(ownerClass, "tooltip." + key, defaultValue));
@@ -105,8 +117,8 @@ public class GUIUtils {
    *
    * <p>Components are matched to their Java field names, which keeps the tooltip catalogue in the
    * resource bundles instead of scattering literal text across the GUI classes. Existing bespoke
-   * tooltips are preserved unless the catalogue contains an explicit replacement. Text buttons
-   * that are local constructor variables receive a localized generic action tooltip.
+   * tooltips are preserved unless the catalogue contains an explicit replacement. Text buttons that
+   * are local constructor variables receive a localized generic action tooltip.
    *
    * @param owner object that owns the component fields
    * @param root root of the component tree to update
@@ -166,8 +178,7 @@ public class GUIUtils {
       if (swingComponent.getToolTipText() == null && component instanceof AbstractButton) {
         String text = ((AbstractButton) component).getText();
         if (text != null && !text.trim().isEmpty()) {
-          String template =
-              I18N.get(GUIUtils.class, "Activate_action", "Activate \"{0}\".");
+          String template = I18N.get(GUIUtils.class, "Activate_action", "Activate \"{0}\".");
           swingComponent.setToolTipText(MessageFormat.format(template, text.trim()));
         }
       }
@@ -215,8 +226,17 @@ public class GUIUtils {
         (componentField.getDeclaringClass().getName() + "." + componentField.getName())
             .toLowerCase(Locale.ROOT);
     String[] suffixes = {
-      "radiobutton", "tabbedpane", "combobox", "textfield", "textarea", "checkbox", "spinner",
-      "button", "label", "table", "list"
+      "radiobutton",
+      "tabbedpane",
+      "combobox",
+      "textfield",
+      "textarea",
+      "checkbox",
+      "spinner",
+      "button",
+      "label",
+      "table",
+      "list"
     };
     for (String suffix : suffixes) {
       if (normalized.endsWith(suffix)) {
