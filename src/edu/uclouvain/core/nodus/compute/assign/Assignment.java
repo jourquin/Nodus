@@ -325,9 +325,7 @@ public abstract class Assignment implements Runnable {
   /** Main routine that calls the actual assignment algorithm in the derived classes. */
   @Override
   public void run() {
-    boolean success = false;
-    boolean outOfMemory = false;
-
+   
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
     nodusMapPanel.getAssignmentMenuItem().setEnabled(false);
     completion = null;
@@ -336,6 +334,8 @@ public abstract class Assignment implements Runnable {
     // Update the scenario combo of the main window
     nodusMapPanel.updateScenarioComboBox(true);
 
+    boolean success = false;
+    boolean outOfMemory = false;
     try {
       virtualNet = null;
 
