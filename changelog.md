@@ -463,8 +463,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Remove OSHI and JNA from the core lib, as they are not used anymore
 - Add Equal Earth projection
 
-## v8.5 - BuildXXXXXXXX
-- Enable the revamped Lines and Services workflow.
+## v8.5 - Build20260917
+- Enable the revamped Lines and Services workflow, now also documented
 - More resources in the help system
 - Fix some issues in the demo project and documentation
 - Improved splash screen delay measure
