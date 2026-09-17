@@ -465,13 +465,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 
 ## v8.5 - BuildXXXXXXXX
 - Enable the revamped Lines and Services workflow.
-- Identify the ordered, service-aware methodology as Virtual Network Version 4. It retains each
-  physical-link occurrence along a route and explicitly represents stops and service switches.
-- Allow a service switch between different means of the same mode while retaining transhipment as
-  a separate alternative at nodes where both operations are permitted.
-- A service can use means `-1` to apply to every means supported over its complete line. The
-  `SERVICELINES.mode,-1` cost-function setting similarly constrains all means of a mode.
-- The service editor can hide node and link layers that are unrelated to the selected line.
 - More resources in the help system
 - Fix some issues in the demo project and documentation
 - Improved splash screen delay measure
@@ -479,8 +472,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Fix "Transit only" checkbox in DbfEditDlg that was sometimes checked unexpectedly
 - Report whether an equilibrium assignment converged or reached its iteration limit, and clarify
   iteration and convergence controls in the assignment dialog.
-opropriété 
-  
+- Add tooltips on (almost) all GUI elements
+
   
   
   

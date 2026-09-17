@@ -59,6 +59,7 @@ import edu.uclouvain.core.nodus.services.ServiceHandler;
 import edu.uclouvain.core.nodus.swing.GUIUtils;
 import java.awt.BasicStroke;
 import java.awt.Component;
+import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.MouseInfo;
 import java.awt.Paint;
@@ -724,6 +725,20 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     isReady = true;
     super.doPrepare();
+  }
+
+  @Override
+  public void paint(Graphics graphics) {
+    super.paint(graphics);
+
+    if (disposed || nodusProject == null || !(getEsriGraphicList() instanceof EsriPolylineList)) {
+      return;
+    }
+
+    ServiceHandler serviceHandler = nodusProject.getServiceHandler();
+    if (serviceHandler != null && serviceHandler.isGUIVisible()) {
+      serviceHandler.renderCurrentServiceOverlay(graphics, getVisibleEsriGraphicList());
+    }
   }
 
   /** Called by getGUI(). Displays the table model and allows to edit its structure */

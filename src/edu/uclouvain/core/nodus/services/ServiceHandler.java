@@ -26,6 +26,7 @@ import com.bbn.openmap.event.NavMouseMode;
 import com.bbn.openmap.event.SelectMouseMode;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.omGraphics.OMGraphic;
+import com.bbn.openmap.omGraphics.OMGraphicList;
 import com.bbn.openmap.omGraphics.OMPoint;
 import com.bbn.openmap.omGraphics.OMPoly;
 import com.bbn.openmap.util.I18n;
@@ -41,7 +42,11 @@ import edu.uclouvain.core.nodus.database.JDBCField;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.services.gui.ServicesDlg;
 import edu.uclouvain.core.nodus.utils.RealLinkUtils;
+import java.awt.BasicStroke;
+import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Paint;
+import java.awt.Stroke;
 import java.awt.event.MouseEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -3024,6 +3029,44 @@ public class ServiceHandler {
       }
     } finally {
       serviceGraphics.dispose();
+    }
+  }
+
+  /** Draws the edited route above a link layer without relying on its transient selection state. */
+  public void renderCurrentServiceOverlay(Graphics graphics, OMGraphicList visibleGraphics) {
+    if (graphics == null || visibleGraphics == null || currentService == null) {
+      return;
+    }
+
+    Set<OMGraphic> serviceLinks = new HashSet<>(currentService.getLinks());
+    Graphics overlayGraphics = graphics.create();
+    try {
+      renderServiceLinksInList(overlayGraphics, visibleGraphics, serviceLinks);
+    } finally {
+      overlayGraphics.dispose();
+    }
+  }
+
+  private void renderServiceLinksInList(
+      Graphics graphics, OMGraphicList visibleGraphics, Set<OMGraphic> serviceLinks) {
+    for (OMGraphic graphic : visibleGraphics) {
+      if (graphic instanceof OMGraphicList) {
+        renderServiceLinksInList(graphics, (OMGraphicList) graphic, serviceLinks);
+      } else if (graphic != null && graphic.isVisible() && serviceLinks.remove(graphic)) {
+        Paint selectPaint = graphic.getSelectPaint();
+        Stroke stroke = graphic.getStroke();
+        boolean selected = graphic.isSelected();
+        try {
+          graphic.setSelectPaint(Color.GREEN);
+          graphic.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+          graphic.setSelected(true);
+          graphic.render(graphics);
+        } finally {
+          graphic.setSelected(selected);
+          graphic.setStroke(stroke);
+          graphic.setSelectPaint(selectPaint);
+        }
+      }
     }
   }
 
