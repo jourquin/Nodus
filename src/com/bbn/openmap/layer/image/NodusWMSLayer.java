@@ -30,6 +30,7 @@ import com.bbn.openmap.proj.Gnomonic;
 import com.bbn.openmap.proj.Projection;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.event.ActionEvent;
@@ -304,6 +305,11 @@ public class NodusWMSLayer extends WMSLayer {
     // Add a new button to existent panel
     JButton layersButton =
         new JButton(i18n.get(NodusWMSLayer.class, "Choose_layers", "Choose layers"));
+    GUIUtils.setToolTip(
+        layersButton,
+        NodusWMSLayer.class,
+        "layersButton",
+        "Choose which layers from the WMS server are displayed.");
 
     final NodusWMSLayer _this = this;
     layersButton.addActionListener(

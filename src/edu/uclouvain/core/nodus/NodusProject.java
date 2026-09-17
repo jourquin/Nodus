@@ -49,6 +49,7 @@ import edu.uclouvain.core.nodus.database.dbf.DBFException;
 import edu.uclouvain.core.nodus.database.dbf.DBFReader;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
 import edu.uclouvain.core.nodus.services.ServiceHandler;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import edu.uclouvain.core.nodus.utils.CheckForOM5;
 import edu.uclouvain.core.nodus.utils.CommentedProperties;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
@@ -2105,6 +2106,7 @@ public class NodusProject implements ShapeConstants {
     reImportCheckBox.setVerticalAlignment(SwingConstants.BOTTOM);
 
     fileChooser.setAccessory(reImportCheckBox);
+    GUIUtils.installToolTips(this, fileChooser);
 
     int returnVal = fileChooser.showOpenDialog(null);
 

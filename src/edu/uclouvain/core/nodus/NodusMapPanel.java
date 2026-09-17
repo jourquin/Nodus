@@ -93,6 +93,7 @@ import edu.uclouvain.core.nodus.gui.LookAndFeelChooser;
 import edu.uclouvain.core.nodus.gui.ProjectPreferencesDlg;
 import edu.uclouvain.core.nodus.gui.SplashDlg;
 import edu.uclouvain.core.nodus.helpbrowser.HelpBrowser;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import edu.uclouvain.core.nodus.swing.OnTopKeeper;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NodusGroovyConsole;
@@ -500,6 +501,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     this.deferDefaultPoliticalBoundaries = deferDefaultPoliticalBoundaries;
 
     create();
+    GUIUtils.installToolTips(this, this);
 
     // Check if a newer version is available
     String value = getNodusProperties().getProperty(NodusC.PROP_CHECK_FOR_UPDATES, "true");

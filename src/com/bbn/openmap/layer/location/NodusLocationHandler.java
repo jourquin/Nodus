@@ -40,6 +40,7 @@ import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.real.RealNode;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
@@ -351,6 +352,11 @@ public class NodusLocationHandler extends AbstractLocationHandler
               isShowLocations());
 
       showDbLocationCheck.setActionCommand(showLocationsCommand);
+      GUIUtils.setToolTip(
+          showDbLocationCheck,
+          NodusLocationHandler.class,
+          "showDbLocationCheck",
+          "Show location symbols read from the layer database.");
       showDbLocationCheck.addActionListener(this);
 
       JCheckBox showNameCheck =
@@ -359,6 +365,11 @@ public class NodusLocationHandler extends AbstractLocationHandler
               isShowNames());
 
       showNameCheck.setActionCommand(showNamesCommand);
+      GUIUtils.setToolTip(
+          showNameCheck,
+          NodusLocationHandler.class,
+          "showNameCheck",
+          "Show labels beside the location symbols.");
       showNameCheck.addActionListener(this);
 
       JButton rereadFilesButton =
@@ -369,6 +380,11 @@ public class NodusLocationHandler extends AbstractLocationHandler
                   "Query database for labels"));
 
       rereadFilesButton.setActionCommand(readDataCommand);
+      GUIUtils.setToolTip(
+          rereadFilesButton,
+          NodusLocationHandler.class,
+          "rereadFilesButton",
+          "Reload location labels from the project database.");
       rereadFilesButton.addActionListener(this);
       rereadFilesButton.setHorizontalAlignment((int) Component.CENTER_ALIGNMENT);
 

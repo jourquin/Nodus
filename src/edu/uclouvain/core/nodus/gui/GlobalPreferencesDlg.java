@@ -27,6 +27,7 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import edu.uclouvain.core.nodus.utils.GitHubRelease;
 import java.awt.Color;
 import java.awt.GridBagConstraints;
@@ -75,6 +76,9 @@ public class GlobalPreferencesDlg extends EscapeDialog {
 
   /** . */
   private JCheckBox displayFullPathCheckBox;
+
+  /** . */
+  private JCheckBox displayToolTipsCheckBox;
 
   /** . */
   private JTextField gcIntervalTextField;
@@ -144,7 +148,7 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     GridBagLayout gblContentPanel = new GridBagLayout();
     gblContentPanel.columnWeights = new double[] {0.0, 1.0};
     gblContentPanel.rowWeights =
-        new double[] {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        new double[] {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     contentPanel.setLayout(gblContentPanel);
 
     final JLabel forcedGcIntervalLabel =
@@ -369,6 +373,16 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     gbcChckbxConfirmQuit.gridy = 9;
     contentPanel.add(confirmQuitCheckBox, gbcChckbxConfirmQuit);
 
+    displayToolTipsCheckBox =
+        new JCheckBox(
+            i18n.get(GlobalPreferencesDlg.class, "Display_tooltips", "Display tooltips"));
+    GridBagConstraints gbcChckbxDisplayToolTips = new GridBagConstraints();
+    gbcChckbxDisplayToolTips.anchor = GridBagConstraints.WEST;
+    gbcChckbxDisplayToolTips.insets = new Insets(5, 5, 5, 5);
+    gbcChckbxDisplayToolTips.gridx = 0;
+    gbcChckbxDisplayToolTips.gridy = 10;
+    contentPanel.add(displayToolTipsCheckBox, gbcChckbxDisplayToolTips);
+
     checkForUpdatesCheckBox =
         new JCheckBox(
             i18n.get(
@@ -377,14 +391,14 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     gbcChckbxCheckForUpdates.anchor = GridBagConstraints.WEST;
     gbcChckbxCheckForUpdates.insets = new Insets(5, 5, 0, 5);
     gbcChckbxCheckForUpdates.gridx = 0;
-    gbcChckbxCheckForUpdates.gridy = 10;
+    gbcChckbxCheckForUpdates.gridy = 11;
     contentPanel.add(checkForUpdatesCheckBox, gbcChckbxCheckForUpdates);
 
     final JButton checkForUpdateButton =
         new JButton(i18n.get(GlobalPreferencesDlg.class, "CheckForUpdates", "Check for updates"));
     GridBagConstraints gbcCheckForUpdateButton = new GridBagConstraints();
     gbcCheckForUpdateButton.gridx = 1;
-    gbcCheckForUpdateButton.gridy = 10;
+    gbcCheckForUpdateButton.gridy = 11;
     gbcCheckForUpdateButton.insets = new Insets(5, 5, 5, 5);
     contentPanel.add(checkForUpdateButton, gbcCheckForUpdateButton);
     EscapeDialog parent = this;
@@ -526,6 +540,8 @@ public class GlobalPreferencesDlg extends EscapeDialog {
         + '\n'
         + confirmQuitCheckBox.isSelected()
         + '\n'
+        + displayToolTipsCheckBox.isSelected()
+        + '\n'
         + getSelectedDbEngine();
   }
 
@@ -576,6 +592,9 @@ public class GlobalPreferencesDlg extends EscapeDialog {
 
     value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_CONFIRM_QUIT, TRUE);
     confirmQuitCheckBox.setSelected(Boolean.parseBoolean(value));
+
+    value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_DISPLAY_TOOLTIPS, TRUE);
+    displayToolTipsCheckBox.setSelected(Boolean.parseBoolean(value));
 
     value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_REOPEN_LATST_PROJECT, FALSE);
     reloadLastProjectCheckBox.setSelected(Boolean.parseBoolean(value));
@@ -721,5 +740,10 @@ public class GlobalPreferencesDlg extends EscapeDialog {
       value = TRUE;
     }
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_CONFIRM_QUIT, value);
+
+    // Display contextual tooltips throughout Nodus
+    value = displayToolTipsCheckBox.isSelected() ? TRUE : FALSE;
+    nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_DISPLAY_TOOLTIPS, value);
+    GUIUtils.setToolTipsEnabled(displayToolTipsCheckBox.isSelected());
   }
 }

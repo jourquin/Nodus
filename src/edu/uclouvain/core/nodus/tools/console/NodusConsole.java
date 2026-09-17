@@ -24,6 +24,7 @@ package edu.uclouvain.core.nodus.tools.console;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -175,6 +176,7 @@ public class NodusConsole extends WindowAdapter
     frame.getContentPane().add(sp, BorderLayout.CENTER);
     frame.getContentPane().add(saveButton, BorderLayout.SOUTH);
     registerEscapeCloseAction();
+    GUIUtils.installToolTips(this, frame);
     frame.setVisible(true);
 
     frame.addWindowListener(this);

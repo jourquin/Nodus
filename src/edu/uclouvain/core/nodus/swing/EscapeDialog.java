@@ -164,6 +164,15 @@ public class EscapeDialog extends JDialog implements ContainerListener, KeyListe
    */
   void performEnterAction(KeyEvent e) {}
 
+  /** Installs localized tooltips after subclasses have finished building their controls. */
+  @Override
+  public void setVisible(boolean visible) {
+    if (visible) {
+      GUIUtils.installToolTips(this, this);
+    }
+    super.setVisible(visible);
+  }
+
   /**
    * The following function is the same as the function above with the exception that it does
    * exactly the opposite - removes this Dialog from the listener lists of Components.

@@ -47,6 +47,7 @@ import java.util.logging.Logger;
 import javax.swing.InputMap;
 import javax.swing.JOptionPane;
 import javax.swing.KeyStroke;
+import javax.swing.ToolTipManager;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.text.DefaultEditorKit;
@@ -117,6 +118,11 @@ public class Nodus {
     LocaleUtils.applyLocale(locale);
 
     setLookAndFeel();
+
+    ToolTipManager.sharedInstance()
+        .setEnabled(
+            Boolean.parseBoolean(
+                nodusProperties.getProperty(NodusC.PROP_DISPLAY_TOOLTIPS, "true")));
 
     if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
       // If the app is launched without argument, a "-psn_xxx" argument seems to appear

@@ -43,6 +43,7 @@ import edu.uci.ics.jung.visualization.renderers.Renderer;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -794,6 +795,11 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
     };
 
     JComboBox<String> labelComboBox = new JComboBox<>(labels);
+    GUIUtils.setToolTip(
+        labelComboBox,
+        VirtualNetworkGraphViewerDlg.class,
+        "labelComboBox",
+        "Choose the value displayed on virtual-network links.");
     labelComboBox.addActionListener(
         new ActionListener() {
           @Override
@@ -805,6 +811,11 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
         });
 
     JComboBox<FormattedTime> timeComboBox = new JComboBox<>(availableTimes);
+    GUIUtils.setToolTip(
+        timeComboBox,
+        VirtualNetworkGraphViewerDlg.class,
+        "timeComboBox",
+        "Choose the time slice displayed in the virtual-network graph.");
     timeComboBox.addActionListener(
         new ActionListener() {
           @Override
@@ -858,10 +869,17 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
         });
 
     JComboBox<?> modeComboBox = graphMouse.getModeComboBox();
+    GUIUtils.setToolTip(
+        modeComboBox,
+        VirtualNetworkGraphViewerDlg.class,
+        "modeComboBox",
+        "Choose whether dragging transforms the view or selects graph elements.");
     modeComboBox.addItemListener(graphMouse.getModeListener());
     graphMouse.setMode(ModalGraphMouse.Mode.TRANSFORMING);
 
     JButton plusButton = new JButton("+");
+    GUIUtils.setToolTip(
+        plusButton, VirtualNetworkGraphViewerDlg.class, "plusButton", "Zoom in on the graph.");
     plusButton.addActionListener(
         new ActionListener() {
           @Override
@@ -870,6 +888,8 @@ public class VirtualNetworkGraphViewerDlg extends EscapeDialog {
           }
         });
     JButton minusButton = new JButton("-");
+    GUIUtils.setToolTip(
+        minusButton, VirtualNetworkGraphViewerDlg.class, "minusButton", "Zoom out of the graph.");
     minusButton.addActionListener(
         new ActionListener() {
           @Override

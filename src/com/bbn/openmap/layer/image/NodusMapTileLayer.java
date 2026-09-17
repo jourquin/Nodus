@@ -27,6 +27,7 @@ import com.bbn.openmap.layer.OMGraphicHandlerLayer;
 import com.bbn.openmap.omGraphics.OMGraphicList;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import edu.uclouvain.core.nodus.utils.FileUtils;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
@@ -113,6 +114,11 @@ public class NodusMapTileLayer extends MapTileLayer {
       clearCachePanel = new JPanel();
       JButton clearButton =
           new JButton(i18n.get(NodusMapTileLayer.class, "clearCacheLabel", "Clear cache"));
+      GUIUtils.setToolTip(
+          clearButton,
+          NodusMapTileLayer.class,
+          "clearButton",
+          "Clear downloaded map tiles from memory and disk caches.");
       clearCachePanel.add(clearButton);
       clearButton.addActionListener(
           new java.awt.event.ActionListener() {
@@ -177,6 +183,11 @@ public class NodusMapTileLayer extends MapTileLayer {
         Component obj = transparencyPanel.getComponent(i);
         if (obj.getClass() == JSlider.class) {
           JSlider transparencySlider = (JSlider) obj;
+          GUIUtils.setToolTip(
+              transparencySlider,
+              NodusMapTileLayer.class,
+              "transparencySlider",
+              "Adjust the transparency of this background map layer.");
           transparencySlider.addChangeListener(
               new ChangeListener() {
                 @Override

@@ -26,6 +26,7 @@ import com.bbn.openmap.dataAccess.mapTile.GoogleMapTileFactory;
 import com.bbn.openmap.dataAccess.mapTile.ServerMapTileFactory;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import java.awt.event.ActionEvent;
 import java.util.Properties;
 import javax.swing.ButtonGroup;
@@ -97,6 +98,11 @@ public class NodusGoogleTileLayer extends NodusMapTileLayer {
       typeRadioButtons = new JRadioButton[displayMapType.length];
       for (int i = 0; i < displayMapType.length; i++) {
         typeRadioButtons[i] = new JRadioButton(displayMapType[i]);
+        GUIUtils.setToolTip(
+            typeRadioButtons[i],
+            NodusGoogleTileLayer.class,
+            "typeRadioButton",
+            "Google background map type.");
         typeRadioButtons[i].addActionListener(
             new java.awt.event.ActionListener() {
               @Override

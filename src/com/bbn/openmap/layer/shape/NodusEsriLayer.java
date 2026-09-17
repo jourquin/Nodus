@@ -966,6 +966,11 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     JButton selectProperties =
         new JButton(i18n.get(NodusEsriLayer.class, "Select_properties", "Select properties"));
+    GUIUtils.setToolTip(
+        selectProperties,
+        NodusEsriLayer.class,
+        "selectProperties",
+        "Choose which attributes and results this layer displays.");
 
     holder.add(selectProperties);
     selectProperties.addActionListener(
@@ -986,6 +991,11 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     JButton editDatabase =
         new JButton(i18n.get(NodusEsriLayer.class, "Table_content", "Table content and structure"));
+    GUIUtils.setToolTip(
+        editDatabase,
+        NodusEsriLayer.class,
+        "editDatabase",
+        "Open the layer attribute table and edit its structure.");
     holder.add(editDatabase);
     editDatabase.addActionListener(
         new ActionListener() {

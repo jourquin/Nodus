@@ -32,6 +32,7 @@ import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.GridLayout;
@@ -311,6 +312,7 @@ public class HighlightedAreaLayer extends OMGraphicHandlerLayer implements MapMo
       gui.add(highlightedAreaTextField);
       gui.add(getCurrentViewButton);
       gui.add(updateButton);
+      GUIUtils.installToolTips(this, gui);
     }
     return gui;
   }

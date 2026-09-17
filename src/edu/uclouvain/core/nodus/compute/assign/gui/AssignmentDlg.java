@@ -2317,7 +2317,7 @@ public class AssignmentDlg extends EscapeDialog {
         i18n.get(
             AssignmentDlg.class,
             "Tolerance_tooltip",
-            "Stop when the relative volume gap is below this value."));
+            "Stop when the relative total cost gap is below this value."));
     precisionSpinner.setEnabled(enabled);
     precisionSpinner.setToolTipText(precisionLabel.getToolTipText());
     costMarkUpLabel.setEnabled(enabled);

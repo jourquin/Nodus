@@ -29,6 +29,7 @@ import com.bbn.openmap.util.PaletteHelper;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.swing.VerticalFlowLayout;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.event.ActionEvent;
@@ -116,6 +117,16 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
         });
 
     nodusDrawingTool = (JComboBox<JComponent>) getToolWidgets(true);
+    GUIUtils.setToolTip(
+        nodusDrawingTool,
+        NodusOMDrawingToolLauncher.class,
+        "nodusDrawingTool",
+        "Choose whether the map editor works with nodes or links.");
+    GUIUtils.setToolTip(
+        requestors,
+        NodusOMDrawingToolLauncher.class,
+        "requestors",
+        "Choose the project layer to edit.");
     requestorsPanel.add(nodusDrawingTool);
 
     // Buttons
@@ -128,10 +139,17 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
     createButton =
         new JButton(i18n.get(NodusOMDrawingToolLauncher.class, "Add_Change", "Add - Change"));
     createButton.setActionCommand(CreateCmd);
+    GUIUtils.setToolTip(
+        createButton,
+        NodusOMDrawingToolLauncher.class,
+        "createButton",
+        "Add, delete, move or update a network object.");
     createButton.addActionListener(this);
 
     // Close button
     JButton close = new JButton(i18n.get(OMDrawingToolLauncher.class, "dismiss", "Close"));
+    GUIUtils.setToolTip(
+        close, NodusOMDrawingToolLauncher.class, "closeButton", "Close the map editor.");
     close.addActionListener(
         new ActionListener() {
           @Override
@@ -149,6 +167,7 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
 
     // Editing the network is not allowed when results are displayed or if no project is open.
     installWindowSupportComponentListener();
+    GUIUtils.installToolTips(this, this);
   }
 
   /**

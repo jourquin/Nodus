@@ -895,7 +895,14 @@ public class NodusC {
    * @hidden
    */
   public static final String PROP_DISPLAY_FULL_PATH = "displayfullpath";
-  
+
+  /**
+   * Properties strings used in project and/or project local properties.
+   *
+   * @hidden
+   */
+  public static final String PROP_DISPLAY_TOOLTIPS = "displaytooltips";
+
   /**
    * Properties strings used in project and/or project local properties.
    *

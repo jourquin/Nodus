@@ -24,6 +24,7 @@ package com.bbn.openmap.gui;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -184,6 +185,7 @@ public class NodusOMControlPanel extends OMControlPanel {
         break;
       }
     }
+    GUIUtils.installToolTips(this, this);
   }
 
   /**

@@ -27,6 +27,7 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.csv.ExportCSV;
 import edu.uclouvain.core.nodus.database.csv.ImportCSV;
@@ -1633,6 +1634,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
 
     loadHistory();
+    GUIUtils.installToolTips(this, frame);
 
     if (withGUI) {
       frame.setVisible(true);

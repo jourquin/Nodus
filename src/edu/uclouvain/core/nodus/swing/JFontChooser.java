@@ -238,6 +238,7 @@ public class JFontChooser extends JDialog {
     fontStyleList.setSelectedValue(availableStyles[font.getStyle()], true);
 
     setModal(true);
+    GUIUtils.installToolTips(this, this);
     pack();
     setLocationRelativeTo(parent);
   }

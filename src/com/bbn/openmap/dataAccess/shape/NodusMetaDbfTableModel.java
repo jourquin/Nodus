@@ -25,6 +25,7 @@ import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
@@ -538,6 +539,7 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
         });
 
     frame.setLocationRelativeTo(layer.getNodusMapPanel());
+    GUIUtils.installToolTips(this, frame);
     frame.setVisible(true);
   }
 

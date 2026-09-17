@@ -24,6 +24,7 @@ package edu.uclouvain.core.nodus.gui;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusPlugin;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
@@ -90,6 +91,7 @@ public class GenericPluginConsole extends JDialog {
     try {
       setDefaultCloseOperation(DISPOSE_ON_CLOSE);
       initialize();
+      GUIUtils.installToolTips(this, this);
       pack();
       setLocationRelativeTo(nodusPlugin.getNodusMapPanel());
     } catch (Exception exception) {

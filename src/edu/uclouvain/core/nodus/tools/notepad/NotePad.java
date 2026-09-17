@@ -25,6 +25,7 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import edu.uclouvain.core.nodus.utils.NodusFileFilter;
 import java.awt.Container;
 import java.awt.Frame;
@@ -656,6 +657,7 @@ public class NotePad extends JFrame {
 
     setLocationRelativeTo(nodusMapPanel);
 
+    GUIUtils.installToolTips(this, this);
     setVisible(true);
   }
 
