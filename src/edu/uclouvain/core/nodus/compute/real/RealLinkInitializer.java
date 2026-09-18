@@ -19,7 +19,7 @@
  * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus.utils;
+package edu.uclouvain.core.nodus.compute.real;
 
 import com.bbn.openmap.dataAccess.shape.EsriPolyline;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
@@ -29,14 +29,13 @@ import com.bbn.openmap.omGraphics.OMPoly;
 import com.bbn.openmap.proj.GreatCircle;
 import com.bbn.openmap.proj.Length;
 import edu.uclouvain.core.nodus.NodusC;
-import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.util.List;
 
 /** Shared helpers for initializing real-link data attached to link graphics. */
-public final class RealLinkUtils {
+public final class RealLinkInitializer {
 
-  private RealLinkUtils() {}
+  private RealLinkInitializer() {}
 
   /**
    * Initializes the RealLink attached to a link graphic.

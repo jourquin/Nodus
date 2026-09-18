@@ -36,12 +36,12 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra;
 import edu.uclouvain.core.nodus.compute.real.RealLink;
+import edu.uclouvain.core.nodus.compute.real.RealLinkInitializer;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
 import edu.uclouvain.core.nodus.database.JDBCField;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.services.gui.ServicesDlg;
-import edu.uclouvain.core.nodus.utils.RealLinkUtils;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics;
@@ -1380,10 +1380,6 @@ public class ServiceHandler {
       repeatedEdges.add(entry.getKey());
     }
 
-    if (repeatedEdges.isEmpty()) {
-      return false;
-    }
-
     Set<Integer> endNodeIds = new HashSet<>(endNodes);
     Set<Integer> stopNodeIds = new HashSet<>(stopNodes);
     stopNodeIds.removeAll(endNodeIds);
@@ -2034,7 +2030,7 @@ public class ServiceHandler {
 
     OMGraphic node1 = getOMGraphic(JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NODE1)), TYPE_NODE);
     OMGraphic node2 = getOMGraphic(JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NODE2)), TYPE_NODE);
-    return RealLinkUtils.initializeRealLink(graphic, values, node1, node2, false);
+    return RealLinkInitializer.initializeRealLink(graphic, values, node1, node2, false);
   }
 
   /** Returns the non-negative RealLink length used as weight in the service path graph. */

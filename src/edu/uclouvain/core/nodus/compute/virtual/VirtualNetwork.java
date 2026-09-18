@@ -42,11 +42,11 @@ import edu.uclouvain.core.nodus.compute.costs.CostParserWorkerParameters;
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.real.RealLink;
+import edu.uclouvain.core.nodus.compute.real.RealLinkInitializer;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.services.ServiceHandler.ServiceLinkOccurrence;
 import edu.uclouvain.core.nodus.services.TransportService;
-import edu.uclouvain.core.nodus.utils.RealLinkUtils;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
@@ -288,7 +288,7 @@ public class VirtualNetwork {
       while (it.hasNext()) {
         OMGraphic omg = it.next();
         List<Object> values = linksDbf[i].getRecord(j);
-        RealLinkUtils.initializeRealLink(
+        RealLinkInitializer.initializeRealLink(
             omg,
             values,
             getNodeGraphic(JDBCUtils.getInt(values.get(NodusC.DBF_IDX_NODE1))),
@@ -823,93 +823,91 @@ public class VirtualNetwork {
            */
           if (isServiceForModeMeans(mode, k)) {
 
-            if (serviceOccurrences != null) {
+            /*
+             * test if the link has a line. If false a virtual Link is not created
+             * for this real link.
+             */
+            Iterator<ServiceLinkOccurrence> it = serviceOccurrences.iterator();
+            while (it.hasNext()) {
               /*
-               * test if the link has a line. If false a virtual Link is not created
-               * for this real link.
+               * A virtualLink is created for all thes line of the mode /means.
                */
-              Iterator<ServiceLinkOccurrence> it = serviceOccurrences.iterator();
-              while (it.hasNext()) {
+              ServiceLinkOccurrence occurrence = it.next();
+              int service = occurrence.getServiceId();
+              // Virtual nodes
+              if (nodusMapPanel
+                  .getNodusProject()
+                  .getServiceHandler()
+                  .serviceSupportsModeMeans(service, mode, k)) {
+                NodeLayerAndRowIndex idx = nodeIndex.get(node1);
+                double lat = vnl[idx.indexInVirtualNodeList].getGraphic().getLat();
+                double lon = vnl[idx.indexInVirtualNodeList].getGraphic().getLon();
+
+                VirtualNode n1p =
+                    new VirtualNode(
+                        nbVirtualNodes++,
+                        node1.intValue(),
+                        link,
+                        mode,
+                        k,
+                        (short) service,
+                        occurrence.getPathIndex(),
+                        occurrence.getRouteEndNodeId(),
+                        lat,
+                        lon);
+                vnl[idx.indexInVirtualNodeList].addVirtualNode(n1p);
+
+                VirtualNode n1n =
+                    new VirtualNode(
+                        nbVirtualNodes++,
+                        -node1.intValue(),
+                        link,
+                        mode,
+                        k,
+                        (short) service,
+                        occurrence.getPathIndex(),
+                        occurrence.getRouteEndNodeId(),
+                        lat,
+                        lon);
+                vnl[idx.indexInVirtualNodeList].addVirtualNode(n1n);
+
+                idx = nodeIndex.get(node2);
+                lat = vnl[idx.indexInVirtualNodeList].getGraphic().getLat();
+                lon = vnl[idx.indexInVirtualNodeList].getGraphic().getLon();
+
+                VirtualNode n2p =
+                    new VirtualNode(
+                        nbVirtualNodes++,
+                        node2.intValue(),
+                        link,
+                        mode,
+                        k,
+                        (short) service,
+                        occurrence.getPathIndex(),
+                        occurrence.getRouteEndNodeId(),
+                        lat,
+                        lon);
+                vnl[idx.indexInVirtualNodeList].addVirtualNode(n2p);
+
+                VirtualNode n2n =
+                    new VirtualNode(
+                        nbVirtualNodes++,
+                        -node2.intValue(),
+                        link,
+                        mode,
+                        k,
+                        (short) service,
+                        occurrence.getPathIndex(),
+                        occurrence.getRouteEndNodeId(),
+                        lat,
+                        lon);
+                vnl[idx.indexInVirtualNodeList].addVirtualNode(n2n);
+
                 /*
-                 * A virtualLink is created for all thes line of the mode /means.
+                 * Moving virtual links are negative to positive oriented
                  */
-                ServiceLinkOccurrence occurrence = it.next();
-                int service = occurrence.getServiceId();
-                // Virtual nodes
-                if (nodusMapPanel
-                    .getNodusProject()
-                    .getServiceHandler()
-                    .serviceSupportsModeMeans(service, mode, k)) {
-                  NodeLayerAndRowIndex idx = nodeIndex.get(node1);
-                  double lat = vnl[idx.indexInVirtualNodeList].getGraphic().getLat();
-                  double lon = vnl[idx.indexInVirtualNodeList].getGraphic().getLon();
-
-                  VirtualNode n1p =
-                      new VirtualNode(
-                          nbVirtualNodes++,
-                          node1.intValue(),
-                          link,
-                          mode,
-                          k,
-                          (short) service,
-                          occurrence.getPathIndex(),
-                          occurrence.getRouteEndNodeId(),
-                          lat,
-                          lon);
-                  vnl[idx.indexInVirtualNodeList].addVirtualNode(n1p);
-
-                  VirtualNode n1n =
-                      new VirtualNode(
-                          nbVirtualNodes++,
-                          -node1.intValue(),
-                          link,
-                          mode,
-                          k,
-                          (short) service,
-                          occurrence.getPathIndex(),
-                          occurrence.getRouteEndNodeId(),
-                          lat,
-                          lon);
-                  vnl[idx.indexInVirtualNodeList].addVirtualNode(n1n);
-
-                  idx = nodeIndex.get(node2);
-                  lat = vnl[idx.indexInVirtualNodeList].getGraphic().getLat();
-                  lon = vnl[idx.indexInVirtualNodeList].getGraphic().getLon();
-
-                  VirtualNode n2p =
-                      new VirtualNode(
-                          nbVirtualNodes++,
-                          node2.intValue(),
-                          link,
-                          mode,
-                          k,
-                          (short) service,
-                          occurrence.getPathIndex(),
-                          occurrence.getRouteEndNodeId(),
-                          lat,
-                          lon);
-                  vnl[idx.indexInVirtualNodeList].addVirtualNode(n2p);
-
-                  VirtualNode n2n =
-                      new VirtualNode(
-                          nbVirtualNodes++,
-                          -node2.intValue(),
-                          link,
-                          mode,
-                          k,
-                          (short) service,
-                          occurrence.getPathIndex(),
-                          occurrence.getRouteEndNodeId(),
-                          lat,
-                          lon);
-                  vnl[idx.indexInVirtualNodeList].addVirtualNode(n2n);
-
-                  /*
-                   * Moving virtual links are negative to positive oriented
-                   */
-                  n1n.add(new VirtualLink(nbVirtualLinks++, i, j, n1n, n2p, realLink));
-                  n2n.add(new VirtualLink(nbVirtualLinks++, i, j, n2n, n1p, realLink));
-                }
+                n1n.add(new VirtualLink(nbVirtualLinks++, i, j, n1n, n2p, realLink));
+                n2n.add(new VirtualLink(nbVirtualLinks++, i, j, n2n, n1p, realLink));
               }
             }
           } else {
