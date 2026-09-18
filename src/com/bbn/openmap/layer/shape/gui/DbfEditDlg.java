@@ -1215,9 +1215,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     mainPanel.add(getTranshipComboBox(), gridBagConstraints);
     mainPanel.add(transhipLabel, transhipLabelConstraints);
 
-    if (NodusC.withServices) {
-      mainPanel.add(getServicesButton(), servicesButtonConstraints);
-    }
+    mainPanel.add(getServicesButton(), servicesButtonConstraints);
 
     if (nodusEsriLayer.getType() != SHAPE_TYPE_POINT) {
       nodeRulesButton.setEnabled(false);
@@ -1247,10 +1245,8 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
       handling[NodusC.HANDLING_LOAD_UNLOAD] =
           i18n.get(DbfEditDlg.class, "Loading_Unloading_only", "3 - Loading/Unloading only");
 
-      if (NodusC.withServices) {
-        handling[NodusC.SERVICE_CHANGE] =
-            i18n.get(DbfEditDlg.class, "Change_Service_only", "4 - Change Line only");
-      }
+      handling[NodusC.SERVICE_CHANGE] =
+          i18n.get(DbfEditDlg.class, "Change_Service_only", "4 - Change Line only");
 
       for (String element : handling) {
         transhipComboBox.addItem(element);

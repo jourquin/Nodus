@@ -138,6 +138,11 @@ public class GUIUtils {
 
     Class<?> ownerClass = owner.getClass();
     while (ownerClass != null && ownerClass != Object.class) {
+      String className = ownerClass.getName();
+      if (className.startsWith("java.") || className.startsWith("javax.")) {
+        break;
+      }
+
       for (Field field : ownerClass.getDeclaredFields()) {
         if (!Component.class.isAssignableFrom(field.getType())) {
           continue;

@@ -59,16 +59,7 @@ public class NodusC {
   
   /** URL of the Nodus web site. */ 
   public static String nodusUrl = "http://nodus.uclouvain.be";
-
-  /*
-   * *********************************************************************************************
-   * Control functionalities. Useful to enable/disable experimental stuff
-   * *********************************************************************************************
-   */
-
-  /** Enable or disables all the "services" related functionalities. */
-  public static boolean withServices = true;
-
+  
   /*
    * *********************************************************************************************
    * Default values for various aspects of Nodus

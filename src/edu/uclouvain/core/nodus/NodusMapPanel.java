@@ -875,7 +875,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     menuItemFileExit.setAccelerator(
         KeyStroke.getKeyStroke(
             KeyEvent.VK_Q, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
-    
+
     menuItemFileExit.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
@@ -1337,10 +1337,10 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           public void run() {
             menuFile.setEnabled(true);
             menuFile.setVisible(true);
-            
+
             boolean projectOpen = nodusProject != null && nodusProject.isOpen();
             boolean enabled = !busy;
-            
+
             menuItemFileOpen.setEnabled(enabled);
             menuItemFileSave.setEnabled(enabled && projectOpen);
             menuItemFileClose.setEnabled(enabled && projectOpen);
@@ -1396,7 +1396,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
               return;
             }
 
-            
             mainFrame.toFront();
             mainFrame.requestFocus();
             getMapBean().requestFocus();
@@ -1498,7 +1497,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /**
    * Returns true while one or more long-running tasks keep the UI busy.
-   * 
+   *
    * @return True if the UI is busy, false otherwise.
    */
   public boolean isBusy() {
@@ -2021,9 +2020,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     menuProject.add(menuItemProjectPreferences);
     menuProject.add(menuItemProjectCosts);
-    if (NodusC.withServices) {
-      menuProject.add(menuItemProjectServices);
-    }
+    menuProject.add(menuItemProjectServices);
     menuProject.add(menuItemProjectAssignment);
     menuProject.add(menuItemProjectDisplayResults);
     menuProject.add(menuItemProjectScenarios);
@@ -3553,9 +3550,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     store.remove(objectName);
   }
 
-  /**
-   * Clears all stored objects.
-   */
+  /** Clears all stored objects. */
   public void clearStoredObjects() {
     store.clear();
   }
