@@ -1,12 +1,5 @@
 #Several tools used to facilitate some development tasks
 
-## Assignment timing checks
-
-Run `sh devtools/tests/run-computing-times-test.sh` from the project root with a JDK 11 or later.
-The standalone checks use a controlled clock and two threads to verify overlapping worker times,
-database-time attribution, repeated cost passes, resetting between assignments, disabled auditing
-and partial-run reporting. Compilation uses a temporary directory and requires no external libraries.
- 
 ## [HiddenDoclet.jar](https://github.com/jourquin/HiddenDoclet): 
 
 Implements a "@hidden" tag to ignore API doc generation for some methods or variables. Used by "ApiDoc" Ant task.

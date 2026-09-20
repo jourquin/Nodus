@@ -480,6 +480,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Close a loaded project only when a new one is selected
 - Remove MRJToolkitStubs.jar
 - Add an audit mechanism to print performances (times) for assignments
+- Improved cost parser, which is now between 5 and 20 times faster
 
 
   

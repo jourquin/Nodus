@@ -186,7 +186,8 @@ public final class AssignmentComputingTimes {
     appendTime(report, "Virtual network generation (wall)", elapsed[Phase.NETWORK.ordinal()]);
     appendTime(report, "Cost parser (wall)", elapsed[Phase.COSTS.ordinal()]);
     appendTime(report, "Paths and flow assignment (wall, includes path writes)", pathsWallTime);
-    appendTime(report, "Paths and flow assignment (worker sum, excludes DB calls)", pathsWorkerTime);
+    appendTime(
+        report, "Paths and flow assignment (worker sum, excludes DB calls)", pathsWorkerTime);
     appendTime(report, "Database writing (writer calls)", elapsed[Phase.DATABASE.ordinal()]);
     report.append("  Parallel work and path writes overlap; these rows are not additive.\n");
     System.out.print(report);

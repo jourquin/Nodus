@@ -53,6 +53,8 @@ import parsii.tokenizer.ParseException;
  * in a "properties like" file. A cost parser is initialized for each group of commodities, OD class
  * and time slice and put in a queue. A series of CostParserWorkers, which number is equal to the
  * number of threads defined by the user at the assignment time, will run the cost parsers. <br>
+ * Each parser caches formulas on first use and refreshes their variable bindings before subsequent
+ * evaluations. The cache is private to that parser's group, class and time-slice context. <br>
  * The evaluation itself is performed using the "Parsii" mathematical expressions parser
  * (https://github.com/scireum/parsii). Example of a valid cost functions file: <br>
  * <br>
@@ -265,8 +267,8 @@ public class CostParser {
 
   private String errorMessage = null;
 
-  /** For Parsii. */
-  private Expression expression;
+  /** Expressions and their variable bindings are private to this parser/worker. */
+  private final CostExpressionCache expressionCache = new CostExpressionCache();
 
   private byte groupNum;
 
@@ -886,15 +888,14 @@ public class CostParser {
       return UNDEFINED_FUNCTION;
     }
 
-    // Now we have a cost function to parse
+    // Parse each formula on first use, then refresh its bindings and evaluate it.
+    double value;
     try {
-      expression = Parser.parse(costFunctionFormula, scope);
+      value = expressionCache.evaluate(costFunctionFormula, scope);
     } catch (ParseException e) {
       errorMessage = vl.toString() + ": " + costFunctionFormula + '\n' + e.toString();
       return PARSER_ERROR;
     }
-    double value = -1.0;
-    value = expression.evaluate();
 
     if (Double.isNaN(value)) {
       errorMessage = vl.toString() + ": " + costFunctionFormula + " =  NaN\n";

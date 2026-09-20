@@ -437,6 +437,34 @@ public class VirtualNetwork {
     }
   }
 
+  /**
+   * Computes costs for a byte-indexed time slice.
+   *
+   * @param iteration The current iteration.
+   * @param scenario The scenario.
+   * @param odClass The OD class.
+   * @param timeSlice The time slice.
+   * @param nbThreads The number of worker threads.
+   * @return True on success.
+   */
+  public boolean computeCosts(
+      int iteration, int scenario, byte odClass, byte timeSlice, int nbThreads) {
+    return computeCosts(iteration, scenario, odClass, (int) timeSlice, nbThreads);
+  }
+
+  /**
+   * Creates a queue of cost parser workers and a pool of threads that will handle these workers.
+   *
+   * @param iteration The iteration for which the costs must be computed.
+   * @param scenario Scenario.
+   * @param odClass The OD class for which the costs must be computed.
+   * @param nbThreads The number of thread to create in the pool.
+   * @return True on success.
+   */
+  public boolean computeCosts(int iteration, int scenario, byte odClass, int nbThreads) {
+    return computeCosts(iteration, scenario, odClass, -1, nbThreads);
+  }
+
   /** Computes one cost pass, including parser initialization and completion of all workers. */
   private boolean computeCostsForClass(
       int iteration, int scenario, byte odClass, int timeSlice, int nbThreads) {
@@ -508,34 +536,6 @@ public class VirtualNetwork {
     // System.out.println("Duration : " + ((end - start) / 1000));
 
     return true;
-  }
-
-  /**
-   * Computes costs for a byte-indexed time slice.
-   *
-   * @param iteration The current iteration.
-   * @param scenario The scenario.
-   * @param odClass The OD class.
-   * @param timeSlice The time slice.
-   * @param nbThreads The number of worker threads.
-   * @return True on success.
-   */
-  public boolean computeCosts(
-      int iteration, int scenario, byte odClass, byte timeSlice, int nbThreads) {
-    return computeCosts(iteration, scenario, odClass, (int) timeSlice, nbThreads);
-  }
-
-  /**
-   * Creates a queue of cost parser workers and a pool of threads that will handle these workers.
-   *
-   * @param iteration The iteration for which the costs must be computed.
-   * @param scenario Scenario.
-   * @param odClass The OD class for which the costs must be computed.
-   * @param nbThreads The number of thread to create in the pool.
-   * @return True on success.
-   */
-  public boolean computeCosts(int iteration, int scenario, byte odClass, int nbThreads) {
-    return computeCosts(iteration, scenario, odClass, -1, nbThreads);
   }
 
   /**
