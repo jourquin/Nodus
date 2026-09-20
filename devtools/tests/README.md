@@ -63,3 +63,30 @@ rm -r "$nodus_test_dir"
 
 For performance measurements, run a Fast or Exact multi-flow assignment in Nodus with
 `NodusC.displayComputingTimes` enabled and compare the path-computation and total times.
+
+## Shortest-path initialization checks
+
+`ShortestPathInitializationTest.java` compares Dijkstra and A* with snapshots of their previous
+implementations. It checks predecessor trees (including equal-cost route choices) and path weights
+across 8,000 single-destination searches and 1,000 OD rows. Cases include changing sources and costs,
+zero-cost edges, duplicate destinations, empty OD rows, disconnected networks, independent searches
+sharing a graph, and infinite/overflowed costs. It also checks that small searches allocate only a
+small part of the heap and stop before traversing unreachable nodes.
+
+Run it after changing the shortest-path algorithms, from the project root. All inputs are synthetic
+in-memory graphs; no project, GUI or database is opened:
+
+```sh
+ant build-project
+nodus_test_dir=$(mktemp -d)
+javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_test_dir" devtools/tests/ShortestPathInitializationTest.java
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.compute.assign.shortestpath.ShortestPathInitializationTest
+rm -r "$nodus_test_dir"
+```
+
+To also run the optional synthetic benchmark, append `--benchmark` to the `java` command before
+removing the temporary directory. It compares the previous and current Dijkstra implementations for
+nearby goals, unreachable goals in a small connected component, and searches over most of a graph.
+Reported times are medians of five batches after three warm-up batches and exclude graph/search-object
+construction. These are shortest-path measurements; use `NodusC.displayComputingTimes` for complete
+assignment measurements on your projects.

@@ -63,11 +63,29 @@ public class BinaryHeapDijkstra {
   /** Set of weights of the shortest paths. */
   double[] weights;
 
-  /**
-   * Array of BHNodes that will be allocated at the initialization of the class. Used to feed
-   * "upperBoundCosts" at each new shortest path tree computation.
-   */
+  /** Heap nodes allocated on first use and reused across shortest-path computations. */
   BinaryHeapNode[] stock;
+
+  /** Heap slots materialized during the previous search, for sparse reset. */
+  private final int[] touchedHeapSlots;
+
+  private int nbTouchedHeapSlots;
+
+  /** Nodes whose positions/results were materialized during the previous search. */
+  private final int[] touchedNodes;
+
+  private int nbTouchedNodes;
+
+  /** Source determines the original cyclic ordering of nodes in the heap. */
+  private int initialSource;
+
+  /** Destinations marked by the previous OD row. */
+  private final int[] markedDestinations;
+
+  /** Search-local flags keep independent search objects from sharing destination state. */
+  private final boolean[] nodesToReach;
+
+  private int nbMarkedDestinations;
 
   /** Virtual network used for the assignment. */
   private VirtualNetwork virtualNet;
@@ -81,21 +99,18 @@ public class BinaryHeapDijkstra {
     this.graph = graph;
     weights = new double[graph.length];
 
-    for (int i = 0; i < graph.length; i++) {
-      weights[i] = Double.MAX_VALUE;
-    }
+    Arrays.fill(weights, Double.MAX_VALUE);
 
     pi = new int[graph.length];
 
     stock = new BinaryHeapNode[graph.length];
     upperBoundCosts = new BinaryHeapNode[graph.length];
 
-    // Initialization of binary heap specific implementation
-    for (int i = 0; i < graph.length; i++) {
-      stock[i] = new BinaryHeapNode();
-    }
-
     nodePos = new int[graph.length];
+    touchedHeapSlots = new int[graph.length];
+    touchedNodes = new int[graph.length];
+    markedDestinations = new int[graph.length];
+    nodesToReach = new boolean[graph.length];
   }
 
   /**
@@ -124,11 +139,11 @@ public class BinaryHeapDijkstra {
 
     int min = extractMin();
 
-    while (min != -1) {
+    while (min != -1 && minWeight != Double.MAX_VALUE) {
       weights[min] = minWeight;
 
       // Speed-Up test
-      if (graph[min].isNodeToReach) {
+      if (nodesToReach[min]) {
         nbNodesToReach--;
 
         if (nbNodesToReach == 0) {
@@ -155,7 +170,7 @@ public class BinaryHeapDijkstra {
 
     int min = extractMin();
 
-    while (min != -1) {
+    while (min != -1 && minWeight != Double.MAX_VALUE) {
       weights[min] = minWeight;
       if (min == goal) {
         break;
@@ -177,17 +192,22 @@ public class BinaryHeapDijkstra {
    * @param newVal double The new key value
    */
   public void decreaseKey(int nodeNum, double newVal) {
-
-    int y = nodePos[nodeNum];
-    upperBoundCosts[y].weight = newVal;
-
-    int parent = y >> 1;
-
-    while (parent != 0 && upperBoundCosts[y].weight < upperBoundCosts[parent].weight) {
-      swap(y, parent);
-      y = parent;
-      parent = y >> 1;
+    int position = getNodePosition(nodeNum);
+    BinaryHeapNode node = getHeapNode(position);
+    node.weight = newVal;
+    int parent = position >> 1;
+    while (parent != 0) {
+      BinaryHeapNode parentNode = getHeapNode(parent);
+      if (!(node.weight < parentNode.weight)) {
+        break;
+      }
+      upperBoundCosts[position] = parentNode;
+      nodePos[parentNode.id] = position;
+      position = parent;
+      parent = position >> 1;
     }
+    upperBoundCosts[position] = node;
+    nodePos[nodeNum] = position;
   }
 
   /**
@@ -203,14 +223,17 @@ public class BinaryHeapDijkstra {
       return -1;
     }
 
-    min = upperBoundCosts[1];
-    nodePos[upperBoundCosts[1].id] = -1; // node removed from node positions
-    upperBoundCosts[1] = upperBoundCosts[heapSize];
-    nodePos[upperBoundCosts[1].id] = 1; // largest value node now in position
-    // one
-    upperBoundCosts[heapSize] = null; // remove node
+    min = getHeapNode(1);
+    nodePos[min.id] = -1;
+    if (heapSize > 1) {
+      upperBoundCosts[1] = getHeapNode(heapSize);
+      nodePos[upperBoundCosts[1].id] = 1;
+    }
+    upperBoundCosts[heapSize] = null;
     heapSize--;
-    heapify(1);
+    if (heapSize > 0) {
+      heapify(1);
+    }
     minWeight = min.weight;
 
     return min.id;
@@ -243,62 +266,100 @@ public class BinaryHeapDijkstra {
    * @param i int the index in the binary heap array of the node to perform heapify on
    */
   public void heapify(int i) {
-    int l = i << 1;
-
-    int r = l + 1;
-    int smallest;
-
-    if (l <= heapSize && upperBoundCosts[l].weight < upperBoundCosts[i].weight) {
-      smallest = l;
-    } else {
-      smallest = i;
+    if (i > heapSize) {
+      return;
     }
-
-    if (r <= heapSize && upperBoundCosts[r].weight < upperBoundCosts[smallest].weight) {
-      smallest = r;
+    BinaryHeapNode node = getHeapNode(i);
+    while ((i << 1) <= heapSize) {
+      int left = i << 1;
+      int child = i;
+      BinaryHeapNode childNode = node;
+      BinaryHeapNode leftNode = getHeapNode(left);
+      // Keep the original strict comparisons, including ties and non-finite A* estimates.
+      if (leftNode.weight < childNode.weight) {
+        child = left;
+        childNode = leftNode;
+      }
+      if (left + 1 <= heapSize) {
+        BinaryHeapNode rightNode = getHeapNode(left + 1);
+        if (rightNode.weight < childNode.weight) {
+          child = left + 1;
+          childNode = rightNode;
+        }
+      }
+      if (child == i) {
+        break;
+      }
+      upperBoundCosts[i] = childNode;
+      nodePos[childNode.id] = i;
+      i = child;
     }
-
-    if (smallest != i) {
-      swap(i, smallest);
-      heapify(smallest);
-    }
+    upperBoundCosts[i] = node;
+    nodePos[node.id] = i;
   }
 
   /**
    * Initialize the shortest-path estimates and predecessor function. The predecessor function is
    * left at the default of all zeros. Because there is no zero node in the graph, zero denotes a
-   * null value for a predecessor. The source node upperBoundCosts value is initially set to
-   * cost zero and all other nodes are set to have cost equal to the maximum double floating point
+   * null value for a predecessor. The source node upperBoundCosts value is initially set to cost
+   * zero and all other nodes are set to have cost equal to the maximum double floating point
    * precision value to represent infinity.
    *
    * @param source The number identifier of the source node
    */
   public void initializeSingleSource(int source) {
-    Arrays.fill(pi, 0);
-    Arrays.fill(weights, Double.MAX_VALUE);
-
-    for (int i = 0; i < upperBoundCosts.length; i++) {
-      upperBoundCosts[i] = stock[i];
+    for (int i = 0; i < nbTouchedNodes; i++) {
+      int node = touchedNodes[i];
+      pi[node] = 0;
+      weights[node] = Double.MAX_VALUE;
+      nodePos[node] = 0;
     }
-
-    upperBoundCosts[1].init(source, 0);
-    nodePos[source] = 1;
-
-    // BHNodes greater than source
-    int i = 2;
-
-    for (int nextNodeNum = source + 1; nextNodeNum < graph.length; i++, nextNodeNum++) {
-      upperBoundCosts[i].init(nextNodeNum, Double.MAX_VALUE);
-      nodePos[nextNodeNum] = i;
+    for (int i = 0; i < nbTouchedHeapSlots; i++) {
+      upperBoundCosts[touchedHeapSlots[i]] = null;
     }
-
-    // BHNodes less than source
-    for (int nextNodeNum = 1; nextNodeNum < source; i++, nextNodeNum++) {
-      upperBoundCosts[i].init(nextNodeNum, Double.MAX_VALUE);
-      nodePos[nextNodeNum] = i;
+    nbTouchedNodes = 0;
+    nbTouchedHeapSlots = 0;
+    initialSource = source;
+    heapSize = graph.length - 1;
+    if (heapSize > 0) {
+      getHeapNode(1);
     }
+  }
 
-    heapSize = upperBoundCosts.length - 1;
+  /**
+   * Materializes an initial heap slot on first access. Keeping the full logical heap and its
+   * original source-first ordering preserves the choice between equal-cost routes.
+   */
+  final BinaryHeapNode getHeapNode(int position) {
+    BinaryHeapNode node = upperBoundCosts[position];
+    return node != null ? node : initializeHeapNode(position);
+  }
+
+  /** Kept separate so accesses to already initialized heap slots stay cheap. */
+  private BinaryHeapNode initializeHeapNode(int position) {
+    BinaryHeapNode node = stock[position];
+    if (node == null) {
+      node = new BinaryHeapNode();
+      stock[position] = node;
+    }
+    int tailLength = graph.length - initialSource;
+    int id = position <= tailLength ? initialSource + position - 1 : position - tailLength;
+    node.init(id, position == 1 ? 0 : Double.MAX_VALUE);
+    upperBoundCosts[position] = node;
+    touchedHeapSlots[nbTouchedHeapSlots++] = position;
+    // A node must be materialized before it can move from its initial heap slot.
+    touchedNodes[nbTouchedNodes++] = id;
+    nodePos[id] = position;
+    return node;
+  }
+
+  /** An unmaterialized node still occupies its implicit initial heap position. */
+  final int getNodePosition(int node) {
+    int position = nodePos[node];
+    if (position == 0) {
+      return node >= initialSource ? node - initialSource + 1 : node + graph.length - initialSource;
+    }
+    return position;
   }
 
   /**
@@ -311,16 +372,20 @@ public class BinaryHeapDijkstra {
    * @param w double The cost from u to v
    */
   public void relax(int u, int v, double w) {
-
-    if (nodePos[v] == -1) {
+    double candidateWeight = weights[u] + w;
+    // Infinite/overflowed costs cannot improve any label. Do not materialize their heap slots.
+    if (!(candidateWeight < Double.MAX_VALUE)) {
+      return;
+    }
+    int position = getNodePosition(v);
+    if (position == -1) {
       return;
     }
 
-    if (upperBoundCosts[nodePos[v]].weight > weights[u] + w) {
-      decreaseKey(v, weights[u] + w);
+    if (getHeapNode(position).weight > candidateWeight) {
+      decreaseKey(v, candidateWeight);
       pi[v] = u;
-
-      heapify(nodePos[v]);
+      // decreaseKey already restores Dijkstra's heap order by moving the node upward.
     }
   }
 
@@ -330,9 +395,11 @@ public class BinaryHeapDijkstra {
    * @param demandList OD matrix row from current source
    */
   private void setNodesToReach(LinkedList<ODCell> demandList) {
-    for (int i = 1; i < graph.length; i++) {
-      graph[i].isNodeToReach = false;
+    for (int i = 0; i < nbMarkedDestinations; i++) {
+      graph[markedDestinations[i]].isNodeToReach = false;
+      nodesToReach[markedDestinations[i]] = false;
     }
+    nbMarkedDestinations = 0;
 
     Iterator<ODCell> it = demandList.iterator();
 
@@ -345,8 +412,10 @@ public class BinaryHeapDijkstra {
               .getVirtualNodeLists()[
               virtualNet.getNodeIndexInVirtualNodeList(demand.getDestinationNodeId(), true)]
               .getUnloadingVirtualNodeId();
-      if (!graph[index].isNodeToReach) {
+      if (!nodesToReach[index]) {
+        nodesToReach[index] = true;
         graph[index].isNodeToReach = true;
+        markedDestinations[nbMarkedDestinations++] = index;
         nbNodesToReach++;
       }
     }
@@ -360,12 +429,11 @@ public class BinaryHeapDijkstra {
    * @param b int Index of other node to be swapped in the binary heap array
    */
   public void swap(int a, int b) {
-    BinaryHeapNode temp = upperBoundCosts[a];
-    upperBoundCosts[a] = upperBoundCosts[b];
+    BinaryHeapNode temp = getHeapNode(a);
+    upperBoundCosts[a] = getHeapNode(b);
     upperBoundCosts[b] = temp;
 
-    int tempInt = nodePos[upperBoundCosts[a].id];
-    nodePos[upperBoundCosts[a].id] = nodePos[upperBoundCosts[b].id];
-    nodePos[upperBoundCosts[b].id] = tempInt;
+    nodePos[upperBoundCosts[a].id] = a;
+    nodePos[upperBoundCosts[b].id] = b;
   }
 }

@@ -60,10 +60,9 @@ public class BinaryHeapAStar extends BinaryHeapDijkstra {
           curNode.nextNode != null;
           curNode = curNode.nextNode) {
         int nextNodeNum = curNode.nextNode.virtualNodeNum;
-        if (nodePos[nextNodeNum] != -1
-            && upperBoundCosts[nodePos[nextNodeNum]].goalEstWeight == 0) {
-          upperBoundCosts[nodePos[nextNodeNum]].updateGoalEstWeight(
-              curNode.nextNode.goalEst(graph[goal]));
+        int position = getNodePosition(nextNodeNum);
+        if (position != -1 && getHeapNode(position).goalEstWeight == 0) {
+          getHeapNode(position).updateGoalEstWeight(curNode.nextNode.goalEst(graph[goal]));
         }
 
         relax(graph[min].virtualNodeNum, nextNodeNum, curNode.edgeWeight);
@@ -86,16 +85,24 @@ public class BinaryHeapAStar extends BinaryHeapDijkstra {
    */
   @Override
   public void decreaseKey(int nodeNum, double newVal) {
-    int y = nodePos[nodeNum];
-    upperBoundCosts[y].updateWeight(newVal);
-
-    int parent = y >> 1;
-
-    while (parent != 0 && upperBoundCosts[y].keyWeight < upperBoundCosts[parent].keyWeight) {
-      swap(y, parent);
-      y = parent;
-      parent = y >> 1;
+    int position = getNodePosition(nodeNum);
+    BinaryHeapNode node = getHeapNode(position);
+    node.updateWeight(newVal);
+    int parent = position >> 1;
+    while (parent != 0) {
+      BinaryHeapNode parentNode = getHeapNode(parent);
+      if (!(node.keyWeight < parentNode.keyWeight)) {
+        break;
+      }
+      upperBoundCosts[position] = parentNode;
+      nodePos[parentNode.id] = position;
+      position = parent;
+      parent = position >> 1;
     }
+    upperBoundCosts[position] = node;
+    nodePos[nodeNum] = position;
+    // Preserve A*'s additional repair after updating the estimated total cost.
+    heapify(position);
   }
 
   /**
@@ -108,32 +115,43 @@ public class BinaryHeapAStar extends BinaryHeapDijkstra {
    */
   @Override
   public void heapify(int i) {
-    int l = i << 1;
-
-    int r = l + 1;
-    int smallest;
-
-    if (l <= heapSize && upperBoundCosts[l].keyWeight < upperBoundCosts[i].keyWeight) {
-      smallest = l;
-    } else {
-      smallest = i;
+    if (i > heapSize) {
+      return;
     }
-
-    if (r <= heapSize && upperBoundCosts[r].keyWeight < upperBoundCosts[smallest].keyWeight) {
-      smallest = r;
+    BinaryHeapNode node = getHeapNode(i);
+    while ((i << 1) <= heapSize) {
+      int left = i << 1;
+      int child = i;
+      BinaryHeapNode childNode = node;
+      BinaryHeapNode leftNode = getHeapNode(left);
+      // Keep the original strict comparisons, including ties and non-finite A* estimates.
+      if (leftNode.keyWeight < childNode.keyWeight) {
+        child = left;
+        childNode = leftNode;
+      }
+      if (left + 1 <= heapSize) {
+        BinaryHeapNode rightNode = getHeapNode(left + 1);
+        if (rightNode.keyWeight < childNode.keyWeight) {
+          child = left + 1;
+          childNode = rightNode;
+        }
+      }
+      if (child == i) {
+        break;
+      }
+      upperBoundCosts[i] = childNode;
+      nodePos[childNode.id] = i;
+      i = child;
     }
-
-    if (smallest != i) {
-      swap(i, smallest);
-      heapify(smallest);
-    }
+    upperBoundCosts[i] = node;
+    nodePos[node.id] = i;
   }
 
   /**
    * Initialize the shortest-path estimates and predecessor function. The predecessor function is
    * left at the default of all zeros. Because there is no zero node in the graph, zero denotes a
-   * null value for a predecessor. The source node upperBoundCosts value is initially set to
-   * cost zero and all other nodes are set to have cost equal to the maximum double floating point
+   * null value for a predecessor. The source node upperBoundCosts value is initially set to cost
+   * zero and all other nodes are set to have cost equal to the maximum double floating point
    * precision value to represent infinity.
    *
    * @param graph the input graph in adjacency-list form
