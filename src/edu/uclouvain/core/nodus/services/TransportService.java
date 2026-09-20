@@ -22,7 +22,10 @@
 package edu.uclouvain.core.nodus.services;
 
 import com.bbn.openmap.omGraphics.OMGraphic;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.ListIterator;
+import java.util.Set;
 
 /**
  * Convenience class that holds the data relative to a a service.
@@ -56,6 +59,107 @@ public class TransportService {
   private LinkedList<Integer> stopNodes;
 
   /**
+   * Keeps the live, ordered stop-list API while indexing membership checks. Structural edits,
+   * including iterator removals, change LinkedList.modCount; replacements need explicit
+   * invalidation.
+   */
+  private static final class IndexedStopList extends LinkedList<Integer> {
+    private static final long serialVersionUID = 1L;
+
+    private transient volatile StopIndex index;
+
+    private static final class StopIndex {
+      final int modificationCount;
+      final Set<Integer> nodes;
+
+      StopIndex(int modificationCount, Set<Integer> nodes) {
+        this.modificationCount = modificationCount;
+        this.nodes = nodes;
+      }
+    }
+
+    @Override
+    public boolean contains(Object node) {
+      StopIndex current = index;
+      if (current == null || current.modificationCount != modCount) {
+        current = new StopIndex(modCount, new HashSet<>(this));
+        index = current;
+      }
+      return current.nodes.contains(node);
+    }
+
+    @Override
+    public boolean add(Integer node) {
+      StopIndex current = index;
+      boolean indexed = current != null && current.modificationCount == modCount;
+      super.add(node);
+      // Loading stops through addStop must not rebuild the set after every insertion.
+      if (indexed) {
+        current.nodes.add(node);
+        index = new StopIndex(modCount, current.nodes);
+      }
+      return true;
+    }
+
+    @Override
+    public Integer set(int position, Integer node) {
+      Integer previous = super.set(position, node);
+      index = null;
+      return previous;
+    }
+
+    @Override
+    public ListIterator<Integer> listIterator(int position) {
+      ListIterator<Integer> delegate = super.listIterator(position);
+      return new ListIterator<Integer>() {
+        public boolean hasNext() {
+          return delegate.hasNext();
+        }
+
+        public Integer next() {
+          return delegate.next();
+        }
+
+        public boolean hasPrevious() {
+          return delegate.hasPrevious();
+        }
+
+        public Integer previous() {
+          return delegate.previous();
+        }
+
+        public int nextIndex() {
+          return delegate.nextIndex();
+        }
+
+        public int previousIndex() {
+          return delegate.previousIndex();
+        }
+
+        public void remove() {
+          delegate.remove();
+        }
+
+        public void add(Integer node) {
+          delegate.add(node);
+        }
+
+        public void set(Integer node) {
+          delegate.set(node);
+          index = null;
+        }
+      };
+    }
+
+    @Override
+    public Object clone() {
+      IndexedStopList copy = new IndexedStopList();
+      copy.addAll(this);
+      return copy;
+    }
+  }
+
+  /**
    * Creates a new service.
    *
    * @param id The numeric ID of the service.
@@ -65,7 +169,7 @@ public class TransportService {
     this.mode = -1;
     this.means = ALL_MEANS;
     links = new LinkedList<>();
-    stopNodes = new LinkedList<>();
+    stopNodes = new IndexedStopList();
   }
 
   /**
@@ -85,7 +189,7 @@ public class TransportService {
     this.means = means;
     this.frequency = frequency;
     links = new LinkedList<>();
-    stopNodes = new LinkedList<>();
+    stopNodes = new IndexedStopList();
   }
 
   /**
@@ -228,7 +332,6 @@ public class TransportService {
     return stopNodes;
   }
 
-  
   /**
    * Removes a given link from the service.
    *
@@ -304,7 +407,7 @@ public class TransportService {
    * @param stopNodes The list of stop nodes of the service.
    */
   public void setStops(LinkedList<Integer> stopNodes) {
-    this.stopNodes = new LinkedList<>();
+    this.stopNodes = new IndexedStopList();
     if (stopNodes != null) {
       for (Integer nodeId : stopNodes) {
         if (nodeId != null) {

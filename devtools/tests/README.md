@@ -21,3 +21,22 @@ javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_tes
 java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.compute.costs.CostParserCacheTest
 rm -r "$nodus_test_dir"
 ```
+
+## Service index checks
+
+`ServiceIndexTest.java` checks indexed ID and stop lookups against linear searches, including
+missing services, frequency/means edits, renaming, replacement, removal and reload. It also checks
+edits through the live stop list (including iterator and sublist edits), cloning, serialization and
+concurrent assignment readers. Inputs are synthetic services held in memory; no project, database
+or GUI is opened. Run it after changing service storage or stop indexing, from the project root:
+
+```sh
+ant build-project
+nodus_test_dir=$(mktemp -d)
+javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_test_dir" devtools/tests/ServiceIndexTest.java
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.services.ServiceIndexTest
+rm -r "$nodus_test_dir"
+```
+
+These are developer regression checks, not runtime measurements. To measure an actual assignment,
+use `NodusC.displayComputingTimes` and run the assignment normally in Nodus.

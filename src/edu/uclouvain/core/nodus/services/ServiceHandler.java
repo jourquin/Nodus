@@ -112,14 +112,11 @@ public class ServiceHandler {
   /** Original visibility of layers hidden by the line-view mode. */
   private Map<NodusEsriLayer, Boolean> lineViewLayerVisibility = new HashMap<>();
 
-  /** TreeMap that contains the services. */
-  private TreeMap<String, TransportService> services = new TreeMap<>();
+  /** Services ordered by name and indexed by numeric ID. */
+  private ServiceRegistry services = new ServiceRegistry();
 
   /** Highest concrete means supported over every link of each service. */
   private Map<Integer, Integer> serviceMaximumMeans = new HashMap<>();
-
-  /** Numeric service lookup prepared for virtual-network generation. */
-  private Map<Integer, TransportService> servicesByIdForVirtualNetwork = new HashMap<>();
 
   /** Ordered service-link occurrences grouped by physical link ID. */
   private Map<Integer, LinkedList<ServiceLinkOccurrence>> serviceLinkOccurrencesForVirtualNetwork =
@@ -942,7 +939,6 @@ public class ServiceHandler {
       services.clear();
     }
     serviceMaximumMeans.clear();
-    servicesByIdForVirtualNetwork.clear();
     serviceLinkOccurrencesForVirtualNetwork.clear();
     loadService();
     mustBeSaved = false;
@@ -977,7 +973,6 @@ public class ServiceHandler {
       services.clear();
     }
     serviceMaximumMeans.clear();
-    servicesByIdForVirtualNetwork.clear();
     serviceLinkOccurrencesForVirtualNetwork.clear();
 
     jdbcConnection = null;
@@ -1102,16 +1097,8 @@ public class ServiceHandler {
    * @return The frequency on the service.
    */
   public int frequencyByService(int serviceId) {
-
-    Iterator<String> it = getServiceNamesIterator();
-    while (it.hasNext()) {
-      TransportService s = getService(it.next());
-      if (s.getId() == serviceId) {
-        return s.getFrequency();
-      }
-    }
-
-    return 0;
+    TransportService service = getServiceById(serviceId);
+    return service == null ? 0 : service.getFrequency();
   }
 
   /**
@@ -1130,14 +1117,8 @@ public class ServiceHandler {
    * @return The transportation means of the service, or {@link TransportService#ALL_MEANS}.
    */
   public int getMeansForService(int serviceId) {
-    Iterator<TransportService> it = services.values().iterator();
-    while (it.hasNext()) {
-      TransportService s = it.next();
-      if (s.getId() == serviceId) {
-        return s.getMeans();
-      }
-    }
-    return 0;
+    TransportService service = getServiceById(serviceId);
+    return service == null ? 0 : service.getMeans();
   }
 
   /**
@@ -1158,10 +1139,7 @@ public class ServiceHandler {
       return false;
     }
 
-    TransportService service = servicesByIdForVirtualNetwork.get(Integer.valueOf(serviceId));
-    if (service == null) {
-      service = getServiceById(serviceId);
-    }
+    TransportService service = getServiceById(serviceId);
     if (service == null || service.getMode() != mode) {
       return false;
     }
@@ -2508,7 +2486,7 @@ public class ServiceHandler {
    * @return The iterator on the service names.
    */
   public Iterator<String> getServiceNamesIterator() {
-    return services.keySet().iterator();
+    return services.namesIterator();
   }
 
   /**
@@ -2567,16 +2545,7 @@ public class ServiceHandler {
    * @return True if the node corresponds to a stop point along the service.
    */
   public boolean isNodeStopService(int nodeId, int serviceId) {
-
-    Iterator<String> it = getServiceNamesIterator();
-    while (it.hasNext()) {
-      TransportService s = getService(it.next());
-      if (s.getStopNodes().contains(nodeId) && s.getId() == serviceId) {
-        return true;
-      }
-    }
-
-    return false;
+    return services.containsStop(serviceId, nodeId);
   }
 
   /** Load the services from the database. */
@@ -2925,7 +2894,6 @@ public class ServiceHandler {
   /** Associate the service ID to the real links. */
   public void loadServicesForVirtualNetwork() {
     serviceMaximumMeans.clear();
-    servicesByIdForVirtualNetwork.clear();
     serviceLinkOccurrencesForVirtualNetwork.clear();
 
     // * Clear the already loaded lines
@@ -2943,7 +2911,6 @@ public class ServiceHandler {
     while (it.hasNext()) {
       TransportService s = it.next();
       Integer serviceId = Integer.valueOf(s.getId());
-      servicesByIdForVirtualNetwork.put(serviceId, s);
       serviceMaximumMeans.put(serviceId, Integer.valueOf(getMaximumMeansForService(s)));
       int[] routeNodes = getOrderedServiceRouteNodes(s);
       Iterator<OMGraphic> it2 = s.getLinks().iterator();
@@ -2972,14 +2939,7 @@ public class ServiceHandler {
 
   /** Returns a service by numeric ID, or null when no such service exists. */
   private TransportService getServiceById(int serviceId) {
-    Iterator<TransportService> it = services.values().iterator();
-    while (it.hasNext()) {
-      TransportService service = it.next();
-      if (service.getId() == serviceId) {
-        return service;
-      }
-    }
-    return null;
+    return services.getById(serviceId);
   }
 
   /** Returns the highest means supported by every enabled link of a service line. */
@@ -3135,15 +3095,7 @@ public class ServiceHandler {
    * @param service The service to save.
    */
   public void saveService(TransportService service) {
-    Iterator<Map.Entry<String, TransportService>> it = services.entrySet().iterator();
-    while (it.hasNext()) {
-      Map.Entry<String, TransportService> entry = it.next();
-      TransportService existingService = entry.getValue();
-      if (entry.getKey().equals(service.getName()) || existingService.getId() == service.getId()) {
-        it.remove();
-      }
-    }
-    services.put(service.getName(), service);
+    services.save(service);
   }
 
   /**
