@@ -336,20 +336,37 @@ public abstract class Assignment implements Runnable {
 
     boolean success = false;
     boolean outOfMemory = false;
+    AssignmentComputingTimes computingTimes = assignmentParameters.getComputingTimes();
+    computingTimes.startAssignment();
     try {
       virtualNet = null;
 
+      boolean computationCompleted = false;
       try {
-        virtualNet = new VirtualNetwork(assignmentParameters);
-        success = assign();
-      } finally {
-        if (virtualNet != null) {
-          virtualNet.dispose();
+        try {
+          long started = computingTimes.start();
+          try {
+            virtualNet = new VirtualNetwork(assignmentParameters);
+          } finally {
+            computingTimes.add(AssignmentComputingTimes.Phase.NETWORK, started);
+          }
+          success = assign();
+        } finally {
+          if (virtualNet != null) {
+            virtualNet.dispose();
+          }
         }
-      }
 
-      if (success) {
-        success = closePathWriter();
+        if (success) {
+          success = closePathWriter();
+        }
+        computationCompleted = success;
+      } finally {
+        computingTimes.finishAndPrint(
+            getClass().getSimpleName(),
+            assignmentParameters.getScenario(),
+            assignmentParameters.getThreads(),
+            computationCompleted);
       }
 
       if (!success && !errorMessage.isEmpty()) {

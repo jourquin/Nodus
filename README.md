@@ -159,6 +159,35 @@ Since Nodus 8.4, OpenAI [Codex](https://github.com/openai/codex) is used to dete
 of GPT-3 and is trained on both natural language and billions of lines of source code from publicly available sources,
 including code in public repositories on GitHub. 
    
+## Assignment runtime audit
+
+Set `NodusC.displayComputingTimes = true` to print a timing summary to standard output for each
+assignment. The switch defaults to `false` and is sampled at the beginning of `Assignment.run()`.
+It can also be enabled from a Groovy script before running assignments:
+
+```groovy
+edu.uclouvain.core.nodus.NodusC.displayComputingTimes = true
+```
+
+The summary identifies the algorithm, scenario, configured thread count and completion status,
+and reports seconds for:
+
+- Total elapsed computation and saving, including final path batches, indexes and commits.
+- Virtual-network initialization and generation.
+- Cost and duration evaluation, including parser initialization, all iterations, OD classes,
+  time slices and Frank–Wolfe line-search evaluations.
+- Paths and flow assignment: elapsed wall time across active workers, plus summed worker time
+  excluding their database writer calls. This includes graph preparation, path reconstruction,
+  modal split and flow updates.
+- Database output: writer time for table creation, row preparation, path batches, equilibrium
+  path updates, virtual-network results, indexes and commits.
+
+Path writes overlap the parallel assignment phase, so the reported rows must not be added together.
+Summed worker time can exceed total elapsed time and includes waiting for the writer lock; it is
+not CPU time. Total elapsed time also includes unlisted work such as loading demand and converting
+volumes to vehicles. Completion dialogs and post-assignment scripts are excluded. Failed or
+cancelled runs print a partial audit, excluding subsequent failure cleanup.
+
 ## Uninstall
 
 The software doesn't modify the "registry" of any supported OS (Mac OS, Linux or Windows). Just

@@ -26,6 +26,7 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
@@ -193,8 +194,15 @@ public abstract class AssignmentWorker extends Thread {
         currentGroup = virtualNet.getGroups()[groupIndex];
 
         // Start the real work
-        if (!doAssignment()) {
-          cancelAssignmentWorkers();
+        AssignmentComputingTimes computingTimes = assignmentParameters.getComputingTimes();
+        long databaseBefore = computingTimes.getThreadDatabaseTime();
+        long started = computingTimes.startPaths();
+        try {
+          if (!doAssignment()) {
+            cancelAssignmentWorkers();
+          }
+        } finally {
+          computingTimes.endPaths(started, databaseBefore);
         }
       }
     } catch (InterruptedException e) {

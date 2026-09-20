@@ -1,4 +1,11 @@
 #Several tools used to facilitate some development tasks
+
+## Assignment timing checks
+
+Run `sh devtools/tests/run-computing-times-test.sh` from the project root with a JDK 11 or later.
+The standalone checks use a controlled clock and two threads to verify overlapping worker times,
+database-time attribution, repeated cost passes, resetting between assignments, disabled auditing
+and partial-run reporting. Compilation uses a temporary directory and requires no external libraries.
  
 ## [HiddenDoclet.jar](https://github.com/jourquin/HiddenDoclet): 
 
@@ -27,11 +34,6 @@ Library used by i18nedit
 Java lex generator. Used by "JFlex" ant task to generate Java lex file for Nodus specific 
 SQL extensions syntax highlighting.
     
-## MRJToolkitStubs.jar
-
-Stub classes used for the (old) MacOS L&F. Used to resolve MRJPrefsHandler, MRJQuitHandler, etc called by
-the Groovy console when Nodus is run from within Eclipse.
-
 ## NodusGoogleCheckstyle.xml: 
 
 Can be imported in Eclipse Checkstyle. Only two constraints are relaxed 

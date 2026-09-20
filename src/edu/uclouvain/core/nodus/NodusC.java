@@ -28,6 +28,9 @@ package edu.uclouvain.core.nodus;
  */
 public class NodusC {
 
+  /** Print runtime measurements for each assignment. Sampled when the assignment starts. */
+  public static boolean displayComputingTimes = false;
+
   /** Default constructor. */
   public NodusC() {}
 

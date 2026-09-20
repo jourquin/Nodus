@@ -25,6 +25,7 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
@@ -47,6 +48,8 @@ import javax.swing.JOptionPane;
  * @author Bart Jourquin
  */
 public class PathWriter {
+
+  private final AssignmentComputingTimes computingTimes;
 
   private Connection con;
 
@@ -93,6 +96,17 @@ public class PathWriter {
    * @param assignmentParameters The assignment parameters.
    */
   public PathWriter(AssignmentParameters assignmentParameters) {
+    computingTimes = assignmentParameters.getComputingTimes();
+    long started = computingTimes.start();
+    try {
+      initialize(assignmentParameters);
+    } finally {
+      computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
+    }
+  }
+
+  /** Initializes the writer and creates its tables within the database timing scope. */
+  private void initialize(AssignmentParameters assignmentParameters) {
     nodusProject = assignmentParameters.getNodusProject();
 
     scenario = assignmentParameters.getScenario();
@@ -200,6 +214,7 @@ public class PathWriter {
       return !canceled;
     }
 
+    long started = computingTimes.start();
     try {
       if (savePaths) {
         nodusProject
@@ -248,6 +263,7 @@ public class PathWriter {
     } finally {
       closePreparedStatements();
       closed = true;
+      computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
     }
   }
 
@@ -445,6 +461,7 @@ public class PathWriter {
     }
 
     // Set values
+    long started = computingTimes.start();
     try {
       int idx = 1;
       prepStmtDetails.setInt(idx++, pathIndex);
@@ -466,6 +483,8 @@ public class PathWriter {
       nodusProject.getNodusMapPanel().stopProgress();
       SingleInstanceMessagePane.display(
           nodusProject.getNodusMapPanel(), e.getMessage(), JOptionPane.ERROR_MESSAGE);
+    } finally {
+      computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
     }
   }
 
@@ -573,6 +592,7 @@ public class PathWriter {
       return false;
     }
 
+    long started = computingTimes.start();
     try {
 
       int idx = 1;
@@ -624,6 +644,8 @@ public class PathWriter {
           JOptionPane.ERROR_MESSAGE);
       e.printStackTrace();
       return false;
+    } finally {
+      computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
     }
     return true;
   }
@@ -636,6 +658,16 @@ public class PathWriter {
    * @param lambda The balance factor : (1-lambda) * previous volume + lambda * current volume.
    */
   public void splitPaths(int iteration, double lambda) {
+    long started = computingTimes.start();
+    try {
+      updatePathQuantities(iteration, lambda);
+    } finally {
+      computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
+    }
+  }
+
+  /** Updates equilibrium path quantities, including pending batches and the commit. */
+  private void updatePathQuantities(int iteration, double lambda) {
     if (closed || iteration <= 1) {
       return;
     }

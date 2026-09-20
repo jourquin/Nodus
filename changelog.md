@@ -477,6 +477,9 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 ## v8.5 - BuildXXXXXXXX
 - Code cleaning and refactoring
 - Fix a warning in GUIUtils
+- Close a loaded project only when a new one is selected
+- Remove MRJToolkitStubs.jar
+- Add an audit mechanism to print performances (times) for assignments
 
 
   

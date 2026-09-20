@@ -34,6 +34,18 @@ import java.util.Properties;
  */
 public class AssignmentParameters {
 
+  /** Runtime audit shared by the assignment, its workers and its writers. */
+  private final AssignmentComputingTimes computingTimes = new AssignmentComputingTimes();
+
+  /**
+   * Returns the runtime audit for this assignment's parameters.
+   *
+   * @return The computing-time audit.
+   */
+  public AssignmentComputingTimes getComputingTimes() {
+    return computingTimes;
+  }
+
   /* If true, ask before deleting old assignments. */
   // private boolean confirmDelete = true;
 

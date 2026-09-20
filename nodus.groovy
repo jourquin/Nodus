@@ -52,4 +52,10 @@ if (startNodus) {
 	nodusMapPanel.getMapBean().setScale((float) 1.4E7);
 	nodusMapPanel.getMapBean().setCenter(new LatLonPoint.Double(50.0, 4.0));
 	nodusMapPanel.getMapBean().validate();
+	
+	// Set the assignment rutime audit
+	edu.uclouvain.core.nodus.NodusC.displayComputingTimes = true
+	if (edu.uclouvain.core.nodus.NodusC.displayComputingTimes) {
+		System.out.println("Assignment runtime audit is enabled");
+	}
 }

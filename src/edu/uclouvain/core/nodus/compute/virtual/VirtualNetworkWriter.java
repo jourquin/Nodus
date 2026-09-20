@@ -26,6 +26,7 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.database.JDBCField;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
@@ -43,6 +44,8 @@ import javax.swing.JOptionPane;
  * @author Bart Jourquin
  */
 public class VirtualNetworkWriter {
+
+  private final AssignmentComputingTimes computingTimes;
 
   private static I18n i18n = Environment.getI18n();
 
@@ -160,6 +163,7 @@ public class VirtualNetworkWriter {
    * @param vnet VirtualNetwork
    */
   public VirtualNetworkWriter(AssignmentParameters ap, VirtualNetwork vnet) {
+    computingTimes = ap.getComputingTimes();
     virtualNet = vnet;
     nodusProject = ap.getNodusProject();
     nodusMapPanel = nodusProject.getNodusMapPanel();
@@ -173,6 +177,16 @@ public class VirtualNetworkWriter {
    * @return True on success.
    */
   public boolean save() {
+    long started = computingTimes.start();
+    try {
+      return saveNetwork();
+    } finally {
+      computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
+    }
+  }
+
+  /** Writes the result table, including table creation, batches and the final commit. */
+  private boolean saveNetwork() {
     int nbTimeSlices = virtualNet.getNbTimeSlices();
     int timeSliceDuration = virtualNet.getTimeSliceDuration();
     int assignmentStarTime = virtualNet.getAssignmentStartTime();

@@ -34,6 +34,7 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.costs.CostParser;
@@ -64,6 +65,8 @@ import javax.swing.JOptionPane;
  * @author Bart Jourquin
  */
 public class VirtualNetwork {
+
+  private final AssignmentComputingTimes computingTimes;
 
   private class NodeLayerAndRowIndex {
 
@@ -248,7 +251,7 @@ public class VirtualNetwork {
    * @param ap The AssignmentParameters.
    */
   public VirtualNetwork(AssignmentParameters ap) {
-
+    computingTimes = ap.getComputingTimes();
     nodusProject = ap.getNodusProject();
     this.nodusMapPanel = nodusProject.getNodusMapPanel();
 
@@ -426,7 +429,17 @@ public class VirtualNetwork {
    */
   public boolean computeCosts(
       int iteration, int scenario, byte odClass, int timeSlice, int nbThreads) {
+    long started = computingTimes.start();
+    try {
+      return computeCostsForClass(iteration, scenario, odClass, timeSlice, nbThreads);
+    } finally {
+      computingTimes.add(AssignmentComputingTimes.Phase.COSTS, started);
+    }
+  }
 
+  /** Computes one cost pass, including parser initialization and completion of all workers. */
+  private boolean computeCostsForClass(
+      int iteration, int scenario, byte odClass, int timeSlice, int nbThreads) {
     if (vnl == null) {
       return false;
     }
@@ -758,7 +771,16 @@ public class VirtualNetwork {
    * @return boolean True on success.
    */
   public boolean generate() {
+    long started = computingTimes.start();
+    try {
+      return generateNetwork();
+    } finally {
+      computingTimes.add(AssignmentComputingTimes.Phase.NETWORK, started);
+    }
+  }
 
+  /** Builds the virtual network within the generation timing scope. */
+  private boolean generateNetwork() {
     nodusMapPanel.startProgress(lengthOfTask);
 
     loadLinesForModeMeans();
@@ -1455,6 +1477,17 @@ public class VirtualNetwork {
    * @return The first derivative of the objective function.
    */
   public double objectiveFunctionFirstDerivative(
+      int iteration, double approachedLambda, int threads) {
+    long started = computingTimes.start();
+    try {
+      return computeObjectiveFunctionFirstDerivative(iteration, approachedLambda, threads);
+    } finally {
+      computingTimes.add(AssignmentComputingTimes.Phase.COSTS, started);
+    }
+  }
+
+  /** Includes every Frank-Wolfe line-search cost pass in the parser audit. */
+  private double computeObjectiveFunctionFirstDerivative(
       int iteration, double approachedLambda, int threads) {
     double firstDerivative = 0.0;
 
