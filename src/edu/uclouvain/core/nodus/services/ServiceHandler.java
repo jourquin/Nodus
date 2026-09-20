@@ -49,11 +49,8 @@ import java.awt.Paint;
 import java.awt.Stroke;
 import java.awt.event.MouseEvent;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
-import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -1006,60 +1003,23 @@ public class ServiceHandler {
         savepoint = jdbcConnection.setSavepoint();
       }
 
-      String servicesHeaderSql =
-          "INSERT INTO "
-              + JDBCUtils.getQuotedCompliantIdentifier(servicesHeaderTableName)
-              + " VALUES(?,?,?,?,?)";
-      String servicesLinksSql =
-          "INSERT INTO "
-              + JDBCUtils.getQuotedCompliantIdentifier(servicesLinksTableName)
-              + " VALUES(?,?,?)";
-      String serviceStopsSql =
-          "INSERT INTO "
-              + JDBCUtils.getQuotedCompliantIdentifier(serviceStopsTableName)
-              + " VALUES(?,?)";
-
-      try (PreparedStatement pstmt1 = jdbcConnection.prepareStatement(servicesHeaderSql);
-          PreparedStatement pstmt2 = jdbcConnection.prepareStatement(servicesLinksSql);
-          PreparedStatement pstmt3 = jdbcConnection.prepareStatement(serviceStopsSql)) {
-
-        Iterator<String> it1 = getServiceNamesIterator();
-        while (it1.hasNext()) {
-          // Header
-          String name = it1.next();
-          TransportService s = services.get(name);
-          pstmt1.setInt(1, s.getId());
-          pstmt1.setString(2, name);
-          pstmt1.setInt(3, s.getMode());
-          pstmt1.setInt(4, s.getMeans());
-          pstmt1.setInt(5, s.getFrequency());
-          pstmt1.executeUpdate();
-
-          // Stops
-          Iterator<Integer> it = s.getStopNodes().iterator();
-          while (it.hasNext()) {
-            pstmt3.setInt(1, s.getId());
-            pstmt3.setInt(2, it.next());
-            pstmt3.executeUpdate();
-          }
-
-          // Chunks
-          Iterator<OMGraphic> it2 = s.getLinks().iterator();
-          int pathIndex = 0;
-          while (it2.hasNext()) {
-            // Get the num of the graphic
-            int num = getOMGraphicID(it2.next(), TYPE_LINK);
-
-            if (num != -1) {
-              pstmt2.setInt(1, s.getId());
-              pstmt2.setInt(2, pathIndex);
-              pstmt2.setInt(3, num);
-              pstmt2.executeUpdate();
-            }
-            pathIndex++;
-          }
-        }
+      Map<String, TransportService> servicesToSave = new TreeMap<>();
+      for (Map.Entry<String, TransportService> entry : services.entrySet()) {
+        servicesToSave.put(entry.getKey(), entry.getValue());
       }
+      int maxBatchSize =
+          nodusProject.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
+      ServiceDatabase database =
+          new ServiceDatabase(
+              jdbcConnection,
+              servicesHeaderTableName,
+              servicesLinksTableName,
+              serviceStopsTableName);
+      database.insert(
+          servicesToSave,
+          graphic -> getOMGraphicID(graphic, TYPE_LINK),
+          JDBCUtils.hasBatchSupport(),
+          maxBatchSize);
 
       if (!jdbcConnection.getAutoCommit()) {
         jdbcConnection.commit();
@@ -1252,8 +1212,7 @@ public class ServiceHandler {
             formatIdentifier(service.getMode()));
       }
       if (linkData[2] < 1
-          || service.getMeans() != TransportService.ALL_MEANS
-              && service.getMeans() > linkData[2]) {
+          || service.getMeans() != TransportService.ALL_MEANS && service.getMeans() > linkData[2]) {
         return MessageFormat.format(
             i18n.get(
                 ServiceHandler.class,
@@ -1362,8 +1321,7 @@ public class ServiceHandler {
     Set<Integer> stopNodeIds = new HashSet<>(stopNodes);
     stopNodeIds.removeAll(endNodeIds);
     Map<Integer, Integer> uniqueNodeDegrees = getUniqueNodeDegrees(edgeOccurrences.keySet());
-    return hasRepeatedBranchWithoutStop(
-        repeatedEdges, stopNodeIds, endNodeIds, uniqueNodeDegrees);
+    return hasRepeatedBranchWithoutStop(repeatedEdges, stopNodeIds, endNodeIds, uniqueNodeDegrees);
   }
 
   /** Returns true if a connected group of repeated edges has no legitimate intermediate stop. */
@@ -1649,8 +1607,7 @@ public class ServiceHandler {
     if (means != TransportService.ALL_MEANS && (means < 1 || means >= NodusC.MAXMM)) {
       throw new IllegalArgumentException(
           MessageFormat.format(
-              "The means must be -1 or between 1 and {0}.",
-              formatIdentifier(NodusC.MAXMM - 1)));
+              "The means must be -1 or between 1 and {0}.", formatIdentifier(NodusC.MAXMM - 1)));
     }
   }
 
@@ -2563,66 +2520,16 @@ public class ServiceHandler {
       boolean linksHavePathIndex =
           JDBCUtils.hasField(servicesLinksTableName, NodusC.DBF_PATH_INDEX);
 
-      try (Statement stmt1 = jdbcConnection.createStatement();
-          Statement stmt2 = jdbcConnection.createStatement();
-          Statement stmt3 = jdbcConnection.createStatement();
-          ResultSet rs1 =
-              stmt1.executeQuery(
-                  "SELECT * FROM "
-                      + JDBCUtils.getQuotedCompliantIdentifier(servicesHeaderTableName))) {
-
-        // Retrieve result of query : header
-        while (rs1.next()) {
-
-          int idService = JDBCUtils.getInt(rs1.getObject(1));
-          String nameService = (String) rs1.getObject(2);
-          byte mode = (byte) JDBCUtils.getInt(rs1.getObject(3));
-          byte means = (byte) JDBCUtils.getInt(rs1.getObject(4));
-          int frequency = JDBCUtils.getInt(rs1.getObject(5));
-
-          TransportService s = new TransportService(idService, nameService, mode, means, frequency);
-          // Retrieve the list of chunks for this line
-          String sqlStmt2 =
-              "SELECT "
-                  + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_LINK)
-                  + " FROM "
-                  + JDBCUtils.getQuotedCompliantIdentifier(servicesLinksTableName)
-                  + " WHERE "
-                  + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ID)
-                  + " = "
-                  + idService
-                  + (linksHavePathIndex
-                      ? " ORDER BY "
-                          + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_PATH_INDEX)
-                      : "");
-          try (ResultSet rs2 = stmt2.executeQuery(sqlStmt2)) {
-            while (rs2.next()) {
-              int linkId = JDBCUtils.getInt(rs2.getObject(1));
-              OMGraphic omg = getOMGraphic(linkId, TYPE_LINK);
-              if (omg != null) {
-                s.addChunk(omg);
-              }
-            }
-          }
-
-          String sqlStmt3 =
-              "SELECT "
-                  + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_STOP)
-                  + " FROM "
-                  + JDBCUtils.getQuotedCompliantIdentifier(serviceStopsTableName)
-                  + " WHERE "
-                  + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_ID)
-                  + " = "
-                  + idService;
-          try (ResultSet rs3 = stmt3.executeQuery(sqlStmt3)) {
-            while (rs3.next()) {
-              s.addStop(JDBCUtils.getInt(rs3.getObject(1)));
-            }
-          }
-
-          // Put loaded line in hashmap
-          services.put(nameService, s);
-        }
+      ServiceDatabase database =
+          new ServiceDatabase(
+              jdbcConnection,
+              servicesHeaderTableName,
+              servicesLinksTableName,
+              serviceStopsTableName);
+      List<TransportService> loaded =
+          database.load(linksHavePathIndex, linkId -> getOMGraphic(linkId, TYPE_LINK));
+      for (TransportService service : loaded) {
+        services.put(service.getName(), service);
       }
 
       validateLoadedServices();
@@ -2749,8 +2656,7 @@ public class ServiceHandler {
   }
 
   /**
-   * Filters the map so only links belonging to the selected service remain visible on their
-   * layers.
+   * Filters the map so only links belonging to the selected service remain visible on their layers.
    *
    * @param service The service to isolate on the map.
    */
@@ -2990,7 +2896,7 @@ public class ServiceHandler {
 
   /**
    * Draws the edited route above a link layer without relying on its transient selection state.
-   * 
+   *
    * @param graphics The graphics context to draw on.
    * @param visibleGraphics The list of graphics currently visible on the map.
    */

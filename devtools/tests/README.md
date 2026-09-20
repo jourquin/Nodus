@@ -41,6 +41,34 @@ rm -r "$nodus_test_dir"
 These are developer regression checks, not runtime measurements. To measure an actual assignment,
 use `NodusC.displayComputingTimes` and run the assignment normally in Nodus.
 
+## Service database checks
+
+`ServiceDatabaseTest.java` checks bulk loading and batched saving using disposable in-memory HSQLDB,
+H2, SQLite and Derby databases and synthetic services. It compares loading with the previous
+per-service queries and checks route order, repeated links, missing links, duplicate service IDs,
+empty services, stop deduplication and migration from tables without a path index. Saving checks
+include registry names, bounded and partial batches, individual-insert fallback, JDBC batch status
+codes, resource closure and rollback of failed inserts to the caller's savepoint.
+
+Run it after changing service persistence, from the project root. The bundled JDBC drivers are used;
+no external database, project files or GUI are needed:
+
+```sh
+ant build-project
+nodus_test_dir=$(mktemp -d)
+javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_test_dir" devtools/tests/ServiceDatabaseTest.java
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.services.ServiceDatabaseTest
+rm -r "$nodus_test_dir"
+```
+
+The test also counts JDBC calls for 200 services containing 2,000 links and 1,000 stops: loading uses
+3 data queries instead of 401, and saving with a batch size of 1,000 uses 4 batch executions instead
+of 3,200 individual inserts. These are call counts, not elapsed-time measurements or guaranteed
+network round trips. In Nodus, the batch limit uses `maxSqlBatchSize` (default 1,000), with individual
+inserts when the driver does not support batches. Empty service tables need only one load query.
+This optimization affects service loading and saving in the project/editor lifecycle; those
+operations are not necessarily included in the assignment timing audit.
+
 ## Multi-flow edge update checks
 
 `MultiFlowEdgeUpdatesTest.java` compares the affected-edge updates with the original full-graph

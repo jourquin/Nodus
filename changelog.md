@@ -483,6 +483,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Improved cost parser, which is now between 5 and 20 times faster
 - Improved multi-flow edge update check
 - Improved shortest-path initialization checks
+- Improved Service database checks
 
 
   
