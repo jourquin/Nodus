@@ -250,7 +250,7 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
                 pathCosts.mvDuration += vl.getDefaultDuration();
               }
               pathCosts.length += vl.getLength();
-              pathWriter.savePathLink(vl);
+              pathBuffer.savePathLink(vl);
               break;
             default:
               break;
@@ -281,8 +281,8 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
       }
 
       // Save the header of this detailed path if needed
-      if (isPathFound && pathCosts.getCost() > 0.0 && pathWriter.isSavePaths()) {
-        if (!pathWriter.savePathHeader(
+      if (isPathFound && pathCosts.getCost() > 0.0 && pathBuffer.isSavePaths()) {
+        if (!pathBuffer.savePathHeader(
             1,
             demand,
             demand.getQuantity(),

@@ -30,9 +30,10 @@ import java.util.function.LongSupplier;
  *
  * <p>Network and cost phases are timed on the coordinating thread. Path wall time is the union of
  * active assignment-worker intervals, rather than the sum of parallel jobs. Database time covers
- * writer calls, including row preparation, batches, indexes and commits. It overlaps path wall time
- * when workers save paths. Worker time excluding database calls is also reported; it includes time
- * waiting for the writer lock and is elapsed worker time, not CPU time.
+ * writer calls, including row preparation, batches, indexes and commits. It sums preparation time
+ * across workers, which can now overlap, and overlaps path wall time when workers save paths.
+ * Worker time excluding database calls is also reported; it includes time waiting for the writer
+ * lock and is elapsed worker time, not CPU time.
  */
 public final class AssignmentComputingTimes {
 

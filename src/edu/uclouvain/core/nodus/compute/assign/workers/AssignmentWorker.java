@@ -31,6 +31,7 @@ import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
+import edu.uclouvain.core.nodus.compute.virtual.PathWriterBuffer;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.util.LinkedList;
@@ -88,8 +89,11 @@ public abstract class AssignmentWorker extends Thread {
   /** The odClass to assign. */
   byte odClass;
 
-  /** Used the save the detailed paths if asked. */
+  /** Shared writer retained for compatibility with previously compiled assignment workers. */
   PathWriter pathWriter;
+
+  /** Worker-owned buffer for path output, flushed at each successful job boundary. */
+  PathWriterBuffer pathBuffer;
 
   WorkQueue workQueue;
 
@@ -184,6 +188,7 @@ public abstract class AssignmentWorker extends Thread {
         nodusProject = assignment.getNodusProjectl();
         nodusMapPanel = nodusProject.getNodusMapPanel();
         pathWriter = assignment.getPathWriter();
+        pathBuffer = pathWriter.newBuffer();
         assignmentParameters = assignment.getAssignmentParameters();
 
         iteration = awp.getIterationAsInt();
@@ -198,10 +203,13 @@ public abstract class AssignmentWorker extends Thread {
         long databaseBefore = computingTimes.getThreadDatabaseTime();
         long started = computingTimes.startPaths();
         try {
-          if (!doAssignment()) {
+          // Flush the worker's last partial block before the coordinator can split path quantities
+          // or finalize the writer. Failed/cancelled jobs leave their pending rows unwritten.
+          if (!doAssignment() || isCancelled() || !pathBuffer.flush()) {
             cancelAssignmentWorkers();
           }
         } finally {
+          pathBuffer.clear();
           computingTimes.endPaths(started, databaseBefore);
         }
       }

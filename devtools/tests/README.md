@@ -118,3 +118,44 @@ nearby goals, unreachable goals in a small connected component, and searches ove
 Reported times are medians of five batches after three warm-up batches and exclude graph/search-object
 construction. These are shortest-path measurements; use `NodusC.displayComputingTimes` for complete
 assignment measurements on your projects.
+
+## Assignment path buffering checks
+
+`PathWriterBufferTest.java` checks path output using synthetic demands and links in disposable
+in-memory HSQLDB, H2, SQLite and Derby databases. It compares 20,000 header conversions with the
+previous numeric bindings, including three-decimal rounding, float lengths, legacy durations and
+different locales. It also checks stored headers and repeated/directional links, concurrent workers,
+stable header/detail associations, mutable input snapshots, bounded and partial buffers, JDBC batch
+fallback, failed writes, cancellation, finalization, header-only output and disabled output.
+
+The equilibrium checks verify that completed worker buffers reach JDBC before quantities are split.
+These SQL checks run on HSQLDB, H2 and SQLite; Derby lacks the `ROUND` function used by the existing
+split SQL, so its partial rows are checked through finalization instead.
+
+`AssignmentPathBufferWorkerTest.java` exercises the actual assignment-worker job loop on HSQLDB.
+It checks successive successful jobs, failed jobs, explicit cancellation and exceptions, and verifies
+that preparation and flushing remain included in the assignment's database timing.
+
+Run after changing path saving or worker output handling, from the project root:
+
+```sh
+ant build-project
+nodus_test_dir=$(mktemp -d)
+javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_test_dir" devtools/tests/PathWriterBufferTest.java devtools/tests/AssignmentPathBufferWorkerTest.java
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.compute.virtual.PathWriterBufferTest
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.compute.assign.workers.AssignmentPathBufferWorkerTest
+rm -r "$nodus_test_dir"
+```
+
+The concurrent fixture submits 8,402 rows through 13 shared-writer block handoffs. It also verifies
+that workers can prepare rows while another thread holds the writer lock, and that JDBC statements
+are never used concurrently. These are concurrency and call-count checks, not runtime benchmarks.
+
+Worker buffers hold at most `min(maxSqlBatchSize, 1000)` rows, with a minimum of one. Formatting and
+link resolution occur on each worker; only binding and writing the prepared rows share the writer
+lock. Successful jobs flush their final partial buffer before an iteration or time slice ends.
+The existing JDBC batch limit still controls actual database batch execution.
+
+To measure real gains, run assignments with path saving enabled and use
+`NodusC.displayComputingTimes`. Compare total elapsed and path wall time; the database total includes
+row preparation summed across workers, so concurrent preparation can overlap in that total.

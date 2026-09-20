@@ -218,7 +218,7 @@ public class MSAAssignmentWorker extends AssignmentWorker {
                 pathCosts.mvDuration += vl.getDefaultDuration();
               }
               pathCosts.length += vl.getLength();
-              pathWriter.savePathLink(vl);
+              pathBuffer.savePathLink(vl);
               break;
             default:
               break;
@@ -240,8 +240,8 @@ public class MSAAssignmentWorker extends AssignmentWorker {
       }
 
       // Save the header of this detailed path if needed
-      if (isPathFound && pathWriter.isSavePaths()) {
-        if (!pathWriter.savePathHeader(
+      if (isPathFound && pathBuffer.isSavePaths()) {
+        if (!pathBuffer.savePathHeader(
             iteration,
             demand,
             demand.getQuantity(),

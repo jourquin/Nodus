@@ -246,7 +246,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
                   && ph.demand.getDestinationNodeId() == demand.getDestinationNodeId()) {
                 if (paths[ph.iteration].isValid) {
                   double q = demand.getQuantity() * paths[ph.iteration].marketShare;
-                  if (!pathWriter.savePathHeader(
+                  if (!pathBuffer.savePathHeader(
                       ph.iteration,
                       demand,
                       q,
@@ -434,7 +434,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     // float length = 0;
 
     int currentPathIndex = 0;
-    if (pathWriter.isSavePaths()) {
+    if (pathBuffer.isSavePaths()) {
       currentPathIndex = getNewPathIndex();
     }
 
@@ -539,7 +539,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
               pathCosts.mvDuration += vl.getDefaultDuration();
             }
             pathCosts.length += vl.getLength();
-            pathWriter.savePathLink(vl, currentPathIndex);
+            pathBuffer.savePathLink(vl, currentPathIndex);
             break;
           default:
             break;
@@ -581,7 +581,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
         }
       }
 
-      if (pathWriter.isSavePaths()) {
+      if (pathBuffer.isSavePaths()) {
         // The quantity will be computed later
         pathHeaders.add(
             new MFPathHeader(

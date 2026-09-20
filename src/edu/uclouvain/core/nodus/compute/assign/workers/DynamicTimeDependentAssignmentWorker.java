@@ -183,7 +183,7 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
        * Give an index to this OD pair for the detailed paths if needed
        */
       int currentPathIndex = 0;
-      if (pathWriter.isSavePaths()) {
+      if (pathBuffer.isSavePaths()) {
         if (demand.getPathIndex() == -1) {
           demand.setPathIndex(getNewPathIndex());
         }
@@ -334,7 +334,7 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
               pathCosts.mvDuration += vl.getDefaultDuration();
             }
             pathCosts.length += vl.getLength();
-            pathWriter.savePathLink(vl, currentPathIndex);
+            pathBuffer.savePathLink(vl, currentPathIndex);
             break;
           default:
             break;
@@ -353,8 +353,8 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
       }
 
       // Save the header of this detailed path if needed
-      if (isPathFound && pathCosts.getCost() > 0.0 && pathWriter.isSavePaths()) {
-        if (!pathWriter.savePathHeader(
+      if (isPathFound && pathCosts.getCost() > 0.0 && pathBuffer.isSavePaths()) {
+        if (!pathBuffer.savePathHeader(
             1,
             demand,
             demand.getQuantity(),

@@ -254,7 +254,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
                 if (paths[ph.iteration][currentPath].isValid) {
                   double q = demand.getQuantity() * paths[ph.iteration][currentPath].marketShare;
 
-                  if (!pathWriter.savePathHeader(
+                  if (!pathBuffer.savePathHeader(
                       ph.iteration,
                       demand,
                       q,
@@ -457,7 +457,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
       // float length = 0;
 
       int currentPathIndex = 0;
-      if (pathWriter.isSavePaths()) {
+      if (pathBuffer.isSavePaths()) {
         currentPathIndex = getNewPathIndex();
       }
 
@@ -562,7 +562,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
               }
               pathCosts.length += vl.getLength();
               mode = vl.getBeginVirtualNode().getMode();
-              pathWriter.savePathLink(vl, currentPathIndex);
+              pathBuffer.savePathLink(vl, currentPathIndex);
               break;
             default:
               break;
@@ -610,7 +610,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         }
 
         // Save the header of this detailed path if needed
-        if (pathWriter.isSavePaths()) {
+        if (pathBuffer.isSavePaths()) {
           // The quantity assigned to this path will be computed later
           pathHeaders.add(
               new MFPathHeader(

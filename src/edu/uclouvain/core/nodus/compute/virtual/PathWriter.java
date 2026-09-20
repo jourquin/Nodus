@@ -39,7 +39,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.JOptionPane;
 
 /**
@@ -53,7 +53,7 @@ public class PathWriter {
 
   private Connection con;
 
-  private int currentPathIndex = 1;
+  private final AtomicInteger currentPathIndex = new AtomicInteger(1);
 
   private DecimalFormat df;
 
@@ -83,12 +83,12 @@ public class PathWriter {
 
   private boolean hasBatchSupport = false;
 
-  private boolean canceled = false;
+  private volatile boolean canceled = false;
 
   private boolean hasDurationFunctions = false;
 
   /** True once this writer has been finalized or discarded. */
-  private boolean closed = false;
+  private volatile boolean closed = false;
 
   /**
    * Initializes the different tables needed to store the paths.
@@ -122,9 +122,7 @@ public class PathWriter {
         nodusProject.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
 
     // Decimal format used in sql statements
-    DecimalFormatSymbols dfs = new DecimalFormatSymbols();
-    dfs.setDecimalSeparator('.');
-    df = new DecimalFormat("0.000", dfs);
+    df = PathWriterBuffer.newFormat();
 
     con = nodusProject.getMainJDBCConnection();
 
@@ -216,10 +214,15 @@ public class PathWriter {
 
     long started = computingTimes.start();
     try {
+      if (canceled) {
+        return false;
+      }
       if (savePaths) {
-        nodusProject
-            .getNodusMapPanel()
-            .setText(i18n.get(PathWriter.class, "Creating_indexes", "Creating indexes..."));
+        if (nodusProject.getNodusMapPanel() != null) {
+          nodusProject
+              .getNodusMapPanel()
+              .setText(i18n.get(PathWriter.class, "Creating_indexes", "Creating indexes..."));
+        }
 
         if (hasBatchSupport) {
           if (!executeHeaderBatch(true)) {
@@ -306,13 +309,11 @@ public class PathWriter {
     }
 
     try {
-      prepStmtDetails.executeBatch();
+      checkBatchResult(prepStmtDetails.executeBatch());
+      prepStmtDetails.clearBatch();
       detailsBatchSize = 0;
     } catch (SQLException e) {
-      canceled = true;
-      nodusProject.getNodusMapPanel().stopProgress();
-      SingleInstanceMessagePane.display(
-          nodusProject.getNodusMapPanel(), e.getMessage(), JOptionPane.ERROR_MESSAGE);
+      fail(e);
       return false;
     }
 
@@ -336,13 +337,11 @@ public class PathWriter {
     }
 
     try {
-      prepStmtHeaders.executeBatch();
+      checkBatchResult(prepStmtHeaders.executeBatch());
+      prepStmtHeaders.clearBatch();
       headerBatchSize = 0;
     } catch (SQLException e) {
-      canceled = true;
-      nodusProject.getNodusMapPanel().stopProgress();
-      SingleInstanceMessagePane.display(
-          nodusProject.getNodusMapPanel(), e.getMessage(), JOptionPane.ERROR_MESSAGE);
+      fail(e);
       return false;
     }
 
@@ -421,10 +420,7 @@ public class PathWriter {
       // Use prepared statements to improve insert performances
       String quotedPathDetailTableName =
           JDBCUtils.getQuotedCompliantIdentifier(pathDetailTableName);
-      sqlStmt =
-          "INSERT INTO "
-              + quotedPathDetailTableName
-              + " VALUES (?,?,?,?)";
+      sqlStmt = "INSERT INTO " + quotedPathDetailTableName + " VALUES (?,?,?,?)";
       try {
         prepStmtDetails = con.prepareStatement(sqlStmt);
       } catch (SQLException e) {
@@ -439,7 +435,7 @@ public class PathWriter {
    * @param virtualLink The virtual link to save.
    */
   public synchronized void savePathLink(VirtualLink virtualLink) {
-    savePathLink(virtualLink, currentPathIndex);
+    savePathLink(virtualLink, currentPathIndex.get());
   }
 
   /**
@@ -449,7 +445,7 @@ public class PathWriter {
    * @param pathIndex The index of the path.
    */
   public synchronized void savePathLink(VirtualLink virtualLink, int pathIndex) {
-    if (closed || !saveDetailedPaths) {
+    if (closed || canceled || !saveDetailedPaths) {
       return;
     }
 
@@ -463,26 +459,13 @@ public class PathWriter {
     // Set values
     long started = computingTimes.start();
     try {
-      int idx = 1;
-      prepStmtDetails.setInt(idx++, pathIndex);
-      prepStmtDetails.setInt(idx++, up * virtualLink.getBeginVirtualNode().getRealLinkId());
-      prepStmtDetails.setInt(idx++, virtualLink.getBeginVirtualNode().getMode());
-      prepStmtDetails.setInt(idx++, virtualLink.getBeginVirtualNode().getMeans());
-
-      if (hasBatchSupport) {
-        prepStmtDetails.addBatch();
-        if (!executeDetailsBatch(false)) {
-          return;
-        }
-      } else {
-        prepStmtDetails.executeUpdate();
-      }
-
+      writeDetail(
+          pathIndex,
+          up * virtualLink.getBeginVirtualNode().getRealLinkId(),
+          virtualLink.getBeginVirtualNode().getMode(),
+          virtualLink.getBeginVirtualNode().getMeans());
     } catch (Exception e) {
-      canceled = true;
-      nodusProject.getNodusMapPanel().stopProgress();
-      SingleInstanceMessagePane.display(
-          nodusProject.getNodusMapPanel(), e.getMessage(), JOptionPane.ERROR_MESSAGE);
+      fail(e);
     } finally {
       computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
     }
@@ -538,10 +521,10 @@ public class PathWriter {
         ulMode,
         ulMeans,
         nbTranshipments,
-        currentPathIndex)) {
+        currentPathIndex.get())) {
       return false;
     }
-    currentPathIndex++;
+    currentPathIndex.incrementAndGet();
     return true;
   }
 
@@ -595,59 +578,134 @@ public class PathWriter {
     long started = computingTimes.start();
     try {
 
-      int idx = 1;
-      prepStmtHeaders.setInt(idx++, odCell.getGroup());
-      prepStmtHeaders.setInt(idx++, odCell.getOriginNodeId());
-      prepStmtHeaders.setInt(idx++, odCell.getDestinationNodeId());
-      prepStmtHeaders.setInt(idx++, odCell.getStartingTime() / 60);
-      prepStmtHeaders.setInt(idx++, iteration);
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(quantity)));
-      prepStmtHeaders.setFloat(idx++, Float.parseFloat(df.format(detailedCosts.length)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ldCost)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ulCost)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.trCost)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.tpCost)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.stpCost)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.swCost)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.mvCost)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ldDuration)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.ulDuration)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.trDuration)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.tpDuration)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.stpDuration)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.swDuration)));
-      prepStmtHeaders.setDouble(idx++, Double.parseDouble(df.format(detailedCosts.mvDuration)));
-      prepStmtHeaders.setInt(idx++, ldMode);
-      prepStmtHeaders.setInt(idx++, ldMeans);
-      prepStmtHeaders.setInt(idx++, ulMode);
-      prepStmtHeaders.setInt(idx++, ulMeans);
-      prepStmtHeaders.setInt(idx++, nbTranshipments);
-      prepStmtHeaders.setInt(idx++, pathIndex);
-
-      if (hasBatchSupport) {
-        prepStmtHeaders.addBatch();
-        if (!executeHeaderBatch(false)) {
-          return false;
-        }
-      } else {
-        prepStmtHeaders.executeUpdate();
-      }
-
+      PathWriterBuffer.Header header =
+          PathWriterBuffer.Header.prepare(
+              df,
+              hasDurationFunctions,
+              iteration,
+              odCell,
+              quantity,
+              detailedCosts,
+              ldMode,
+              ldMeans,
+              ulMode,
+              ulMeans,
+              nbTranshipments,
+              pathIndex);
+      return writeHeader(header);
     } catch (Exception e) {
-      nodusProject.getNodusMapPanel().stopProgress();
-      SingleInstanceMessagePane.display(
-          nodusProject.getNodusMapPanel(),
-          i18n.get(
-              PathWriter.class,
-              "Invalid_value",
-              "Invalid value in header fields. See Stack Trace."),
-          JOptionPane.ERROR_MESSAGE);
-      e.printStackTrace();
+      fail(e);
       return false;
     } finally {
       computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
     }
+  }
+
+  /**
+   * Creates a buffer owned by one assignment-worker job. The worker must flush successful jobs
+   * before they finish and clear failed jobs, so equilibrium splits and close see all accepted
+   * rows.
+   */
+  public PathWriterBuffer newBuffer() {
+    return new PathWriterBuffer(
+        this, computingTimes, savePaths, saveDetailedPaths, hasDurationFunctions, maxBatchSize);
+  }
+
+  /** Reserves an implicit path ID once, before its first row, without taking the JDBC lock. */
+  int reservePathIndex() {
+    return currentPathIndex.getAndIncrement();
+  }
+
+  /** Volatile state lets workers avoid the shared lock when output is disabled or has stopped. */
+  boolean isAcceptingRows() {
+    return !closed && !canceled;
+  }
+
+  /**
+   * Writes an entire worker block under one lock. Buffers remain worker-owned during this
+   * synchronous handoff; the JDBC connection and prepared statements are never accessed
+   * concurrently.
+   */
+  synchronized boolean writeBuffer(PathWriterBuffer buffer) {
+    if (!isAcceptingRows()) {
+      return false;
+    }
+    long started = computingTimes.start();
+    try {
+      for (PathWriterBuffer.Header header : buffer.headers) {
+        if (!writeHeader(header)) {
+          return false;
+        }
+      }
+      for (int row = 0; row < buffer.detailCount; row++) {
+        int offset = row * 4;
+        if (!writeDetail(
+            buffer.details[offset],
+            buffer.details[offset + 1],
+            buffer.details[offset + 2],
+            buffer.details[offset + 3])) {
+          return false;
+        }
+      }
+      return true;
+    } catch (SQLException e) {
+      fail(e);
+      return false;
+    } finally {
+      computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
+    }
+  }
+
+  /** Binds a snapshot while holding the writer lock; batching remains shared across workers. */
+  private boolean writeHeader(PathWriterBuffer.Header header) throws SQLException {
+    header.bind(prepStmtHeaders);
+    if (hasBatchSupport) {
+      prepStmtHeaders.addBatch();
+      return executeHeaderBatch(false);
+    }
+    prepStmtHeaders.executeUpdate();
     return true;
+  }
+
+  /** Appends one already resolved link, preserving its signed ID and mode/means columns. */
+  private boolean writeDetail(int pathIndex, int link, int mode, int means) throws SQLException {
+    prepStmtDetails.setInt(1, pathIndex);
+    prepStmtDetails.setInt(2, link);
+    prepStmtDetails.setInt(3, mode);
+    prepStmtDetails.setInt(4, means);
+    if (hasBatchSupport) {
+      prepStmtDetails.addBatch();
+      return executeDetailsBatch(false);
+    }
+    prepStmtDetails.executeUpdate();
+    return true;
+  }
+
+  /** Accepts SUCCESS_NO_INFO, but treats an explicit failed row as a failed assignment write. */
+  private static void checkBatchResult(int[] counts) throws SQLException {
+    for (int count : counts) {
+      if (count == Statement.EXECUTE_FAILED) {
+        throw new SQLException("A path batch row could not be saved.");
+      }
+    }
+  }
+
+  /**
+   * Stops further writes, including buffered rows submitted by other workers after this failure.
+   */
+  synchronized void fail(Exception error) {
+    if (canceled || closed) {
+      return;
+    }
+    canceled = true;
+    showWriteError(error);
+  }
+
+  /** Reports a failed row or batch; kept separate from persistence for headless checks. */
+  void showWriteError(Exception error) {
+    nodusProject.getNodusMapPanel().stopProgress();
+    SingleInstanceMessagePane.display(
+        nodusProject.getNodusMapPanel(), error.getMessage(), JOptionPane.ERROR_MESSAGE);
   }
 
   /**
@@ -657,7 +715,7 @@ public class PathWriter {
    * @param iteration The iteration of the assignment.
    * @param lambda The balance factor : (1-lambda) * previous volume + lambda * current volume.
    */
-  public void splitPaths(int iteration, double lambda) {
+  public synchronized void splitPaths(int iteration, double lambda) {
     long started = computingTimes.start();
     try {
       updatePathQuantities(iteration, lambda);
@@ -668,7 +726,7 @@ public class PathWriter {
 
   /** Updates equilibrium path quantities, including pending batches and the commit. */
   private void updatePathQuantities(int iteration, double lambda) {
-    if (closed || iteration <= 1) {
+    if (closed || canceled || iteration <= 1) {
       return;
     }
 
