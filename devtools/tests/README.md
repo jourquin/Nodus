@@ -40,3 +40,26 @@ rm -r "$nodus_test_dir"
 
 These are developer regression checks, not runtime measurements. To measure an actual assignment,
 use `NodusC.displayComputingTimes` and run the assignment normally in Nodus.
+
+## Multi-flow edge update checks
+
+`MultiFlowEdgeUpdatesTest.java` compares the affected-edge updates with the original full-graph
+passes, using the real Dijkstra and A* implementations on synthetic networks. It checks alternative
+routes, edge weights, path marks and assigned volumes for both Fast and Exact multi-flow schedules.
+Cases include shared edges, multiple origins and commodity groups, unavailable loading modes,
+unreachable destinations, discarded paths, successive OD rows, zero/infinite weights and cost
+overflow. It also verifies that unused links are skipped during volume distribution.
+
+Run it after changing multi-flow edge updates, from the project root. No project files, database
+or GUI are used:
+
+```sh
+ant build-project
+nodus_test_dir=$(mktemp -d)
+javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_test_dir" devtools/tests/MultiFlowEdgeUpdatesTest.java
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.compute.assign.workers.MultiFlowEdgeUpdatesTest
+rm -r "$nodus_test_dir"
+```
+
+For performance measurements, run a Fast or Exact multi-flow assignment in Nodus with
+`NodusC.displayComputingTimes` enabled and compare the path-computation and total times.

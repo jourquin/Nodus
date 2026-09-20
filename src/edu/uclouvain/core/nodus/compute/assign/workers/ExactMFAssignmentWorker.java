@@ -59,6 +59,8 @@ import java.util.List;
  */
 public class ExactMFAssignmentWorker extends AssignmentWorker {
 
+  private MultiFlowEdgeUpdates edgeUpdates;
+
   byte maxDetourReferenceMode = -1;
 
   /** This value is used when the "force modal split is used". */
@@ -101,6 +103,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
     // Initialize the adjacency list for current group
     graph = virtualNet.generateAdjacencyList(groupIndex);
+    edgeUpdates = new MultiFlowEdgeUpdates(graph);
 
     shortestPath = new BinaryHeapAStar(graph);
     availableModeMeans = virtualNet.getAvailableModeMeans(groupIndex);
@@ -181,18 +184,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
              * Only open graph to current mode/means combination
              */
             if (canLoadToCurrentModeMeansFromThisNode) {
-              for (int i = 1; i < graph.length; i++) {
-                AdjacencyNode current = graph[i];
-                while (current != null && current.virtualLink != null) {
-                  if (current.virtualLink.getType() == VirtualLink.TYPE_LOAD) {
-                    if (current.virtualLink.getEndVirtualNode().getModeMeansKey()
-                        != availableModeMean) {
-                      current.edgeWeight = Double.POSITIVE_INFINITY;
-                    }
-                  }
-                  current = current.nextNode;
-                }
-              }
+              edgeUpdates.restrictLoading(availableModeMean);
             }
 
             for (int alternativePath = 0;
@@ -221,31 +213,14 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
                */
               double costMarkup = 1 + assignmentParameters.getCostMarkup();
               if (alternativePath < assignmentParameters.getNbIterations() - 1) {
-                for (int i = 1; i < graph.length; i++) {
-                  AdjacencyNode current = graph[i];
-                  while (current != null) {
-
-                    if (current.inCurrentTree) {
-                      // Increase cost on used link if not yet done
-                      current.edgeWeight *= costMarkup;
-                    }
-                    current = current.nextNode;
-                  }
-                }
+                edgeUpdates.increaseCosts(costMarkup);
               }
               currentPathPropertiesIndex++;
             } // Next alternative path
 
-            // Reset the original weights of the links to prepare next OD matrix cell
-            for (int i = 1; i < graph.length; i++) {
-              AdjacencyNode current = graph[i];
-
-              while (current != null) {
-                current.edgeWeight = current.originalEdgeWeight;
-                current.inCurrentTree = false;
-                current = current.nextNode;
-              }
-            }
+            // Restore only weights changed for this mode/means combination.
+            edgeUpdates.restoreWeights();
+            edgeUpdates.clearPathMarks();
           } // Next mode/means
 
           // Log lost paths if needed
@@ -290,19 +265,8 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
             pathHeaders.clear();
           }
 
-          // Update volume on virtual links
-          for (int i = 1; i < graph.length; i++) {
-            AdjacencyNode current = graph[i];
-
-            while (current != null) {
-              VirtualLink vl = current.virtualLink;
-              if (vl != null) {
-                vl.spreadFlowOverPaths(groupIndex, paths);
-              }
-
-              current = current.nextNode;
-            }
-          }
+          // Apply the modal split only to links that received path demand.
+          edgeUpdates.spreadVolumes(groupIndex, paths);
         } // end of the demand cell
       } // end of demand list
     } // Next node
@@ -524,14 +488,9 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
         }
 
         // Mark this link as being included in the path for this iteration
-        an.inCurrentTree = true;
+        edgeUpdates.markPathEdge(an);
         VirtualLink vl = an.virtualLink;
 
-        /*
-         * Performance issue: all the used virtual links are put in a list in order not to need a
-         * browse through the complete virtual network to find them when needed
-         */
-        // PathODCell pathODCell = new PathODCell(iteration, demand.getQuantity());
         vl.addCell(groupIndex, new PathODCell(iteration, demand.getQuantity()));
 
         if (vl.getType() == VirtualLink.TYPE_TRANSHIP) {

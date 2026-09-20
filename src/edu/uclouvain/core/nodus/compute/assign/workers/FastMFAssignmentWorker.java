@@ -61,6 +61,8 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
   private int[] availableModeMeans;
 
+  private MultiFlowEdgeUpdates edgeUpdates;
+
   private ODCell demand;
 
   /**
@@ -96,6 +98,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
     // Initialize
     graph = virtualNet.generateAdjacencyList(groupIndex);
+    edgeUpdates = new MultiFlowEdgeUpdates(graph);
     shortestPath = new BinaryHeapDijkstra(graph, virtualNet);
     availableModeMeans = virtualNet.getAvailableModeMeans(groupIndex);
 
@@ -174,18 +177,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
            * Only open graph to current mode/means combination
            */
           if (canLoadToCurrentModeMeansFromThisNode) {
-            for (int i = 1; i < graph.length; i++) {
-              AdjacencyNode current = graph[i];
-              while (current != null && current.virtualLink != null) {
-                if (current.virtualLink.getType() == VirtualLink.TYPE_LOAD) {
-                  if (current.virtualLink.getEndVirtualNode().getModeMeansKey()
-                      != availableModeMean) {
-                    current.edgeWeight = Double.POSITIVE_INFINITY;
-                  }
-                }
-                current = current.nextNode;
-              }
-            }
+            edgeUpdates.restrictLoading(availableModeMean);
           }
 
           /*
@@ -222,48 +214,16 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
                */
               double costMarkup = 1 + assignmentParameters.getCostMarkup();
               if (alternativePath < assignmentParameters.getNbIterations() - 1) {
-                for (int i = 1; i < graph.length; i++) {
-                  AdjacencyNode current = graph[i];
-                  while (current != null) {
-
-                    if (current.inCurrentTree) {
-
-                      /*
-                       * Increase cost on used link if not yet done
-                       */
-                      if (!current.isIncreased) {
-                        current.edgeWeight *= costMarkup;
-                        current.isIncreased = true;
-                      }
-                    }
-                    current = current.nextNode;
-                  } // Next adjacency node for graph[i]
-                } // next i
-
-                /*
-                 * Reset the "increased" flag for next iteration
-                 */
-                for (int i = 1; i < graph.length; i++) {
-                  AdjacencyNode current = graph[i];
-                  while (current != null) {
-                    current.isIncreased = false;
-                    current.inCurrentTree = false;
-                    current = current.nextNode;
-                  }
-                }
+                edgeUpdates.increaseCosts(costMarkup);
+                edgeUpdates.clearPathMarks();
               } // End if not last iteration (cost increase)
             }
             currentPathPropertiesIndex++;
           } // end of iteration
 
-          // Reset the original weights on the links to prepare next mode/means combination
-          for (int i = 1; i < graph.length; i++) {
-            AdjacencyNode current = graph[i];
-            while (current != null) {
-              current.edgeWeight = current.originalEdgeWeight;
-              current = current.nextNode;
-            }
-          }
+          // Restore only weights changed for this mode/means combination.
+          edgeUpdates.restoreWeights();
+          // As before, final-iteration marks survive until the next cost increase.
         } // end of iteration for current mode/means combination
 
         // Log lost paths if needed
@@ -316,17 +276,8 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         }
         pathHeaders.clear();
 
-        // Now update the volume on the virtual links, using the just computed weights
-        for (int i = 1; i < graph.length; i++) {
-          AdjacencyNode current = graph[i];
-          while (current != null) {
-            VirtualLink vl = current.virtualLink;
-            if (vl != null) {
-              vl.spreadVolumeOverPaths(groupIndex, paths);
-            }
-            current = current.nextNode;
-          }
-        }
+        // Apply the modal split only to links that received path demand.
+        edgeUpdates.spreadVolumes(groupIndex, paths);
       } // end of demand list
     } // Next node
 
@@ -558,7 +509,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
           }
 
           // Mark this link as being included in the path for this iteration
-          an.inCurrentTree = true;
+          edgeUpdates.markPathEdge(an);
 
           VirtualLink vl = an.virtualLink;
 
