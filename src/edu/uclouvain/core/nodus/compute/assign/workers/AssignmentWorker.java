@@ -27,6 +27,7 @@ import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerTimes;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
@@ -94,6 +95,9 @@ public abstract class AssignmentWorker extends Thread {
 
   /** Worker-owned buffer for path output, flushed at each successful job boundary. */
   PathWriterBuffer pathBuffer;
+
+  /** Local detailed timers owned by the current job, including its final path-buffer flush. */
+  WorkerTimes workerTimes;
 
   WorkQueue workQueue;
 
@@ -188,7 +192,6 @@ public abstract class AssignmentWorker extends Thread {
         nodusProject = assignment.getNodusProjectl();
         nodusMapPanel = nodusProject.getNodusMapPanel();
         pathWriter = assignment.getPathWriter();
-        pathBuffer = pathWriter.newBuffer();
         assignmentParameters = assignment.getAssignmentParameters();
 
         iteration = awp.getIterationAsInt();
@@ -202,14 +205,19 @@ public abstract class AssignmentWorker extends Thread {
         AssignmentComputingTimes computingTimes = assignmentParameters.getComputingTimes();
         long databaseBefore = computingTimes.getThreadDatabaseTime();
         long started = computingTimes.startPaths();
-        try {
+        try (WorkerTimes times = computingTimes.newWorkerTimes()) {
+          workerTimes = times;
+          pathBuffer = pathWriter.newBuffer(times);
           // Flush the worker's last partial block before the coordinator can split path quantities
           // or finalize the writer. Failed/cancelled jobs leave their pending rows unwritten.
           if (!doAssignment() || isCancelled() || !pathBuffer.flush()) {
             cancelAssignmentWorkers();
           }
         } finally {
-          pathBuffer.clear();
+          if (pathBuffer != null) {
+            pathBuffer.clear();
+          }
+          workerTimes = null;
           computingTimes.endPaths(started, databaseBefore);
         }
       }

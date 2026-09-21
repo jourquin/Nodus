@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.compute.assign.workers;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerPhase;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
@@ -65,6 +66,7 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
    */
   @Override
   boolean doAssignment() {
+    workerTimes.includePhases(WorkerPhase.DIJKSTRA, WorkerPhase.RECONSTRUCTION_LOADING);
 
     // Initialize the adjacency list for current group
     graph = virtualNet.generateAdjacencyList(groupIndex);
@@ -104,11 +106,21 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
       if (demandList != null) {
         // Compute all the shortest paths in the virtual network starting from here
         int beginNode = virtualNet.getVirtualNodeLists()[nodeIndex].getLoadingVirtualNodeId();
-        shortestPath.compute(beginNode, demandList);
+        workerTimes.startPhase(WorkerPhase.DIJKSTRA);
+        try {
+          shortestPath.compute(beginNode, demandList);
+        } finally {
+          workerTimes.endPhase();
+        }
 
         // Build all the relevant detailed paths
-        if (!readPaths(nodeIndex)) {
-          return false;
+        workerTimes.startPhase(WorkerPhase.RECONSTRUCTION_LOADING);
+        try {
+          if (!readPaths(nodeIndex)) {
+            return false;
+          }
+        } finally {
+          workerTimes.endPhase();
         }
       }
     }

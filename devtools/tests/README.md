@@ -5,7 +5,67 @@
 Run `sh devtools/tests/run-computing-times-test.sh` from the project root with a JDK 11 or later.
 The standalone checks use a controlled clock and two threads to verify overlapping worker times,
 database-time attribution, repeated cost passes, resetting between assignments, disabled auditing
-and partial-run reporting. Compilation uses a temporary directory and requires no external libraries.
+and partial-run reporting. Detailed-stage checks also cover overlapping workers, exclusion of
+path-output time (including writer waits), nested automatic flushes counted only once, repeated
+alternatives and displaying only applicable stages. Compilation uses a temporary directory and
+requires no external libraries.
+
+With `NodusC.displayComputingTimes` enabled, every assignment algorithm prints a worker breakdown
+in addition to the existing overall timings. The rows depend on the algorithm:
+
+| Algorithm | Computation stages |
+| --- | --- |
+| Fast Multi-flow | Dijkstra, path reconstruction, header matching, modal splitting and path filtering, volume distribution. |
+| Exact Multi-flow | A*, path reconstruction, header matching, modal splitting and path filtering, volume distribution. |
+| All-or-Nothing, Incremental, MSA, Frank-Wolfe, Incremental–Frank-Wolfe | Dijkstra, path reconstruction and volume loading. |
+| Static time-dependent | Dijkstra, path reconstruction and volume loading. |
+| Dynamic time-dependent | Dijkstra, path reconstruction and volume loading, demand relocation. |
+
+All algorithms also report **Path output (includes DB calls and writer waits)**.
+
+| Measurement | Included work |
+| --- | --- |
+| Dijkstra / A* | Each shortest-path computation, including destination setup and heap initialization. |
+| Path reconstruction | Following predecessors, collecting path costs/durations, marking edges, attaching demand cells and preparing multi-flow header metadata. |
+| Path reconstruction and volume loading | Reconstructing single paths and applying their demand to current or auxiliary link volumes, including time-slice handling. These workers load volumes during reconstruction, so the two operations are measured together without adding a timer on every edge. |
+| Header matching | The existing header-list scans for each OD cell, validity checks and quantity calculation in multi-flow assignments. |
+| Modal splitting and path filtering | Duplicate, detour and intermodal filtering, followed by the configured modal-split method. |
+| Volume distribution | Applying the computed multi-flow path shares to virtual-link volumes. |
+| Demand relocation | Moving dynamic demands between network demand lists after assigning a time slice. |
+| Path output (includes DB calls and writer waits) | Header/detail row preparation and buffering, automatic flushes and the worker's final partial-buffer flush, including waiting for the shared writer. |
+
+These are **elapsed times summed across workers, not CPU times or separate wall times**. Computation
+stages exclude path-output time, so writer contention is not attributed to reconstruction or header
+matching. Path output overlaps the existing database total; its scope also includes writer waits,
+while the database total additionally covers coordinator output, writer finalization, indexes,
+commits and virtual-network output. Do not add either breakdown to the overall timing rows.
+
+Setup, demand retrieval outside reconstruction, cost-markup updates and progress reporting remain
+in the existing overall worker timers. Coordinator operations, such as equilibrium volume blending,
+are not included in the worker breakdown; the overall assignment and existing cost/database timers
+retain their original scopes. Counters accumulate locally and merge once per job, across groups,
+iterations and time slices. Applicable stages print zero if unused, for example header matching
+when path saving is disabled. Disabled auditing reads no clocks. Assignment computations and the
+header-matching algorithm have not been optimized here.
+
+`AssignmentAuditWorkerTest.java` exercises all eight concrete worker classes through the real job
+loop on a synthetic network with two origins and an unreachable destination. Multi-flow workers
+compute three alternatives. The test compares exact current/auxiliary volumes, modal shares and
+saved path rows with auditing disabled/enabled, checks the applicable stages, and covers disabled,
+header-only and detailed path output, automatic/final flushes and failed modal splits. It uses a
+disposable in-memory HSQLDB database and a clock that advances on each read; its reported times are
+test values, not performance measurements. Run it from the project root:
+
+```sh
+ant build-project
+nodus_test_dir=$(mktemp -d)
+javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_test_dir" devtools/tests/AssignmentAuditWorkerTest.java
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.compute.assign.workers.AssignmentAuditWorkerTest
+rm -r "$nodus_test_dir"
+```
+
+These checks are developer regression tests. To collect baseline runtimes for your own project,
+enable `NodusC.displayComputingTimes` and run the assignment normally in Nodus.
 
 ## Cost parser cache checks
 

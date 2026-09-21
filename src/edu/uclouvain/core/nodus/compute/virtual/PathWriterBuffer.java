@@ -22,6 +22,7 @@
 package edu.uclouvain.core.nodus.compute.virtual;
 
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerTimes;
 import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import java.sql.PreparedStatement;
@@ -54,7 +55,9 @@ import java.util.List;
  * <p>Automatic path IDs stay attached to one worker's path until its header is accepted. Multi-flow
  * and dynamic assignments instead supply their own explicit IDs, which this buffer copies as-is.
  * Row preparation is recorded as database time on the worker; JDBC time is recorded separately by
- * the shared writer, excluding the wait to acquire its lock.
+ * the shared writer, excluding the wait to acquire its lock. When a worker breakdown is supplied,
+ * header/detail preparation and flushes also count as path-output time, including lock waits.
+ * Nested automatic flushes count once; this time is excluded from the enclosing computation stage.
  */
 public final class PathWriterBuffer {
   /** Shared owner of the JDBC connection, statements, path IDs and output failure state. */
@@ -62,6 +65,9 @@ public final class PathWriterBuffer {
 
   /** The assignment's audit, also used by the writer for the actual JDBC work. */
   private final AssignmentComputingTimes computingTimes;
+
+  /** Optional worker-local output timer; null avoids clock reads when detailed auditing is off. */
+  private final WorkerTimes workerTimes;
 
   /**
    * Whether headers are enabled; false makes all path output a no-op while the writer is active.
@@ -109,6 +115,7 @@ public final class PathWriterBuffer {
    * @param hasDurationFunctions Whether to retain fractional moving durations.
    * @param maxBatchSize The configured JDBC batch limit; the local block limit is clamped to
    *     1–1,000 without changing the writer's own JDBC batch limit.
+   * @param workerTimes Worker-local stage counters, or null when no detailed audit is needed.
    */
   PathWriterBuffer(
       PathWriter writer,
@@ -116,9 +123,11 @@ public final class PathWriterBuffer {
       boolean savePaths,
       boolean saveDetails,
       boolean hasDurationFunctions,
-      int maxBatchSize) {
+      int maxBatchSize,
+      WorkerTimes workerTimes) {
     this.writer = writer;
     this.computingTimes = computingTimes;
+    this.workerTimes = workerTimes != null && workerTimes.isEnabled() ? workerTimes : null;
     this.savePaths = savePaths;
     this.saveDetails = saveDetails;
     this.hasDurationFunctions = hasDurationFunctions;
@@ -175,26 +184,34 @@ public final class PathWriterBuffer {
     if (!saveDetails || !writer.isAcceptingRows()) {
       return;
     }
-    long started = computingTimes.start();
+    long outputStarted = workerTimes == null ? 0 : workerTimes.startPathOutput();
     try {
-      if (details == null) {
-        details = new int[limit * 4];
+      long started = computingTimes.start();
+      try {
+        if (details == null) {
+          details = new int[limit * 4];
+        }
+        VirtualNode begin = link.getBeginVirtualNode();
+        // Match the existing database convention: negative link IDs denote decreasing real-node
+        // IDs.
+        int direction =
+            begin.getRealNodeId(false) > link.getEndVirtualNode().getRealNodeId(false) ? -1 : 1;
+        int offset = detailCount * 4;
+        details[offset] = pathIndex;
+        details[offset + 1] = direction * begin.getRealLinkId();
+        details[offset + 2] = begin.getMode();
+        details[offset + 3] = begin.getMeans();
+        detailCount++;
+      } finally {
+        computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
       }
-      VirtualNode begin = link.getBeginVirtualNode();
-      // Match the existing database convention: negative link IDs denote decreasing real-node IDs.
-      int direction =
-          begin.getRealNodeId(false) > link.getEndVirtualNode().getRealNodeId(false) ? -1 : 1;
-      int offset = detailCount * 4;
-      details[offset] = pathIndex;
-      details[offset + 1] = direction * begin.getRealLinkId();
-      details[offset + 2] = begin.getMode();
-      details[offset + 3] = begin.getMeans();
-      detailCount++;
+      // End the preparation measurement before the writer starts its separate JDBC measurement.
+      flushIfFull();
     } finally {
-      computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
+      if (workerTimes != null) {
+        workerTimes.endPathOutput(outputStarted);
+      }
     }
-    // End the preparation measurement before the writer starts its separate JDBC measurement.
-    flushIfFull();
   }
 
   /**
@@ -284,33 +301,40 @@ public final class PathWriterBuffer {
     if (!savePaths || !writer.isAcceptingRows()) {
       return writer.isAcceptingRows();
     }
-    long started = computingTimes.start();
+    long outputStarted = workerTimes == null ? 0 : workerTimes.startPathOutput();
     try {
-      if (format == null) {
-        format = newFormat();
+      long started = computingTimes.start();
+      try {
+        if (format == null) {
+          format = newFormat();
+        }
+        headers.add(
+            Header.prepare(
+                format,
+                hasDurationFunctions,
+                iteration,
+                demand,
+                quantity,
+                weights,
+                ldMode,
+                ldMeans,
+                ulMode,
+                ulMeans,
+                nbTranshipments,
+                pathIndex));
+      } catch (RuntimeException e) {
+        writer.fail(e);
+        return false;
+      } finally {
+        computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
       }
-      headers.add(
-          Header.prepare(
-              format,
-              hasDurationFunctions,
-              iteration,
-              demand,
-              quantity,
-              weights,
-              ldMode,
-              ldMeans,
-              ulMode,
-              ulMeans,
-              nbTranshipments,
-              pathIndex));
-    } catch (RuntimeException e) {
-      writer.fail(e);
-      return false;
+      // JDBC work is timed separately, so a full block does not double-count its flush time.
+      return flushIfFull();
     } finally {
-      computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
+      if (workerTimes != null) {
+        workerTimes.endPathOutput(outputStarted);
+      }
     }
-    // JDBC work is timed separately, so a full block does not double-count its flush time.
-    return flushIfFull();
   }
 
   /** Checks the combined row count: the limit is per block, not separately per table or path. */
@@ -335,10 +359,14 @@ public final class PathWriterBuffer {
     if (headers.isEmpty() && detailCount == 0) {
       return writer.isAcceptingRows();
     }
+    long outputStarted = workerTimes == null ? 0 : workerTimes.startPathOutput();
     try {
       return writer.writeBuffer(this);
     } finally {
       clear();
+      if (workerTimes != null) {
+        workerTimes.endPathOutput(outputStarted);
+      }
     }
   }
 

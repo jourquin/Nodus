@@ -26,6 +26,7 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerTimes;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
@@ -607,8 +608,24 @@ public class PathWriter {
    * rows.
    */
   public PathWriterBuffer newBuffer() {
+    return newBuffer(null);
+  }
+
+  /**
+   * Creates a worker buffer that attributes complete output calls to the detailed assignment audit.
+   *
+   * @param workerTimes Counters owned by this buffer's worker, or null for no detailed audit.
+   * @return A new buffer to flush at the successful job boundary.
+   */
+  public PathWriterBuffer newBuffer(WorkerTimes workerTimes) {
     return new PathWriterBuffer(
-        this, computingTimes, savePaths, saveDetailedPaths, hasDurationFunctions, maxBatchSize);
+        this,
+        computingTimes,
+        savePaths,
+        saveDetailedPaths,
+        hasDurationFunctions,
+        maxBatchSize,
+        workerTimes);
   }
 
   /** Reserves an implicit path ID once, before its first row, without taking the JDBC lock. */

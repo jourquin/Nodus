@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.compute.assign.workers;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerPhase;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
@@ -95,7 +96,12 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
    */
   @Override
   boolean doAssignment() {
-
+    workerTimes.includePhases(
+        WorkerPhase.DIJKSTRA,
+        WorkerPhase.RECONSTRUCTION,
+        WorkerPhase.HEADER_MATCHING,
+        WorkerPhase.MODAL_SPLITTING,
+        WorkerPhase.VOLUME_DISTRIBUTION);
     // Initialize
     graph = virtualNet.generateAdjacencyList(groupIndex);
     edgeUpdates = new MultiFlowEdgeUpdates(graph);
@@ -196,13 +202,24 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
               /*
                * Compute shortest path tree
                */
-              shortestPath.compute(beginNode, demandList);
+              workerTimes.startPhase(WorkerPhase.DIJKSTRA);
+              try {
+                shortestPath.compute(beginNode, demandList);
+              } finally {
+                workerTimes.endPhase();
+              }
 
               /*
                * Mark the paths for all the destinations to reach and compute their costs
                */
-              paths[currentPathPropertiesIndex] =
-                  markPaths(nodeIndex, demandList.size(), currentPathPropertiesIndex, pathHeaders);
+              workerTimes.startPhase(WorkerPhase.RECONSTRUCTION);
+              try {
+                paths[currentPathPropertiesIndex] =
+                    markPaths(
+                        nodeIndex, demandList.size(), currentPathPropertiesIndex, pathHeaders);
+              } finally {
+                workerTimes.endPhase();
+              }
 
               if (paths[currentPathPropertiesIndex] == null) {
                 return false;
@@ -238,37 +255,46 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         while (it.hasNext()) {
           demand = it.next();
 
-          if (!modalSplit(demand, currentPath)) {
-            return false;
+          workerTimes.startPhase(WorkerPhase.MODAL_SPLITTING);
+          try {
+            if (!modalSplit(demand, currentPath)) {
+              return false;
+            }
+          } finally {
+            workerTimes.endPhase();
           }
 
           // Apply modal marketShare to path headers
           if (assignmentParameters.isSavePaths()) {
+            workerTimes.startPhase(WorkerPhase.HEADER_MATCHING);
+            try {
+              /* Update the path headers in memory to compute the quantity on each path */
+              Iterator<MFPathHeader> it2 = pathHeaders.iterator();
+              while (it2.hasNext()) {
+                MFPathHeader ph = it2.next();
+                if (ph.demand.getOriginNodeId() == demand.getOriginNodeId()
+                    && ph.demand.getDestinationNodeId() == demand.getDestinationNodeId()) {
+                  if (paths[ph.iteration][currentPath].isValid) {
+                    double q = demand.getQuantity() * paths[ph.iteration][currentPath].marketShare;
 
-            /* Update the path headers in memory to compute the quantity on each path */
-            Iterator<MFPathHeader> it2 = pathHeaders.iterator();
-            while (it2.hasNext()) {
-              MFPathHeader ph = it2.next();
-              if (ph.demand.getOriginNodeId() == demand.getOriginNodeId()
-                  && ph.demand.getDestinationNodeId() == demand.getDestinationNodeId()) {
-                if (paths[ph.iteration][currentPath].isValid) {
-                  double q = demand.getQuantity() * paths[ph.iteration][currentPath].marketShare;
-
-                  if (!pathBuffer.savePathHeader(
-                      ph.iteration,
-                      demand,
-                      q,
-                      ph.weights,
-                      ph.loadingMode,
-                      ph.loadingMeans,
-                      ph.unloadingMode,
-                      ph.unloadingMeans,
-                      ph.nbTranshipments,
-                      ph.index)) {
-                    return false;
+                    if (!pathBuffer.savePathHeader(
+                        ph.iteration,
+                        demand,
+                        q,
+                        ph.weights,
+                        ph.loadingMode,
+                        ph.loadingMeans,
+                        ph.unloadingMode,
+                        ph.unloadingMeans,
+                        ph.nbTranshipments,
+                        ph.index)) {
+                      return false;
+                    }
                   }
                 }
               }
+            } finally {
+              workerTimes.endPhase();
             }
           }
 
@@ -277,7 +303,12 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         pathHeaders.clear();
 
         // Apply the modal split only to links that received path demand.
-        edgeUpdates.spreadVolumes(groupIndex, paths);
+        workerTimes.startPhase(WorkerPhase.VOLUME_DISTRIBUTION);
+        try {
+          edgeUpdates.spreadVolumes(groupIndex, paths);
+        } finally {
+          workerTimes.endPhase();
+        }
       } // end of demand list
     } // Next node
 

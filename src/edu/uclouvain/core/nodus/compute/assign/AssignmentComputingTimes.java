@@ -47,9 +47,40 @@ public final class AssignmentComputingTimes {
     DATABASE
   }
 
+  /** Computation stages measured separately inside an assignment worker. */
+  public enum WorkerPhase {
+    /** The complete shortest-path search, including its initialization. */
+    DIJKSTRA("Dijkstra"),
+    /** Exact multi-flow shortest-path search, including its initialization. */
+    ASTAR("A*"),
+    /** Reconstructing and loading routes in workers that perform both in one traversal. */
+    RECONSTRUCTION_LOADING("Path reconstruction and volume loading"),
+    /** Moving dynamic demands to their starting nodes for the next time slice. */
+    DEMAND_RELOCATION("Demand relocation"),
+    /** Reconstructing routes, collecting their weights and marking their edges. */
+    RECONSTRUCTION("Path reconstruction"),
+    /** Finding the headers belonging to each OD cell and applying its path shares. */
+    HEADER_MATCHING("Header matching"),
+    /** Filtering alternatives and invoking the configured modal-split method. */
+    MODAL_SPLITTING("Modal splitting and path filtering"),
+    /** Applying path shares to virtual-link volumes. */
+    VOLUME_DISTRIBUTION("Volume distribution");
+
+    private final String label;
+
+    /** Associates a stage with its terminal label. */
+    WorkerPhase(String label) {
+      this.label = label;
+    }
+  }
+
   private final LongSupplier clock;
   private final long[] elapsed = new long[Phase.values().length];
   private final ThreadLocal<long[]> threadDatabaseTime = ThreadLocal.withInitial(() -> new long[1]);
+  private final long[] workerElapsed = new long[WorkerPhase.values().length];
+  private final boolean[] workerPhases = new boolean[WorkerPhase.values().length];
+  private long workerPathOutputTime;
+  private boolean hasWorkerDetails;
   private volatile boolean enabled;
   private long assignmentStarted;
   private long pathsStarted;
@@ -76,6 +107,12 @@ public final class AssignmentComputingTimes {
     pathsWallTime = 0;
     pathsWorkerTime = 0;
     activePathWorkers = 0;
+    for (int i = 0; i < workerElapsed.length; i++) {
+      workerElapsed[i] = 0;
+      workerPhases[i] = false;
+    }
+    workerPathOutputTime = 0;
+    hasWorkerDetails = false;
     threadDatabaseTime.remove();
     assignmentStarted = start();
   }
@@ -156,6 +193,127 @@ public final class AssignmentComputingTimes {
   }
 
   /**
+   * Creates local counters for one assignment-worker job.
+   *
+   * @return Counters to close in a finally block or try-with-resources statement.
+   */
+  public WorkerTimes newWorkerTimes() {
+    return new WorkerTimes();
+  }
+
+  /**
+   * Accumulates a worker breakdown without locking the shared audit in its inner loops.
+   *
+   * <p>One instance belongs to one worker job. Stages must not nest: pair startPhase/endPhase in a
+   * try/finally block. Path-output calls may occur within a stage; their complete elapsed time,
+   * including writer-lock waits, is recorded separately and subtracted from that stage. These are
+   * elapsed worker times, not CPU times. Setup, cost markups and other uninstrumented work remain
+   * covered by the existing overall worker timer.
+   *
+   * <p>Closing merges counters once, including on failure. Disabled auditing never reads the clock.
+   */
+  public final class WorkerTimes implements AutoCloseable {
+    private final boolean recording = enabled;
+    private final long[] durations = new long[WorkerPhase.values().length];
+    private final boolean[] phases = new boolean[WorkerPhase.values().length];
+    private WorkerPhase currentPhase;
+    private int pathOutputDepth;
+    private long phaseStarted;
+    private long outputBeforePhase;
+    private long pathOutputTime;
+    private boolean closed;
+
+    /** Creates counters using the audit setting sampled at assignment start. */
+    private WorkerTimes() {}
+
+    /**
+     * Returns whether this worker's breakdown is being recorded.
+     *
+     * @return True when auditing was enabled for this assignment.
+     */
+    public boolean isEnabled() {
+      return recording;
+    }
+
+    /**
+     * Includes the stages applicable to this worker, even if cancellation leaves them unstarted.
+     *
+     * @param applicable Stages to show in the report for this algorithm.
+     */
+    public void includePhases(WorkerPhase... applicable) {
+      if (recording) {
+        for (WorkerPhase phase : applicable) {
+          phases[phase.ordinal()] = true;
+        }
+      }
+    }
+
+    /**
+     * Starts one computation stage on the owning worker.
+     *
+     * @param phase Stage to measure; finish it before starting another stage.
+     */
+    public void startPhase(WorkerPhase phase) {
+      if (recording) {
+        phases[phase.ordinal()] = true;
+        currentPhase = phase;
+        outputBeforePhase = pathOutputTime;
+        phaseStarted = clock.getAsLong();
+      }
+    }
+
+    /** Finishes the current stage, excluding its path-output calls on this worker. */
+    public void endPhase() {
+      if (recording && currentPhase != null) {
+        durations[currentPhase.ordinal()] +=
+            Math.max(0, clock.getAsLong() - phaseStarted - (pathOutputTime - outputBeforePhase));
+        currentPhase = null;
+      }
+    }
+
+    /**
+     * Starts a complete path-output call, including preparation, JDBC work and writer-lock waits.
+     * Nested calls (such as automatic flushes) are included once in the outer call.
+     *
+     * @return Start timestamp, or zero when auditing is disabled or the call is nested.
+     */
+    public long startPathOutput() {
+      return recording && pathOutputDepth++ == 0 ? clock.getAsLong() : 0;
+    }
+
+    /**
+     * Finishes a path-output call without altering the existing database timing counters.
+     *
+     * @param started Timestamp from startPathOutput().
+     */
+    public void endPathOutput(long started) {
+      if (recording && --pathOutputDepth == 0) {
+        pathOutputTime += clock.getAsLong() - started;
+      }
+    }
+
+    /** Merges this worker's completed stages once, including a stage interrupted by failure. */
+    @Override
+    public void close() {
+      if (!recording || closed) {
+        return;
+      }
+      endPhase();
+      closed = true;
+      synchronized (AssignmentComputingTimes.this) {
+        if (enabled) {
+          for (int i = 0; i < durations.length; i++) {
+            workerElapsed[i] += durations[i];
+            workerPhases[i] |= phases[i];
+          }
+          workerPathOutputTime += pathOutputTime;
+          hasWorkerDetails = true;
+        }
+      }
+    }
+  }
+
+  /**
    * Prints one summary and stops measuring, before post-assignment scripts and completion dialogs.
    * Failed runs contain measurements up to the failure, not subsequent error handling.
    *
@@ -190,6 +348,18 @@ public final class AssignmentComputingTimes {
     appendTime(
         report, "Paths and flow assignment (worker sum, excludes DB calls)", pathsWorkerTime);
     appendTime(report, "Database writing (writer calls)", elapsed[Phase.DATABASE.ordinal()]);
+    if (hasWorkerDetails) {
+      report.append("  Assignment breakdown (worker elapsed sums, not CPU time):\n");
+      for (WorkerPhase phase : WorkerPhase.values()) {
+        if (workerPhases[phase.ordinal()]) {
+          appendTime(report, "  " + phase.label, workerElapsed[phase.ordinal()]);
+        }
+      }
+      appendTime(
+          report, "  Path output (includes DB calls and writer waits)", workerPathOutputTime);
+      report.append("  Computation stages exclude path-output calls.\n");
+      report.append("  Setup, cost-markup updates and coordinator work are not itemized.\n");
+    }
     report.append("  Parallel work and path writes overlap; these rows are not additive.\n");
     System.out.print(report);
     threadDatabaseTime.remove();
