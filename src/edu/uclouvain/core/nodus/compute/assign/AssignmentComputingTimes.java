@@ -74,11 +74,48 @@ public final class AssignmentComputingTimes {
     }
   }
 
+  /** Counters for completed Fast multi-flow searches observed without changing their behavior. */
+  public enum ReachabilityMetric {
+    /** Every completed search, including first alternatives. */
+    SEARCHES("Completed Dijkstra searches"),
+    /** Searches which exhausted their finite frontier with requested destinations still missing. */
+    EXHAUSTED_SEARCHES("Searches ending with unreachable destinations"),
+    /** Searches requesting at least one destination proven unreachable earlier in this sequence. */
+    KNOWN_UNREACHABLE_SEARCHES("Searches with previously known unreachable destinations"),
+    /** Searches reaching a later stopping point after settling all destinations still in doubt. */
+    SHORTENABLE_SEARCHES("Potentially shortenable searches"),
+    /** Searches whose entire destination set was already proven unreachable. */
+    SKIPPABLE_SEARCHES("Potentially entirely skippable searches"),
+    /** Searches whose cost conditions do not justify reusing unreachable destinations. */
+    EXCLUDED_SEARCHES("Searches excluded from reuse estimates"),
+    /** Finite-cost nodes extracted, including the last requested destination. */
+    NODES("Nodes settled"),
+    /** Calls to relax an edge, including edges blocked by infinite costs. */
+    EDGES("Edges examined"),
+    /** Finite-cost nodes extracted after the hypothetical stopping point. */
+    AVOIDABLE_NODES("Potentially avoidable nodes"),
+    /** Edges examined after the hypothetical stopping point. */
+    AVOIDABLE_EDGES("Potentially avoidable edges"),
+    /** Elapsed worker nanoseconds inside the observed compute calls. */
+    SEARCH_TIME("Observed Dijkstra time (worker sum)"),
+    /** Elapsed worker nanoseconds after the hypothetical stopping point, including whole skips. */
+    AVOIDABLE_TIME("Potentially avoidable Dijkstra time (worker sum)");
+
+    private final String label;
+
+    /** Associates a counter with its terminal label. */
+    ReachabilityMetric(String label) {
+      this.label = label;
+    }
+  }
+
   private final LongSupplier clock;
   private final long[] elapsed = new long[Phase.values().length];
   private final ThreadLocal<long[]> threadDatabaseTime = ThreadLocal.withInitial(() -> new long[1]);
   private final long[] workerElapsed = new long[WorkerPhase.values().length];
   private final boolean[] workerPhases = new boolean[WorkerPhase.values().length];
+  private final long[] reachability = new long[ReachabilityMetric.values().length];
+  private boolean hasReachabilityDetails;
   private long workerPathOutputTime;
   private boolean hasWorkerDetails;
   private volatile boolean enabled;
@@ -111,6 +148,10 @@ public final class AssignmentComputingTimes {
       workerElapsed[i] = 0;
       workerPhases[i] = false;
     }
+    for (int i = 0; i < reachability.length; i++) {
+      reachability[i] = 0;
+    }
+    hasReachabilityDetails = false;
     workerPathOutputTime = 0;
     hasWorkerDetails = false;
     threadDatabaseTime.remove();
@@ -215,6 +256,9 @@ public final class AssignmentComputingTimes {
   public final class WorkerTimes implements AutoCloseable {
     private final boolean recording = enabled;
     private final long[] durations = new long[WorkerPhase.values().length];
+    private final long[] searchMeasurements =
+        recording ? new long[ReachabilityMetric.values().length] : null;
+    private boolean hasSearchMeasurements;
     private final boolean[] phases = new boolean[WorkerPhase.values().length];
     private WorkerPhase currentPhase;
     private int pathOutputDepth;
@@ -233,6 +277,28 @@ public final class AssignmentComputingTimes {
      */
     public boolean isEnabled() {
       return recording;
+    }
+
+    /**
+     * Reads the worker's clock for an optional detailed measurement.
+     *
+     * @return Monotonic timestamp, or zero without a clock read when auditing is disabled.
+     */
+    public long startMeasurement() {
+      return recording ? clock.getAsLong() : 0;
+    }
+
+    /**
+     * Adds a completed search's observation to local counters, without locking the shared audit.
+     *
+     * @param metric Counter to update; time metrics use nanoseconds.
+     * @param value Nonnegative measured count or elapsed time.
+     */
+    public void addReachability(ReachabilityMetric metric, long value) {
+      if (recording) {
+        searchMeasurements[metric.ordinal()] += value;
+        hasSearchMeasurements = true;
+      }
     }
 
     /**
@@ -306,6 +372,10 @@ public final class AssignmentComputingTimes {
             workerElapsed[i] += durations[i];
             workerPhases[i] |= phases[i];
           }
+          for (int i = 0; i < searchMeasurements.length; i++) {
+            reachability[i] += searchMeasurements[i];
+          }
+          hasReachabilityDetails |= hasSearchMeasurements;
           workerPathOutputTime += pathOutputTime;
           hasWorkerDetails = true;
         }
@@ -360,9 +430,53 @@ public final class AssignmentComputingTimes {
       report.append("  Computation stages exclude path-output calls.\n");
       report.append("  Setup, cost-markup updates and coordinator work are not itemized.\n");
     }
+    if (hasReachabilityDetails) {
+      appendReachability(report);
+    }
     report.append("  Parallel work and path writes overlap; these rows are not additive.\n");
     System.out.print(report);
     threadDatabaseTime.remove();
+  }
+
+  /**
+   * Prints observations separately from the existing stage timings; no work was actually skipped.
+   */
+  private void appendReachability(StringBuilder report) {
+    report.append("  Fast multi-flow unreachable-destination diagnostic:\n");
+    for (ReachabilityMetric metric : ReachabilityMetric.values()) {
+      long value = reachability[metric.ordinal()];
+      if (metric == ReachabilityMetric.SEARCH_TIME || metric == ReachabilityMetric.AVOIDABLE_TIME) {
+        appendTime(report, "  " + metric.label, value);
+      } else {
+        report.append(String.format(Locale.ROOT, "    %-56s %12d%n", metric.label + ":", value));
+      }
+    }
+    appendShare(
+        report,
+        "Potentially avoidable edge examinations",
+        ReachabilityMetric.AVOIDABLE_EDGES,
+        ReachabilityMetric.EDGES);
+    appendShare(
+        report,
+        "Potentially avoidable share of observed Dijkstra time",
+        ReachabilityMetric.AVOIDABLE_TIME,
+        ReachabilityMetric.SEARCH_TIME);
+    report.append("  Shortenable and entirely skippable searches are separate counts.\n");
+    report.append(
+        "  Searches ran in full; these are diagnostic observations, not wall-time savings.\n");
+    report.append(
+        "  Diagnostic counters add overhead; their times are already included in Dijkstra.\n");
+  }
+
+  /** Shows a measured proportion, using n/a when no denominator was observed. */
+  private void appendShare(
+      StringBuilder report, String label, ReachabilityMetric part, ReachabilityMetric whole) {
+    long total = reachability[whole.ordinal()];
+    String share =
+        total == 0
+            ? "n/a"
+            : String.format(Locale.ROOT, "%.2f %%", 100.0 * reachability[part.ordinal()] / total);
+    report.append(String.format(Locale.ROOT, "    %-56s %12s%n", label + ":", share));
   }
 
   private static void appendTime(StringBuilder report, String label, long nanos) {

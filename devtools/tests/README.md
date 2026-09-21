@@ -7,7 +7,8 @@ The standalone checks use a controlled clock and two threads to verify overlappi
 database-time attribution, repeated cost passes, resetting between assignments, disabled auditing
 and partial-run reporting. Detailed-stage checks also cover overlapping workers, exclusion of
 path-output time (including writer waits), nested automatic flushes counted only once, repeated
-alternatives and displaying only applicable stages. Compilation uses a temporary directory and
+alternatives, displaying only applicable stages, and merging/resetting reachability counters across
+workers. Compilation uses a temporary directory and
 requires no external libraries.
 
 With `NodusC.displayComputingTimes` enabled, every assignment algorithm prints a worker breakdown
@@ -52,7 +53,9 @@ header-matching algorithm have not been optimized here.
 loop on a synthetic network with two origins and an unreachable destination. Multi-flow workers
 compute three alternatives. The test compares exact current/auxiliary volumes, modal shares and
 saved path rows with auditing disabled/enabled, checks the applicable stages, and covers disabled,
-header-only and detailed path output, automatic/final flushes and failed modal splits. It uses a
+header-only and detailed path output, automatic/final flushes and failed modal splits. It also checks
+Fast Multi-flow reachability counts and verifies that the observer is absent when auditing is off.
+It uses a
 disposable in-memory HSQLDB database and a clock that advances on each read; its reported times are
 test values, not performance measurements. Run it from the project root:
 
@@ -66,6 +69,69 @@ rm -r "$nodus_test_dir"
 
 These checks are developer regression tests. To collect baseline runtimes for your own project,
 enable `NodusC.displayComputingTimes` and run the assignment normally in Nodus.
+
+## Fast Multi-flow unreachable-destination diagnostic
+
+To measure the relevance of reusing unreachable destinations, set `NodusC.displayComputingTimes`
+to `true` and run your normal **Fast Multi-flow** assignment. A new section headed
+`Fast multi-flow unreachable-destination diagnostic` is printed below the timing breakdown. No
+separate test script or synthetic input is needed to measure your project.
+
+The observer runs the existing Dijkstra algorithm to its usual stopping point. After a completed
+search exhausts its finite frontier, any requested destinations still missing become known
+unreachable for the remaining alternatives of that origin/group/mode/means sequence. A later
+search is observed at the point when all destinations not already known unreachable have been
+settled. Work performed after that point is recorded as potentially avoidable. If every requested
+destination was already known unreachable, the entire call is potentially skippable, including
+its destination setup and heap initialization.
+
+| Report row | Meaning |
+| --- | --- |
+| Completed Dijkstra searches | Searches which finished normally; interrupted searches remain in the existing stage time but are excluded from these diagnostic totals. |
+| Searches ending with unreachable destinations | Searches which ran out of finite-cost nodes before reaching every unique requested destination. |
+| Searches with previously known unreachable destinations | Searches requesting at least one destination proven unreachable in an earlier alternative of the same sequence. |
+| Potentially shortenable searches | Searches which reached the hypothetical stopping point after doing some necessary work. |
+| Potentially entirely skippable searches | Searches whose complete requested destination set was already known unreachable; separate from the preceding count. |
+| Searches excluded from reuse estimates | Searches with unsuitable cost conditions, or where observing a previously unreachable target become reachable invalidated the sequence assumptions. Total work is still counted. |
+| Nodes settled / Edges examined | Finite-cost node extractions and edge-relaxation attempts in the completed searches. Blocked/non-improving edges count as examined; the final infinite-cost heap extraction does not count as a settled node. |
+| Potentially avoidable nodes / edges | Work after the hypothetical stopping point, including the complete work of entirely skippable searches. Outgoing edges from the final required destination count here if examined after that point. |
+| Observed Dijkstra time (worker sum) | Elapsed time inside the observed compute calls, including the observer's counting overhead, but excluding its final counter aggregation and learning of newly unreachable targets. |
+| Potentially avoidable Dijkstra time (worker sum) | The portion after the hypothetical stop, including full-call time for entirely skippable searches. |
+| Potentially avoidable edge examinations / share of observed Dijkstra time | Percentages of the corresponding observed totals; `n/a` means the denominator is zero. |
+
+First searches must establish reachability and contribute no savings estimate. Newly unreachable
+targets, for example after cost overflow, must also be discovered before subsequent searches can
+reuse that knowledge. Duplicate OD destinations are counted once in each search's target set.
+Knowledge resets at every origin/mode/means boundary and worker job, including changes of group;
+a source change also clears it defensively. Reuse estimates require nonnegative, non-NaN initial
+edge costs and a finite markup multiplier of at least one. Infinite edge costs are allowed because
+they represent blocked links. Cost decreases and non-finite multipliers disable reuse estimates.
+
+Look first at **Potentially avoidable share of observed Dijkstra time**, together with the edge
+percentage and entirely skippable search count. A high count of unreachable destinations alone
+is insufficient: a necessary destination might already require exploring almost the whole graph.
+These are worker sums and work counts, **not promised reductions in assignment wall time**. No
+search is shortened by this diagnostic. The observer adds overhead, and all its time is already
+inside the existing Dijkstra/assignment rows; do not add the diagnostic times to those rows.
+With the audit disabled, Fast Multi-flow uses the ordinary Dijkstra class, with no diagnostic
+counters, reachability storage, extra clock reads or per-edge observer calls. Other algorithms
+retain their existing timing reports.
+
+`DijkstraReachabilityTest.java` uses synthetic graphs and a controlled clock to check exact node,
+edge and time attribution for partial and whole-search opportunities, first searches, duplicate
+and empty destination sets, unreachable targets introduced by overflow, sequence/source resets,
+invalid cost conditions and failed searches. It compares complete predecessor and distance arrays
+with ordinary Dijkstra, including 600 random searches with cost ties, zero-cost edges and loading
+restrictions. No project or database is opened. Run these developer checks after changing the
+diagnostic:
+
+```sh
+ant build-project
+nodus_test_dir=$(mktemp -d)
+javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_test_dir" devtools/tests/DijkstraReachabilityTest.java
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.compute.assign.shortestpath.DijkstraReachabilityTest
+rm -r "$nodus_test_dir"
+```
 
 ## Cost parser cache checks
 

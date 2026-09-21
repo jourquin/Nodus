@@ -2,6 +2,7 @@ package edu.uclouvain.core.nodus.compute.assign;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.Phase;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.ReachabilityMetric;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerPhase;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerTimes;
 import java.io.ByteArrayOutputStream;
@@ -48,6 +49,11 @@ public final class AssignmentComputingTimesTest {
     audit.startAssignment();
     WorkerTimes first = audit.newWorkerTimes();
     check(first.isEnabled(), "Enabled worker audit is inactive");
+    first.addReachability(ReachabilityMetric.SEARCHES, 2);
+    first.addReachability(ReachabilityMetric.EDGES, 4);
+    first.addReachability(ReachabilityMetric.AVOIDABLE_EDGES, 1);
+    first.addReachability(ReachabilityMetric.SEARCH_TIME, 3_000_000_000L);
+    first.addReachability(ReachabilityMetric.AVOIDABLE_TIME, 1_000_000_000L);
     time(1);
     long firstBefore = audit.getThreadDatabaseTime();
     long firstPath = audit.startPaths();
@@ -61,6 +67,11 @@ public final class AssignmentComputingTimesTest {
         new Thread(
             () -> {
               try (WorkerTimes second = audit.newWorkerTimes()) {
+                second.addReachability(ReachabilityMetric.SEARCHES, 3);
+                second.addReachability(ReachabilityMetric.EDGES, 6);
+                second.addReachability(ReachabilityMetric.AVOIDABLE_EDGES, 2);
+                second.addReachability(ReachabilityMetric.SEARCH_TIME, 6_000_000_000L);
+                second.addReachability(ReachabilityMetric.AVOIDABLE_TIME, 2_000_000_000L);
                 long before = audit.getThreadDatabaseTime();
                 long paths = audit.startPaths();
                 second.startPhase(WorkerPhase.DIJKSTRA);
@@ -129,6 +140,14 @@ public final class AssignmentComputingTimesTest {
     audit.finishAndPrint("FastMFAssignment", 26, 2, true);
     String report = output.toString("UTF-8");
     checkTime(report, "Dijkstra", "9.000");
+    checkTime(report, "Observed Dijkstra time (worker sum)", "9.000");
+    checkTime(report, "Potentially avoidable Dijkstra time (worker sum)", "3.000");
+    check(
+        report.matches("(?s).*Completed Dijkstra searches:\\s+5\\R.*"),
+        "Search counts were not merged exactly once across workers");
+    check(
+        report.matches("(?s).*Potentially avoidable edge examinations:\\s+30\\.00 %\\R.*"),
+        "Wrong ratio or locale for reachability counters");
     checkTime(report, "Path reconstruction", "2.000");
     checkTime(report, "Header matching", "2.000");
     checkTime(report, "Modal splitting and path filtering", "6.000");
@@ -158,6 +177,7 @@ public final class AssignmentComputingTimesTest {
     audit.finishAndPrint("FastMFAssignment", 27, 1, false);
     report = output.toString("UTF-8");
     check(report.contains("failed/cancelled"), "Failed worker run not identified");
+    check(!report.contains("unreachable-destination diagnostic"), "Stale diagnostic after reset");
     checkTime(report, "Dijkstra", "0.000");
     checkTime(report, "Path reconstruction", "0.000");
     checkTime(report, "Header matching", "0.000");
@@ -216,6 +236,10 @@ public final class AssignmentComputingTimesTest {
       disabled.endPaths(disabled.startPaths(), disabled.getThreadDatabaseTime());
       try (WorkerTimes details = disabled.newWorkerTimes()) {
         details.includePhases(WorkerPhase.values());
+        check(details.startMeasurement() == 0, "Disabled diagnostic read its clock");
+        for (ReachabilityMetric metric : ReachabilityMetric.values()) {
+          details.addReachability(metric, 123);
+        }
         check(!details.isEnabled(), "Disabled worker audit is active");
         for (WorkerPhase phase : WorkerPhase.values()) {
           details.startPhase(phase);

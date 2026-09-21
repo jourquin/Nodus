@@ -29,6 +29,7 @@ import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra;
+import edu.uclouvain.core.nodus.compute.assign.shortestpath.ReachabilityDijkstra;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.PathODCell;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
@@ -59,6 +60,9 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
   byte maxDetourReferenceMode = -1;
 
   private BinaryHeapDijkstra shortestPath;
+
+  /** Optional observer of repeated unreachable destinations; never changes a search. */
+  private ReachabilityDijkstra reachabilityDiagnostic;
 
   private int[] availableModeMeans;
 
@@ -105,7 +109,13 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     // Initialize
     graph = virtualNet.generateAdjacencyList(groupIndex);
     edgeUpdates = new MultiFlowEdgeUpdates(graph);
-    shortestPath = new BinaryHeapDijkstra(graph, virtualNet);
+    if (workerTimes.isEnabled()) {
+      reachabilityDiagnostic = new ReachabilityDijkstra(graph, virtualNet, workerTimes);
+      shortestPath = reachabilityDiagnostic;
+    } else {
+      reachabilityDiagnostic = null;
+      shortestPath = new BinaryHeapDijkstra(graph, virtualNet);
+    }
     availableModeMeans = virtualNet.getAvailableModeMeans(groupIndex);
 
     maxDetourReferenceMode = assignmentParameters.getMaxDetourReferenceMode();
@@ -184,6 +194,11 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
            */
           if (canLoadToCurrentModeMeansFromThisNode) {
             edgeUpdates.restrictLoading(availableModeMean);
+          }
+
+          // Knowledge cannot cross an origin or a change in loading restrictions.
+          if (reachabilityDiagnostic != null) {
+            reachabilityDiagnostic.startSequence(1 + assignmentParameters.getCostMarkup());
           }
 
           /*

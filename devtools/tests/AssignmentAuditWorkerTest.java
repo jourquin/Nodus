@@ -9,6 +9,7 @@ import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
+import edu.uclouvain.core.nodus.compute.assign.shortestpath.ReachabilityDijkstra;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
@@ -362,6 +363,18 @@ public final class AssignmentAuditWorkerTest {
     throw new AssertionError("Missing stage: " + label);
   }
 
+  private static void count(String report, String label, int expected) {
+    for (String line : report.split("\\R")) {
+      if (line.stripLeading().startsWith(label + ":")) {
+        check(
+            Integer.parseInt(line.substring(line.indexOf(':') + 1).trim()) == expected,
+            "Wrong diagnostic count: " + line);
+        return;
+      }
+    }
+    throw new AssertionError("Missing diagnostic count: " + label);
+  }
+
   private static List<String> run(
       Connection connection, String algorithm, boolean enabled, int outputMode, boolean fail)
       throws Exception {
@@ -407,6 +420,13 @@ public final class AssignmentAuditWorkerTest {
           diagnostics.toString("UTF-8").replace("Goal not reachable from source.", "").trim();
       check(unexpected.isEmpty(), "Unexpected worker failure: " + unexpected);
       check(!worker.isAlive(), "Worker did not finish: " + algorithm);
+      if (algorithm.equals("FastMF")) {
+        Field searchField = FastMFAssignmentWorker.class.getDeclaredField("shortestPath");
+        searchField.setAccessible(true);
+        check(
+            (searchField.get(worker) instanceof ReachabilityDijkstra) == enabled,
+            "Observer must be used only when auditing is enabled");
+      }
       boolean success = !worker.isCancelled();
       check(success != fail, "Unexpected assignment outcome: " + algorithm);
       check(writer.close(), "Writer close failed");
@@ -433,6 +453,18 @@ public final class AssignmentAuditWorkerTest {
       }
       String report = output.toString("UTF-8");
       if (enabled) {
+        if (algorithm.equals("FastMF")) {
+          count(report, "Completed Dijkstra searches", fail ? 3 : 6);
+          count(report, "Searches ending with unreachable destinations", fail ? 3 : 6);
+          count(report, "Searches with previously known unreachable destinations", fail ? 2 : 4);
+          count(report, "Potentially shortenable searches", fail ? 2 : 4);
+          count(report, "Potentially entirely skippable searches", 0);
+          count(report, "Searches excluded from reuse estimates", 0);
+          measured(report, "Observed Dijkstra time (worker sum)", true);
+          measured(report, "Potentially avoidable Dijkstra time (worker sum)", true);
+        } else {
+          check(!report.contains("unreachable-destination diagnostic"), "Unexpected diagnostic");
+        }
         boolean multiFlow = algorithm.equals("FastMF") || algorithm.equals("ExactMF");
         measured(report, algorithm.equals("ExactMF") ? "A*" : "Dijkstra", true);
         if (multiFlow) {

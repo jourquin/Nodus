@@ -79,13 +79,16 @@ public class BinaryHeapDijkstra {
   /** Source determines the original cyclic ordering of nodes in the heap. */
   private int initialSource;
 
-  /** Destinations marked by the previous OD row. */
-  private final int[] markedDestinations;
+  /**
+   * Unique destinations marked by the latest OD row. Package-visible for the read-only observer.
+   */
+  final int[] markedDestinations;
 
   /** Search-local flags keep independent search objects from sharing destination state. */
-  private final boolean[] nodesToReach;
+  final boolean[] nodesToReach;
 
-  private int nbMarkedDestinations;
+  /** Number of populated destination entries, also read by the optional reachability observer. */
+  int nbMarkedDestinations;
 
   /** Virtual network used for the assignment. */
   private VirtualNetwork virtualNet;
