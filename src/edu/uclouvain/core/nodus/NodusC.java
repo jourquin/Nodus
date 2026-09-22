@@ -31,6 +31,12 @@ public class NodusC {
   /** Print runtime measurements for each assignment. Sampled when the assignment starts. */
   public static boolean displayComputingTimes = false;
 
+  /**
+   * Use compact graph and heap arrays for all assignment shortest-path searches (Dijkstra and A*).
+   * Set false to benchmark the previous implementations with the same assignment settings.
+   */
+  public static boolean useCompactShortestPaths = true;
+
   /** Default constructor. */
   public NodusC() {}
 

@@ -28,13 +28,36 @@ package edu.uclouvain.core.nodus.compute.assign.shortestpath;
  */
 public class BinaryHeapAStar extends BinaryHeapDijkstra {
 
+  /** Fixed coordinates for compact searches, absent with the original object representation. */
+  private final double[] latitudes;
+
+  private final double[] longitudes;
+
   /**
    * Initializes the data structures.
    *
    * @param graph AdjacencyNode[]
    */
   public BinaryHeapAStar(AdjacencyNode[] graph) {
-    super(graph);
+    this(graph, null);
+  }
+
+  /**
+   * Selects compact graph/heap storage while preserving the original A* heuristic and tie order.
+   *
+   * @param graph Worker adjacency list with consistent node coordinates in all adjacency entries.
+   * @param compactGraph Synchronized compact copy, or null for the original implementation.
+   */
+  public BinaryHeapAStar(AdjacencyNode[] graph, CompactShortestPathGraph compactGraph) {
+    super(graph, null, compactGraph, true);
+    latitudes = compactGraph == null ? null : new double[graph.length];
+    longitudes = compactGraph == null ? null : new double[graph.length];
+    if (compactGraph != null) {
+      for (int node = 1; node < graph.length; node++) {
+        latitudes[node] = graph[node].latitude;
+        longitudes[node] = graph[node].longitude;
+      }
+    }
   }
 
   /**
@@ -56,16 +79,20 @@ public class BinaryHeapAStar extends BinaryHeapDijkstra {
 
       weights[min] = minWeight;
 
-      for (AdjacencyNode curNode = graph[min];
-          curNode.nextNode != null;
-          curNode = curNode.nextNode) {
-        int nextNodeNum = curNode.nextNode.virtualNodeNum;
-        int position = getNodePosition(nextNodeNum);
-        if (position != -1 && getHeapNode(position).goalEstWeight == 0) {
-          getHeapNode(position).updateGoalEstWeight(curNode.nextNode.goalEst(graph[goal]));
-        }
+      if (compactGraph != null) {
+        relaxCompactEdges(min, goal);
+      } else {
+        for (AdjacencyNode curNode = graph[min];
+            curNode.nextNode != null;
+            curNode = curNode.nextNode) {
+          int nextNodeNum = curNode.nextNode.virtualNodeNum;
+          int position = getNodePosition(nextNodeNum);
+          if (position != -1 && getHeapNode(position).goalEstWeight == 0) {
+            getHeapNode(position).updateGoalEstWeight(curNode.nextNode.goalEst(graph[goal]));
+          }
 
-        relax(graph[min].virtualNodeNum, nextNodeNum, curNode.edgeWeight);
+          relax(graph[min].virtualNodeNum, nextNodeNum, curNode.edgeWeight);
+        }
       }
 
       min = extractMin();
@@ -85,6 +112,10 @@ public class BinaryHeapAStar extends BinaryHeapDijkstra {
    */
   @Override
   public void decreaseKey(int nodeNum, double newVal) {
+    if (compactHeap != null) {
+      super.decreaseKey(nodeNum, newVal);
+      return;
+    }
     int position = getNodePosition(nodeNum);
     BinaryHeapNode node = getHeapNode(position);
     node.updateWeight(newVal);
@@ -115,6 +146,10 @@ public class BinaryHeapAStar extends BinaryHeapDijkstra {
    */
   @Override
   public void heapify(int i) {
+    if (compactHeap != null) {
+      super.heapify(i);
+      return;
+    }
     if (i > heapSize) {
       return;
     }
@@ -159,5 +194,21 @@ public class BinaryHeapAStar extends BinaryHeapDijkstra {
    */
   public void initializeSingleSource(AdjacencyNode[] graph, int source) {
     super.initializeSingleSource(source);
+  }
+
+  /** Uses primitive coordinates and exactly the same arithmetic as AdjacencyNode.goalEst. */
+  private void relaxCompactEdges(int node, int goal) {
+    int end = compactGraph.offsets[node + 1];
+    for (int edge = compactGraph.offsets[node]; edge < end; edge++) {
+      int next = compactGraph.destinations[edge];
+      if (compactHeap.needsEstimate(next)) {
+        double estimate =
+            Math.sqrt(
+                Math.pow(Math.abs(longitudes[goal] - longitudes[next]), 2)
+                    + Math.pow(Math.abs(latitudes[goal] - latitudes[next]), 2));
+        compactHeap.setEstimate(next, estimate);
+      }
+      relax(node, next, compactGraph.costs[edge]);
+    }
   }
 }

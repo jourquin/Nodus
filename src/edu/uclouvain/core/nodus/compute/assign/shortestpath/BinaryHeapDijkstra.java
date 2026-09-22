@@ -45,6 +45,12 @@ public class BinaryHeapDijkstra {
   /** Graph in which shortest paths must be computed. */
   AdjacencyNode[] graph;
 
+  /** Optional fixed-topology arrays; null retains the original linked-list implementation. */
+  final CompactShortestPathGraph compactGraph;
+
+  /** Primitive heap paired with the compact graph, optionally with A* heuristic keys. */
+  final CompactShortestPathHeap compactHeap;
+
   /** Heap size. */
   int heapSize;
 
@@ -99,21 +105,7 @@ public class BinaryHeapDijkstra {
    * @param graph An array of adjacency nodes
    */
   public BinaryHeapDijkstra(AdjacencyNode[] graph) {
-    this.graph = graph;
-    weights = new double[graph.length];
-
-    Arrays.fill(weights, Double.MAX_VALUE);
-
-    pi = new int[graph.length];
-
-    stock = new BinaryHeapNode[graph.length];
-    upperBoundCosts = new BinaryHeapNode[graph.length];
-
-    nodePos = new int[graph.length];
-    touchedHeapSlots = new int[graph.length];
-    touchedNodes = new int[graph.length];
-    markedDestinations = new int[graph.length];
-    nodesToReach = new boolean[graph.length];
+    this(graph, null, null);
   }
 
   /**
@@ -123,8 +115,55 @@ public class BinaryHeapDijkstra {
    * @param virtualNet VirtualNetwork
    */
   public BinaryHeapDijkstra(AdjacencyNode[] graph, VirtualNetwork virtualNet) {
-    this(graph);
+    this(graph, virtualNet, null);
+  }
+
+  /**
+   * Selects the compact graph and primitive heap for a worker with explicit cost synchronization.
+   *
+   * @param graph Original adjacency list, retained for destination flags and reconstruction.
+   * @param virtualNet Network used to resolve OD destinations; not needed for single-goal searches.
+   * @param compactGraph Compact copy of this same graph, or null for the original implementation.
+   */
+  public BinaryHeapDijkstra(
+      AdjacencyNode[] graph, VirtualNetwork virtualNet, CompactShortestPathGraph compactGraph) {
+    this(graph, virtualNet, compactGraph, false);
+  }
+
+  /**
+   * Initializes shared search storage and optionally allocates A* heuristic labels.
+   *
+   * @param graph Original adjacency list.
+   * @param virtualNet Network used to resolve OD destinations.
+   * @param compactGraph Synchronized compact copy, or null for object storage.
+   * @param aStar Whether compact heap ordering uses distance plus a goal estimate.
+   */
+  protected BinaryHeapDijkstra(
+      AdjacencyNode[] graph,
+      VirtualNetwork virtualNet,
+      CompactShortestPathGraph compactGraph,
+      boolean aStar) {
+    if (compactGraph != null && compactGraph.graph != graph) {
+      throw new IllegalArgumentException("Compact graph must belong to this adjacency list");
+    }
+    this.graph = graph;
     this.virtualNet = virtualNet;
+    this.compactGraph = compactGraph;
+    weights = new double[graph.length];
+
+    Arrays.fill(weights, Double.MAX_VALUE);
+
+    pi = new int[graph.length];
+
+    nodePos = new int[graph.length];
+    compactHeap = compactGraph == null ? null : new CompactShortestPathHeap(nodePos, aStar);
+    // The compact implementation needs neither heap-node objects nor their reference arrays.
+    stock = compactHeap == null ? new BinaryHeapNode[graph.length] : null;
+    upperBoundCosts = compactHeap == null ? new BinaryHeapNode[graph.length] : null;
+    touchedHeapSlots = compactHeap == null ? new int[graph.length] : null;
+    touchedNodes = compactHeap == null ? new int[graph.length] : null;
+    markedDestinations = new int[graph.length];
+    nodesToReach = new boolean[graph.length];
   }
 
   /**
@@ -154,9 +193,7 @@ public class BinaryHeapDijkstra {
         }
       }
 
-      for (AdjacencyNode cursor = graph[min]; cursor.nextNode != null; cursor = cursor.nextNode) {
-        relax(graph[min].virtualNodeNum, cursor.nextNode.virtualNodeNum, cursor.edgeWeight);
-      }
+      relaxOutgoingEdges(min);
 
       min = extractMin();
     }
@@ -179,9 +216,7 @@ public class BinaryHeapDijkstra {
         break;
       }
 
-      for (AdjacencyNode cursor = graph[min]; cursor.nextNode != null; cursor = cursor.nextNode) {
-        relax(graph[min].virtualNodeNum, cursor.nextNode.virtualNodeNum, cursor.edgeWeight);
-      }
+      relaxOutgoingEdges(min);
 
       min = extractMin();
     }
@@ -195,6 +230,10 @@ public class BinaryHeapDijkstra {
    * @param newVal double The new key value
    */
   public void decreaseKey(int nodeNum, double newVal) {
+    if (compactHeap != null) {
+      compactHeap.decreaseKey(nodeNum, newVal);
+      return;
+    }
     int position = getNodePosition(nodeNum);
     BinaryHeapNode node = getHeapNode(position);
     node.weight = newVal;
@@ -220,6 +259,12 @@ public class BinaryHeapDijkstra {
    * @return int The node number with the minimum shortest path estimate
    */
   public int extractMin() {
+    if (compactHeap != null) {
+      int min = compactHeap.extractMin();
+      heapSize = compactHeap.size;
+      minWeight = compactHeap.minWeight;
+      return min;
+    }
     BinaryHeapNode min;
 
     if (heapSize < 1) {
@@ -269,6 +314,10 @@ public class BinaryHeapDijkstra {
    * @param i int the index in the binary heap array of the node to perform heapify on
    */
   public void heapify(int i) {
+    if (compactHeap != null) {
+      compactHeap.heapify(i);
+      return;
+    }
     if (i > heapSize) {
       return;
     }
@@ -311,6 +360,12 @@ public class BinaryHeapDijkstra {
    * @param source The number identifier of the source node
    */
   public void initializeSingleSource(int source) {
+    initialSource = source;
+    if (compactHeap != null) {
+      compactHeap.initialize(source, pi, weights);
+      heapSize = compactHeap.size;
+      return;
+    }
     for (int i = 0; i < nbTouchedNodes; i++) {
       int node = touchedNodes[i];
       pi[node] = 0;
@@ -322,7 +377,6 @@ public class BinaryHeapDijkstra {
     }
     nbTouchedNodes = 0;
     nbTouchedHeapSlots = 0;
-    initialSource = source;
     heapSize = graph.length - 1;
     if (heapSize > 0) {
       getHeapNode(1);
@@ -380,6 +434,12 @@ public class BinaryHeapDijkstra {
     if (!(candidateWeight < Double.MAX_VALUE)) {
       return;
     }
+    if (compactHeap != null) {
+      if (compactHeap.improve(v, candidateWeight)) {
+        pi[v] = u;
+      }
+      return;
+    }
     int position = getNodePosition(v);
     if (position == -1) {
       return;
@@ -389,6 +449,20 @@ public class BinaryHeapDijkstra {
       decreaseKey(v, candidateWeight);
       pi[v] = u;
       // decreaseKey already restores Dijkstra's heap order by moving the node upward.
+    }
+  }
+
+  /** Traverses outgoing edges in the same order with either graph representation. */
+  private void relaxOutgoingEdges(int node) {
+    if (compactGraph != null) {
+      int end = compactGraph.offsets[node + 1];
+      for (int edge = compactGraph.offsets[node]; edge < end; edge++) {
+        relax(node, compactGraph.destinations[edge], compactGraph.costs[edge]);
+      }
+    } else {
+      for (AdjacencyNode edge = graph[node]; edge.nextNode != null; edge = edge.nextNode) {
+        relax(graph[node].virtualNodeNum, edge.nextNode.virtualNodeNum, edge.edgeWeight);
+      }
     }
   }
 
@@ -432,6 +506,10 @@ public class BinaryHeapDijkstra {
    * @param b int Index of other node to be swapped in the binary heap array
    */
   public void swap(int a, int b) {
+    if (compactHeap != null) {
+      compactHeap.swap(a, b);
+      return;
+    }
     BinaryHeapNode temp = getHeapNode(a);
     upperBoundCosts[a] = getHeapNode(b);
     upperBoundCosts[b] = temp;

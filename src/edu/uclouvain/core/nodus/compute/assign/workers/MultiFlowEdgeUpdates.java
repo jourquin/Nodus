@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.compute.assign.workers;
 
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
+import edu.uclouvain.core.nodus.compute.assign.shortestpath.CompactShortestPathGraph;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,6 +36,9 @@ import java.util.Set;
  * subsequent weight and volume updates visit only the relevant edges.
  */
 final class MultiFlowEdgeUpdates {
+  /** Optional multi-flow search arrays, updated together with the reconstruction graph. */
+  private final CompactShortestPathGraph compactGraph;
+
   private final List<AdjacencyNode> loadingEdges = new ArrayList<>();
   private final List<AdjacencyNode> markedEdges = new ArrayList<>();
   private final Set<AdjacencyNode> changedWeights =
@@ -43,6 +47,12 @@ final class MultiFlowEdgeUpdates {
       Collections.newSetFromMap(new IdentityHashMap<>());
 
   MultiFlowEdgeUpdates(AdjacencyNode[] graph) {
+    this(graph, null);
+  }
+
+  /** Indexes mutable loading edges and attaches the optional compact search costs. */
+  MultiFlowEdgeUpdates(AdjacencyNode[] graph, CompactShortestPathGraph compactGraph) {
+    this.compactGraph = compactGraph;
     for (int i = 1; i < graph.length; i++) {
       for (AdjacencyNode edge = graph[i];
           edge != null && edge.virtualLink != null;
@@ -59,7 +69,7 @@ final class MultiFlowEdgeUpdates {
     for (AdjacencyNode edge : loadingEdges) {
       if (edge.virtualLink.getEndVirtualNode().getModeMeansKey() != modeMeans) {
         changedWeights.add(edge);
-        edge.edgeWeight = Double.POSITIVE_INFINITY;
+        setWeight(edge, Double.POSITIVE_INFINITY);
       }
     }
   }
@@ -79,7 +89,7 @@ final class MultiFlowEdgeUpdates {
   void increaseCosts(double multiplier) {
     for (AdjacencyNode edge : markedEdges) {
       changedWeights.add(edge);
-      edge.edgeWeight *= multiplier;
+      setWeight(edge, edge.edgeWeight * multiplier);
     }
   }
 
@@ -98,9 +108,17 @@ final class MultiFlowEdgeUpdates {
   /** Restores weights separately from marks, matching the different Fast and Exact lifetimes. */
   void restoreWeights() {
     for (AdjacencyNode edge : changedWeights) {
-      edge.edgeWeight = edge.originalEdgeWeight;
+      setWeight(edge, edge.originalEdgeWeight);
     }
     changedWeights.clear();
+  }
+
+  /** Keeps both graph representations current without rescanning or copying all edge costs. */
+  private void setWeight(AdjacencyNode edge, double weight) {
+    edge.edgeWeight = weight;
+    if (compactGraph != null) {
+      compactGraph.copyWeight(edge);
+    }
   }
 
   /** Applies the modal split for one OD cell, then forgets the links whose cells were consumed. */

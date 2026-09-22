@@ -74,7 +74,7 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
 
     // Initialize the adjacency list for current group
     graph = virtualNet.generateAdjacencyList(groupIndex);
-    shortestPath = new BinaryHeapDijkstra(graph, virtualNet);
+    shortestPath = new BinaryHeapDijkstra(graph, virtualNet, createCompactGraph());
 
     // List of OD pairs that will be relocated after the assignment of this time slice
     demandsToRelocate = new LinkedList<>();

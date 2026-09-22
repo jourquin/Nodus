@@ -64,7 +64,7 @@ public class IncrementalAssignmentWorker extends AssignmentWorker {
 
     // Initialize the adjacency list for current group
     graph = virtualNet.generateAdjacencyList(groupIndex);
-    shortestPath = new BinaryHeapDijkstra(graph, virtualNet);
+    shortestPath = new BinaryHeapDijkstra(graph, virtualNet, createCompactGraph());
 
     // Scan all the nodes
     for (int nodeIndex = 0; nodeIndex < virtualNet.getVirtualNodeLists().length; nodeIndex++) {

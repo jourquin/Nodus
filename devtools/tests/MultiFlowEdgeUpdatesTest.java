@@ -5,6 +5,7 @@ import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapAStar;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra;
+import edu.uclouvain.core.nodus.compute.assign.shortestpath.CompactShortestPathGraph;
 import edu.uclouvain.core.nodus.compute.virtual.PathODCell;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
@@ -247,15 +248,19 @@ public final class MultiFlowEdgeUpdatesTest {
   }
 
   /** Drives real shortest-path algorithms through the two workers' update/reset schedules. */
-  private static void checkRoutes(boolean fast, int iterations, double markup) {
+  private static void checkRoutes(boolean fast, boolean compact, int iterations, double markup) {
     Network expected = routes();
     Network actual = routes();
     FullScan full = new FullScan(expected.graph);
-    MultiFlowEdgeUpdates sparse = new MultiFlowEdgeUpdates(actual.graph);
+    CompactShortestPathGraph compactGraph =
+        compact ? new CompactShortestPathGraph(actual.graph) : null;
+    MultiFlowEdgeUpdates sparse = new MultiFlowEdgeUpdates(actual.graph, compactGraph);
     BinaryHeapDijkstra oldSearch =
         fast ? new BinaryHeapDijkstra(expected.graph) : new BinaryHeapAStar(expected.graph);
     BinaryHeapDijkstra newSearch =
-        fast ? new BinaryHeapDijkstra(actual.graph) : new BinaryHeapAStar(actual.graph);
+        fast
+            ? new BinaryHeapDijkstra(actual.graph, null, compactGraph)
+            : new BinaryHeapAStar(actual.graph, compactGraph);
     int[] modes = {NodusC.MAXMM + 1, 2 * NodusC.MAXMM + 1, 3 * NodusC.MAXMM + 1};
     for (byte group = 0; group < 2; group++) {
       // Repeated origins exercise marks left by the final Fast MF alternative.
@@ -398,7 +403,8 @@ public final class MultiFlowEdgeUpdatesTest {
     for (boolean fast : new boolean[] {true, false}) {
       for (int iterations : new int[] {1, 2, 4}) {
         for (double markup : new double[] {0, 0.2, 1}) {
-          checkRoutes(fast, iterations, markup);
+          checkRoutes(fast, false, iterations, markup);
+          checkRoutes(fast, true, iterations, markup);
         }
       }
     }

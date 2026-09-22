@@ -77,7 +77,23 @@ public final class ReachabilityDijkstra extends BinaryHeapDijkstra {
    */
   public ReachabilityDijkstra(
       AdjacencyNode[] graph, VirtualNetwork virtualNet, WorkerTimes workerTimes) {
-    super(graph, virtualNet);
+    this(graph, virtualNet, workerTimes, null);
+  }
+
+  /**
+   * Observes the selected graph/heap representation with identical counting rules.
+   *
+   * @param graph This worker's original adjacency list.
+   * @param virtualNet Network used to resolve requested destinations.
+   * @param workerTimes Worker-local counters and clock for this assignment job.
+   * @param compactGraph Synchronized compact copy, or null to observe the original implementation.
+   */
+  public ReachabilityDijkstra(
+      AdjacencyNode[] graph,
+      VirtualNetwork virtualNet,
+      WorkerTimes workerTimes,
+      CompactShortestPathGraph compactGraph) {
+    super(graph, virtualNet, compactGraph);
     this.workerTimes = workerTimes;
     boolean valid = true;
     for (AdjacencyNode head : graph) {

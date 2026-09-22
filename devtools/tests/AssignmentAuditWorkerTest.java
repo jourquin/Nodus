@@ -9,6 +9,7 @@ import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
+import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.ReachabilityDijkstra;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
@@ -94,6 +95,9 @@ public final class AssignmentAuditWorkerTest {
     VirtualNodeList[] origins;
     AdjacencyNode[] graph;
     List<VirtualLink> links;
+    int generations;
+    boolean changeCostsBetweenJobs;
+    Runnable beforeGeneration;
 
     private Network() {
       super(null);
@@ -101,6 +105,24 @@ public final class AssignmentAuditWorkerTest {
 
     @Override
     public AdjacencyNode[] generateAdjacencyList(byte group) {
+      generations++;
+      if (beforeGeneration != null) beforeGeneration.run();
+      if (changeCostsBetweenJobs) {
+        // Simulate costs computed by the coordinator before another iteration/time slice.
+        links.get(2).setCost(group, generations == 2 ? -1 : 1);
+        links.get(4).setCost(group, generations == 2 ? 3 : 1.1);
+      }
+      // Like VirtualNetwork, each job receives a fresh graph omitting excluded links.
+      graph = new AdjacencyNode[nodes.length];
+      for (int node = 1; node < nodes.length; node++) {
+        AdjacencyNode tail = new AdjacencyNode(nodes[node]);
+        graph[node] = tail;
+        for (VirtualLink link : nodes[node].getVirtualLinkList()) {
+          if (link.getCost(group) < 0) continue;
+          tail.setNext(new AdjacencyNode(link.getEndVirtualNode()), group, link);
+          tail = tail.nextNode;
+        }
+      }
       return graph;
     }
 
@@ -147,7 +169,7 @@ public final class AssignmentAuditWorkerTest {
               return 3.5;
             }
           };
-      link.setNbGroups(1, 2);
+      link.setNbGroups(1, 3);
       link.setCost((byte) 0, cost);
       link.setDuration((byte) 0, .25);
       links.add(link);
@@ -376,7 +398,24 @@ public final class AssignmentAuditWorkerTest {
   }
 
   private static List<String> run(
-      Connection connection, String algorithm, boolean enabled, int outputMode, boolean fail)
+      Connection connection,
+      String algorithm,
+      boolean enabled,
+      int outputMode,
+      boolean fail,
+      int routes)
+      throws Exception {
+    return run(connection, algorithm, enabled, outputMode, fail, routes, 1);
+  }
+
+  private static List<String> run(
+      Connection connection,
+      String algorithm,
+      boolean enabled,
+      int outputMode,
+      boolean fail,
+      int routes,
+      int jobs)
       throws Exception {
     NodusC.displayComputingTimes = enabled;
     Parameters parameters = new Parameters(connection);
@@ -384,7 +423,7 @@ public final class AssignmentAuditWorkerTest {
     parameters.setSavePaths(outputMode > 0);
     parameters.setDetailedPaths(outputMode > 1);
     parameters.setDurationFunctions(true);
-    parameters.setNbIterations(3);
+    parameters.setNbIterations(routes);
     parameters.setCostMarkup(.5);
     parameters.setModalSplitMethodName("audit-test");
     parameters.audit.startAssignment();
@@ -403,7 +442,16 @@ public final class AssignmentAuditWorkerTest {
       ((DynamicTimeDependentAssignmentWorker) worker).setTimeParameters(0, 0, 60);
     }
     job.workers = new AssignmentWorker[] {worker};
-    queue.addWork(new AssignmentWorkerParameters(job, (byte) 0, (byte) 0, 1, .4));
+    network.changeCostsBetweenJobs = jobs > 1;
+    if (jobs > 1 && worker instanceof DynamicTimeDependentAssignmentWorker) {
+      network.beforeGeneration =
+          () ->
+              ((DynamicTimeDependentAssignmentWorker) worker)
+                  .setTimeParameters(network.generations - 1, network.generations - 1, 1);
+    }
+    for (int work = 1; work <= jobs; work++) {
+      queue.addWork(new AssignmentWorkerParameters(job, (byte) 0, (byte) 0, work, .4));
+    }
     queue.addWork(WorkQueue.NO_MORE_WORK);
     List<String> result = new ArrayList<>();
     try {
@@ -420,13 +468,18 @@ public final class AssignmentAuditWorkerTest {
           diagnostics.toString("UTF-8").replace("Goal not reachable from source.", "").trim();
       check(unexpected.isEmpty(), "Unexpected worker failure: " + unexpected);
       check(!worker.isAlive(), "Worker did not finish: " + algorithm);
-      if (algorithm.equals("FastMF")) {
-        Field searchField = FastMFAssignmentWorker.class.getDeclaredField("shortestPath");
-        searchField.setAccessible(true);
-        check(
-            (searchField.get(worker) instanceof ReachabilityDijkstra) == enabled,
-            "Observer must be used only when auditing is enabled");
-      }
+      Field searchField = worker.getClass().getSuperclass().getDeclaredField("shortestPath");
+      searchField.setAccessible(true);
+      check(
+          (searchField.get(worker) instanceof ReachabilityDijkstra)
+              == (algorithm.equals("FastMF") && enabled),
+          "Observer must be used only for Fast MF when auditing is enabled");
+      Field compactField = BinaryHeapDijkstra.class.getDeclaredField("compactGraph");
+      compactField.setAccessible(true);
+      check(
+          (compactField.get(searchField.get(worker)) != null) == NodusC.useCompactShortestPaths,
+          algorithm + " did not select the requested graph/heap implementation");
+      check(network.generations == jobs, "Not all worker jobs generated a fresh graph");
       boolean success = !worker.isCancelled();
       check(success != fail, "Unexpected assignment outcome: " + algorithm);
       check(writer.close(), "Writer close failed");
@@ -435,7 +488,7 @@ public final class AssignmentAuditWorkerTest {
       double totalVolume = 0;
       for (VirtualLink link : network.links) {
         totalVolume += link.getCurrentVolume((byte) 0) + link.getAuxiliaryVolume((byte) 0);
-        for (int slice = 0; slice < 2; slice++) {
+        for (int slice = 0; slice < 3; slice++) {
           result.add(
               Long.toString(Double.doubleToLongBits(link.getCurrentVolume((byte) 0, slice))));
         }
@@ -443,6 +496,34 @@ public final class AssignmentAuditWorkerTest {
       }
       check(fail || totalVolume > 0, "Fixture assigned no volumes: " + algorithm);
       result.addAll(split.shares);
+      // Dynamic searches may move demand to an intermediate origin between time slices.
+      boolean relocated = false;
+      for (VirtualNodeList origin : network.origins) {
+        for (int row = 0; row < origin.getNbDemandLists(); row++) {
+          List<ODCell> demands = origin.getDemandForGroup(row, 1, (byte) 0);
+          if (demands == null) continue;
+          for (ODCell cell : demands) {
+            relocated |= origin.getRealNodeId() == 2;
+            result.add(
+                "demand:"
+                    + origin.getRealNodeId()
+                    + ":"
+                    + origin.getLoadingVirtualNodeId(row)
+                    + ":"
+                    + cell.getDestinationNodeId()
+                    + ":"
+                    + cell.getRelocatedOriginNodeId()
+                    + ":"
+                    + cell.getRelocatedStartingTime());
+          }
+        }
+      }
+      if (jobs > 1 && algorithm.equals("DynamicTimeDependent")) {
+        check(relocated, "Time-slice fixture never relocated demand");
+        check(
+            network.links.get(4).getCurrentVolume((byte) 0, 1) > 0,
+            "Later time slice did not use the remaining route after a link was excluded");
+      }
       ByteArrayOutputStream output = new ByteArrayOutputStream();
       PrintStream previous = System.out;
       try (PrintStream capture = new PrintStream(output, true, "UTF-8")) {
@@ -454,14 +535,23 @@ public final class AssignmentAuditWorkerTest {
       String report = output.toString("UTF-8");
       if (enabled) {
         if (algorithm.equals("FastMF")) {
-          count(report, "Completed Dijkstra searches", fail ? 3 : 6);
-          count(report, "Searches ending with unreachable destinations", fail ? 3 : 6);
-          count(report, "Searches with previously known unreachable destinations", fail ? 2 : 4);
-          count(report, "Potentially shortenable searches", fail ? 2 : 4);
+          count(report, "Completed Dijkstra searches", fail ? routes : 2 * routes * jobs);
+          count(
+              report,
+              "Searches ending with unreachable destinations",
+              fail ? routes : 2 * routes * jobs);
+          count(
+              report,
+              "Searches with previously known unreachable destinations",
+              fail ? routes - 1 : 2 * (routes - 1) * jobs);
+          count(
+              report,
+              "Potentially shortenable searches",
+              fail ? routes - 1 : 2 * (routes - 1) * jobs);
           count(report, "Potentially entirely skippable searches", 0);
           count(report, "Searches excluded from reuse estimates", 0);
           measured(report, "Observed Dijkstra time (worker sum)", true);
-          measured(report, "Potentially avoidable Dijkstra time (worker sum)", true);
+          measured(report, "Potentially avoidable Dijkstra time (worker sum)", routes > 1);
         } else {
           check(!report.contains("unreachable-destination diagnostic"), "Unexpected diagnostic");
         }
@@ -496,6 +586,7 @@ public final class AssignmentAuditWorkerTest {
   /** Runs the worker fixtures with and without auditing on a disposable database. */
   public static void main(String[] args) throws Exception {
     boolean previous = NodusC.displayComputingTimes;
+    boolean previousCompact = NodusC.useCompactShortestPaths;
     try (Connection connection =
         DriverManager.getConnection("jdbc:hsqldb:mem:nodus_assignment_audit")) {
       connection.setAutoCommit(false);
@@ -511,22 +602,40 @@ public final class AssignmentAuditWorkerTest {
             "ExactMF",
             "FastMF"
           }) {
-        for (int mode = 0; mode <= 2; mode++) {
-          for (boolean fail : new boolean[] {false, true}) {
-            if (fail && !algorithm.endsWith("MF")) continue;
-            List<String> baseline = run(connection, algorithm, false, mode, fail);
-            check(
-                baseline.equals(run(connection, algorithm, true, mode, fail)),
-                "Auditing changed paths, shares or volumes: "
-                    + algorithm
-                    + ", output="
-                    + mode
-                    + ", failure="
-                    + fail);
+        boolean multiFlow = algorithm.endsWith("MF");
+        for (int routes : multiFlow ? new int[] {1, 3} : new int[] {1}) {
+          for (int mode = 0; mode <= 2; mode++) {
+            for (boolean fail : new boolean[] {false, true}) {
+              if (fail && !multiFlow) continue;
+              NodusC.useCompactShortestPaths = false;
+              List<String> baseline = run(connection, algorithm, false, mode, fail, routes);
+              for (boolean compact : new boolean[] {false, true}) {
+                NodusC.useCompactShortestPaths = compact;
+                for (boolean audit : new boolean[] {false, true}) {
+                  check(
+                      baseline.equals(run(connection, algorithm, audit, mode, fail, routes)),
+                      "Compact search/auditing changed paths, shares or volumes: "
+                          + algorithm
+                          + ", routes="
+                          + routes
+                          + ", output="
+                          + mode
+                          + ", failure="
+                          + fail);
+                }
+              }
+            }
           }
         }
+        NodusC.useCompactShortestPaths = false;
+        List<String> repeated = run(connection, algorithm, false, 2, false, 1, 3);
+        NodusC.useCompactShortestPaths = true;
+        check(
+            repeated.equals(run(connection, algorithm, true, 2, false, 1, 3)),
+            "Repeated jobs changed output after cost/topology or time-slice changes: " + algorithm);
       }
     } finally {
+      NodusC.useCompactShortestPaths = previousCompact;
       NodusC.displayComputingTimes = previous;
       JDBCUtils.setConnection(null);
     }

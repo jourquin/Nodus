@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.compute.assign.workers;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
+import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
@@ -30,6 +31,7 @@ import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerTimes;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
+import edu.uclouvain.core.nodus.compute.assign.shortestpath.CompactShortestPathGraph;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriterBuffer;
@@ -149,6 +151,17 @@ public abstract class AssignmentWorker extends Thread {
    * @return True on success
    */
   abstract boolean doAssignment();
+
+  /**
+   * Builds this job's optional compact search graph after generating the current adjacency list.
+   * Rebuilding per job captures updated costs, excluded links, groups, OD classes and time slices.
+   * Multi-flow workers must also synchronize their within-job markups and loading restrictions.
+   *
+   * @return Compact graph, or null when the reference implementation is selected.
+   */
+  final CompactShortestPathGraph createCompactGraph() {
+    return NodusC.useCompactShortestPaths ? new CompactShortestPathGraph(graph) : null;
+  }
 
   /**
    * Returns a new path index. Used by multi-flow assignments. Is thread save.

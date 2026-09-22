@@ -31,6 +31,9 @@ import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
  */
 public class AdjacencyNode {
 
+  /** Index of this outgoing edge in a compact copy of this fixed-topology adjacency list. */
+  int compactEdgeIndex = -1;
+
   /** Weight from head Node to this Node, used during path computation. */
   public double edgeWeight;
 

@@ -113,7 +113,7 @@ is insufficient: a necessary destination might already require exploring almost 
 These are worker sums and work counts, **not promised reductions in assignment wall time**. No
 search is shortened by this diagnostic. The observer adds overhead, and all its time is already
 inside the existing Dijkstra/assignment rows; do not add the diagnostic times to those rows.
-With the audit disabled, Fast Multi-flow uses the ordinary Dijkstra class, with no diagnostic
+With the audit disabled, Fast Multi-flow uses the ordinary Dijkstra class with the selected graph/heap representation and no diagnostic
 counters, reachability storage, extra clock reads or per-edge observer calls. Other algorithms
 retain their existing timing reports.
 
@@ -121,7 +121,7 @@ retain their existing timing reports.
 edge and time attribution for partial and whole-search opportunities, first searches, duplicate
 and empty destination sets, unreachable targets introduced by overflow, sequence/source resets,
 invalid cost conditions and failed searches. It compares complete predecessor and distance arrays
-with ordinary Dijkstra, including 600 random searches with cost ties, zero-cost edges and loading
+with ordinary Dijkstra, including 1,200 random searches across both graph/heap representations with cost ties, zero-cost edges and loading
 restrictions. No project or database is opened. Run these developer checks after changing the
 diagnostic:
 
@@ -217,6 +217,85 @@ rm -r "$nodus_test_dir"
 
 For performance measurements, run a Fast or Exact multi-flow assignment in Nodus with
 `NodusC.displayComputingTimes` enabled and compare the path-computation and total times.
+
+## Compact assignment shortest paths
+
+All assignment algorithms now default to compact graph and heap arrays, controlled by
+`NodusC.useCompactShortestPaths` (renamed from the earlier `useCompactFastMFDijkstra` switch).
+Set it to `false` to compare with the original implementations:
+
+| Assignment algorithms | Compact search |
+| --- | --- |
+| All-or-Nothing, Incremental, MSA, Frank-Wolfe, Incremental–Frank-Wolfe | Dijkstra |
+| Static and dynamic time-dependent | Dijkstra |
+| Fast Multi-flow | Dijkstra |
+| Exact Multi-flow | A* |
+
+```java
+public static boolean displayComputingTimes = true;
+public static boolean useCompactShortestPaths = true; // false selects the previous implementation
+```
+
+To benchmark your project, rebuild/relaunch Nodus after changing the switch and run the usual
+assignment. Keep the same scenario inputs, thread count, iterations/routes, path-saving options
+and other settings for both implementations. One route is sufficient for multi-flow algorithms.
+Allow a warm-up assignment for each setting, then compare several measured runs (preferably their
+medians). Compare **Total elapsed**, **Paths and flow assignment (wall)** and **Dijkstra** (or **A***
+for Exact Multi-flow); the last is a worker elapsed sum, not assignment wall time. Both settings
+retain the same timing breakdown and Fast Multi-flow's unreachable-destination diagnostic when
+auditing is enabled. No separate test script is needed to measure your project. The gain will
+depend on the algorithm and its workload; the Fast Multi-flow improvement does not establish a
+speedup for the other algorithms.
+
+The compact implementation stores outgoing destinations/costs in contiguous arrays and replaces
+heap-node objects with primitive node IDs and tentative costs. It preserves adjacency order,
+source-first heap ordering, strict comparisons for equal costs, sparse initialization and existing
+stopping conditions. The linked adjacency list remains for reconstruction and volume loading.
+Loading restrictions, alternative-route markups and weight restoration update both representations
+in the existing affected-edge passes; there is no full cost-array copy between searches. The compact
+graph is built once per worker job, and its setup is included in assignment/worker totals, outside
+the Dijkstra/A* stage. Each new job rebuilds its compact arrays from current costs and topology,
+including changed costs and excluded links between iterations, OD classes, groups or time slices.
+Incremental–Frank-Wolfe uses the compact searches in both its Incremental and Frank-Wolfe phases.
+Within-job topology is fixed. A* additionally uses primitive coordinate, heuristic and combined-key
+arrays, preserving the original distance formula, zero-estimate sentinel, tie comparisons,
+non-finite-value behavior and downward heap repair. Ordinary Dijkstra does not allocate these
+additional arrays. Service-route searches retain their previous graph and heap.
+
+`CompactDijkstraTest.java` compares 8,000 single-goal and OD-row searches against the previous
+implementation. It checks full predecessor/distance arrays, exact extraction order and edge counts,
+heap positions, sparse resets, direct heap operations, changing sources/costs, ties, parallel edges,
+self loops, duplicates, empty rows, disconnected nodes and infinite/NaN/overflowed costs. Its optional
+benchmark uses synthetic graphs, warms up both implementations, alternates their execution order,
+and reports the median of five search batches plus separate compact-construction time. These
+figures are not promises of end-to-end assignment gains.
+
+`CompactAStarTest.java` adds 4,800 differential searches with changing sources/goals/costs, zero
+and nonzero heuristics, non-finite estimates, equal-cost paths and disconnected targets. It checks
+predecessors, distances, extraction order, edge counts, heap positions, sparse resets and direct
+heap operations against the original A* implementation.
+
+`MultiFlowEdgeUpdatesTest.java` additionally checks compact cost synchronization for both Dijkstra
+and A* across loading restrictions, alternatives, origins and groups. `AssignmentAuditWorkerTest.java`
+compares actual saved headers/details, current/auxiliary/time-slice volumes, modal shares and
+relocated demand for all eight concrete worker types, with compact storage and auditing independently
+on/off. Both multi-flow methods run with one and three routes and cover failed modal splits. Repeated
+jobs exclude/reopen an edge and change its alternative's cost; dynamic jobs also advance through three
+time slices and relocate demand. These fixtures exercise worker behavior, not the full GUI/coordinator
+convergence loop. The reachability diagnostic checks also run against both representations. Run from
+the project root:
+
+```sh
+ant build-project
+nodus_test_dir=$(mktemp -d)
+javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_test_dir" devtools/tests/CompactDijkstraTest.java devtools/tests/CompactAStarTest.java devtools/tests/MultiFlowEdgeUpdatesTest.java devtools/tests/AssignmentAuditWorkerTest.java devtools/tests/DijkstraReachabilityTest.java
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.compute.assign.shortestpath.CompactDijkstraTest --benchmark
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.compute.assign.shortestpath.CompactAStarTest
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.compute.assign.workers.MultiFlowEdgeUpdatesTest
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.compute.assign.workers.AssignmentAuditWorkerTest
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.compute.assign.shortestpath.DijkstraReachabilityTest
+rm -r "$nodus_test_dir"
+```
 
 ## Shortest-path initialization checks
 

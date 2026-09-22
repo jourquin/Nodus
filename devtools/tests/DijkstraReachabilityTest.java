@@ -22,6 +22,8 @@ import java.util.function.LongSupplier;
  * Checks observed avoidable work and unchanged searches, using synthetic graphs and a fake clock.
  */
 public final class DijkstraReachabilityTest {
+  private static boolean compact;
+
   private static void check(boolean condition, String message) {
     if (!condition) {
       throw new AssertionError(message);
@@ -117,6 +119,7 @@ public final class DijkstraReachabilityTest {
     final WorkerTimes worker;
     final ReachabilityDijkstra observed;
     final BinaryHeapDijkstra reference;
+    final CompactShortestPathGraph compactGraph;
 
     Run(Graph graph, double multiplier) throws Exception {
       Constructor<AssignmentComputingTimes> constructor =
@@ -126,7 +129,8 @@ public final class DijkstraReachabilityTest {
       audit = constructor.newInstance((LongSupplier) () -> clock.addAndGet(1_000_000_000));
       audit.startAssignment();
       worker = audit.newWorkerTimes();
-      observed = new ReachabilityDijkstra(graph.edges, graph.network, worker);
+      compactGraph = compact ? new CompactShortestPathGraph(graph.edges) : null;
+      observed = new ReachabilityDijkstra(graph.edges, graph.network, worker, compactGraph);
       reference = new BinaryHeapDijkstra(graph.edges, graph.network);
       observed.startSequence(multiplier);
     }
@@ -135,6 +139,17 @@ public final class DijkstraReachabilityTest {
       LinkedList<ODCell> demand = new LinkedList<>();
       for (int destination : destinations) {
         demand.add(new ODCell(1, source, destination, 17.3));
+      }
+      // The fixture edits costs directly. Production uses the affected-edge updater tested
+      // separately.
+      if (compactGraph != null) {
+        for (AdjacencyNode head : compactGraph.graph) {
+          for (AdjacencyNode edge = head;
+              edge != null && edge.nextNode != null;
+              edge = edge.nextNode) {
+            compactGraph.copyWeight(edge);
+          }
+        }
       }
       reference.compute(source, demand);
       observed.compute(source, demand);
@@ -256,12 +271,13 @@ public final class DijkstraReachabilityTest {
 
   private static void contextResets() throws Exception {
     Graph graph = graph();
+    graph.add(4, 5, Double.POSITIVE_INFINITY);
     Run run = new Run(graph, 1);
     run.search(1, 2, 5);
     run.search(5, 5); // A different source reaches the previously missing target immediately.
     run.search(1, 2, 5); // Changing the source back must also start cold.
     run.observed.startSequence(1); // Represents a new mode with a previously blocked link reopened.
-    graph.add(4, 5, 1);
+    graph.edges[4].edgeWeight = 1;
     run.search(1, 2, 5);
     String report = run.report();
     count(report, "Searches with previously known unreachable destinations", 0);
@@ -294,9 +310,10 @@ public final class DijkstraReachabilityTest {
 
   private static void invalidatedKnowledge() throws Exception {
     Graph graph = graph();
+    graph.add(4, 5, Double.POSITIVE_INFINITY);
     Run run = new Run(graph, 1);
     run.search(1, 2, 5);
-    graph.add(4, 5, 1); // Deliberately violate the caller contract by omitting startSequence.
+    graph.edges[4].edgeWeight = 1; // Deliberately reopen an edge without startSequence.
     run.search(1, 2, 5);
     String report = run.report();
     count(report, "Searches excluded from reuse estimates", 1);
@@ -352,23 +369,27 @@ public final class DijkstraReachabilityTest {
     boolean previous = NodusC.displayComputingTimes;
     NodusC.displayComputingTimes = true;
     try {
-      partialTail();
-      wholeSearch();
-      allReachableAndEmpty();
-      newlyUnreachable();
-      overflowAndFailure();
-      contextResets();
-      Run noEdges = new Run(new Graph(1), 1);
-      noEdges.search(1, 1);
-      check(
-          value(noEdges.report(), "Potentially avoidable edge examinations").equals("n/a"),
-          "Zero examined edges should have no percentage");
-      excludedCosts();
-      invalidatedKnowledge();
-      randomSearches();
+      for (boolean useCompact : new boolean[] {false, true}) {
+        compact = useCompact;
+        partialTail();
+        wholeSearch();
+        allReachableAndEmpty();
+        newlyUnreachable();
+        overflowAndFailure();
+        contextResets();
+        Run noEdges = new Run(new Graph(1), 1);
+        noEdges.search(1, 1);
+        check(
+            value(noEdges.report(), "Potentially avoidable edge examinations").equals("n/a"),
+            "Zero examined edges should have no percentage");
+        excludedCosts();
+        invalidatedKnowledge();
+        randomSearches();
+      }
     } finally {
       NodusC.displayComputingTimes = previous;
     }
-    System.out.println("Dijkstra reachability diagnostic checks passed (600 random searches).");
+    System.out.println(
+        "Dijkstra reachability diagnostic checks passed (1200 random searches, both representations).");
   }
 }

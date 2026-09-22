@@ -29,6 +29,7 @@ import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra;
+import edu.uclouvain.core.nodus.compute.assign.shortestpath.CompactShortestPathGraph;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.ReachabilityDijkstra;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.PathODCell;
@@ -108,13 +109,15 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         WorkerPhase.VOLUME_DISTRIBUTION);
     // Initialize
     graph = virtualNet.generateAdjacencyList(groupIndex);
-    edgeUpdates = new MultiFlowEdgeUpdates(graph);
+    CompactShortestPathGraph compactGraph = createCompactGraph();
+    edgeUpdates = new MultiFlowEdgeUpdates(graph, compactGraph);
     if (workerTimes.isEnabled()) {
-      reachabilityDiagnostic = new ReachabilityDijkstra(graph, virtualNet, workerTimes);
+      reachabilityDiagnostic =
+          new ReachabilityDijkstra(graph, virtualNet, workerTimes, compactGraph);
       shortestPath = reachabilityDiagnostic;
     } else {
       reachabilityDiagnostic = null;
-      shortestPath = new BinaryHeapDijkstra(graph, virtualNet);
+      shortestPath = new BinaryHeapDijkstra(graph, virtualNet, compactGraph);
     }
     availableModeMeans = virtualNet.getAvailableModeMeans(groupIndex);
 
