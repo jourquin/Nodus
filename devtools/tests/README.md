@@ -72,10 +72,46 @@ enable `NodusC.displayComputingTimes` and run the assignment normally in Nodus.
 
 ## Fast Multi-flow unreachable-destination diagnostic
 
-To measure the relevance of reusing unreachable destinations, set `NodusC.displayComputingTimes`
-to `true` and run your normal **Fast Multi-flow** assignment. A new section headed
-`Fast multi-flow unreachable-destination diagnostic` is printed below the timing breakdown. No
-separate test script or synthetic input is needed to measure your project.
+To measure the potential benefit of knowing unreachable destinations in advance, set
+`NodusC.displayComputingTimes` to `true` and run your normal **Fast Multi-flow** assignment. A section
+headed `Fast multi-flow unreachable-destination diagnostic` is printed below the timing breakdown.
+No separate test script or synthetic input is needed to measure your project.
+
+The section **Reachability preprocessing potential (includes first routes)** measures the
+opportunity even with **Nb routes = 1**. It observes the full search, then uses hindsight to identify
+the last requested destination that was actually reached. If some requested destinations remained
+unreachable, work after that final reached destination could potentially have been avoided with
+perfect advance knowledge. The last destination itself remains necessary; its outgoing edges are
+part of the tail because Dijkstra could stop before examining them.
+
+| Preprocessing-potential row | Meaning |
+| --- | --- |
+| Searches with mixed reachable/unreachable destinations | Completed searches which reached at least one requested destination and exhausted their finite frontier with others still missing. |
+| Searches with no reachable destination | Completed searches with a nonempty destination set and no reached target. These are whole-search opportunities and are separate from mixed searches. |
+| Nodes / Edges after last reachable destination | Work in the tails of mixed searches only. The final infinite-cost heap extraction is excluded from the node count. |
+| Time after last reachable destination (worker sum) | Elapsed time in those tails, including final search bookkeeping. |
+| Time with no reachable destination (worker sum) | Complete compute-call time for whole-search opportunities, including destination setup and heap initialization. |
+| Upper-bound avoidable nodes / edges | Mixed-search tails plus the entire work of searches with no reachable destination. |
+| Upper-bound avoidable Dijkstra time (worker sum) | Sum of the two time rows above; do not add them again. |
+| Upper-bound share of edge examinations / observed Dijkstra time | The upper-bound work divided by all completed searches' work, including searches with no opportunity. A zero denominator prints `n/a`. |
+
+**Look first at the two Upper-bound share rows.** A large unreachable-destination count alone does
+not imply large savings: the final reachable target may be settled near the end of the search.
+Empty destination sets and fully reached destination sets contribute no opportunity. Duplicate
+destinations are counted once; the source itself counts if requested. Interrupted searches do not
+contribute completed-search observations.
+
+These are **retrospective upper bounds, not measured savings or assignment wall-time reductions**.
+No reachability index is built, no destination is filtered and no search is shortened. Index
+construction, lookup and memory costs are not measured. A topology index might prove fewer targets
+unreachable than this ideal estimate, for example when numerical overflow prevents a finite-cost
+route in an otherwise connected graph. This observation concerns each search independently, so it
+does not need earlier alternatives or a nondecreasing markup. It does not establish that unsuitable
+cost conditions are safe for an optimization.
+
+The earlier rows, above this new subsection, retain their different meaning: **reuse between
+alternative routes**. They may still show zero with one route, even when the new preprocessing
+estimate is large. The two estimates overlap and must not be added together.
 
 The observer runs the existing Dijkstra algorithm to its usual stopping point. After a completed
 search exhausts its finite frontier, any requested destinations still missing become known
@@ -99,31 +135,37 @@ its destination setup and heap initialization.
 | Potentially avoidable Dijkstra time (worker sum) | The portion after the hypothetical stop, including full-call time for entirely skippable searches. |
 | Potentially avoidable edge examinations / share of observed Dijkstra time | Percentages of the corresponding observed totals; `n/a` means the denominator is zero. |
 
-First searches must establish reachability and contribute no savings estimate. Newly unreachable
-targets, for example after cost overflow, must also be discovered before subsequent searches can
-reuse that knowledge. Duplicate OD destinations are counted once in each search's target set.
+For the reuse-between-alternatives estimate only, first searches must establish reachability and
+contribute no savings estimate. Newly unreachable targets, for example after cost overflow, must
+also be discovered before subsequent searches can reuse that knowledge. Duplicate OD destinations
+are counted once in each search's target set.
 Knowledge resets at every origin/mode/means boundary and worker job, including changes of group;
 a source change also clears it defensively. Reuse estimates require nonnegative, non-NaN initial
 edge costs and a finite markup multiplier of at least one. Infinite edge costs are allowed because
 they represent blocked links. Cost decreases and non-finite multipliers disable reuse estimates.
 
-Look first at **Potentially avoidable share of observed Dijkstra time**, together with the edge
-percentage and entirely skippable search count. A high count of unreachable destinations alone
-is insufficient: a necessary destination might already require exploring almost the whole graph.
+For reuse between alternatives, inspect **Potentially avoidable share of observed Dijkstra time**,
+together with its edge percentage and entirely skippable search count. A high count of unreachable
+destinations alone is insufficient: a necessary destination might already require exploring almost
+the whole graph.
 These are worker sums and work counts, **not promised reductions in assignment wall time**. No
 search is shortened by this diagnostic. The observer adds overhead, and all its time is already
 inside the existing Dijkstra/assignment rows; do not add the diagnostic times to those rows.
-With the audit disabled, Fast Multi-flow uses the ordinary Dijkstra class with the selected graph/heap representation and no diagnostic
-counters, reachability storage, extra clock reads or per-edge observer calls. Other algorithms
-retain their existing timing reports.
+The observer reads the clock at search boundaries and once per reached requested destination,
+never for every edge or unrelated node. This extra measurement work is included in Dijkstra time.
+With the audit disabled, Fast Multi-flow uses ordinary Dijkstra with the selected graph/heap
+representation and no diagnostic counters, reachability storage or extra clock reads. Other
+algorithms retain their existing timing reports.
 
 `DijkstraReachabilityTest.java` uses synthetic graphs and a controlled clock to check exact node,
 edge and time attribution for partial and whole-search opportunities, first searches, duplicate
 and empty destination sets, unreachable targets introduced by overflow, sequence/source resets,
-invalid cost conditions and failed searches. It compares complete predecessor and distance arrays
-with ordinary Dijkstra, including 1,200 random searches across both graph/heap representations with cost ties, zero-cost edges and loading
-restrictions. No project or database is opened. Run these developer checks after changing the
-diagnostic:
+invalid cost conditions and failed searches. It also checks first-route opportunities, searches
+with no reachable target, a last target at the end of the finite frontier, and the final target's
+outgoing edges. An independent trace of ordinary Dijkstra checks all retrospective node/edge
+counts, including 1,200 random searches across both graph/heap representations with cost ties,
+zero-cost edges and loading restrictions. Complete predecessor and distance arrays must match.
+No project or database is opened. Run these developer checks after changing the diagnostic:
 
 ```sh
 ant build-project

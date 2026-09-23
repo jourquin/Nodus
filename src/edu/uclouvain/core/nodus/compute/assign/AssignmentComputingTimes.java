@@ -22,6 +22,7 @@
 package edu.uclouvain.core.nodus.compute.assign;
 
 import edu.uclouvain.core.nodus.NodusC;
+import java.util.EnumSet;
 import java.util.Locale;
 import java.util.function.LongSupplier;
 
@@ -99,7 +100,25 @@ public final class AssignmentComputingTimes {
     /** Elapsed worker nanoseconds inside the observed compute calls. */
     SEARCH_TIME("Observed Dijkstra time (worker sum)"),
     /** Elapsed worker nanoseconds after the hypothetical stopping point, including whole skips. */
-    AVOIDABLE_TIME("Potentially avoidable Dijkstra time (worker sum)");
+    AVOIDABLE_TIME("Potentially avoidable Dijkstra time (worker sum)"),
+    /** Completed searches containing both reached and unreached requested destinations. */
+    MIXED_DESTINATION_SEARCHES("Searches with mixed reachable/unreachable destinations"),
+    /** Nonempty destination sets for which no requested destination was reached. */
+    NO_REACHABLE_DESTINATION_SEARCHES("Searches with no reachable destination"),
+    /** Nodes settled after the final reached destination in mixed-destination searches. */
+    TAIL_NODES("Nodes after last reachable destination"),
+    /** Edges examined after the final reached destination, including its outgoing edges. */
+    TAIL_EDGES("Edges after last reachable destination"),
+    /** Nodes in mixed-search tails plus all nodes in searches with no reachable destination. */
+    PREPROCESSING_AVOIDABLE_NODES("Upper-bound avoidable nodes"),
+    /** Edges in mixed-search tails plus all edges in searches with no reachable destination. */
+    PREPROCESSING_AVOIDABLE_EDGES("Upper-bound avoidable edges"),
+    /** Elapsed worker time after the final reached destination in mixed searches. */
+    TAIL_TIME("Time after last reachable destination (worker sum)"),
+    /** Entire compute-call time when no requested destination was reachable. */
+    NO_REACHABLE_TIME("Time with no reachable destination (worker sum)"),
+    /** Sum of mixed-search tail time and whole-search time with no reachable destination. */
+    PREPROCESSING_AVOIDABLE_TIME("Upper-bound avoidable Dijkstra time (worker sum)");
 
     private final String label;
 
@@ -443,7 +462,8 @@ public final class AssignmentComputingTimes {
    */
   private void appendReachability(StringBuilder report) {
     report.append("  Fast multi-flow unreachable-destination diagnostic:\n");
-    for (ReachabilityMetric metric : ReachabilityMetric.values()) {
+    for (ReachabilityMetric metric :
+        EnumSet.range(ReachabilityMetric.SEARCHES, ReachabilityMetric.AVOIDABLE_TIME)) {
       long value = reachability[metric.ordinal()];
       if (metric == ReachabilityMetric.SEARCH_TIME || metric == ReachabilityMetric.AVOIDABLE_TIME) {
         appendTime(report, "  " + metric.label, value);
@@ -462,6 +482,34 @@ public final class AssignmentComputingTimes {
         ReachabilityMetric.AVOIDABLE_TIME,
         ReachabilityMetric.SEARCH_TIME);
     report.append("  Shortenable and entirely skippable searches are separate counts.\n");
+    report.append("  The preceding reuse estimates require earlier alternatives.\n");
+    report.append("  Reachability preprocessing potential (includes first routes):\n");
+    for (ReachabilityMetric metric :
+        EnumSet.range(
+            ReachabilityMetric.MIXED_DESTINATION_SEARCHES,
+            ReachabilityMetric.PREPROCESSING_AVOIDABLE_EDGES)) {
+      report.append(
+          String.format(
+              Locale.ROOT, "    %-56s %12d%n", metric.label + ":", reachability[metric.ordinal()]));
+    }
+    for (ReachabilityMetric metric :
+        EnumSet.range(
+            ReachabilityMetric.TAIL_TIME, ReachabilityMetric.PREPROCESSING_AVOIDABLE_TIME)) {
+      appendTime(report, "  " + metric.label, reachability[metric.ordinal()]);
+    }
+    appendShare(
+        report,
+        "Upper-bound share of edge examinations",
+        ReachabilityMetric.PREPROCESSING_AVOIDABLE_EDGES,
+        ReachabilityMetric.EDGES);
+    appendShare(
+        report,
+        "Upper-bound share of observed Dijkstra time",
+        ReachabilityMetric.PREPROCESSING_AVOIDABLE_TIME,
+        ReachabilityMetric.SEARCH_TIME);
+    report.append("  Upper bound assumes missing destinations are known before each search.\n");
+    report.append("  Preprocessing and lookup costs are not measured or deducted.\n");
+    report.append("  Reuse and preprocessing estimates overlap; do not add them together.\n");
     report.append(
         "  Searches ran in full; these are diagnostic observations, not wall-time savings.\n");
     report.append(

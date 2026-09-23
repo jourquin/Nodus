@@ -12,9 +12,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
@@ -114,11 +118,42 @@ public final class DijkstraReachabilityTest {
     return graph;
   }
 
+  /** Independent trace of the reference search, used to check retrospective work counts. */
+  private static final class ReferenceSearch extends BinaryHeapDijkstra {
+    final List<int[]> settled = new ArrayList<>();
+    int edgeCount;
+
+    ReferenceSearch(Graph graph) {
+      super(graph.edges, graph.network);
+    }
+
+    @Override
+    public int extractMin() {
+      int node = super.extractMin();
+      if (node != -1 && minWeight != Double.MAX_VALUE) {
+        settled.add(new int[] {node, edgeCount});
+      }
+      return node;
+    }
+
+    @Override
+    public void relax(int from, int to, double weight) {
+      edgeCount++;
+      super.relax(from, to, weight);
+    }
+  }
+
   private static final class Run {
     final AssignmentComputingTimes audit;
     final WorkerTimes worker;
     final ReachabilityDijkstra observed;
-    final BinaryHeapDijkstra reference;
+    final ReferenceSearch reference;
+    long expectedMixed;
+    long expectedWhole;
+    long expectedTailNodes;
+    long expectedTailEdges;
+    long expectedAvoidableNodes;
+    long expectedAvoidableEdges;
     final CompactShortestPathGraph compactGraph;
 
     Run(Graph graph, double multiplier) throws Exception {
@@ -131,7 +166,7 @@ public final class DijkstraReachabilityTest {
       worker = audit.newWorkerTimes();
       compactGraph = compact ? new CompactShortestPathGraph(graph.edges) : null;
       observed = new ReachabilityDijkstra(graph.edges, graph.network, worker, compactGraph);
-      reference = new BinaryHeapDijkstra(graph.edges, graph.network);
+      reference = new ReferenceSearch(graph);
       observed.startSequence(multiplier);
     }
 
@@ -151,8 +186,34 @@ public final class DijkstraReachabilityTest {
           }
         }
       }
+      reference.settled.clear();
+      reference.edgeCount = 0;
       reference.compute(source, demand);
       observed.compute(source, demand);
+      Set<Integer> missing = new HashSet<>();
+      for (int destination : destinations) missing.add(destination);
+      int nodesAtLast = 0;
+      int edgesAtLast = 0;
+      for (int index = 0; index < reference.settled.size(); index++) {
+        int[] event = reference.settled.get(index);
+        if (missing.remove(event[0])) {
+          nodesAtLast = index + 1;
+          edgesAtLast = event[1];
+        }
+      }
+      if (!missing.isEmpty()) {
+        long avoidableNodes = reference.settled.size() - nodesAtLast;
+        long avoidableEdges = reference.edgeCount - edgesAtLast;
+        if (nodesAtLast == 0) {
+          expectedWhole++;
+        } else {
+          expectedMixed++;
+          expectedTailNodes += avoidableNodes;
+          expectedTailEdges += avoidableEdges;
+        }
+        expectedAvoidableNodes += avoidableNodes;
+        expectedAvoidableEdges += avoidableEdges;
+      }
       check(
           Arrays.equals(reference.getPredecessors(), observed.getPredecessors()),
           "Observer changed predecessor tree or tie breaking");
@@ -172,8 +233,93 @@ public final class DijkstraReachabilityTest {
       } finally {
         System.setOut(previous);
       }
-      return output.toString("UTF-8");
+      String report = output.toString("UTF-8");
+      count(report, "Searches with mixed reachable/unreachable destinations", expectedMixed);
+      count(report, "Searches with no reachable destination", expectedWhole);
+      count(report, "Nodes after last reachable destination", expectedTailNodes);
+      count(report, "Edges after last reachable destination", expectedTailEdges);
+      count(report, "Upper-bound avoidable nodes", expectedAvoidableNodes);
+      count(report, "Upper-bound avoidable edges", expectedAvoidableEdges);
+      double tail =
+          Double.parseDouble(
+              value(report, "Time after last reachable destination (worker sum)").split(" ")[0]);
+      double whole =
+          Double.parseDouble(
+              value(report, "Time with no reachable destination (worker sum)").split(" ")[0]);
+      double upper =
+          Double.parseDouble(
+              value(report, "Upper-bound avoidable Dijkstra time (worker sum)").split(" ")[0]);
+      double total =
+          Double.parseDouble(value(report, "Observed Dijkstra time (worker sum)").split(" ")[0]);
+      check(
+          upper == tail + whole && upper <= total,
+          "Retrospective time must partition into tails and whole searches within observed time");
+      return report;
     }
+  }
+
+  private static void firstRoutePotential() throws Exception {
+    Run run = new Run(graph(), 1);
+    run.search(1, 2, 5, 2, 5);
+    String report = run.report();
+    count(report, "Searches with previously known unreachable destinations", 0);
+    count(report, "Potentially avoidable nodes", 0);
+    count(report, "Upper-bound avoidable nodes", 2);
+    count(report, "Upper-bound avoidable edges", 1);
+    seconds(report, "Time after last reachable destination (worker sum)", "1.000");
+    seconds(report, "Time with no reachable destination (worker sum)", "0.000");
+    seconds(report, "Upper-bound avoidable Dijkstra time (worker sum)", "1.000");
+    check(
+        value(report, "Upper-bound share of observed Dijkstra time").equals("50.00 %"),
+        "Single-route opportunity was not measured");
+    check(
+        value(report, "Upper-bound share of edge examinations").equals("33.33 %"),
+        "Single-route edge share is incorrect");
+  }
+
+  private static void lastDestinationCases() throws Exception {
+    Graph graph = graph();
+    graph.add(3, 1, 0); // The final target's outgoing edges still belong to the tail.
+    Run run = new Run(graph, 1);
+    run.search(1, 1, 2, 3, 5, 3);
+    String report = run.report();
+    count(report, "Nodes after last reachable destination", 1);
+    count(report, "Edges after last reachable destination", 2);
+    seconds(report, "Time after last reachable destination (worker sum)", "1.000");
+
+    run = new Run(graph(), 1);
+    run.search(1, 4, 5); // Last reachable target is also the last finite node extracted.
+    report = run.report();
+    count(report, "Nodes after last reachable destination", 0);
+    count(report, "Edges after last reachable destination", 0);
+    // Only terminal search bookkeeping remains; fake clocks intentionally amplify that interval.
+    seconds(report, "Time after last reachable destination (worker sum)", "1.000");
+
+    run = new Run(graph(), 1);
+    run.search(1, 1, 5); // Source is the only reachable requested target.
+    report = run.report();
+    count(report, "Nodes after last reachable destination", 3);
+    count(report, "Edges after last reachable destination", 3);
+
+    run = new Run(graph(), 1);
+    run.search(1, 5, 5); // A first route can already be a whole-search opportunity.
+    report = run.report();
+    count(report, "Searches with no reachable destination", 1);
+    count(report, "Upper-bound avoidable nodes", 4);
+    count(report, "Upper-bound avoidable edges", 3);
+    seconds(report, "Time after last reachable destination (worker sum)", "0.000");
+    seconds(report, "Time with no reachable destination (worker sum)", "1.000");
+    check(
+        value(report, "Upper-bound share of observed Dijkstra time").equals("100.00 %"),
+        "Whole-search opportunity omitted setup or heap initialization");
+
+    run = new Run(new Graph(2), 1);
+    run.search(1, 2); // No edges, nonempty unreachable destination set.
+    report = run.report();
+    count(report, "Upper-bound avoidable nodes", 1);
+    check(
+        value(report, "Upper-bound share of edge examinations").equals("n/a"),
+        "Zero examined edges should have no percentage");
   }
 
   private static void partialTail() throws Exception {
@@ -190,13 +336,13 @@ public final class DijkstraReachabilityTest {
     count(report, "Edges examined", 6);
     count(report, "Potentially avoidable nodes", 2);
     count(report, "Potentially avoidable edges", 1);
-    seconds(report, "Observed Dijkstra time (worker sum)", "3.000");
+    seconds(report, "Observed Dijkstra time (worker sum)", "4.000");
     seconds(report, "Potentially avoidable Dijkstra time (worker sum)", "1.000");
     check(
         value(report, "Potentially avoidable edge examinations").equals("16.67 %"),
         "Wrong edge percentage");
     check(
-        value(report, "Potentially avoidable share of observed Dijkstra time").equals("33.33 %"),
+        value(report, "Potentially avoidable share of observed Dijkstra time").equals("25.00 %"),
         "Wrong time percentage");
   }
 
@@ -371,6 +517,8 @@ public final class DijkstraReachabilityTest {
     try {
       for (boolean useCompact : new boolean[] {false, true}) {
         compact = useCompact;
+        firstRoutePotential();
+        lastDestinationCases();
         partialTail();
         wholeSearch();
         allReachableAndEmpty();

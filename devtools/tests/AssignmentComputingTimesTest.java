@@ -54,6 +54,13 @@ public final class AssignmentComputingTimesTest {
     first.addReachability(ReachabilityMetric.AVOIDABLE_EDGES, 1);
     first.addReachability(ReachabilityMetric.SEARCH_TIME, 3_000_000_000L);
     first.addReachability(ReachabilityMetric.AVOIDABLE_TIME, 1_000_000_000L);
+    first.addReachability(ReachabilityMetric.MIXED_DESTINATION_SEARCHES, 1);
+    first.addReachability(ReachabilityMetric.TAIL_NODES, 3);
+    first.addReachability(ReachabilityMetric.TAIL_EDGES, 1);
+    first.addReachability(ReachabilityMetric.TAIL_TIME, 1_000_000_000L);
+    first.addReachability(ReachabilityMetric.PREPROCESSING_AVOIDABLE_NODES, 3);
+    first.addReachability(ReachabilityMetric.PREPROCESSING_AVOIDABLE_EDGES, 1);
+    first.addReachability(ReachabilityMetric.PREPROCESSING_AVOIDABLE_TIME, 1_000_000_000L);
     time(1);
     long firstBefore = audit.getThreadDatabaseTime();
     long firstPath = audit.startPaths();
@@ -72,6 +79,16 @@ public final class AssignmentComputingTimesTest {
                 second.addReachability(ReachabilityMetric.AVOIDABLE_EDGES, 2);
                 second.addReachability(ReachabilityMetric.SEARCH_TIME, 6_000_000_000L);
                 second.addReachability(ReachabilityMetric.AVOIDABLE_TIME, 2_000_000_000L);
+                second.addReachability(ReachabilityMetric.MIXED_DESTINATION_SEARCHES, 1);
+                second.addReachability(ReachabilityMetric.NO_REACHABLE_DESTINATION_SEARCHES, 1);
+                second.addReachability(ReachabilityMetric.TAIL_NODES, 2);
+                second.addReachability(ReachabilityMetric.TAIL_EDGES, 1);
+                second.addReachability(ReachabilityMetric.TAIL_TIME, 1_000_000_000L);
+                second.addReachability(ReachabilityMetric.NO_REACHABLE_TIME, 2_000_000_000L);
+                second.addReachability(ReachabilityMetric.PREPROCESSING_AVOIDABLE_NODES, 7);
+                second.addReachability(ReachabilityMetric.PREPROCESSING_AVOIDABLE_EDGES, 4);
+                second.addReachability(
+                    ReachabilityMetric.PREPROCESSING_AVOIDABLE_TIME, 3_000_000_000L);
                 long before = audit.getThreadDatabaseTime();
                 long paths = audit.startPaths();
                 second.startPhase(WorkerPhase.DIJKSTRA);
@@ -142,6 +159,18 @@ public final class AssignmentComputingTimesTest {
     checkTime(report, "Dijkstra", "9.000");
     checkTime(report, "Observed Dijkstra time (worker sum)", "9.000");
     checkTime(report, "Potentially avoidable Dijkstra time (worker sum)", "3.000");
+    checkTime(report, "Time after last reachable destination (worker sum)", "2.000");
+    checkTime(report, "Time with no reachable destination (worker sum)", "2.000");
+    checkTime(report, "Upper-bound avoidable Dijkstra time (worker sum)", "4.000");
+    check(
+        report.matches("(?s).*Upper-bound avoidable nodes:\\s+10\\R.*"),
+        "Preprocessing counters were not merged exactly once");
+    check(
+        report.matches("(?s).*Upper-bound share of edge examinations:\\s+50\\.00 %\\R.*"),
+        "Incorrect preprocessing edge share");
+    check(
+        report.matches("(?s).*Upper-bound share of observed Dijkstra time:\\s+44\\.44 %\\R.*"),
+        "Incorrect preprocessing time share or locale");
     check(
         report.matches("(?s).*Completed Dijkstra searches:\\s+5\\R.*"),
         "Search counts were not merged exactly once across workers");
@@ -178,6 +207,7 @@ public final class AssignmentComputingTimesTest {
     report = output.toString("UTF-8");
     check(report.contains("failed/cancelled"), "Failed worker run not identified");
     check(!report.contains("unreachable-destination diagnostic"), "Stale diagnostic after reset");
+    check(!report.contains("Reachability preprocessing potential"), "Stale preprocessing estimate");
     checkTime(report, "Dijkstra", "0.000");
     checkTime(report, "Path reconstruction", "0.000");
     checkTime(report, "Header matching", "0.000");

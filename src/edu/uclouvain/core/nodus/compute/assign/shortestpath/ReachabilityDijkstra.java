@@ -29,13 +29,20 @@ import java.util.BitSet;
 import java.util.LinkedList;
 
 /**
- * Observes the work that reusing unreachable destinations could avoid in Fast multi-flow searches.
+ * Observes the potential of reachability knowledge in Fast multi-flow searches.
  *
  * <p>The inherited algorithm still runs to its normal stopping point. The observer only counts
  * finite node extractions and edge examinations, and timestamps the point at which all destinations
  * not previously proven unreachable have been settled. Whole-search estimates include destination
  * setup and heap initialization; partial estimates begin just after the last required extraction.
  * No predecessor, distance, target flag, edge cost or heap ordering is changed by the observer.
+ *
+ * <p>A separate retrospective estimate includes first routes: after an exhaustive search with
+ * missing destinations, it measures the tail after the last requested destination actually reached.
+ * If none was reached, the complete call is counted instead. Empty destination sets and fully
+ * reached sets contribute nothing. This upper bound assumes perfect advance knowledge and excludes
+ * the cost of building/querying an index. An actual topology index may prove fewer destinations
+ * unreachable, particularly when floating-point overflow prevents a path.
  *
  * <p>One instance belongs to one worker job. Call startSequence for each origin/mode/means block,
  * after restricting loading and before its first alternative. Knowledge can be reused only with
@@ -44,8 +51,8 @@ import java.util.LinkedList;
  * defensively.
  *
  * <p>Counts include completed searches only. The ordinary worker-stage timer still includes partial
- * searches interrupted by an exception. All counters are local; clocks are read only at search
- * boundaries and at most one hypothetical stopping point per search, never for every edge.
+ * searches interrupted by an exception. All counters are local; clocks are read at search
+ * boundaries and once per reached requested destination, never for every edge or unrelated node.
  */
 public final class ReachabilityDijkstra extends BinaryHeapDijkstra {
   private final WorkerTimes workerTimes;
@@ -67,6 +74,13 @@ public final class ReachabilityDijkstra extends BinaryHeapDijkstra {
   private long edgesAtStop;
   private long searchStarted;
   private long stoppingTime;
+
+  /** Last requested destination reached in this search, independent of earlier alternatives. */
+  private boolean reachedDestination;
+
+  private long nodesAtLastDestination;
+  private long edgesAtLastDestination;
+  private long lastDestinationTime;
 
   /**
    * Creates an observer for an enabled assignment audit, scanning initial cost validity once.
@@ -132,6 +146,7 @@ public final class ReachabilityDijkstra extends BinaryHeapDijkstra {
     nodes = 0;
     edges = 0;
     knownAtStart = 0;
+    reachedDestination = false;
     searchStarted = workerTimes.startMeasurement();
     observing = true;
     try {
@@ -167,6 +182,10 @@ public final class ReachabilityDijkstra extends BinaryHeapDijkstra {
     if (node != -1 && minWeight != Double.MAX_VALUE) {
       nodes++;
       if (nodesToReach[node]) {
+        reachedDestination = true;
+        nodesAtLastDestination = nodes;
+        edgesAtLastDestination = edges;
+        lastDestinationTime = workerTimes.startMeasurement();
         if (knownUnreachable.get(node)) {
           // A caller changed the graph outside the declared sequence rules. Discard its estimate.
           knowledgeInvalidated = true;
@@ -174,7 +193,7 @@ public final class ReachabilityDijkstra extends BinaryHeapDijkstra {
           stoppingPointReached = true;
           nodesAtStop = nodes;
           edgesAtStop = edges;
-          stoppingTime = workerTimes.startMeasurement();
+          stoppingTime = lastDestinationTime;
         }
       }
     }
@@ -214,6 +233,7 @@ public final class ReachabilityDijkstra extends BinaryHeapDijkstra {
    * Adds one completed search to the worker's totals, with no shared lock or per-edge allocation.
    */
   private void recordSearch(long finished) {
+    recordPreprocessingPotential(finished);
     if (knowledgeInvalidated) {
       reuseAllowed = false;
       knownUnreachable.clear();
@@ -240,5 +260,36 @@ public final class ReachabilityDijkstra extends BinaryHeapDijkstra {
       workerTimes.addReachability(ReachabilityMetric.AVOIDABLE_EDGES, edges - edgesAtStop);
       workerTimes.addReachability(ReachabilityMetric.AVOIDABLE_TIME, finished - stoppingTime);
     }
+  }
+
+  /**
+   * Measures a completed search's avoidable tail using hindsight, without any cross-search reuse.
+   * The last reached target itself remains necessary; its outgoing edges belong to the tail.
+   */
+  private void recordPreprocessingPotential(long finished) {
+    if (nbNodesToReach == 0 || nbMarkedDestinations == 0) {
+      return;
+    }
+    long avoidableNodes;
+    long avoidableEdges;
+    long avoidableTime;
+    if (reachedDestination) {
+      avoidableNodes = nodes - nodesAtLastDestination;
+      avoidableEdges = edges - edgesAtLastDestination;
+      avoidableTime = finished - lastDestinationTime;
+      workerTimes.addReachability(ReachabilityMetric.MIXED_DESTINATION_SEARCHES, 1);
+      workerTimes.addReachability(ReachabilityMetric.TAIL_NODES, avoidableNodes);
+      workerTimes.addReachability(ReachabilityMetric.TAIL_EDGES, avoidableEdges);
+      workerTimes.addReachability(ReachabilityMetric.TAIL_TIME, avoidableTime);
+    } else {
+      avoidableNodes = nodes;
+      avoidableEdges = edges;
+      avoidableTime = finished - searchStarted;
+      workerTimes.addReachability(ReachabilityMetric.NO_REACHABLE_DESTINATION_SEARCHES, 1);
+      workerTimes.addReachability(ReachabilityMetric.NO_REACHABLE_TIME, avoidableTime);
+    }
+    workerTimes.addReachability(ReachabilityMetric.PREPROCESSING_AVOIDABLE_NODES, avoidableNodes);
+    workerTimes.addReachability(ReachabilityMetric.PREPROCESSING_AVOIDABLE_EDGES, avoidableEdges);
+    workerTimes.addReachability(ReachabilityMetric.PREPROCESSING_AVOIDABLE_TIME, avoidableTime);
   }
 }

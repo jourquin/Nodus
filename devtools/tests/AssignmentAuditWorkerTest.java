@@ -552,6 +552,14 @@ public final class AssignmentAuditWorkerTest {
           count(report, "Searches excluded from reuse estimates", 0);
           measured(report, "Observed Dijkstra time (worker sum)", true);
           measured(report, "Potentially avoidable Dijkstra time (worker sum)", routes > 1);
+          count(
+              report,
+              "Searches with mixed reachable/unreachable destinations",
+              fail ? routes : 2 * routes * jobs);
+          count(report, "Searches with no reachable destination", 0);
+          measured(report, "Time after last reachable destination (worker sum)", true);
+          measured(report, "Time with no reachable destination (worker sum)", false);
+          measured(report, "Upper-bound avoidable Dijkstra time (worker sum)", true);
         } else {
           check(!report.contains("unreachable-destination diagnostic"), "Unexpected diagnostic");
         }
