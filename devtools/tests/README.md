@@ -53,6 +53,80 @@ java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jd
 rm -r "$nodus_test_dir"
 ```
 
+### Zoom-dependent line detail
+
+`NodusC.useMapDisplaySimplification` is enabled by default for this experiment. Set it to `false`
+and rebuild to compare the previous full-detail projection. It operates independently of
+`displayMapComputingTimes`, so simplification can remain enabled without console output.
+
+The first version simplifies ordinary 2D shapefile **polylines in Mercator**, Nodus's default
+projection. Roads, railways and waterways can benefit when they contain many intermediate vertices.
+It preserves endpoints and removes bends below a **0.75-pixel screen tolerance** (apart from
+floating-point projection rounding). Zooming in automatically restores the necessary vertices.
+It does not hide links or change their classification, widths or colors. Points, polygons, other
+projections, short lines, selected lines, custom line subclasses and arrowheads use
+ordinary full-detail projection. Source lines spanning half the world or crossing the date line
+also keep full detail.
+
+OpenMap's SHP loader creates **great-circle lines**, even for detailed roads and railways. These
+are supported alongside straight and rhumb lines. For great-circle geometry, half the tolerance
+is reserved for the original segments' curvature and half for vertex removal. A conservative
+curvature bound keeps long arcs, near-polar arcs and close views on the ordinary projection path
+when their curvature cannot fit the budget. The original line type and subdivision settings are
+preserved. Rhumb lines are straight in Mercator and use the ordinary simplification budget.
+
+Only the projected screen coordinates change. Original geographic coordinates, bounds, records,
+attributes and object identities remain available to editing, file saving, network computations,
+hit testing and service overlays. Selection follows the displayed line, within the small display
+tolerance. This is **not** a simplification of the network or saved shapefile. Geometry invalidation
+also discards the detail cache; pan, resize and style changes retain it.
+
+Each line lazily builds a Douglas-Peucker hierarchy in normalized Mercator coordinates. It is
+reused across map centers and zoom levels. Power-of-two tolerance levels round down to stay within
+the pixel limit, and only the last level's coordinates are retained per line. A hierarchy retains
+one double per vertex, in addition to the selected level and ordinary projected geometry. Its first
+construction takes time and memory; assess first visits separately from repeated navigation.
+
+With map auditing enabled, the extra rows show:
+
+- **Polyline vertices: original -> displayed**, across selected line parts, and the number of
+  simplified lines. Points and polygon vertices are excluded. These are the vertices submitted to
+  projection, before OpenMap adds arc subdivisions or wrapped world copies. The row also names
+  the actual projection and says explicitly when simplification is disabled or bypassed.
+- **Detail candidates:** lines that passed the geometry/projection eligibility checks, followed
+  by the number kept in full detail because of their curvature at this scale. Candidate lines
+  may also retain all vertices when the tolerance requires them.
+- **Detail cache:** newly built hierarchies and zoom levels, with cache construction time already
+  included in the existing projection duration. Do not add this time to the total again.
+
+For a project comparison, use the same Mercator view and visible layers with the switch on and off.
+Compare a wide view first, then repeated pans, and finally zoom closely into curved roads or railways
+to check detail and selection. Record the first view as well as warm preparations. Large vertex
+reductions should reduce projection work; layers mostly containing two-point links will gain
+little. Painting, labels and UI queue time remain outside the map preparation audit.
+
+`MapPolylineDetailTest.java` checks screen-space error on smooth and irregular lines at several
+latitudes/scales, endpoints, pan/resize reuse, original coordinates and bounds, live styles,
+selection identity, full-detail restoration, multipart lists, unsupported geometry/projections and
+wrapped views. Great-circle checks compare against OpenMap's actual arc generation, including
+long arcs and close-zoom fallbacks. The test also loads the repository's `demo/road_polylines.shp`,
+`demo/rail_polylines.shp` and `demo/iww_polylines.shp` through OpenMap's real SHP loader, verifies that
+simplification activates, and checks screen error and source preservation.
+`MapNavigationTest.java` also checks the actual layer switch and cache invalidation
+following geometry edits. Inputs are synthetic graphics and these demo shapefiles; no project or
+database is opened. An optional
+20,000-line benchmark measures cold construction and alternating warm full/simplified projections,
+not complete UI navigation. Run from the project root:
+
+```sh
+ant build-project
+nodus_test_dir=$(mktemp -d)
+javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_test_dir" devtools/tests/MapPolylineDetailTest.java devtools/tests/MapNavigationTest.java
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" com.bbn.openmap.omGraphics.MapPolylineDetailTest --benchmark
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" com.bbn.openmap.layer.shape.MapNavigationTest
+rm -r "$nodus_test_dir"
+```
+
 ## Assignment timing checks
 
 Run `sh devtools/tests/run-computing-times-test.sh` from the project root with a JDK 11 or later.

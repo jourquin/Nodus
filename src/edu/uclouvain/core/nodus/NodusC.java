@@ -37,6 +37,12 @@ public class NodusC {
   public static boolean displayMapComputingTimes = true;
 
   /**
+   * Reduce subpixel detail in Mercator line layers while preserving source geometry. Set false to
+   * compare full-detail navigation; the independent map timing switch reports vertex counts.
+   */
+  public static boolean useMapDisplaySimplification = true;
+
+  /**
    * Use compact graph and heap arrays for all assignment shortest-path searches (Dijkstra and A*).
    * Set false to benchmark the previous implementations with the same assignment settings.
    */

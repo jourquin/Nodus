@@ -16,8 +16,11 @@ import com.bbn.openmap.proj.coords.LatLonPoint;
 import edu.uclouvain.core.nodus.NodusC;
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.geom.PathIterator;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -258,6 +261,71 @@ public final class MapNavigationTest {
     layer.dispose();
   }
 
+  /** Counts rendered vertices, independently of the display-detail audit counters. */
+  private static int displayedVertices(OMGraphic line) {
+    PathIterator path = line.getShape().getPathIterator(null);
+    double[] coordinates = new double[6];
+    int count = 0;
+    while (!path.isDone()) {
+      if (path.currentSegment(coordinates) != PathIterator.SEG_CLOSE) count++;
+      path.next();
+    }
+    return count;
+  }
+
+  private static void detailCacheAndEdits() throws Exception {
+    Layer layer = new Layer(new EsriPolylineList());
+    EsriPolyline line =
+        new EsriPolyline(
+            new double[] {0, -1, 0.0001, -0.5, 0.0001, 0.5, 0, 1},
+            OMGraphic.DECIMAL_DEGREES,
+            OMGraphic.LINETYPE_STRAIGHT);
+    double[] original = line.getLatLonArray().clone();
+    layer.addRecord(line, 1, 10, 11, false);
+    NodusC.useMapDisplaySimplification = true;
+    layer.prepare();
+    check(displayedVertices(line) == 2, "Layer did not use display detail");
+    check(containsIdentity(matches(layer), line), "Detail replaced source identity");
+    layer.setProjection(projection(0.1, 0.1, 8000000, 900, 700));
+    layer.prepare();
+    check(displayedVertices(line) == 2 && layer.builds == 1, "Pan changed detail/index reuse");
+    NodusC.useMapDisplaySimplification = false;
+    layer.prepare();
+    check(displayedVertices(line) == 4, "Layer switch did not restore full detail");
+    NodusC.useMapDisplaySimplification = true;
+    layer.prepare();
+    check(displayedVertices(line) == 2, "Layer switch did not restore simplified detail");
+    check(Arrays.equals(original, line.getLatLonArray()), "Source coordinates changed");
+
+    // Simulate an in-place script edit, updating bounds and notifying the layer as documented.
+    line.getLatLonArray()[2] = Math.toRadians(0.5);
+    line.setExtents(null);
+    layer.setDirtyShp(true);
+    layer.prepare();
+    check(displayedVertices(line) > 2 && layer.builds == 2, "Geometry edit reused stale detail");
+    line.getLatLonArray()[2] = Math.toRadians(0.0001);
+    line.setExtents(null);
+    layer.setDirtyShp(true);
+    layer.prepare();
+    check(displayedVertices(line) == 2 && layer.builds == 3, "Repeated edit reused stale detail");
+    layer.resetCaches();
+    ByteArrayOutputStream audit = new ByteArrayOutputStream();
+    PrintStream console = System.out;
+    try (PrintStream captured = new PrintStream(audit, true, "UTF-8")) {
+      NodusC.displayMapComputingTimes = true;
+      System.setOut(captured);
+      layer.prepare();
+    } finally {
+      System.setOut(console);
+      NodusC.displayMapComputingTimes = false;
+    }
+    check(audit.toString("UTF-8").contains("Polyline vertices: 4 -> 2"), "Audit vertex counts wrong");
+    check(audit.toString("UTF-8").contains("1 new hierarchies, 1 new levels"), "Audit cache counts wrong");
+    check(layer.builds == 4 && displayedVertices(line) == 2, "Detail cache reset failed");
+    layer.dispose();
+    check(layer.prepare() == null, "Disposal rebuilt detail");
+  }
+
   private static void dateLine() throws Exception {
     EsriPointList source = new EsriPointList();
     Point east = new Point(0, 179);
@@ -321,6 +389,7 @@ public final class MapNavigationTest {
     NodusC.displayMapComputingTimes = false;
     reuseAndEdits();
     linesAndRendering();
+    detailCacheAndEdits();
     dateLine();
     concurrentInvalidation(false);
     concurrentInvalidation(true);

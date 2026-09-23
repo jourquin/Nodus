@@ -26,6 +26,8 @@ import com.bbn.openmap.dataAccess.shape.EsriGraphicList;
 import com.bbn.openmap.io.FormatException;
 import com.bbn.openmap.layer.shape.displayindex.DisplaySpatialIndex;
 import com.bbn.openmap.layer.shape.displayindex.DisplaySpatialIndexFactory;
+import com.bbn.openmap.omGraphics.MapPolylineDetail;
+import com.bbn.openmap.omGraphics.MapPolylineDetail.Measurement;
 import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.omGraphics.OMGraphicList;
 import com.bbn.openmap.omGraphics.event.NodusMapMouseInterpreter;
@@ -51,7 +53,7 @@ public class FastEsriLayer extends EsriLayer {
   /** Geometry invalidation is independent of projection changes and does not acquire list locks. */
   private final AtomicLong geometryRevision = new AtomicLong();
 
-  /** Geographic index and, after a successful preparation, the visible graphics. */
+  /** Geographic index, display-detail cache and the last successfully prepared visible graphics. */
   private volatile RenderCache renderCache;
 
   /** Source list already loaded by OpenMap, retained to avoid lazy SHP reads during disposal. */
@@ -66,6 +68,7 @@ public class FastEsriLayer extends EsriLayer {
     final EsriGraphicList source;
     final int sourceSize;
     final DisplaySpatialIndex index;
+    final MapPolylineDetail detail;
     final OMGraphicList visible;
 
     RenderCache(
@@ -73,11 +76,13 @@ public class FastEsriLayer extends EsriLayer {
         EsriGraphicList source,
         int sourceSize,
         DisplaySpatialIndex index,
+        MapPolylineDetail detail,
         OMGraphicList visible) {
       this.revision = revision;
       this.source = source;
       this.sourceSize = sourceSize;
       this.index = index;
+      this.detail = detail;
       this.visible = visible;
     }
   }
@@ -326,6 +331,7 @@ public class FastEsriLayer extends EsriLayer {
             || cache.source != source
             || cache.sourceSize != sourceSize;
     DisplaySpatialIndex index;
+    MapPolylineDetail detail;
     if (rebuild) {
       // Snapshot membership under the same lock used by Nodus add/remove operations. Bounds and
       // tree construction then use this snapshot without keeping the source-list lock held.
@@ -334,16 +340,18 @@ public class FastEsriLayer extends EsriLayer {
         snapshot = new OMGraphicList(source);
       }
       index = createSpatialIndex(snapshot);
+      detail = new MapPolylineDetail();
       // Keep completed geographic work even if a new pan cancels this projection. It can be
       // reused by the next worker, whereas a geometry edit or disposal must discard it.
       synchronized (this) {
         if (disposed || revision != geometryRevision.get() || sourceSize != source.size()) {
           return null;
         }
-        renderCache = new RenderCache(revision, source, sourceSize, index, null);
+        renderCache = new RenderCache(revision, source, sourceSize, index, detail, null);
       }
     } else {
       index = cache.index;
+      detail = cache.detail;
     }
     final long indexed = audit ? System.nanoTime() : 0;
 
@@ -362,8 +370,15 @@ public class FastEsriLayer extends EsriLayer {
       return null;
     }
 
-    // Force generation for the new projection, even when the geographic index was reused.
-    matches.generate(projection);
+    // Force projection even with a reused index. Only screen geometry may use reduced detail;
+    // visible/source lists still contain the original objects, coordinates and live styles.
+    Measurement measurement = null;
+    boolean simplify = NodusC.useMapDisplaySimplification;
+    if (simplify || audit) {
+      measurement = detail.generate(matches, projection, simplify, audit);
+    } else {
+      matches.generate(projection);
+    }
     OMGraphicList visible = new OMGraphicList();
     visible.add(matches);
     OMGraphicList parent = new OMGraphicList();
@@ -379,7 +394,7 @@ public class FastEsriLayer extends EsriLayer {
           || !projection.equals(getProjection())) {
         return null;
       }
-      renderCache = new RenderCache(revision, source, sourceSize, index, visible);
+      renderCache = new RenderCache(revision, source, sourceSize, index, detail, visible);
     }
     if (audit) {
       long finished = System.nanoTime();
@@ -387,7 +402,11 @@ public class FastEsriLayer extends EsriLayer {
           Locale.ROOT,
           "Map computing times: %s (%d shapes, %d selected, index %s)%n"
               + "  Total preparation: %.3f ms; source/index: %.3f ms;"
-              + " selection: %.3f ms; projection: %.3f ms%n",
+              + " selection: %.3f ms; projection: %.3f ms%n"
+              + "  Polyline vertices: %d -> %d; simplified lines: %d (detail %s; projection %s)%n"
+              + "  Detail candidates: %d; curvature fallbacks: %d%n"
+              + "  Detail cache: %d new hierarchies, %d new levels; %.3f ms"
+              + " (included in projection)%n",
           getName(),
           sourceSize,
           matches.size(),
@@ -395,7 +414,17 @@ public class FastEsriLayer extends EsriLayer {
           (finished - started) / 1e6,
           (indexed - started) / 1e6,
           (selected - indexed) / 1e6,
-          (finished - selected) / 1e6);
+          (finished - selected) / 1e6,
+          measurement.getSourceVertices(),
+          measurement.getDisplayedVertices(),
+          measurement.getSimplifiedLines(),
+          measurement.getMode(),
+          projection.getClass().getSimpleName(),
+          measurement.getCandidateLines(),
+          measurement.getCurvatureFallbacks(),
+          measurement.getBuiltHierarchies(),
+          measurement.getBuiltLevels(),
+          measurement.getCacheNanos() / 1e6);
     }
     return parent;
   }
