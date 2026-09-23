@@ -486,6 +486,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Improved Service database checks
 - Reduce serialization when saving assignment paths
 - Use compact arrays for the graph and heap
+- Faster to vehicles conversion
 
 
   

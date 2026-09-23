@@ -534,6 +534,16 @@ public final class AssignmentAuditWorkerTest {
       }
       String report = output.toString("UTF-8");
       if (enabled) {
+        measured(report, "Outside parallel assignment (wall)", true);
+        measured(report, "Path-output initialization", true);
+        measured(report, "Other path-output finalization", true);
+        if (outputMode > 0) {
+          measured(report, "Path database index creation", true);
+          measured(report, "Database commits", true);
+        } else {
+          check(!report.contains("Path database index creation:"), "Indexes with output disabled");
+          check(!report.contains("Database commits:"), "Commit with output disabled");
+        }
         if (algorithm.equals("FastMF")) {
           count(report, "Completed Dijkstra searches", fail ? routes : 2 * routes * jobs);
           count(

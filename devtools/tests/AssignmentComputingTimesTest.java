@@ -1,6 +1,8 @@
 package edu.uclouvain.core.nodus.compute.assign;
 
 import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsidePhase;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsideScope;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.Phase;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.ReachabilityMetric;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerPhase;
@@ -247,6 +249,139 @@ public final class AssignmentComputingTimesTest {
         "Worker detail leaked into another assignment");
   }
 
+  /** Checks an independently specified timeline with nested scopes and overlapping worker jobs. */
+  private static void checkOutsideStages(ByteArrayOutputStream output) throws Exception {
+    output.reset();
+    time(0);
+    NodusC.displayComputingTimes = true;
+    AtomicLong clockReads = new AtomicLong();
+    AssignmentComputingTimes audit =
+        new AssignmentComputingTimes(
+            () -> {
+              clockReads.incrementAndGet();
+              return now.get();
+            });
+    audit.startAssignment();
+    time(1);
+    try (OutsideScope network = audit.outside(OutsidePhase.NETWORK)) {
+      time(2);
+      try (OutsideScope demand = audit.outside(OutsidePhase.DEMAND)) {
+        time(3);
+      }
+      time(4);
+    }
+    try (OutsideScope modal = audit.outside(OutsidePhase.MODAL_SETUP)) {
+      time(5);
+    }
+    try (OutsideScope setup = audit.outside(OutsidePhase.PATH_SETUP)) {
+      time(6);
+      long first = audit.startPaths();
+      time(7);
+      long second = audit.startPaths();
+      time(7.5);
+      try (OutsideScope overlapped = audit.outside(OutsidePhase.NETWORK_OUTPUT)) {
+        time(8);
+        audit.endPaths(first, 0);
+        time(8.5);
+      }
+      time(9);
+      audit.endPaths(second, 0);
+      time(10);
+    }
+    // A foreign thread cannot reclassify coordinator work or read the outside timer's clock.
+    long beforeReads = clockReads.get();
+    Thread foreign =
+        new Thread(
+            () -> {
+              try (OutsideScope ignored = audit.outside(OutsidePhase.COSTS)) {
+                audit.beginFinalization();
+              }
+            });
+    foreign.start();
+    foreign.join(5000);
+    check(!foreign.isAlive(), "Foreign-thread check did not complete");
+    check(clockReads.get() == beforeReads, "Worker scope read the coordinator clock");
+    time(11);
+    long third = audit.startPaths();
+    time(12);
+    audit.endPaths(third, 0);
+    time(13);
+    audit.beginFinalization();
+    try (OutsideScope finalization = audit.outside(OutsidePhase.PATH_FINALIZATION)) {
+      time(14);
+      try (OutsideScope batches = audit.outside(OutsidePhase.PATH_BATCHES)) {
+        time(15);
+      }
+      time(16);
+      try (OutsideScope indexes = audit.outside(OutsidePhase.PATH_INDEXES)) {
+        time(17);
+      }
+      time(18);
+      try (OutsideScope commit = audit.outside(OutsidePhase.DATABASE_COMMIT)) {
+        time(19);
+      }
+      time(20);
+    }
+    time(21);
+    audit.finishAndPrint("OutsideTimeline", 1, 2, true);
+    String report = output.toString("UTF-8");
+    checkTime(report, "Total elapsed", "21.000");
+    checkTime(report, "Paths and flow assignment (wall, includes path writes)", "4.000");
+    checkTime(report, "Outside parallel assignment (wall)", "17.000");
+    checkTime(report, "Network initialization and generation", "2.000");
+    checkTime(report, "Demand loading and preparation", "1.000");
+    checkTime(report, "Modal-split initialization", "1.000");
+    checkTime(report, "Path-output initialization", "2.000");
+    checkTime(report, "Virtual-network database output", "0.000");
+    checkTime(report, "Path database batches", "1.000");
+    checkTime(report, "Path database index creation", "1.000");
+    checkTime(report, "Database commits", "1.000");
+    checkTime(report, "Other path-output finalization", "4.000");
+    checkTime(report, "Other assignment preparation", "1.000");
+    checkTime(report, "Other coordination between worker jobs", "2.000");
+    checkTime(report, "Other finalization", "1.000");
+    check(!report.contains("Cost parsing and evaluation:"), "Foreign scope changed the report");
+
+    // Exceptional scope exits and a report printed while a worker is still active.
+    output.reset();
+    time(30);
+    audit.startAssignment();
+    try (OutsideScope failed = audit.outside(OutsidePhase.VEHICLES)) {
+      time(31);
+      throw new IllegalStateException("Synthetic conversion failure");
+    } catch (IllegalStateException expected) {
+      // The partial conversion must be retained, with its scope restored for subsequent work.
+    }
+    OutsideScope stale = audit.outside(OutsidePhase.DEMAND);
+    time(32);
+    long unfinished = audit.startPaths();
+    time(33);
+    audit.finishAndPrint("InterruptedOutside", 2, 1, false);
+    audit.endPaths(unfinished, 0); // Finishing after the report must not change it.
+    report = output.toString("UTF-8");
+    checkTime(report, "Total elapsed", "3.000");
+    checkTime(report, "Outside parallel assignment (wall)", "2.000");
+    checkTime(report, "Volume-to-vehicle conversion", "1.000");
+    checkTime(report, "Demand loading and preparation", "1.000");
+    checkTime(report, "Paths and flow assignment (wall, includes path writes)", "1.000");
+
+    output.reset();
+    time(40);
+    audit.startAssignment();
+    stale.close(); // A scope belonging to the preceding run must not restore its category.
+    stale.close();
+    time(41);
+    audit.beginFinalization();
+    time(42);
+    audit.finishAndPrint("ResetOutside", 3, 1, true);
+    report = output.toString("UTF-8");
+    checkTime(report, "Outside parallel assignment (wall)", "2.000");
+    checkTime(report, "Other assignment preparation", "1.000");
+    checkTime(report, "Other finalization", "1.000");
+    check(!report.contains("Demand loading and preparation:"), "Stale outside scope after reset");
+    check(!report.contains("Volume-to-vehicle conversion:"), "Stale outside duration after reset");
+  }
+
   public static void main(String[] args) throws Exception {
     boolean oldEnabled = NodusC.displayComputingTimes;
     PrintStream oldOut = System.out;
@@ -260,6 +395,11 @@ public final class AssignmentComputingTimesTest {
         throw new AssertionError("Disabled audit read the clock");
       });
       disabled.startAssignment();
+      for (OutsidePhase phase : OutsidePhase.values()) {
+        try (OutsideScope ignored = disabled.outside(phase)) {
+          disabled.beginFinalization();
+        }
+      }
       NodusC.displayComputingTimes = true; // Switching mid-run must have no effect.
       disabled.add(Phase.COSTS, disabled.start());
       disabled.add(Phase.DATABASE, disabled.start());
@@ -364,6 +504,7 @@ public final class AssignmentComputingTimesTest {
       checkTime(failed, "Paths and flow assignment (wall, includes path writes)", "2.000");
       checkTime(failed, "Paths and flow assignment (worker sum, excludes DB calls)", "2.000");
       checkWorkerStages(output);
+      checkOutsideStages(output);
     } finally {
       System.setOut(oldOut);
       Locale.setDefault(oldLocale);

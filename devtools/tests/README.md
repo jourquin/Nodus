@@ -8,8 +8,10 @@ database-time attribution, repeated cost passes, resetting between assignments, 
 and partial-run reporting. Detailed-stage checks also cover overlapping workers, exclusion of
 path-output time (including writer waits), nested automatic flushes counted only once, repeated
 alternatives, displaying only applicable stages, and merging/resetting reachability counters across
-workers. Compilation uses a temporary directory and
-requires no external libraries.
+workers. Outside-phase checks verify a 21-second timeline containing nested coordinator operations,
+overlapping worker jobs and idle gaps, plus partial failures, reset, stale-scope closure and no clock
+reads for disabled or foreign-thread scopes. Compilation uses a temporary directory and requires
+no external libraries.
 
 With `NodusC.displayComputingTimes` enabled, every assignment algorithm prints a worker breakdown
 in addition to the existing overall timings. The rows depend on the algorithm:
@@ -69,6 +71,64 @@ rm -r "$nodus_test_dir"
 
 These checks are developer regression tests. To collect baseline runtimes for your own project,
 enable `NodusC.displayComputingTimes` and run the assignment normally in Nodus.
+
+## Work outside the parallel assignment phase
+
+With `NodusC.displayComputingTimes = true`, every algorithm also prints **Outside parallel
+assignment (wall)** followed by **Outside-phase breakdown (exclusive wall times)**. Run the normal
+assignment in Nodus; no test script is needed to measure your project.
+
+This breakdown partitions the time when **no assignment worker job is active**. It uses the same
+job boundaries as the existing path wall time, across groups, OD classes, iterations and time
+slices. It includes all time within the existing assignment audit window:
+
+```text
+Total elapsed = Paths and flow assignment (wall) + Outside parallel assignment (wall)
+Outside parallel assignment (wall) = sum of the outside-phase rows
+```
+
+The equalities hold before rounding each row to milliseconds. These are elapsed wall times,
+including waits; they are not CPU time and do not imply that every operation uses only one thread.
+For example, a coordinator waiting for cost-parser workers is counted under cost evaluation.
+Operations nested inside another category are removed from the outer category. Work overlapping
+an active assignment job is already covered by path wall time and is excluded from these rows.
+A category entered entirely during worker activity can therefore show zero outside time.
+
+| Outside-phase row | Measured work |
+| --- | --- |
+| Network initialization and generation | Constructing and generating the virtual network. |
+| Cost parsing and evaluation | Cost passes and Frank-Wolfe objective-derivative evaluations, including their cost-worker waits. |
+| Demand loading and preparation | OD reader initialization, table validation, row counting, row loading and demand preparation. |
+| Modal-split initialization | Global initialization of the Fast/Exact Multi-flow modal-split method, including any model parameter loading. Per-group initialization inside assignment jobs remains in path wall time. |
+| Path-output initialization | Writer initialization and creation/removal of path tables. |
+| Volume-to-vehicle conversion | Assigned and projected volume conversion, including PCU reset/reloading; repeated iterations and time slices accumulate. |
+| Volume blending and convergence checks | Equilibrium volume combination and stopping-rule checks; nested vehicle conversion is excluded. |
+| Virtual-network database output | Result-table creation, row preparation, aggregation for output, SQL batches and resource closing; explicitly timed commits are excluded. |
+| Path database batches | Header/detail batches executed on the coordinator, including final pending batches. Worker batches remain in path wall time and the existing database-call total. |
+| Path database quantity updates | Equilibrium path-quantity updates, excluding nested batches and commits. |
+| Path database index creation | Index creation during path-table finalization. |
+| Database commits | Explicit commits in the path and virtual-network writers. Automatic/implicit commits remain within the database operation that causes them. |
+| Other path-output finalization | Remaining writer finalization, including statement closing; batches, indexes and commits are excluded. |
+| Other assignment preparation | Remaining work before the first assignment worker job starts, such as validation, exclusions, vehicle-parser initialization and worker setup. |
+| Other coordination between worker jobs | Remaining outside time after jobs have begun, including scheduling gaps, progress reporting and other coordinator work. |
+| Other finalization | Remaining work after `assign()` returns or fails and before the audit is printed, including network disposal. |
+
+Rows appear when their scoped operation was entered or their residual duration is nonzero.
+Failures retain the time measured up to the existing reporting point. Post-assignment scripts,
+completion/error dialogs and cleanup performed after the audit is printed remain outside **Total
+elapsed**, as before.
+
+Use this section to locate the previously unexplained time, particularly the modal initialization,
+vehicle conversion, network output and path index/commit rows. **Do not add the existing database
+writing total or worker sums to this breakdown**: those measurements overlap it. The original
+network/cost totals are also retained as inclusive measurements, so small timer-boundary differences
+or nested work can make them differ from their exclusive outside counterparts.
+
+The audit adds scope-boundary measurements and accounts for worker activity at existing job
+boundaries; it adds no per-edge timing. Scopes on worker threads are ignored. With auditing disabled,
+these scopes use a shared no-op object and read no clocks. The timing script checks the accounting;
+`AssignmentAuditWorkerTest.java` additionally verifies real writer setup, index creation and commit
+scopes while comparing saved paths, modal shares and volumes across all eight worker classes.
 
 ## Fast Multi-flow unreachable-destination diagnostic
 
@@ -172,6 +232,38 @@ ant build-project
 nodus_test_dir=$(mktemp -d)
 javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_test_dir" devtools/tests/DijkstraReachabilityTest.java
 java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.compute.assign.shortestpath.DijkstraReachabilityTest
+rm -r "$nodus_test_dir"
+```
+
+## Vehicle conversion and virtual-network output
+
+Vehicle characteristics now use numeric mode/means tables, avoiding string keys and hash-map
+lookups during conversion. Final volumes and equilibrium trial volumes each traverse the graph
+once for all commodity groups. The existing capacity/PCU overrides, defaults and rounding rules
+are retained. These shared routines serve all assignment algorithms.
+
+Virtual-network saving translates its progress message once and refreshes the display every 256
+links, including the first and last links. Each link still advances the counter and checks for
+cancellation. JDBC rows, batch sizes, transactions and path indexes retain their existing behavior.
+
+To measure these changes, rebuild and run the same assignment with `NodusC.displayComputingTimes`
+enabled. Compare **Volume-to-vehicle conversion**, **Virtual-network database output** and
+**Total elapsed** with your reference runs, using the same settings and several runs after warm-up.
+The reference of 0.869 s for conversion and 1.901 s for network output is the entire time spent in
+these phases, not an estimate of the savings; database insertion and other work remain necessary.
+
+`VehiclesConversionTest.java` compares numeric lookups against independent property resolution
+for all mode/means combinations, including scenario/group precedence, defaults, bounds and cached
+groups. It compares the previous group-first calculation with actual network conversion, checking
+vehicle counts, auxiliary counts, both PCU directions, all link types, multiple groups/time slices,
+repeated conversions and equilibrium trial points. Inputs are synthetic; no project or database
+is opened. Run from the project root:
+
+```sh
+ant build-project
+nodus_test_dir=$(mktemp -d)
+javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_test_dir" devtools/tests/VehiclesConversionTest.java
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.compute.virtual.VehiclesConversionTest
 rm -r "$nodus_test_dir"
 ```
 

@@ -27,6 +27,8 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsidePhase;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsideScope;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.database.JDBCField;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
@@ -44,6 +46,9 @@ import javax.swing.JOptionPane;
  * @author Bart Jourquin
  */
 public class VirtualNetworkWriter {
+
+  /** Check cancellation for every link, but refresh the progress display once per block. */
+  private static final int PROGRESS_DISPLAY_INTERVAL = 256;
 
   private final AssignmentComputingTimes computingTimes;
 
@@ -178,7 +183,7 @@ public class VirtualNetworkWriter {
    */
   public boolean save() {
     long started = computingTimes.start();
-    try {
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.NETWORK_OUTPUT)) {
       return saveNetwork();
     } finally {
       computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
@@ -240,6 +245,9 @@ public class VirtualNetworkWriter {
       try (PreparedStatement prepStmt = jdbcConnection.prepareStatement(sqlStmt)) {
         nodusMapPanel.startProgress(virtualNet.getNbVirtualLinks());
         progressStarted = true;
+        String progressMessage =
+            i18n.get(
+                VirtualNetworkWriter.class, "Saving_virtual_network", "Saving virtual network");
 
         int batchSize = 0;
 
@@ -256,11 +264,7 @@ public class VirtualNetworkWriter {
             Iterator<VirtualLink> linkLit = vn.getVirtualLinkList().iterator();
 
             while (linkLit.hasNext()) {
-              if (!nodusMapPanel.updateProgress(
-                  i18n.get(
-                      VirtualNetworkWriter.class,
-                      "Saving_virtual_network",
-                      "Saving virtual network"))) {
+              if (!nodusMapPanel.updateProgress(progressMessage, PROGRESS_DISPLAY_INTERVAL)) {
                 rollbackToSavepoint(savepoint);
                 return false;
               }
@@ -334,7 +338,9 @@ public class VirtualNetworkWriter {
         }
 
         if (!jdbcConnection.getAutoCommit()) {
-          jdbcConnection.commit();
+          try (OutsideScope timing = computingTimes.outside(OutsidePhase.DATABASE_COMMIT)) {
+            jdbcConnection.commit();
+          }
         }
       }
     } catch (Exception e) {

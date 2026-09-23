@@ -26,6 +26,8 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsidePhase;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsideScope;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerTimes;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
@@ -99,7 +101,7 @@ public class PathWriter {
   public PathWriter(AssignmentParameters assignmentParameters) {
     computingTimes = assignmentParameters.getComputingTimes();
     long started = computingTimes.start();
-    try {
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.PATH_SETUP)) {
       initialize(assignmentParameters);
     } finally {
       computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
@@ -191,7 +193,7 @@ public class PathWriter {
    * @return True on success.
    */
   private boolean commitIfNeeded() {
-    try {
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.DATABASE_COMMIT)) {
       if (con != null && !con.getAutoCommit()) {
         con.commit();
       }
@@ -214,6 +216,15 @@ public class PathWriter {
     }
 
     long started = computingTimes.start();
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.PATH_FINALIZATION)) {
+      return finishPaths();
+    } finally {
+      computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
+    }
+  }
+
+  /** Finalizes output under close()'s writer lock, with separately timed database operations. */
+  private boolean finishPaths() {
     try {
       if (canceled) {
         return false;
@@ -234,13 +245,13 @@ public class PathWriter {
         // Create index on origin node
         JDBCIndex index =
             new JDBCIndex(pathHeaderTableName, NodusC.DBF_ORIGIN + scenario, NodusC.DBF_ORIGIN);
-        JDBCUtils.createIndex(index);
+        createPathIndex(index);
 
         // Create index on path index
         index =
             new JDBCIndex(
                 pathHeaderTableName, NodusC.DBF_PATH_INDEX + "H" + scenario, NodusC.DBF_PATH_INDEX);
-        JDBCUtils.createIndex(index);
+        createPathIndex(index);
 
         if (saveDetailedPaths) {
           if (hasBatchSupport) {
@@ -255,7 +266,7 @@ public class PathWriter {
                   pathDetailTableName,
                   NodusC.DBF_PATH_INDEX + "D" + scenario,
                   NodusC.DBF_PATH_INDEX);
-          JDBCUtils.createIndex(index);
+          createPathIndex(index);
         }
 
         if (!commitIfNeeded()) {
@@ -267,7 +278,13 @@ public class PathWriter {
     } finally {
       closePreparedStatements();
       closed = true;
-      computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
+    }
+  }
+
+  /** Measures index creation without including batch flushing or committing. */
+  private void createPathIndex(JDBCIndex index) {
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.PATH_INDEXES)) {
+      JDBCUtils.createIndex(index);
     }
   }
 
@@ -309,7 +326,7 @@ public class PathWriter {
       return true;
     }
 
-    try {
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.PATH_BATCHES)) {
       checkBatchResult(prepStmtDetails.executeBatch());
       prepStmtDetails.clearBatch();
       detailsBatchSize = 0;
@@ -337,7 +354,7 @@ public class PathWriter {
       return true;
     }
 
-    try {
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.PATH_BATCHES)) {
       checkBatchResult(prepStmtHeaders.executeBatch());
       prepStmtHeaders.clearBatch();
       headerBatchSize = 0;
@@ -734,7 +751,7 @@ public class PathWriter {
    */
   public synchronized void splitPaths(int iteration, double lambda) {
     long started = computingTimes.start();
-    try {
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.PATH_UPDATES)) {
       updatePathQuantities(iteration, lambda);
     } finally {
       computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);

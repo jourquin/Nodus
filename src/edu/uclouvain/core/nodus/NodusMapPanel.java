@@ -224,8 +224,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** If true, wait before displaying the default political boundaries at startup. */
   private boolean deferDefaultPoliticalBoundaries;
 
-  /** Control variables for the progress bar. */
-  private boolean canceled;
+  /** Cancellation requested by the UI and checked by the thread performing the task. */
+  private volatile boolean canceled;
 
   /** OpenMap component. See OpenMap's documentation for more details. */
   private NodusOMControlPanel controlPanel = new NodusOMControlPanel(this);
@@ -3392,14 +3392,27 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /**
-   * Updated a ProgressBar. See OpenMap documentation for more details on the progress bar mechanism
-   * implemented on the MapBean.
+   * Advances the progress bar by one step and refreshes its display.
    *
-   * @param msg boolean
-   * @return boolean
+   * @param msg The message to display.
+   * @return False if the user confirmed cancellation.
    */
   public boolean updateProgress(String msg) {
-    // getMapBean().requestFocusInWindow(true);
+    return updateProgress(msg, 1);
+  }
+
+  /**
+   * Advances progress by one step, refreshing the display only at the requested interval.
+   *
+   * <p>Every call still checks cancellation and counts its step. Expensive loops can avoid sending
+   * a GUI event for every item while retaining accurate progress and prompt cancellation checks.
+   * The first and final steps are always displayed.
+   *
+   * @param msg The message to display.
+   * @param displayInterval Number of steps between display updates; values below one mean one.
+   * @return False if the user confirmed cancellation.
+   */
+  public boolean updateProgress(String msg, int displayInterval) {
     if (canceled) {
       canceled = false;
       if (JOptionPane.showConfirmDialog(
@@ -3417,9 +3430,16 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       }
     }
 
+    currentTask++;
+    if (displayInterval > 1
+        && currentTask > 1
+        && currentTask < taskLength
+        && currentTask % displayInterval != 0) {
+      return true;
+    }
+
     ProgressEvent evt =
-        new ProgressEvent(
-            getMapBean(), ProgressEvent.UPDATE, "  " + msg, taskLength, ++currentTask);
+        new ProgressEvent(getMapBean(), ProgressEvent.UPDATE, "  " + msg, taskLength, currentTask);
     infoDelegator.updateProgress(evt);
 
     return true;

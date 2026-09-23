@@ -22,6 +22,8 @@
 package edu.uclouvain.core.nodus.compute.assign;
 
 import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsidePhase;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsideScope;
 import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorkerParameters;
@@ -119,7 +121,10 @@ public class ExactMFAssignment extends Assignment {
     if (modalSplitMethod == null) {
       return false;
     }
-    modalSplitMethod.initialize(assignmentParameters);
+    try (OutsideScope timing =
+        assignmentParameters.getComputingTimes().outside(OutsidePhase.MODAL_SETUP)) {
+      modalSplitMethod.initialize(assignmentParameters);
+    }
 
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {

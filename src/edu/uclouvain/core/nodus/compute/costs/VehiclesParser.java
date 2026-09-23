@@ -26,12 +26,16 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.utils.StringUtils;
 import java.text.MessageFormat;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.Properties;
 import javax.swing.JOptionPane;
 
 /**
- * Parser and place holder used to converts volumes (tons) into a number of vehicles.
+ * Stores the vehicle characteristics used to convert volumes (tons) into vehicle counts.
+ *
+ * <p>Each loaded commodity group has dense mode/means tables. Conversion can therefore look up
+ * capacities and PCU factors without allocating string keys or accessing boxed values for every
+ * link. Missing characteristics retain the default value of one.
  *
  * @author Bart Jourquin
  */
@@ -39,11 +43,11 @@ public class VehiclesParser {
 
   private static I18n i18n = Environment.getI18n();
 
-  /** Average load per mode/means for each group. */
-  private HashMap<String, Double>[] averageLoad;
+  /** Average loads, indexed by commodity group and then mode * MAXMM + means. */
+  private double[][] averageLoad;
 
-  /** PCU per mode/means for each group. */
-  private HashMap<String, Double>[] passengerCarUnits;
+  /** PCU factors with the same indexing; rows are allocated only for loaded groups. */
+  private double[][] passengerCarUnits;
 
   private int scenario;
 
@@ -52,10 +56,9 @@ public class VehiclesParser {
    *
    * @param scenario The scenario for which the vehicle characteristics must be loaded.
    */
-  @SuppressWarnings("unchecked")
   public VehiclesParser(int scenario) {
-    averageLoad = new HashMap[NodusC.MAXGROUPS];
-    passengerCarUnits = new HashMap[NodusC.MAXGROUPS];
+    averageLoad = new double[NodusC.MAXGROUPS][];
+    passengerCarUnits = new double[NodusC.MAXGROUPS][];
     this.scenario = scenario;
   }
 
@@ -68,13 +71,11 @@ public class VehiclesParser {
    * @return The Personal car units ratio.
    */
   public double getPassengerCarUnits(int group, int mode, int means) {
-    String key = mode + "-" + means;
-    Double value = passengerCarUnits[group].get(key);
-    if (value == null) {
+    // Out-of-range combinations were absent from the old maps and also default to one.
+    if (mode < 0 || mode >= NodusC.MAXMM || means < 0 || means >= NodusC.MAXMM) {
       return 1.0;
-    } else {
-      return value.doubleValue();
     }
+    return passengerCarUnits[group][mode * NodusC.MAXMM + means];
   }
 
   /**
@@ -86,13 +87,11 @@ public class VehiclesParser {
    * @return double The average load for the vehicle.
    */
   public double getAverageLoad(int group, int mode, int means) {
-    String key = mode + "-" + means;
-    Double value = averageLoad[group].get(key);
-    if (value == null) {
+    // Out-of-range combinations were absent from the old maps and also default to one.
+    if (mode < 0 || mode >= NodusC.MAXMM || means < 0 || means >= NodusC.MAXMM) {
       return 1.0;
-    } else {
-      return value.doubleValue();
     }
+    return averageLoad[group][mode * NodusC.MAXMM + means];
   }
 
   /**
@@ -112,16 +111,14 @@ public class VehiclesParser {
       return true;
     }
 
-    averageLoad[group] = new HashMap<String, Double>();
-    passengerCarUnits[group] = new HashMap<String, Double>();
-
-    String key;
+    averageLoad[group] = new double[NodusC.MAXMM * NodusC.MAXMM];
+    passengerCarUnits[group] = new double[NodusC.MAXMM * NodusC.MAXMM];
+    Arrays.fill(averageLoad[group], 1.0);
+    Arrays.fill(passengerCarUnits[group], 1.0);
 
     // Load capacities
     for (int mode = 0; mode < NodusC.MAXMM; mode++) {
       for (int means = 0; means < NodusC.MAXMM; means++) {
-        // averageLoad[mode][means] = 1;
-
         String core = NodusC.VARNAME_AVERAGELOAD + "." + mode + "," + means;
 
         // Is there a specific value for this scenario and group?
@@ -134,8 +131,7 @@ public class VehiclesParser {
           }
           double value = Double.parseDouble(s);
 
-          key = mode + "-" + means;
-          averageLoad[group].put(key, Double.valueOf(value));
+          averageLoad[group][mode * NodusC.MAXMM + means] = value;
           continue;
         }
 
@@ -149,8 +145,7 @@ public class VehiclesParser {
           }
           double value = Double.parseDouble(s);
 
-          key = mode + "-" + means;
-          averageLoad[group].put(key, Double.valueOf(value));
+          averageLoad[group][mode * NodusC.MAXMM + means] = value;
           continue;
         }
 
@@ -164,8 +159,7 @@ public class VehiclesParser {
           }
           double value = Double.parseDouble(s);
 
-          key = mode + "-" + means;
-          averageLoad[group].put(key, Double.valueOf(value));
+          averageLoad[group][mode * NodusC.MAXMM + means] = value;
           continue;
         }
 
@@ -179,8 +173,7 @@ public class VehiclesParser {
           }
           double value = Double.parseDouble(s);
 
-          key = mode + "-" + means;
-          averageLoad[group].put(key, Double.valueOf(value));
+          averageLoad[group][mode * NodusC.MAXMM + means] = value;
           continue;
         }
       }
@@ -202,8 +195,7 @@ public class VehiclesParser {
           }
           double value = Double.parseDouble(s);
 
-          key = mode + "-" + means;
-          passengerCarUnits[group].put(key, Double.valueOf(value));
+          passengerCarUnits[group][mode * NodusC.MAXMM + means] = value;
           continue;
         }
 
@@ -217,8 +209,7 @@ public class VehiclesParser {
           }
           double value = Double.parseDouble(s);
 
-          key = mode + "-" + means;
-          passengerCarUnits[group].put(key, Double.valueOf(value));
+          passengerCarUnits[group][mode * NodusC.MAXMM + means] = value;
           continue;
         }
 
@@ -232,8 +223,7 @@ public class VehiclesParser {
           }
           double value = Double.parseDouble(s);
 
-          key = mode + "-" + means;
-          passengerCarUnits[group].put(key, Double.valueOf(value));
+          passengerCarUnits[group][mode * NodusC.MAXMM + means] = value;
           continue;
         }
 
@@ -247,8 +237,7 @@ public class VehiclesParser {
           }
           double value = Double.parseDouble(s);
 
-          key = mode + "-" + means;
-          passengerCarUnits[group].put(key, Double.valueOf(value));
+          passengerCarUnits[group][mode * NodusC.MAXMM + means] = value;
           continue;
         }
       }

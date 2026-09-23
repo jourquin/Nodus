@@ -26,6 +26,8 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsidePhase;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsideScope;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
@@ -345,13 +347,14 @@ public abstract class Assignment implements Runnable {
       try {
         try {
           long started = computingTimes.start();
-          try {
+          try (OutsideScope timing = computingTimes.outside(OutsidePhase.NETWORK)) {
             virtualNet = new VirtualNetwork(assignmentParameters);
           } finally {
             computingTimes.add(AssignmentComputingTimes.Phase.NETWORK, started);
           }
           success = assign();
         } finally {
+          computingTimes.beginFinalization();
           if (virtualNet != null) {
             virtualNet.dispose();
           }
@@ -477,6 +480,14 @@ public abstract class Assignment implements Runnable {
    * @return True if the convergence threshold was reached.
    */
   protected final boolean convergenceReached(int iteration, double threshold) {
+    try (OutsideScope timing =
+        assignmentParameters.getComputingTimes().outside(OutsidePhase.VOLUME_UPDATES)) {
+      return evaluateConvergence(iteration, threshold);
+    }
+  }
+
+  /** Evaluates the volume gap within the coordinator's volume-processing timing scope. */
+  private boolean evaluateConvergence(int iteration, double threshold) {
     if (iteration <= 1) {
       lastRelativeVolumeGap = Double.NaN;
       return false;

@@ -22,6 +22,8 @@
 package edu.uclouvain.core.nodus.compute.assign;
 
 import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsidePhase;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsideScope;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorkerParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.FrankWolfeAssignmentWorker;
@@ -403,6 +405,14 @@ public class IncFrankWolfeAssignment extends Assignment {
    * @return true on success.
    */
   public boolean splitVolumes(double lambda) {
+    try (OutsideScope timing =
+        assignmentParameters.getComputingTimes().outside(OutsidePhase.VOLUME_UPDATES)) {
+      return combineAssignedVolumes(lambda);
+    }
+  }
+
+  /** Blends volumes within the coordinator audit; vehicle conversion has its own nested scope. */
+  private boolean combineAssignedVolumes(double lambda) {
     // Update current volumes on virtual links
     VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();
 

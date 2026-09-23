@@ -35,6 +35,12 @@ import java.util.function.LongSupplier;
  * across workers, which can now overlap, and overlaps path wall time when workers save paths.
  * Worker time excluding database calls is also reported; it includes time waiting for the writer
  * lock and is elapsed worker time, not CPU time.
+ *
+ * <p>The outside-phase breakdown partitions the complement of assignment-worker activity. Only
+ * scopes opened on the thread that started the audit are classified. Nested scopes are exclusive,
+ * and job starts/ends suspend/resume outside attribution even while a coordinator scope stays open.
+ * Unclassified intervals remain visible as preparation, coordination or finalization. The union of
+ * path intervals plus the outside categories therefore accounts for the complete audited run.
  */
 public final class AssignmentComputingTimes {
 
@@ -46,6 +52,49 @@ public final class AssignmentComputingTimes {
     COSTS,
     /** Database output, including preparation and finalization. */
     DATABASE
+  }
+
+  /** Mutually exclusive wall-time categories when no assignment worker job is active. */
+  public enum OutsidePhase {
+    /** Virtual-network construction and generation. */
+    NETWORK("Network initialization and generation"),
+    /** Cost-parser passes, including their own cost-worker threads and line searches. */
+    COSTS("Cost parsing and evaluation"),
+    /** OD table validation, row counting, reading and preparation of demand. */
+    DEMAND("Demand loading and preparation"),
+    /** Global modal-split initialization, including model parameter loading. */
+    MODAL_SETUP("Modal-split initialization"),
+    /** Creation or removal of path-output tables and writer initialization. */
+    PATH_SETUP("Path-output initialization"),
+    /** Conversion of assigned volumes to vehicles and passenger-car units. */
+    VEHICLES("Volume-to-vehicle conversion"),
+    /** Equilibrium volume blending and convergence checks outside worker jobs. */
+    VOLUME_UPDATES("Volume blending and convergence checks"),
+    /** Virtual-network table output, excluding explicitly timed database commits. */
+    NETWORK_OUTPUT("Virtual-network database output"),
+    /** Pending path-header/detail batches executed on the coordinator. */
+    PATH_BATCHES("Path database batches"),
+    /** Equilibrium path-quantity updates, excluding batches and explicit commits. */
+    PATH_UPDATES("Path database quantity updates"),
+    /** Path-table index creation after assignment. */
+    PATH_INDEXES("Path database index creation"),
+    /** Explicit commits in the path and virtual-network writers. */
+    DATABASE_COMMIT("Database commits"),
+    /** Path-writer finalization excluding its batches, indexes and commits. */
+    PATH_FINALIZATION("Other path-output finalization"),
+    /** Uninstrumented work before the first assignment worker job starts. */
+    PREPARATION("Other assignment preparation"),
+    /** Uninstrumented work between worker intervals, including scheduling and waits. */
+    COORDINATION("Other coordination between worker jobs"),
+    /** Uninstrumented work after assign() returns, up to the existing audit cutoff. */
+    FINALIZATION("Other finalization");
+
+    private final String label;
+
+    /** Associates an exclusive outside phase with its terminal label. */
+    OutsidePhase(String label) {
+      this.label = label;
+    }
   }
 
   /** Computation stages measured separately inside an assignment worker. */
@@ -144,6 +193,15 @@ public final class AssignmentComputingTimes {
   private long pathsWorkerTime;
   private int activePathWorkers;
 
+  private final long[] outsideElapsed = new long[OutsidePhase.values().length];
+  private final boolean[] outsidePhases = new boolean[OutsidePhase.values().length];
+  private Thread coordinatorThread;
+  private OutsidePhase outsidePhase;
+  private boolean pathsHaveStarted;
+  private boolean finalizing;
+  private long outsideCheckpoint;
+  private long runSequence;
+
   /** Creates an audit using the monotonic system clock. */
   public AssignmentComputingTimes() {
     this(System::nanoTime);
@@ -175,6 +233,99 @@ public final class AssignmentComputingTimes {
     hasWorkerDetails = false;
     threadDatabaseTime.remove();
     assignmentStarted = start();
+    coordinatorThread = Thread.currentThread();
+    outsidePhase = null;
+    pathsHaveStarted = false;
+    finalizing = false;
+    outsideCheckpoint = assignmentStarted;
+    runSequence++;
+    for (int i = 0; i < outsideElapsed.length; i++) {
+      outsideElapsed[i] = 0;
+      outsidePhases[i] = false;
+    }
+  }
+
+  /**
+   * Times a coordinator operation, excluding intervals with any active assignment worker job.
+   * Nested scopes attribute each interval only to the innermost operation. Calls on worker threads
+   * and calls with auditing disabled return a shared no-op scope without reading the clock.
+   *
+   * @param phase Operation to identify while no assignment worker is active.
+   * @return Scope to close on the coordinator in reverse opening order, preferably with
+   *     try-with-resources.
+   */
+  public OutsideScope outside(OutsidePhase phase) {
+    if (!enabled || Thread.currentThread() != coordinatorThread) {
+      return OutsideScope.DISABLED;
+    }
+    synchronized (this) {
+      accountOutsideUntil(clock.getAsLong());
+      OutsideScope scope = new OutsideScope(this, outsidePhase, runSequence);
+      outsidePhase = phase;
+      outsidePhases[phase.ordinal()] = true;
+      return scope;
+    }
+  }
+
+  /** Marks the existing post-computation interval, before disposal and path-writer finalization. */
+  public void beginFinalization() {
+    if (!enabled || Thread.currentThread() != coordinatorThread) {
+      return;
+    }
+    synchronized (this) {
+      accountOutsideUntil(clock.getAsLong());
+      finalizing = true;
+    }
+  }
+
+  /**
+   * Accounts the interval preceding a scope or worker-activity transition. Caller holds this
+   * audit's monitor. No interval is charged twice; worker-active intervals belong to path wall
+   * time.
+   */
+  private void accountOutsideUntil(long now) {
+    if (activePathWorkers == 0) {
+      OutsidePhase phase = outsidePhase;
+      if (phase == null) {
+        phase =
+            finalizing
+                ? OutsidePhase.FINALIZATION
+                : pathsHaveStarted ? OutsidePhase.COORDINATION : OutsidePhase.PREPARATION;
+      }
+      outsideElapsed[phase.ordinal()] += now - outsideCheckpoint;
+    }
+    outsideCheckpoint = now;
+  }
+
+  /** Restores a nested coordinator operation once, including exceptional exits. */
+  public static final class OutsideScope implements AutoCloseable {
+    private static final OutsideScope DISABLED = new OutsideScope(null, null, 0);
+    private final AssignmentComputingTimes audit;
+    private final OutsidePhase previous;
+    private final long run;
+    private boolean closed;
+
+    /** Captures the previous category and assignment generation for a scoped measurement. */
+    private OutsideScope(AssignmentComputingTimes audit, OutsidePhase previous, long run) {
+      this.audit = audit;
+      this.previous = previous;
+      this.run = run;
+    }
+
+    /** Finishes this scope without changing a later assignment or an already printed report. */
+    @Override
+    public void close() {
+      if (audit == null || Thread.currentThread() != audit.coordinatorThread) {
+        return;
+      }
+      synchronized (audit) {
+        if (!closed && audit.enabled && run == audit.runSequence) {
+          audit.accountOutsideUntil(audit.clock.getAsLong());
+          audit.outsidePhase = previous;
+        }
+        closed = true;
+      }
+    }
   }
 
   /**
@@ -225,6 +376,8 @@ public final class AssignmentComputingTimes {
     }
     synchronized (this) {
       long started = clock.getAsLong();
+      accountOutsideUntil(started);
+      pathsHaveStarted = true;
       if (activePathWorkers++ == 0) {
         pathsStarted = started;
       }
@@ -245,6 +398,7 @@ public final class AssignmentComputingTimes {
     long databaseTime = getThreadDatabaseTime() - databaseBefore;
     synchronized (this) {
       long finished = clock.getAsLong();
+      accountOutsideUntil(finished);
       pathsWorkerTime += Math.max(0, finished - started - databaseTime);
       if (--activePathWorkers == 0) {
         pathsWallTime += finished - pathsStarted;
@@ -417,6 +571,7 @@ public final class AssignmentComputingTimes {
       return;
     }
     long finished = clock.getAsLong();
+    accountOutsideUntil(finished);
     enabled = false;
     if (activePathWorkers > 0) {
       pathsWallTime += finished - pathsStarted;
@@ -437,6 +592,7 @@ public final class AssignmentComputingTimes {
     appendTime(
         report, "Paths and flow assignment (worker sum, excludes DB calls)", pathsWorkerTime);
     appendTime(report, "Database writing (writer calls)", elapsed[Phase.DATABASE.ordinal()]);
+    appendOutside(report);
     if (hasWorkerDetails) {
       report.append("  Assignment breakdown (worker elapsed sums, not CPU time):\n");
       for (WorkerPhase phase : WorkerPhase.values()) {
@@ -447,14 +603,35 @@ public final class AssignmentComputingTimes {
       appendTime(
           report, "  Path output (includes DB calls and writer waits)", workerPathOutputTime);
       report.append("  Computation stages exclude path-output calls.\n");
-      report.append("  Setup, cost-markup updates and coordinator work are not itemized.\n");
+      report.append(
+          "  Worker setup and cost-markup updates are not itemized in the worker breakdown.\n");
     }
     if (hasReachabilityDetails) {
       appendReachability(report);
     }
-    report.append("  Parallel work and path writes overlap; these rows are not additive.\n");
+    report.append("  Worker sums and database writer calls overlap the wall-time breakdown.\n");
     System.out.print(report);
     threadDatabaseTime.remove();
+  }
+
+  /** Prints a partition of elapsed time outside the union of all assignment worker intervals. */
+  private void appendOutside(StringBuilder report) {
+    long total = 0;
+    for (long duration : outsideElapsed) {
+      total += duration;
+    }
+    appendTime(report, "Outside parallel assignment (wall)", total);
+    report.append("  Outside-phase breakdown (exclusive wall times):\n");
+    for (OutsidePhase phase : OutsidePhase.values()) {
+      long duration = outsideElapsed[phase.ordinal()];
+      if (outsidePhases[phase.ordinal()] || duration > 0) {
+        appendTime(report, "  " + phase.label, duration);
+      }
+    }
+    report.append(
+        "  Outside rows sum to outside time; outside + path wall = total (before rounding).\n");
+    report.append(
+        "  Nested phases count once; intervals with active assignment jobs are excluded.\n");
   }
 
   /**

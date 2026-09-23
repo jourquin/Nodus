@@ -27,6 +27,9 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsidePhase;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsideScope;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
@@ -204,12 +207,22 @@ public class ODReader {
 
   private String whereStmt;
 
+  private final AssignmentComputingTimes computingTimes;
+
   /**
    * Initializes the OD reader.
    *
    * @param ap AssignmentParameters
    */
   public ODReader(AssignmentParameters ap) {
+    computingTimes = ap.getComputingTimes();
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.DEMAND)) {
+      initialize(ap);
+    }
+  }
+
+  /** Validates and counts OD rows within the demand-preparation timing scope. */
+  private void initialize(AssignmentParameters ap) {
     nodusMapPanel = ap.getNodusProject().getNodusMapPanel();
 
     jdbcConnection = nodusMapPanel.getNodusProject().getMainJDBCConnection();
@@ -345,6 +358,13 @@ public class ODReader {
    * @return boolean True on success.
    */
   public boolean loadDemand(VirtualNetwork vnet) {
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.DEMAND)) {
+      return readDemand(vnet);
+    }
+  }
+
+  /** Loads and prepares all OD rows within the demand timing scope. */
+  private boolean readDemand(VirtualNetwork vnet) {
     if (!isOk) {
       return false;
     }

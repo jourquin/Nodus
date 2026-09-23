@@ -35,6 +35,8 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsidePhase;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsideScope;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.costs.CostParser;
@@ -430,7 +432,7 @@ public class VirtualNetwork {
   public boolean computeCosts(
       int iteration, int scenario, byte odClass, int timeSlice, int nbThreads) {
     long started = computingTimes.start();
-    try {
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.COSTS)) {
       return computeCostsForClass(iteration, scenario, odClass, timeSlice, nbThreads);
     } finally {
       computingTimes.add(AssignmentComputingTimes.Phase.COSTS, started);
@@ -643,62 +645,9 @@ public class VirtualNetwork {
    * @return True on success.
    */
   public boolean volumesToVehicles(VehiclesParser vehiclesParser, int timeSlice) {
-    resetPassengerCarUnits();
-    for (byte groupIndex = 0; groupIndex < getNbGroups(); groupIndex++) {
-
-      int group = groups[groupIndex];
-      for (VirtualNodeList element : vnl) {
-        // Iterate through all the virtual nodes generated for this real node
-        Iterator<VirtualNode> nodeLit = element.getVirtualNodeList().iterator();
-
-        while (nodeLit.hasNext()) {
-          VirtualNode vn = nodeLit.next();
-
-          /*
-           * Iterate through all the virtual links that start from this virtual node
-           */
-          Iterator<VirtualLink> linkLit = vn.getVirtualLinkList().iterator();
-
-          while (linkLit.hasNext()) {
-            VirtualLink vl = linkLit.next();
-
-            double averageLoad;
-            double pcu;
-
-            // Vehicles are not computed for transhipment virtual links
-            if (vl.getType() == VirtualLink.TYPE_MOVE
-                || vl.getType() == VirtualLink.TYPE_LOAD
-                || vl.getType() == VirtualLink.TYPE_UNLOAD
-                || vl.getType() == VirtualLink.TYPE_TRANSIT) {
-
-              // Take end virtual node to get mode/means for loading vlinks
-              if (vl.getType() == VirtualLink.TYPE_LOAD) {
-                averageLoad =
-                    vehiclesParser.getAverageLoad(
-                        group, vl.getEndVirtualNode().getMode(), vl.getEndVirtualNode().getMeans());
-                pcu =
-                    vehiclesParser.getPassengerCarUnits(
-                        group, vl.getEndVirtualNode().getMode(), vl.getEndVirtualNode().getMeans());
-              } else {
-                averageLoad =
-                    vehiclesParser.getAverageLoad(
-                        group,
-                        vl.getBeginVirtualNode().getMode(),
-                        vl.getBeginVirtualNode().getMeans());
-                pcu =
-                    vehiclesParser.getPassengerCarUnits(
-                        group,
-                        vl.getBeginVirtualNode().getMode(),
-                        vl.getBeginVirtualNode().getMeans());
-              }
-
-              vl.volumesToVehicles(groupIndex, timeSlice, averageLoad, pcu);
-            }
-          }
-        }
-      }
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.VEHICLES)) {
+      return convertVolumesToVehicles(vehiclesParser, timeSlice);
     }
-    return true;
   }
 
   /**
@@ -710,6 +659,41 @@ public class VirtualNetwork {
    */
   public boolean volumesToVehicles(VehiclesParser vehiclesParser, byte timeSlice) {
     return volumesToVehicles(vehiclesParser, (int) timeSlice);
+  }
+
+  /** Converts one time slice within the exclusive outside-worker timing scope. */
+  private boolean convertVolumesToVehicles(VehiclesParser vehiclesParser, int timeSlice) {
+    resetPassengerCarUnits();
+    // Visit the graph once, keeping all groups for a link together in memory. PCU totals are
+    // integer sums, so this traversal preserves the totals of the former group-first passes.
+    for (VirtualNodeList element : vnl) {
+      for (VirtualNode vn : element.getVirtualNodeList()) {
+        for (VirtualLink vl : vn.getVirtualLinkList()) {
+          byte type = vl.getType();
+          if (type != VirtualLink.TYPE_MOVE
+              && type != VirtualLink.TYPE_LOAD
+              && type != VirtualLink.TYPE_UNLOAD
+              && type != VirtualLink.TYPE_TRANSIT) {
+            continue;
+          }
+
+          // Loading uses the destination vehicle; all other eligible links use the origin.
+          VirtualNode vehicleNode =
+              type == VirtualLink.TYPE_LOAD ? vl.getEndVirtualNode() : vl.getBeginVirtualNode();
+          int mode = vehicleNode.getMode();
+          int means = vehicleNode.getMeans();
+          for (byte groupIndex = 0; groupIndex < getNbGroups(); groupIndex++) {
+            int group = groups[groupIndex];
+            vl.volumesToVehicles(
+                groupIndex,
+                timeSlice,
+                vehiclesParser.getAverageLoad(group, mode, means),
+                vehiclesParser.getPassengerCarUnits(group, mode, means));
+          }
+        }
+      }
+    }
+    return true;
   }
 
   /**
@@ -772,7 +756,7 @@ public class VirtualNetwork {
    */
   public boolean generate() {
     long started = computingTimes.start();
-    try {
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.NETWORK)) {
       return generateNetwork();
     } finally {
       computingTimes.add(AssignmentComputingTimes.Phase.NETWORK, started);
@@ -1479,7 +1463,7 @@ public class VirtualNetwork {
   public double objectiveFunctionFirstDerivative(
       int iteration, double approachedLambda, int threads) {
     long started = computingTimes.start();
-    try {
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.COSTS)) {
       return computeObjectiveFunctionFirstDerivative(iteration, approachedLambda, threads);
     } finally {
       computingTimes.add(AssignmentComputingTimes.Phase.COSTS, started);
@@ -1718,41 +1702,9 @@ public class VirtualNetwork {
    */
   public boolean projectedVolumesToVehicles(
       VehiclesParser vehiclesParser, int timeSlice, double lambda) {
-
-    resetPassengerCarUnits();
-
-    for (byte groupIndex = 0; groupIndex < getNbGroups(); groupIndex++) {
-      int group = groups[groupIndex];
-
-      for (VirtualNodeList element : vnl) {
-        Iterator<VirtualNode> nodeLit = element.getVirtualNodeList().iterator();
-
-        while (nodeLit.hasNext()) {
-          VirtualNode vn = (VirtualNode) nodeLit.next();
-          Iterator<VirtualLink> linkLit = vn.getVirtualLinkList().iterator();
-
-          while (linkLit.hasNext()) {
-            VirtualLink vl = (VirtualLink) linkLit.next();
-
-            if (vl.getType() != VirtualLink.TYPE_MOVE) {
-              continue;
-            }
-
-            double averageLoad =
-                vehiclesParser.getAverageLoad(
-                    group, vl.getBeginVirtualNode().getMode(), vl.getBeginVirtualNode().getMeans());
-
-            double pcu =
-                vehiclesParser.getPassengerCarUnits(
-                    group, vl.getBeginVirtualNode().getMode(), vl.getBeginVirtualNode().getMeans());
-
-            vl.projectedVolumesToVehicles(groupIndex, timeSlice, averageLoad, pcu, lambda);
-          }
-        }
-      }
+    try (OutsideScope timing = computingTimes.outside(OutsidePhase.VEHICLES)) {
+      return convertProjectedVolumesToVehicles(vehiclesParser, timeSlice, lambda);
     }
-
-    return true;
   }
 
   /**
@@ -1766,5 +1718,37 @@ public class VirtualNetwork {
   public boolean projectedVolumesToVehicles(
       VehiclesParser vehiclesParser, byte timeSlice, double lambda) {
     return projectedVolumesToVehicles(vehiclesParser, (int) timeSlice, lambda);
+  }
+
+  /** Converts a trial point within the same vehicle-conversion audit as final assigned volumes. */
+  private boolean convertProjectedVolumesToVehicles(
+      VehiclesParser vehiclesParser, int timeSlice, double lambda) {
+
+    resetPassengerCarUnits();
+
+    // Line-search trial points use the same single graph traversal as final conversions.
+    for (VirtualNodeList element : vnl) {
+      for (VirtualNode vn : element.getVirtualNodeList()) {
+        for (VirtualLink vl : vn.getVirtualLinkList()) {
+          if (vl.getType() != VirtualLink.TYPE_MOVE) {
+            continue;
+          }
+
+          int mode = vl.getBeginVirtualNode().getMode();
+          int means = vl.getBeginVirtualNode().getMeans();
+          for (byte groupIndex = 0; groupIndex < getNbGroups(); groupIndex++) {
+            int group = groups[groupIndex];
+            vl.projectedVolumesToVehicles(
+                groupIndex,
+                timeSlice,
+                vehiclesParser.getAverageLoad(group, mode, means),
+                vehiclesParser.getPassengerCarUnits(group, mode, means),
+                lambda);
+          }
+        }
+      }
+    }
+
+    return true;
   }
 }
