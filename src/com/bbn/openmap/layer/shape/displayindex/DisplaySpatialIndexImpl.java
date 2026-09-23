@@ -49,7 +49,8 @@ import java.util.List;
  */
 public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
 
-  private static class BoundsEntry {
+  /** A graphic and its geographic bounds, shared with spatial lookup implementations. */
+  protected static class BoundsEntry {
 
     DataBounds bounds;
 
@@ -59,7 +60,6 @@ public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
      * An element of the index.
      *
      * @param bounds Bounding box
-     * @param byteOffset Offset in the shape file
      * @param omg The graphic
      */
     public BoundsEntry(DataBounds bounds, OMGraphic omg) {
@@ -277,6 +277,11 @@ public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
 
   /** Creates a subset. */
   protected List<BoundsEntry> getBoundsEntrySubSet(DataBounds area) {
+    return getBoundsEntrySubSet(area, null);
+  }
+
+  /** Selects either rectangle in source order, including an entry only once for wrapped views. */
+  protected List<BoundsEntry> getBoundsEntrySubSet(DataBounds area, DataBounds secondArea) {
     List<BoundsEntry> retVal = new ArrayList<>();
     BoundsEntry entry = null;
     Iterator<BoundsEntry> it = null;
@@ -290,7 +295,7 @@ public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
 
     while (it != null && it.hasNext()) {
       entry = it.next();
-      if (entry.intersects(area)) {
+      if (entry.intersects(area) || (secondArea != null && entry.intersects(secondArea))) {
         retVal.add(entry);
       }
     }
@@ -577,27 +582,7 @@ public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
    */
   @Override
   public OMGraphicList locateRecords(DataBounds area) throws IOException, FormatException {
-    OMGraphicList retVal = null;
-    if (retVal == null) {
-      retVal = getEmptyList();
-    }
-
-    // long starttime = System.currentTimeMillis();
-    List<BoundsEntry> matches = getBoundsEntrySubSet(area);
-
-    OMGraphic omg = null;
-    BoundsEntry entry = null;
-    for (Iterator<BoundsEntry> it = matches.iterator(); it.hasNext(); ) {
-      entry = it.next();
-      if (entry != null) {
-        omg = entry.getGraphic();
-        if (omg != null) {
-          retVal.add(omg);
-        }
-      }
-    }
-
-    return retVal;
+    return graphicsFor(getBoundsEntrySubSet(area));
   }
 
   /**
@@ -614,7 +599,30 @@ public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
   @Override
   public OMGraphicList locateRecords(double xmin, double ymin, double xmax, double ymax)
       throws IOException, FormatException {
+    if (xmin > xmax) {
+      return graphicsFor(
+          getBoundsEntrySubSet(
+              new DataBounds(xmin, ymin, 180, ymax), new DataBounds(-180, ymin, xmax, ymax)));
+    }
     return locateRecords(new DataBounds(xmin, ymin, xmax, ymax));
+  }
+
+  /** Builds a display list in the same drawing and hit-testing order as the source. */
+  private OMGraphicList graphicsFor(List<BoundsEntry> matches) {
+    OMGraphicList retVal = getEmptyList();
+    OMGraphic omg = null;
+    BoundsEntry entry = null;
+    for (Iterator<BoundsEntry> it = matches.iterator(); it.hasNext(); ) {
+      entry = it.next();
+      if (entry != null) {
+        omg = entry.getGraphic();
+        if (omg != null) {
+          retVal.add(omg);
+        }
+      }
+    }
+
+    return retVal;
   }
 
   /** Reset the bounds so they will be recalculated the next time a file is read. */
@@ -627,8 +635,8 @@ public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
     if (list != null) {
 
       graphicList = list;
-      cachedList = clone(list);
-      cachedList.clear();
+      // Only an empty output-list template is needed; copying every source graphic is wasted work.
+      cachedList = new OMGraphicList();
       try {
         indexList(graphicList);
       } catch (Exception e) {

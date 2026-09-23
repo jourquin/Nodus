@@ -136,7 +136,7 @@ public interface DisplaySpatialIndex extends DataBoundsProvider {
    * Locates records in the shape file that intersect with the given rectangle. The spatial index is
    * searched for intersections and the appropriate records are read from the shape file.
    *
-   * @param xmin the smaller of the x coordinates
+   * @param xmin The western longitude; greater than xmax for a view crossing the date line.
    * @param ymin the smaller of the y coordinates
    * @param xmax the larger of the x coordinates
    * @param ymax the larger of the y coordinates

@@ -32,6 +32,11 @@ public class NodusC {
   public static boolean displayComputingTimes = false;
 
   /**
+   * Print map preparation timings for pan/zoom diagnostics; excludes painting and UI queue time.
+   */
+  public static boolean displayMapComputingTimes = true;
+
+  /**
    * Use compact graph and heap arrays for all assignment shortest-path searches (Dijkstra and A*).
    * Set false to benchmark the previous implementations with the same assignment settings.
    */

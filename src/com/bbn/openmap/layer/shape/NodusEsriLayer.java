@@ -241,6 +241,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         point.generate(getProjection());
         point.putAttribute(0, new RealNode());
         list.add(point);
+        invalidateSpatialIndex();
 
         getModel().addBlankRecord();
         updateNumIndex();
@@ -285,7 +286,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
           removeLastRecord();
           return false;
         } else {
-          dirtyShp = true;
+          setDirtyShp(true);
           dirtyDbf = true;
           reloadLabels();
           return true;
@@ -326,6 +327,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     if (list != null) {
       synchronized (list) {
         list.add(link);
+        invalidateSpatialIndex();
         getModel().addBlankRecord();
         updateNumIndex();
 
@@ -392,7 +394,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
           removeLastRecord();
           return false;
         } else {
-          dirtyShp = true;
+          setDirtyShp(true);
           dirtyDbf = true;
           reloadLabels();
           return true;
@@ -411,6 +413,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   public void addRecord(EsriPolyline graphic, List<Object> record) {
     OMGraphicList list = getEsriGraphicList();
     list.add(graphic);
+    invalidateSpatialIndex();
     getModel().addRecord(record);
     updateNumIndex();
 
@@ -443,7 +446,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     reloadLabels();
     dirtyDbf = true;
-    dirtyShp = true;
+    setDirtyShp(true);
   }
 
   /**
@@ -1320,6 +1323,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     synchronized (list) {
       list.remove(index);
+      invalidateSpatialIndex();
     }
 
     // Keep the ID of the record for further use
@@ -1379,7 +1383,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
               + " = "
               + num;
       executeUpdateSqlStmt(sqlStmt);
-      dirtyShp = true;
+      setDirtyShp(true);
       dirtyDbf = true;
     }
 
@@ -1601,6 +1605,9 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
    */
   public void setDirtyShp(boolean flag) {
     dirtyShp = flag;
+    if (flag) {
+      invalidateSpatialIndex();
+    }
   }
 
   /**

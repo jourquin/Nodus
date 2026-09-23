@@ -24,17 +24,19 @@ package com.bbn.openmap.layer.shape;
 import com.bbn.openmap.dataAccess.shape.DbfTableModel;
 import com.bbn.openmap.dataAccess.shape.EsriGraphicList;
 import com.bbn.openmap.io.FormatException;
+import com.bbn.openmap.layer.shape.displayindex.DisplaySpatialIndex;
 import com.bbn.openmap.layer.shape.displayindex.DisplaySpatialIndexFactory;
-import com.bbn.openmap.layer.shape.displayindex.DisplaySpatialIndexLinear;
 import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.omGraphics.OMGraphicList;
 import com.bbn.openmap.omGraphics.event.NodusMapMouseInterpreter;
 import com.bbn.openmap.proj.Projection;
 import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.MoreMath;
+import edu.uclouvain.core.nodus.NodusC;
 import java.io.IOException;
-import java.io.InterruptedIOException;
+import java.util.Locale;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * An EsriLayer that uses a memory spatial index in order to limit repainting to the visible part of
@@ -46,20 +48,39 @@ public class FastEsriLayer extends EsriLayer {
 
   private static final long serialVersionUID = -5646162140876554837L;
 
-  /** List of object to currently display. */
-  private OMGraphicList currentProjectedList = null;
+  /** Geometry invalidation is independent of projection changes and does not acquire list locks. */
+  private final AtomicLong geometryRevision = new AtomicLong();
+
+  /** Geographic index and, after a successful preparation, the visible graphics. */
+  private volatile RenderCache renderCache;
 
   /** Source list already loaded by OpenMap, retained to avoid lazy SHP reads during disposal. */
   private EsriGraphicList loadedEsriGraphicList = null;
 
-  /** Track the previous projection. */
-  private Projection previousProj = null;
-
-  /** Spatial index for faster drawing. */
-  private DisplaySpatialIndexLinear spatialIndex = null;
-
   /** True once this layer has been disposed and must not rebuild heavy caches. */
-  private boolean disposed = false;
+  private volatile boolean disposed = false;
+
+  /** Associates a geographic index and visible graphics with exactly one source revision. */
+  private static final class RenderCache {
+    final long revision;
+    final EsriGraphicList source;
+    final int sourceSize;
+    final DisplaySpatialIndex index;
+    final OMGraphicList visible;
+
+    RenderCache(
+        long revision,
+        EsriGraphicList source,
+        int sourceSize,
+        DisplaySpatialIndex index,
+        OMGraphicList visible) {
+      this.revision = revision;
+      this.source = source;
+      this.sourceSize = sourceSize;
+      this.index = index;
+      this.visible = visible;
+    }
+  }
 
   /** Default constructor. */
   public FastEsriLayer() {
@@ -80,11 +101,21 @@ public class FastEsriLayer extends EsriLayer {
     setMouseEventInterpreter(new NodusMapMouseInterpreter(this));
   }
 
-  /** Clears projection-dependent rendering caches without touching the source shapefile data. */
+  /** Clears geographic and projected caches when changing data sources or disposing the layer. */
   protected synchronized void clearRenderCaches() {
-    currentProjectedList = null;
-    previousProj = null;
-    spatialIndex = null;
+    invalidateSpatialIndex();
+  }
+
+  /**
+   * Invalidates geographic bounds after adding, removing, replacing or moving graphics.
+   *
+   * <p>Ordinary pan, zoom, resize, style and result changes do not need this call. Rebuilding is
+   * deferred until the next preparation, so editing several links does not repeatedly index the
+   * layer. Code modifying the live source graphics must call this method after its changes.
+   */
+  public void invalidateSpatialIndex() {
+    geometryRevision.incrementAndGet();
+    renderCache = null;
   }
 
   /**
@@ -94,7 +125,8 @@ public class FastEsriLayer extends EsriLayer {
    * it must only be called when the layer is definitely being closed/disposed.
    */
   protected synchronized void clearLayerData() {
-    OMGraphicList projectedList = currentProjectedList;
+    RenderCache cache = renderCache;
+    OMGraphicList projectedList = cache == null ? null : cache.visible;
     if (projectedList != null) {
       projectedList.clear();
     }
@@ -189,94 +221,62 @@ public class FastEsriLayer extends EsriLayer {
       return null;
     }
 
-    if (currentProjectedList == null) {
-      currentProjectedList = getEsriGraphicList();
+    RenderCache cache = renderCache;
+    if (cache != null
+        && cache.visible != null
+        && cache.revision == geometryRevision.get()
+        && cache.sourceSize == cache.source.size()) {
+      return cache.visible;
     }
-
-    return currentProjectedList;
+    return getEsriGraphicList();
   }
 
   /**
-   * Returns the EsriGraphicList for this layer and creates the spatial index if needed.
+   * Returns source graphics without building a display index during database or editing work.
    *
-   * @return The EsriGraphicList for this layer
+   * @return The layer's source graphics.
    */
   @Override
   public synchronized EsriGraphicList getEsriGraphicList() {
     if (disposed) {
       return loadedEsriGraphicList;
     }
-
-    EsriGraphicList retVal = super.getEsriGraphicList();
-    loadedEsriGraphicList = retVal;
-
-    if (retVal != null && spatialIndex == null) {
-      spatialIndex = (DisplaySpatialIndexLinear) DisplaySpatialIndexFactory.createIndex(retVal);
+    EsriGraphicList source = super.getEsriGraphicList();
+    if (source != loadedEsriGraphicList) {
+      loadedEsriGraphicList = source;
+      invalidateSpatialIndex();
     }
-    return retVal;
+    return source;
   }
 
-  /** Creates the list of objects to refresh on the screen, using a spatial index. */
-  private OMGraphicList getSpatialList(Projection projection) {
-    if (disposed || projection == null || spatialIndex == null) {
-      return null;
-    }
+  /**
+   * Builds an index for a stable source snapshot; called only after geometry invalidation.
+   *
+   * @param source Source geometry for the current revision.
+   * @return A geographic index reusable across projections.
+   */
+  protected DisplaySpatialIndex createSpatialIndex(OMGraphicList source) {
+    return DisplaySpatialIndexFactory.createIndex(source);
+  }
 
-    OMGraphicList retVal = null;
+  /** Selects visible graphics without projecting them; preparation projects them exactly once. */
+  private OMGraphicList getSpatialList(DisplaySpatialIndex index, Projection projection)
+      throws IOException, FormatException {
     LatLonPoint.Double ul = projection.getUpperLeft();
     LatLonPoint.Double lr = projection.getLowerRight();
-    float ulLat = ul.getLatitude();
-    float ulLon = ul.getLongitude();
-    float lrLat = lr.getLatitude();
-    float lrLon = lr.getLongitude();
+    double west = ul.getLongitude();
+    double east = lr.getLongitude();
+    double south = Math.min(ul.getLatitude(), lr.getLatitude());
+    double north = Math.max(ul.getLatitude(), lr.getLatitude());
 
-    // check for dateline anomaly on the screen. we check for
-    // ulLon >= lrLon, but we need to be careful of the check for
-    // equality because of floating point arguments...
-    if (ulLon > lrLon || MoreMath.approximately_equal(ulLon, lrLon, .001f)) {
-
-      double ymin = Math.min(ulLat, lrLat);
-      double ymax = Math.max(ulLat, lrLat);
-
-      try {
-        retVal =
-            spatialIndex.getOMGraphics(
-                ulLon, ymin, 180.0d, ymax, null, drawingAttributes, projection, null);
-      } catch (InterruptedIOException iioe) {
-        // This means that the thread has been interrupted,
-        // probably due to a projection change. Not a big
-        // deal, just return, don't do any more work, and let
-        // the next thread solve all problems.
-        retVal = null;
-      } catch (IOException ex) {
-        ex.printStackTrace();
-      } catch (FormatException fe) {
-        fe.printStackTrace();
-      }
-    } else {
-
-      double xmin = Math.min(ulLon, lrLon);
-      double xmax = Math.max(ulLon, lrLon);
-      double ymin = Math.min(ulLat, lrLat);
-      double ymax = Math.max(ulLat, lrLat);
-
-      try {
-        retVal =
-            spatialIndex.getOMGraphics(
-                xmin, ymin, xmax, ymax, retVal, getDrawingAttributes(), projection, null);
-      } catch (InterruptedIOException iioe) {
-        // This means that the thread has been interrupted,
-        // probably due to a projection change. Not a big
-        // deal, just return, don't do any more work, and let
-        // the next thread solve all problems.
-        retVal = null;
-      } catch (java.io.IOException ex) {
-        ex.printStackTrace();
-      } catch (FormatException fe) {
-        fe.printStackTrace();
-      }
+    // A nearly closed reversed interval represents a whole-world view. Keep narrow west-to-east
+    // views narrow at high zoom. Other reversed intervals cross the date line; the index combines
+    // their two halves in source order without duplicating crossing graphics.
+    if (west >= east && MoreMath.approximately_equal(west, east, .001)) {
+      west = -180;
+      east = 180;
     }
-    return retVal;
+    return index.locateRecords(west, south, east, north);
   }
 
   /** Overrides the original method to limit the search into the current view. */
@@ -306,45 +306,97 @@ public class FastEsriLayer extends EsriLayer {
     if (disposed) {
       return null;
     }
-
-    Projection proj = getProjection();
-    if (proj == null) {
+    Projection projection = getProjection();
+    if (projection == null) {
       return null;
     }
 
-    // Force reset of display spatial index on projection change (after zoom, pan or resize)
-    if (previousProj != null) {
-      if (proj.getScale() != previousProj.getScale()
-          || proj.getHeight() != previousProj.getHeight()
-          || proj.getWidth() != previousProj.getWidth()
-          || proj.getCenter() != previousProj.getCenter()) {
-        spatialIndex = null;
-        currentProjectedList = null;
-      }
+    boolean audit = NodusC.displayMapComputingTimes;
+    final long started = audit ? System.nanoTime() : 0;
+    EsriGraphicList source = getEsriGraphicList();
+    if (source == null) {
+      return null;
     }
-    previousProj = proj;
-
-    OMGraphicList list = getVisibleEsriGraphicList();
-
-    if (list != null) {
-      if (spatialIndex != null && proj != null) {
-        currentProjectedList = getSpatialList(proj);
-        if (currentProjectedList != null) {
-          list = currentProjectedList;
-          list.generate(proj);
+    long revision = geometryRevision.get();
+    int sourceSize = source.size();
+    RenderCache cache = renderCache;
+    boolean rebuild =
+        cache == null
+            || cache.revision != revision
+            || cache.source != source
+            || cache.sourceSize != sourceSize;
+    DisplaySpatialIndex index;
+    if (rebuild) {
+      // Snapshot membership under the same lock used by Nodus add/remove operations. Bounds and
+      // tree construction then use this snapshot without keeping the source-list lock held.
+      OMGraphicList snapshot;
+      synchronized (source) {
+        snapshot = new OMGraphicList(source);
+      }
+      index = createSpatialIndex(snapshot);
+      // Keep completed geographic work even if a new pan cancels this projection. It can be
+      // reused by the next worker, whereas a geometry edit or disposal must discard it.
+      synchronized (this) {
+        if (disposed || revision != geometryRevision.get() || sourceSize != source.size()) {
+          return null;
         }
+        renderCache = new RenderCache(revision, source, sourceSize, index, null);
       }
+    } else {
+      index = cache.index;
+    }
+    final long indexed = audit ? System.nanoTime() : 0;
 
-      // Setting the list up so that if anything is "selected",
-      // it will also be drawn on top of all the other
-      // OMGraphics. This maintains order while also making any
-      // line edge changes more prominent.
-      OMGraphicList parent = new OMGraphicList();
-      parent.add(selectedGraphics);
-      parent.add(list);
-      list = parent;
+    OMGraphicList matches;
+    try {
+      matches = getSpatialList(index, projection);
+    } catch (IOException | FormatException ex) {
+      ex.printStackTrace();
+      return null;
+    }
+    final long selected = audit ? System.nanoTime() : 0;
+    if (disposed
+        || revision != geometryRevision.get()
+        || Thread.currentThread().isInterrupted()
+        || !projection.equals(getProjection())) {
+      return null;
     }
 
-    return list;
+    // Force generation for the new projection, even when the geographic index was reused.
+    matches.generate(projection);
+    OMGraphicList visible = new OMGraphicList();
+    visible.add(matches);
+    OMGraphicList parent = new OMGraphicList();
+    parent.add(selectedGraphics);
+    parent.add(visible);
+
+    // Disposal uses the same lock: a preparation finishing late cannot resurrect closed caches.
+    synchronized (this) {
+      if (disposed
+          || revision != geometryRevision.get()
+          || sourceSize != source.size()
+          || Thread.currentThread().isInterrupted()
+          || !projection.equals(getProjection())) {
+        return null;
+      }
+      renderCache = new RenderCache(revision, source, sourceSize, index, visible);
+    }
+    if (audit) {
+      long finished = System.nanoTime();
+      System.out.printf(
+          Locale.ROOT,
+          "Map computing times: %s (%d shapes, %d selected, index %s)%n"
+              + "  Total preparation: %.3f ms; source/index: %.3f ms;"
+              + " selection: %.3f ms; projection: %.3f ms%n",
+          getName(),
+          sourceSize,
+          matches.size(),
+          rebuild ? "rebuilt" : "reused",
+          (finished - started) / 1e6,
+          (indexed - started) / 1e6,
+          (selected - indexed) / 1e6,
+          (finished - selected) / 1e6);
+    }
+    return parent;
   }
 }

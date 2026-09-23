@@ -1,5 +1,58 @@
 # Regression checks
 
+## Map navigation
+
+Map layers retain their geographic bounds across pan, zoom and resize operations. A bounding-box
+tree selects visible shapes without scanning every shape for each view, while retaining source
+order for rendering and hit testing. Tiny layers use linear lookup. Source geometry is indexed on
+the first preparation and rebuilt after geometry edits; repeated data reads, style changes and
+assignment-result updates do not build another index. Visible shapes are projected once per
+preparation. Views crossing the date line select both halves without duplicate query hits.
+
+To inspect your own project, set this independent switch in `NodusC`, rebuild and launch Nodus:
+
+```java
+public static boolean displayMapComputingTimes = true;
+```
+
+Open the project, zoom into a small part of a large layer, and pan repeatedly. Each completed layer
+preparation reports source/selected shape counts, whether its index was rebuilt or reused, and
+elapsed milliseconds for source/index preparation, selection and projection. The total includes
+those stages and small wrapper/publication costs. **Painting, label preparation and UI queue time
+are excluded**, so this is not the complete time from a mouse action to a displayed frame. Layer
+preparations can overlap; do not add their times as if they were successive UI delays. Compare
+similar views after warm-up, and assess first/index-rebuilding preparations separately from reused
+ones. Set the switch back to `false` after measuring to avoid console output during navigation.
+`displayComputingTimes` still controls assignment auditing separately.
+
+Nodus add/remove/move operations invalidate the index automatically, including cancelled additions
+and replacements of links attached to a moved node. Scripts or plugins modifying live geometry
+must call `layer.setDirtyShp(true)` on a `NodusEsriLayer`, or `invalidateSpatialIndex()` on a
+`FastEsriLayer`, after edits. The latter invalidates rendering without marking the SHP for saving.
+Several edits before the next preparation cause only one rebuild. Changing visibility, colors,
+widths or result values alone does not require invalidation.
+
+`DisplaySpatialIndexTest.java` compares the tree with linear selection on synthetic points, lines
+and multipart graphics, including narrow/wide/wrapped views, boundary cases, repeated source
+entries, empty/tiny layers, non-finite bounds and concurrent readers. Its optional benchmark
+compares **reused** linear and tree lookup, with separate construction samples. It measures
+selection rather than complete navigation and does not include the old per-pan index rebuild.
+
+`MapNavigationTest.java` runs actual layer preparation and geometry-edit methods. It checks index
+reuse, projection counts, drawing and overlapping-object selection order, rendered pixels,
+selected overlays, add/remove/cancel/move/replace operations, source changes, date-line views and
+edits/disposal while an index is being built. Inputs are in-memory shapes; no project, database or
+GUI is opened. Run from the project root:
+
+```sh
+ant build-project
+nodus_test_dir=$(mktemp -d)
+javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_test_dir" devtools/tests/DisplaySpatialIndexTest.java devtools/tests/MapNavigationTest.java
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" com.bbn.openmap.layer.shape.displayindex.DisplaySpatialIndexTest --benchmark
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" com.bbn.openmap.layer.shape.MapNavigationTest
+rm -r "$nodus_test_dir"
+```
+
 ## Assignment timing checks
 
 Run `sh devtools/tests/run-computing-times-test.sh` from the project root with a JDK 11 or later.

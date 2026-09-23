@@ -37,6 +37,6 @@ public class DisplaySpatialIndexFactory {
    * @return SpatialIndex
    */
   public static DisplaySpatialIndex createIndex(OMGraphicList list) {
-    return new DisplaySpatialIndexLinear(list);
+    return new DisplaySpatialIndexTree(list);
   }
 }
