@@ -6,7 +6,9 @@ import com.bbn.openmap.dataAccess.shape.EsriPolygon;
 import com.bbn.openmap.dataAccess.shape.EsriPolyline;
 import com.bbn.openmap.omGraphics.MapPolylineDetail.Measurement;
 import com.bbn.openmap.proj.EqualEarth;
+import com.bbn.openmap.proj.GeoProj;
 import com.bbn.openmap.proj.Mercator;
+import com.bbn.openmap.proj.Orthographic;
 import com.bbn.openmap.proj.Projection;
 import com.bbn.openmap.proj.coords.LatLonPoint;
 import java.awt.BasicStroke;
@@ -202,7 +204,7 @@ public final class MapPolylineDetailTest {
           detail.generate(nested, p, true, false).getSimplifiedLines() == 1,
           "Mercator rhumb excluded");
       line.setLineType(OMGraphic.LINETYPE_STRAIGHT);
-      Projection other = new EqualEarth(new LatLonPoint.Double(50, 2), 2000000, 1000, 800);
+      Projection other = new Orthographic(new LatLonPoint.Double(50, 2), 2000000, 1000, 800);
       check(
           detail.generate(nested, other, true, false).getSimplifiedLines() == 0,
           "Unsupported projection simplified");
@@ -316,6 +318,195 @@ public final class MapPolylineDetailTest {
         "Close zoom failed to restore curved source segments");
   }
 
+  private static EqualEarth equalEarth(double lat, double lon, float scale) {
+    return new EqualEarth(new LatLonPoint.Double(lat, lon), scale, 1000, 800);
+  }
+
+  /** Check the conservative metric against actual drawing as the central meridian changes. */
+  private static void equalEarthAccuracy() {
+    for (int lineType : new int[] {OMGraphic.LINETYPE_STRAIGHT, OMGraphic.LINETYPE_GREATCIRCLE}) {
+      for (double latitude : new double[] {-80, -45, 0, 50, 84}) {
+        EsriPolyline line = wave(latitude, 2, 100);
+        line.setLineType(lineType);
+        line.setNumSegs(5);
+        double[] coordinates = line.getLatLonArray();
+        double[] saved = coordinates.clone();
+        double[] bounds = line.getExtents().clone();
+        EsriPolyline full = new EsriPolyline(saved.clone(), OMGraphic.RADIANS, lineType);
+        full.setNumSegs(5);
+        MapPolylineDetail detail = new MapPolylineDetail();
+        int constructions = 0;
+        for (float scale : new float[] {100000000, 10000000, 2000000, 100000}) {
+          long displayed = -1;
+          int levels = 0;
+          for (double center : new double[] {2.25, -150, -60, 90, 170}) {
+            EqualEarth p = equalEarth(latitude / 2, center, scale);
+            full.generate(p);
+            Measurement m = detail.generate(list(list(line)), p, true, true);
+            constructions += m.getBuiltHierarchies();
+            levels += m.getBuiltLevels();
+            check(m.getMode().equals("enabled"), "Equal Earth bypassed");
+            check(m.getSeamFallbacks() == 0, "Ordinary line treated as crossing seam");
+            if (scale >= 10000000)
+              check(m.getSimplifiedLines() == 1, "Wide Equal Earth view not simplified");
+            if (displayed >= 0)
+              check(displayed == m.getDisplayedVertices(), "Pan changed cached level");
+            displayed = m.getDisplayedVertices();
+            boundedError(full.xpoints, full.ypoints, line);
+            boundedError(line.xpoints, line.ypoints, full);
+            check(
+                line.xpoints[0][0] == full.xpoints[0][0]
+                    && line.ypoints[0][0] == full.ypoints[0][0],
+                "Equal Earth first endpoint changed");
+            int last = line.xpoints[0].length - 1;
+            int fullLast = full.xpoints[0].length - 1;
+            check(
+                line.xpoints[0][last] == full.xpoints[0][fullLast]
+                    && line.ypoints[0][last] == full.ypoints[0][fullLast],
+                "Equal Earth last endpoint changed");
+            check(
+                line.rawllpts == coordinates && Arrays.equals(saved, coordinates),
+                "Equal Earth changed source");
+            check(Arrays.equals(bounds, line.getExtents()), "Equal Earth changed source bounds");
+          }
+          check(levels <= 1, "Horizontal pan rebuilt Equal Earth detail levels");
+        }
+        check(constructions == 1, "Equal Earth pan/zoom rebuilt hierarchy");
+        EqualEarth resized = new EqualEarth(new LatLonPoint.Double(10, 120), 100000, 1100, 900);
+        Measurement resize = detail.generate(list(line), resized, true, true);
+        check(
+            resize.getBuiltHierarchies() == 0 && resize.getBuiltLevels() == 0,
+            "Resize rebuilt Equal Earth detail");
+        check(
+            detail
+                    .generate(list(line), projection(latitude, 2, 10000000), true, true)
+                    .getBuiltHierarchies()
+                == 1,
+            "Projection change reused incompatible hierarchy");
+        check(
+            detail
+                    .generate(list(line), equalEarth(latitude, 2, 10000000), true, true)
+                    .getBuiltHierarchies()
+                == 1,
+            "Return to Equal Earth reused Mercator hierarchy");
+      }
+    }
+    // Wider, irregular lines test the third coordinate rather than only short, smooth roads.
+    Random random = new Random(1973);
+    for (int trial = 0; trial < 12; trial++) {
+      double[] coords = new double[100];
+      for (int i = 0; i < 50; i++) {
+        coords[2 * i] = 30 + trial * 3 + i * 0.1 + random.nextDouble() * 0.005;
+        coords[2 * i + 1] = -10 + i * 0.4;
+      }
+      EsriPolyline full =
+          new EsriPolyline(coords.clone(), OMGraphic.DECIMAL_DEGREES, OMGraphic.LINETYPE_STRAIGHT);
+      EsriPolyline line =
+          new EsriPolyline(coords, OMGraphic.DECIMAL_DEGREES, OMGraphic.LINETYPE_STRAIGHT);
+      MapPolylineDetail detail = new MapPolylineDetail();
+      for (double center : new double[] {0, -160, 160}) {
+        EqualEarth p = equalEarth(0, center, 10000000);
+        full.generate(p);
+        detail.generate(list(line), p, true, false);
+        boundedError(full.xpoints, full.ypoints, line);
+        boundedError(line.xpoints, line.ypoints, full);
+      }
+    }
+  }
+
+  private static void equalEarthFallbacks() {
+    EsriPolyline line = wave(50, 2, 100);
+    line.setLineType(OMGraphic.LINETYPE_GREATCIRCLE);
+    MapPolylineDetail detail = new MapPolylineDetail();
+    EqualEarth p = equalEarth(50, 2, 10000000);
+    check(
+        detail.generate(list(line), p, true, true).getSimplifiedLines() == 1,
+        "Initial Equal Earth detail missing");
+    p = equalEarth(0, -177.75, 10000000);
+    line.generate(p);
+    float[][] xs = line.xpoints;
+    float[][] ys = line.ypoints;
+    Measurement seam = detail.generate(list(line), p, true, true);
+    check(
+        seam.getSeamFallbacks() == 1 && seam.getSimplifiedLines() == 0,
+        "View seam did not force full detail");
+    check(
+        Arrays.deepEquals(xs, line.xpoints) && Arrays.deepEquals(ys, line.ypoints),
+        "Seam fallback changed rendering");
+    Measurement back = detail.generate(list(line), equalEarth(50, 2, 10000000), true, true);
+    check(
+        back.getBuiltHierarchies() == 0
+            && back.getBuiltLevels() == 0
+            && back.getSimplifiedLines() == 1,
+        "Seam fallback discarded reusable detail");
+    Measurement off = detail.generate(list(line), equalEarth(50, 2, 10000000), false, false);
+    check(
+        off.getMode().equals("disabled") && off.getDisplayedVertices() == 100,
+        "Equal Earth off switch failed");
+    for (int kind = 0; kind < 3; kind++) {
+      EsriPolyline special =
+          kind == 0
+              ? new EsriPolyline(
+                  new double[] {10, 179, 10, 179.5, 10, -179.5, 10, -179},
+                  OMGraphic.DECIMAL_DEGREES,
+                  OMGraphic.LINETYPE_GREATCIRCLE)
+              : wave(kind == 1 ? 86 : 50, 2, 100);
+      special.setLineType(kind == 2 ? OMGraphic.LINETYPE_RHUMB : OMGraphic.LINETYPE_GREATCIRCLE);
+      p = equalEarth(0, 0, 10000000);
+      special.generate(p);
+      xs = special.xpoints;
+      ys = special.ypoints;
+      Measurement m = detail.generate(list(special), p, true, false);
+      check(m.getSimplifiedLines() == 0, "Wrapped, polar or rhumb line unexpectedly simplified");
+      check(
+          Arrays.deepEquals(xs, special.xpoints) && Arrays.deepEquals(ys, special.ypoints),
+          "Full-detail fallback changed geometry");
+    }
+    // At a whole-world scale with odd pixel width, OpenMap rounds the half-world threshold.
+    // A newly shortened segment near 180 degrees must not introduce a spurious wrapped copy.
+    EsriPolyline wide =
+        new EsriPolyline(
+            new double[] {0, -89.995, 0, -30, 0, 30, 0, 89.995},
+            OMGraphic.DECIMAL_DEGREES,
+            OMGraphic.LINETYPE_STRAIGHT);
+    EqualEarth world = new EqualEarth(new LatLonPoint.Double(0, 0), Float.MAX_VALUE, 1001, 800);
+    wide.generate(world);
+    EsriPolyline fullWide =
+        new EsriPolyline(wide.getLatLonArrayCopy(), OMGraphic.RADIANS, OMGraphic.LINETYPE_STRAIGHT);
+    fullWide.generate(world);
+    detail.generate(list(wide), world, true, false);
+    boundedError(fullWide.xpoints, fullWide.ypoints, wide);
+    boundedError(wide.xpoints, wide.ypoints, fullWide);
+    EsriPolyline moderate =
+        new EsriPolyline(
+            new double[] {50, 0, 50, 0.1, 50, 0.2, 50, 0.3},
+            OMGraphic.DECIMAL_DEGREES,
+            OMGraphic.LINETYPE_GREATCIRCLE);
+    check(
+        detail
+                .generate(list(moderate), equalEarth(50, 0, 10000000), true, false)
+                .getSimplifiedLines()
+            == 1,
+        "Moderate Equal Earth arc excluded at wide zoom");
+    check(
+        detail
+                .generate(list(moderate), equalEarth(50, 0, 1000), true, false)
+                .getCurvatureFallbacks()
+            == 1,
+        "Close Equal Earth zoom failed to restore curvature");
+    line.setSelected(true);
+    check(
+        detail.generate(list(line), equalEarth(50, 0, 10000000), true, false).getSimplifiedLines()
+            == 0,
+        "Selected Equal Earth line simplified");
+    line.setSelected(false);
+    line.addArrowHead(true);
+    check(
+        detail.generate(list(line), equalEarth(50, 0, 10000000), true, false).getSimplifiedLines()
+            == 0,
+        "Equal Earth arrow simplified");
+  }
+
   private static void rememberCoordinates(
       OMGraphicList graphics, Map<EsriPolyline, double[]> coordinates) {
     for (OMGraphic graphic : graphics) {
@@ -334,7 +525,7 @@ public final class MapPolylineDetailTest {
   /**
    * Exercise the real SHP loader; synthetic straight-line fixtures missed this integration path.
    */
-  private static void loadedShapefiles() throws Exception {
+  private static void loadedShapefiles(boolean equalEarth) throws Exception {
     for (String name : new String[] {"road", "rail", "iww"}) {
       EsriGraphicList graphics =
           EsriGraphicList.getEsriGraphicList(
@@ -346,7 +537,7 @@ public final class MapPolylineDetailTest {
       Map<EsriPolyline, double[]> coordinates = new IdentityHashMap<>();
       rememberCoordinates(graphics, coordinates);
       MapPolylineDetail detail = new MapPolylineDetail();
-      Mercator view = projection(50.5, 4.5, 10000000);
+      GeoProj view = equalEarth ? equalEarth(50.5, 4.5, 10000000) : projection(50.5, 4.5, 10000000);
       Measurement m = detail.generate(graphics, view, true, true);
       check(
           m.getBuiltHierarchies() > 0 && m.getSimplifiedLines() > 0,
@@ -366,17 +557,23 @@ public final class MapPolylineDetailTest {
         boundedError(full.xpoints, full.ypoints, entry.getKey());
         boundedError(entry.getKey().xpoints, entry.getKey().ypoints, full);
       }
-      Measurement pan = detail.generate(graphics, projection(50.6, 4.6, 10000000), true, true);
+      Measurement pan =
+          detail.generate(
+              graphics,
+              equalEarth ? equalEarth(50.6, -40, 10000000) : projection(50.6, 4.6, 10000000),
+              true,
+              true);
       check(
           pan.getBuiltHierarchies() == 0 && pan.getBuiltLevels() == 0, "Loaded pan rebuilt detail");
-      Measurement off = detail.generate(graphics, projection(50.5, 4.5, 10000000), false, true);
+      Measurement off = detail.generate(graphics, view, false, true);
       check(
           off.getDisplayedVertices() == off.getSourceVertices() && off.getSimplifiedLines() == 0,
           "Loaded full-detail comparison failed");
       System.out.printf(
           Locale.ROOT,
-          "Loaded demo %s: %,d -> %,d vertices; %,d simplified lines; %,d curvature fallbacks%n",
+          "Loaded demo %s %s: %,d -> %,d vertices; %,d simplified lines; %,d curvature fallbacks%n",
           name,
+          view.getName(),
           m.getSourceVertices(),
           m.getDisplayedVertices(),
           m.getSimplifiedLines(),
@@ -384,12 +581,14 @@ public final class MapPolylineDetailTest {
     }
   }
 
-  private static void benchmark() {
+  private static void benchmark(boolean equalEarth) {
     OMGraphicList lines = new OMGraphicList();
     for (int i = 0; i < 20000; i++) {
-      lines.add(wave(48 + (i % 200) * 0.02, 1 + (i / 200) * 0.04, 100));
+      EsriPolyline line = wave(48 + (i % 200) * 0.02, 1 + (i / 200) * 0.04, 100);
+      line.setLineType(OMGraphic.LINETYPE_GREATCIRCLE);
+      lines.add(line);
     }
-    Mercator p = projection(50, 4, 10000000);
+    GeoProj p = equalEarth ? equalEarth(50, 4, 10000000) : projection(50, 4, 10000000);
     for (int i = 0; i < 3; i++) lines.generate(p);
     long full = 0;
     long reduced = 0;
@@ -398,7 +597,10 @@ public final class MapPolylineDetailTest {
     Measurement cold = detail.generate(lines, p, true, true);
     long coldTime = System.nanoTime() - start;
     for (int i = 0; i < 7; i++) {
-      p = projection(50, 4 + i * 0.03, 10000000);
+      p =
+          equalEarth
+              ? equalEarth(50, 4 + i * 0.03, 10000000)
+              : projection(50, 4 + i * 0.03, 10000000);
       // Alternate order to avoid consistently measuring one mode immediately after the other.
       if ((i & 1) == 0) {
         start = System.nanoTime();
@@ -418,8 +620,9 @@ public final class MapPolylineDetailTest {
     }
     System.out.printf(
         Locale.ROOT,
-        "Synthetic 20,000 lines: %,d -> %,d vertices; cold %.3f ms (cache %.3f ms); "
+        "Synthetic 20,000 great-circle lines (%s): %,d -> %,d vertices; cold %.3f ms (cache %.3f ms); "
             + "warm mean full %.3f ms, simplified %.3f ms%n",
+        p.getName(),
         cold.getSourceVertices(),
         cold.getDisplayedVertices(),
         coldTime / 1e6,
@@ -432,8 +635,14 @@ public final class MapPolylineDetailTest {
     accuracyAndReuse();
     renderingAndFallbacks();
     greatCircleAccuracy();
-    loadedShapefiles();
+    equalEarthAccuracy();
+    equalEarthFallbacks();
+    loadedShapefiles(false);
+    loadedShapefiles(true);
     System.out.println("Map polyline detail, pixel-error and source-preservation checks passed.");
-    if (Arrays.asList(args).contains("--benchmark")) benchmark();
+    if (Arrays.asList(args).contains("--benchmark")) {
+      benchmark(false);
+      benchmark(true);
+    }
   }
 }

@@ -59,14 +59,15 @@ rm -r "$nodus_test_dir"
 and rebuild to compare the previous full-detail projection. It operates independently of
 `displayMapComputingTimes`, so simplification can remain enabled without console output.
 
-The first version simplifies ordinary 2D shapefile **polylines in Mercator**, Nodus's default
-projection. Roads, railways and waterways can benefit when they contain many intermediate vertices.
+The optimization simplifies ordinary 2D shapefile **polylines in Mercator and Equal Earth**.
+Roads, railways and waterways can benefit when they contain many intermediate vertices.
 It preserves endpoints and removes bends below a **0.75-pixel screen tolerance** (apart from
 floating-point projection rounding). Zooming in automatically restores the necessary vertices.
 It does not hide links or change their classification, widths or colors. Points, polygons, other
 projections, short lines, selected lines, custom line subclasses and arrowheads use
 ordinary full-detail projection. Source lines spanning half the world or crossing the date line
-also keep full detail.
+also keep full detail. In Equal Earth, lines spanning 90 degrees of longitude or more also retain
+full detail to preserve OpenMap's world-wrap decisions at rounded pixel boundaries.
 
 OpenMap's SHP loader creates **great-circle lines**, even for detailed roads and railways. These
 are supported alongside straight and rhumb lines. For great-circle geometry, half the tolerance
@@ -74,6 +75,9 @@ is reserved for the original segments' curvature and half for vertex removal. A 
 curvature bound keeps long arcs, near-polar arcs and close views on the ordinary projection path
 when their curvature cannot fit the budget. The original line type and subdivision settings are
 preserved. Rhumb lines are straight in Mercator and use the ordinary simplification budget.
+Equal Earth keeps rhumb lines on OpenMap's original path, whose intermediate coordinates are
+rounded through an integer-pixel Mercator projection. Ordinary imported SHP lines use great-circle
+interpolation and therefore qualify in both supported projections.
 
 Only the projected screen coordinates change. Original geographic coordinates, bounds, records,
 attributes and object identities remain available to editing, file saving, network computations,
@@ -81,8 +85,13 @@ hit testing and service overlays. Selection follows the displayed line, within t
 tolerance. This is **not** a simplification of the network or saved shapefile. Geometry invalidation
 also discards the detail cache; pan, resize and style changes retain it.
 
-Each line lazily builds a Douglas-Peucker hierarchy in normalized Mercator coordinates. It is
-reused across map centers and zoom levels. Power-of-two tolerance levels round down to stay within
+Each line lazily builds a Douglas-Peucker hierarchy using the selected projection's metric. It is
+reused across map centers and zoom levels. Mercator uses normalized 2D coordinates. Equal Earth uses
+a conservative 3D metric that bounds screen error at every central longitude, so horizontal pans
+also reuse the hierarchy. An Equal Earth view whose wrap boundary cuts a line uses full detail for
+that line; panning away reuses its retained hierarchy. Switching projection types rebuilds each
+line's hierarchy lazily, retaining only the latest projection type to bound memory usage.
+Power-of-two tolerance levels round down to stay within
 the pixel limit, and only the last level's coordinates are retained per line. A hierarchy retains
 one double per vertex, in addition to the selected level and ordinary projected geometry. Its first
 construction takes time and memory; assess first visits separately from repeated navigation.
@@ -95,11 +104,13 @@ With map auditing enabled, the extra rows show:
   the actual projection and says explicitly when simplification is disabled or bypassed.
 - **Detail candidates:** lines that passed the geometry/projection eligibility checks, followed
   by the number kept in full detail because of their curvature at this scale. Candidate lines
-  may also retain all vertices when the tolerance requires them.
+  may also retain all vertices when the tolerance requires them. **Seam fallbacks** separately
+  count Equal Earth lines bypassed at the current view's longitude-wrap boundary.
 - **Detail cache:** newly built hierarchies and zoom levels, with cache construction time already
   included in the existing projection duration. Do not add this time to the total again.
 
-For a project comparison, use the same Mercator view and visible layers with the switch on and off.
+For a project comparison, use the same projection, view and visible layers with the switch on and
+off. Equal Earth uses the same `useMapDisplaySimplification` switch; no separate setting is needed.
 Compare a wide view first, then repeated pans, and finally zoom closely into curved roads or railways
 to check detail and selection. Record the first view as well as warm preparations. Large vertex
 reductions should reduce projection work; layers mostly containing two-point links will gain
@@ -109,13 +120,16 @@ little. Painting, labels and UI queue time remain outside the map preparation au
 latitudes/scales, endpoints, pan/resize reuse, original coordinates and bounds, live styles,
 selection identity, full-detail restoration, multipart lists, unsupported geometry/projections and
 wrapped views. Great-circle checks compare against OpenMap's actual arc generation, including
-long arcs and close-zoom fallbacks. The test also loads the repository's `demo/road_polylines.shp`,
+long arcs and close-zoom fallbacks. Equal Earth checks cover multiple central meridians, high
+latitudes, pan/resize cache reuse, wrap-boundary fallbacks, projection switching and restoration of
+full detail. The test also loads the repository's `demo/road_polylines.shp`,
 `demo/rail_polylines.shp` and `demo/iww_polylines.shp` through OpenMap's real SHP loader, verifies that
-simplification activates, and checks screen error and source preservation.
-`MapNavigationTest.java` also checks the actual layer switch and cache invalidation
+simplification activates in both Mercator and Equal Earth, and checks screen error and source
+preservation. `MapNavigationTest.java` also checks the actual layer switch and cache invalidation
 following geometry edits. Inputs are synthetic graphics and these demo shapefiles; no project or
-database is opened. An optional
-20,000-line benchmark measures cold construction and alternating warm full/simplified projections,
+database is opened. An optional 20,000-line great-circle benchmark measures cold construction
+and alternating warm full/simplified
+projections in both Mercator and Equal Earth,
 not complete UI navigation. Run from the project root:
 
 ```sh

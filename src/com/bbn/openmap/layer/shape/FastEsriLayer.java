@@ -404,7 +404,7 @@ public class FastEsriLayer extends EsriLayer {
               + "  Total preparation: %.3f ms; source/index: %.3f ms;"
               + " selection: %.3f ms; projection: %.3f ms%n"
               + "  Polyline vertices: %d -> %d; simplified lines: %d (detail %s; projection %s)%n"
-              + "  Detail candidates: %d; curvature fallbacks: %d%n"
+              + "  Detail candidates: %d; curvature fallbacks: %d; seam fallbacks: %d%n"
               + "  Detail cache: %d new hierarchies, %d new levels; %.3f ms"
               + " (included in projection)%n",
           getName(),
@@ -422,6 +422,7 @@ public class FastEsriLayer extends EsriLayer {
           projection.getClass().getSimpleName(),
           measurement.getCandidateLines(),
           measurement.getCurvatureFallbacks(),
+          measurement.getSeamFallbacks(),
           measurement.getBuiltHierarchies(),
           measurement.getBuiltLevels(),
           measurement.getCacheNanos() / 1e6);

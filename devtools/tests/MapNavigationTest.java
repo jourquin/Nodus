@@ -10,6 +10,7 @@ import com.bbn.openmap.layer.shape.displayindex.DisplaySpatialIndex;
 import com.bbn.openmap.layer.shape.displayindex.DisplaySpatialIndexLinear;
 import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.omGraphics.OMGraphicList;
+import com.bbn.openmap.proj.EqualEarth;
 import com.bbn.openmap.proj.Mercator;
 import com.bbn.openmap.proj.Projection;
 import com.bbn.openmap.proj.coords.LatLonPoint;
@@ -18,9 +19,9 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.PathIterator;
 import java.awt.image.BufferedImage;
-import java.lang.reflect.Field;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -273,20 +274,26 @@ public final class MapNavigationTest {
     return count;
   }
 
-  private static void detailCacheAndEdits() throws Exception {
+  private static void detailCacheAndEdits(boolean equalEarth) throws Exception {
     Layer layer = new Layer(new EsriPolylineList());
     EsriPolyline line =
         new EsriPolyline(
             new double[] {0, -1, 0.0001, -0.5, 0.0001, 0.5, 0, 1},
             OMGraphic.DECIMAL_DEGREES,
             OMGraphic.LINETYPE_STRAIGHT);
+    if (equalEarth) {
+      layer.setProjection(new EqualEarth(new LatLonPoint.Double(0, 0), 8000000, 800, 600));
+    }
     double[] original = line.getLatLonArray().clone();
     layer.addRecord(line, 1, 10, 11, false);
     NodusC.useMapDisplaySimplification = true;
     layer.prepare();
     check(displayedVertices(line) == 2, "Layer did not use display detail");
     check(containsIdentity(matches(layer), line), "Detail replaced source identity");
-    layer.setProjection(projection(0.1, 0.1, 8000000, 900, 700));
+    layer.setProjection(
+        equalEarth
+            ? new EqualEarth(new LatLonPoint.Double(0.1, 0.1), 8000000, 900, 700)
+            : projection(0.1, 0.1, 8000000, 900, 700));
     layer.prepare();
     check(displayedVertices(line) == 2 && layer.builds == 1, "Pan changed detail/index reuse");
     NodusC.useMapDisplaySimplification = false;
@@ -389,7 +396,8 @@ public final class MapNavigationTest {
     NodusC.displayMapComputingTimes = false;
     reuseAndEdits();
     linesAndRendering();
-    detailCacheAndEdits();
+    detailCacheAndEdits(false);
+    detailCacheAndEdits(true);
     dateLine();
     concurrentInvalidation(false);
     concurrentInvalidation(true);

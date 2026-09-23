@@ -37,8 +37,8 @@ public class NodusC {
   public static boolean displayMapComputingTimes = true;
 
   /**
-   * Reduce subpixel detail in Mercator line layers while preserving source geometry. Set false to
-   * compare full-detail navigation; the independent map timing switch reports vertex counts.
+   * Reduce subpixel detail in Mercator and Equal Earth line layers while preserving source
+   * geometry. Set false to compare full-detail navigation; map timing reports vertex counts.
    */
   public static boolean useMapDisplaySimplification = true;
 

@@ -51,6 +51,9 @@ public class EqualEarth extends Cylindrical {
   private static final double INVERSE_TOLERANCE = 1.0E-11;
   private static final int MAX_INVERSE_ITERATIONS = 12;
 
+  /** Global first/second derivative bounds in Mercator coordinates, used by display detail. */
+  private static final double[] DETAIL_DERIVATIVE_BOUNDS = detailDerivativeBounds();
+
   /** Half of the projection window height, in pixels. */
   protected transient double hy;
 
@@ -155,6 +158,100 @@ public class EqualEarth extends Cylindrical {
     point.setLocation(
         wx + scaled_radius * projectedX, hy - scaled_radius * (projectedY - centerYProjected));
     return point;
+  }
+
+  /**
+   * Projects radian coordinates without scale, screen translation or longitude wrapping.
+   *
+   * <p>Uses the same polynomial and derivative functions as rendering, for display-detail metrics.
+   *
+   * @param latRad Latitude in radians, already normalized to the valid range.
+   * @param lonRad Longitude relative to the central meridian, in radians.
+   * @param point Destination, which must not be null.
+   * @return The supplied destination.
+   */
+  public static Point2D forwardNormalized(double latRad, double lonRad, Point2D point) {
+    double theta = theta(latRad);
+    double theta2 = theta * theta;
+    double theta6 = theta2 * theta2 * theta2;
+    double denominator = M * derivative(theta, theta2, theta6);
+    double projectedX = lonRad * Math.cos(theta) / denominator;
+    double projectedY = polynomial(theta, theta2, theta6);
+
+    point.setLocation(projectedX, projectedY);
+    return point;
+  }
+
+  /**
+   * Bounds a great-circle arc's deviation from its endpoint chord in unscaled Equal Earth space.
+   *
+   * <p>Let F map Mercator coordinates to Equal Earth. For unit-speed motion along a great circle,
+   * Mercator speed is sec(latitude) and acceleration norm is abs(sin(latitude))/cos(latitude)^2.
+   * The chain rule bounds Equal Earth acceleration by (H + J*abs(sin(latitude)))/cos(latitude)^2,
+   * where J and H are global derivative bounds for F. Chord interpolation error is at most that
+   * acceleration times angularLength^2/8. The bound applies at every central meridian provided the
+   * arc does not cross the view's wrap boundary; the caller checks that separately.
+   *
+   * @param angularLength Arc length in radians on the unit sphere.
+   * @param maximumLatitude Upper bound on absolute latitude anywhere along the arc, in radians.
+   * @return Maximum normalized screen deviation, or infinity for near-polar/invalid arcs.
+   */
+  public static double greatCircleChordErrorBound(double angularLength, double maximumLatitude) {
+    if (!Double.isFinite(angularLength)
+        || !Double.isFinite(maximumLatitude)
+        || angularLength < 0
+        || maximumLatitude < 0
+        || maximumLatitude >= Math.toRadians(85)) {
+      return Double.POSITIVE_INFINITY;
+    }
+    double cosine = Math.cos(maximumLatitude);
+    double acceleration =
+        (DETAIL_DERIVATIVE_BOUNDS[1] + DETAIL_DERIVATIVE_BOUNDS[0] * Math.sin(maximumLatitude))
+            / (cosine * cosine);
+    return acceleration * angularLength * angularLength / 8;
+  }
+
+  /**
+   * Derives conservative bounds from the projection coefficients, without numerical sampling.
+   *
+   * <p>Write x = u*A(v), y = B(v), where u is wrapped longitude, v is Mercator latitude and abs(u)
+   * <= pi. For theta = asin(M*tanh(v)), abs(theta') <= M and abs(theta'') <= 2*M. Bounds on P', P''
+   * and P''' over abs(theta) <= pi/3 give bounds on A, A', A'', B' and B''. J is the Frobenius
+   * bound for the Jacobian; H bounds the second directional derivative for unit directions.
+   * Deliberately loose bounds keep long or strongly curved arcs in full detail.
+   */
+  private static double[] detailDerivativeBounds() {
+    double t = MAX_THETA;
+    double t2 = t * t;
+    double t4 = t2 * t2;
+    double t6 = t4 * t2;
+    double variation = 3 * Math.abs(A2) * t2 + 7 * Math.abs(A3) * t6 + 9 * Math.abs(A4) * t6 * t2;
+    double minimum = A1 - variation;
+    if (minimum <= 0) {
+      return new double[] {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY};
+    }
+    double maximum = A1 + variation;
+    double first = 6 * Math.abs(A2) * t + 42 * Math.abs(A3) * t4 * t + 72 * Math.abs(A4) * t6 * t;
+    double second = 6 * Math.abs(A2) + 210 * Math.abs(A3) * t4 + 504 * Math.abs(A4) * t6;
+    double a = 1 / (M * minimum);
+    double horizontalThethorizontalFirst = (1 / minimum + first / (minimum * minimum)) / M;
+    double horizontalThethorizontalSecond =
+        (1 / minimum
+                + (2 * first + second) / (minimum * minimum)
+                + 2 * first * first / (minimum * minimum * minimum))
+            / M;
+    double horizontalFirst = horizontalThethorizontalFirst * M;
+    double horizontalSecond =
+        horizontalThethorizontalSecond * M * M + horizontalThethorizontalFirst * 2 * M;
+    double verticalFirst = maximum * M;
+    double verticalSecond = first * M * M + maximum * 2 * M;
+    double jacobian =
+        Math.sqrt(
+            a * a
+                + Math.PI * Math.PI * horizontalFirst * horizontalFirst
+                + verticalFirst * verticalFirst);
+    double hessian = horizontalFirst + Math.hypot(Math.PI * horizontalSecond, verticalSecond);
+    return new double[] {jacobian, hessian};
   }
 
   @Override
