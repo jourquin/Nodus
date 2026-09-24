@@ -114,6 +114,13 @@ public class Abraham extends ModalSplitMethod {
       return false;
     }
 
+    // A common cost scale cancels from the shares. For positive costs and a negative exponent,
+    // scaling by the cheapest alternative keeps every power in [0, 1] and at least one at 1.
+    double cheapestModalCost = Double.POSITIVE_INFINITY;
+    for (PathsForMode modalPaths : pathsLists) {
+      cheapestModalCost = Math.min(cheapestModalCost, modalPaths.cheapestPathWeights.getCost());
+    }
+
     /*
      * Compute the market marketShare for each mode
      */
@@ -121,7 +128,7 @@ public class Abraham extends ModalSplitMethod {
     Iterator<PathsForMode> plIt = pathsLists.iterator();
     while (plIt.hasNext()) {
       PathsForMode modalPaths = plIt.next();
-      denominator += Math.pow(modalPaths.cheapestPathWeights.getCost(), exponent);
+      denominator += scaledWeight(modalPaths.cheapestPathWeights.getCost(), cheapestModalCost);
     }
 
     // Compute the market marketShare per mode
@@ -129,7 +136,7 @@ public class Abraham extends ModalSplitMethod {
     while (plIt.hasNext()) {
       PathsForMode modalPaths = plIt.next();
       modalPaths.marketShare =
-          Math.pow(modalPaths.cheapestPathWeights.getCost(), exponent) / denominator;
+          scaledWeight(modalPaths.cheapestPathWeights.getCost(), cheapestModalCost) / denominator;
     }
 
     // Compute the market marketShare per path for each mode
@@ -138,11 +145,12 @@ public class Abraham extends ModalSplitMethod {
       PathsForMode modalPaths = plIt.next();
 
       // Denominator for this mode
+      final double cheapestPathCost = modalPaths.cheapestPathWeights.getCost();
       denominator = 0.0;
       Iterator<Path> it = modalPaths.pathList.iterator();
       while (it.hasNext()) {
         Path path = it.next();
-        denominator += Math.pow(path.weights.getCost(), exponent);
+        denominator += scaledWeight(path.weights.getCost(), cheapestPathCost);
       }
 
       // Spread over each path of this mode
@@ -150,9 +158,16 @@ public class Abraham extends ModalSplitMethod {
       while (it.hasNext()) {
         Path path = it.next();
         path.marketShare =
-            Math.pow(path.weights.getCost(), exponent) / denominator * modalPaths.marketShare;
+            scaledWeight(path.weights.getCost(), cheapestPathCost)
+                / denominator
+                * modalPaths.marketShare;
       }
     }
     return true;
+  }
+
+  /** Evaluates a scaled inverse power without overflowing even the intermediate cost ratio. */
+  private double scaledWeight(double cost, double cheapestCost) {
+    return Math.exp(exponent * (Math.log(cost) - Math.log(cheapestCost)));
   }
 }

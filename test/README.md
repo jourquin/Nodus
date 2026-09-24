@@ -118,8 +118,16 @@ for the workflow mechanism.
   coordinates (a zero heuristic); the geometric case exercises a nonzero A* heuristic.
 - `CostExpressionCacheTest`: changing values, recreated or missing variables, expressions
   simplified by the parser, changed constants, different scopes/formulas, and syntax errors.
+- `CostParameterTest`: precedence and isolation of numeric parameters by scenario, commodity
+  group and OD class, zero/negative overrides, inherited defaults, and NaN fallbacks.
 - `ModalSplitTest`: proportional and multinomial-logit shares, normalization across modes
   and paths, large costs, and valid alternatives alongside non-finite path costs.
+- `AbrahamTest`: inverse-power shares between modes and their alternatives, default and
+  group-specific exponents, independent worker clones, invariance to cost units, and
+  numerical stability for steep exponents and extreme positive cost ranges.
+- `AssignmentCancellationTest`: end-of-work markers, joining all workers, coordinator
+  interruption, cancellation while waiting for a first job, and malformed queued work.
+  Uses real assignment-worker threads with latches and bounded waits, without loading a project.
 - `PathWeightsTest`: all seven cost and duration components contribute to totals.
 - `VirtualLinkFlowTest`: exact and fast multi-flow demand distribution, rejected paths,
   demand consumed only once, independent commodity groups and dynamic time slices,
@@ -142,10 +150,16 @@ for the workflow mechanism.
 - `VehiclesParserTest`: capacity and passenger-car-unit property precedence, isolation
   between scenarios, groups and mode/means, default values, fractional values, and repeated
   initialization.
+- `TransportServiceTest`: ordered stops and route links, duplicate/null handling, live edits
+  through lists and iterators, bulk replacements/removals, and independent cloned stop indexes.
+- `ServiceRegistryTest`: service replacement and renaming, duplicate IDs, removal through
+  iterators, visibility of stop edits, protected collection views, and clearing cached lookups
+  before another project is loaded.
 
 The suite does not yet cover complete assignments loaded from reference projects, other
-database engines, full assignment-worker scheduling, or GUI workflows. The concurrency
-test exercises path output specifically. Modal-split calibration and invalid vehicle
+database engines, full assignment-worker scheduling with real jobs, or GUI workflows.
+Concurrency coverage includes path output and the lifecycle of workers waiting for jobs.
+Modal-split calibration and invalid vehicle
 properties that display dialogs are outside this headless suite. Complete equilibrium
 convergence and line-search behavior still need reference-project integration tests.
 

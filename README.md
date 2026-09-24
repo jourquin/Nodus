@@ -165,7 +165,8 @@ This compiles the application and runs the JUnit 5 tests in `test/` without open
 or loading a project database. The suite covers shortest paths (Dijkstra and A*,
 linked and compact graphs), repeated searches, cost-expression caching, modal shares,
 path cost/duration totals, flow distribution, multi-flow edge updates, demand aggregation
-and relocation, node rules, and vehicle characteristics. Database
+and relocation, node rules, vehicle characteristics, Abraham modal shares, service edits,
+and assignment-worker cancellation. Database
 integration tests use private in-memory H2 databases to check buffered path output,
 concurrent writes, and failure handling. A failing test makes the command fail.
 
