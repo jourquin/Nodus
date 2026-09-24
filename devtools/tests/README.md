@@ -1,5 +1,40 @@
 # Regression checks
 
+## SQL export overwrite confirmation
+
+The SQL console asks before `EXPORTDBF`, `EXPORTCSV`, `EXPORTCSVH`, `EXPORTXLS` or `EXPORTXLSX`
+replaces an existing output file. `EXTRACTSHP` checks the SHP, SHX and DBF destinations together,
+including partially existing file sets, before extraction starts. The console's **Save result**
+action also checks the final filename after adding the default `.txt` extension.
+
+The dialog lists filenames, using full paths only when **Full path in title** is checked in the
+application preferences. It offers **Replace / Cancel** (**Remplacer / Annuler** in French), and
+selects Cancel by default. Cancelling or closing it leaves the files untouched and
+stops the current export-command batch, with a cancellation message. New destinations need no
+confirmation. Dialogs run on the Swing EDT even when commands execute on a worker. If no graphical
+environment is available, replacement is declined. Checks belong to the console actions: the
+shared export routines also serve ordinary project saving and remain callable without a dialog.
+
+`SQLExportOverwriteTest.java` runs the actual table exporters against a disposable HSQLDB database
+and temporary files. It simulates Replace, Cancel and window-close choices, verifies unchanged
+files on cancellation, new-file exports, stopping a batch, grouped shapefile checks for link/node
+layers, self-extraction rejection, EDT dispatch, both path-display preferences and English/French
+translations. Console-window
+creation and shapefile writing are stubbed; the production headless refusal is also exercised.
+Run from the project root:
+
+```sh
+ant build-project
+nodus_test_dir=$(mktemp -d)
+javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_test_dir" devtools/tests/SQLExportOverwriteTest.java
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.database.gui.SQLExportOverwriteTest
+rm -r "$nodus_test_dir"
+```
+
+For a visual check, export a disposable table twice from the SQL console. Check the path and the
+default Cancel button, then try cancelling, closing and replacing. Repeat with the application in
+French and with **Save result** targeting an existing text file.
+
 ## DBF column widths
 
 DBF export and SQL-to-map-layer attribute synchronization collect all numeric columns and obtain

@@ -45,6 +45,7 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Frame;
+import java.awt.GraphicsEnvironment;
 import java.awt.Insets;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
@@ -1054,8 +1055,22 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     NodusEsriLayer[] layers = nodusProject.getLinkLayers();
     String fromShapefile = fromClause.substring(0, toIndexInFromClause).trim();
 
+    // Check before either layer type can write over its own source files.
+    if (fromShapefile.equals(toShapefile)) {
+      displayMessageInResult(
+          i18n.get(SQLConsole.class, "Error", "Error"),
+          i18n.get(
+              SQLConsole.class,
+              "Cannot_extract_a_file_to_itself",
+              "Cannot extract a file to itself."));
+      return false;
+    }
+
     for (NodusEsriLayer element : layers) {
       if (element.getTableName().equals(fromShapefile)) {
+        if (!confirmExportOverwrite(EXTRACTSHP, toShapefile, getExtractionFiles(toShapefile))) {
+          return false;
+        }
         boolean ok = element.extract(toShapefile, whereStmt);
 
         if (ok) {
@@ -1074,20 +1089,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
                   toShapefile));
         }
 
-        return false;
+        return ok;
       }
-    }
-
-    // The two file names must be different
-    if (fromShapefile.equals(toShapefile)) {
-      displayMessageInResult(
-          i18n.get(SQLConsole.class, "Error", "Error"),
-          i18n.get(
-              SQLConsole.class,
-              "Cannot_extract_a_file_to_itself",
-              "Cannot extract a file to itself."));
-
-      return false;
     }
 
     // Test if it is a valid node layer
@@ -1095,6 +1098,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     for (NodusEsriLayer element : layers) {
       if (element.getTableName().equals(fromShapefile)) {
+        if (!confirmExportOverwrite(EXTRACTSHP, toShapefile, getExtractionFiles(toShapefile))) {
+          return false;
+        }
         boolean ok = element.extract(toShapefile, whereStmt);
 
         if (ok) {
@@ -1364,6 +1370,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       return false;
     }
 
+    File exportFile = getExportFile(operation, tableName);
+    if (exportFile != null && !confirmExportOverwrite(operation, tableName, exportFile)) {
+      return false;
+    }
+
     boolean succeeded = false;
 
     if (operation.equals(EXPORTDBF)) {
@@ -1411,6 +1422,126 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
 
     return succeeded;
+  }
+
+  /** Resolves the same output path as the table exporters; imports have no output file. */
+  private File getExportFile(String operation, String tableName) {
+    String extension;
+    switch (operation) {
+      case EXPORTDBF:
+        extension = NodusC.TYPE_DBF;
+        break;
+      case EXPORTCSV:
+      case EXPORTCSVH:
+        extension = NodusC.TYPE_CSV;
+        break;
+      case EXPORTXLS:
+        extension = NodusC.TYPE_XLS;
+        break;
+      case EXPORTXLSX:
+        extension = NodusC.TYPE_XLSX;
+        break;
+      default:
+        return null;
+    }
+    return new File(
+        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + extension);
+  }
+
+  /** Lists the SHP/SHX and separately written DBF paths used by layer extraction. */
+  private File[] getExtractionFiles(String name) {
+    String path = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + name;
+    String shapePath = path;
+    // OpenMap strips an optional shapefile extension; the separate DBF writer appends its own.
+    if (path.endsWith(NodusC.TYPE_SHP)
+        || path.endsWith(NodusC.TYPE_SHX)
+        || path.endsWith(NodusC.TYPE_DBF)) {
+      shapePath = path.substring(0, path.length() - 4);
+    }
+    return new File[] {
+      new File(shapePath + NodusC.TYPE_SHP),
+      new File(shapePath + NodusC.TYPE_SHX),
+      new File(path + NodusC.TYPE_DBF)
+    };
+  }
+
+  /** Reports a declined export separately from a failed export, stopping the command batch. */
+  private boolean confirmExportOverwrite(String operation, String name, File... files) {
+    if (confirmFileOverwrite(files)) {
+      return true;
+    }
+    String message =
+        MessageFormat.format(
+            i18n.get(SQLConsole.class, "Export_cancelled", "{0} of \"{1}\" cancelled."),
+            operation,
+            name);
+    if (!withGUI && typeOfResultFormat != 1) {
+      System.out.println(message);
+    }
+    displayMessageInResult(operation, message);
+    return false;
+  }
+
+  /** Asks once for all existing targets before any file is opened or layer data is updated. */
+  private boolean confirmFileOverwrite(File... files) {
+    boolean fullPath = nodusMapPanel != null && nodusMapPanel.getDisplayFullPath();
+    StringBuilder existing = new StringBuilder();
+    for (File file : files) {
+      if (file.exists()) {
+        if (existing.length() > 0) {
+          existing.append(NL);
+        }
+        existing.append(fullPath ? file.getAbsolutePath() : file.getName());
+      }
+    }
+    if (existing.length() == 0) {
+      return true;
+    }
+    String message =
+        MessageFormat.format(
+            i18n.get(SQLConsole.class, "Replace_existing_files", "Replace existing file?\n\n{0}"),
+            existing.toString());
+    FutureTask<Integer> prompt = new FutureTask<>(() -> showOverwriteDialog(message));
+    try {
+      // Commands run on a worker; a console without its own window can also run desktop batches.
+      if (SwingUtilities.isEventDispatchThread()) {
+        prompt.run();
+      } else {
+        SwingUtilities.invokeAndWait(prompt);
+      }
+      return prompt.get() == JOptionPane.YES_OPTION;
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      return false;
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      return false;
+    }
+  }
+
+  /**
+   * Displays the overwrite prompt on the EDT, with Cancel selected by default.
+   *
+   * @param message The localized message listing existing files according to the path preference.
+   * @return The selected option, or CLOSED_OPTION when confirmation is unavailable.
+   */
+  protected int showOverwriteDialog(String message) {
+    if (GraphicsEnvironment.isHeadless()) {
+      return JOptionPane.CLOSED_OPTION;
+    }
+    Object[] options = {
+      i18n.get(SQLConsole.class, "Replace", "Replace"),
+      i18n.get(SQLConsole.class, "Cancel", "Cancel")
+    };
+    return JOptionPane.showOptionDialog(
+        frame,
+        message,
+        i18n.get(SQLConsole.class, "Confirm_overwrite", "Confirm overwrite"),
+        JOptionPane.YES_NO_OPTION,
+        JOptionPane.WARNING_MESSAGE,
+        null,
+        options,
+        options[1]);
   }
 
   /** Initializes main GUI. */
@@ -2038,6 +2169,14 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       File file = f.getSelectedFile();
 
       if (file != null) {
+        String fileName = file.getAbsolutePath();
+        if (file.getName().lastIndexOf(".") == -1) {
+          fileName += NodusC.TYPE_TXT;
+        }
+        if (!confirmFileOverwrite(new File(fileName))) {
+          return;
+        }
+
         boolean isGrid = true;
         if (typeOfResultFormat == 1) {
           isGrid = false;
@@ -2045,12 +2184,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
         if (isGrid) {
           menuResultInText_actionPerformed(null);
-        }
-
-        String fileName = file.getAbsolutePath();
-
-        if (fileName.lastIndexOf(".") == -1) {
-          fileName += NodusC.TYPE_TXT;
         }
 
         writeFile(fileName, txtResultArea.getText());
