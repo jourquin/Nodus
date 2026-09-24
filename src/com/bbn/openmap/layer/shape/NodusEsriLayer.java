@@ -83,8 +83,10 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -1762,6 +1764,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
       // Vector<String> types = new Vector<>();
       Vector<Integer> sizes = new Vector<>();
       Vector<Integer> decimalDigits = new Vector<>();
+      Map<String, Integer> numericColumns = new LinkedHashMap<>();
 
       try (ResultSet rs = JDBCUtils.getColumns(tableName)) {
         while (rs.next()) {
@@ -1773,14 +1776,20 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
           if (typeName.contains("CHAR")) {
             sizes.add(rs.getInt("COLUMN_SIZE"));
           } else if (!typeName.contains("DATE")) {
-            // As the metadata doesn't contain a usable width for numerical values, estimate it
-            int w =
-                JDBCUtils.getNumWidth(
-                    tableName, rs.getString("COLUMN_NAME"), rs.getInt("DECIMAL_DIGITS"));
-            sizes.add(w);
+            // Resolve all numeric widths together after reading the column metadata.
+            numericColumns.put(rs.getString("COLUMN_NAME"), rs.getInt("DECIMAL_DIGITS"));
+            sizes.add(0);
           } else if (typeName.contains("DATE")) {
             sizes.add(8);
           }
+        }
+      }
+
+      Map<String, Integer> numericWidths = JDBCUtils.getNumWidths(tableName, numericColumns);
+      for (int i = 0; i < names.size(); i++) {
+        Integer width = numericWidths.get(names.get(i));
+        if (width != null) {
+          sizes.set(i, width);
         }
       }
 

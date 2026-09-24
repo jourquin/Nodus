@@ -34,7 +34,7 @@ public class NodusC {
   /**
    * Print map preparation timings for pan/zoom diagnostics; excludes painting and UI queue time.
    */
-  public static boolean displayMapComputingTimes = true;
+  public static boolean displayMapComputingTimes = false;
 
   /**
    * Reduce subpixel detail in Mercator and Equal Earth line layers while preserving source

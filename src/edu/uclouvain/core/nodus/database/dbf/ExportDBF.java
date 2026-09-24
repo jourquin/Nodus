@@ -37,7 +37,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Exports a database table in a .dbf table.
@@ -66,6 +68,7 @@ public class ExportDBF implements ShapeConstants {
       List<String> types = new ArrayList<>();
       List<Integer> sizes = new ArrayList<>();
       List<Integer> decimalDigits = new ArrayList<>();
+      Map<String, Integer> numericColumns = new LinkedHashMap<>();
 
       while (col.next()) {
         String columnName = col.getString("COLUMN_NAME");
@@ -81,8 +84,9 @@ public class ExportDBF implements ShapeConstants {
         } else if (typeName.contains("DATE")) {
           sizes.add(8);
         } else {
-          // As the metadata doesn't contain a usable width for numerical values, estimate it.
-          sizes.add(JDBCUtils.getNumWidth(tableName, columnName, decimalDigit));
+          // Numeric metadata widths are unreliable; collect these columns for one query below.
+          numericColumns.put(columnName, decimalDigit);
+          sizes.add(0);
         }
       }
 
@@ -90,6 +94,7 @@ public class ExportDBF implements ShapeConstants {
         return null;
       }
 
+      Map<String, Integer> numericWidths = JDBCUtils.getNumWidths(tableName, numericColumns);
       field = new DBFField[names.size()];
 
       // Transform into dbf fields.
@@ -108,7 +113,8 @@ public class ExportDBF implements ShapeConstants {
           decimalDigit = decimalDigits.get(i);
         }
 
-        field[i] = new DBFField(names.get(i), columnType, sizes.get(i), decimalDigit);
+        int width = columnType == 'N' ? numericWidths.get(names.get(i)) : sizes.get(i);
+        field[i] = new DBFField(names.get(i), columnType, width, decimalDigit);
       }
 
       String path = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);

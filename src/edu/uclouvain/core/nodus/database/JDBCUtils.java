@@ -32,6 +32,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.DecimalFormat;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.StringJoiner;
 import javax.swing.JOptionPane;
 
 /**
@@ -691,63 +695,74 @@ public class JDBCUtils {
    * @return The width of the numerical field.
    */
   public static int getNumWidth(String tableName, String fieldName, int decimalDigits) {
-
-    int width = -1;
-
     if (jdbcConnection == null) {
-      return width;
+      return -1;
     }
-
-    // Force decimal places
-    StringBuilder dp = new StringBuilder();
-    if (decimalDigits > 0) {
-      dp.append(".");
-      for (int i = 0; i < decimalDigits; i++) {
-        dp.append("0");
-      }
-    }
-
-    DecimalFormat df = new DecimalFormat("#" + dp);
-    df.setMaximumFractionDigits(decimalDigits);
-
-    try (Statement stmt = jdbcConnection.createStatement()) {
-
-      // Get width of max value
-      String sqlStmt =
-          "SELECT MAX("
-              + getQuotedCompliantIdentifier(fieldName)
-              + ") FROM "
-              + getQuotedCompliantIdentifier(tableName);
-
-      try (ResultSet rs = stmt.executeQuery(sqlStmt)) {
-        if (rs.next()) {
-          String valueString = df.format(rs.getDouble(1));
-          width = valueString.length();
-        }
-      }
-
-      // Get width of min value
-      sqlStmt =
-          "SELECT MIN("
-              + getQuotedCompliantIdentifier(fieldName)
-              + ") FROM "
-              + getQuotedCompliantIdentifier(tableName);
-
-      try (ResultSet rs = stmt.executeQuery(sqlStmt)) {
-        if (rs.next()) {
-          String valueString = df.format(rs.getDouble(1));
-          int w2 = valueString.length();
-          if (w2 > width) {
-            width = w2;
-          }
-        }
-      }
-
+    try {
+      return getNumWidths(tableName, Collections.singletonMap(fieldName, decimalDigits))
+          .get(fieldName);
     } catch (SQLException e) {
       e.printStackTrace();
+      return -1;
+    }
+  }
+
+  /**
+   * Estimates DBF widths for numeric columns with one aggregate query for the entire table.
+   *
+   * <p>Each column contributes a MAX/MIN pair, avoiding two separate queries per column during
+   * export or layer synchronization. Values use the same double conversion and fixed-decimal
+   * formatting as {@link #getNumWidth(String, String, int)}. An empty table or all-NULL column is
+   * formatted as zero, preserving JDBC's {@code getDouble} behavior. Widths are never cached, since
+   * table contents may change between exports.
+   *
+   * @param tableName The table to inspect.
+   * @param decimalDigits Numeric column names mapped to their required decimal counts.
+   * @return Widths keyed by the supplied column names, or an empty map without querying the
+   *     database if no numeric columns were supplied.
+   * @throws SQLException If the connection is missing or the query fails. Callers must not export
+   *     or accept a table structure using incomplete widths.
+   */
+  public static Map<String, Integer> getNumWidths(
+      String tableName, Map<String, Integer> decimalDigits) throws SQLException {
+    Map<String, Integer> widths = new LinkedHashMap<>();
+    if (decimalDigits.isEmpty()) {
+      return widths;
+    }
+    if (jdbcConnection == null) {
+      throw new SQLException("No JDBC connection for numeric column widths");
     }
 
-    return width;
+    StringJoiner sql =
+        new StringJoiner(", ", "SELECT ", " FROM " + getQuotedCompliantIdentifier(tableName));
+    for (String fieldName : decimalDigits.keySet()) {
+      String quotedName = getQuotedCompliantIdentifier(fieldName);
+      sql.add("MAX(" + quotedName + "), MIN(" + quotedName + ")");
+    }
+
+    try (Statement stmt = jdbcConnection.createStatement();
+        ResultSet rs = stmt.executeQuery(sql.toString())) {
+      if (!rs.next()) {
+        throw new SQLException("No aggregate row for numeric column widths");
+      }
+      int column = 1;
+      for (Map.Entry<String, Integer> field : decimalDigits.entrySet()) {
+        int digits = field.getValue();
+        StringBuilder pattern = new StringBuilder("#");
+        if (digits > 0) {
+          pattern.append('.');
+          for (int i = 0; i < digits; i++) {
+            pattern.append('0');
+          }
+        }
+        DecimalFormat format = new DecimalFormat(pattern.toString());
+        format.setMaximumFractionDigits(digits);
+        int maxWidth = format.format(rs.getDouble(column++)).length();
+        int minWidth = format.format(rs.getDouble(column++)).length();
+        widths.put(field.getKey(), Math.max(maxWidth, minWidth));
+      }
+    }
+    return widths;
   }
 
   /**

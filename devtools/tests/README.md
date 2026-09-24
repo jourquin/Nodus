@@ -1,5 +1,40 @@
 # Regression checks
 
+## DBF column widths
+
+DBF export and SQL-to-map-layer attribute synchronization collect all numeric columns and obtain
+their minima and maxima in **one aggregate query per table**, instead of two queries per numeric
+column. Character and date widths still use metadata. The single-column `JDBCUtils.getNumWidth`
+method remains available; callers sizing an entire table use `getNumWidths`. No schema changes,
+stored widths or additional cache are involved. SQL errors stop export/synchronization rather than
+allowing incomplete widths to be used.
+
+`DbfColumnWidthsTest.java` compares against the former per-column query/formatting algorithm using
+disposable in-memory HSQLDB, H2, SQLite and Derby databases. It covers empty tables, NULL values,
+negative and large numbers, decimal rounding, US/French formatting, quoted identifiers, changed
+data, zero numeric columns, query failures, JDBC resource closure and caller-owned transactions.
+It also exercises the actual export-header creation and map-layer synchronization methods,
+checking column order, widths, decimal counts, row mapping and rejection of fields that are too
+narrow. GUI rendering and label loading are stubbed; no real project or database is opened.
+MySQL/MariaDB and PostgreSQL use the same production query but are not contacted by these tests.
+
+Run from the project root:
+
+```sh
+ant build-project
+nodus_test_dir=$(mktemp -d)
+javac --release 11 -cp 'classes:lib/*:lib/groovy/*:jdbcDrivers/*' -d "$nodus_test_dir" devtools/tests/DbfColumnWidthsTest.java
+java -Djava.awt.headless=true -cp "$nodus_test_dir:classes:lib/*:lib/groovy/*:jdbcDrivers/*" edu.uclouvain.core.nodus.database.DbfColumnWidthsTest --benchmark
+rm -r "$nodus_test_dir"
+```
+
+Omit `--benchmark` for correctness checks alone. The optional benchmark creates 100,000 synthetic
+rows with 20 unindexed numeric columns on each engine, warms both methods once, then alternates
+their execution order over four measured passes. It reports mean **column-sizing time**, excluding
+table creation, insertion, DBF record writing and map display. The 40-to-1 query reduction is not a
+whole-export speedup factor; indexes and database/network costs affect the gain. To assess normal
+use, compare the same large-table export or synchronization before and after rebuilding Nodus.
+
 ## Map navigation
 
 Map layers retain their geographic bounds across pan, zoom and resize operations. A bounding-box

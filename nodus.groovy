@@ -54,7 +54,7 @@ if (startNodus) {
 	nodusMapPanel.getMapBean().validate();
 	
 	// Set the assignment rutime audit
-	edu.uclouvain.core.nodus.NodusC.displayComputingTimes = true
+	edu.uclouvain.core.nodus.NodusC.displayComputingTimes = false
 	if (edu.uclouvain.core.nodus.NodusC.displayComputingTimes) {
 		System.out.println("Assignment runtime audit is enabled");
 	}
