@@ -52,12 +52,12 @@ final class CompactShortestPathHeap {
   double minWeight;
 
   /** Creates primitive storage; the shared positions remain available to the search object. */
-  CompactShortestPathHeap(int[] positions, boolean aStar) {
+  CompactShortestPathHeap(int[] positions, boolean useHeuristic) {
     this.positions = positions;
     heap = new int[positions.length];
     costs = new double[positions.length];
-    keys = aStar ? new double[positions.length] : costs;
-    estimates = aStar ? new double[positions.length] : null;
+    keys = useHeuristic ? new double[positions.length] : costs;
+    estimates = useHeuristic ? new double[positions.length] : null;
     touchedSlots = new int[positions.length];
     touchedNodes = new int[positions.length];
   }

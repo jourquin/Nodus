@@ -623,6 +623,8 @@ public class PathWriter {
    * Creates a buffer owned by one assignment-worker job. The worker must flush successful jobs
    * before they finish and clear failed jobs, so equilibrium splits and close see all accepted
    * rows.
+   *
+   * @return A new worker-owned buffer without detailed output-call auditing.
    */
   public PathWriterBuffer newBuffer() {
     return newBuffer(null);

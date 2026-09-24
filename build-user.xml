@@ -2,13 +2,6 @@
 <project basedir=".">
 	<!--import file="build.xml"/-->
 	
-	<!-- Launches the i18n tool -->
-	<target name="I18Nedit" description="Runs the i18n translation tool.">
-		<java classname="i18nedit" classpath="${basedir}/devtools/i18nedit.jar:${basedir}/devtools/qjcc.jar:${basedir}/devtools/jhall.jar" failonerror="true" fork="yes">
-		</java>
-
-	</target>
-
 	<!-- Launches the JFlex lexer -->
 	<target name="JFlex" description="Runs the JFlex lexer.">
 		<java jar="${basedir}/devtools/JFlex.jar" fork="yes" failonerror="true" />
@@ -27,10 +20,6 @@
 
 	<!-- Build the API documentation  -->
 	
-	<condition property="OldJavadocAPI">
-	    <contains string="${ant.java.version}" substring="1.8" />
-    </condition>
-	
 	<target name="PrepareApiDoc" description="Prepare the API doc generation.">
 	    <echo message="Generating the Nodus API documentation" />
 	    <delete dir="${basedir}/api" />
@@ -46,7 +35,7 @@
 			encoding="UTF-8" docencoding="UTF-8" charset="UTF-8" 
 			packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
 			author="true" version="true" use="true" 
-			windowtitle="Nodus 8.5 API" 
+			windowtitle="Nodus 8.6 API" 
 			doctitle="Nodus" bottom="${copyrightString}"
 			classpathref="Nodus.classpath" failonerror="false" />
 	</target>

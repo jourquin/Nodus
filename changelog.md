@@ -474,7 +474,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
   iteration and convergence controls in the assignment dialog.
 - Add tooltips on (almost) all GUI elements
 
-## v8.5 - BuildXXXXXXXX
+## v8.6 - BuildXXXXXXXX
 - Code cleaning and refactoring
 - Fix a warning in GUIUtils
 - Close a loaded project only when a new one is selected
@@ -489,6 +489,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Faster to vehicles conversion
 - Zoom-dependent simplification for the Mercator and Equal Earth projections
 - Faster DBF export
+- Remove some old and unused devtools
   
   
   

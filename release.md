@@ -14,6 +14,7 @@ Nodus 8.x versions:
 - Nodus 8.3 (first build on November 26, 2025) updates the embedded Groovy runtime to version 5.x. This version change is justified by the fact that, although unlikely, some scripts written in this language may need to be slightly adapted.
 - Nodus 8.4 (first build on June 23, 2026) reintroduces the Frank-Wolfe based assignment algorithms, which were removed since 8.0 because they were buggy. It should primarily be seen as a stability and robustness update: several sensitive parts of the code were reviewed and strengthened, in particular the project open/close workflows, SQL console execution, time-dependent result display, and resource release. 
 - Nodus 8.5 (first build on September 17, 2026) reintroduces lines & services, which were disabled since Nodus 8.0, with a completely redesigned workflow based on Virtual Network Version 4.
+- Nodus 8.6 (first build on XXX) is a performance-focused release, highlighting faster assignments, more responsive map navigation and faster database operations. 
 
 The CHANGELOG.MD file contains an exhaustive list of the improvements made to the software.
 

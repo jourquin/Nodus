@@ -136,13 +136,13 @@ public class BinaryHeapDijkstra {
    * @param graph Original adjacency list.
    * @param virtualNet Network used to resolve OD destinations.
    * @param compactGraph Synchronized compact copy, or null for object storage.
-   * @param aStar Whether compact heap ordering uses distance plus a goal estimate.
+   * @param useHeuristic Whether compact heap ordering uses distance plus a goal estimate.
    */
   protected BinaryHeapDijkstra(
       AdjacencyNode[] graph,
       VirtualNetwork virtualNet,
       CompactShortestPathGraph compactGraph,
-      boolean aStar) {
+      boolean useHeuristic) {
     if (compactGraph != null && compactGraph.graph != graph) {
       throw new IllegalArgumentException("Compact graph must belong to this adjacency list");
     }
@@ -156,7 +156,7 @@ public class BinaryHeapDijkstra {
     pi = new int[graph.length];
 
     nodePos = new int[graph.length];
-    compactHeap = compactGraph == null ? null : new CompactShortestPathHeap(nodePos, aStar);
+    compactHeap = compactGraph == null ? null : new CompactShortestPathHeap(nodePos, useHeuristic);
     // The compact implementation needs neither heap-node objects nor their reference arrays.
     stock = compactHeap == null ? new BinaryHeapNode[graph.length] : null;
     upperBoundCosts = compactHeap == null ? new BinaryHeapNode[graph.length] : null;

@@ -59,6 +59,9 @@ public final class MapPolylineDetail {
   /** Entries use identity because distinct source records can have identical geometry. */
   private final Map<EsriPolyline, Detail> details = new IdentityHashMap<>();
 
+  /** Creates an empty display-detail cache for one layer preparation worker. */
+  public MapPolylineDetail() {}
+
   /** Measurements for one preparation; cache-building time is part of projection time. */
   public static final class Measurement {
     private long sourceVertices;
@@ -72,52 +75,96 @@ public final class MapPolylineDetail {
     private long cacheNanos;
     private String mode;
 
-    /** Returns the number of original polyline vertices in the selected graphics. */
+    /** Creates zeroed counters with no projection mode assigned yet. */
+    public Measurement() {}
+
+    /**
+     * Returns the number of original polyline vertices in the selected graphics.
+     *
+     * @return The source vertex count, excluding point and polygon graphics.
+     */
     public long getSourceVertices() {
       return sourceVertices;
     }
 
-    /** Returns the number of polyline vertices submitted to projection. */
+    /**
+     * Returns the number of polyline vertices submitted to projection.
+     *
+     * @return The vertex count after detail selection, before arc subdivision and world wrapping.
+     */
     public long getDisplayedVertices() {
       return displayedVertices;
     }
 
-    /** Returns the number of lines projected with fewer vertices. */
+    /**
+     * Returns the number of lines projected with fewer vertices.
+     *
+     * @return The number of lines selected for projection with reduced geometry.
+     */
     public int getSimplifiedLines() {
       return simplifiedLines;
     }
 
-    /** Returns the number of newly constructed simplification hierarchies. */
+    /**
+     * Returns the number of newly constructed simplification hierarchies.
+     *
+     * @return The hierarchy count built during this preparation, excluding reused entries.
+     */
     public int getBuiltHierarchies() {
       return builtHierarchies;
     }
 
-    /** Returns the number of newly selected zoom-level coordinate arrays. */
+    /**
+     * Returns the number of newly computed zoom-level selections.
+     *
+     * @return The selection count, including levels that retain full detail.
+     */
     public int getBuiltLevels() {
       return builtLevels;
     }
 
-    /** Returns the number of lines considered for simplification in a supported projection. */
+    /**
+     * Returns the number of lines considered for simplification in a supported projection.
+     *
+     * @return The eligible line count before curvature and wrap-boundary checks.
+     */
     public int getCandidateLines() {
       return candidateLines;
     }
 
-    /** Returns the number of great-circle lines kept in full detail to preserve curvature. */
+    /**
+     * Returns the number of great-circle lines kept in full detail to preserve curvature.
+     *
+     * @return The line count whose curvature exceeds the tolerance at the current scale.
+     */
     public int getCurvatureFallbacks() {
       return curvatureFallbacks;
     }
 
-    /** Returns lines kept in full detail because they cross Equal Earth's current wrap boundary. */
+    /**
+     * Returns lines kept in full detail because they cross Equal Earth's current wrap boundary.
+     *
+     * @return The line count bypassed at the current map center's wrap boundary.
+     */
     public int getSeamFallbacks() {
       return seamFallbacks;
     }
 
-    /** Returns whether detail is enabled, disabled or bypassed for the actual projection. */
+    /**
+     * Returns whether detail is enabled, disabled or bypassed for the actual projection.
+     *
+     * @return A descriptive mode label, or null before a projection mode is assigned.
+     */
     public String getMode() {
       return mode;
     }
 
-    /** Returns cache construction time, already included in the layer's projection measurement. */
+    /**
+     * Returns cache construction time, already included in the layer's projection measurement.
+     *
+     * @return Elapsed nanoseconds spent building cache entries and selecting levels, or zero when
+     *     timing is disabled.
+     */
     public long getCacheNanos() {
       return cacheNanos;
     }
