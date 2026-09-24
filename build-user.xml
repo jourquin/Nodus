@@ -1,6 +1,16 @@
 <?eclipse.ant.import?>
+<!DOCTYPE project>
 <project basedir=".">
 	<!--import file="build.xml"/-->
+
+	<!-- Forward to the standalone test build so Eclipse can validate this file on its own. -->
+	<target name="CleanTests" description="Removes compiled tests and test reports.">
+		<ant antfile="${basedir}/build-tests.xml" target="CleanTests" inheritAll="false" />
+	</target>
+
+	<target name="Test" description="Runs the JUnit 5 unit tests without opening the GUI.">
+		<ant antfile="${basedir}/build-tests.xml" target="Test" inheritAll="false" />
+	</target>
 	
 	<!-- Launches the JFlex lexer -->
 	<target name="JFlex" description="Runs the JFlex lexer.">

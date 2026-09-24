@@ -155,6 +155,35 @@ You can also import Nodus as an [Eclipse](http://www.eclipse.org/) project.
 
 ## Code robustness
 
+Run the Java tests with JDK 11 or later and Apache Ant 1.10.6 or later:
+
+```sh
+ant -f build-tests.xml
+```
+
+This compiles the application and runs the JUnit 5 tests in `test/` without opening the GUI
+or loading a project database. The suite covers shortest paths (Dijkstra and A*,
+linked and compact graphs), repeated searches, cost-expression caching, modal shares,
+path cost/duration totals, flow distribution, multi-flow edge updates, demand aggregation
+and relocation, node rules, and vehicle characteristics. Database
+integration tests use private in-memory H2 databases to check buffered path output,
+concurrent writes, and failure handling. A failing test makes the command fail.
+
+Text and XML reports are written to `test-build/reports/`. Test classes are kept separate
+from application classes and are not included in `nodus8.jar`. Run a single test class with,
+for example, `ant -f build-tests.xml '-Dtest.includes=**/CostExpressionCacheTest.class' Test`,
+or use `ant -f build-tests.xml CleanTests` to remove test output. In Eclipse, refresh the
+project and use
+**Run As > JUnit Test** on the `test` source folder or an individual test class.
+To use Ant inside Eclipse, right-click `build-tests.xml` and choose **Run As > Ant Build**;
+its default target runs the tests. The `Test` target in `build-user.xml` forwards to this file.
+See [test/README.md](test/README.md) for setup details and guidelines for adding tests.
+
+[GitHub Actions](.github/workflows/tests.yml) runs the full suite on Java 11 and 25
+for pushes and pull requests, and saves the test reports as downloadable artifacts.
+See [the CI instructions](test/README.md#continuous-integration-on-github) for activation
+and required status checks.
+
 The [Checkstyle](https://checkstyle.org) and [SpotBugs](https://spotbugs.github.io) plugins are used in Eclipse 
 in order to write code that adheres to the Google Java coding standard and to look for bugs in Java code.
 

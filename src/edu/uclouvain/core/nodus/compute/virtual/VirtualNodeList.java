@@ -163,6 +163,7 @@ public class VirtualNodeList {
         if (odCell.getStartingTime() != -1) {
           if (cell.getDestinationNodeId() == odCell.getDestinationNodeId()
               && cell.getGroup() == odCell.getGroup()
+              && cell.getODClass() == odCell.getODClass()
               && cell.getStartingTime() == odCell.getStartingTime()) {
             cell.addQuantity(odCell.getQuantity());
             alreadyExists = true;
@@ -170,7 +171,8 @@ public class VirtualNodeList {
           }
         } else {
           if (cell.getDestinationNodeId() == odCell.getDestinationNodeId()
-              && cell.getGroup() == odCell.getGroup()) {
+              && cell.getGroup() == odCell.getGroup()
+              && cell.getODClass() == odCell.getODClass()) {
             cell.addQuantity(odCell.getQuantity());
             alreadyExists = true;
             break;

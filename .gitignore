@@ -1,4 +1,5 @@
 /classes/
+/test-build/
 /api/
 /BinaryDistribution/
 .DS_Store

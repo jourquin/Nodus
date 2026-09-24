@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE project>
+<project basedir="." default="Test" name="Nodus-tests">
+	<!-- Import the application build so its targets and classpath are available here.
+	     Keep this file out of Eclipse's automatic buildfile imports: build-user.xml
+	     forwards to it. These local targets override the imported forwarding targets. -->
+	<import file="build.xml" />
+
+	<!-- Keep tests separate from application classes and the distribution jar. -->
+	<property name="test.build.dir" location="test-build" />
+	<property name="test.includes" value="**/*Test.class" />
+	<path id="Nodus.test.classpath">
+		<pathelement location="${test.build.dir}/classes" />
+		<path refid="Nodus.classpath" />
+		<fileset dir="${basedir}/lib/groovy" includes="opentest4j-*.jar" />
+		<fileset dir="${basedir}/devtools/junit" includes="*.jar" />
+	</path>
+
+	<target name="CleanTests" description="Removes compiled tests and test reports.">
+		<delete dir="${test.build.dir}" />
+	</target>
+
+	<target name="Test" depends="build,CleanTests" description="Runs the JUnit 5 unit and integration tests without opening the GUI.">
+		<mkdir dir="${test.build.dir}/classes" />
+		<mkdir dir="${test.build.dir}/reports" />
+		<javac srcdir="${basedir}/test" destdir="${test.build.dir}/classes"
+			includeantruntime="false" release="${target}" encoding="UTF-8" debug="true">
+			<classpath refid="Nodus.test.classpath" />
+		</javac>
+		<fail message="No test classes match test.includes=${test.includes}">
+			<condition>
+				<resourcecount count="0">
+					<fileset dir="${test.build.dir}/classes" includes="${test.includes}" />
+				</resourcecount>
+			</condition>
+		</fail>
+		<junitlauncher haltOnFailure="true" printSummary="true">
+			<classpath refid="Nodus.test.classpath" />
+			<testclasses outputdir="${test.build.dir}/reports" includeEngines="junit-jupiter">
+				<fileset dir="${test.build.dir}/classes" includes="${test.includes}" />
+				<listener type="legacy-plain" sendSysOut="true" sendSysErr="true" />
+				<listener type="legacy-xml" sendSysOut="true" sendSysErr="true" />
+				<fork timeout="120000">
+					<sysproperty key="java.awt.headless" value="true" />
+				</fork>
+			</testclasses>
+		</junitlauncher>
+	</target>
+</project>

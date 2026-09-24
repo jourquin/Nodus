@@ -1,0 +1,67 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests (Java ${{ matrix.java }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['11', '25']
+
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+
+      - name: Install Apache Ant 1.10.17
+        shell: bash
+        env:
+          ANT_VERSION: '1.10.17'
+          ANT_SHA512: a96ca6455ec9af5e702df7d1ed5a2ec1cfb381eac3e9a767ecb6be1706e826941045e8fd7ca663ba101bc47bfa18351f540dd27e9e7af57908ac78e65268eee7
+        run: |
+          curl --fail --silent --show-error --location --retry 3 --max-time 120 \
+            "https://archive.apache.org/dist/ant/binaries/apache-ant-${ANT_VERSION}-bin.tar.gz" \
+            --output "$RUNNER_TEMP/ant.tar.gz"
+          printf '%s  %s\n' "$ANT_SHA512" "$RUNNER_TEMP/ant.tar.gz" | sha512sum --check
+          tar -xzf "$RUNNER_TEMP/ant.tar.gz" -C "$RUNNER_TEMP"
+          test -f "$RUNNER_TEMP/apache-ant-${ANT_VERSION}/lib/ant-junitlauncher.jar"
+          echo "ANT_HOME=$RUNNER_TEMP/apache-ant-${ANT_VERSION}" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/apache-ant-${ANT_VERSION}/bin" >> "$GITHUB_PATH"
+
+      - name: Show tool versions
+        run: |
+          java -version
+          ant -version
+
+      - name: Build and run all tests
+        run: ant -noinput -f build-tests.xml clean Test
+
+      - name: Upload test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-reports-java-${{ matrix.java }}
+          path: test-build/reports/
+          if-no-files-found: warn
+          retention-days: 14
