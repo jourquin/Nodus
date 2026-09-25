@@ -114,11 +114,19 @@ These values are stored in "jvmargs.sh" or "jvmargs.bat", a file created in the 
 Nodus at launch time if it doesn't exist yet. This file can be edited if other values (or even other JVM parameters)
 are desired.
 
-Since Nodus 8.4, version-dependent JVM parameters are also added dynamically in this file. This includes
-`--illegal-access=deny` with Java 9 to 16, and `--enable-native-access=ALL-UNNAMED` with Java 24
-or later to enable native access for classpath libraries used by Nodus, such as JNA. With
-Java 24 or later, the `sun.misc.Unsafe` warning policy is also set explicitly for compatibility
+Since Nodus 8.4, version-dependent JVM parameters are also added dynamically in this file. This includes,
+since Nodus 8.6, `--illegal-access=deny` with Java 9 to 16, and `--enable-native-access=ALL-UNNAMED` with Java 24
+or later to enable native access for classpath libraries used by Nodus. With Java 24 or later, 
+the `sun.misc.Unsafe` warning policy is also set explicitly for compatibility
 with libraries that still use deprecated memory-access methods.
+
+Older releases could save `--illegal-access` permanently in a single-line `JVMARGS`
+assignment. `SetJVMArgs` now upgrades these legacy files automatically, keeping custom
+heap sizes and other arguments, and saving the original as `jvmargs.sh.bak` or
+`jvmargs.bat.bak`. The replacement selects its flags at each launch, so Java 17 and
+later (including Java 27) receive no `--illegal-access` option. Existing multi-line
+scripts and assignments containing custom shell commands or variable expansion are
+left intact; remove an unconditional obsolete option manually in those files.
    
 ## License
 

@@ -29,7 +29,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.commons.io.FileUtils;
 
 /**
@@ -49,12 +54,18 @@ import org.apache.commons.io.FileUtils;
  * <p>Since Nodus 8.4, version-dependent JVM flags are set dynamically in the generated JVM
  * arguments file.
  *
+ * <p>Since Nodus 8.6, legacy single-assignment files are upgraded while preserving custom
+ * arguments.
+ *
  * <p>Since Nodus 8.1 Build 20220103, the Times font is also installed on Mac OS Monterey machines
  * if needed.
  *
  * @author Bart Jourquin
  */
 public class SetJVMArgs {
+
+  /** Treat quoted values as part of their argument, not as independent JVM options. */
+  private static final Pattern JVM_ARGUMENT = Pattern.compile("(?:[^\\s\"']+|\"[^\"]*\"|'[^']*')+");
 
   /**
    * Entry point.
@@ -71,17 +82,68 @@ public class SetJVMArgs {
     String envtFileName = getEnvFileName();
 
     File file = new File(envtFileName);
-    if (!file.exists()) {
-
-      // Get the heap settings and add UTF-8 encoding flag
-      String parameters = getDefaultHeapSettings() + " -Dfile.encoding=UTF-8";
-
-      // Update the script
-      createScript(envtFileName, parameters);
+    try {
+      if (!file.exists()) {
+        // Get the heap settings and add UTF-8 encoding flag
+        String parameters = getDefaultHeapSettings() + " -Dfile.encoding=UTF-8";
+        createScript(file.toPath(), parameters, isRunningOnWindows());
+      } else {
+        upgradeLegacyScript(file.toPath(), isRunningOnWindows());
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
     }
 
     // Install the Times font if needed
     installTimesFontIfNeeded();
+  }
+
+  /**
+   * Upgrades the single-assignment format written by older releases. Multi-line scripts are left
+   * alone because they may contain user-defined logic. The first backup is never overwritten.
+   *
+   * @param scriptFile The existing JVM arguments file.
+   * @param windows Whether this is a Windows batch file.
+   * @throws IOException If reading, backing up or writing the script fails.
+   */
+  static void upgradeLegacyScript(Path scriptFile, boolean windows) throws IOException {
+    String script = Files.readString(scriptFile, Charset.defaultCharset()).strip();
+    String assignment =
+        windows
+            ? "(?i)@?set[ \\t]+(?:\"JVMARGS=([^\\r\\n]*)\"|JVMARGS=([^\\r\\n]*))"
+            : "(?:export[ \\t]+)?JVMARGS=\"([^\\r\\n]*)\"";
+    Matcher match = Pattern.compile(assignment).matcher(script);
+    if (!match.matches()) {
+      return;
+    }
+    String parameters = match.group(1);
+    if (parameters == null) {
+      parameters = match.group(2);
+    }
+    // Do not reinterpret shell commands or user-defined variable expansion as static arguments.
+    if (parameters.matches(".*[;&|<>`$%].*")) {
+      return;
+    }
+
+    Matcher arguments = JVM_ARGUMENT.matcher(parameters);
+    StringBuffer updated = new StringBuffer();
+    boolean changed = false;
+    while (arguments.find()) {
+      if (arguments.group().matches("--illegal-access=(deny|permit|warn|debug)")) {
+        arguments.appendReplacement(updated, "");
+        changed = true;
+      }
+    }
+    if (!changed) {
+      return;
+    }
+    arguments.appendTail(updated);
+
+    Path backup = scriptFile.resolveSibling(scriptFile.getFileName() + ".bak");
+    if (!Files.exists(backup)) {
+      Files.copy(scriptFile, backup);
+    }
+    createScript(scriptFile, updated.toString().strip(), windows);
   }
 
   /**
@@ -168,15 +230,17 @@ public class SetJVMArgs {
   /**
    * Creates the shell script with the defined heap values.
    *
-   * @param scriptFileName The path to the file to update
+   * @param scriptFile The path to the file to update
    * @param parameters The parameters passed to the JVM
+   * @param windows Whether to write a Windows batch file
+   * @throws IOException If writing the script fails
    */
-  private void createScript(String scriptFileName, String parameters) {
+  static void createScript(Path scriptFile, String parameters, boolean windows) throws IOException {
 
-    try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(scriptFileName))) {
+    try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(scriptFile.toFile()))) {
 
-      if (isRunningOnWindows()) {
-        bufferedWriter.write("set JVMARGS=" + parameters);
+      if (windows) {
+        bufferedWriter.write("set \"JVMARGS=" + parameters + "\"");
         bufferedWriter.newLine();
         bufferedWriter.write("set JAVA_FEATURE=0");
         bufferedWriter.newLine();
@@ -240,9 +304,6 @@ public class SetJVMArgs {
         bufferedWriter.newLine();
         bufferedWriter.write("fi");
       }
-
-    } catch (IOException e) {
-      e.printStackTrace();
     }
   }
 
