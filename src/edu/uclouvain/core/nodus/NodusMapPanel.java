@@ -473,6 +473,15 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   private Desktop desktop = getSupportedDesktop();
 
   /**
+   * Creates an uninitialized panel for adapters that provide their own project and UI callbacks.
+   * No application UI, plugins or update checks are started. Subclasses must supply the callbacks
+   * they use.
+   */
+  protected NodusMapPanel() {
+    nodusProperties = new Properties();
+  }
+
+  /**
    * Creates all the GUI components needed by Nodus on the application's panel. The application's
    * properties are also passed as a parameter in order to restore and save the application "state".
    * <br>

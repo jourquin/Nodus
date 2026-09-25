@@ -21,21 +21,48 @@
 
 package edu.uclouvain.core.nodus.compute.assign;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.uclouvain.core.nodus.compute.assign.workers.AllOrNothingAssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
+import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorkerParameters;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 
 /**
  * Checks that waiting workers terminate and coordinator cancellation does not leave them running.
  */
+@ResourceLock(Resources.SYSTEM_ERR)
 class AssignmentCancellationTest {
+  private final ByteArrayOutputStream errorOutput = new ByteArrayOutputStream();
+  private PrintStream originalError;
+  private PrintStream capturedError;
+
+  @BeforeEach
+  void captureWorkerDiagnostics() {
+    originalError = System.err;
+    capturedError = new PrintStream(errorOutput, true, StandardCharsets.UTF_8);
+    System.setErr(capturedError);
+  }
+
+  @AfterEach
+  void restoreErrorStream() {
+    System.setErr(originalError);
+    capturedError.close();
+  }
+
   @Test
   void endMarkersFinishEveryWorkerBeforeTheCoordinatorReportsCompletion() throws Exception {
     final ObservedQueue queue = new ObservedQueue(2);
@@ -60,6 +87,7 @@ class AssignmentCancellationTest {
     } finally {
       stopAndJoin(first, second, waiting);
     }
+    assertEquals("", errorOutput.toString(StandardCharsets.UTF_8));
   }
 
   @Test
@@ -90,6 +118,7 @@ class AssignmentCancellationTest {
     } finally {
       stopAndJoin(first, second, waiting);
     }
+    assertEquals("", errorOutput.toString(StandardCharsets.UTF_8));
   }
 
   @Test
@@ -106,6 +135,7 @@ class AssignmentCancellationTest {
     } finally {
       stopAndJoin(worker);
     }
+    assertEquals("", errorOutput.toString(StandardCharsets.UTF_8));
   }
 
   @Test
@@ -121,6 +151,9 @@ class AssignmentCancellationTest {
     } finally {
       stopAndJoin(worker);
     }
+    String diagnostic = errorOutput.toString(StandardCharsets.UTF_8);
+    assertTrue(diagnostic.startsWith(ClassCastException.class.getName() + ":"), diagnostic);
+    assertTrue(diagnostic.contains(AssignmentWorkerParameters.class.getName()), diagnostic);
   }
 
   private static void stopAndJoin(Thread... threads) throws InterruptedException {

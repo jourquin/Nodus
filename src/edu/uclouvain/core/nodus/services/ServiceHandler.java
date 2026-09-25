@@ -233,7 +233,17 @@ public class ServiceHandler {
    * @param nodusProject A Nodus project.
    */
   public ServiceHandler(NodusProject nodusProject) {
+    this(nodusProject, true);
+  }
 
+  /**
+   * Loads services with an optional desktop editor.
+   * When the editor is disabled, only the service data methods should be used.
+   *
+   * @param nodusProject A Nodus project.
+   * @param withGUI Whether to create the service editor for interactive use.
+   */
+  public ServiceHandler(NodusProject nodusProject, boolean withGUI) {
     this.nodusProject = nodusProject;
     // nodusMapPanel = nodusProject.getNodusMapPanel();
 
@@ -253,7 +263,9 @@ public class ServiceHandler {
     loadService();
 
     // Prepare the GUI
-    serviceEditorDlg = new ServicesDlg(this);
+    if (withGUI) {
+      serviceEditorDlg = new ServicesDlg(this);
+    }
   }
 
   /**

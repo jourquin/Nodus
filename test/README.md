@@ -14,9 +14,11 @@ The default target is `Test`; `ant -f build-tests.xml Test` is equivalent. It bu
 the application using the normal build, recompiles the tests, then runs JUnit
 Jupiter in a separate JVM with `java.awt.headless=true`.
 
-The suite includes unit tests and database integration tests. No project data,
-external database, network access, or graphical desktop is needed. Database tests
+The suite includes unit tests, database tests and complete assignment integration tests.
+No project data, external database, network access, or graphical desktop is needed. Database tests
 create a fresh H2 database in memory for each test and close it afterwards.
+File import/export tests use JUnit temporary directories, which are removed after
+the tests. They never read or overwrite files in an existing Nodus project.
 Dependencies are included in the repository: JUnit 5 and OpenTest4J under
 `lib/groovy/`, API Guardian under `devtools/junit/`, and H2 under `lib/`.
 
@@ -110,6 +112,29 @@ for the workflow mechanism.
 
 ## Coverage
 
+- `AllOrNothingAssignmentIntegrationTest`: complete all-or-nothing assignments on a four-node
+  network with independently known results, including real demand loading, virtual-network
+  generation, cost evaluation, worker jobs, vehicle conversion and saved H2 outputs. Checks
+  paths, directional flows by commodity group, conservation and total costs; compares one
+  worker with four; closes links to exercise rerouting and unreachable demand; and repeats
+  an assignment to detect accumulated flows or duplicate outputs. Only project inputs and
+  presentation callbacks are supplied by the fixture. See the reference case below.
+- `SQLConsoleExportTest`: real CSV/CSVH, DBF, XLS and XLSX exports; cancelling or
+  accepting direct overwrites; new outputs; loaded scripts, pasted batches, variable
+  definitions and `runBatch()`; restoring confirmation after a script; and execution
+  without a desktop window. Only the dialog response is substituted. Exported files
+  are read back to check their contents and the project connection remains open.
+- `CsvImportExportIntegrationTest`: quoted headers and fields, commas, quotes, Unicode,
+  embedded line breaks, empty fields, exact decimal values, header/no-header round trips,
+  empty files, batching, missing files, and malformed records. Failed imports must restore
+  existing rows, preserve earlier uncommitted work, and restore the connection's transaction
+  mode. Extra fields must be rejected rather than silently discarded. Expected errors are
+  captured through the importer's error reporter instead of opening dialogs.
+- `TabularFileIntegrationTest`: DBF rows, dates and decimal scale; XLS/XLSX text and numeric
+  cells, Unicode and line breaks, schema recreation on import, and blank numeric cells for
+  SQL NULLs. Checks exported files independently before importing them back. CSV NULLs
+  export as empty fields; these tests do not imply lossless NULL round trips or arbitrary
+  decimal precision in Excel's numeric cells.
 - `ShortestPathTest`: Dijkstra and A*, each with linked and compact storage. Covers known
   routes, equal-cost choices, parallel edges, zero-cost cycles, disconnected nodes, changing
   sources/goals, updated costs, non-finite costs, and admissible geometric heuristics.
@@ -128,6 +153,8 @@ for the workflow mechanism.
 - `AssignmentCancellationTest`: end-of-work markers, joining all workers, coordinator
   interruption, cancellation while waiting for a first job, and malformed queued work.
   Uses real assignment-worker threads with latches and bounded waits, without loading a project.
+  Verifies that normal cancellation is quiet and captures/asserts the expected error from
+  deliberately malformed work, so a passing run does not print misleading stack traces.
 - `PathWeightsTest`: all seven cost and duration components contribute to totals.
 - `VirtualLinkFlowTest`: exact and fast multi-flow demand distribution, rejected paths,
   demand consumed only once, independent commodity groups and dynamic time slices,
@@ -156,12 +183,50 @@ for the workflow mechanism.
   iterators, visibility of stop edits, protected collection views, and clearing cached lookups
   before another project is loaded.
 
-The suite does not yet cover complete assignments loaded from reference projects, other
-database engines, full assignment-worker scheduling with real jobs, or GUI workflows.
-Concurrency coverage includes path output and the lifecycle of workers waiting for jobs.
-Modal-split calibration and invalid vehicle
-properties that display dialogs are outside this headless suite. Complete equilibrium
-convergence and line-search behavior still need reference-project integration tests.
+The suite does not yet cover loading complete projects from disk, other database engines,
+or GUI workflows. The assignment fixture supplies in-memory Esri layers and DBF table models;
+it does not test shapefile import or project-property file loading. Concurrency coverage
+includes complete assignments with two commodity jobs, path output, and worker cancellation.
+Modal-split calibration and invalid vehicle properties that display dialogs remain outside
+this headless suite. Complete equilibrium convergence and line-search behavior still need
+reference-project integration tests.
+
+## Four-node assignment reference case
+
+`AllOrNothingAssignmentIntegrationTest` builds four nodes, A=1, B=2, C=3 and D=4,
+with the following links. Nodus generates both travel directions for each link.
+
+| Link ID | Endpoints | Cost per unit, either direction |
+| --- | --- | ---: |
+| 11 | A–B | 2 |
+| 12 | B–D | 3 |
+| 13 | A–C | 4 |
+| 14 | C–D | 4 |
+
+There is one mode and means (1,1), zero loading/unloading/transit costs, and a vehicle
+load of 10 units. Demand is 100 units from A to D in commodity group 1 and 40 from B
+to D in group 2. Separate groups provide two real jobs for the concurrent-worker test.
+
+| Case | Expected routes | Assigned quantity | Quantity × path cost |
+| --- | --- | ---: | ---: |
+| Baseline | A–B–D: 100 at cost 5; B–D: 40 at cost 3 | 140 | 620 |
+| B–D closed | A–C–D: 100 at cost 8; B–A–C–D: 40 at cost 10 | 140 | 1,200 |
+| A–B and B–D closed | A–C–D: 100 at cost 8; B's 40 units unassigned | 100 | 800 |
+
+In the baseline, A–B carries 100 units (10 vehicles) and B–D carries 140 (14 vehicles);
+A–C, C–D and reverse directions carry none. The tests verify these values in
+`mini_vnet1` and cross-check the saved `mini_paths1_header` and `mini_paths1_detail`
+tables. The concurrent case uses four workers and a bounded latch to ensure the two
+commodity jobs overlap. Comparisons ignore generated path IDs, whose order can vary
+with scheduling. Repeating the same scenario must replace the outputs with identical
+results. Every test owns and closes a private in-memory database.
+
+These five tests run automatically with the full Ant suite and the existing GitHub
+workflow. To run just this reference case:
+
+```sh
+ant -f build-tests.xml '-Dtest.includes=**/AllOrNothingAssignmentIntegrationTest.class' Test
+```
 
 ## Adding a test
 
@@ -177,6 +242,6 @@ reproduces it, then verify the fix with `ant -f build-tests.xml`.
 
 Tests that temporarily set the global `JDBCUtils` connection must use
 `@ResourceLock("JDBCUtils")`, restore it to `null`, and close their private database
-in `@AfterEach`. Concurrency tests must join their workers and shut down executors,
-using bounded waits rather than sleeps. Integration tests use `@Tag("integration")`
+in `@AfterEach` or a try-with-resources fixture. Concurrency tests must join their workers
+and shut down executors, using bounded waits rather than sleeps. Integration tests use `@Tag("integration")`
 for selection in JUnit-aware tools; they remain part of the default Ant suite.

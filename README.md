@@ -62,7 +62,8 @@ external connections. Upgrade to Groovy 4.
 - 8.4 - June 2026: The Frank-Wolfe based algorithms are reintroduced. Major code refactoring with a focus on code robustness.
 - 8.5 - September 2026: Lines & services are reintroduced with a completely redesigned workflow based on Virtual Network Version 4.
 - 8.6 - (XXX) is a performance-focused release, highlighting faster assignments (at least four times faster on a set of selected projects), 
-more responsive map navigation and faster database operations. 
+more responsive map navigation and faster database operations. From the developers' perspective, a series of unit tests have been added
+with an automatic continuous integration workflow.  
 
 
 See the [change log](changelog.md) for a detailed build history.

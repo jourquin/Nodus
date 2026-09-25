@@ -372,10 +372,18 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     // Get the max rows for SQL query results
     maxRows =
-        Integer.parseInt(
-            nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_MAX_SQL_ROWS, "1000"));
+        nodusMapPanel == null
+            ? 1000
+            : Integer.parseInt(
+                nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_MAX_SQL_ROWS, "1000"));
 
-    initialize();
+    if (withGUI) {
+      initialize();
+    } else {
+      // Batch execution needs an editor and a result model, but no desktop window.
+      sqlCommandsArea = new RSyntaxTextArea();
+      gridResultArea = new GridSwing();
+    }
 
     jdbcConnection = nodusProject.getMainJDBCConnection();
     try {
@@ -453,6 +461,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @param weights String
    */
   private void addToRecent(String s) {
+    if (!withGUI) {
+      return;
+    }
     for (int i = 0; i < maxHistory; i++) {
       if (s.equals(recentQueries[i])) {
         return;
@@ -605,7 +616,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @param batch True when called explicitly through runBatch
    * @return True on success
    */
-  private boolean execute(boolean batch) {
+  boolean execute(boolean batch) {
     setBusy(true);
 
     if (!openStatement()) {
@@ -2065,20 +2076,20 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     if (option == JFileChooser.APPROVE_OPTION) {
       File file = f.getSelectedFile();
       if (file != null) {
-        scriptFileName = file.getAbsolutePath();
-
-        // Update title with or without full path
-        String name = file.getName();
-        if (nodusMapPanel.getDisplayFullPath()) {
-          name = scriptFileName;
-        }
-        frame.setTitle(
-            i18n.get(SQLConsole.class, "SQL_Console", "SQL Console") + " [" + name + "]");
-
-        sqlCommandsArea.setText(readFile(scriptFileName));
-        sqlCommandsArea.setCaretPosition(0);
+        loadScript(file);
       }
     }
+  }
+
+  /** Loads a script and remembers its origin even if it contains only one command. */
+  void loadScript(File file) {
+    scriptFileName = file.getAbsolutePath();
+    if (withGUI) {
+      String name = nodusMapPanel.getDisplayFullPath() ? scriptFileName : file.getName();
+      frame.setTitle(i18n.get(SQLConsole.class, "SQL_Console", "SQL Console") + " [" + name + "]");
+    }
+    sqlCommandsArea.setText(readFile(scriptFileName));
+    sqlCommandsArea.setCaretPosition(0);
   }
 
   /**
@@ -2164,6 +2175,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   private void menuResultInText_actionPerformed(ActionEvent e) {
 
     typeOfResultFormat = 1;
+    if (!withGUI) {
+      return;
+    }
 
     resultPanel.removeAll();
     resultPanel.add(txtResultScroll, BorderLayout.CENTER);
@@ -2407,7 +2421,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   /** Resets the command area, tell it it doesn't contain a script anymore. */
   public void resetScript() {
     scriptFileName = null;
-    frame.setTitle(i18n.get(SQLConsole.class, "SQL_Console", "SQL Console"));
+    if (withGUI) {
+      frame.setTitle(i18n.get(SQLConsole.class, "SQL_Console", "SQL Console"));
+    }
   }
 
   /**
@@ -2440,6 +2456,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
   /** Saves history (recent SQL statements) in property file. */
   private void saveHistory() {
+    if (!withGUI) {
+      return;
+    }
     if (nodusProject.isOpen()) {
       for (int i = 0; i < maxHistory; i++) {
         if (recentQueries[i] != null) {
@@ -2763,8 +2782,10 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     runOnEdtAndWait(
         () -> {
           gridResultArea.setHead(header);
-          sorter.setTableHeader(resultTable.getTableHeader());
-          jbuttonExecute.setForeground(maxRowsReached ? Color.RED : colorButton);
+          if (withGUI) {
+            sorter.setTableHeader(resultTable.getTableHeader());
+            jbuttonExecute.setForeground(maxRowsReached ? Color.RED : colorButton);
+          }
           for (String[] row : rows) {
             gridResultArea.addRow(row);
           }

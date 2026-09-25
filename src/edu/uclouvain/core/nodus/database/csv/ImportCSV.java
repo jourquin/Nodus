@@ -35,6 +35,7 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.Iterator;
+import java.util.function.Consumer;
 import javax.swing.JOptionPane;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -94,6 +95,16 @@ public class ImportCSV {
       int batchSize,
       int maxBatchSize)
       throws SQLException {
+
+    if (record.size() != nbFields) {
+      throw new SQLException(
+          "CSV record "
+              + record.getRecordNumber()
+              + " has "
+              + record.size()
+              + " fields; expected "
+              + nbFields);
+    }
 
     for (int i = 0; i < nbFields; i++) {
       prepStmt.setString(i + 1, record.get(i));
@@ -158,6 +169,18 @@ public class ImportCSV {
    * @return boolean True on success.
    */
   public static boolean importTable(NodusProject project, String tableName, boolean withHeader) {
+    return importTable(
+        project,
+        tableName,
+        withHeader,
+        message ->
+            JOptionPane.showMessageDialog(
+                null, message, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE));
+  }
+
+  /** Runs the import with an error reporter that can also be used without a desktop. */
+  static boolean importTable(
+      NodusProject project, String tableName, boolean withHeader, Consumer<String> reportError) {
 
     // long start = System.currentTimeMillis();
 
@@ -166,14 +189,11 @@ public class ImportCSV {
 
     // Table must exist in order to know which structure it has
     if (!JDBCUtils.tableExists(tableName)) {
-      JOptionPane.showMessageDialog(
-          null,
+      reportError.accept(
           i18n.get(
               ImportCSV.class,
               "Table_structure_must_exist_before_importing_CSV_data",
-              "Table structure must exist before importing CSV data"),
-          NodusC.APPNAME,
-          JOptionPane.ERROR_MESSAGE);
+              "Table structure must exist before importing CSV data"));
       return false;
     }
 
@@ -262,7 +282,7 @@ public class ImportCSV {
 
     } catch (Exception e) {
       rollbackToSavepoint(con, savepoint);
-      JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+      reportError.accept(e.toString());
       return false;
     } finally {
       restoreAutoCommit(con, restoreAutoCommit);

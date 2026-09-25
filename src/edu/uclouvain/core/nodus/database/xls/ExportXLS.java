@@ -29,6 +29,7 @@ import java.io.FileOutputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.Vector;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
@@ -76,11 +77,21 @@ public class ExportXLS {
         while (col.next()) {
 
           String s = col.getString(4) + ",";
-          String type = col.getString(6).toUpperCase();
-          if (type.equals("VARCHAR") || type.equals("CHAR")) {
+          // JDBC type codes also cover vendor names such as H2's CHARACTER VARYING.
+          int type = col.getInt("DATA_TYPE");
+          if (type == Types.CHAR
+              || type == Types.VARCHAR
+              || type == Types.LONGVARCHAR
+              || type == Types.NCHAR
+              || type == Types.NVARCHAR
+              || type == Types.LONGNVARCHAR) {
             s += "C," + col.getString(7);
             numerical.add(Boolean.FALSE);
-          } else if (type.equals("DATE") || type.contains("TIME")) {
+          } else if (type == Types.DATE
+              || type == Types.TIME
+              || type == Types.TIMESTAMP
+              || type == Types.TIME_WITH_TIMEZONE
+              || type == Types.TIMESTAMP_WITH_TIMEZONE) {
             s += "C," + col.getString(7);
             numerical.add(Boolean.FALSE);
           } else {

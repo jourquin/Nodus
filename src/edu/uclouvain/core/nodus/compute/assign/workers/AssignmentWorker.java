@@ -235,9 +235,9 @@ public abstract class AssignmentWorker extends Thread {
         }
       }
     } catch (InterruptedException e) {
+      // Interruption is the normal signal used to stop a waiting worker.
       Thread.currentThread().interrupt();
       cancelAssignmentWorkers();
-      e.printStackTrace();
     } catch (RuntimeException e) {
       if (assignment != null) {
         setErrorMessage(e.toString());
