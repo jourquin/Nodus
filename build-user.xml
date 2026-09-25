@@ -1,6 +1,6 @@
 <?eclipse.ant.import?>
 <!DOCTYPE project>
-<project basedir=".">
+<project basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
 	<!--import file="build.xml"/-->
 
 	<!-- Forward to the standalone test build so Eclipse can validate this file on its own. -->
@@ -106,26 +106,22 @@
 				<isset property="services.workflow.html.exists" />
 			</not>
 		</condition>
+		<condition property="services.workflow.html.generated">
+			<and>
+				<equals arg1="${services.workflow.html.result}" arg2="0" />
+				<isset property="services.workflow.html.exists" />
+			</and>
+		</condition>
 	</target>
 
-	<target name="WarnMissingPandoc" depends="CheckPandoc" unless="pandoc.available">
-		<echo level="warning" message="Pandoc not found. Skipping generation of doc/services/services-workflow.html. If Pandoc is installed outside Ant's PATH, run Ant with -Dpandoc.executable=/path/to/pandoc." />
+	<!-- Conditional tasks avoid displaying warning target names when no warning applies. -->
+	<target name="GenerateServicesWorkflowHtml" depends="RunServicesWorkflowHtml" description="Generates doc/services/services-workflow.html from Markdown when Pandoc is available.">
+		<echo unless:set="pandoc.available" level="warning" message="Pandoc not found. Skipping generation of doc/services/services-workflow.html. If Pandoc is installed outside Ant's PATH, run Ant with -Dpandoc.executable=/path/to/pandoc." />
+		<echo if:set="services.workflow.html.failed" level="warning" message="Pandoc failed while generating ${services.workflow.html}. Continuing without regenerating the help page." />
+		<echo if:set="services.workflow.html.missing" level="warning" message="Pandoc finished, but ${services.workflow.html} was not found." />
+		<echo if:set="services.workflow.html.generated" message="Generated ${services.workflow.html}" />
 	</target>
 
-	<target name="WarnServicesWorkflowHtmlFailed" if="services.workflow.html.failed">
-		<echo level="warning" message="Pandoc failed while generating ${services.workflow.html}. Continuing with the existing file." />
-	</target>
-
-	<target name="WarnServicesWorkflowHtmlMissing" if="services.workflow.html.missing">
-		<echo level="warning" message="Pandoc finished, but ${services.workflow.html} was not found." />
-	</target>
-
-	<target name="ConfirmServicesWorkflowHtml" if="services.workflow.html.exists">
-		<echo message="Generated ${services.workflow.html}" />
-	</target>
-
-	<target name="GenerateServicesWorkflowHtml" depends="RunServicesWorkflowHtml,WarnMissingPandoc,WarnServicesWorkflowHtmlFailed,WarnServicesWorkflowHtmlMissing,ConfirmServicesWorkflowHtml" description="Generates doc/services/services-workflow.html from Markdown when Pandoc is available." />
-	
 	<target name="ServicesWorkflowHtml" depends="GenerateServicesWorkflowHtml" description="Generates doc/services/services-workflow.html from Markdown when Pandoc is available." />
 	
 
