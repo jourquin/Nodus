@@ -139,6 +139,9 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  * <br>
  * - STOP : Convenient command that stops a script. Useful for debugging. <br>
  *
+ * <p>Export commands and EXTRACTSHP ask before overwriting files when run as a direct command.
+ * Loaded scripts, multi-command batches, and runBatch calls overwrite without prompting.
+ *
  * @author Bart Jourquin
  */
 public class SQLConsole implements ActionListener, WindowListener, KeyListener {
@@ -599,9 +602,10 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * Main routine that executes a single SQL statement or batch file. It is also the place where the
    * Nodus specific commands are intercepted and handled.
    *
+   * @param batch True when called explicitly through runBatch
    * @return True on success
    */
-  private boolean execute() {
+  private boolean execute(boolean batch) {
     setBusy(true);
 
     if (!openStatement()) {
@@ -611,7 +615,10 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     // Decompose all the statements
     String sqlCommandsText = getSqlCommandsText();
-    Vector<String> sqlCommands = parseSQLCommands(sqlCommandsText);
+    ParsedSQLCommands parsed = parseSQLCommands(sqlCommandsText);
+    final boolean confirmOverwrite =
+        !batch && scriptFileName == null && !parsed.multipleCommands;
+    Vector<String> sqlCommands = parsed.commands;
 
     // Limit the output length of a single line query
     try {
@@ -720,7 +727,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       if (startsWithCommand(sync, EXPORTDBF)) {
-        boolean b = importExport(sqlCommand, EXPORTDBF);
+        boolean b = importExport(sqlCommand, EXPORTDBF, confirmOverwrite);
 
         if (b) {
           continue;
@@ -731,7 +738,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       if (startsWithCommand(sync, IMPORTDBF)) {
-        boolean b = importExport(sqlCommand, IMPORTDBF);
+        boolean b = importExport(sqlCommand, IMPORTDBF, confirmOverwrite);
 
         if (b) {
           treeMustBeRefreshed = true;
@@ -743,7 +750,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       if (startsWithCommand(sync, IMPORTCSVH)) {
-        boolean b = importExport(sqlCommand, IMPORTCSVH);
+        boolean b = importExport(sqlCommand, IMPORTCSVH, confirmOverwrite);
 
         if (b) {
           treeMustBeRefreshed = true;
@@ -755,7 +762,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       if (startsWithCommand(sync, IMPORTCSV)) {
-        boolean b = importExport(sqlCommand, IMPORTCSV);
+        boolean b = importExport(sqlCommand, IMPORTCSV, confirmOverwrite);
 
         if (b) {
           treeMustBeRefreshed = true;
@@ -767,7 +774,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       if (startsWithCommand(sync, EXPORTCSVH)) {
-        boolean b = importExport(sqlCommand, EXPORTCSVH);
+        boolean b = importExport(sqlCommand, EXPORTCSVH, confirmOverwrite);
 
         if (b) {
           continue;
@@ -778,7 +785,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       if (startsWithCommand(sync, EXPORTCSV)) {
-        boolean b = importExport(sqlCommand, EXPORTCSV);
+        boolean b = importExport(sqlCommand, EXPORTCSV, confirmOverwrite);
 
         if (b) {
           continue;
@@ -789,7 +796,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       if (startsWithCommand(sync, IMPORTXLSX)) {
-        boolean b = importExport(sqlCommand, IMPORTXLSX);
+        boolean b = importExport(sqlCommand, IMPORTXLSX, confirmOverwrite);
 
         if (b) {
           treeMustBeRefreshed = true;
@@ -801,7 +808,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       if (startsWithCommand(sync, EXPORTXLSX)) {
-        boolean b = importExport(sqlCommand, EXPORTXLSX);
+        boolean b = importExport(sqlCommand, EXPORTXLSX, confirmOverwrite);
 
         if (b) {
           continue;
@@ -812,7 +819,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       if (startsWithCommand(sync, IMPORTXLS)) {
-        boolean b = importExport(sqlCommand, IMPORTXLS);
+        boolean b = importExport(sqlCommand, IMPORTXLS, confirmOverwrite);
 
         if (b) {
           treeMustBeRefreshed = true;
@@ -824,7 +831,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       if (startsWithCommand(sync, EXPORTXLS)) {
-        boolean b = importExport(sqlCommand, EXPORTXLS);
+        boolean b = importExport(sqlCommand, EXPORTXLS, confirmOverwrite);
 
         if (b) {
           continue;
@@ -835,7 +842,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       if (startsWithCommand(sync, EXTRACTSHP)) {
-        boolean b = extractShp(sqlCommand);
+        boolean b = extractShp(sqlCommand, confirmOverwrite);
 
         if (b) {
           continue;
@@ -937,7 +944,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         new SwingWorker<Boolean, Void>() {
           @Override
           protected Boolean doInBackground() {
-            return SQLConsole.this.execute();
+            return SQLConsole.this.execute(false);
           }
 
           @Override
@@ -972,9 +979,10 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * "extractshp from shapefile1 to shapefile2 where 'some sql condition'".
    *
    * @param stmt The command string to process
+   * @param confirmOverwrite Whether to ask before replacing existing output files
    * @return true on success.
    */
-  private boolean extractShp(String stmt) {
+  private boolean extractShp(String stmt, boolean confirmOverwrite) {
     String stmtLower = stmt.toLowerCase();
 
     // Get source shapefile name
@@ -1068,7 +1076,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     for (NodusEsriLayer element : layers) {
       if (element.getTableName().equals(fromShapefile)) {
-        if (!confirmExportOverwrite(EXTRACTSHP, toShapefile, getExtractionFiles(toShapefile))) {
+        if (confirmOverwrite
+            && !confirmExportOverwrite(EXTRACTSHP, toShapefile, getExtractionFiles(toShapefile))) {
           return false;
         }
         boolean ok = element.extract(toShapefile, whereStmt);
@@ -1098,7 +1107,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     for (NodusEsriLayer element : layers) {
       if (element.getTableName().equals(fromShapefile)) {
-        if (!confirmExportOverwrite(EXTRACTSHP, toShapefile, getExtractionFiles(toShapefile))) {
+        if (confirmOverwrite
+            && !confirmExportOverwrite(EXTRACTSHP, toShapefile, getExtractionFiles(toShapefile))) {
           return false;
         }
         boolean ok = element.extract(toShapefile, whereStmt);
@@ -1210,12 +1220,23 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     return sqlCommandsArea;
   }
 
+  /** Keeps batch information even when variable definitions leave only one executable command. */
+  private static final class ParsedSQLCommands {
+    private final Vector<String> commands;
+    private final boolean multipleCommands;
+
+    private ParsedSQLCommands(Vector<String> commands, boolean multipleCommands) {
+      this.commands = commands;
+      this.multipleCommands = multipleCommands;
+    }
+  }
+
   /**
    * Decompose the batch file into commands. A regular batch command must end with a ";" but can be
    * written on multiple lines. A comment starts with a "--" or "#". A command block is delimited as
    * in C or Java. Variable definitions start with @@
    */
-  private Vector<String> parseSQLCommands(String sqlCommand) {
+  private ParsedSQLCommands parseSQLCommands(String sqlCommand) {
 
     // Comparator used to sort strings in reverse order
     class LengthComparator implements Comparator<String> {
@@ -1271,7 +1292,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     // Single command
     if (!isBatchFile) {
       parsedCommands.add(currentCommand);
-      return parsedCommands;
+      return new ParsedSQLCommands(parsedCommands, false);
     }
 
     // The names of the variables are stored and sorted by length from longest to shortest.
@@ -1340,7 +1361,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       menuResultInText_actionPerformed(null);
     }
 
-    return parsedCommands;
+    return new ParsedSQLCommands(parsedCommands, commandsToParse.size() > 1);
   }
 
   /**
@@ -1349,9 +1370,10 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @param sqlStmt String The command to process
    * @param operation String The operation to process (IMPORTDBF, EXPORTDBF, IMPORTCSV,
    *     EXPORTCSV,...)
+   * @param confirmOverwrite Whether to ask before replacing an existing output file
    * @return true on success.
    */
-  private boolean importExport(String sqlStmt, String operation) {
+  private boolean importExport(String sqlStmt, String operation, boolean confirmOverwrite) {
     String s = sqlStmt.toUpperCase();
     int index = s.indexOf(operation);
 
@@ -1371,7 +1393,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
 
     File exportFile = getExportFile(operation, tableName);
-    if (exportFile != null && !confirmExportOverwrite(operation, tableName, exportFile)) {
+    if (confirmOverwrite
+        && exportFile != null
+        && !confirmExportOverwrite(operation, tableName, exportFile)) {
       return false;
     }
 
@@ -2387,7 +2411,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   }
 
   /**
-   * Runs an SQL batch.
+   * Runs an SQL batch. Existing export files are overwritten without prompting.
    *
    * @param sqlCommands A vector containing a batch of SQL commands.
    * @return True on success
@@ -2408,7 +2432,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         b.append(NL);
       }
       sqlCommandsArea.setText(b.toString());
-      return execute();
+      return execute(true);
     } finally {
       closeStatement();
     }
