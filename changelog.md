@@ -474,7 +474,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
   iteration and convergence controls in the assignment dialog.
 - Add tooltips on (almost) all GUI elements
 
-## v8.6 - BuildXXXXXXXX
+## v8.6 - Build20261001
 - Code cleaning and refactoring
 - Fix a warning in GUIUtils
 - Close a loaded project only when a new one is selected
