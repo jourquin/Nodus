@@ -122,12 +122,26 @@ for the workflow mechanism.
   consistency of SQL rows, geometry, attributes and identifier indexes; replacing and clearing
   SQL filters; and saving/reloading `.shp`, `.shx` and `.dbf` files after edits. Includes quoted
   text and decimal values, and a regression for the spurious identifier zero created by adding
-  a blank record before assigning its actual identifier.
+  a blank record before assigning its actual identifier. Also checks real identifier zero,
+  insertion of complete link records, and discarding edits before reimporting the saved layer.
+- `NodusEsriLayerPersistenceTest`: extracts point/link subsets and independently reloads their
+  geometry and DBF records; saves and reloads empty layers after deleting every feature,
+  preserving their shape type and DBF schema. All files are confined to temporary directories.
 - `NodusEsriLayerStyleTest`: result widths, colors and point radii, preservation of shared
   styles, zero-to-nonzero visibility, restoring normal styles, SQL exclusions while displaying
   results, and simplified styling at the zoom threshold or when styles are disabled.
+  Includes simultaneous positive/negative link results and restoring matting when zooming back.
 - `NodusDrawingAttributesTest`: scoped style properties, positive/negative/default colors,
   fallback colors, and replacing old settings when properties are reloaded.
+- `NodusMetaDbfTableModelTest`: mandatory node/link fields, immutable existing field names/types,
+  duplicate names including case variants, supported field names/type codes, rejection of
+  unsupported types, fixed date width/precision, unique new fields, and editing restrictions
+  while a field has pending changes. Tests capture validation messages without creating a window.
+- `NodusLocationHandlerIntegrationTest`: real SQL label selection and point/link coordinates;
+  updates after DBF refreshes and row deletion; case-sensitive SQL literals; result values,
+  zero-sized results and hidden layers; empty/missing fields; font persistence including
+  bold italic; and disposal of attached locations. Uses the shared layer fixture, with actual
+  label-generation and refresh code and only the final repaint callback replaced.
 - `SetJVMArgsTest`: migration of legacy JVM argument files, preservation of heap and custom
   settings, backups, repeated runs, and leaving current or customized scripts intact. Shell
   execution checks the generated options using simulated Java 11, 16, 17, 25 and 27 version
@@ -227,7 +241,8 @@ or GUI workflows. The assignment fixture supplies in-memory Esri layers and DBF 
 The separate OpenMap layer fixture reads and writes actual temporary point/link shapefiles,
 uses real SQL operations, and replaces only presentation refresh callbacks. Style tests inspect
 graphic attributes; they do not verify pixels, mouse interaction or asynchronous repaint timing.
-DBF schema-editor dialogs and label generation are not covered yet. Concurrency coverage
+Schema-editor window interaction and save/cancel confirmation dialogs remain outside this
+coverage. Concurrency coverage
 includes complete assignments with two commodity jobs, path output, and worker cancellation.
 Modal-split calibration and invalid vehicle properties that display dialogs remain outside
 this headless suite. Equilibrium coverage uses small parallel-route reference cases;

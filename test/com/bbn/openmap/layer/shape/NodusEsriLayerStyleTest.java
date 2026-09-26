@@ -155,6 +155,43 @@ class NodusEsriLayerStyleTest {
     }
   }
 
+  @Test
+  void simultaneousLinkResultsKeepIndependentWidthsAndColors() throws Exception {
+    try (LayerTestProject project = new LayerTestProject(directory, true)) {
+      EsriPolyline positive = (EsriPolyline) project.graphic(30);
+      EsriPolyline negative = (EsriPolyline) project.graphic(10);
+      project.layer.setDisplayResults(true);
+      result(positive, 3);
+      result(negative, -8);
+      project.layer.attachStyles();
+      assertEquals(3, ((BasicStroke) positive.getStroke()).getLineWidth());
+      assertEquals(Color.BLUE, positive.getLinePaint());
+      assertEquals(8, ((BasicStroke) negative.getStroke()).getLineWidth());
+      assertEquals(Color.RED, negative.getLinePaint());
+      assertEquals(2, ((BasicStroke) project.style.getStroke()).getLineWidth());
+    }
+  }
+
+  @Test
+  void simplifiedLinkStyleRestoresResultWidthAndMattingWhenZoomingBack() throws Exception {
+    try (LayerTestProject project = new LayerTestProject(directory, true)) {
+      EsriPolyline line = (EsriPolyline) project.graphic(30);
+      project.layer.setDisplayResults(true);
+      result(line, -6);
+      project.panel.threshold = 1000;
+      project.panel.map.setScale(2000);
+      project.layer.attachStyles();
+      assertEquals(1, ((BasicStroke) line.getStroke()).getLineWidth());
+      assertEquals(Color.GRAY, line.getLinePaint());
+      assertFalse(line.isMatted());
+      project.panel.map.setScale(1000);
+      project.layer.attachStyles();
+      assertEquals(6, ((BasicStroke) line.getStroke()).getLineWidth());
+      assertEquals(Color.RED, line.getLinePaint());
+      assertTrue(line.isMatted());
+    }
+  }
+
   private static void result(com.bbn.openmap.omGraphics.OMGraphic graphic, float size) {
     ((RealNetworkObject) graphic.getAttribute(0)).setSize(size);
   }

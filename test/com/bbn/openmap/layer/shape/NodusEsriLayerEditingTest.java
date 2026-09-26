@@ -175,4 +175,77 @@ class NodusEsriLayerEditingTest {
     }
     return tests;
   }
+
+  @TestFactory
+  List<DynamicTest> identifierZeroSurvivesSubsequentInsertions() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (boolean links : new boolean[] {false, true}) {
+      tests.add(
+          dynamicTest(
+              links ? "zero link ID" : "zero node ID",
+              () -> {
+                try (LayerTestProject project = new LayerTestProject(directory, links)) {
+                  for (int num : new int[] {0, 50}) {
+                    assertTrue(
+                        links
+                            ? project.layer.addRecord(LayerTestProject.line(num), num, 1, 2, false)
+                            : project.layer.addRecord(new EsriPoint(0, num * 0.01), num));
+                  }
+                  assertEquals(3, project.layer.getNumIndex(0));
+                  assertEquals(4, project.layer.getNumIndex(50));
+                  project.layer.removeRecord(1, false);
+                  assertEquals(2, project.layer.getNumIndex(0));
+                  assertEquals(3, project.layer.getNumIndex(50));
+                  assertEquals(0, ((Number) project.layer.getModel().getValueAt(2, 0)).intValue());
+                }
+              }));
+    }
+    return tests;
+  }
+
+  @Test
+  void insertingACompleteLinkRecordPreservesQuotesAndDecimalAttributes() throws Exception {
+    try (LayerTestProject project = new LayerTestProject(directory, true)) {
+      List<Object> row = new ArrayList<>(project.layer.getModel().getRecord(0));
+      row.set(0, 40.0);
+      row.set(9, "O'Brien's link");
+      row.set(10, -12.375);
+      project.layer.addRecord(LayerTestProject.line(40), row);
+      assertEquals(3, project.layer.getNumIndex(40));
+      assertEquals(
+          List.of(List.of("O'Brien's link", "-12.375")),
+          project.rows("SELECT LABEL,AMOUNT FROM features WHERE NUM=40"));
+      assertEquals("original 30", project.layer.getModel().getValueAt(0, 9));
+      assertTrue(project.layer.isDirty());
+    }
+  }
+
+  @TestFactory
+  List<DynamicTest> discardedEditsReloadFromUnchangedShapefiles() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (boolean links : new boolean[] {false, true}) {
+      tests.add(
+          dynamicTest(
+              links ? "discard link edits" : "discard point edits",
+              () -> {
+                try (LayerTestProject project = new LayerTestProject(directory, links)) {
+                  project.layer.removeRecord(1, false);
+                  project.layer.rollback();
+                  assertFalse(edu.uclouvain.core.nodus.database.JDBCUtils.tableExists("features"));
+                  LayerTestProject.TestLayer reloaded = new LayerTestProject.TestLayer();
+                  try {
+                    reloaded.setProject(project, "features");
+                    assertEquals(Map.of(30, 0, 10, 1, 20, 2), reloaded.getIndex());
+                    assertEquals(3, reloaded.getModel().getRowCount());
+                    assertEquals(
+                        List.of(List.of("10"), List.of("20"), List.of("30")),
+                        project.rows("SELECT NUM FROM features ORDER BY NUM"));
+                  } finally {
+                    reloaded.dispose();
+                  }
+                }
+              }));
+    }
+    return tests;
+  }
 }

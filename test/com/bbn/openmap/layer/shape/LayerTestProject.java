@@ -249,6 +249,7 @@ final class LayerTestProject extends NodusProject implements AutoCloseable {
   static final class TestLayer extends NodusEsriLayer {
     private static final long serialVersionUID = 1L;
     int preparations;
+    boolean realLabels;
 
     @Override
     public void doPrepare() {
@@ -256,7 +257,11 @@ final class LayerTestProject extends NodusProject implements AutoCloseable {
     }
 
     @Override
-    public void reloadLabels() {}
+    public void reloadLabels() {
+      if (realLabels) {
+        super.reloadLabels();
+      }
+    }
   }
 
   static final class Panel extends NodusMapPanel {

@@ -95,7 +95,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
     }
 
     if (f.isBold() && f.isItalic()) {
-      style = "-BOLDITALIC";
+      style = "-BOLDITALIC-";
     }
 
     return f.getFamily() + style + f.getSize();
@@ -449,7 +449,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
     int locationFieldIndex = getLocationFieldIndex();
 
     // If there is nothing to display
-    if (!displayResults && (!isVisible || locationFieldIndex == -1)) {
+    if (!isVisible || (!displayResults && locationFieldIndex == -1)) {
       graphicList.clear();
       getLayer().doPrepare();
       return;
@@ -465,7 +465,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
     }
 
     // Only query the DB if something has changed
-    if (!oldLocationQueryString.equalsIgnoreCase(locationQueryString)) {
+    if (!oldLocationQueryString.equals(locationQueryString)) {
 
       oldLocationQueryString = locationQueryString;
 

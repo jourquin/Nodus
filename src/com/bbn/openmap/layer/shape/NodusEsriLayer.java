@@ -1943,6 +1943,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
       }
 
       // Reload labels
+      getLocationHandler().reset();
       getLocationHandler().reloadData();
 
     } catch (Exception ex) {

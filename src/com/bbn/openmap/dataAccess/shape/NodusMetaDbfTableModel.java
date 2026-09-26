@@ -109,11 +109,17 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
   public void addBlankRecord() {
 
     super.addBlankRecord();
-    saveButton.setEnabled(true);
-    addButton.setEnabled(false);
-    deleteButton.setEnabled(false);
+    if (saveButton != null) {
+      saveButton.setEnabled(true);
+    }
+    if (addButton != null) {
+      addButton.setEnabled(false);
+    }
+    if (deleteButton != null) {
+      deleteButton.setEnabled(false);
+    }
 
-    int newRowIndex = table.getRowCount() - 1;
+    int newRowIndex = getRowCount() - 1;
 
     // The field name must be unique. Add a numeric suffix if needed
     String fieldName = (String) getValueAt(newRowIndex, 0);
@@ -133,9 +139,12 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
 
     // Set the field name and invite the user to edit it
     setValueAt(newName, newRowIndex, 0);
-    table.scrollRectToVisible(table.getCellRect(newRowIndex, 0, true));
-    table.editCellAt(newRowIndex, 0);
-    table.getEditorComponent().requestFocus();
+    if (table != null) {
+      table.scrollRectToVisible(table.getCellRect(newRowIndex, 0, true));
+      if (table.editCellAt(newRowIndex, 0)) {
+        table.getEditorComponent().requestFocus();
+      }
+    }
 
     addingNewRecord = true;
   }
@@ -197,11 +206,11 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
       return false;
     }
 
-    if (addingNewRecord && table.getSelectedRow() != table.getRowCount() - 1) {
+    if (addingNewRecord && rowIndex != getRowCount() - 1) {
       return false;
     }
 
-    if (dirtyRecordIndex != -1 && table.getSelectedRow() != dirtyRecordIndex) {
+    if (dirtyRecordIndex != -1 && rowIndex != dirtyRecordIndex) {
       return false;
     }
 
@@ -345,14 +354,13 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
     if (column == 0) {
       for (int i = 0; i < getRowCount(); i++) {
         if (i != row) { // Don't compare the name to itself
-          if (getValueAt(i, 0).equals(object)) {
+          if (getValueAt(i, 0).toString().equalsIgnoreCase(object.toString())) {
 
-            JOptionPane.showMessageDialog(
-                null,
+            reportValidationError(
                 i18n.get(
-                    NodusMetaDbfTableModel.class, "Duplicated_field_name", "Duplicated field name"),
-                NodusC.APPNAME,
-                JOptionPane.ERROR_MESSAGE);
+                    NodusMetaDbfTableModel.class,
+                    "Duplicated_field_name",
+                    "Duplicated field name"));
             return;
           }
         }
@@ -367,14 +375,11 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
       } else if (DBF_NUMERIC.equals(object) || DBF_TYPE_NUMERIC.equals(object)) {
         object = DBF_TYPE_NUMERIC;
       } else {
-        JOptionPane.showMessageDialog(
-            null,
+        reportValidationError(
             i18n.get(
                 NodusMetaDbfTableModel.class,
                 "Unsuported_type",
-                "Only 'character', 'numeric' and 'date' types are supported"),
-            NodusC.APPNAME,
-            JOptionPane.ERROR_MESSAGE);
+                "Only 'character', 'numeric' and 'date' types are supported"));
         return;
       }
     }
@@ -389,14 +394,31 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
     }
 
     if (isTableStructureChanged()) {
-      saveButton.setEnabled(true);
-      addButton.setEnabled(false);
-      dirtyRecordIndex = table.getSelectedRow();
+      if (saveButton != null) {
+        saveButton.setEnabled(true);
+      }
+      if (addButton != null) {
+        addButton.setEnabled(false);
+      }
+      dirtyRecordIndex = row;
     } else {
-      saveButton.setEnabled(false);
-      addButton.setEnabled(true);
+      if (saveButton != null) {
+        saveButton.setEnabled(false);
+      }
+      if (addButton != null) {
+        addButton.setEnabled(true);
+      }
       dirtyRecordIndex = -1;
     }
+  }
+
+  /**
+   * Reports an invalid schema edit; adapters may capture the message without opening a dialog.
+   *
+   * @param message The localized validation message.
+   */
+  protected void reportValidationError(String message) {
+    JOptionPane.showMessageDialog(null, message, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
   }
 
   @Override
