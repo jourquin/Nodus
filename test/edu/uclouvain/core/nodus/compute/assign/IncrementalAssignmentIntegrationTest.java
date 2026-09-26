@@ -28,6 +28,8 @@ import static edu.uclouvain.core.nodus.compute.assign.ParallelRouteTestCase.forw
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import edu.uclouvain.core.nodus.NodusC;
+import groovy.lang.GroovyShell;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
@@ -82,6 +84,28 @@ class IncrementalAssignmentIntegrationTest {
       assertEquals(600, forwardFlow(project, 11), 1e-12);
       assertEquals(0, forwardFlow(project, 12), 1e-12);
       assertSavedDemand(project, 600);
+    }
+  }
+
+  @Test
+  void groovyCanToggleInformationDialogsWithoutChangingAssignmentResults() throws Exception {
+    final boolean original = NodusC.displayAssignmentInformationDialogs;
+    try (AssignmentTestProject project = congestedProject(directory, 600)) {
+      GroovyShell shell = new GroovyShell();
+      for (boolean enabled : new boolean[] {false, true, false}) {
+        shell.evaluate(
+            "edu.uclouvain.core.nodus.NodusC.displayAssignmentInformationDialogs = " + enabled);
+        assertEquals(enabled, NodusC.displayAssignmentInformationDialogs);
+        Assignment assignment = new IncrementalAssignment(congestedParameters(project, 4, 3));
+        project.run(assignment, 2);
+        assertIncrements(project);
+        assertEquals(
+            AssignmentCompletion.Reason.FIXED_ITERATIONS_COMPLETED,
+            assignment.getCompletion().getReason());
+        assertEquals(3, assignment.getCompletion().getIterationsPerformed());
+      }
+    } finally {
+      NodusC.displayAssignmentInformationDialogs = original;
     }
   }
 

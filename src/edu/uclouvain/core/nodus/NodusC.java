@@ -60,6 +60,12 @@ public class NodusC {
   /** URL of the Nodus web site. */
   public static String nodusUrl = "http://nodus.uclouvain.be";
 
+  /**
+   * Display informational assignment completion dialogs. May be changed at runtime from Groovy;
+   * errors and warnings, including failure to converge, are unaffected.
+   */
+  public static volatile boolean displayAssignmentInformationDialogs = true;
+
   /*
    * *********************************************************************************************
    * Performance tuning parameters (used at development time only)

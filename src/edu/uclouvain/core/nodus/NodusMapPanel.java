@@ -3351,6 +3351,19 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /**
+   * Presents an assignment result or error. UI adapters may override this callback to collect
+   * messages without opening dialogs. The default presentation is disabled in headless mode.
+   *
+   * @param message The localized message.
+   * @param messageType The JOptionPane message type.
+   */
+  public void showAssignmentMessage(String message, int messageType) {
+    if (!GraphicsEnvironment.isHeadless()) {
+      JOptionPane.showMessageDialog(this, message, NodusC.APPNAME, messageType);
+    }
+  }
+
+  /**
    * Starts a new ProgressBar. See OpenMap documentation for more details on the progress bar
    * mechanism implemented on the MapBean.
    *

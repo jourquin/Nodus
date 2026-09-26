@@ -24,6 +24,7 @@ package edu.uclouvain.core.nodus.compute.assign;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.bbn.openmap.dataAccess.shape.DbfTableModel;
 import com.bbn.openmap.dataAccess.shape.EsriGraphicList;
@@ -55,6 +56,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import javax.swing.JOptionPane;
 
 /** Shared in-memory network and database fixture; callers must lock JDBCUtils. */
 public class AssignmentTestProject extends NodusProject implements AutoCloseable {
@@ -127,6 +129,21 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
     panel.prepareRun(Math.min(assignment.getAssignmentParameters().getThreads(), concurrentJobs));
     assignment.run();
     assertEquals(SoundPlayer.SOUND_OK, panel.completionSound, "The assignment must succeed");
+    if (assignment.getCompletion() == null) {
+      assertTrue(panel.assignmentMessageTypes.isEmpty());
+    } else {
+      int expectedType =
+          assignment.getCompletion().getReason()
+                  == AssignmentCompletion.Reason.MAX_ITERATIONS_REACHED
+              ? JOptionPane.WARNING_MESSAGE
+              : JOptionPane.INFORMATION_MESSAGE;
+      List<Integer> expectedMessages =
+          expectedType == JOptionPane.INFORMATION_MESSAGE
+                  && !NodusC.displayAssignmentInformationDialogs
+              ? List.of()
+              : List.of(expectedType);
+      assertEquals(expectedMessages, panel.assignmentMessageTypes);
+    }
     for (Thread worker : panel.workers) {
       assertFalse(worker.isAlive(), "Worker still running after assignment completion");
     }
@@ -339,6 +356,7 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
     final Set<Thread> workers = ConcurrentHashMap.newKeySet();
     private CountDownLatch started;
     private int completionSound;
+    private final List<Integer> assignmentMessageTypes = new ArrayList<>();
     private final SoundPlayer sounds =
         new SoundPlayer(false) {
           @Override
@@ -356,6 +374,7 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
       workers.clear();
       started = new CountDownLatch(threads);
       completionSound = 0;
+      assignmentMessageTypes.clear();
     }
 
     @Override
@@ -366,6 +385,15 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
     @Override
     public SoundPlayer getSoundPlayer() {
       return sounds;
+    }
+
+    @Override
+    public void showAssignmentMessage(String message, int messageType) {
+      if (messageType == JOptionPane.ERROR_MESSAGE) {
+        fail("Assignment reported an error: " + message);
+      }
+      assertFalse(message.isBlank(), "Assignment notification must contain a message");
+      assignmentMessageTypes.add(messageType);
     }
 
     @Override

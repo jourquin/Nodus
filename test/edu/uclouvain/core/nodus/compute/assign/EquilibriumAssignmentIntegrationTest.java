@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import java.nio.file.Path;
 import java.util.List;
@@ -86,7 +87,10 @@ class EquilibriumAssignmentIntegrationTest {
 
   @Test
   void iterationLimitIsReportedWithoutClaimingConvergence() throws Exception {
+    final boolean original = NodusC.displayAssignmentInformationDialogs;
     try (AssignmentTestProject project = congestedProject(directory, 1000)) {
+      // Disabling routine notifications must still report a failure to converge.
+      NodusC.displayAssignmentInformationDialogs = false;
       Assignment assignment = new FrankWolfeAssignment(congestedParameters(project, 4, 1));
       project.run(assignment, 2);
       assertEquals(
@@ -97,6 +101,8 @@ class EquilibriumAssignmentIntegrationTest {
       assertEquals(1000, forwardFlow(project, 11), 1e-9);
       assertEquals(0, forwardFlow(project, 12), 1e-9);
       assertSavedDemand(project, 1000);
+    } finally {
+      NodusC.displayAssignmentInformationDialogs = original;
     }
   }
 

@@ -39,7 +39,6 @@ import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
-import java.awt.GraphicsEnvironment;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -374,11 +373,7 @@ public abstract class Assignment implements Runnable {
       }
 
       if (!success && !errorMessage.isEmpty()) {
-        JOptionPane.showMessageDialog(
-            nodusProject.getNodusMapPanel(),
-            errorMessage,
-            NodusC.APPNAME,
-            JOptionPane.ERROR_MESSAGE);
+        nodusMapPanel.showAssignmentMessage(errorMessage, JOptionPane.ERROR_MESSAGE);
       }
 
       // Run the post assignment script, if any
@@ -402,13 +397,11 @@ public abstract class Assignment implements Runnable {
       discardPathWriter();
       System.gc();
 
-      JOptionPane.showMessageDialog(
-          nodusProject.getNodusMapPanel(),
+      nodusMapPanel.showAssignmentMessage(
           i18n.get(
               Assignment.class,
               "Out_of_memory",
               "Out of memory. Increase JVM Heap size in launcher script"),
-          NodusC.APPNAME,
           JOptionPane.ERROR_MESSAGE);
 
       nodusProject.getNodusMapPanel().closeAndSaveState();
@@ -573,7 +566,7 @@ public abstract class Assignment implements Runnable {
 
   /** Displays the stopping condition of an iterative equilibrium assignment. */
   private void showCompletionMessage() {
-    if (completion == null || GraphicsEnvironment.isHeadless()) {
+    if (completion == null) {
       return;
     }
 
@@ -595,8 +588,11 @@ public abstract class Assignment implements Runnable {
       }
     }
 
-    JOptionPane.showMessageDialog(
-        nodusProject.getNodusMapPanel(), message, NodusC.APPNAME, messageType);
+    if (messageType == JOptionPane.INFORMATION_MESSAGE
+        && !NodusC.displayAssignmentInformationDialogs) {
+      return;
+    }
+    nodusProject.getNodusMapPanel().showAssignmentMessage(message, messageType);
   }
 
   /** Builds the localized completion message for a convergence-controlled assignment. */

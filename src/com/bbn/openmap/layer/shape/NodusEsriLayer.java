@@ -80,14 +80,17 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Level;
 import javax.swing.JButton;
@@ -188,6 +191,10 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   /** Query string used to filter EsriGraphics. */
   private String whereStmt = "";
 
+  /** SQL exclusions are independent of temporary hiding of zero assignment results. */
+  private final Set<OMGraphic> hiddenByFilter =
+      Collections.newSetFromMap(new IdentityHashMap<>());
+
   /** Used to check if the resources maintained by this layer are disposed or not. */ 
   private boolean disposed = false;
 
@@ -245,8 +252,8 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         list.add(point);
         invalidateSpatialIndex();
 
-        getModel().addBlankRecord();
         updateNumIndex();
+        getModel().addBlankRecord();
 
         // Set new number at the right place in the new record
         Double num = Double.valueOf(newNum);
@@ -330,8 +337,8 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
       synchronized (list) {
         list.add(link);
         invalidateSpatialIndex();
-        getModel().addBlankRecord();
         updateNumIndex();
+        getModel().addBlankRecord();
 
         // Set new number at the right place in the new record
         Double num = Double.valueOf(newNumber);
@@ -474,6 +481,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     }
 
     stylesMustBeRefreshed = true;
+    hiddenByFilter.clear();
 
     /*
      * First prepare the existing list of graphics. If a "WHERE" statement is found in the query
@@ -491,6 +499,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
      * We have to query the database...
      */
     setVisibility(false);
+    hiddenByFilter.addAll(getEsriGraphicList());
 
     try {
       // connect to database and execute query
@@ -507,6 +516,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
           int index = getNumIndex(JDBCUtils.getInt(rs.getObject(1)));
 
           OMGraphic omGraphic = list.getOMGraphicAt(index);
+          hiddenByFilter.remove(omGraphic);
           omGraphic.setVisible(true);
         }
       }
@@ -528,10 +538,8 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     while (lit.hasNext()) {
       OMGraphic omGraphic = lit.next();
-      if (omGraphic.isVisible() || displayResults) {
-        omGraphic.setSelected(false);
-        attachStyle(omGraphic, index);
-      }
+      omGraphic.setSelected(false);
+      attachStyle(omGraphic, index);
       index++;
     }
   }
@@ -543,6 +551,11 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
    * @param index The index of this graphic in the graphic list.
    */
   public void attachStyle(OMGraphic omGraphic, int index) {
+
+    omGraphic.setVisible(!hiddenByFilter.contains(omGraphic));
+    if (!omGraphic.isVisible()) {
+      return;
+    }
 
     NodusOMGraphic model = getStyle(omGraphic, index);
 
@@ -684,6 +697,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     tablePath = null;
     thisNodusEsriLayer = null;
     whereStmt = "";
+    hiddenByFilter.clear();
 
     super.dispose();
   }
@@ -1324,6 +1338,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     EsriGraphicList list = getEsriGraphicList();
 
     synchronized (list) {
+      hiddenByFilter.remove(list.getOMGraphicAt(index));
       list.remove(index);
       invalidateSpatialIndex();
     }
@@ -1367,6 +1382,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     EsriGraphicList list = getEsriGraphicList();
 
     synchronized (list) {
+      hiddenByFilter.remove(list.getOMGraphicAt(index));
       list.remove(index);
 
       // Find 'num' field value for this index
@@ -1867,11 +1883,12 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
             return false;
           }
 
-          Object[] o = new Object[nbColumns];
+          Map<Integer, Object[]> pendingRows = new LinkedHashMap<>();
           SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
 
           // Retrieve result of query
           while (rs.next()) {
+            Object[] o = new Object[nbColumns];
             int num = -1;
 
             for (int i = 0; i < nbColumns; i++) {
@@ -1896,7 +1913,12 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
               return false;
             }
 
-            // Update the record in the dbftableModel
+            if (pendingRows.containsKey(index)) {
+              System.err.println("Duplicate record identifier: " + num);
+              return false;
+            }
+
+            // Validate and convert every row before changing the DBF model.
             for (int i = 0; i < model.getColumnCount(); i++) {
               // Transform Date into String with YYYYMMDD format
               if (model.getType(i) == DBF_TYPE_DATE.byteValue()) {
@@ -1908,8 +1930,13 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
                       "NodusEsriLayer:updateDbfTableModel - Not a Date ? Should never happen...");
                 }
               }
+            }
+            pendingRows.put(index, o);
+          }
 
-              model.setValueAt(o[i], index, i);
+          for (Map.Entry<Integer, Object[]> row : pendingRows.entrySet()) {
+            for (int i = 0; i < model.getColumnCount(); i++) {
+              model.setValueAt(row.getValue()[i], row.getKey(), i);
             }
           }
         }

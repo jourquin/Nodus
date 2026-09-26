@@ -64,7 +64,8 @@ Ant's runtime. Standalone `ant -f build-tests.xml` can still run under JDK 11.
 Eclipse also recognizes `test/` as a test source folder with a separate output
 directory. To use Eclipse's test results view, select the folder or a test class
 and choose **Run As > JUnit Test** with JUnit 5. This does not use the Ant targets
-or produce Ant's reports.
+or produce Ant's reports. Assignment tests replace the message presentation callback,
+so completion dialogs do not appear even without `-Djava.awt.headless=true`.
 
 ## Build-file arrangement
 
@@ -112,6 +113,21 @@ for the workflow mechanism.
 
 ## Coverage
 
+- `NodusEsriLayerDatabaseTest`: actual layer initialization from temporary shapefiles and H2
+  synchronization by `NUM`, independent of SQL row order. Checks dates, decimals and repeated
+  refreshes; rejects incompatible row counts, columns, widths and decimal scales. Unknown or
+  duplicate identifiers must leave every DBF row unchanged. Expected rejection messages are
+  captured and asserted, so passing tests do not print misleading errors.
+- `NodusEsriLayerEditingTest`: point/link insertion, deletion and removal of the last record;
+  consistency of SQL rows, geometry, attributes and identifier indexes; replacing and clearing
+  SQL filters; and saving/reloading `.shp`, `.shx` and `.dbf` files after edits. Includes quoted
+  text and decimal values, and a regression for the spurious identifier zero created by adding
+  a blank record before assigning its actual identifier.
+- `NodusEsriLayerStyleTest`: result widths, colors and point radii, preservation of shared
+  styles, zero-to-nonzero visibility, restoring normal styles, SQL exclusions while displaying
+  results, and simplified styling at the zoom threshold or when styles are disabled.
+- `NodusDrawingAttributesTest`: scoped style properties, positive/negative/default colors,
+  fallback colors, and replacing old settings when properties are reloaded.
 - `SetJVMArgsTest`: migration of legacy JVM argument files, preservation of heap and custom
   settings, backups, repeated runs, and leaving current or customized scripts intact. Shell
   execution checks the generated options using simulated Java 11, 16, 17, 25 and 27 version
@@ -130,7 +146,8 @@ for the workflow mechanism.
   saved paths, and agreement between serial and concurrent Frank-Wolfe runs.
 - `IncrementalAssignmentIntegrationTest`: independently calculated increments and route
   choices as congestion changes, conservation, serial/concurrent agreement, repeated runs,
-  and equivalence to all-or-nothing assignment when using one increment.
+  and equivalence to all-or-nothing assignment when using one increment. Also checks runtime
+  Groovy toggling of informational completion dialogs without changing assignment results.
 - `ServiceRoutingIntegrationTest`: real service SQL definitions through virtual-network
   generation and assignment. Checks ordered links including a repeated-link detour,
   boarding/alighting only at stops, through travel, transfer permissions, and waiting/transfer
@@ -206,13 +223,23 @@ for the workflow mechanism.
   before another project is loaded.
 
 The suite does not yet cover loading complete projects from disk, other database engines,
-or GUI workflows. The assignment fixture supplies in-memory Esri layers and DBF table models;
-it does not test shapefile import or project-property file loading. Concurrency coverage
+or GUI workflows. The assignment fixture supplies in-memory Esri layers and DBF table models.
+The separate OpenMap layer fixture reads and writes actual temporary point/link shapefiles,
+uses real SQL operations, and replaces only presentation refresh callbacks. Style tests inspect
+graphic attributes; they do not verify pixels, mouse interaction or asynchronous repaint timing.
+DBF schema-editor dialogs and label generation are not covered yet. Concurrency coverage
 includes complete assignments with two commodity jobs, path output, and worker cancellation.
 Modal-split calibration and invalid vehicle properties that display dialogs remain outside
 this headless suite. Equilibrium coverage uses small parallel-route reference cases;
 large networks, nonlinear congestion functions and complete dynamic assignments remain
 outside this coverage.
+
+The OpenMap tests mirror their production packages under `test/com/bbn/openmap/` and run
+automatically with the existing Ant target and GitHub workflow. To run just the layer tests:
+
+```sh
+ant -f build-tests.xml '-Dtest.includes=**/NodusEsriLayer*Test.class' Test
+```
 
 ## Four-node assignment reference case
 
@@ -255,9 +282,15 @@ ant -f build-tests.xml '-Dtest.includes=**/AllOrNothingAssignmentIntegrationTest
 
 `AssignmentTestProject` supplies shared in-memory layers, a private H2 database and
 presentation callbacks for the assignment, service-routing and demand-loading tests.
-The computation and database readers/writers are production implementations. Iterative
-assignments retain their completion metadata while suppressing completion dialogs when
-running without a graphical desktop.
+The computation and database readers/writers are production implementations. The fixture
+captures assignment messages and checks their number and severity; assignment error messages
+fail the test immediately. This prevents completion dialogs under both Ant and Eclipse's
+JUnit launcher, independently of whether a graphical desktop is available. Iterative
+assignments retain their completion metadata for the convergence assertions.
+`NodusC.displayAssignmentInformationDialogs` also controls informational completion dialogs
+in the running application (default `true`). Tests exercise both values and restore the
+original setting; all assignment fixtures share the `JDBCUtils` resource lock. The iteration
+limit case verifies that convergence warnings are still reported with information disabled.
 
 The equilibrium and incremental tests use two parallel links between A and B:
 

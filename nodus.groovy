@@ -58,4 +58,8 @@ if (startNodus) {
 	if (edu.uclouvain.core.nodus.NodusC.displayComputingTimes) {
 		System.out.println("Assignment runtime audit is enabled");
 	}
+
+	// Set false to hide informational assignment completion dialogs.
+	// Errors and non-convergence warnings remain visible.
+	edu.uclouvain.core.nodus.NodusC.displayAssignmentInformationDialogs = true
 }

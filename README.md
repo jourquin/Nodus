@@ -177,7 +177,9 @@ path cost/duration totals, flow distribution, multi-flow edge updates, demand ag
 and relocation, node rules, vehicle characteristics, Abraham modal shares, service edits,
 and assignment-worker cancellation. Database
 integration tests use private in-memory H2 databases to check buffered path output,
-concurrent writes, and failure handling. A failing test makes the command fail.
+concurrent writes, and failure handling. OpenMap tests also cover layer SQL/DBF synchronization,
+identifier consistency during edits, temporary shapefile round trips, filters and result styles.
+A failing test makes the command fail.
 
 Text and XML reports are written to `test-build/reports/`. Test classes are kept separate
 from application classes and are not included in `nodus8.jar`. Run a single test class with,
@@ -200,6 +202,19 @@ in order to write code that adheres to the Google Java coding standard and to lo
 Since Nodus 8.4, OpenAI [Codex](https://github.com/openai/codex) is used to detect potential bugs in the code. 
 It was further used to optimize some algorithms and create unit tests.  
    
+## Assignment information dialogs
+
+Informational assignment completion dialogs are enabled by default. To disable them for
+the current Nodus session, add this to the startup `nodus.groovy` script or run it from Groovy:
+
+```groovy
+edu.uclouvain.core.nodus.NodusC.displayAssignmentInformationDialogs = false
+```
+
+Set it back to `true` to restore the dialogs. The setting is read when an assignment finishes;
+it does not change calculations, saved results or completion metadata. Errors and warnings,
+including reaching the maximum iteration count without convergence, remain visible.
+
 ## Assignment runtime audit
 
 Set `NodusC.displayComputingTimes = true` to print a timing summary to standard output for each
