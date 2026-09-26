@@ -131,7 +131,15 @@ public class ShapeIntegrityTester {
    * @param nodusProject The Nodus project to test.
    */
   public ShapeIntegrityTester(NodusProject nodusProject) {
+    this(nodusProject, true);
+  }
+
+  /** Allows a caller in this package to perform validation without scheduling a timer. */
+  ShapeIntegrityTester(NodusProject nodusProject, boolean schedule) {
     this.nodusProject = nodusProject;
+    if (!schedule) {
+      return;
+    }
 
     integrityTestTimer = new java.util.Timer("Nodus-ShapeIntegrityTester", true);
     integrityTestTimer.scheduleAtFixedRate(
@@ -273,7 +281,7 @@ public class ShapeIntegrityTester {
    * Real integrity tests starts here. The test only can start when all the node and link layers are
    * loaded.
    */
-  private void runIntegrityTest() {
+  void runIntegrityTest() {
 
     IntegritySnapshot snapshot = captureSnapshot();
     if (snapshot == null || stopped) {
@@ -315,6 +323,7 @@ public class ShapeIntegrityTester {
                         "Layer {0} : Node {1} has an invalid Num value"),
                     layerName,
                     id);
+            break;
           }
 
           // Integer node = new Integer(JDBCUtils.getInt(model.getValueAt(j, NodusC.DBF_IDX_NUM)));
@@ -392,6 +401,7 @@ public class ShapeIntegrityTester {
                           "Layer {0} : Link {1} has an invalid Num value"),
                       layerName,
                       id);
+              break;
             }
 
             int link = (int) id;
@@ -491,8 +501,7 @@ public class ShapeIntegrityTester {
           }
 
           if (hasError && integrityErrorMessage != null) {
-            JOptionPane.showMessageDialog(
-                null, integrityErrorMessage, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+            reportError(integrityErrorMessage);
           }
 
           // new DatabaseIntegrityTester(nodusProject);
@@ -503,6 +512,15 @@ public class ShapeIntegrityTester {
 
     // testFreeNodes();
 
+  }
+
+  /**
+   * Presents an integrity error after validation has finished on the event dispatch thread.
+   *
+   * @param message Description of the invalid network data.
+   */
+  protected void reportError(String message) {
+    JOptionPane.showMessageDialog(null, message, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
   }
 
   /** Additional tests, not used in production. */

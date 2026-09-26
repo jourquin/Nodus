@@ -556,6 +556,53 @@ public class ServiceHandler {
     }
   }
 
+  /**
+   * Replaces each occurrence of a split physical link, preserving service route order.
+   *
+   * @param original Original graphic, no longer in its layer.
+   * @param firstId ID of the retained link from the original origin to the inserted node.
+   * @param secondId ID of the new link from the inserted node to the original destination.
+   * @param origin Original origin node ID.
+   * @param destination Original destination node ID.
+   */
+  public void splitServiceLink(
+      OMGraphic original, int firstId, int secondId, int origin, int destination) {
+    final OMGraphic first = getOMGraphic(firstId, TYPE_LINK);
+    final OMGraphic second = getOMGraphic(secondId, TYPE_LINK);
+    for (TransportService service : services.values()) {
+      if (!service.contains(original)) {
+        continue;
+      }
+      final LinkedList<OMGraphic> route = service.getLinks();
+      int[][] endpoints = new int[route.size()][];
+      boolean valid = true;
+      for (int i = 0; i < route.size(); i++) {
+        endpoints[i] = route.get(i) == original
+            ? new int[] {origin, destination} : getLinkEndpointNodeIds(route.get(i));
+        valid &= endpoints[i] != null;
+      }
+      int[] walk = null;
+      if (valid) {
+        walk = buildRouteNodes(endpoints, endpoints[0][0]);
+        if (walk == null) {
+          walk = buildRouteNodes(endpoints, endpoints[0][1]);
+        }
+      }
+      final LinkedList<OMGraphic> replacement = new LinkedList<>();
+      for (int i = 0; i < route.size(); i++) {
+        if (route.get(i) == original) {
+          boolean reverse = walk != null && walk[i] == destination;
+          replacement.add(reverse ? second : first);
+          replacement.add(reverse ? first : second);
+        } else {
+          replacement.add(route.get(i));
+        }
+      }
+      route.clear();
+      route.addAll(replacement);
+    }
+  }
+
   /** Adds a stop node to the service. */
   private void addStopNode(int occurences, int nodeId) {
     if (occurences < 1) {

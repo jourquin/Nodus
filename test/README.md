@@ -76,6 +76,20 @@ also work when launched directly from `build-user.xml`. Keep the test implementa
 in `build-tests.xml`; do not add it to Eclipse's automatic buildfile imports, as it
 already imports `build.xml`.
 
+To run the suite through these forwarding targets:
+
+```sh
+ant Test
+# Or launch build-user.xml directly:
+ant -f build-user.xml Test
+```
+
+`Installer` depends on `Test`, so `ant Installer` runs the tests before generating
+documentation or packaging the application. A compilation error, failed test or test
+execution error aborts the installer build. In Eclipse's Ant Targets tab, select `Test`
+to run only the suite, or `Installer` to run the suite and then create the installer.
+The JUnit execution and reports still use the dedicated `build-tests.xml` approach.
+
 ## Continuous integration on GitHub
 
 [The Tests workflow](../.github/workflows/tests.yml) runs the complete suite on
@@ -142,6 +156,32 @@ for the workflow mechanism.
   zero-sized results and hidden layers; empty/missing fields; font persistence including
   bold italic; and disposal of attached locations. Uses the shared layer fixture, with actual
   label-generation and refresh code and only the final repaint callback replaced.
+- `InsertedPointTest`: independently known projections onto horizontal, vertical and diagonal
+  segments, reversed endpoints, clicks beyond or exactly at endpoints, and zero-length segments.
+- `NodusLinkSplittingTest`: real drawing-tool splits using temporary shapefiles, H2 tables and
+  the service handler. Checks the nearest segment on folded lines, vertical lines, repeated
+  vertices, coordinate precision, fragment endpoints, node/link IDs, copied DBF attributes and
+  service membership. Service routes must replace the old geometry and preserve repeated and
+  reverse traversals without adding stops. Endpoint clicks, degenerate lines and rejected node
+  creation must leave the network unchanged. The fixture replaces the attribute-editor dialog
+  and repaint callbacks; mouse interaction is not simulated.
+- `MapPolylineDetailTest`: screen error measured independently against full-detail projections
+  in Mercator and Equal Earth, including samples between projected vertices. Checks the 0.75-pixel
+  bound (with 0.0001 pixel allowed for float rounding), actual vertex reduction, unchanged source
+  coordinates/styles/attributes, cache reuse when panning, new detail levels when zooming, and
+  rebuilding after coordinate replacement or projection/line-type changes. Also covers multipart
+  structure, selected lines, disabled detail, unsupported projections, Equal Earth rhumb lines
+  and panning across the longitude seam. These inspect projected geometry, not rendered images.
+- `EqualEarthTest`: independent spherical PROJ reference coordinates for the equator, mid/high
+  latitudes, poles and the date line. Both forward and inverse operations are checked against
+  those constants, plus screen centering, degree/radian inputs, longitude wrapping, plotability
+  and pole clamping. PROJ was used to obtain the constants; running the suite does not require it.
+- `ShapeIntegrityTesterTest`: invalid and overflowing identifiers, duplicates within and across
+  layers, conflicts with external layers, missing origin/destination nodes, and mismatched geometry
+  and DBF row counts. Valid networks, separate node/link identifier namespaces and the maximum
+  integer ID are accepted unchanged. Checks loading readiness and stopping before a queued error
+  is displayed. Uses the actual EDT snapshot and validation paths, with an explicit run instead
+  of a timer and a captured error callback instead of a dialog.
 - `SetJVMArgsTest`: migration of legacy JVM argument files, preservation of heap and custom
   settings, backups, repeated runs, and leaving current or customized scripts intact. Shell
   execution checks the generated options using simulated Java 11, 16, 17, 25 and 27 version
@@ -242,7 +282,9 @@ The separate OpenMap layer fixture reads and writes actual temporary point/link 
 uses real SQL operations, and replaces only presentation refresh callbacks. Style tests inspect
 graphic attributes; they do not verify pixels, mouse interaction or asynchronous repaint timing.
 Schema-editor window interaction and save/cancel confirmation dialogs remain outside this
-coverage. Concurrency coverage
+coverage. Splitting tests verify successful edits and rejected node creation; they do not yet
+exercise database write failures halfway through an edit. Integrity tests cover validation,
+but not the timer's polling interval or automatic removal of self-loop links. Concurrency coverage
 includes complete assignments with two commodity jobs, path output, and worker cancellation.
 Modal-split calibration and invalid vehicle properties that display dialogs remain outside
 this headless suite. Equilibrium coverage uses small parallel-route reference cases;

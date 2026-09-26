@@ -280,7 +280,12 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
           nodusMapPanel
               .getNodusProject()
               .getServiceHandler()
-              .addServicesToLink(newNumber, lineSplitter.getServices());
+              .splitServiceLink(
+                  selectedGraphic,
+                  JDBCUtils.getInt(lineSplitter.getLineProperty(NodusC.DBF_IDX_NUM)),
+                  newNumber,
+                  lineSplitter.getOriginNode(),
+                  lineSplitter.getDestinationNode());
         }
 
         linksLayers[layerindex].attachStyles();
@@ -743,7 +748,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
              */
             switch (getEditAction(closestObject)) {
               case SPLIT_LINK:
-                splitLink(point, closestObject);
+                splitLink(point, closestObject, layerIndexOfSelectedGraphic);
                 break;
 
               case MOVE_NODE:
@@ -1332,16 +1337,18 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
         Nodus.nodusLogger.info(
             "Move link " + num + " in " + linksLayers[layerIndexOfSelectedGraphic].getName());
       }
-      // set the end nodes in dbf
-      nodusMapPanel
-          .getNodusProject()
-          .getServiceHandler()
-          .addServicesToLink(
-              JDBCUtils.getInt(
-                  linksLayers[layerIndexOfSelectedGraphic]
-                      .getModel()
-                      .getValueAt(index, NodusC.DBF_IDX_NUM)),
-              services);
+      // A split replaces service occurrences after both fragments have been created.
+      if (!lineSplitter.getFlag() || lineSplitter.getInsertedNode() == 0) {
+        nodusMapPanel
+            .getNodusProject()
+            .getServiceHandler()
+            .addServicesToLink(
+                JDBCUtils.getInt(
+                    linksLayers[layerIndexOfSelectedGraphic]
+                        .getModel()
+                        .getValueAt(index, NodusC.DBF_IDX_NUM)),
+                services);
+      }
 
       isMoving = false;
       linksLayers[layerIndexOfSelectedGraphic].setDirtyShp(true);
@@ -1502,8 +1509,10 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
 
     // Compute a good "limit" factor to be used in "findClosest" methods
     // (1% of screen width)
-    Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-    limit = (float) (screenSize.getWidth() / 100);
+    if (!java.awt.GraphicsEnvironment.isHeadless()) {
+      Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+      limit = (float) (screenSize.getWidth() / 100);
+    }
   }
 
   /**
@@ -1512,112 +1521,62 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
    *
    * @param node OMPoint, the point of the click
    * @param omg OMGraphic, The link when we are going to fusion.
+   * @param layerIndex Index of the link layer.
    * @author Jorge Pinna
    */
-  private void splitLink(OMPoint node, OMGraphic omg) {
+  void splitLink(OMPoint node, OMGraphic omg, int layerIndex) {
+    selectedGraphic = omg;
+    layerIndexOfSelectedGraphic = layerIndex;
 
     // test if the omg is a link
     if (omg instanceof OMPoly) {
       lineSplitter.setFlag(true);
 
-      double xtemp1 = 0;
-      double ytemp1 = 0;
-      double htemp;
-      double x1 = 0;
-      double y1 = 0;
-      double x2 = 0;
-      double y2 = 0;
-      double x0 = 0;
-      double y0 = 0;
-      double h = Double.MAX_VALUE;
-      double nodey = node.getLat();
-      double nodex = node.getLon();
-      int cutflag = 0;
-      int x1flag = 0;
+      final double nodey = node.getLat();
+      final double nodex = node.getLon();
+      final double[] pts = ((OMPoly) omg).getLatLonArrayCopy();
+      for (int i = 0; i < pts.length; i++) {
+        pts[i] = ProjMath.radToDeg(pts[i]);
+      }
+
+      double distance = Double.POSITIVE_INFINITY;
       double x = 0;
       double y = 0;
+      int cutflag = -1;
+      // Search every segment: the nearest segment need not adjoin the nearest vertex.
+      for (int i = 0; i + 3 < pts.length; i += 2) {
+        final double x1 = pts[i + 1];
+        final double y1 = pts[i];
+        final double x2 = pts[i + 3];
+        final double y2 = pts[i + 2];
+        if (x1 == x2 && y1 == y2) {
+          continue;
+        }
+        final InsertedPoint point = new InsertedPoint(x1, y1, x2, y2, nodex, nodey);
+        double candidateX = point.xi;
+        double candidateY = point.yi;
+        if (!point.inclu) {
+          boolean first = Math.hypot(nodex - x1, nodey - y1)
+              <= Math.hypot(nodex - x2, nodey - y2);
+          candidateX = first ? x1 : x2;
+          candidateY = first ? y1 : y2;
+        }
+        double candidateDistance = Math.hypot(candidateX - nodex, candidateY - nodey);
+        if (candidateDistance < distance) {
+          distance = candidateDistance;
+          x = candidateX;
+          y = candidateY;
+          cutflag = i + 1;
+        }
+      }
+      // An endpoint cannot divide a link into two nonempty links.
+      if (cutflag < 0
+          || Math.hypot(x - pts[1], y - pts[0]) <= 1e-12
+          || Math.hypot(x - pts[pts.length - 1], y - pts[pts.length - 2]) <= 1e-12) {
+        lineSplitter.setFlag(false);
+        return;
+      }
       int k;
-      OMPoly link = (OMPoly) omg;
-      double[] pts = link.getLatLonArrayCopy();
-
-      // We transform the points of the polyline in Degrees.
-      for (k = 0; k < pts.length; k++) {
-        pts[k] = ProjMath.radToDeg(pts[k]);
-      }
-
-      // We finde the near point in the polyline x1,y1
-      for (k = 0; k <= pts.length - 2; k += 2) {
-        ytemp1 = pts[k];
-        xtemp1 = pts[k + 1];
-        htemp = Math.sqrt(Math.pow(xtemp1 - nodex, 2) + Math.pow(ytemp1 - nodey, 2));
-        if (htemp < h) {
-          h = htemp;
-          y1 = ytemp1;
-          x1 = xtemp1;
-          x1flag = k + 1;
-        }
-      }
-
-      // if the near point is the last point in the polyline
-      if (pts.length == x1flag + 1) {
-        x0 = pts[x1flag - 2];
-        y0 = pts[x1flag - 3];
-        InsertedPoint p = new InsertedPoint(x0, y0, x1, y1, nodex, nodey);
-        cutflag = x1flag - 2;
-        if (p.inclu) {
-          x = (float) p.xi;
-          y = (float) p.yi;
-        } else {
-          x = x1;
-          y = y1;
-        }
-      } else if (x1flag == 1) { // if the near point is the first point in the polyline
-        x2 = pts[x1flag + 2];
-        y2 = pts[x1flag + 1];
-        InsertedPoint p = new InsertedPoint(x1, y1, x2, y2, nodex, nodey);
-        cutflag = x1flag;
-        if (p.inclu) {
-          x = (float) p.xi;
-          y = (float) p.yi;
-        } else {
-          x = x1;
-          y = y1;
-        }
-      } else {
-        x0 = pts[x1flag + 2];
-        y0 = pts[x1flag + 1];
-        x2 = pts[x1flag - 2];
-        y2 = pts[x1flag - 3];
-        InsertedPoint p1 = new InsertedPoint(x0, y0, x1, y1, nodex, nodey);
-        InsertedPoint p2 = new InsertedPoint(x1, y1, x2, y2, nodex, nodey);
-        if (p1.inclu && !p2.inclu) {
-          x = (float) p1.xi;
-          y = (float) p1.yi;
-          cutflag = x1flag;
-        }
-        if (!p1.inclu && p2.inclu) {
-          x = (float) p2.xi;
-          y = (float) p2.yi;
-          cutflag = x1flag - 2;
-        }
-        if (!p1.inclu && !p2.inclu) {
-          x = x1;
-          y = y1; // the
-          // laye
-          cutflag = x1flag;
-        }
-        if (p1.inclu && p2.inclu) {
-          if (p1.length < p2.length) {
-            x = (float) p1.xi;
-            y = (float) p1.yi;
-            cutflag = x1flag;
-          } else {
-            x = (float) p2.xi;
-            y = (float) p2.yi;
-            cutflag = x1flag - 2;
-          }
-        }
-      }
       // create the new point
       EsriPoint ep = new EsriPoint(y, x);
       if (addNode(ep)) {

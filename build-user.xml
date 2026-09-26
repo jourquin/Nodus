@@ -8,7 +8,7 @@
 		<ant antfile="${basedir}/build-tests.xml" target="CleanTests" inheritAll="false" />
 	</target>
 
-	<target name="Test" description="Runs the JUnit 5 unit tests without opening the GUI.">
+	<target name="Test" description="Runs the JUnit 5 unit and integration tests without opening the GUI.">
 		<ant antfile="${basedir}/build-tests.xml" target="Test" inheritAll="false" />
 	</target>
 	
@@ -132,7 +132,8 @@
 
 	<taskdef name="izpack" classname="com.izforge.izpack.ant.IzPackTask" classpathref="lib.path" />
 
-	<target name="Installer" description="Builds the Nodus installer jar file.">
+	<!-- A failed test build propagates through Test and stops all installer work. -->
+	<target name="Installer" depends="Test" description="Runs the tests, then builds the Nodus installer jar file.">
 		<echo message="Creating a Nodus installer" />
 		<antcall target="ServicesWorkflowHtml" />
 		<antcall target="Jar" />
