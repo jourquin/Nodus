@@ -1562,11 +1562,10 @@ public class VirtualNetwork {
    * @return True if there is a demand for this class.
    */
   public boolean odClassHasDemand(byte odClass) {
-    if (nbODClasses == 1) {
-      return true;
-    } else {
-      return odClassHasDemand[odClass];
-    }
+    return odClassHasDemand != null
+        && odClass >= 0
+        && odClass < odClassHasDemand.length
+        && odClassHasDemand[odClass];
   }
 
   /** Resets the vehicles assigned to the real links. */

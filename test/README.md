@@ -124,6 +124,23 @@ for the workflow mechanism.
   worker with four; closes links to exercise rerouting and unreachable demand; and repeats
   an assignment to detect accumulated flows or duplicate outputs. Only project inputs and
   presentation callbacks are supplied by the fixture. See the reference case below.
+- `EquilibriumAssignmentIntegrationTest`: complete Frank-Wolfe and successive-averages
+  assignments on parallel routes with an independently calculated equilibrium. Checks
+  convergence metadata, iteration limits, uncongested convergence, flow conservation,
+  saved paths, and agreement between serial and concurrent Frank-Wolfe runs.
+- `IncrementalAssignmentIntegrationTest`: independently calculated increments and route
+  choices as congestion changes, conservation, serial/concurrent agreement, repeated runs,
+  and equivalence to all-or-nothing assignment when using one increment.
+- `ServiceRoutingIntegrationTest`: real service SQL definitions through virtual-network
+  generation and assignment. Checks ordered links including a repeated-link detour,
+  boarding/alighting only at stops, through travel, transfer permissions, and waiting/transfer
+  costs using the destination service's frequency. Edits to stops and frequencies must
+  affect the next assignment without retaining previous outputs.
+- `ODReaderIntegrationTest`: real SQL demand loading, duplicate aggregation, separate
+  groups/destinations/classes/departure times, reordered columns, static versus timed loading,
+  SQL selection, excluded invalid trips, empty selections, and changed demand on a fresh
+  network. Source rows and the project connection are preserved. Includes a regression for
+  an empty selection incorrectly marking class zero as having demand.
 - `SQLConsoleExportTest`: real CSV/CSVH, DBF, XLS and XLSX exports; cancelling or
   accepting direct overwrites; new outputs; loaded scripts, pasted batches, variable
   definitions and `runBatch()`; restoring confirmation after a script; and execution
@@ -193,8 +210,9 @@ or GUI workflows. The assignment fixture supplies in-memory Esri layers and DBF 
 it does not test shapefile import or project-property file loading. Concurrency coverage
 includes complete assignments with two commodity jobs, path output, and worker cancellation.
 Modal-split calibration and invalid vehicle properties that display dialogs remain outside
-this headless suite. Complete equilibrium convergence and line-search behavior still need
-reference-project integration tests.
+this headless suite. Equilibrium coverage uses small parallel-route reference cases;
+large networks, nonlinear congestion functions and complete dynamic assignments remain
+outside this coverage.
 
 ## Four-node assignment reference case
 
@@ -232,6 +250,47 @@ workflow. To run just this reference case:
 ```sh
 ant -f build-tests.xml '-Dtest.includes=**/AllOrNothingAssignmentIntegrationTest.class' Test
 ```
+
+## Iterative assignment reference cases
+
+`AssignmentTestProject` supplies shared in-memory layers, a private H2 database and
+presentation callbacks for the assignment, service-routing and demand-loading tests.
+The computation and database readers/writers are production implementations. Iterative
+assignments retain their completion metadata while suppressing completion dialogs when
+running without a graphical desktop.
+
+The equilibrium and incremental tests use two parallel links between A and B:
+
+| Link ID | Cost function |
+| --- | --- |
+| 11 | `10 + 0.01 * VOLUME` |
+| 12 | `12 + 0.01 * VOLUME` |
+
+Vehicle load and PCU factors are one. Demand is divided equally between two commodity
+groups, giving two independent worker jobs. For 1,000 units, equal route costs and
+conservation give `q11 = 600`, `q12 = 400`, and a common cost of 16. Frank-Wolfe is
+checked within 2.1 units because Nodus rounds vehicle counts upward per group.
+Successive averages allows one update's flow change plus the two-group rounding bound.
+Network conservation is checked to the saved output precision. Saved path quantities
+have three decimal places and are rounded again when blended each iteration, so their
+conservation checks allow at most `0.0005 * path row count * iteration count`, with a
+minimum tolerance of 0.002. This distinguishes accumulated storage rounding from lost
+network flow.
+
+The incremental case uses 600 units and three triangular increments:
+
+| Increment | Quantity | Selected link | Cost when selected |
+| --- | ---: | ---: | ---: |
+| 1 | 300 | 11 | 10 |
+| 2 | 200 | 12 | 12 |
+| 3 | 100 | 11 | 13 |
+
+Final flows must be 400 on link 11 and 200 on link 12. The quantity-weighted sum of
+the costs recorded when paths were selected must be 6,700. Tests check these values
+directly in the saved tables, including each increment's quantity and selected route.
+
+All these tests run with `ant -f build-tests.xml` and the existing GitHub workflow;
+no additional target or CI configuration is needed.
 
 ## Adding a test
 

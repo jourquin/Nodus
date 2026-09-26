@@ -39,6 +39,7 @@ import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
+import java.awt.GraphicsEnvironment;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -572,7 +573,7 @@ public abstract class Assignment implements Runnable {
 
   /** Displays the stopping condition of an iterative equilibrium assignment. */
   private void showCompletionMessage() {
-    if (completion == null) {
+    if (completion == null || GraphicsEnvironment.isHeadless()) {
       return;
     }
 
