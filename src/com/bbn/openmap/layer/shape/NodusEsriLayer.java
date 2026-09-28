@@ -80,6 +80,7 @@ import java.sql.Statement;
 import java.text.MessageFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -192,10 +193,9 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   private String whereStmt = "";
 
   /** SQL exclusions are independent of temporary hiding of zero assignment results. */
-  private final Set<OMGraphic> hiddenByFilter =
-      Collections.newSetFromMap(new IdentityHashMap<>());
+  private final Set<OMGraphic> hiddenByFilter = Collections.newSetFromMap(new IdentityHashMap<>());
 
-  /** Used to check if the resources maintained by this layer are disposed or not. */ 
+  /** Used to check if the resources maintained by this layer are disposed or not. */
   private boolean disposed = false;
 
   /** Default constructor. */
@@ -247,6 +247,16 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     if (list != null) {
       synchronized (list) {
+        if (!executeEditSql(
+            "INSERT INTO "
+                + JDBCUtils.getQuotedCompliantIdentifier(getTableName())
+                + " ("
+                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+                + ") VALUES ("
+                + newNum
+                + ")")) {
+          return false;
+        }
         point.generate(getProjection());
         point.putAttribute(0, new RealNode());
         list.add(point);
@@ -267,17 +277,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         // Set transhipment state (default = 0)
         getModel()
             .setValueAt(Double.valueOf(0), getModel().getRowCount() - 1, NodusC.DBF_IDX_TRANSHIP);
-
-        // Create sql stmt
-        String sqlStmt =
-            "INSERT INTO "
-                + JDBCUtils.getQuotedCompliantIdentifier(getTableName())
-                + " ("
-                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
-                + ") VALUES ("
-                + num.toString()
-                + ")";
-        executeUpdateSqlStmt(sqlStmt);
 
         isCanceled = false;
         if (displayGUI) {
@@ -335,6 +334,24 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     OMGraphicList list = getEsriGraphicList();
     if (list != null) {
       synchronized (list) {
+        if (!executeEditSql(
+            "INSERT INTO "
+                + JDBCUtils.getQuotedCompliantIdentifier(getTableName())
+                + " ("
+                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+                + ", "
+                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE1)
+                + ", "
+                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE2)
+                + ") VALUES ("
+                + newNumber
+                + ", "
+                + numNode1
+                + ", "
+                + numNode2
+                + ")")) {
+          return false;
+        }
         list.add(link);
         invalidateSpatialIndex();
         updateNumIndex();
@@ -358,34 +375,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         node = Double.valueOf(numNode2);
         getModel().setValueAt(node, getModel().getRowCount() - 1, NodusC.DBF_IDX_NODE2);
         addNumIndexForLastRecord();
-
-        // Create sql stmt
-        String sqlStmt =
-            "INSERT INTO "
-                + JDBCUtils.getQuotedCompliantIdentifier(getTableName())
-                + " ("
-                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
-                + ") VALUES ("
-                + num.toString()
-                + ")";
-        executeUpdateSqlStmt(sqlStmt);
-
-        sqlStmt =
-            "UPDATE "
-                + JDBCUtils.getQuotedCompliantIdentifier(getTableName())
-                + " SET "
-                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE1)
-                + " = "
-                + numNode1
-                + ", "
-                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NODE2)
-                + " = "
-                + numNode2
-                + " WHERE "
-                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
-                + " = "
-                + newNumber;
-        executeUpdateSqlStmt(sqlStmt);
 
         isCanceled = false;
         if (displayGUI) {
@@ -420,12 +409,11 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
    * @param record ArrayList The record to associate to this new node or link.
    */
   public void addRecord(EsriPolyline graphic, List<Object> record) {
-    OMGraphicList list = getEsriGraphicList();
-    list.add(graphic);
-    invalidateSpatialIndex();
-    getModel().addRecord(record);
-    updateNumIndex();
+    insertRecord(graphic, record);
+  }
 
+  /** Inserts a complete link record, publishing geometry only after the SQL write succeeds. */
+  public boolean insertRecord(EsriPolyline graphic, List<Object> record) {
     String sqlStmt = "INSERT INTO ";
     sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(getTableName()) + " VALUES( ";
 
@@ -451,11 +439,19 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     sqlStmt += ")";
 
-    executeUpdateSqlStmt(sqlStmt);
+    if (!executeEditSql(sqlStmt)) {
+      return false;
+    }
+    graphic.putAttribute(0, new RealLink());
+    getEsriGraphicList().add(graphic);
+    invalidateSpatialIndex();
+    getModel().addRecord(new ArrayList<>(record));
+    updateNumIndex();
 
     reloadLabels();
     dirtyDbf = true;
     setDirtyShp(true);
+    return true;
   }
 
   /**
@@ -787,6 +783,115 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     } catch (Exception ex) {
       System.out.println(ex.toString());
     }
+  }
+
+  private boolean executeEditSql(String sql) {
+    try (Statement statement = nodusProject.getMainJDBCConnection().createStatement()) {
+      statement.executeUpdate(sql);
+      return true;
+    } catch (java.sql.SQLException error) {
+      reportEditError(error);
+      return false;
+    }
+  }
+
+  /**
+   * Captures appended records and optionally one existing record for a compound edit. The caller
+   * must roll back SQL separately before restoring this in-memory state.
+   *
+   * @param row Existing row to capture, or -1 for an append-only edit
+   * @return State to restore if the compound edit fails
+   */
+  public EditState captureEditState(int row) {
+    return new EditState(row);
+  }
+
+  /** In-memory checkpoint for an append or a single-record replacement. */
+  public final class EditState {
+    private final int count = getModel().getRowCount();
+    private final boolean savedDirtyShp = dirtyShp;
+    private final boolean savedDirtyDbf = dirtyDbf;
+    private final int row;
+    private final List<Object> record;
+    private final OMGraphic graphic;
+
+    private EditState(int row) {
+      this.row = row;
+      record = row < 0 ? null : new ArrayList<>(getModel().getRecord(row));
+      graphic = row < 0 ? null : getEsriGraphicList().getOMGraphicAt(row);
+    }
+
+    /** Restores geometry, attributes, identifier indexes and dirty flags after SQL rollback. */
+    public void restore() {
+      EsriGraphicList list = getEsriGraphicList();
+      while (getModel().getRowCount() > count) {
+        getModel().remove(getModel().getRowCount() - 1);
+      }
+      while (list.size() > count) {
+        hiddenByFilter.remove(list.getOMGraphicAt(list.size() - 1));
+        list.remove(list.size() - 1);
+      }
+      if (row >= 0) {
+        list.setOMGraphicAt(graphic, row);
+        for (int column = 0; column < record.size(); column++) {
+          getModel().setValueAt(record.get(column), row, column);
+        }
+      }
+      updateNumIndex();
+      invalidateSpatialIndex();
+      dirtyShp = savedDirtyShp;
+      dirtyDbf = savedDirtyDbf;
+      reloadLabels();
+    }
+  }
+
+  /** Replaces one link and its attributes after successfully updating its SQL row. */
+  public boolean replaceRecord(int row, EsriPolyline graphic, List<Object> record) {
+    StringBuilder sql =
+        new StringBuilder("UPDATE ")
+            .append(JDBCUtils.getQuotedCompliantIdentifier(getTableName()))
+            .append(" SET ");
+    for (int i = 0; i < record.size(); i++) {
+      if (i > 0) {
+        sql.append(", ");
+      }
+      sql.append(JDBCUtils.getQuotedCompliantIdentifier(getModel().getColumnName(i))).append('=');
+      Object cell = record.get(i);
+      if (getModel().getType(i) == DbfTableModel.TYPE_NUMERIC) {
+        if (getModel().getDecimalCount(i) > 0) {
+          sql.append(JDBCUtils.getDouble(cell));
+        } else {
+          sql.append(JDBCUtils.getInt(cell));
+        }
+      } else {
+        sql.append('\'').append(cell.toString().replace("'", "''")).append('\'');
+      }
+    }
+    sql.append(" WHERE ")
+        .append(JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM))
+        .append('=')
+        .append(JDBCUtils.getInt(getModel().getValueAt(row, NodusC.DBF_IDX_NUM)));
+    if (!executeEditSql(sql.toString())) {
+      return false;
+    }
+    getEsriGraphicList().setOMGraphicAt(graphic, row);
+    for (int i = 0; i < record.size(); i++) {
+      getModel().setValueAt(record.get(i), row, i);
+    }
+    updateNumIndex();
+    attachStyle(graphic, row);
+    setDirtyShp(true);
+    dirtyDbf = true;
+    return true;
+  }
+
+  /** Reports a failed network edit. Tests can capture the error without opening a dialog. */
+  protected void reportEditError(Exception error) {
+    JOptionPane.showMessageDialog(
+        null,
+        error.toString(),
+        i18n.get(NodusEsriLayer.class, "SQL_error", "SQL error"),
+        JOptionPane.ERROR_MESSAGE);
   }
 
   /**
@@ -1382,16 +1487,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     EsriGraphicList list = getEsriGraphicList();
 
     synchronized (list) {
-      hiddenByFilter.remove(list.getOMGraphicAt(index));
-      list.remove(index);
-
-      // Find 'num' field value for this index
       int num = JDBCUtils.getInt(getModel().getValueAt(index, NodusC.DBF_IDX_NUM));
-
-      getModel().remove(index);
-
-      // removeNumIndex(num);
-      updateNumIndex();
 
       String sqlStmt =
           "DELETE FROM "
@@ -1400,7 +1496,13 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
               + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
               + " = "
               + num;
-      executeUpdateSqlStmt(sqlStmt);
+      if (!executeEditSql(sqlStmt)) {
+        return;
+      }
+      hiddenByFilter.remove(list.getOMGraphicAt(index));
+      list.remove(index);
+      getModel().remove(index);
+      updateNumIndex();
       setDirtyShp(true);
       dirtyDbf = true;
     }

@@ -51,6 +51,7 @@ import java.awt.event.MouseEvent;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Savepoint;
+import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -600,6 +601,7 @@ public class ServiceHandler {
       }
       route.clear();
       route.addAll(replacement);
+      mustBeSaved();
     }
   }
 
@@ -1043,23 +1045,29 @@ public class ServiceHandler {
     serviceStopsTableName = null;
   }
 
-  /** Saves the services in the database. */
+  /** Saves the services in the database without discarding the last saved rows on failure. */
   private boolean saveServices() {
     Savepoint savepoint = null;
-
+    boolean restoreAutoCommit = false;
+    Exception failure = null;
     try {
       jdbcConnection = nodusProject.getMainJDBCConnection();
       if (jdbcConnection == null) {
         return false;
       }
 
-      // Create new tables if needed
-      resetServicesTables();
-
-      // HSQLDB invalidates savepoints when resetServicesTables() drops/recreates the tables.
-      // Protect only the following data insertion phase.
-      if (!jdbcConnection.getAutoCommit()) {
-        savepoint = jdbcConnection.setSavepoint();
+      // Schema creation/migration can commit on some engines; ordinary saves perform only DML.
+      prepareServicesTables(false);
+      if (jdbcConnection.getAutoCommit()) {
+        jdbcConnection.setAutoCommit(false);
+        restoreAutoCommit = true;
+      }
+      savepoint = jdbcConnection.setSavepoint();
+      try (Statement statement = jdbcConnection.createStatement()) {
+        for (String table : new String[] {
+            servicesLinksTableName, serviceStopsTableName, servicesHeaderTableName}) {
+          statement.executeUpdate("DELETE FROM " + JDBCUtils.getQuotedCompliantIdentifier(table));
+        }
       }
 
       Map<String, TransportService> servicesToSave = new TreeMap<>();
@@ -1079,25 +1087,36 @@ public class ServiceHandler {
           graphic -> getOMGraphicID(graphic, TYPE_LINK),
           JDBCUtils.hasBatchSupport(),
           maxBatchSize);
-
-      if (!jdbcConnection.getAutoCommit()) {
-        jdbcConnection.commit();
-      }
-      return true;
+      jdbcConnection.commit();
     } catch (Exception ex) {
-      if (jdbcConnection != null) {
+      failure = ex;
+      if (jdbcConnection != null && savepoint != null) {
         try {
-          if (!jdbcConnection.getAutoCommit() && savepoint != null) {
-            jdbcConnection.rollback(savepoint);
-          }
+          jdbcConnection.rollback(savepoint);
         } catch (SQLException rollbackEx) {
-          rollbackEx.printStackTrace();
+          // Restoring auto-commit here could commit a partially replaced service set.
+          restoreAutoCommit = false;
+          failure.addSuppressed(rollbackEx);
         }
       }
-
-      JOptionPane.showMessageDialog(null, ex.toString(), "SQL error", JOptionPane.ERROR_MESSAGE);
+    } finally {
+      if (restoreAutoCommit) {
+        try {
+          jdbcConnection.setAutoCommit(true);
+        } catch (SQLException restoreEx) {
+          if (failure == null) {
+            failure = restoreEx;
+          } else {
+            failure.addSuppressed(restoreEx);
+          }
+        }
+      }
+    }
+    if (failure != null) {
+      reportDatabaseError(failure);
       return false;
     }
+    return true;
   }
 
   /**
@@ -2597,8 +2616,38 @@ public class ServiceHandler {
       }
 
     } catch (Exception ex) {
-      JOptionPane.showMessageDialog(null, ex.getMessage(), "SQL error", JOptionPane.ERROR_MESSAGE);
+      reportDatabaseError(ex);
     }
+  }
+
+  /**
+   * Presents a service persistence error.
+   *
+   * @param error Database or service loading failure.
+   */
+  protected void reportDatabaseError(Exception error) {
+    JOptionPane.showMessageDialog(null, error.toString(), "SQL error", JOptionPane.ERROR_MESSAGE);
+  }
+
+  /**
+   * Asks whether invalid loaded services should be deleted.
+   *
+   * @param details Descriptions of the invalid service lines.
+   * @return True if deletion was requested.
+   */
+  protected boolean confirmInvalidServicesDeletion(String details) {
+    return JOptionPane.showConfirmDialog(
+            nodusProject.getMainFrame(),
+            MessageFormat.format(
+                i18n.get(
+                    ServiceHandler.class,
+                    "InvalidLine_Delete_question",
+                    "The following service lines are invalid:\n\n{0}\nDelete them from the"
+                        + " database tables?"),
+                details),
+            NodusC.APPNAME,
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION;
   }
 
   /** Warns the user about invalid services loaded from the database. */
@@ -2633,21 +2682,7 @@ public class ServiceHandler {
       return;
     }
 
-    int answer =
-        JOptionPane.showConfirmDialog(
-            nodusProject.getMainFrame(),
-            MessageFormat.format(
-                i18n.get(
-                    ServiceHandler.class,
-                    "InvalidLine_Delete_question",
-                    "The following service lines are invalid:\n\n{0}\nDelete them from the"
-                        + " database tables?"),
-                invalidServices.toString()),
-            NodusC.APPNAME,
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.WARNING_MESSAGE);
-
-    if (answer == JOptionPane.YES_OPTION) {
+    if (confirmInvalidServicesDeletion(invalidServices.toString())) {
       Iterator<String> invalidServiceNameIterator = invalidServiceNames.iterator();
       while (invalidServiceNameIterator.hasNext()) {
         services.remove(invalidServiceNameIterator.next());
@@ -3029,7 +3064,15 @@ public class ServiceHandler {
 
   /** Prepares empty header/detail database tables to store the services. */
   public void resetServicesTables() {
+    try {
+      prepareServicesTables(true);
+    } catch (SQLException ex) {
+      reportDatabaseError(ex);
+    }
+  }
 
+  /** Creates missing tables, preserving existing rows until the replacement transaction starts. */
+  private void prepareServicesTables(boolean reset) throws SQLException {
     // Create header tables
     JDBCField[] fields = new JDBCField[5];
     fields[0] = new JDBCField(NodusC.DBF_ID, "NUMERIC(4,0)");
@@ -3038,20 +3081,38 @@ public class ServiceHandler {
     fields[3] = new JDBCField(NodusC.DBF_MEANS, "NUMERIC(2,0)");
     fields[4] = new JDBCField(NodusC.DBF_FREQUENCY, "NUMERIC(5,0)");
     // fields[5] = new JDBCField(NodusC.DBF_DESCRIPTION, "VARCHAR(30)");
-    JDBCUtils.createTable(servicesHeaderTableName, fields);
+    prepareServiceTable(servicesHeaderTableName, fields, reset);
 
     // Create details table
     fields = new JDBCField[3];
     fields[0] = new JDBCField(NodusC.DBF_ID, "NUMERIC(4,0)");
     fields[1] = new JDBCField(NodusC.DBF_PATH_INDEX, "NUMERIC(8,0)");
     fields[2] = new JDBCField(NodusC.DBF_LINK, "NUMERIC(10,0)");
-    JDBCUtils.createTable(servicesLinksTableName, fields);
+    prepareServiceTable(servicesLinksTableName, fields, reset);
 
     // Create details table
     fields = new JDBCField[2];
     fields[0] = new JDBCField(NodusC.DBF_ID, "NUMERIC(4,0)");
     fields[1] = new JDBCField(NodusC.DBF_STOP, "NUMERIC(10,0)");
-    JDBCUtils.createTable(serviceStopsTableName, fields);
+    prepareServiceTable(serviceStopsTableName, fields, reset);
+
+    // Legacy services had no route-position column. Add it without dropping their saved links.
+    if (!JDBCUtils.hasField(servicesLinksTableName, NodusC.DBF_PATH_INDEX)) {
+      try (Statement statement = nodusProject.getMainJDBCConnection().createStatement()) {
+        statement.executeUpdate(
+            "ALTER TABLE " + JDBCUtils.getQuotedCompliantIdentifier(servicesLinksTableName)
+                + " ADD " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_PATH_INDEX)
+                + " NUMERIC(8,0)");
+      }
+    }
+  }
+
+  /** Creates a service table only when missing, or when explicitly asked to reset it. */
+  private void prepareServiceTable(String name, JDBCField[] fields, boolean reset)
+      throws SQLException {
+    if ((reset || !JDBCUtils.tableExists(name)) && !JDBCUtils.createTable(name, fields)) {
+      throw new SQLException("Could not create service table " + name);
+    }
   }
 
   /**

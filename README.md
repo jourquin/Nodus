@@ -2,22 +2,22 @@
 
 
 Nodus is a transportation network modeling software especially designed for multimodal and
-intermodal freight transport. It is developed at the Center for Operations Research and 
+intermodal freight transport. It is developed at the Center for Operations Research and
 Econometrics ([CORE](https://www.uclouvain.be/en/research-institutes/lidam/core)) of the Université catholique de Louvain
-([UCLouvain](https://uclouvain.be/en/index.html), Belgium). The software is developed  and maintained mainly by 
-[Pr Bart Jourquin](https://www.uclouvain.be/fr/people/bart.jourquin). 
-  
-Beside this [GitHib Pages website](http://nodus.uclouvain.be), the **Nodus installer and sources can be downloaded from** 
+([UCLouvain](https://uclouvain.be/en/index.html), Belgium). The software is developed  and maintained mainly by
+[Pr Bart Jourquin](https://www.uclouvain.be/fr/people/bart.jourquin).
+
+Beside this [GitHub Pages website](http://nodus.uclouvain.be), the **Nodus installer and sources can be downloaded from**
 [GitHub](https://github.com/jourquin/Nodus/releases).
 
 ## Introduction
 
-Nodus ([Screenshots](https://nodus.uclouvain.be/doc/images/screenshots.html)) 
-implements the "Virtual networks" methodology developed at UCLouvain, an alternative to the classical "four steps" 
-technique to model multimodal and intermodal transport flows over networks, as it combines the "modal choice" 
+Nodus ([Screenshots](https://nodus.uclouvain.be/doc/images/screenshots.html))
+implements the "Virtual networks" methodology developed at UCLouvain, an alternative to the classical "four steps"
+technique to model multimodal and intermodal transport flows over networks, as it combines the "modal choice"
 and "assignment" phases of the latter in a single step.
 
-This methodology has already led to numerous policy-oriented studies on large scale multimodal 
+This methodology has already led to numerous policy-oriented studies on large scale multimodal
 freight transport networks, such as:
 
 - Regional freight transport planning
@@ -29,31 +29,100 @@ freight transport networks, such as:
 - ...
 
 Numerous scientific articles have been written in which Nodus was used. Most of these papers,
-along with contributions to congresses and seminars can be found on 
+along with contributions to congresses and seminars can be found on
 [Research Gate](https://www.researchgate.net/profile/B_Jourquin).
 
 ## Key features
 
 - Compatible with GIS standards: shape files and web mapping, using [OpenMap](http://openmap-java.org/).
 - Parallelized algorithms: able to handle very large networks.
-- Multi-plaform: Linux-Mac-Windows.
+- Multiplatform: Linux, macOS and Windows.
 - Open API: available through scripting (using the [Groovy](http://groovy-lang.org/) language,
 [Python](https://www.python.org) through a [Py4J](https://www.py4j.org/index.html) bridge or
-[R](https://www.r-project.org) through a [J4R](https://sourceforge.net/p/repiceasource/wiki/J4R/) bridge) 
+[R](https://www.r-project.org) through a [J4R](https://sourceforge.net/p/repiceasource/wiki/J4R/) bridge)
 or plugins (in Java jar files).
 - JDBC: compatible with most DBMS’s. Shipped with [HSQLDB](http://hsqldb.org/),
-[H2](http://h2database.com/) and [Apache Derby](https://db.apache.org/derby/).  
+[H2](http://h2database.com/) and [Apache Derby](https://db.apache.org/derby/).
 - Flexible: user defined database fields, variables, cost functions, mode choice models…
 
 See also the [documentation](https://nodus.uclouvain.be/doc/help.html) and
 the [Demo project](https://github.com/jourquin/Nodus/blob/master/demo).
+
+## Install and use
+
+Download the [Nodus installer](https://github.com/jourquin/Nodus/releases).
+Nodus requires Java 11 or later (a full JRE or JDK, not a headless installation).
+Depending on your system, double-click `Nodus8-install.jar` or run it from a terminal:
+
+```sh
+java -jar Nodus8-install.jar
+```
+
+Once installed, launch Nodus using:
+
+- `nodus8.sh` on Linux
+- `Nodus8.app` or `nodus8.sh` on macOS
+- The `Nodus 8` shortcut or `nodus8.bat` on Windows
+
+The software has a modern and integrated user-friendly GUI. Complete reference and user guides
+are not available, but the API is fully documented.
+A documented sample Nodus project can be found in the "[demo](https://github.com/jourquin/Nodus/blob/master/demo)" directory.
+
+> **Note on JDK**: Nodus is very demanding in terms of computing resources, especially when it comes to assignment. Experience
+shows that the choice of the JDK used can have a significant impact on calculation times. On average,
+[GraalVM](https://www.graalvm.org) performs an assignment 25% faster than a “classic” OpenJDK virtual machine.
+
+> **Note for macOS users**: recent releases of macOS (Catalina and later) introduce more security controls via Gatekeeper. MacOS may complain
+> about the fact that the "Nodus8-install.jar" is not developed by
+> a recognized developer. A simple workaround is to run the installer from a terminal
+> (``java -jar Nodus8-install.jar``). Moreover, if you want to use
+> Nodus projects that are stored in "special" folders, such as the Desktop for instance,
+> **full disk access must be granted to the /bin/sh shell** at the OS level
+> (add entry in Preferences > Security & Privacy > Privacy > Full Disk Access).
+
+Nodus selects default memory limits at launch. For larger projects or custom JVM settings,
+see [memory allocation in the advanced guide](ADVANCED.md#memory-allocation).
+
+## Build from sources
+
+You need a Java Development Kit (JDK) version 11 or later and a full
+[Apache Ant](https://ant.apache.org/) 1.10.6+ installation, including
+`ant-junitlauncher.jar` in Ant's `lib` directory. Set `JAVA_HOME` to your JDK
+and make sure `ant` is on your system path.
+
+Fetch the Nodus sources, open a terminal in the project root, and run:
+
+```sh
+ant Installer
+```
+
+This compiles the application and runs the full test suite first. A compilation error,
+test failure or test execution error aborts the build. If the tests pass, Ant generates
+the API Javadoc and packages the installer jar file.
+
+To compile and package only the main `nodus8.jar`, run:
+
+```sh
+ant Jar
+```
+
+This is useful for source changes that do not change the external libraries.
+To run the tests separately, use `ant Test`.
+
+You can also import Nodus as an [Eclipse](https://www.eclipse.org/) project.
+See the [test guide](test/README.md) for Ant and Eclipse test setup.
+
+## Advanced use and development
+
+The [advanced guide](ADVANCED.md) covers memory and JVM options, public `NodusC.java`
+settings for Groovy scripts, assignment timing diagnostics, testing and developer tools.
 
 ## History of the releases
 
 - 7.0 - November 2017: First open source version of Nodus.
 - 7.1 - November 2018: Upgrade to Groovy 2.5.x.
 - 7.2 - February 2020: Upgrade to Groovy 3.x.
-- 8.0 - February 2021: Introduce time functions (in addition to cost functions). Simplified API for modal-choice plugins. 
+- 8.0 - February 2021: Introduce time functions (in addition to cost functions). Simplified API for modal-choice plugins.
 Many under the hood improvements.
 - 8.1 - April 2021: Runs on Java 16 and allows Python scripting through a Py4J bridge and R scripting through a J4R bridge in addition to Groovy.
 - 8.2 - February 2022: Tested on Java 17, but now needs Java 11 or above to run. Runs HSQLDB, H2 and Derby in server mode to allow for
@@ -61,197 +130,30 @@ external connections. Upgrade to Groovy 4.
 - 8.3 - November 2025: Tested with Java 25, but still runs on Java 11 and Groovy is upgraded to version 5.
 - 8.4 - June 2026: The Frank-Wolfe based algorithms are reintroduced. Major code refactoring with a focus on code robustness.
 - 8.5 - September 2026: Lines & services are reintroduced with a completely redesigned workflow based on Virtual Network Version 4.
-- 8.6 - October 2026 is a performance-focused release, highlighting faster assignments (at least four times faster on a set of selected projects), 
+- 8.6 - October 2026 is a performance-focused release, highlighting faster assignments (at least four times faster on a set of selected projects),
 more responsive map navigation and faster database operations. From the developers' perspective, a series of unit tests have been added
-with an automatic continuous integration workflow.  
+with an automatic continuous integration workflow.
 
 
 See the [change log](changelog.md) for a detailed build history.
 
-## Install and use
-
-Download the [Nodus installer](https://github.com/jourquin/Nodus/releases).
-As the software is written in the [Java](https://java.com/en/download/) programming language, the 
-latest must be installed on your computer. Since version 8.2, Nodus needs Java 11 (full JRE/JDK, not headless) or later. Depending on your system, either (double) click
-on "Nodus8-install.jar" or run "java -jar Nodus8-install.jar" from your shell console.
-
-Once installed, Nodus can be launched using
-- "nodus8.sh" on Linux
-- "Nodus8.app" or "nodus8.sh" on macOS
-- "Nodus 8" shortcut or "nodus8.bat" on Windows
-
-The software has a modern and integrated user-friendly GUI. Complete reference and user guides
-are not available, but the API is fully documented. 
-A documented sample Nodus project can be found in the "[demo](https://github.com/jourquin/Nodus/blob/master/demo)" directory. 
-
-> **Note on JDK**: Nodus is very demanding in terms of computing resources, especially when it comes to assignment. Experience
-shows that the choice of the JDK used can have a significant impact on calculation times. On average, 
-[GraalVM](https://www.graalvm.org) performs an assignment 25% faster than a “classic” OpenJDK virtual machine.  
-
-> **Note for macOS users**: recent releases of macOS (Catalina and later) introduce more security controls via Gatekeeper. MacOS may complain 
-> about the fact that the "Nodus8-installer.jar" is not developed by
-> a recognized developer. A simple workaround is to run the installer from a terminal 
-> (``java -jar Nodus8-Installer.jar``). Moreover, if you want to use
-> Nodus projects that are stored in "special" folders, such as the Desktop for instance, 
-> **full disk access must be granted to the /bin/sh shell** at the OS level 
-> (add entry in Preferences > Security & Privacy > Privacy > Full Disk Access).
-
-## Memory allocation
-
-Nodus is written in Java. Therefore, it uses the memory allocation system provided by the Java Virtual Machine (JVM). 
-In particular, the maximum memory allocated to the software must be defined by the user if the default
-values are not appropriate. This can be set using the -Xms and -Xmx command line parameters 
-passed to the JVM. Please refer to the JVM documentation for a detailed information on these switches. 
-
-By default, Nodus uses the following strategy:
-- If the physical memory of the computer it runs on is at most 4Go large, no -Xms (minimum heap) value is set. 
-Otherwise it is set to 2Go.
-- The maximum heap that can be claimed for (-Xmx) is set to 50% of the physical memory, with a maximum 
-of 6Go.
-- If Nodus runs on a 32bits JVM (not recommended), -Xmx is limited to 1.4Gb and -Xms is not set.
-
-These values are stored in "jvmargs.sh" or "jvmargs.bat", a file created in the installation directory by
-Nodus at launch time if it doesn't exist yet. This file can be edited if other values (or even other JVM parameters)
-are desired.
-
-Since Nodus 8.4, version-dependent JVM parameters are also added dynamically in this file. This includes,
-since Nodus 8.6, `--illegal-access=deny` with Java 9 to 16, and `--enable-native-access=ALL-UNNAMED` with Java 24
-or later to enable native access for classpath libraries used by Nodus. With Java 24 or later, 
-the `sun.misc.Unsafe` warning policy is also set explicitly for compatibility
-with libraries that still use deprecated memory-access methods.
-
-Older releases could save `--illegal-access` permanently in a single-line `JVMARGS`
-assignment. `SetJVMArgs` now upgrades these legacy files automatically, keeping custom
-heap sizes and other arguments, and saving the original as `jvmargs.sh.bak` or
-`jvmargs.bat.bak`. The replacement selects its flags at each launch, so Java 17 and
-later (including Java 27) receive no `--illegal-access` option. Existing multi-line
-scripts and assignments containing custom shell commands or variable expansion are
-left intact; remove an unconditional obsolete option manually in those files.
-   
-## License
-
-You can redistribute it and/or modify Nodus 8.x under the terms of the GNU General Public License 
-as published by the Free Software Foundation, either [version 3](https://www.gnu.org/licenses/gpl-3.0.html)
-of the License, or (at your option) any later version. 
-
-Note that the NODUS name and logo are trademarks of UCLouvain and are **not** covered by the GPL license. 
-Use of the trademark is governed by this [Trademark Policy](https://github.com/jourquin/Nodus/blob/master/Trademark%20Policy.md).
-
-## Build from sources
-
-The Nodus distribution can be built from the sources. Therefore, you need a Java Development Kit 
-([JDK version 11](http://www.oracle.com/technetwork/java/javase/downloads/index.html)) or above. 
-You also need Apache [Ant](http://ant.apache.org/). Be sure JAVA_HOME points to your JDK and 
-that ant is in your OS path.
-
-Once the GitHib Nodus sources fetched, open a terminal and go to the root of the project. Type:
-
-```
-ant Installer
-```
-This will compile the project, generate the JavaDoc for the API and bundle all what is needed into 
-the installer jar file.
-
-It is also possible to only compile the main nodus8.jar using:
- 
-```
-ant Jar
-```
-This can be useful for instance when some bugs have been fixed in the source tree or some new
-enhancements have been introduced without any change in the used external libraries.
-
-You can also import Nodus as an [Eclipse](http://www.eclipse.org/) project.
-
-## Code robustness
-
-Run the Java tests with JDK 11 or later and Apache Ant 1.10.6 or later:
-
-```sh
-ant -f build-tests.xml
-```
-
-This compiles the application and runs the JUnit 5 tests in `test/` without opening the GUI
-or loading a project database. The suite covers shortest paths (Dijkstra and A*,
-linked and compact graphs), repeated searches, cost-expression caching, modal shares,
-path cost/duration totals, flow distribution, multi-flow edge updates, demand aggregation
-and relocation, node rules, vehicle characteristics, Abraham modal shares, service edits,
-and assignment-worker cancellation. Database
-integration tests use private in-memory H2 databases to check buffered path output,
-concurrent writes, and failure handling. OpenMap tests also cover layer SQL/DBF synchronization,
-identifier consistency during edits, temporary shapefile round trips, filters and result styles.
-A failing test makes the command fail.
-
-Text and XML reports are written to `test-build/reports/`. Test classes are kept separate
-from application classes and are not included in `nodus8.jar`. Run a single test class with,
-for example, `ant -f build-tests.xml '-Dtest.includes=**/CostExpressionCacheTest.class' Test`,
-or use `ant -f build-tests.xml CleanTests` to remove test output. In Eclipse, refresh the
-project and use
-**Run As > JUnit Test** on the `test` source folder or an individual test class.
-To use Ant inside Eclipse, right-click `build-tests.xml` and choose **Run As > Ant Build**;
-its default target runs the tests. The `Test` target in `build-user.xml` forwards to this file.
-See [test/README.md](test/README.md) for setup details and guidelines for adding tests.
-
-[GitHub Actions](.github/workflows/tests.yml) runs the full suite on Java 11 and 25
-for pushes and pull requests, and saves the test reports as downloadable artifacts.
-See [the CI instructions](test/README.md#continuous-integration-on-github) for activation
-and required status checks.
-
-The [Checkstyle](https://checkstyle.org) and [SpotBugs](https://spotbugs.github.io) plugins are used in Eclipse 
-in order to write code that adheres to the Google Java coding standard and to look for bugs in Java code.
-
-Since Nodus 8.4, OpenAI [Codex](https://github.com/openai/codex) is used to detect potential bugs in the code. 
-It was further used to optimize some algorithms and create unit tests.  
-   
-## Assignment information dialogs
-
-Informational assignment completion dialogs are enabled by default. To disable them for
-the current Nodus session, add this to the startup `nodus.groovy` script or run it from Groovy:
-
-```groovy
-edu.uclouvain.core.nodus.NodusC.displayAssignmentInformationDialogs = false
-```
-
-Set it back to `true` to restore the dialogs. The setting is read when an assignment finishes;
-it does not change calculations, saved results or completion metadata. Errors and warnings,
-including reaching the maximum iteration count without convergence, remain visible.
-
-## Assignment runtime audit
-
-Set `NodusC.displayComputingTimes = true` to print a timing summary to standard output for each
-assignment. The switch defaults to `false` and is sampled at the beginning of `Assignment.run()`.
-It can also be enabled from a Groovy script before running assignments:
-
-```groovy
-edu.uclouvain.core.nodus.NodusC.displayComputingTimes = true
-```
-
-The summary identifies the algorithm, scenario, configured thread count and completion status,
-and reports seconds for:
-
-- Total elapsed computation and saving, including final path batches, indexes and commits.
-- Virtual-network initialization and generation.
-- Cost and duration evaluation, including parser initialization, all iterations, OD classes,
-  time slices and Frank–Wolfe line-search evaluations.
-- Paths and flow assignment: elapsed wall time across active workers, plus summed worker time
-  excluding their database writer calls. This includes graph preparation, path reconstruction,
-  modal split and flow updates.
-- Database output: writer time for table creation, row preparation, path batches, equilibrium
-  path updates, virtual-network results, indexes and commits.
-
-Path writes overlap the parallel assignment phase, so the reported rows must not be added together.
-Summed worker time can exceed total elapsed time and includes waiting for the writer lock; it is
-not CPU time. Total elapsed time also includes unlisted work such as loading demand and converting
-volumes to vehicles. Completion dialogs and post-assignment scripts are excluded. Failed or
-cancelled runs print a partial audit, excluding subsequent failure cleanup.
-
 ## Uninstall
 
 The software doesn't modify the "registry" of any supported OS (Mac OS, Linux or Windows). Just
-delete the installation directory to remove the software from your system.  
+delete the installation directory to remove the software from your system.
 
-You can also delete the small ".nodus8.properties" file that is located at the root of your "home" dir.   
+You can also delete the small ".nodus8.properties" file that is located at the root of your "home" dir.
+
+## License
+
+You can redistribute it and/or modify Nodus 8.x under the terms of the GNU General Public License
+as published by the Free Software Foundation, either [version 3](https://www.gnu.org/licenses/gpl-3.0.html)
+of the License, or (at your option) any later version.
+
+Note that the NODUS name and logo are trademarks of UCLouvain and are **not** covered by the GPL license.
+Use of the trademark is governed by this [Trademark Policy](https://github.com/jourquin/Nodus/blob/master/Trademark%20Policy.md).
 
 ## How to cite?
 
-Jourquin, Bart. (2026) Nodus, the Transportation Network Modeling Software Designed for Multimodal and Intermodal 
+Jourquin, Bart. (2026) Nodus, the Transportation Network Modeling Software Designed for Multimodal and Intermodal
 Freight Transport. http://nodus.uclouvain.be. [DOI 10.5281/zenodo.21336779](https://doi.org/10.5281/zenodo.21336779).

@@ -57,22 +57,35 @@ import java.util.UUID;
 
 /** Temporary two-layer network using real shapefile loading, editing and service membership. */
 public final class NetworkTestProject extends NodusProject implements AutoCloseable {
-  public final TestLayer nodes;
-  public final TestLayer links;
+  public TestLayer nodes;
+  public TestLayer links;
   public final Panel panel = new Panel(this);
+  public boolean captureServiceErrors;
+  public final List<Exception> serviceErrors = new ArrayList<>();
   public boolean otherObjectsLoaded = true;
   private final java.util.logging.Logger previousLogger = Nodus.nodusLogger;
   private final Properties properties = new Properties();
   private final Connection connection;
+  private final boolean hsql;
   private final NodusOMGraphic style = new NodusOMGraphic();
-  private final ServiceHandler services;
+  private ServiceHandler services;
 
   /** Creates nodes 1 and 2 and link 11, with editable numeric and text attributes. */
   public NetworkTestProject(Path directory, double[] coordinates) throws Exception {
+    this(directory, coordinates, false);
+  }
+
+  /** Selects HSQLDB for checks against the database engine used by local Nodus projects. */
+  public NetworkTestProject(Path directory, double[] coordinates, boolean hsql) throws Exception {
     super(null);
+    this.hsql = hsql;
     Nodus.nodusLogger = java.util.logging.Logger.getAnonymousLogger();
     Nodus.nodusLogger.setUseParentHandlers(false);
-    connection = DriverManager.getConnection("jdbc:h2:mem:network_" + UUID.randomUUID(), "sa", "");
+    connection =
+        DriverManager.getConnection(
+            (hsql ? "jdbc:hsqldb:mem:network_" : "jdbc:h2:mem:network_") + UUID.randomUUID(),
+            "sa",
+            "");
     assertTrue(JDBCUtils.setConnection(connection));
     properties.setProperty(NodusC.PROP_PROJECT_DOTPATH, directory + File.separator);
     properties.setProperty(NodusC.PROP_PROJECT_DOTNAME, "network");
@@ -106,7 +119,7 @@ public final class NetworkTestProject extends NodusProject implements AutoClosea
         new EsriPolyline(
             coordinates.clone(), OMGraphic.DECIMAL_DEGREES, OMGraphic.LINETYPE_STRAIGHT));
     links = load(directory, "links", linkModel, lines);
-    services = new ServiceHandler(this, false);
+    services = newServiceHandler();
   }
 
   private TestLayer load(Path directory, String name, DbfTableModel model, EsriGraphicList graphics)
@@ -118,12 +131,44 @@ public final class NetworkTestProject extends NodusProject implements AutoClosea
       new ShxOutputStream(shx).writeIndex(index, graphics.getType());
     }
     assertTrue(ExportDBF.exportTable(this, name + ".dbf", model));
+    return openLayer(name);
+  }
+
+  private TestLayer openLayer(String name) {
     TestLayer layer = new TestLayer();
     layer.setName(name);
     layer.setProject(this, name);
     layer.setProjection(panel.map.getProjection());
     layer.setVisible(true);
     return layer;
+  }
+
+  /** Reloads saved shapefiles and service tables into fresh layer and service objects. */
+  public void reloadNetwork() {
+    services.dispose();
+    nodes.dispose();
+    links.dispose();
+    nodes = openLayer("nodes");
+    links = openLayer("links");
+    services = newServiceHandler();
+  }
+
+  /** Creates a service manager whose database errors can be asserted without dialogs. */
+  public ServiceHandler newServiceHandler() {
+    return new ServiceHandler(this, false) {
+      @Override
+      protected void reportDatabaseError(Exception error) {
+        if (!captureServiceErrors) {
+          throw new AssertionError("Unexpected service database error", error);
+        }
+        serviceErrors.add(error);
+      }
+
+      @Override
+      protected boolean confirmInvalidServicesDeletion(String details) {
+        throw new AssertionError("Unexpected invalid services: " + details);
+      }
+    };
   }
 
   private static DbfTableModel model(String... names) {
@@ -229,6 +274,11 @@ public final class NetworkTestProject extends NodusProject implements AutoClosea
     panel.map.dispose();
     JDBCUtils.setConnection(null);
     try {
+      if (hsql) {
+        try (java.sql.Statement statement = connection.createStatement()) {
+          statement.execute("SHUTDOWN");
+        }
+      }
       connection.close();
     } catch (java.sql.SQLException ex) {
       throw new IllegalStateException(ex);
@@ -238,7 +288,14 @@ public final class NetworkTestProject extends NodusProject implements AutoClosea
   /** Keeps editing/storage real while replacing the attribute editor and repaint callbacks. */
   public static final class TestLayer extends NodusEsriLayer {
     private static final long serialVersionUID = 1L;
+    public final List<Exception> editErrors = new ArrayList<>();
     public boolean acceptNode = true;
+
+    @Override
+    protected void reportEditError(Exception error) {
+      editErrors.add(error);
+    }
+
     public boolean ready = true;
 
     @Override

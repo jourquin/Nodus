@@ -16,11 +16,12 @@ Jupiter in a separate JVM with `java.awt.headless=true`.
 
 The suite includes unit tests, database tests and complete assignment integration tests.
 No project data, external database, network access, or graphical desktop is needed. Database tests
-create a fresh H2 database in memory for each test and close it afterwards.
+create private in-memory databases and close them afterwards. Most use H2; service
+persistence failure/retry and legacy-schema checks also run against HSQLDB.
 File import/export tests use JUnit temporary directories, which are removed after
 the tests. They never read or overwrite files in an existing Nodus project.
 Dependencies are included in the repository: JUnit 5 and OpenTest4J under
-`lib/groovy/`, API Guardian under `devtools/junit/`, and H2 under `lib/`.
+`lib/groovy/`, API Guardian under `devtools/junit/`, and H2/HSQLDB under `lib/`.
 
 For a clean application rebuild followed by the tests:
 
@@ -158,13 +159,33 @@ for the workflow mechanism.
   label-generation and refresh code and only the final repaint callback replaced.
 - `InsertedPointTest`: independently known projections onto horizontal, vertical and diagonal
   segments, reversed endpoints, clicks beyond or exactly at endpoints, and zero-length segments.
+- `NetworkEditFailureTest`: rejected node, link and complete-record insertions, plus failures
+  creating a split node, inserting the second fragment or updating the original link. Real H2
+  and HSQLDB constraints trigger the errors. Checks SQL rows, geometry, DBF attributes, IDs,
+  dirty flags, service routes and stops, successful retries, restored auto-commit mode and
+  preservation of earlier uncommitted work. Expected error reports are captured without dialogs.
 - `NodusLinkSplittingTest`: real drawing-tool splits using temporary shapefiles, H2 tables and
   the service handler. Checks the nearest segment on folded lines, vertical lines, repeated
   vertices, coordinate precision, fragment endpoints, node/link IDs, copied DBF attributes and
   service membership. Service routes must replace the old geometry and preserve repeated and
   reverse traversals without adding stops. Endpoint clicks, degenerate lines and rejected node
-  creation must leave the network unchanged. The fixture replaces the attribute-editor dialog
-  and repaint callbacks; mouse interaction is not simulated.
+  creation must leave the network unchanged. Also saves split layers and services and reloads
+  them into fresh objects, checking attributes, geometry, stops, service frequency and ordered
+  occurrences, including a repeated dead-end branch. Splitting must mark the services for saving.
+  The fixture replaces the attribute-editor dialog and repaint callbacks; mouse interaction
+  is not simulated.
+- `DisplaySpatialIndexTest`: tree and linear queries checked against explicit geographic cases
+  and 100 seeded queries over 257 independently described bounding boxes. Covers strict viewport
+  boundaries, lines crossing the viewport with both endpoints outside, source drawing order,
+  wrapped date-line queries without duplicate results, multipart identity, empty/coincident
+  features and rebuilt indexes after coordinate edits, including cached multipart extents.
+- `FastEsriLayerCacheTest`: real synchronous preparation across pan, zoom, resize, style changes,
+  geometry movement/replacement, membership changes and source replacement. Checks that an edit
+  or disposal during index construction prevents publishing stale results. These deterministic
+  interleavings do not simulate arbitrary concurrent Swing activity.
+- `NodusEsriLayerSpatialIndexTest`: real point/link layer insertion, movement and deletion must
+  refresh viewport selection through the normal editing/dirty-state methods, without the test
+  calling spatial-index invalidation directly.
 - `MapPolylineDetailTest`: screen error measured independently against full-detail projections
   in Mercator and Equal Earth, including samples between projected vertices. Checks the 0.75-pixel
   bound (with 0.0001 pixel allowed for float rounding), actual vertex reduction, unchanged source
@@ -181,7 +202,10 @@ for the workflow mechanism.
   and DBF row counts. Valid networks, separate node/link identifier namespaces and the maximum
   integer ID are accepted unchanged. Checks loading readiness and stopping before a queued error
   is displayed. Uses the actual EDT snapshot and validation paths, with an explicit run instead
-  of a timer and a captured error callback instead of a dialog.
+  of a timer and a captured error callback instead of a dialog. Also checks automatic self-loop
+  removal at the start, middle and end of a layer, consecutive loops, removal of every link,
+  unchanged neighbouring geometry/records and repeated cleanup on H2 and HSQLDB. Closed geometry
+  with distinct endpoint IDs survives. A failed SQL deletion preserves the layer and can be retried.
 - `SetJVMArgsTest`: migration of legacy JVM argument files, preservation of heap and custom
   settings, backups, repeated runs, and leaving current or customized scripts intact. Shell
   execution checks the generated options using simulated Java 11, 16, 17, 25 and 27 version
@@ -202,6 +226,18 @@ for the workflow mechanism.
   choices as congestion changes, conservation, serial/concurrent agreement, repeated runs,
   and equivalence to all-or-nothing assignment when using one increment. Also checks runtime
   Groovy toggling of informational completion dialogs without changing assignment results.
+- `ServiceDatabaseTest`: actual SQL rows and reloads for ordered/repeated links, empty services,
+  authoritative renamed keys, Unicode/quoted names, missing graphics, orphan details, duplicate
+  legacy headers/stops and legacy tables without path indexes. Checks individual writes and
+  batching with several limits, partial final batches, read failure/retry, caller-controlled
+  commit/rollback, and preservation of work preceding a savepoint after failed inserts.
+- `ServiceHandlerPersistenceTest`: the real service-saving workflow replaces names, stops and
+  frequency, avoids duplicate rows on repeated saves, removes deleted services, and never
+  publishes partially loaded services after a read error. Failed replacement/retry tests run
+  on H2 and HSQLDB with auto-commit both enabled and disabled; they assert that previously saved
+  services and earlier pending work survive a failed save, and that connection mode is restored.
+  Legacy path-index migration is checked on both engines. Error callbacks are captured; unexpected
+  persistence errors or invalid-service dialogs fail the fixture immediately.
 - `ServiceRoutingIntegrationTest`: real service SQL definitions through virtual-network
   generation and assignment. Checks ordered links including a repeated-link detour,
   boarding/alighting only at stops, through travel, transfer permissions, and waiting/transfer
@@ -276,15 +312,18 @@ for the workflow mechanism.
   iterators, visibility of stop edits, protected collection views, and clearing cached lookups
   before another project is loaded.
 
-The suite does not yet cover loading complete projects from disk, other database engines,
-or GUI workflows. The assignment fixture supplies in-memory Esri layers and DBF table models.
+The suite does not yet cover loading complete projects from disk, database engines beyond
+H2/HSQLDB, or GUI workflows. The assignment fixture supplies in-memory Esri layers and DBF table models.
 The separate OpenMap layer fixture reads and writes actual temporary point/link shapefiles,
 uses real SQL operations, and replaces only presentation refresh callbacks. Style tests inspect
 graphic attributes; they do not verify pixels, mouse interaction or asynchronous repaint timing.
 Schema-editor window interaction and save/cancel confirmation dialogs remain outside this
 coverage. Splitting tests verify successful edits and rejected node creation; they do not yet
 exercise database write failures halfway through an edit. Integrity tests cover validation,
-but not the timer's polling interval or automatic removal of self-loop links. Concurrency coverage
+but not the timer's polling interval or automatic removal of self-loop links. Service save rollback
+covers row replacement in existing tables; first-time schema creation and legacy schema changes
+can commit on some database engines and are not covered by that transaction guarantee.
+Concurrency coverage
 includes complete assignments with two commodity jobs, path output, and worker cancellation.
 Modal-split calibration and invalid vehicle properties that display dialogs remain outside
 this headless suite. Equilibrium coverage uses small parallel-route reference cases;

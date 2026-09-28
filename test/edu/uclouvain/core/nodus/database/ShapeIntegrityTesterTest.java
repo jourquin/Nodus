@@ -22,19 +22,26 @@
 package edu.uclouvain.core.nodus.database;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.dataAccess.shape.EsriPoint;
+import com.bbn.openmap.dataAccess.shape.EsriPolyline;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
+import com.bbn.openmap.omGraphics.OMGraphic;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.testing.NetworkTestProject;
 import java.nio.file.Path;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import javax.swing.SwingUtilities;
@@ -271,6 +278,157 @@ class ShapeIntegrityTesterTest {
                                   links ? 11 : 1,
                                   links ? "links" : "nodes");
                           assertEquals(List.of(expected), tester.errors);
+                        }
+                      }
+                    }));
+  }
+
+  @TestFactory
+  Stream<DynamicTest> selfLoopCleanupPreservesNeighboursAndCanBeRepeated() {
+    return Stream.of(false, true)
+        .flatMap(
+            hsql ->
+                Stream.of(
+                        List.<Integer>of(),
+                        List.of(11),
+                        List.of(21, 22),
+                        List.of(11, 21, 22, 23),
+                        List.of(11, 23))
+                    .map(
+                        loops ->
+                            DynamicTest.dynamicTest(
+                                (hsql ? "HSQLDB " : "H2 ") + loops,
+                                () -> {
+                                  try (NetworkTestProject p =
+                                          new NetworkTestProject(
+                                              directory, new double[] {0, 0, 0, 10}, hsql);
+                                      Reporter tester = new Reporter(p)) {
+                                    for (int id : new int[] {21, 22, 23}) {
+                                      // Identical geometry endpoints must NOT identify a loop: node
+                                      // IDs decide.
+                                      EsriPolyline line =
+                                          new EsriPolyline(
+                                              new double[] {0, 0, 0, 0},
+                                              OMGraphic.DECIMAL_DEGREES,
+                                              OMGraphic.LINETYPE_STRAIGHT);
+                                      assertTrue(p.links.addRecord(line, id, 1, 2, false));
+                                    }
+                                    for (int id : loops) {
+                                      p.links
+                                          .getModel()
+                                          .setValueAt(
+                                              1.0, p.links.getNumIndex(id), NodusC.DBF_IDX_NODE2);
+                                      try (Statement statement =
+                                          p.getMainJDBCConnection().createStatement()) {
+                                        statement.executeUpdate(
+                                            "UPDATE links SET NODE2=1 WHERE NUM=" + id);
+                                      }
+                                    }
+                                    p.links.setDirtyDbf(false);
+                                    p.links.setDirtyShp(false);
+                                    Map<Integer, Integer> expectedIndex = new LinkedHashMap<>();
+                                    List<OMGraphic> expectedGraphics = new ArrayList<>();
+                                    List<List<Object>> expectedRecords = new ArrayList<>();
+                                    for (int id : new int[] {11, 21, 22, 23}) {
+                                      if (!loops.contains(id)) {
+                                        expectedIndex.put(id, expectedIndex.size());
+                                        int index = p.links.getNumIndex(id);
+                                        expectedGraphics.add(
+                                            p.links.getEsriGraphicList().getOMGraphicAt(index));
+                                        expectedRecords.add(
+                                            new ArrayList<>(p.links.getModel().getRecord(index)));
+                                      }
+                                    }
+                                    for (int pass = 0; pass < 3; pass++) {
+                                      tester.check();
+                                      assertTrue(tester.errors.isEmpty());
+                                      assertEquals(expectedIndex, p.links.getIndex());
+                                      assertEquals(
+                                          expectedRecords.size(), p.links.getModel().getRowCount());
+                                      assertEquals(
+                                          expectedGraphics.size(),
+                                          p.links.getEsriGraphicList().size());
+                                      for (int i = 0; i < expectedRecords.size(); i++) {
+                                        assertEquals(
+                                            expectedRecords.get(i),
+                                            p.links.getModel().getRecord(i));
+                                        assertSame(
+                                            expectedGraphics.get(i),
+                                            p.links.getEsriGraphicList().getOMGraphicAt(i));
+                                      }
+                                      List<Integer> saved = new ArrayList<>();
+                                      try (Statement statement =
+                                              p.getMainJDBCConnection().createStatement();
+                                          ResultSet result =
+                                              statement.executeQuery(
+                                                  "SELECT NUM FROM links ORDER BY NUM")) {
+                                        while (result.next()) {
+                                          saved.add(result.getInt(1));
+                                        }
+                                      }
+                                      assertEquals(new ArrayList<>(expectedIndex.keySet()), saved);
+                                      assertEquals(!loops.isEmpty(), p.links.isDirty());
+                                      assertFalse(p.nodes.isDirty());
+                                      assertEquals(Map.of(1, 0, 2, 1), p.nodes.getIndex());
+                                    }
+                                  }
+                                })));
+  }
+
+  @TestFactory
+  Stream<DynamicTest> failedLoopDeletionLeavesTheLayerIntactAndCanBeRetried() {
+    return Stream.of(false, true)
+        .map(
+            hsql ->
+                DynamicTest.dynamicTest(
+                    hsql ? "HSQLDB delete failure" : "H2 delete failure",
+                    () -> {
+                      try (NetworkTestProject p =
+                              new NetworkTestProject(directory, new double[] {0, 0, 0, 10}, hsql);
+                          Reporter tester = new Reporter(p)) {
+                        p.links.getModel().setValueAt(1.0, 0, NodusC.DBF_IDX_NODE2);
+                        final List<Object> original =
+                            new ArrayList<>(p.links.getModel().getRecord(0));
+                        final OMGraphic graphic = p.links.getEsriGraphicList().getOMGraphicAt(0);
+                        try (Statement statement = p.getMainJDBCConnection().createStatement()) {
+                          statement.executeUpdate("UPDATE links SET NODE2=1");
+                          statement.executeUpdate(
+                              "ALTER TABLE links ADD CONSTRAINT link_id UNIQUE (NUM)");
+                          statement.executeUpdate(
+                              "CREATE TABLE reference_to_link (ID INTEGER REFERENCES links(NUM))");
+                          statement.executeUpdate("INSERT INTO reference_to_link VALUES (11)");
+                        }
+                        tester.check();
+                        assertTrue(tester.errors.isEmpty());
+                        assertEquals(1, p.links.editErrors.size());
+                        assertTrue(
+                            ((java.sql.SQLException) p.links.editErrors.get(0))
+                                .getSQLState()
+                                .startsWith("23"));
+                        assertEquals(Map.of(11, 0), p.links.getIndex());
+                        assertEquals(1, p.links.getModel().getRowCount());
+                        assertEquals(1, p.links.getEsriGraphicList().size());
+                        assertSame(graphic, p.links.getEsriGraphicList().getOMGraphicAt(0));
+                        assertEquals(original, p.links.getModel().getRecord(0));
+                        assertFalse(p.links.isDirty());
+                        try (Statement statement = p.getMainJDBCConnection().createStatement();
+                            ResultSet result = statement.executeQuery("SELECT NUM FROM links")) {
+                          assertTrue(result.next());
+                          assertEquals(11, result.getInt(1));
+                          assertFalse(result.next());
+                        }
+                        try (Statement statement = p.getMainJDBCConnection().createStatement()) {
+                          statement.executeUpdate("DELETE FROM reference_to_link");
+                        }
+                        tester.check();
+                        assertEquals(0, p.links.getModel().getRowCount());
+                        assertEquals(0, p.links.getEsriGraphicList().size());
+                        assertTrue(p.links.getIndex().isEmpty());
+                        assertTrue(p.links.isDirty());
+                        assertEquals(1, p.links.editErrors.size());
+                        try (Statement statement = p.getMainJDBCConnection().createStatement();
+                            ResultSet result = statement.executeQuery("SELECT NUM FROM links")) {
+                          assertFalse(result.next());
                         }
                       }
                     }));

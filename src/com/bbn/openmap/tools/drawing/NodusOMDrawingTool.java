@@ -44,7 +44,11 @@ import java.awt.Toolkit;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.Point2D;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -1556,8 +1560,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
         double candidateX = point.xi;
         double candidateY = point.yi;
         if (!point.inclu) {
-          boolean first = Math.hypot(nodex - x1, nodey - y1)
-              <= Math.hypot(nodex - x2, nodey - y2);
+          boolean first = Math.hypot(nodex - x1, nodey - y1) <= Math.hypot(nodex - x2, nodey - y2);
           candidateX = first ? x1 : x2;
           candidateY = first ? y1 : y2;
         }
@@ -1576,66 +1579,110 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
         lineSplitter.setFlag(false);
         return;
       }
-      int k;
-      // create the new point
-      EsriPoint ep = new EsriPoint(y, x);
-      if (addNode(ep)) {
-
-        if (lineSplitter.getInsertedNode() == 0) {
-          moveLink(pts);
-          lineSplitter.setFlag(false);
+      NodusEsriLayer layer = linksLayers[layerIndex];
+      final int row = layer.getEsriGraphicList().indexOf(omg);
+      final List<Object> original = new ArrayList<>(layer.getModel().getRecord(row));
+      final int originalId = JDBCUtils.getInt(original.get(NodusC.DBF_IDX_NUM));
+      final int origin = JDBCUtils.getInt(original.get(NodusC.DBF_IDX_NODE1));
+      final int destination = JDBCUtils.getInt(original.get(NodusC.DBF_IDX_NODE2));
+      final int newId = nodusMapPanel.getNodusProject().getNewLinkId();
+      final List<NodusEsriLayer.EditState> states = new ArrayList<>();
+      states.add(layer.captureEditState(row));
+      for (NodusEsriLayer nodeLayer : nodesLayers) {
+        states.add(nodeLayer.captureEditState(-1));
+      }
+      Connection connection = nodusMapPanel.getNodusProject().getMainJDBCConnection();
+      boolean autoCommit = false;
+      boolean started = false;
+      boolean completed = false;
+      Savepoint savepoint = null;
+      try {
+        autoCommit = connection.getAutoCommit();
+        if (autoCommit) {
+          connection.setAutoCommit(false);
+        } else {
+          savepoint = connection.setSavepoint();
+        }
+        started = true;
+        if (!addNode(new EsriPoint(y, x)) || lineSplitter.getInsertedNode() == 0) {
           return;
         }
-
-        // the new first link
-        double[] pts1 = new double[cutflag + 3];
-        // the new second link
-
-        int i = 0;
-        // the new points for the first link
-        do {
-          pts1[i] = pts[i];
-          i++;
-
-        } while (i <= cutflag);
-        pts1[i] = y;
-        pts1[i + 1] = x;
-
-        k = 2;
-        // the new points for the second link
-        double[] pts2 = new double[pts.length - cutflag + 1];
-        pts2[0] = y;
-        pts2[1] = x;
-        do {
-          pts2[k] = pts[i];
-          i++;
-          k++;
-        } while (k < pts2.length);
-
-        for (k = 0; k < pts1.length; k++) {
-          pts1[k] = ProjMath.degToRad(pts1[k]);
+        final int inserted = lineSplitter.getInsertedNode();
+        double[] first = new double[cutflag + 3];
+        System.arraycopy(pts, 0, first, 0, cutflag + 1);
+        first[cutflag + 1] = y;
+        first[cutflag + 2] = x;
+        double[] second = new double[pts.length - cutflag + 1];
+        second[0] = y;
+        second[1] = x;
+        System.arraycopy(pts, cutflag + 1, second, 2, second.length - 2);
+        List<Object> firstRecord = new ArrayList<>(original);
+        firstRecord.set(NodusC.DBF_IDX_NODE2, Double.valueOf(inserted));
+        List<Object> secondRecord = new ArrayList<>(original);
+        secondRecord.set(NodusC.DBF_IDX_NUM, Double.valueOf(newId));
+        secondRecord.set(NodusC.DBF_IDX_NODE1, Double.valueOf(inserted));
+        if (!layer.insertRecord(
+                new EsriPolyline(second, DECIMAL_DEGREES, LINETYPE_STRAIGHT), secondRecord)
+            || !layer.replaceRecord(
+                row, new EsriPolyline(first, DECIMAL_DEGREES, LINETYPE_STRAIGHT), firstRecord)) {
+          return;
         }
-        for (k = 0; k < pts2.length; k++) {
-          pts2[k] = ProjMath.degToRad(pts2[k]);
+        if (autoCommit) {
+          connection.commit();
+        } else {
+          connection.releaseSavepoint(savepoint);
         }
-
-        // create the first link
-        moveLink(pts1);
-
-        // create the second link
-        addLink(pts2);
+        completed = true;
+      } catch (SQLException error) {
+        reportSplitError(error);
+      } finally {
+        boolean restored = completed;
+        if (started && !completed) {
+          try {
+            if (autoCommit) {
+              connection.rollback();
+            } else {
+              // HSQLDB invalidates the savepoint when rolling back to it.
+              connection.rollback(savepoint);
+            }
+            restored = true;
+            for (NodusEsriLayer.EditState state : states) {
+              state.restore();
+            }
+          } catch (SQLException error) {
+            reportSplitError(error);
+          }
+        }
+        if (started && autoCommit && restored) {
+          try {
+            connection.setAutoCommit(true);
+          } catch (SQLException error) {
+            reportSplitError(error);
+          }
+        }
+        lineSplitter.setFlag(false);
+        selectedGraphic = null;
+        isMoving = false;
+        for (NodusEsriLayer nodeLayer : nodesLayers) {
+          nodeLayer.attachStyles();
+          nodeLayer.doPrepare();
+        }
+        layer.attachStyles();
+        layer.doPrepare();
       }
-      lineSplitter.setFlag(false);
-
-      for (int i = 0; i < nodesLayers.length; i++) {
-        nodesLayers[i].attachStyles();
-        nodesLayers[i].doPrepare();
-      }
-      for (int i = 0; i < linksLayers.length; i++) {
-        linksLayers[i].attachStyles();
-        linksLayers[i].doPrepare();
+      if (completed) {
+        nodusMapPanel
+            .getNodusProject()
+            .getServiceHandler()
+            .splitServiceLink(omg, originalId, newId, origin, destination);
       }
     }
+  }
+
+  /** Presents transaction errors; individual failed writes are reported by their layer. */
+  protected void reportSplitError(Exception error) {
+    JOptionPane.showMessageDialog(
+        nodusMapPanel, error.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
   }
 
   /** Transfers the given link to a compatible layers, if any. */

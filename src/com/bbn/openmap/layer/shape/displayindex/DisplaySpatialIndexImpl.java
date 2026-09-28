@@ -337,7 +337,25 @@ public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
       ymin = xmin = Double.MAX_VALUE;
       ymax = xmax = Double.MIN_VALUE;
 
-      if (geom instanceof EsriGraphic) {
+      // Shape extents may be cached by OpenMap even after coordinates or child parts are edited.
+      // Read live geometry when building a new index; panning reuses that immutable index.
+      if (geom instanceof OMPoly) {
+        retVal = getLatLonArrDataBounds(((OMPoly) geom).getLatLonArray());
+      } else if (geom instanceof OMGraphicList) {
+        OMGraphicList omgrl = (OMGraphicList) geom;
+        DataBounds ret = null;
+        for (Iterator<?> iter = omgrl.iterator(); iter.hasNext(); ) {
+          if (retVal == null) {
+            retVal = getDataBounds((OMGeometry) iter.next());
+          } else {
+            ret = getDataBounds((OMGeometry) iter.next());
+            if (ret != null) {
+              retVal.add(ret.getMin());
+              retVal.add(ret.getMax());
+            }
+          }
+        }
+      } else if (geom instanceof EsriGraphic) {
         EsriGraphic eomg = (EsriGraphic) geom;
         if (eomg != null) {
           double[] extents = eomg.getExtents();
@@ -352,8 +370,6 @@ public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
         OMPoint omp = (OMPoint) geom;
         ymin = ymax = omp.getLat();
         xmin = xmax = omp.getLon();
-      } else if (geom instanceof OMPoly) {
-        retVal = getLatLonArrDataBounds(((OMPoly) geom).getLatLonArray());
       } else if (geom instanceof OMLine) {
         retVal = getLatLonArrDataBounds(((OMLine) geom).getLL());
       } else if (geom instanceof OMText) {
@@ -371,20 +387,6 @@ public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
           ymax = omgr.getNorthLat();
           xmin = omgr.getEastLon();
           xmax = omgr.getWestLon();
-        }
-      } else if (geom instanceof OMGraphicList) {
-        OMGraphicList omgrl = (OMGraphicList) geom;
-        DataBounds ret = null;
-        for (Iterator<?> iter = omgrl.iterator(); iter.hasNext(); ) {
-          if (retVal == null) {
-            retVal = getDataBounds((OMGeometry) iter.next());
-          } else {
-            ret = getDataBounds((OMGeometry) iter.next());
-            if (ret != null) {
-              retVal.add(ret.getMin());
-              retVal.add(ret.getMax());
-            }
-          }
         }
       }
 

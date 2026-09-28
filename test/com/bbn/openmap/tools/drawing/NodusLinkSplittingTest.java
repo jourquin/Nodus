@@ -23,6 +23,7 @@ package com.bbn.openmap.tools.drawing;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -200,6 +201,120 @@ class NodusLinkSplittingTest {
       assertEquals(List.of(other, second, first, first, second, other), service.getLinks());
       assertEquals(List.of(other), unrelated.getLinks());
     }
+  }
+
+  @TestFactory
+  Stream<DynamicTest> savedSplitsReloadGeometryAttributesAndOrderedServiceOccurrences() {
+    return Stream.of(false, true)
+        .map(
+            repeated ->
+                DynamicTest.dynamicTest(
+                    repeated ? "repeated service traversals" : "single traversal",
+                    () -> {
+                      try (NetworkTestProject project =
+                          new NetworkTestProject(directory, new double[] {0, 0, 0, 4, 4, 4})) {
+                        if (repeated) {
+                          assertTrue(project.nodes.addRecord(new EsriPoint(0, -4), 4, false));
+                          assertTrue(project.nodes.addRecord(new EsriPoint(-4, 0), 5, false));
+                          addBranch(project, 21, 4, 1, new double[] {0, -4, 0, 0});
+                          addBranch(project, 22, 1, 5, new double[] {0, 0, -4, 0});
+                        }
+                        for (int row = 0; row < project.nodes.getModel().getRowCount(); row++) {
+                          project.nodes.getModel().setValueAt(1.0, row, NodusC.DBF_IDX_TRANSHIP);
+                        }
+                        project.nodes.setDirtyDbf(true);
+                        final List<Integer> route =
+                            repeated ? List.of(21, 11, 11, 22) : List.of(11);
+                        final List<Integer> stops = repeated ? List.of(4, 2, 5) : List.of(1, 2);
+                        project
+                            .getServiceHandler()
+                            .createOrReplaceServiceFromLinkIds(
+                                1, "Route d'été", 3, 1, 365, route, stops, false, true);
+                        final OMGraphic original =
+                            project.links.getEsriGraphicList().getOMGraphicAt(0);
+                        final List<Object> attributes =
+                            new ArrayList<>(project.links.getModel().getRecord(0));
+                        tool(project).splitLink(new OMPoint(2.0, 5.0), original, 0);
+                        project.nodes.save();
+                        project.links.save();
+                        // Splitting itself must mark changed services for saving.
+                        assertTrue(project.getServiceHandler().savePendingChanges());
+                        assertTrue(project.getServiceHandler().savePendingChanges());
+                        project.reloadNetwork();
+                        assertEquals(repeated ? 5 : 3, project.nodes.getModel().getRowCount());
+                        assertEquals(repeated ? 4 : 2, project.links.getModel().getRowCount());
+                        final OMGraphic first =
+                            project
+                                .links
+                                .getEsriGraphicList()
+                                .getOMGraphicAt(project.links.getNumIndex(11));
+                        final OMGraphic second =
+                            project
+                                .links
+                                .getEsriGraphicList()
+                                .getOMGraphicAt(project.links.getNumIndex(12));
+                        assertNotSame(original, first);
+                        assertGeometry(new double[] {0, 0, 0, 4, 2, 4}, (OMPoly) first);
+                        assertGeometry(new double[] {2, 4, 4, 4}, (OMPoly) second);
+                        for (int id : new int[] {11, 12}) {
+                          int row = project.links.getNumIndex(id);
+                          assertEquals(
+                              id == 11 ? 1 : 3, number(project, row, NodusC.DBF_IDX_NODE1));
+                          assertEquals(
+                              id == 11 ? 3 : 2, number(project, row, NodusC.DBF_IDX_NODE2));
+                          for (int column : new int[] {1, 2, 5, 6, 7, 8, 9}) {
+                            assertEquals(
+                                attributes.get(column),
+                                project.links.getModel().getValueAt(row, column));
+                          }
+                        }
+                        EsriPoint inserted =
+                            (EsriPoint)
+                                project
+                                    .nodes
+                                    .getEsriGraphicList()
+                                    .getOMGraphicAt(project.nodes.getNumIndex(3));
+                        assertEquals(2, inserted.getLat(), 1e-10);
+                        assertEquals(4, inserted.getLon(), 1e-10);
+                        TransportService reloaded =
+                            project.getServiceHandler().getService("Route d'été");
+                        assertEquals(
+                            repeated
+                                ? List.of(
+                                    project
+                                        .links
+                                        .getEsriGraphicList()
+                                        .getOMGraphicAt(project.links.getNumIndex(21)),
+                                    first,
+                                    second,
+                                    second,
+                                    first,
+                                    project
+                                        .links
+                                        .getEsriGraphicList()
+                                        .getOMGraphicAt(project.links.getNumIndex(22)))
+                                : List.of(first, second),
+                            reloaded.getLinks());
+                        assertEquals(stops, reloaded.getStopNodes());
+                        assertEquals(365, reloaded.getFrequency());
+                        assertEquals(3, reloaded.getMode());
+                        assertEquals(1, reloaded.getMeans());
+                      }
+                    }));
+  }
+
+  private static void addBranch(
+      NetworkTestProject project, int id, int node1, int node2, double[] coords) {
+    assertTrue(
+        project.links.addRecord(
+            new EsriPolyline(coords, OMGraphic.DECIMAL_DEGREES, OMGraphic.LINETYPE_STRAIGHT),
+            id,
+            node1,
+            node2,
+            false));
+    int row = project.links.getNumIndex(id);
+    project.links.getModel().setValueAt(3.0, row, NodusC.DBF_IDX_MODE);
+    project.links.getModel().setValueAt(1.0, row, NodusC.DBF_IDX_MEANS);
   }
 
   private static NodusOMDrawingTool tool(NetworkTestProject project) {
