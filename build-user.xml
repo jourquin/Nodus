@@ -32,7 +32,12 @@
 	
 	<target name="PrepareApiDoc" description="Prepare the API doc generation.">
 	    <echo message="Generating the Nodus API documentation" />
-	    <delete dir="${basedir}/api" />
+	    <!-- Keep directories and Finder metadata: Finder may recreate .DS_Store during cleanup.
+	         Delete generated files, including stale package pages, without removing the folders. -->
+	    <delete>
+	        <fileset dir="${basedir}/api" defaultexcludes="false"
+	            excludes="**/.DS_Store" erroronmissingdir="false" />
+	    </delete>
 	    <mkdir dir="${basedir}/api" />
 	</target>
 	
@@ -45,7 +50,7 @@
 			encoding="UTF-8" docencoding="UTF-8" charset="UTF-8" 
 			packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
 			author="true" version="true" use="true" 
-			windowtitle="Nodus 8.6 API" 
+			windowtitle="Nodus 9.0 API"
 			doctitle="Nodus" bottom="${copyrightString}"
 			classpathref="Nodus.classpath" failonerror="false" />
 	</target>
@@ -139,7 +144,7 @@
 		<antcall target="Jar" />
 		<antcall target="ApiDoc" />
 		<mkdir dir="${basedir}/BinaryDistribution"/>
-		<izpack input="${basedir}/installer/installer.xml" output="${basedir}/BinaryDistribution/Nodus8-install.jar" installerType="standard" basedir="${basedir}" izPackDir="${basedir}" compressionLevel="0" />
+		<izpack input="${basedir}/installer/installer.xml" output="${basedir}/BinaryDistribution/Nodus9-install.jar" installerType="standard" basedir="${basedir}" izPackDir="${basedir}" compressionLevel="0" />
 	</target>
 
 	<!-- Create jar -->
@@ -162,7 +167,7 @@
 		
 		<antcall target="BuildId" />
 		<antcall target="build" />
-		<jar destfile="${basedir}/nodus8.jar" basedir="${basedir}/classes" manifest="${basedir}/src/MANIFEST.MF" index="true" />
+		<jar destfile="${basedir}/nodus9.jar" basedir="${basedir}/classes" manifest="${basedir}/src/MANIFEST.MF" index="true" />
 		<delete file="./classes/edu/uclouvain/core/nodus/utils/buildid.properties" />
 	</target>
 </project>

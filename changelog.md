@@ -474,7 +474,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
   iteration and convergence controls in the assignment dialog.
 - Add tooltips on (almost) all GUI elements
 
-## v8.6 - Build20261001
+## v9.0 - BuildXXXXXXXX
 - Code cleaning and refactoring
 - Fix a warning in GUIUtils
 - Close a loaded project only when a new one is selected
@@ -491,7 +491,9 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Faster DBF export
 - Remove some old and unused devtools
 - Add unit tests and continuous integration
-  
+- Add a simple modal choice estimation module (logit, probit and proportional cost factors)
+- Move modal-choice classes to `edu.uclouvain.core.nodus.compute.modalsplit`
+- Expand the modal-choice API and estimation documentation
   
   
   

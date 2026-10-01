@@ -1,4 +1,4 @@
-# Nodus 8.6 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
+# Nodus 9.0 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
 
 
 Nodus is a transportation network modeling software especially designed for multimodal and
@@ -52,17 +52,17 @@ the [Demo project](https://github.com/jourquin/Nodus/blob/master/demo).
 
 Download the [Nodus installer](https://github.com/jourquin/Nodus/releases).
 Nodus requires Java 11 or later (a full JRE or JDK, not a headless installation).
-Depending on your system, double-click `Nodus8-install.jar` or run it from a terminal:
+Depending on your system, double-click `Nodus9-install.jar` or run it from a terminal:
 
 ```sh
-java -jar Nodus8-install.jar
+java -jar Nodus9-install.jar
 ```
 
 Once installed, launch Nodus using:
 
-- `nodus8.sh` on Linux
-- `Nodus8.app` or `nodus8.sh` on macOS
-- The `Nodus 8` shortcut or `nodus8.bat` on Windows
+- `nodus9.sh` on Linux
+- `Nodus9.app` or `nodus9.sh` on macOS
+- The `Nodus 9` shortcut or `nodus9.bat` on Windows
 
 The software has a modern and integrated user-friendly GUI. Complete reference and user guides
 are not available, but the API is fully documented.
@@ -73,9 +73,9 @@ shows that the choice of the JDK used can have a significant impact on calculati
 [GraalVM](https://www.graalvm.org) performs an assignment 25% faster than a “classic” OpenJDK virtual machine.
 
 > **Note for macOS users**: recent releases of macOS (Catalina and later) introduce more security controls via Gatekeeper. MacOS may complain
-> about the fact that the "Nodus8-install.jar" is not developed by
+> about the fact that the "Nodus9-install.jar" is not developed by
 > a recognized developer. A simple workaround is to run the installer from a terminal
-> (``java -jar Nodus8-install.jar``). Moreover, if you want to use
+> (``java -jar Nodus9-install.jar``). Moreover, if you want to use
 > Nodus projects that are stored in "special" folders, such as the Desktop for instance,
 > **full disk access must be granted to the /bin/sh shell** at the OS level
 > (add entry in Preferences > Security & Privacy > Privacy > Full Disk Access).
@@ -100,7 +100,7 @@ This compiles the application and runs the full test suite first. A compilation 
 test failure or test execution error aborts the build. If the tests pass, Ant generates
 the API Javadoc and packages the installer jar file.
 
-To compile and package only the main `nodus8.jar`, run:
+To compile and package only the main `nodus9.jar`, run:
 
 ```sh
 ant Jar
@@ -130,9 +130,13 @@ external connections. Upgrade to Groovy 4.
 - 8.3 - November 2025: Tested with Java 25, but still runs on Java 11 and Groovy is upgraded to version 5.
 - 8.4 - June 2026: The Frank-Wolfe based algorithms are reintroduced. Major code refactoring with a focus on code robustness.
 - 8.5 - September 2026: Lines & services are reintroduced with a completely redesigned workflow based on Virtual Network Version 4.
-- 8.6 - October 2026 is a performance-focused release, highlighting faster assignments (at least four times faster on a set of selected projects),
+- 9.0 - October 2026 is a performance-focused release, highlighting faster assignments (at least four times faster on a set of selected projects),
 more responsive map navigation and faster database operations. From the developers' perspective, a series of unit tests have been added
-with an automatic continuous integration workflow.
+with an automatic continuous integration workflow. The release also adds embedded modal-choice
+parameter estimation and moves the modal-choice API into its own package. Custom modal-choice
+plugin sources need updated imports. Nodus can upgrade eligible existing plugin JARs
+without recompilation, keeping a `.jar.nodus8` backup; see the
+[Nodus 9.0 migration guide](doc/modal-choice-migration.md).
 
 
 See the [change log](changelog.md) for a detailed build history.
@@ -142,7 +146,9 @@ See the [change log](changelog.md) for a detailed build history.
 The software doesn't modify the "registry" of any supported OS (Mac OS, Linux or Windows). Just
 delete the installation directory to remove the software from your system.
 
-You can also delete the small ".nodus8.properties" file that is located at the root of your "home" dir.
+You can also delete the small ".nodus9.properties" file that is located at the root of your "home" dir.
+On first launch, Nodus 9 copies ".nodus8.properties" if the new file does not yet exist.
+The old file is left unchanged; remove it too if you no longer need your Nodus 8 preferences.
 
 ## License
 

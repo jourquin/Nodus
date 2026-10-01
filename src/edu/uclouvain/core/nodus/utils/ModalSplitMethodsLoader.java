@@ -21,20 +21,29 @@
 
 package edu.uclouvain.core.nodus.utils;
 
+import com.bbn.openmap.Environment;
+import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
+import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
+import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 /**
  * Loads the embedded standard model split methods and any valid user defined method found in the
@@ -60,9 +69,16 @@ public class ModalSplitMethodsLoader {
 
   private File directory;
 
-  private String[] standardModalSpliMethods = {"MultinomialLogit", "Proportional", "Abraham"};
+  private String[] standardModalSpliMethods = {
+    "MultinomialLogit", "Proportional", "MultinomialProbit"
+  };
 
   private NodusProject nodusProject;
+
+  private final Consumer<String> incompatibilityReporter;
+
+  /** Confirmation callback receiving the original JAR and the proposed Nodus 8 backup. */
+  private final BiPredicate<File, File> upgradeConfirmation;
 
   private Class<?>[] paramTypes = {NodusProject.class};
 
@@ -72,8 +88,58 @@ public class ModalSplitMethodsLoader {
    * @param nodusProject The Nodus project the plugins must be loaded for.
    */
   public ModalSplitMethodsLoader(NodusProject nodusProject) {
+    this(
+        nodusProject,
+        ModalSplitMethodsLoader::showIncompatibility,
+        ModalSplitMethodsLoader::confirmUpgrade);
+  }
 
+  /**
+   * Loads modal methods with a caller-supplied destination for binary incompatibility warnings.
+   *
+   * <p>The reporter is called synchronously when a plugin cannot link to its required classes.
+   * Supplying a reporter replaces the default terminal output and warning dialog for these
+   * failures. Automatic upgrades are declined by this overload, allowing automated callers to
+   * collect diagnostics without opening Swing dialogs or changing project files.
+   *
+   * @param nodusProject project whose modal plugins should be loaded
+   * @param incompatibilityReporter nonnull consumer of user-readable incompatibility messages
+   */
+  public ModalSplitMethodsLoader(
+      NodusProject nodusProject, Consumer<String> incompatibilityReporter) {
+    this(
+        nodusProject,
+        incompatibilityReporter,
+        (jar, backup) -> {
+          incompatibilityReporter.accept(
+              jar.getName()
+                  + " uses the Nodus 8 modal-choice API.\n"
+                  + "Update its modal-choice imports to "
+                  + "edu.uclouvain.core.nodus.compute.modalsplit,\n"
+                  + "recompile it against nodus9.jar and replace the old plugin JAR.");
+          return false;
+        });
+  }
+
+  /**
+   * Loads modal methods with explicit control over legacy-plugin migration and error reporting.
+   *
+   * <p>The confirmation callback is invoked before any project classes load. Returning true permits
+   * conversion of references to the unchanged modal API, saving the original as {@code
+   * plugin.jar.nodus8}. Returning false leaves the archive unchanged and skips it. A current plugin
+   * never triggers confirmation; unsupported archives are reported without being changed.
+   *
+   * @param nodusProject Project whose modal plugins should be loaded
+   * @param incompatibilityReporter Nonnull destination for incompatibility or migration errors
+   * @param upgradeConfirmation Nonnull callback receiving the original JAR and proposed backup
+   */
+  public ModalSplitMethodsLoader(
+      NodusProject nodusProject,
+      Consumer<String> incompatibilityReporter,
+      BiPredicate<File, File> upgradeConfirmation) {
     this.nodusProject = nodusProject;
+    this.incompatibilityReporter = Objects.requireNonNull(incompatibilityReporter);
+    this.upgradeConfirmation = Objects.requireNonNull(upgradeConfirmation);
 
     disposeAvailableModalSplitMethods();
 
@@ -82,8 +148,7 @@ public class ModalSplitMethodsLoader {
 
       try {
         Class<?> c =
-            Class.forName(
-                "edu.uclouvain.core.nodus.compute.assign.modalsplit." + standardModalSpliMethod);
+            Class.forName("edu.uclouvain.core.nodus.compute.modalsplit." + standardModalSpliMethod);
         Constructor<?> cons = c.getConstructor(paramTypes);
         Object o = cons.newInstance(nodusProject);
         if (o instanceof ModalSplitMethod) {
@@ -117,8 +182,12 @@ public class ModalSplitMethodsLoader {
 
       int nbMethodsBefore = availableModalSplitMethods.size();
 
+      // Finish approved conversions before this loader can cache any classes or open any JARs.
+      Set<File> skipped = upgradeLegacyPlugins(classPath);
       for (File jarFile : classPath.getJarFiles()) {
-        loadUserDefinedModalSplitMethods(jarFile, classPath);
+        if (!skipped.contains(jarFile)) {
+          loadUserDefinedModalSplitMethods(jarFile, classPath);
+        }
       }
 
       /*
@@ -136,6 +205,84 @@ public class ModalSplitMethodsLoader {
         classPath.close();
       }
     }
+  }
+
+  /** Detects the old modal API and offers migration once per archive, before class loading. */
+  private Set<File> upgradeLegacyPlugins(PluginClassPath classPath) {
+    Set<File> skipped = new HashSet<>();
+    for (File jar : classPath.getJarFiles()) {
+      try {
+        if (!ModalPluginUpgrader.needsUpgrade(jar.toPath())) {
+          continue;
+        }
+        File backup = ModalPluginUpgrader.backup(jar.toPath()).toFile();
+        if (backup.exists()) {
+          throw new IOException(
+              "The backup already exists: " + backup + ". It will not be overwritten.");
+        }
+        if (upgradeConfirmation.test(jar, backup)) {
+          ModalPluginUpgrader.upgrade(jar.toPath(), classPath.getJarFiles());
+        } else {
+          skipped.add(jar);
+          // Declining the interactive prompt needs no second dialog.
+        }
+      } catch (IOException | SecurityException ex) {
+        skipped.add(jar);
+        incompatibilityReporter.accept(
+            jar.getName() + " could not be upgraded.\n" + ex.getMessage());
+      }
+    }
+    return skipped;
+  }
+
+  /** Asks permission on the EDT; closing the prompt or running headlessly leaves the JAR alone. */
+  private static boolean confirmUpgrade(File jar, File backup) {
+    if (GraphicsEnvironment.isHeadless()) {
+      return false;
+    }
+    boolean[] accepted = {false};
+    Runnable prompt =
+        () -> {
+          I18n i18n = Environment.getI18n();
+          String message =
+              i18n.get(
+                      ModalSplitMethodsLoader.class,
+                      "UpgradeMessage",
+                      "This plugin uses the Nodus 8 modal-choice API.\n"
+                          + "Upgrade it for Nodus 9 without recompiling?\n")
+                  + "\n"
+                  + jar
+                  + "\n\n"
+                  + i18n.get(
+                      ModalSplitMethodsLoader.class, "UpgradeBackup", "Original JAR saved as:")
+                  + "\n"
+                  + backup;
+          String upgrade = i18n.get(ModalSplitMethodsLoader.class, "Upgrade", "Upgrade");
+          String skip = i18n.get(ModalSplitMethodsLoader.class, "SkipUpgrade", "Skip plugin");
+          accepted[0] =
+              JOptionPane.showOptionDialog(
+                      null,
+                      message,
+                      NodusC.APPNAME,
+                      JOptionPane.YES_NO_OPTION,
+                      JOptionPane.QUESTION_MESSAGE,
+                      null,
+                      new String[] {upgrade, skip},
+                      upgrade)
+                  == 0;
+        };
+    if (SwingUtilities.isEventDispatchThread()) {
+      prompt.run();
+    } else {
+      try {
+        SwingUtilities.invokeAndWait(prompt);
+      } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
+      } catch (InvocationTargetException ex) {
+        System.err.println("Unable to display the plugin upgrade prompt: " + ex.getCause());
+      }
+    }
+    return accepted[0];
   }
 
   /** Searches for instances of ModalSplitMethod in a jar. */
@@ -196,6 +343,10 @@ public class ModalSplitMethodsLoader {
                 }
               });
         } catch (InvocationTargetException e1) {
+          if (e1.getCause() instanceof LinkageError) {
+            reportIncompatiblePlugin(pathToJar, (LinkageError) e1.getCause());
+            continue;
+          }
           String s = "The " + c.getName() + " plugin is not compatible with this version of Nodus.";
           JOptionPane.showMessageDialog(null, s, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
           continue;
@@ -205,10 +356,34 @@ public class ModalSplitMethodsLoader {
           availableModalSplitMethods.add((ModalSplitMethod) o);
         }
       }
+    } catch (LinkageError error) {
+      reportIncompatiblePlugin(pathToJar, error);
     } catch (ClassNotFoundException e) {
       e.printStackTrace();
     } catch (IOException e) {
       e.printStackTrace();
+    }
+  }
+
+  /** Reports an incompatible JAR while allowing other modal plugins and the project to load. */
+  private void reportIncompatiblePlugin(File jar, LinkageError error) {
+    String reason = error.toString().replace('/', '.');
+    String message = jar.getName() + " could not be loaded by " + NodusC.APPNAME + ".\n";
+    if (reason.contains("edu.uclouvain.core.nodus.compute.assign.modalsplit")) {
+      message +=
+          "Update its modal-choice imports to edu.uclouvain.core.nodus.compute.modalsplit,\n"
+              + "recompile it against nodus9.jar and replace the old plugin JAR.";
+    } else {
+      message += "Recompile the plugin and check its dependencies.\n" + reason;
+    }
+    incompatibilityReporter.accept(message);
+  }
+
+  /** Presents incompatibility diagnostics during ordinary interactive project loading. */
+  private static void showIncompatibility(String message) {
+    System.err.println(message);
+    if (!GraphicsEnvironment.isHeadless()) {
+      JOptionPane.showMessageDialog(null, message, NodusC.APPNAME, JOptionPane.WARNING_MESSAGE);
     }
   }
 

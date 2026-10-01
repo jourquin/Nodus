@@ -1,20 +1,20 @@
 @echo off
 
 rem ----------------------------------------------------------------------------------------------
-rem This batch file generates a Visual Basic script that creates a Windows shortcut to nodus8.bat.
+rem This batch file generates a Visual Basic script that creates a Windows shortcut to nodus9.bat.
 rem The VB script and log file are deleted on completion.
 rem ----------------------------------------------------------------------------------------------
 
 rem Get the path to this script
 set HERE=%~dp0
-set NODUS8_HOME=%HERE:~0,-1%
+set NODUS9_HOME=%HERE:~0,-1%
 
 SETLOCAL ENABLEDELAYEDEXPANSION
-SET LinkName=Nodus 8
-SET Esc_LinkDest=%%NODUS8_HOME%%\!LinkName!.lnk
-SET Esc_LinkTarget=%%NODUS8_HOME%%\nodus8.bat
-SET Esc_Icon=%%NODUS8_HOME%%\nodus.ico
-Set Esc_WorkingDir=%%NODUS8_HOME%%\
+SET LinkName=Nodus 9
+SET Esc_LinkDest=%%NODUS9_HOME%%\!LinkName!.lnk
+SET Esc_LinkTarget=%%NODUS9_HOME%%\nodus9.bat
+SET Esc_Icon=%%NODUS9_HOME%%\nodus.ico
+Set Esc_WorkingDir=%%NODUS9_HOME%%\
 
 rem Create a visual basic script and run it
 SET cSctVBS=CreateShortcut.vbs

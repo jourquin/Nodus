@@ -15,6 +15,12 @@ the application using the normal build, recompiles the tests, then runs JUnit
 Jupiter in a separate JVM with `java.awt.headless=true`.
 
 The suite includes unit tests, database tests and complete assignment integration tests.
+The modal-choice migration tests compile temporary old and current demo plugins, then exercise
+approved binary upgrades, declined upgrades, exact backups, unchanged resources, modal shares,
+reflection names, arrays and lambdas. They also verify refusal of existing backups, signed JARs,
+removed Abraham references and missing dependencies. Conversion itself does not use a compiler.
+Fixtures and confirmation callbacks keep these checks independent of real project JARs and Swing
+dialogs, including when run directly from Eclipse's JUnit runner.
 No project data, external database, network access, or graphical desktop is needed. Database tests
 create private in-memory databases and close them afterwards. Most use H2; service
 persistence failure/retry and legacy-schema checks also run against HSQLDB.
@@ -159,6 +165,10 @@ for the workflow mechanism.
   label-generation and refresh code and only the final repaint callback replaced.
 - `InsertedPointTest`: independently known projections onto horizontal, vertical and diagonal
   segments, reversed endpoints, clicks beyond or exactly at endpoints, and zero-length segments.
+- `NodusDrawingToolSelectionTest`: drawing-completion events select existing links despite missed
+  Ctrl/Command key releases when a dialog takes focus. Checks explicit modifier-click bypass,
+  node priority at link endpoints, empty-space insertion, hidden layers and highlighted service
+  routes. Uses real layer preparation and selection, replacing action dialogs and launcher cleanup.
 - `NetworkEditFailureTest`: rejected node, link and complete-record insertions, plus failures
   creating a split node, inserting the second fragment or updating the original link. Real H2
   and HSQLDB constraints trigger the errors. Checks SQL rows, geometry, DBF attributes, IDs,
@@ -206,6 +216,10 @@ for the workflow mechanism.
   removal at the start, middle and end of a layer, consecutive loops, removal of every link,
   unchanged neighbouring geometry/records and repeated cleanup on H2 and HSQLDB. Closed geometry
   with distinct endpoint IDs survives. A failed SQL deletion preserves the layer and can be retried.
+- `NodusPreferencesTest`: first-use migration from `.nodus8.properties`, preservation of
+  the old file, precedence of existing Nodus 9 preferences (including an empty file), and
+  saving fresh-installation settings exclusively to `.nodus9.properties`. Uses a temporary
+  home directory and never reads or writes the user's actual preferences.
 - `SetJVMArgsTest`: migration of legacy JVM argument files, preservation of heap and custom
   settings, backups, repeated runs, and leaving current or customized scripts intact. Shell
   execution checks the generated options using simulated Java 11, 16, 17, 25 and 27 version
@@ -248,6 +262,10 @@ for the workflow mechanism.
   SQL selection, excluded invalid trips, empty selections, and changed demand on a fresh
   network. Source rows and the project connection are preserved. Includes a regression for
   an empty selection incorrectly marking class zero as having demand.
+- `SQLConsoleImportTest`: real CSV/CSVH, DBF, XLS and XLSX imports, including Excel files with
+  and without schema headers. Direct commands require approval before replacing existing tables,
+  including empty ones; declining or closing the prompt preserves rows and schema. Checks new
+  tables, silent script/batch execution, restored confirmation after a script, and EDT prompts.
 - `SQLConsoleExportTest`: real CSV/CSVH, DBF, XLS and XLSX exports; cancelling or
   accepting direct overwrites; new outputs; loaded scripts, pasted batches, variable
   definitions and `runBatch()`; restoring confirmation after a script; and execution
@@ -275,10 +293,23 @@ for the workflow mechanism.
 - `CostParameterTest`: precedence and isolation of numeric parameters by scenario, commodity
   group and OD class, zero/negative overrides, inherited defaults, and NaN fallbacks.
 - `ModalSplitTest`: proportional and multinomial-logit shares, normalization across modes
-  and paths, large costs, and valid alternatives alongside non-finite path costs.
-- `AbrahamTest`: inverse-power shares between modes and their alternatives, default and
-  group-specific exponents, independent worker clones, invariance to cost units, and
-  numerical stability for steep exponents and extreme positive cost ranges.
+  and paths, large costs, invalid costs, legacy negative-cost defaults, and isolation between
+  fitted/default groups and worker clones.
+- `MultinomialProbitTest`, `ProbitProbabilitiesTest`, `LogCostProbitEstimatorTest`: joint normal
+  choice probabilities against independent SciPy references, binary and rare-choice limits,
+  likelihood derivatives, coefficient recovery, availability, identification, cost/quantity scaling,
+  default raw-cost utilities, underflowing alternatives, and route allocation after modal choice.
+- `ProportionalEstimatorTest`: known cost factors, analytical uncertainty, reference normalization,
+  equal costs, changing availability, quantity scaling, identification and cancellation.
+- `LogitCalibrationIntegrationTest`: standalone logit/probit/proportional estimation and coefficient reuse
+  through fast/exact assignment on H2/HSQLDB, skipped observations and coverage diagnostics,
+  cancellation, and preservation of prior coefficients/results on failure. Also checks saving
+  all three models under another filename, using the source's costs and retaining both source
+  and destination on cancellation or failed fitting. Missing MNL/probit parameters are checked
+  through repeated fast/exact assignments with two groups and workers, one warning per run,
+  preserved cost files, and shares matching the default models.
+- `LogitCostFileTest`: comment/expression preservation, independent model sections, save-as
+  contents, overwrite-confirmation rules and conflicts when source or output files change.
 - `AssignmentCancellationTest`: end-of-work markers, joining all workers, coordinator
   interruption, cancellation while waiting for a first job, and malformed queued work.
   Uses real assignment-worker threads with latches and bounded waits, without loading a project.

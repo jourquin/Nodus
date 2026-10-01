@@ -79,11 +79,20 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
   /** Link rows contain ID, first node, second node, base cost and congestion slope. */
   public AssignmentTestProject(Path directory, int nodeCount, double[][] linkRows)
       throws Exception {
+    this(directory, nodeCount, linkRows, false);
+  }
+
+  /** Creates the reference network on H2 or HSQLDB for portable assignment checks. */
+  public AssignmentTestProject(Path directory, int nodeCount, double[][] linkRows, boolean hsql)
+      throws Exception {
     super(null);
     nodes = nodes(nodeCount);
     links = links(linkRows);
     connection =
-        DriverManager.getConnection("jdbc:h2:mem:assignment_" + UUID.randomUUID(), "sa", "");
+        DriverManager.getConnection(
+            (hsql ? "jdbc:hsqldb:mem:assignment_" : "jdbc:h2:mem:assignment_") + UUID.randomUUID(),
+            "sa",
+            "");
     assertTrue(JDBCUtils.setConnection(connection));
     properties.setProperty(NodusC.PROP_PROJECT_DOTPATH, directory + File.separator);
     properties.setProperty(NodusC.PROP_PROJECT_DOTNAME, "mini");
@@ -126,24 +135,30 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
 
   /** Runs the real coordinator and checks its final success and observed worker termination. */
   public void run(Assignment assignment, int concurrentJobs) {
+    run(assignment, concurrentJobs, 0);
+  }
+
+  /** Also checks the number of expected setup warnings before the final completion message. */
+  public void run(Assignment assignment, int concurrentJobs, int setupWarnings) {
     panel.prepareRun(Math.min(assignment.getAssignmentParameters().getThreads(), concurrentJobs));
     assignment.run();
     assertEquals(SoundPlayer.SOUND_OK, panel.completionSound, "The assignment must succeed");
-    if (assignment.getCompletion() == null) {
-      assertTrue(panel.assignmentMessageTypes.isEmpty());
-    } else {
+    List<Integer> expectedMessages = new ArrayList<>();
+    for (int i = 0; i < setupWarnings; i++) {
+      expectedMessages.add(JOptionPane.WARNING_MESSAGE);
+    }
+    if (assignment.getCompletion() != null) {
       int expectedType =
           assignment.getCompletion().getReason()
                   == AssignmentCompletion.Reason.MAX_ITERATIONS_REACHED
               ? JOptionPane.WARNING_MESSAGE
               : JOptionPane.INFORMATION_MESSAGE;
-      List<Integer> expectedMessages =
-          expectedType == JOptionPane.INFORMATION_MESSAGE
-                  && !NodusC.displayAssignmentInformationDialogs
-              ? List.of()
-              : List.of(expectedType);
-      assertEquals(expectedMessages, panel.assignmentMessageTypes);
+      if (expectedType != JOptionPane.INFORMATION_MESSAGE
+          || NodusC.displayAssignmentInformationDialogs) {
+        expectedMessages.add(expectedType);
+      }
     }
+    assertEquals(expectedMessages, panel.assignmentMessageTypes);
     for (Thread worker : panel.workers) {
       assertFalse(worker.isAlive(), "Worker still running after assignment completion");
     }
@@ -257,6 +272,11 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
   public void close() {
     JDBCUtils.setConnection(null);
     try {
+      if (connection.getMetaData().getURL().startsWith("jdbc:hsqldb:")) {
+        try (Statement statement = connection.createStatement()) {
+          statement.execute("SHUTDOWN");
+        }
+      }
       connection.close();
     } catch (java.sql.SQLException e) {
       throw new IllegalStateException(e);
@@ -356,6 +376,10 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
     final Set<Thread> workers = ConcurrentHashMap.newKeySet();
     private CountDownLatch started;
     private int completionSound;
+    String cancelAt;
+    int cancelAfterChecks = 1;
+    final List<Integer> fittingProgressLengths = new ArrayList<>();
+    private int progressLength;
     private final List<Integer> assignmentMessageTypes = new ArrayList<>();
     private final SoundPlayer sounds =
         new SoundPlayer(false) {
@@ -372,6 +396,7 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
 
     void prepareRun(int threads) {
       workers.clear();
+      fittingProgressLengths.clear();
       started = new CountDownLatch(threads);
       completionSound = 0;
       assignmentMessageTypes.clear();
@@ -409,10 +434,14 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
     public void updateScenarioComboBox(boolean reset) {}
 
     @Override
-    public void startProgress(int length) {}
+    public void startProgress(int length) {
+      progressLength = length;
+    }
 
     @Override
-    public void stopProgress() {}
+    public void stopProgress() {
+      progressLength = -1;
+    }
 
     @Override
     public boolean updateProgress(String text) {
@@ -421,6 +450,12 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
 
     @Override
     public boolean updateProgress(String text, int interval) {
+      if (text != null && text.startsWith("Estimating ")) {
+        fittingProgressLengths.add(progressLength);
+      }
+      if (cancelAt != null && text != null && text.contains(cancelAt) && --cancelAfterChecks <= 0) {
+        return false;
+      }
       Thread worker = Thread.currentThread();
       if (worker instanceof AssignmentWorker && workers.add(worker)) {
         // Hold initial jobs until the requested number of workers have started.

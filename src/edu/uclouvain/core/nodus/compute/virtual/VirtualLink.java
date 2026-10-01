@@ -21,7 +21,7 @@
 
 package edu.uclouvain.core.nodus.compute.virtual;
 
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
+import edu.uclouvain.core.nodus.compute.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.real.RealLink;
 import java.util.Iterator;
 import java.util.LinkedList;

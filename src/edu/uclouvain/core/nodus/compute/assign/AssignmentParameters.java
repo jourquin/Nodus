@@ -23,8 +23,10 @@ package edu.uclouvain.core.nodus.compute.assign;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Properties;
 
 /**
@@ -51,6 +53,31 @@ public class AssignmentParameters {
 
   /** Cost functions file. */
   private Properties costFunctions;
+
+  private Path costFunctionsPath;
+  private ModalSplitMethod calibrationMethod;
+
+  /**
+   * Returns the selected cost file, when parameters were loaded from a file.
+   *
+   * @return the absolute file path, or null for in-memory cost functions
+   */
+  public Path getCostFunctionsPath() {
+    return costFunctionsPath;
+  }
+
+  /**
+   * Identifies the internal preliminary assignment.
+   *
+   * @return its collector, or null for a normal assignment
+   */
+  public ModalSplitMethod getCalibrationMethod() {
+    return calibrationMethod;
+  }
+
+  void setCalibrationMethod(ModalSplitMethod method) {
+    calibrationMethod = method;
+  }
 
   /** Cost markup to be used to compute alternative paths. */
   private double costMarkup;
@@ -362,6 +389,7 @@ public class AssignmentParameters {
 
       String costFunctionsFileName =
           nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + (String) costFunctions;
+      costFunctionsPath = Path.of(costFunctionsFileName.trim()).toAbsolutePath();
       this.costFunctions = new Properties();
       try (FileInputStream inputStream = new FileInputStream(costFunctionsFileName.trim())) {
         this.costFunctions.load(inputStream);
@@ -369,6 +397,7 @@ public class AssignmentParameters {
         ex.printStackTrace();
       }
     } else {
+      costFunctionsPath = null;
       this.costFunctions = (Properties) costFunctions;
     }
   }

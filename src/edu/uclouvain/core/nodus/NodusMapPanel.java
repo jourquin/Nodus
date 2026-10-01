@@ -82,6 +82,7 @@ import com.bbn.openmap.tools.drawing.OMDrawingToolMouseMode;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
 import edu.uclouvain.core.nodus.compute.assign.gui.AssignmentDlg;
+import edu.uclouvain.core.nodus.compute.modalsplit.ModalChoiceEstimationDlg;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.results.gui.ResultsDlg;
 import edu.uclouvain.core.nodus.compute.scenario.gui.ScenariosDlg;
@@ -135,7 +136,6 @@ import java.awt.event.WindowEvent;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
@@ -335,6 +335,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Main help. */
   private JMenuItem menuItemHelpHelp = new JMenuItem();
 
+  /** "Project|Modal choice estimation" menu item. */
+  private JMenuItem menuItemProjectModalChoice = new JMenuItem();
+
   /** "Project|Assignment" menu item. */
   private JMenuItem menuItemProjectAssignment = new JMenuItem();
 
@@ -461,6 +464,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Control variables for the progress bar. */
   private int taskLength = 0;
 
+  /** True when task duration is unknown and progress checks must not advance a percentage. */
+  private boolean indeterminateProgress;
+
+  /** True while the portable activity animation replaces the native macOS progress renderer. */
+  private boolean portableProgressUI;
+
   /** OpenMap component. See OpenMap documentation for more details. */
   private ToolPanel toolPanel = new ToolPanel();
 
@@ -487,7 +496,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * <br>
    * See also OpenMap documentation for more details on the behavior of the MapBeans.
    *
-   * @param properties The .nodus8.properties file content
+   * @param properties The .nodus9.properties file content
    */
   public NodusMapPanel(Properties properties) {
     this(properties, false);
@@ -499,7 +508,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * <br>
    * See also OpenMap documentation for more details on the behavior of the MapBeans.
    *
-   * @param properties The .nodus8.properties file content.
+   * @param properties The .nodus9.properties file content.
    * @param deferDefaultPoliticalBoundaries If true, do not display the built-in political
    *     boundaries during initialization.
    */
@@ -700,12 +709,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     nodusProperties.setProperty(NodusC.PROP_EMBEDDED_DB, defaultDbEngine);
 
     try {
-      String home = System.getProperty("user.home") + "/";
-      try (FileOutputStream fos = new FileOutputStream(home + ".nodus8.properties")) {
-        nodusProperties.store(fos, null);
-      }
+      NodusPreferences.save(Paths.get(System.getProperty("user.home")), nodusProperties);
     } catch (IOException ex) {
-      System.err.println("Caught IOException saving nodus8.properties");
+      System.err.println("Unable to save .nodus9.properties: " + ex.getMessage());
     }
 
     // Run the "nodus.groovy" script if exists
@@ -892,6 +898,17 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             menuItemFileExitActionPerformed();
           }
         });
+
+    menuItemProjectModalChoice.addActionListener(
+        event -> {
+          if (nodusProject.isOpen() && menuItemProjectAssignment.isEnabled()) {
+            new ModalChoiceEstimationDlg(this).setVisible(true);
+          }
+        });
+    // Both commands share routing resources and must not run concurrently.
+    menuItemProjectAssignment.addPropertyChangeListener(
+        "enabled",
+        event -> menuItemProjectModalChoice.setEnabled(menuItemProjectAssignment.isEnabled()));
 
     menuItemProjectAssignment.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, 0));
@@ -2030,6 +2047,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     menuProject.add(menuItemProjectPreferences);
     menuProject.add(menuItemProjectCosts);
     menuProject.add(menuItemProjectServices);
+    menuProject.add(menuItemProjectModalChoice);
     menuProject.add(menuItemProjectAssignment);
     menuProject.add(menuItemProjectDisplayResults);
     menuProject.add(menuItemProjectScenarios);
@@ -3235,6 +3253,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     menuItemFileExit.setText(i18n.get(NodusMapPanel.class, "Exit", "Exit"));
 
+    menuItemProjectModalChoice.setText(
+        i18n.get(NodusMapPanel.class, "Estimate_modal_choice", "Modal choice estimation"));
+
     menuItemProjectAssignment.setText(i18n.get(NodusMapPanel.class, "Assignment", "Assignment"));
 
     menuItemProjectSQLConsole.setText(i18n.get(NodusMapPanel.class, "SQL_Console", "SQL Console"));
@@ -3367,16 +3388,18 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * Starts a new ProgressBar. See OpenMap documentation for more details on the progress bar
    * mechanism implemented on the MapBean.
    *
-   * @param finishedValue The max value to reach.
+   * @param finishedValue The max value to reach; zero or negative selects an activity indicator for
+   *     work whose total is unknown.
    */
   public void startProgress(int finishedValue) {
-    taskLength = finishedValue;
+    taskLength = Math.max(1, finishedValue);
+    indeterminateProgress = finishedValue <= 0;
     currentTask = 0;
     canceled = false;
     setBusy(true);
 
-    ProgressEvent evt = new ProgressEvent(getMapBean(), ProgressEvent.START, "", finishedValue, 0);
-    infoDelegator.updateProgress(evt);
+    ProgressEvent evt = new ProgressEvent(getMapBean(), ProgressEvent.START, "", taskLength, 0);
+    displayProgress(evt, indeterminateProgress);
   }
 
   /**
@@ -3385,7 +3408,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   public void stopProgress() {
     ProgressEvent evt = new ProgressEvent(getMapBean(), ProgressEvent.DONE, "", 0, 0);
-    infoDelegator.updateProgress(evt);
+    indeterminateProgress = false;
+    displayProgress(evt, false);
     resetText();
     taskLength = 0;
     currentTask = 0;
@@ -3426,9 +3450,10 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /**
    * Advances progress by one step, refreshing the display only at the requested interval.
    *
-   * <p>Every call still checks cancellation and counts its step. Expensive loops can avoid sending
-   * a GUI event for every item while retaining accurate progress and prompt cancellation checks.
-   * The first and final steps are always displayed.
+   * <p>Every call still checks cancellation. Determinate tasks count each call as a step;
+   * indeterminate tasks update only their status text. Expensive loops can avoid sending a GUI
+   * event for every item while retaining accurate progress and prompt cancellation checks. The
+   * first and final steps are always displayed.
    *
    * @param msg The message to display.
    * @param displayInterval Number of steps between display updates; values below one mean one.
@@ -3452,7 +3477,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       }
     }
 
-    currentTask++;
+    if (!indeterminateProgress) {
+      currentTask++;
+    }
     if (displayInterval > 1
         && currentTask > 1
         && currentTask < taskLength
@@ -3462,9 +3489,47 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     ProgressEvent evt =
         new ProgressEvent(getMapBean(), ProgressEvent.UPDATE, "  " + msg, taskLength, currentTask);
-    infoDelegator.updateProgress(evt);
+    displayProgress(evt, indeterminateProgress);
 
     return true;
+  }
+
+  /** Preserves status-message ordering and updates the activity animation on the Swing thread. */
+  private void displayProgress(ProgressEvent event, boolean indeterminate) {
+    infoDelegator.updateProgress(event);
+    if (event.getType() == ProgressEvent.UPDATE) {
+      return;
+    }
+    Runnable update =
+        () -> {
+          javax.swing.JProgressBar bar = infoDelegator.getProgressBar();
+          if (bar != null) {
+            // Aqua's native indeterminate bar can appear empty on macOS. Swing's basic renderer
+            // paints a moving segment itself, independently of the native animation support.
+            if (indeterminate
+                && "com.apple.laf.AquaProgressBarUI".equals(bar.getUI().getClass().getName())) {
+              bar.setUI(new javax.swing.plaf.basic.BasicProgressBarUI());
+              // Aqua declares a black foreground because its native renderer supplies the accent
+              // itself. Use the system selection accent for the portable renderer instead.
+              Color accent = javax.swing.UIManager.getColor("List.selectionBackground");
+              bar.setForeground(
+                  new javax.swing.plaf.ColorUIResource(
+                      accent != null ? accent : new Color(0, 122, 255)));
+              portableProgressUI = true;
+            } else if (!indeterminate && portableProgressUI) {
+              bar.setIndeterminate(false);
+              bar.updateUI();
+              portableProgressUI = false;
+            }
+            bar.setIndeterminate(indeterminate);
+            bar.setString(indeterminate ? "" : null);
+          }
+        };
+    if (javax.swing.SwingUtilities.isEventDispatchThread()) {
+      update.run();
+    } else {
+      javax.swing.SwingUtilities.invokeLater(update);
+    }
   }
 
   /**

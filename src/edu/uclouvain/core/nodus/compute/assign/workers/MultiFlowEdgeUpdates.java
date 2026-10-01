@@ -21,9 +21,9 @@
 
 package edu.uclouvain.core.nodus.compute.assign.workers;
 
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.CompactShortestPathGraph;
+import edu.uclouvain.core.nodus.compute.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import java.util.ArrayList;
 import java.util.Collections;

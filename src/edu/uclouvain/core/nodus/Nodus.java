@@ -36,7 +36,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -97,12 +96,11 @@ public class Nodus {
     nodusLogger.setUseParentHandlers(false);
     nodusLogger.setLevel(Level.ALL);
 
-    // Open the properties file
-    String home = System.getProperty("user.home") + "/";
-    try (FileInputStream in = new FileInputStream(home + ".nodus8.properties")) {
-      nodusProperties.load(in);
+    // Load Nodus 9 preferences, importing Nodus 8 settings on first use.
+    try {
+      nodusProperties = NodusPreferences.load(Paths.get(System.getProperty("user.home")));
     } catch (IOException ex) {
-      // Nothing to do. The properties file will be created later.
+      System.err.println("Unable to load .nodus9.properties: " + ex.getMessage());
     }
 
     // Prepare i18n mechanism

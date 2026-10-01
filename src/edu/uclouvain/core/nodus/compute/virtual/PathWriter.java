@@ -127,6 +127,11 @@ public class PathWriter {
     // Decimal format used in sql statements
     df = PathWriterBuffer.newFormat();
 
+    // Calibration uses worker buffers but must never create or delete scenario path tables.
+    if (assignmentParameters.getCalibrationMethod() != null) {
+      return;
+    }
+
     con = nodusProject.getMainJDBCConnection();
 
     // Does the used DB support batch processing ?

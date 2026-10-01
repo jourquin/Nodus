@@ -7,16 +7,6 @@
 # Means 2 = CEMT 2 barges
 # Means 4 = CEMT 4 barges
 
-calibration2 = 1
-calibration3 = 1
-
-calibration2.0 = 3.005
-calibration3.0 = 0.81
-
-calibration2.1 = 3.48
-calibration3.1 = 2.24
-
-
 
 # Average load barges, in tons
 # AVGLOAD is a reserved name by Nodus. It is used to
@@ -118,15 +108,15 @@ Moving_M03m01.1 = 0.0152
 
 # Load.Mode,Means       
 ld.1,1 = Loading_M01m01
-ld.2,2 = Loading_M02m02 * calibration2
-ld.2,4 = Loading_M02m04 * calibration2
-ld.3,1 = Loading_M03m01 * calibration3
+ld.2,2 = Loading_M02m02
+ld.2,4 = Loading_M02m04
+ld.3,1 = Loading_M03m01
 
 # Unload.Mode,Means  
 ul.1,1 = Unloading_M01m01
-ul.2,2 = Unloading_M02m02 * calibration2
-ul.2,4 = Unloading_M02m04 * calibration2
-ul.3,1 = Unloading_M03m01 * calibration3
+ul.2,2 = Unloading_M02m02
+ul.2,4 = Unloading_M02m04
+ul.3,1 = Unloading_M03m01
 
 # Transit.Mode,Means    
 tr.1,1 = 0
@@ -136,9 +126,9 @@ tr.3,1 = 0
 
 # Move.Mode,Means  
 mv.1,1 = (AVGSPEED1/SPEED)*LENGTH*Moving_M01m01
-mv.2,2 = (AVGSPEED2/SPEED)*LENGTH*Moving_M02m02 * calibration2
-mv.2,4 = (AVGSPEED2/SPEED)*LENGTH*Moving_M02m04 * calibration2
-mv.3,1 = (AVGSPEED3/SPEED)*LENGTH*Moving_M03m01 * calibration3
+mv.2,2 = (AVGSPEED2/SPEED)*LENGTH*Moving_M02m02
+mv.2,4 = (AVGSPEED2/SPEED)*LENGTH*Moving_M02m04
+mv.3,1 = (AVGSPEED3/SPEED)*LENGTH*Moving_M03m01
 
 # Move.Mode,Means duration
 mv@1,1 = 3600*LENGTH/SPEED
@@ -146,3 +136,50 @@ mv@2,2 = 3600*LENGTH/SPEED
 mv@2,4 = 3600*LENGTH/SPEED
 mv@3,1 = 3600*LENGTH/SPEED
 
+# BEGIN NODUS ESTIMATED MNL
+# Estimated by Nodus at 2026-10-01T08:27:36.425635Z
+# Observed matrices: {"referenceMode":1,"tables":{"1":"OD_ROAD","2":"OD_IWW","3":"OD_RAIL"}}
+# Model: MNL
+# Routing: Fast multi-flow, base costs (no numbered scenario overrides), one search per mode/means, no cost markup, max detour=0.0
+# MNL calibration: skipped 0 of 220 OD records (group/origin/destination/class), excluded quantity=0.0; retained 220.
+# Coverage percentages use observed demand before exclusions within each listed group/mode; mode record counts include positive modal demand only.
+# Unroutable quantity has no admissible route. Other excluded quantity has a route but is removed from estimation with the same OD record.
+# Exclusions apply only to estimation; assignment demand is unchanged.
+# MNL calibration coverage [all groups/modes]: skipped records=0/220 (0.000%); missing-route records=0; observed quantity=2.6877843E7; excluded quantity=0.0 (0.000%); unroutable quantity=0.0 (0.000%); other excluded quantity=0.0
+# MNL calibration coverage [group=0]: skipped records=0/110 (0.000%); missing-route records=0; observed quantity=8257831.0; excluded quantity=0.0 (0.000%); unroutable quantity=0.0 (0.000%); other excluded quantity=0.0
+# MNL calibration coverage [group=1]: skipped records=0/110 (0.000%); missing-route records=0; observed quantity=1.8620012E7; excluded quantity=0.0 (0.000%); unroutable quantity=0.0 (0.000%); other excluded quantity=0.0
+# MNL calibration coverage [mode=1]: skipped records=0/220 (0.000%); missing-route records=0; observed quantity=2.4643073E7; excluded quantity=0.0 (0.000%); unroutable quantity=0.0 (0.000%); other excluded quantity=0.0
+# MNL calibration coverage [mode=2]: skipped records=0/76 (0.000%); missing-route records=0; observed quantity=1458600.0; excluded quantity=0.0 (0.000%); unroutable quantity=0.0 (0.000%); other excluded quantity=0.0
+# MNL calibration coverage [mode=3]: skipped records=0/62 (0.000%); missing-route records=0; observed quantity=776170.0; excluded quantity=0.0 (0.000%); unroutable quantity=0.0 (0.000%); other excluded quantity=0.0
+# MNL calibration coverage [group=0, mode=1]: skipped records=0/110 (0.000%); missing-route records=0; observed quantity=7438402.0; excluded quantity=0.0 (0.000%); unroutable quantity=0.0 (0.000%); other excluded quantity=0.0
+# MNL calibration coverage [group=0, mode=2]: skipped records=0/40 (0.000%); missing-route records=0; observed quantity=728281.0; excluded quantity=0.0 (0.000%); unroutable quantity=0.0 (0.000%); other excluded quantity=0.0
+# MNL calibration coverage [group=0, mode=3]: skipped records=0/31 (0.000%); missing-route records=0; observed quantity=91148.0; excluded quantity=0.0 (0.000%); unroutable quantity=0.0 (0.000%); other excluded quantity=0.0
+# MNL calibration coverage [group=1, mode=1]: skipped records=0/110 (0.000%); missing-route records=0; observed quantity=1.7204671E7; excluded quantity=0.0 (0.000%); unroutable quantity=0.0 (0.000%); other excluded quantity=0.0
+# MNL calibration coverage [group=1, mode=2]: skipped records=0/36 (0.000%); missing-route records=0; observed quantity=730319.0; excluded quantity=0.0 (0.000%); unroutable quantity=0.0 (0.000%); other excluded quantity=0.0
+# MNL calibration coverage [group=1, mode=3]: skipped records=0/31 (0.000%); missing-route records=0; observed quantity=685022.0; excluded quantity=0.0 (0.000%); unroutable quantity=0.0 (0.000%); other excluded quantity=0.0
+# Reference mode: 1
+# Cost per mode: cheapest admissible route; no averaging across routes.
+# SEs use original quantities as frequency weights; not robust/clustered.
+# Group 0: OD rows=110, quantity=8257831.0, iterations=7
+# Log-likelihood=-2876231.7178198956, zero-parameter log-likelihood=-8949451.141468333
+# Intercept SEs (modes [1, 2, 3]): [0.0, 0.010898409684693985, 0.0075560665266792325]
+# Log-cost SE=0.0119303666442777
+# Group 1: OD rows=110, quantity=1.8620012E7, iterations=6
+# Log-likelihood=-5835510.88411085, zero-parameter log-likelihood=-2.0120260753023945E7
+# Intercept SEs (modes [1, 2, 3]): [0.0, 0.007781549627975498, 0.004376204990456226]
+# Log-cost SE=0.007777234946819282
+(intercept).1.0 = 0.0
+(intercept).1.1 = 0.0
+(intercept).2.0 = -5.685448904320411
+(intercept).2.1 = -6.731549609534641
+(intercept).3.0 = -2.027444902503206
+(intercept).3.1 = -5.101982985302881
+log(cost).1.0 = -3.7914170749497837
+log(cost).1.1 = -3.702700983396526
+log(cost).2.0 = -3.7914170749497837
+log(cost).2.1 = -3.702700983396526
+log(cost).3.0 = -3.7914170749497837
+log(cost).3.1 = -3.702700983396526
+mnl.reference.0 = 1
+mnl.reference.1 = 1
+# END NODUS ESTIMATED MNL

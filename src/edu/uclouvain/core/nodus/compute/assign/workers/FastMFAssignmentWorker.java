@@ -24,19 +24,18 @@ package edu.uclouvain.core.nodus.compute.assign.workers;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerPhase;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.CompactShortestPathGraph;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.ReachabilityDijkstra;
+import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
+import edu.uclouvain.core.nodus.compute.modalsplit.Path;
+import edu.uclouvain.core.nodus.compute.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.PathODCell;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
-import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -126,8 +125,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     paths = new Path[assignmentParameters.getNbIterations() * availableModeMeans.length][];
 
     // Use a copy of the already initialized method
-    ModalSplitMethod msp =
-        ModalSplitMethodsLoader.getModalSplitMethod(assignmentParameters.getModalSplitMethodName());
+    ModalSplitMethod msp = assignment.getModalSplitMethod();
 
     try {
       modalSplitMethod = (ModalSplitMethod) msp.clone();

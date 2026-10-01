@@ -412,7 +412,13 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     insertRecord(graphic, record);
   }
 
-  /** Inserts a complete link record, publishing geometry only after the SQL write succeeds. */
+  /**
+   * Inserts a complete link record, publishing geometry only after the SQL write succeeds.
+   *
+   * @param graphic geometry of the new link
+   * @param record complete attribute values in the layer's column order
+   * @return true after updating SQL and in-memory state; false if the SQL insert fails
+   */
   public boolean insertRecord(EsriPolyline graphic, List<Object> record) {
     String sqlStmt = "INSERT INTO ";
     sqlStmt += JDBCUtils.getQuotedCompliantIdentifier(getTableName()) + " VALUES( ";
@@ -845,7 +851,14 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     }
   }
 
-  /** Replaces one link and its attributes after successfully updating its SQL row. */
+  /**
+   * Replaces one link and its attributes after successfully updating its SQL row.
+   *
+   * @param row zero-based index of the existing link in the layer
+   * @param graphic replacement link geometry
+   * @param record replacement attribute values in the layer's column order
+   * @return true after updating SQL and in-memory state; false if the SQL update fails
+   */
   public boolean replaceRecord(int row, EsriPolyline graphic, List<Object> record) {
     StringBuilder sql =
         new StringBuilder("UPDATE ")
@@ -885,7 +898,11 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     return true;
   }
 
-  /** Reports a failed network edit. Tests can capture the error without opening a dialog. */
+  /**
+   * Reports a failed network edit. Tests can capture the error without opening a dialog.
+   *
+   * @param error failure encountered while writing the edit to the database
+   */
   protected void reportEditError(Exception error) {
     JOptionPane.showMessageDialog(
         null,

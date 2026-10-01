@@ -21,6 +21,8 @@ info instead of warnings (to avoid warnings for classes developed in OpenMap pac
 ## IzPack dir](http://izpack.org/):
 
 IzPack (v5) application installer libraries. Used by the "Installer" Ant task.
+The [local XML schemas](IzPack/schema/README.md) allow offline validation of the
+installer definition and language packs in XML editors.
 
 ## [Pandoc](https://pandoc.org/):
 

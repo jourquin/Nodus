@@ -24,15 +24,16 @@ package edu.uclouvain.core.nodus.compute.assign;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsidePhase;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsideScope;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorkerParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.FastMFAssignmentWorker;
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
+import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
+import edu.uclouvain.core.nodus.compute.modalsplit.MultinomialLogit;
+import edu.uclouvain.core.nodus.compute.modalsplit.Proportional;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
-import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 
 /**
@@ -105,19 +106,24 @@ public class FastMFAssignment extends Assignment {
       }
     }
 
-    // Create a path writer
-    createPathWriter();
-
     // Initialize the modal split method from the name found in the assignment parameters
-    ModalSplitMethod modalSplitMethod =
-        ModalSplitMethodsLoader.getModalSplitMethod(assignmentParameters.getModalSplitMethodName());
+    ModalSplitMethod modalSplitMethod = getModalSplitMethod();
     if (modalSplitMethod == null) {
       return false;
     }
     try (OutsideScope timing =
         assignmentParameters.getComputingTimes().outside(OutsidePhase.MODAL_SETUP)) {
       modalSplitMethod.initialize(assignmentParameters);
+      if (modalSplitMethod instanceof MultinomialLogit
+          || modalSplitMethod instanceof Proportional) {
+        for (int group : virtualNet.getGroups()) {
+          modalSplitMethod.initializeGroup(group);
+        }
+      }
     }
+
+    // Validate coefficients before creating or replacing result tables.
+    createPathWriter();
 
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {
@@ -222,6 +228,10 @@ public class FastMFAssignment extends Assignment {
         }
       }
     } // Next od class
+
+    if (assignmentParameters.getCalibrationMethod() != null) {
+      return true;
+    }
 
     // Transform the volumes into vehicles
     if (!virtualNet.volumesToVehicles(vehiclesParser)) {

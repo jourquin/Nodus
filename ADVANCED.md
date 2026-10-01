@@ -31,7 +31,7 @@ Nodus at launch time if it doesn't exist yet. This file can be edited if other v
 are desired.
 
 Since Nodus 8.4, version-dependent JVM parameters are also added dynamically in this file. This includes,
-since Nodus 8.6, `--illegal-access=deny` with Java 9 to 16, and `--enable-native-access=ALL-UNNAMED` with Java 24
+since Nodus 9.0, `--illegal-access=deny` with Java 9 to 16, and `--enable-native-access=ALL-UNNAMED` with Java 24
 or later to enable native access for classpath libraries used by Nodus. With Java 24 or later,
 the `sun.misc.Unsafe` warning policy is also set explicitly for compatibility
 with libraries that still use deprecated memory-access methods.
@@ -109,7 +109,7 @@ database; database tests create private in-memory H2 or HSQLDB databases, and fi
 tests use temporary directories. A failing test makes the command fail.
 
 Text and XML reports are written to `test-build/reports/`. Test classes are kept
-separate from application classes and are not included in `nodus8.jar`.
+separate from application classes and are not included in `nodus9.jar`.
 
 To run a single test class:
 

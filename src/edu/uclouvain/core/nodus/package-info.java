@@ -1,0 +1,21 @@
+/*
+ * Copyright (c) 1991-2026 Université catholique de Louvain
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/**
+ * Application startup, project lifecycle and the main Nodus extension points.
+ *
+ * <p>{@link edu.uclouvain.core.nodus.Nodus} starts the application. {@link
+ * edu.uclouvain.core.nodus.NodusMapPanel} assembles the map interface, dispatches menu actions and
+ * exposes project and map services to tools and plugins.
+ *
+ * <p>{@link edu.uclouvain.core.nodus.NodusProject} manages a project described by a {@code .nodus}
+ * properties file, its network layers, database connection and project settings. {@link
+ * edu.uclouvain.core.nodus.NodusC} defines shared constants.
+ *
+ * <p>{@link edu.uclouvain.core.nodus.NodusPlugin} defines the application-plugin lifecycle.
+ * Modal-choice extensions use the separate {@link
+ * edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod} contract.
+ */
+package edu.uclouvain.core.nodus;

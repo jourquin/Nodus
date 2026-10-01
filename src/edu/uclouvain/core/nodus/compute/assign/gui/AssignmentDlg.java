@@ -37,7 +37,7 @@ import edu.uclouvain.core.nodus.compute.assign.IncFrankWolfeAssignment;
 import edu.uclouvain.core.nodus.compute.assign.IncrementalAssignment;
 import edu.uclouvain.core.nodus.compute.assign.MSAAssignment;
 import edu.uclouvain.core.nodus.compute.assign.StaticAoNTimeDependentAssignment;
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.ModalSplitMethod;
+import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
@@ -407,7 +407,10 @@ public class AssignmentDlg extends EscapeDialog {
      * to the assignment methods
      */
     ap.setWhereStmt(sqlTextArea.getText());
-    ap.setODMatrix(odTablesComboBox.getSelectedItem().toString().trim());
+    ap.setODMatrix(
+        odTablesComboBox.getSelectedItem() == null
+            ? ""
+            : odTablesComboBox.getSelectedItem().toString().trim());
     ap.setCostFunctions(costFunctionsComboBox.getSelectedItem().toString().trim());
     ap.setNbIterations(Integer.parseInt(iterationSpinner.getValue().toString()));
     ap.setScenario(Integer.parseInt(scenarioSpinner.getValue().toString()));
@@ -564,9 +567,7 @@ public class AssignmentDlg extends EscapeDialog {
 
     setCursor(oldCursor);
     cancelButton.setEnabled(true);
-    if (odTablesComboBox.getSelectedIndex() != -1) {
-      assignButton.setEnabled(true);
-    }
+    updateAssignmentSelection();
 
     preferencesButton.setEnabled(true);
 
@@ -665,6 +666,7 @@ public class AssignmentDlg extends EscapeDialog {
 
       modalSplitMethodComboBox = new JComboBox<ModalSplitMethodName>();
       modalSplitMethodComboBox.setModel(new DefaultComboBoxModel<>(modalSplitMethodNames));
+      modalSplitMethodComboBox.addActionListener(event -> updateAssignmentSelection());
     }
     return modalSplitMethodComboBox;
   }
@@ -1296,6 +1298,7 @@ public class AssignmentDlg extends EscapeDialog {
           }
         });
 
+    costFunctionsComboBox.addActionListener(event -> updateAssignmentSelection());
     odTablesComboBox.addActionListener(
         new ActionListener() {
           @Override
@@ -1310,11 +1313,8 @@ public class AssignmentDlg extends EscapeDialog {
               String odTableName =
                   JDBCUtils.getCompliantIdentifier(odTablesComboBox.getSelectedItem().toString());
               sqlLabel.setText("SELECT * FROM " + odTableName + " WHERE");
-              if (costFunctionsComboBox.getSelectedIndex() != -1
-                  || odTablesComboBox.getSelectedIndex() != -1) {
-                assignButton.setEnabled(true);
-              }
             }
+            updateAssignmentSelection();
           }
         });
 
@@ -2022,12 +2022,7 @@ public class AssignmentDlg extends EscapeDialog {
     sqlLabel.setText("SELECT * FROM " + odTableName + " WHERE");
     sqlTextArea.setText(queryString);
 
-    // Assignment is possible only if there is a cost functions file and an OD matrix
-    assignButton.setEnabled(true);
-    if (costFunctionsComboBox.getSelectedIndex() == -1
-        || odTablesComboBox.getSelectedIndex() == -1) {
-      assignButton.setEnabled(false);
-    }
+    updateAssignmentSelection();
   }
 
   /** Save the state of the values of the GUI components in the properties. */
@@ -2052,7 +2047,10 @@ public class AssignmentDlg extends EscapeDialog {
         .setLocalProperty(NodusC.PROP_COST_FUNCTIONS + scenarioSuffix, costFunctions);
 
     // Cost functions
-    String odTableName = odTablesComboBox.getSelectedItem().toString().trim();
+    String odTableName =
+        odTablesComboBox.getSelectedItem() == null
+            ? ""
+            : odTablesComboBox.getSelectedItem().toString().trim();
     nodusMapPanel.getNodusProject().setLocalProperty(NodusC.PROP_OD_TABLE, odTableName);
     nodusMapPanel
         .getNodusProject()
@@ -2297,8 +2295,17 @@ public class AssignmentDlg extends EscapeDialog {
     updateOptions();
   }
 
+  /** Enables assignment only when both the cost functions and demand matrix are selected. */
+  private void updateAssignmentSelection() {
+    boolean ready =
+        costFunctionsComboBox.getSelectedIndex() != -1 && odTablesComboBox.getSelectedIndex() != -1;
+    assignButton.setEnabled(ready);
+    saveButton.setEnabled(ready);
+  }
+
   /** Enables the GUI components relevant for the selected assignment method. */
   private void updateOptions() {
+    updateAssignmentSelection();
 
     boolean enabled = false;
     if (nodusMapPanel == null) {

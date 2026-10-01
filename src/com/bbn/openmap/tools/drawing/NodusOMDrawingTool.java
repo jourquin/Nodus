@@ -33,6 +33,7 @@ import com.bbn.openmap.omGraphics.OMGraphicConstants;
 import com.bbn.openmap.omGraphics.OMGraphicList;
 import com.bbn.openmap.omGraphics.OMPoint;
 import com.bbn.openmap.omGraphics.OMPoly;
+import com.bbn.openmap.omGraphics.event.EOMGEvent;
 import com.bbn.openmap.proj.ProjMath;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.Nodus;
@@ -41,6 +42,7 @@ import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.Point2D;
@@ -101,7 +103,8 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
   /** Action ID used to transfert a node between layers. */
   private static final byte TRANSFERT_NODE = 3;
 
-  // private boolean controlPressed;
+  /** Whether the current drawing event explicitly asks to ignore links. */
+  private boolean ignoreLinks = false;
 
   /** Traces if an object is currently selected and moved to another location. */
   private boolean isMoving = false;
@@ -603,6 +606,19 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
     return null;
   }
 
+  /** Uses the click's modifiers, since dialogs can receive key releases intended for the map. */
+  @Override
+  public void eomgChanged(EOMGEvent event) {
+    MouseEvent mouse = event.getMouseEvent();
+    boolean previousIgnoreLinks = ignoreLinks;
+    ignoreLinks = mouse != null && (mouse.isControlDown() || mouse.isMetaDown());
+    try {
+      super.eomgChanged(event);
+    } finally {
+      ignoreLinks = previousIgnoreLinks;
+    }
+  }
+
   /** Returns the launcher frame, or {@code null} if it is not available yet. */
   private WindowSupport.Frm getLauncherFrame() {
     if (nodusOMDrawingToolLauncher == null
@@ -939,8 +955,8 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
         return omg;
       }
 
-      // Dont look to links if asked so (when control is pressed)
-      if (nodusMapPanel.isControlPressed()) {
+      // An explicit Ctrl/Command-click allows adding a node on top of a link.
+      if (ignoreLinks) {
         return null;
       }
 
@@ -974,7 +990,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
    * @param object Object to edit
    * @return Action to perform
    */
-  private byte getEditAction(OMGraphic object) {
+  protected byte getEditAction(OMGraphic object) {
     Object[] possibleValuesNodes = {
       i18n.get(NodusOMDrawingTool.class, "Move", "Move"),
       i18n.get(NodusOMDrawingTool.class, "Delete", "Delete"),
@@ -1264,7 +1280,7 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
               i18n.get(
                   NodusOMDrawingTool.class,
                   "Services_from_link_must_be_empty",
-                  "Link have Services"),
+                  "Link belongs to a service"),
               NodusC.APPNAME,
               JOptionPane.ERROR_MESSAGE);
           return;
@@ -1679,7 +1695,11 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
     }
   }
 
-  /** Presents transaction errors; individual failed writes are reported by their layer. */
+  /**
+   * Presents transaction errors; individual failed writes are reported by their layer.
+   *
+   * @param error failure encountered during a link-split transaction or its cleanup
+   */
   protected void reportSplitError(Exception error) {
     JOptionPane.showMessageDialog(
         nodusMapPanel, error.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);

@@ -54,7 +54,7 @@ import org.apache.commons.io.FileUtils;
  * <p>Since Nodus 8.4, version-dependent JVM flags are set dynamically in the generated JVM
  * arguments file.
  *
- * <p>Since Nodus 8.6, legacy single-assignment files are upgraded while preserving custom
+ * <p>Since Nodus 9.0, legacy single-assignment files are upgraded while preserving custom
  * arguments.
  *
  * <p>Since Nodus 8.1 Build 20220103, the Times font is also installed on Mac OS Monterey machines

@@ -30,6 +30,10 @@ import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsideP
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsideScope;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
+import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
+import edu.uclouvain.core.nodus.compute.modalsplit.MultinomialLogit;
+import edu.uclouvain.core.nodus.compute.modalsplit.MultinomialProbit;
+import edu.uclouvain.core.nodus.compute.modalsplit.Proportional;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
@@ -37,6 +41,7 @@ import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.utils.GarbageCollectionRunner;
+import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
 import java.io.BufferedReader;
@@ -115,6 +120,8 @@ public abstract class Assignment implements Runnable {
 
   private String errorMessage = "";
 
+  private ModalSplitMethod builtInModalChoice;
+
   /** Normal termination details for iterative assignments. */
   private volatile AssignmentCompletion completion;
 
@@ -142,6 +149,69 @@ public abstract class Assignment implements Runnable {
    * @throws OutOfMemoryError when not enough heap space is available.
    */
   public abstract boolean assign() throws OutOfMemoryError;
+
+  /**
+   * Resolves the modal split for this assignment, including the internal calibration pass.
+   *
+   * @return the modal split prototype to initialize and clone for workers
+   */
+  public ModalSplitMethod getModalSplitMethod() {
+    if (assignmentParameters.getCalibrationMethod() != null) {
+      return assignmentParameters.getCalibrationMethod();
+    }
+    String method = assignmentParameters.getModalSplitMethodName();
+    if ("MNL".equals(method) || "MNP".equals(method) || "Proportional".equals(method)) {
+      if (builtInModalChoice == null) {
+        if ("Proportional".equals(method)) {
+          builtInModalChoice = new Proportional(nodusProject);
+        } else {
+          builtInModalChoice =
+              "MNP".equals(method)
+                  ? new MultinomialProbit(nodusProject)
+                  : new MultinomialLogit(nodusProject);
+        }
+      }
+      return builtInModalChoice;
+    }
+    return ModalSplitMethodsLoader.getModalSplitMethod(
+        assignmentParameters.getModalSplitMethodName());
+  }
+
+  /**
+   * Computes modal route costs without publishing assignment results or running completion tasks.
+   *
+   * <p>The supplied parameters belong to an isolated routing pass. The collector receives its
+   * feasible routes through the usual multi-flow workers; all workers and writers are closed before
+   * this method returns, including after failure or cancellation.
+   *
+   * @param parameters isolated routing controls and temporary observed-demand matrix
+   * @param exact whether to use exact instead of fast multi-flow routing
+   * @param collector modal method that records costs for estimation
+   */
+  public static void computeModalChoiceCosts(
+      AssignmentParameters parameters, boolean exact, ModalSplitMethod collector) {
+    parameters.setCalibrationMethod(collector);
+    Assignment routing =
+        exact ? new ExactMFAssignment(parameters) : new FastMFAssignment(parameters);
+    try {
+      routing.virtualNet = new VirtualNetwork(parameters);
+      if (!routing.assign()) {
+        if (!routing.errorMessage.isEmpty()) {
+          throw new IllegalStateException(routing.errorMessage);
+        }
+        throw new java.util.concurrent.CancellationException("Modal-choice routing stopped");
+      }
+    } finally {
+      routing.cancelAssignmentWorkers();
+      routing.waitForAssignmentWorkers();
+      routing.stopGarbageCollectionRunner();
+      if (routing.virtualNet != null) {
+        routing.virtualNet.dispose();
+      }
+      routing.closePathWriter();
+      parameters.setCalibrationMethod(null);
+    }
+  }
 
   void displayConsoleIfNeeded() {
     if (isFirstLostPath) {
@@ -389,6 +459,11 @@ public abstract class Assignment implements Runnable {
         nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
         discardPathWriter();
       }
+    } catch (java.util.concurrent.CancellationException e) {
+      nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
+    } catch (Exception e) {
+      nodusMapPanel.showAssignmentMessage(e.getMessage(), JOptionPane.ERROR_MESSAGE);
+      nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
     } catch (OutOfMemoryError e) {
       outOfMemory = true;
 
@@ -686,7 +761,7 @@ public abstract class Assignment implements Runnable {
         Byte.parseByte(costFunctions.getProperty(NodusC.VARNAME_MAX_DETOUR_REF_MODE, "-1"));
     assignmentParameters.setMaxDetourReferenceMode(maxDetourReferenceMode);
 
-    if (maxDetourReferenceMode != -1) {
+    if (maxDetourReferenceMode != -1 && assignmentParameters.getCalibrationMethod() == null) {
       System.out.println("Max detour reference mode: " + maxDetourReferenceMode);
     }
   }

@@ -139,8 +139,9 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  * <br>
  * - STOP : Convenient command that stops a script. Useful for debugging. <br>
  *
- * <p>Export commands and EXTRACTSHP ask before overwriting files when run as a direct command.
- * Loaded scripts, multi-command batches, and runBatch calls overwrite without prompting.
+ * <p>Direct import commands ask before replacing existing tables; direct export commands and
+ * EXTRACTSHP ask before overwriting files. Loaded scripts, multi-command batches, and runBatch
+ * calls overwrite without prompting.
  *
  * @author Bart Jourquin
  */
@@ -1381,7 +1382,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @param sqlStmt String The command to process
    * @param operation String The operation to process (IMPORTDBF, EXPORTDBF, IMPORTCSV,
    *     EXPORTCSV,...)
-   * @param confirmOverwrite Whether to ask before replacing an existing output file
+   * @param confirmOverwrite Whether to ask before replacing an existing table or output file
    * @return true on success.
    */
   private boolean importExport(String sqlStmt, String operation, boolean confirmOverwrite) {
@@ -1407,6 +1408,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     if (confirmOverwrite
         && exportFile != null
         && !confirmExportOverwrite(operation, tableName, exportFile)) {
+      return false;
+    }
+    if (confirmOverwrite
+        && operation.startsWith("IMPORT")
+        && !confirmImportOverwrite(operation, tableName)) {
       return false;
     }
 
@@ -1500,14 +1506,37 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     };
   }
 
+  /** Asks before an importer can delete rows or replace the destination table's structure. */
+  private boolean confirmImportOverwrite(String operation, String name) {
+    if (!JDBCUtils.tableExists(name)) {
+      return true;
+    }
+    String message =
+        MessageFormat.format(
+            i18n.get(
+                SQLConsole.class,
+                "Replace_existing_table",
+                "Replace existing table \"{0}\"?\n\nIts current contents will be lost."),
+            name);
+    if (confirmOverwrite(message)) {
+      return true;
+    }
+    return reportOverwriteCancelled(operation, name, "Import_cancelled");
+  }
+
   /** Reports a declined export separately from a failed export, stopping the command batch. */
   private boolean confirmExportOverwrite(String operation, String name, File... files) {
     if (confirmFileOverwrite(files)) {
       return true;
     }
+    return reportOverwriteCancelled(operation, name, "Export_cancelled");
+  }
+
+  /** Reports cancellation without adding the declined command to successful query history. */
+  private boolean reportOverwriteCancelled(String operation, String name, String messageKey) {
     String message =
         MessageFormat.format(
-            i18n.get(SQLConsole.class, "Export_cancelled", "{0} of \"{1}\" cancelled."),
+            i18n.get(SQLConsole.class, messageKey, "{0} of \"{1}\" cancelled."),
             operation,
             name);
     if (!withGUI && typeOfResultFormat != 1) {
@@ -1536,6 +1565,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         MessageFormat.format(
             i18n.get(SQLConsole.class, "Replace_existing_files", "Replace existing file?\n\n{0}"),
             existing.toString());
+    return confirmOverwrite(message);
+  }
+
+  /** Runs file and table overwrite confirmations on the EDT before any destructive work. */
+  private boolean confirmOverwrite(String message) {
     FutureTask<Integer> prompt = new FutureTask<>(() -> showOverwriteDialog(message));
     try {
       // Commands run on a worker; a console without its own window can also run desktop batches.
@@ -1557,7 +1591,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   /**
    * Displays the overwrite prompt on the EDT, with Cancel selected by default.
    *
-   * @param message The localized message listing existing files according to the path preference.
+   * @param message The localized message identifying the table or files to replace.
    * @return The selected option, or CLOSED_OPTION when confirmation is unavailable.
    */
   protected int showOverwriteDialog(String message) {

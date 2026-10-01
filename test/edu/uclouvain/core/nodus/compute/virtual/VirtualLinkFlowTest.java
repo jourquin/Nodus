@@ -23,7 +23,7 @@ package edu.uclouvain.core.nodus.compute.virtual;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import edu.uclouvain.core.nodus.compute.assign.modalsplit.Path;
+import edu.uclouvain.core.nodus.compute.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.real.RealLink;
 import org.junit.jupiter.api.Test;
 
