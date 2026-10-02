@@ -476,10 +476,10 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 
 ## v9.0 - BuildXXXXXXXX
 - Restrict Nodus-managed HSQLDB, H2, and Derby servers to local connections while
-  preserving local R/Python access and independently configured remote JDBC servers.
+  preserving local R/Python access and independently configured remote JDBC servers
 - Create H2 databases locally, restrict TCP access to the project database, and
-  reliably stop the owned listener after project close or failed startup.
-- Remove Derby's test-only durability setting.
+  reliably stop the owned listener after project close or failed startup
+- Remove Derby's test-only durability setting
 - Code cleaning and refactoring
 - Fix a warning in GUIUtils
 - Close a loaded project only when a new one is selected
@@ -500,11 +500,11 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Move modal-choice classes to `edu.uclouvain.core.nodus.compute.modalsplit`
 - Expand the modal-choice API and estimation documentation
 - Stage DBF and schema-bearing Excel imports before replacing existing tables; failed
-  imports preserve the previous table and unrelated pending database changes.
+  imports preserve the previous table and unrelated pending database changes
 - Save layer files through staging and recovery copies, retain edits after save failures,
-  and prevent project closure when saving fails.
+  and prevent project closure when saving fails
 - Upgrade to POI 5.5.1   
-  
+- An error while cleaning up one modal-split plugin doesn't interrupt the cleanup of the entire project
   
   
   

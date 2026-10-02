@@ -39,9 +39,8 @@ databases. They require permission to bind loopback TCP ports and check that the
 listeners cannot be reached through the computer's non-loopback interfaces. They
 also cover local script connections, port conflicts, H2 database creation and
 authentication failures, listener cleanup after compaction, quiet HSQLDB startup
-with errors still reported, and explicit JDBC
-configurations that must not start a local server. No remote server or Internet
-connection is used.
+with errors still reported, and explicit JDBC configurations that must not start a
+local server. No remote server or Internet connection is used.
 
 For a clean application rebuild followed by the tests:
 
@@ -71,7 +70,9 @@ ant -f build-tests.xml CleanTests
 In Eclipse, refresh the project, then right-click `build-tests.xml` and choose
 **Run As > Ant Build**. Its default target is `Test`, so this runs the full suite.
 To select targets explicitly, use **Run As > Ant Build...** and the **Targets** tab.
-Do not launch `build.xml` with its default target: that only builds the application.
+The default target of `build.xml` is `build`: it compiles application and test sources
+but does not execute tests. Select its `Test` target explicitly, or use
+`build-tests.xml` with its default `Test` target.
 
 Eclipse's Ant launcher can require a newer Java runtime than Nodus itself. If an Ant
 launch exits with no console output, open **Run As > Ant Build... > JRE** and select
@@ -93,9 +94,11 @@ so completion dialogs do not appear even without `-Djava.awt.headless=true`.
 `build-tests.xml` imports the application build so Eclipse can resolve its `build`
 dependency. `build-user.xml` contains forwarding targets, preserving `ant Test` and
 `ant CleanTests` even after Eclipse regenerates `build.xml`. The forwarding targets
-also work when launched directly from `build-user.xml`. Keep the test implementation
-in `build-tests.xml`; do not add it to Eclipse's automatic buildfile imports, as it
-already imports `build.xml`.
+also work when launched directly from `build-user.xml`, which has no default target.
+After exporting `build.xml` from Eclipse again, verify that it still contains
+`<import file="build-user.xml"/>`; the forwarding targets require that import.
+Keep the test implementation in `build-tests.xml`; do not add it to Eclipse's
+automatic buildfile imports, as it already imports `build.xml`.
 
 To run the suite through these forwarding targets:
 
@@ -143,8 +146,10 @@ those checks to pass before merging.
 
 The same Ant command works with other CI providers: install a JDK and a full Ant
 distribution, then collect `test-build/reports/TEST-*.xml` as JUnit test results.
-See [GitHub's Ant CI guide](https://docs.github.com/en/actions/tutorials/build-and-test-code/java-with-ant)
+See [GitHub's Ant CI guide][ant-ci]
 for the workflow mechanism.
+
+[ant-ci]: https://docs.github.com/en/actions/tutorials/build-and-test-code/java-with-ant
 
 ## Coverage
 
@@ -320,8 +325,8 @@ for the workflow mechanism.
   default raw-cost utilities, underflowing alternatives, and route allocation after modal choice.
 - `ProportionalEstimatorTest`: known cost factors, analytical uncertainty, reference normalization,
   equal costs, changing availability, quantity scaling, identification and cancellation.
-- `LogitCalibrationIntegrationTest`: standalone logit/probit/proportional estimation and coefficient reuse
-  through fast/exact assignment on H2/HSQLDB, skipped observations and coverage diagnostics,
+- `LogitCalibrationIntegrationTest`: standalone logit/probit/proportional estimation and
+  coefficient reuse in fast/exact assignment on H2/HSQLDB, skipped observations and diagnostics,
   cancellation, and preservation of prior coefficients/results on failure. Also checks saving
   all three models under another filename, using the source's costs and retaining both source
   and destination on cancellation or failed fitting. Missing MNL/probit parameters are checked
@@ -362,23 +367,31 @@ for the workflow mechanism.
   iterators, visibility of stop edits, protected collection views, and clearing cached lookups
   before another project is loaded.
 
-The suite does not yet cover loading complete projects from disk, database engines beyond
-H2/HSQLDB, or GUI workflows. The assignment fixture supplies in-memory Esri layers and DBF table models.
-The separate OpenMap layer fixture reads and writes actual temporary point/link shapefiles,
-uses real SQL operations, and replaces only presentation refresh callbacks. Style tests inspect
-graphic attributes; they do not verify pixels, mouse interaction or asynchronous repaint timing.
-Schema-editor window interaction and save/cancel confirmation dialogs remain outside this
-coverage. Splitting tests verify successful edits and rejected node creation; they do not yet
-exercise database write failures halfway through an edit. Integrity tests cover validation,
-but not the timer's polling interval or automatic removal of self-loop links. Service save rollback
-covers row replacement in existing tables; first-time schema creation and legacy schema changes
-can commit on some database engines and are not covered by that transaction guarantee.
-Concurrency coverage
-includes complete assignments with two commodity jobs, path output, and worker cancellation.
-Modal-split calibration and invalid vehicle properties that display dialogs remain outside
-this headless suite. Equilibrium coverage uses small parallel-route reference cases;
-large networks, nonlinear congestion functions and complete dynamic assignments remain
-outside this coverage.
+The suite does not yet exercise complete project loading from disk or complete graphical
+workflows. The assignment fixture supplies in-memory Esri layers and DBF table models.
+The separate OpenMap layer fixture reads and writes actual temporary point/link shapefiles
+and uses real SQL operations, replacing presentation callbacks. Style tests inspect graphic
+attributes; they do not verify rendered pixels, mouse interaction or asynchronous repaint timing.
+Schema-editor interaction and the actual save/cancel and modal-calibration dialogs remain
+outside this headless suite. Calibration estimation, coefficient persistence and reuse in
+assignments are covered by `LogitCalibrationIntegrationTest`; invalid vehicle properties
+that display dialogs remain untested.
+
+Most database integration tests use H2 and HSQLDB. SQLite has targeted schema-import and
+rollback coverage; Derby has local-server and JDBC access coverage. The suite does not run
+against external MySQL, MariaDB or PostgreSQL servers. Explicit JDBC configuration tests
+check that Nodus leaves those servers independently managed, without connecting to them.
+
+`NetworkEditFailureTest` covers SQL write failures partway through insertions and link splits,
+including rollback and preservation of earlier uncommitted work. Integrity tests cover automatic
+self-loop removal and failed-deletion retry, but not the timer's polling interval. Service-save
+rollback covers row replacement in existing tables; first-time schema creation and legacy schema
+changes can commit on some database engines and are not covered by that transaction guarantee.
+
+Concurrency coverage includes complete assignments with two commodity jobs, path output and
+worker cancellation. Equilibrium coverage uses small parallel-route reference cases; large
+networks, nonlinear congestion functions and complete dynamic assignments remain outside this
+coverage.
 
 The OpenMap tests mirror their production packages under `test/com/bbn/openmap/` and run
 automatically with the existing Ant target and GitHub workflow. To run just the layer tests:
@@ -486,5 +499,5 @@ reproduces it, then verify the fix with `ant -f build-tests.xml`.
 Tests that temporarily set the global `JDBCUtils` connection must use
 `@ResourceLock("JDBCUtils")`, restore it to `null`, and close their private database
 in `@AfterEach` or a try-with-resources fixture. Concurrency tests must join their workers
-and shut down executors, using bounded waits rather than sleeps. Integration tests use `@Tag("integration")`
-for selection in JUnit-aware tools; they remain part of the default Ant suite.
+and shut down executors, using bounded waits rather than sleeps. Integration tests use
+`@Tag("integration")` for selection in JUnit-aware tools; they remain part of the default Ant suite.
