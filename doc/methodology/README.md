@@ -1,6 +1,6 @@
 # Methodological note
 
-Nodus 8.x is not provided with a complete reference or user guide. It is
+Nodus 9.x is not provided with a complete reference or user guide. It is
 however important that the user has a good understanding of the methodological
 framework the software is based on. This is particularly true for the "Virtual
 Networks" and the different cost functions they need.
