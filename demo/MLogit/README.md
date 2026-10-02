@@ -277,8 +277,8 @@ the convergence checks are not a general separation test.
 ```java
 import edu.uclouvain.core.nodus.compute.modalsplit.LogCostLogitEstimator;
 
-double[][] costs = {{1, 1}, {1, 2}};
-double[][] quantities = {{2, 3}, {8, 3}};
+double[][] costs = { {1, 1}, {1, 2} };
+double[][] quantities = { {2, 3}, {8, 3} };
 LogCostLogitEstimator.Result result = LogCostLogitEstimator.estimate(costs, quantities);
 // intercepts = [0, log(1.5)], beta = -2
 System.out.println(result.toCostFileEntries(new int[] {1, 2}, 0));

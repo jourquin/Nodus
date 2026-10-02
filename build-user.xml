@@ -1,5 +1,4 @@
 <?eclipse.ant.import?>
-<!DOCTYPE project>
 <project basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
 	<!--import file="build.xml"/-->
 
