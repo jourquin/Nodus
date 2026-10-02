@@ -22,13 +22,12 @@
 package edu.uclouvain.core.nodus.database.xls;
 
 import com.bbn.openmap.Environment;
-import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.database.TableImport;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -39,8 +38,6 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.Iterator;
 import java.util.StringTokenizer;
-import javax.swing.JOptionPane;
-import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
@@ -56,10 +53,6 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
  * @author Bart Jourquin
  */
 public class ImportXLS {
-
-  private static boolean couldCreateTable = false;
-
-  private static I18n i18n = Environment.getI18n();
 
   /** Default constructor. */
   public ImportXLS() {}
@@ -80,15 +73,8 @@ public class ImportXLS {
    * Builds the CREATE TABLE statement described by the first row of the Excel sheet, or returns
    * null if the row does not use the DBF-style schema syntax.
    */
-  private static String getCreateTableStatement(
-      NodusProject nodusProject, String tableName, boolean isXLSX) {
-    couldCreateTable = false;
-
-    String fileName = getFileName(nodusProject, tableName, isXLSX);
-
-    try (InputStream inp = new FileInputStream(fileName);
-        Workbook wb = WorkbookFactory.create(inp)) {
-
+  private static String getCreateTableStatement(Workbook wb, String tableName) {
+    try {
       // Get the first sheet
       Sheet sheet = wb.getSheetAt(0);
 
@@ -181,52 +167,15 @@ public class ImportXLS {
       return sqlStmt.toString();
     } catch (NumberFormatException e) {
       return null;
-    } catch (EncryptedDocumentException | IOException e) {
-      e.printStackTrace();
-      return null;
-    } catch (Exception e) {
-      JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-      return null;
-    }
-  }
-
-  /** Rolls back the current import without disturbing older work on the shared connection. */
-  private static void rollbackToSavepoint(Connection con, Savepoint savepoint) {
-    if (con == null) {
-      return;
-    }
-
-    try {
-      if (!con.getAutoCommit()) {
-        if (savepoint != null) {
-          con.rollback(savepoint);
-        } else {
-          con.rollback();
-        }
-      }
-    } catch (SQLException rollbackEx) {
-      rollbackEx.printStackTrace();
-    }
-  }
-
-  /** Restores auto-commit after a transaction started by this importer. */
-  private static void restoreAutoCommit(Connection con, boolean restore) {
-    if (!restore || con == null) {
-      return;
-    }
-
-    try {
-      con.setAutoCommit(true);
-    } catch (SQLException e) {
-      e.printStackTrace();
     }
   }
 
   /**
    * Imports the table which name is passed as parameter. The XLSor XLSX file must be located in the
    * project directory. The table must exist unless the first row of the sheet contains the field
-   * descriptions in the DBF format. If the table is already filled, all the existing records are
-   * removed before import. This method returns true if the file was successfully imported.
+   * descriptions in the DBF format. A successful import replaces the existing contents; failed
+   * imports preserve them. Schema-bearing imports are staged before replacing the table (see {@link
+   * TableImport}). This method returns true if the file was successfully imported.
    *
    * @param nodusProject The Nodus project.
    * @param tableName The name of the table. Must be the same as the XLS(X) file name, without its
@@ -237,144 +186,105 @@ public class ImportXLS {
   public static boolean importTable(NodusProject nodusProject, String tableName, boolean isXLSX) {
     String fileName = getFileName(nodusProject, tableName, isXLSX);
     if (!new File(fileName).exists()) {
-      couldCreateTable = false;
       return false;
     }
-
-    String createTableStatement = getCreateTableStatement(nodusProject, tableName, isXLSX);
-
-    // Test if table can be created from the the content of the first row of the .xls file
-    if (createTableStatement == null) {
-      // Table must exist in order to know which structure it has
-      if (!JDBCUtils.tableExists(tableName)) {
-        JOptionPane.showMessageDialog(
-            null,
-            i18n.get(
-                ImportXLS.class,
-                "Table_structure_must_exist_before_importing_XLS_data",
-                "Table structure must exist before importing XLS data"),
-            NodusC.APPNAME,
-            JOptionPane.ERROR_MESSAGE);
-
-        return false;
-      }
-    }
-    couldCreateTable = createTableStatement != null;
-
-    // Do not close the project-owned JDBC connection here.
-    Connection con = nodusProject.getMainJDBCConnection();
-    if (con == null) {
-      return false;
-    }
-
-    Savepoint savepoint = null;
-    boolean restoreAutoCommit = false;
-
-    // Clean table and read table structure
-    String sqlStmt;
-    int nbCols;
-    int[] columnTypes;
-    String quotedTableName = JDBCUtils.getQuotedCompliantIdentifier(tableName);
-
-    try (Statement stmt = con.createStatement()) {
-      if (con.getAutoCommit()) {
-        con.setAutoCommit(false);
-        restoreAutoCommit = true;
-      }
-
-      if (createTableStatement != null) {
-        JDBCUtils.dropTable(tableName);
-        stmt.execute(createTableStatement);
-      }
-
-      // HSQLDB invalidates savepoints when the optional DROP/CREATE TABLE above is executed.
-      // Start the rollback scope only after the table structure is ready.
-      savepoint = con.setSavepoint();
-
-      sqlStmt = "delete from " + quotedTableName;
-      stmt.executeUpdate(sqlStmt);
-
-      // Get table structure
-      sqlStmt = "select * from " + quotedTableName;
-      try (ResultSet rs = stmt.executeQuery(sqlStmt)) {
-        ResultSetMetaData metaData = rs.getMetaData();
-        nbCols = metaData.getColumnCount();
-        columnTypes = new int[nbCols];
-        for (int i = 0; i < nbCols; i++) {
-          columnTypes[i] = metaData.getColumnType(i + 1);
+    try (InputStream input = new FileInputStream(fileName);
+        Workbook workbook = WorkbookFactory.create(input)) {
+      String schema = getCreateTableStatement(workbook, tableName);
+      if (schema != null) {
+        TableImport.replace(
+            nodusProject,
+            tableName,
+            (connection, staged) -> {
+              try (Statement statement = connection.createStatement()) {
+                statement.execute(getCreateTableStatement(workbook, staged));
+              }
+              fillTable(connection, staged, workbook.getSheetAt(0), true);
+            });
+      } else {
+        if (!JDBCUtils.tableExists(tableName)) {
+          throw new SQLException(
+              Environment.getI18n()
+                  .get(
+                      ImportXLS.class,
+                      "Table_structure_must_exist_before_importing_XLS_data",
+                      "Table structure must exist before importing XLS data"));
+        }
+        Connection connection = nodusProject.getMainJDBCConnection();
+        boolean autoCommit = connection.getAutoCommit();
+        boolean restoreAutoCommit = autoCommit;
+        Savepoint savepoint = null;
+        try {
+          if (autoCommit) {
+            connection.setAutoCommit(false);
+          }
+          savepoint = connection.setSavepoint();
+          try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate(
+                "DELETE FROM " + JDBCUtils.getQuotedCompliantIdentifier(tableName));
+          }
+          fillTable(connection, tableName, workbook.getSheetAt(0), false);
+          if (autoCommit) {
+            connection.commit();
+          } else {
+            connection.releaseSavepoint(savepoint);
+          }
+        } catch (Exception error) {
+          try {
+            if (savepoint != null) {
+              connection.rollback(savepoint);
+            } else if (autoCommit) {
+              connection.rollback();
+            }
+          } catch (SQLException recovery) {
+            restoreAutoCommit = false;
+            error.addSuppressed(recovery);
+          }
+          throw error;
+        } finally {
+          if (restoreAutoCommit) {
+            connection.setAutoCommit(true);
+          }
         }
       }
-    } catch (Exception e) {
-      rollbackToSavepoint(con, savepoint);
-      restoreAutoCommit(con, restoreAutoCommit);
-      JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+      return true;
+    } catch (Exception error) {
+      TableImport.reportError(error);
       return false;
     }
+  }
 
-    // Read records and import them in SQL database
-    try (InputStream inp = new FileInputStream(fileName);
-        Workbook wb = WorkbookFactory.create(inp)) {
-
-      // Get the first sheet
-      Sheet sheet = wb.getSheetAt(0);
-
-      // Loop over the rows to import data in table
+  private static void fillTable(Connection connection, String table, Sheet sheet, boolean hasSchema)
+      throws SQLException {
+    String quoted = JDBCUtils.getQuotedCompliantIdentifier(table);
+    int[] types;
+    try (Statement statement = connection.createStatement();
+        ResultSet rows = statement.executeQuery("SELECT * FROM " + quoted + " WHERE 1=0")) {
+      ResultSetMetaData metadata = rows.getMetaData();
+      types = new int[metadata.getColumnCount()];
+      for (int i = 0; i < types.length; i++) {
+        types[i] = metadata.getColumnType(i + 1);
+      }
+    }
+    String placeholders = String.join(",", java.util.Collections.nCopies(types.length, "?"));
+    try (PreparedStatement statement =
+        connection.prepareStatement("INSERT INTO " + quoted + " VALUES (" + placeholders + ")")) {
       Iterator<Row> rows = sheet.rowIterator();
-      if (couldCreateTable && rows.hasNext()) {
+      if (hasSchema && rows.hasNext()) {
         rows.next();
       }
-
-      // Use a prepared statement to increase insert speed
-      StringBuilder insertStatement = new StringBuilder("INSERT INTO ");
-      insertStatement.append(quotedTableName).append(" VALUES (");
-      for (int i = 0; i < nbCols; i++) {
-        insertStatement.append('?');
-        if (i < nbCols - 1) {
-          insertStatement.append(',');
-        }
-      }
-      insertStatement.append(')');
-      sqlStmt = insertStatement.toString();
-
-      try (PreparedStatement prepStmt = con.prepareStatement(sqlStmt)) {
-        while (rows.hasNext()) {
-          Row row = rows.next();
-
-          for (int i = 0; i < nbCols; i++) {
-            Cell cell = row.getCell(i, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
-
-            if (columnTypes[i] == java.sql.Types.CHAR || columnTypes[i] == java.sql.Types.VARCHAR) {
-              String s = "";
-              if (cell != null) {
-                s = cell.getStringCellValue();
-              }
-              prepStmt.setString(i + 1, s);
-
-            } else {
-              double d = 0;
-              if (cell != null) {
-                d = cell.getNumericCellValue();
-              }
-              prepStmt.setDouble(i + 1, d);
-            }
+      while (rows.hasNext()) {
+        Row row = rows.next();
+        for (int i = 0; i < types.length; i++) {
+          Cell cell = row.getCell(i, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+          if (types[i] == java.sql.Types.CHAR || types[i] == java.sql.Types.VARCHAR) {
+            statement.setString(i + 1, cell == null ? "" : cell.getStringCellValue());
+          } else {
+            statement.setDouble(i + 1, cell == null ? 0 : cell.getNumericCellValue());
           }
-          prepStmt.execute();
         }
+        statement.executeUpdate();
       }
-
-      if (restoreAutoCommit) {
-        con.commit();
-      } else if (savepoint != null) {
-        con.releaseSavepoint(savepoint);
-      }
-    } catch (Exception e) {
-      rollbackToSavepoint(con, savepoint);
-      JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-      return false;
-    } finally {
-      restoreAutoCommit(con, restoreAutoCommit);
     }
-
-    return true;
   }
 }

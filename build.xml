@@ -4,7 +4,7 @@
               To include a user specific buildfile here, simply create one in the same
               directory with the processing instruction <?eclipse.ant.import?>
               as the first entry and export the buildfile again. -->
-    <project basedir="." default="build" name="Nodus">
+<project basedir="." default="build" name="Nodus">
     <property environment="env"/>
     <property name="junit.output.dir" value="junit"/>
     <property name="debuglevel" value="source,lines,vars"/>
@@ -38,9 +38,6 @@
         <pathelement location="lib/log4j-to-slf4j-2.18.0.jar"/>
         <pathelement location="lib/xmlbeans-5.1.1.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.7.3.jar"/>
-        <pathelement location="lib/poi-5.2.5.jar"/>
-        <pathelement location="lib/poi-ooxml-5.2.5.jar"/>
-        <pathelement location="lib/poi-ooxml-full-5.2.5.jar"/>
         <pathelement location="lib/commons-collections4-4.5.0-M2.jar"/>
         <pathelement location="lib/commons-compress-1.26.2.jar"/>
         <pathelement location="lib/rsyntaxtextarea-3.4.0.jar"/>
@@ -117,6 +114,9 @@
         <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
         <pathelement location="lib/hsqldb-2.7.4.jar"/>
         <pathelement location="lib/javadbf4nodus-1.12.3.jar"/>
+        <pathelement location="lib/poi-5.5.1.jar"/>
+        <pathelement location="lib/poi-ooxml-5.5.1.jar"/>
+        <pathelement location="lib/poi-ooxml-full-5.5.1.jar"/>
     </path>
     <path id="run.BuildIdGeneratorTest.classpath">
         <path refid="Nodus.classpath"/>
@@ -145,9 +145,6 @@
         <pathelement location="lib/log4j-to-slf4j-2.18.0.jar"/>
         <pathelement location="lib/xmlbeans-5.1.1.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.7.3.jar"/>
-        <pathelement location="lib/poi-5.2.5.jar"/>
-        <pathelement location="lib/poi-ooxml-5.2.5.jar"/>
-        <pathelement location="lib/poi-ooxml-full-5.2.5.jar"/>
         <pathelement location="lib/commons-collections4-4.5.0-M2.jar"/>
         <pathelement location="lib/commons-compress-1.26.2.jar"/>
         <pathelement location="lib/rsyntaxtextarea-3.4.0.jar"/>
@@ -224,6 +221,9 @@
         <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
         <pathelement location="lib/hsqldb-2.7.4.jar"/>
         <pathelement location="lib/javadbf4nodus-1.12.3.jar"/>
+        <pathelement location="lib/poi-5.5.1.jar"/>
+        <pathelement location="lib/poi-ooxml-5.5.1.jar"/>
+        <pathelement location="lib/poi-ooxml-full-5.5.1.jar"/>
     </path>
     <path id="run.Nodus.classpath">
         <path refid="Nodus.classpath"/>
@@ -250,9 +250,6 @@
         <pathelement location="lib/log4j-to-slf4j-2.18.0.jar"/>
         <pathelement location="lib/xmlbeans-5.1.1.jar"/>
         <pathelement location="jdbcDrivers/postgresql-42.7.3.jar"/>
-        <pathelement location="lib/poi-5.2.5.jar"/>
-        <pathelement location="lib/poi-ooxml-5.2.5.jar"/>
-        <pathelement location="lib/poi-ooxml-full-5.2.5.jar"/>
         <pathelement location="lib/commons-collections4-4.5.0-M2.jar"/>
         <pathelement location="lib/commons-compress-1.26.2.jar"/>
         <pathelement location="lib/rsyntaxtextarea-3.4.0.jar"/>
@@ -329,6 +326,9 @@
         <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
         <pathelement location="lib/hsqldb-2.7.4.jar"/>
         <pathelement location="lib/javadbf4nodus-1.12.3.jar"/>
+        <pathelement location="lib/poi-5.5.1.jar"/>
+        <pathelement location="lib/poi-ooxml-5.5.1.jar"/>
+        <pathelement location="lib/poi-ooxml-full-5.5.1.jar"/>
     </path>
     <target name="init">
         <mkdir dir="classes"/>

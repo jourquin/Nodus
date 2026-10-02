@@ -365,7 +365,7 @@ private boolean askBeforeApplying = true;
 
 When backups are enabled:
 
-- `.shp`, `.shx`, and `.dbf` files for modified layers are moved to backup files;
+- `.shp`, `.shx`, and `.dbf` files for modified layers are copied to backup files and left in place;
 - `.prj` and `.cpg` files are copied to backup files and left in place;
 - if timestamping is enabled, backup names include a timestamp.
 

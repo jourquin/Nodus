@@ -31,15 +31,62 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
 
-/** Private in-memory database and temporary project directory; callers must lock JDBCUtils. */
+/**
+ * An isolated in-memory database and minimal project stub for database and file-import tests.
+ *
+ * <p>Each instance uses a unique database name, with H2 by default or HSQLDB when requested. The
+ * project exposes the fixture connection, reports itself as open, and resolves project files
+ * beneath the supplied directory. Its SQL batch size is two, allowing small test inputs to exercise
+ * both intermediate batch flushes and the final partial batch. Other properties return the caller's
+ * default; this is not a fully initialized GUI project.
+ *
+ * <p>Construction installs the connection in the process-wide {@link JDBCUtils} state. Tests must
+ * hold {@code @ResourceLock("JDBCUtils")} for the fixture's entire lifetime and must not nest
+ * fixtures or use them concurrently. Closing clears that state rather than restoring a previous
+ * connection.
+ *
+ * <p>Use try-with-resources to close the owned connection. The caller owns the supplied directory
+ * (normally a JUnit {@code @TempDir}); this fixture neither creates nor deletes it or its files.
+ */
 public final class DatabaseFixture implements AutoCloseable {
+  /** Owned JDBC connection; tests may change its transaction mode and commit or roll back work. */
   public final Connection connection;
+
+  /**
+   * Project stub sharing {@link #connection}, the supplied file directory, and batch-size settings.
+   */
   public final NodusProject project;
 
-  /** Creates a database with a small batch size to exercise intermediate and final flushes. */
+  /**
+   * Creates an H2 fixture with a SQL batch size of two.
+   *
+   * @param directory caller-managed project directory for imported and exported files
+   * @throws SQLException if the connection or JDBCUtils metadata cannot be initialized
+   */
   public DatabaseFixture(Path directory) throws SQLException {
+    this(directory, false);
+  }
+
+  /**
+   * Creates a fixture for either of the embedded engines used by persistence tests.
+   *
+   * <p>The connection initially uses the driver's default auto-commit mode. Tests that need an
+   * existing transaction must explicitly disable auto-commit. The database name is unique to this
+   * fixture, but additional connections can access it while testing imports that use independent
+   * connections for schema changes.
+   *
+   * @param directory caller-managed project directory for imported and exported files
+   * @param hsql {@code true} for HSQLDB, {@code false} for H2
+   * @throws SQLException if the connection or JDBCUtils metadata cannot be initialized; a
+   *     connection opened before metadata initialization fails is closed before the exception is
+   *     thrown
+   */
+  public DatabaseFixture(Path directory, boolean hsql) throws SQLException {
     connection =
-        DriverManager.getConnection("jdbc:h2:mem:nodus_files_" + UUID.randomUUID(), "sa", "");
+        DriverManager.getConnection(
+            (hsql ? "jdbc:hsqldb:mem:" : "jdbc:h2:mem:") + "nodus_files_" + UUID.randomUUID(),
+            "sa",
+            "");
     project =
         new NodusProject(null) {
           @Override
@@ -75,13 +122,31 @@ public final class DatabaseFixture implements AutoCloseable {
     }
   }
 
-  /** Executes setup SQL without retaining a statement. */
+  /**
+   * Executes SQL on the fixture connection and closes the temporary statement.
+   *
+   * <p>This method does not change auto-commit or explicitly commit the transaction.
+   * Database-specific implicit commits, such as those caused by DDL on H2 and HSQLDB, still apply.
+   * Query results are not exposed; use {@link #connection} directly for assertions that read rows.
+   *
+   * @param sql SQL command to execute, typically test setup DDL or DML
+   * @throws SQLException if statement creation, execution, or closure fails
+   */
   public void execute(String sql) throws SQLException {
     try (Statement statement = connection.createStatement()) {
       statement.execute(sql);
     }
   }
 
+  /**
+   * Clears the shared JDBCUtils connection and closes this fixture's connection.
+   *
+   * <p>There is no explicit commit, rollback, database shutdown, or file cleanup here. Tests should
+   * finish transactions explicitly when their outcome matters; connection-close behavior is
+   * determined by the driver.
+   *
+   * @throws SQLException if closing the connection fails
+   */
   @Override
   public void close() throws SQLException {
     JDBCUtils.setConnection(null);

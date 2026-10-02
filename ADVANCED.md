@@ -93,6 +93,28 @@ not CPU time. Total elapsed time also includes unlisted work such as loading dem
 volumes to vehicles. Completion dialogs and post-assignment scripts are excluded. Failed or
 cancelled runs print a partial audit, excluding subsequent failure cleanup.
 
+## Import and layer-save recovery
+
+DBF imports and Excel imports with a schema row load into a staging table before
+replacing the destination. Engines such as H2 and HSQLDB commit schema changes
+implicitly, so these imports use a separate connection: a successful replacement
+is committed independently, while unrelated work on the project's connection
+remains uncommitted. Commit or roll back pending changes to the destination before
+replacing it, to avoid a lock conflict. Excel imports without a schema row replace
+rows within the project's transaction and roll back only the import on failure.
+
+Layer saves write changed `.shp`, `.shx` and `.dbf` files to a temporary recovery
+directory named `.<layer>.nodus-save`. Existing files are backed up before any
+replacement. A failed save restores the previous files and keeps the layer marked
+as modified, so saving can be retried. It also prevents the project from closing
+when the user has chosen to save. Each layer is saved independently.
+
+Opening a layer or retrying its save recovers an interrupted replacement. If
+restoration itself fails, the recovery directory is retained; resolve the file
+access problem before retrying, and do not delete those backups. This mechanism
+handles application interruption; it is not a guarantee against power loss or
+storage failure and does not replace project backups.
+
 ## Tests and continuous integration
 
 Use JDK 11 or later and a full Apache Ant 1.10.6+ installation, including

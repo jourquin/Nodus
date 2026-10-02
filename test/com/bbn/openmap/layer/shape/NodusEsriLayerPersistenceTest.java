@@ -135,4 +135,66 @@ class NodusEsriLayerPersistenceTest {
     }
     return tests;
   }
+
+  @TestFactory
+  List<DynamicTest> failedSidecarInstallRestoresOriginalFilesAndAllowsRetry() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (boolean links : new boolean[] {false, true}) {
+      for (boolean empty : new boolean[] {false, true}) {
+        for (int failure : new int[] {1, 2, 3}) {
+          tests.add(
+              dynamicTest(
+                  links + "/empty=" + empty + "/failure=" + failure,
+                  () -> {
+                    try (LayerTestProject project = new LayerTestProject(directory, links)) {
+                      java.util.Map<String, byte[]> originals = new java.util.HashMap<>();
+                      for (String extension : List.of(".shp", ".shx", ".dbf")) {
+                        originals.put(
+                            extension,
+                            Files.readAllBytes(directory.resolve("features" + extension)));
+                      }
+                      do {
+                        project.layer.removeRecord(0, false);
+                      } while (empty && project.layer.getModel().getRowCount() > 0);
+                      project.layer.failInstall = failure;
+                      assertFalse(project.layer.saveChanges());
+                      assertTrue(project.layer.isDirty());
+                      assertEquals(1, project.layer.saveErrors.size());
+                      for (var original : originals.entrySet()) {
+                        assertArrayEquals(
+                            original.getValue(),
+                            Files.readAllBytes(directory.resolve("features" + original.getKey())));
+                      }
+                      assertFalse(Files.exists(directory.resolve(".features.nodus-save")));
+                      project.layer.failInstall = 0;
+                      assertTrue(project.layer.saveChanges());
+                      assertFalse(project.layer.isDirty());
+                      LayerTestProject.TestLayer reloaded = new LayerTestProject.TestLayer();
+                      try {
+                        reloaded.setProject(project, "features");
+                        assertEquals(empty ? 0 : 2, reloaded.getModel().getRowCount());
+                        assertEquals(empty ? 0 : 2, reloaded.getEsriGraphicList().size());
+                      } finally {
+                        reloaded.dispose();
+                      }
+                    }
+                  }));
+        }
+      }
+    }
+    return tests;
+  }
+
+  @org.junit.jupiter.api.Test
+  void failedDbfStagingNeverTouchesExistingFiles() throws Exception {
+    try (LayerTestProject project = new LayerTestProject(directory, false)) {
+      project.layer.getModel().setColumnName(0, "invalid field name much too long");
+      project.layer.setDirtyDbf(true);
+      assertFalse(project.layer.saveChanges());
+      assertTrue(project.layer.isDirty());
+      byte[] original = Files.readAllBytes(directory.resolve("features.dbf"));
+      assertArrayEquals(original, Files.readAllBytes(directory.resolve("features.dbf")));
+      assertEquals(1, project.layer.saveErrors.size());
+    }
+  }
 }

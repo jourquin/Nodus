@@ -250,6 +250,29 @@ final class LayerTestProject extends NodusProject implements AutoCloseable {
     private static final long serialVersionUID = 1L;
     int preparations;
     boolean realLabels;
+    int failInstall;
+    final List<Exception> saveErrors = new ArrayList<>();
+
+    @Override
+    protected edu.uclouvain.core.nodus.database.LayerFileSave createFileSave(Path directory)
+        throws java.io.IOException {
+      return new edu.uclouvain.core.nodus.database.LayerFileSave(directory, getTableName()) {
+        int installs;
+
+        @Override
+        protected void install(Path source, Path target) throws java.io.IOException {
+          if (++installs == failInstall) {
+            throw new java.io.IOException("Injected sidecar installation failure");
+          }
+          super.install(source, target);
+        }
+      };
+    }
+
+    @Override
+    protected void reportSaveError(Exception error) {
+      saveErrors.add(error);
+    }
 
     @Override
     public void doPrepare() {

@@ -371,7 +371,7 @@ public class NodusProject implements ShapeConstants {
   /**
    * Closes the project and invokes {@code onClosed} on the EDT once the full close sequence is
    * complete, including optional DB compaction.
-   * 
+   *
    * @param onClosed callback to run after the project is fully closed, or {@code null} if no
    */
   public void close(Runnable onClosed) {
@@ -406,14 +406,9 @@ public class NodusProject implements ShapeConstants {
     boolean projectClosed = false;
     boolean closeDeferred = false;
     try {
-      // Close all the open child windows, including dialogs.
-      for (Window window : Window.getWindows()) {
-        if (window != null && window != nodusMapPanel.getMainFrame() && window.isDisplayable()) {
-          window.setVisible(false);
-          window.dispose();
-        }
+      if (!saveModifiedLayersBeforeClose()) {
+        return;
       }
-
       Layer[] layer = nodusMapPanel.getLayerHandler().getLayers();
 
       String layerOrder = "";
@@ -441,30 +436,17 @@ public class NodusProject implements ShapeConstants {
       this.setLocalProperty(NodusC.PROP_MAP_ORDER, layerOrder);
 
       if (nodeLayers != null && linkLayers != null) {
-
-        // Save the Services and release the service editor object graph.
+        // Only release the editor and other windows once network saving has succeeded.
         closeServiceHandler();
-
-        if (isDirty()) {
-          int answer =
-              JOptionPane.showConfirmDialog(
-                  null,
-                  i18n.get(
-                      NodusProject.class, "Commit_changes_to_layers", "Commit changes to layers?"),
-                  i18n.get(NodusProject.class, "Network_was_modified", "Network was modified"),
-                  JOptionPane.YES_NO_OPTION);
-
-          if (answer == JOptionPane.YES_OPTION) {
-            saveEsriLayers();
-          } else {
-            /*
-             * Drop the sql tables as they are changed and that the user don't want to save these
-             * changes. They will be reimported when project will be reopened
-             */
-            rollBack();
-          }
+      }
+      // Close all the open child windows, including dialogs.
+      for (Window window : Window.getWindows()) {
+        if (window != null && window != nodusMapPanel.getMainFrame() && window.isDisplayable()) {
+          window.setVisible(false);
+          window.dispose();
         }
-
+      }
+      if (nodeLayers != null && linkLayers != null) {
         boolean compactDatabase = shouldCompactDatabase(dbEngine);
 
         Connection connection = jdbcConnection;
@@ -510,6 +492,31 @@ public class NodusProject implements ShapeConstants {
         finishCloseUi(projectClosed);
       }
     }
+  }
+
+  /** Preserves the open project when saving fails or the close prompt is dismissed. */
+  private boolean saveModifiedLayersBeforeClose() {
+    if (!isDirty()) {
+      return true;
+    }
+    int answer = confirmLayerSaveOnClose();
+    if (answer == JOptionPane.YES_OPTION) {
+      return saveEsriLayersSafely();
+    }
+    if (answer == JOptionPane.NO_OPTION) {
+      rollBack();
+      return true;
+    }
+    return false;
+  }
+
+  /** Presents the close-time layer confirmation; separate from persistence for headless tests. */
+  protected int confirmLayerSaveOnClose() {
+    return JOptionPane.showConfirmDialog(
+        null,
+        i18n.get(NodusProject.class, "Commit_changes_to_layers", "Commit changes to layers?"),
+        i18n.get(NodusProject.class, "Network_was_modified", "Network was modified"),
+        JOptionPane.YES_NO_OPTION);
   }
 
   /** Stops the deferred integrity tester, if one is still running. */
@@ -805,7 +812,12 @@ public class NodusProject implements ShapeConstants {
     nodusMapPanel.setFileMenuBusy(false);
     nodusMapPanel.setBusy(false);
     nodusMapPanel.restoreMainFrameFocus();
-    runCloseCompletionCallbacks();
+    if (projectClosed || !isOpen) {
+      runCloseCompletionCallbacks();
+    } else {
+      // Do not open another project or exit after an unsuccessful save/close.
+      closeCompletionCallbacks.clear();
+    }
   }
 
   /** Runs callbacks that were waiting for the project close sequence to finish. */
@@ -2230,8 +2242,7 @@ public class NodusProject implements ShapeConstants {
         name.endsWith(NodusC.TYPE_NODUS)
             ? name.substring(0, name.length() - NodusC.TYPE_NODUS.length())
             : name;
-    localProperties.setProperty(
-        NodusC.PROP_PROJECT_DOTNAME, projectDotName);
+    localProperties.setProperty(NodusC.PROP_PROJECT_DOTNAME, projectDotName);
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_LAST_PATH, projectPath);
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_LAST_PROJECT, name);
 
@@ -2742,23 +2753,31 @@ public class NodusProject implements ShapeConstants {
    * this, as the .dbf files associated to the shape files will be updated.
    */
   public void saveEsriLayers() {
-    if (isOpen) {
-      nodusMapPanel.setBusy(true);
+    if (!saveEsriLayersSafely()) {
+      throw new IllegalStateException("Project contains unsaved layer changes");
+    }
+  }
 
-      if (nodeLayers != null) {
-        for (NodusEsriLayer element : nodeLayers) {
-          element.save();
+  /** Returns false if a layer could not be saved, keeping the project available for retry. */
+  public boolean saveEsriLayersSafely() {
+    if (!isOpen()) {
+      return true;
+    }
+    getNodusMapPanel().setBusy(true);
+    try {
+      for (NodusEsriLayer[] layers : new NodusEsriLayer[][] {getNodeLayers(), getLinkLayers()}) {
+        if (layers != null) {
+          for (NodusEsriLayer layer : layers) {
+            if (!layer.saveChanges()) {
+              return false;
+            }
+          }
         }
       }
-
-      if (linkLayers != null) {
-        for (NodusEsriLayer element : linkLayers) {
-          element.save();
-        }
-      }
-
       Nodus.nodusLogger.info("Save project");
-      nodusMapPanel.setBusy(false);
+      return true;
+    } finally {
+      getNodusMapPanel().setBusy(false);
     }
   }
 

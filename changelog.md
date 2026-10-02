@@ -494,7 +494,11 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Add a simple modal choice estimation module (logit, probit and proportional cost factors)
 - Move modal-choice classes to `edu.uclouvain.core.nodus.compute.modalsplit`
 - Expand the modal-choice API and estimation documentation
-  
+- Stage DBF and schema-bearing Excel imports before replacing existing tables; failed
+  imports preserve the previous table and unrelated pending database changes.
+- Save layer files through staging and recovery copies, retain edits after save failures,
+  and prevent project closure when saving fails.
+- Upgrade to POI 5.5.1   
   
   
   

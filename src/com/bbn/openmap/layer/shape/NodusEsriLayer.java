@@ -52,7 +52,8 @@ import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.real.RealNode;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
-import edu.uclouvain.core.nodus.database.ProjectFilesTools;
+import edu.uclouvain.core.nodus.database.LayerFileSave;
+import edu.uclouvain.core.nodus.database.TableImport;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
 import edu.uclouvain.core.nodus.services.ServiceHandler;
@@ -67,12 +68,13 @@ import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -1545,58 +1547,59 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
    * .dbf tables.
    */
   public void save() {
+    if (!saveChanges()) {
+      throw new IllegalStateException("Could not save layer " + tableName);
+    }
+  }
 
+  /** Saves changed sidecars as a recoverable set, retaining dirty state on any failure. */
+  public synchronized boolean saveChanges() {
+    if (!isDirty()) {
+      return true;
+    }
     nodusProject.getNodusMapPanel().setBusy(true);
-
-    // ESRI shape file
-    if (dirtyShp) {
-      String path = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
-
-      if (getModel().getRowCount() > 0) {
-        String filePath = path + tableName;
-        File shpFile = new File(filePath + NodusC.TYPE_SHP);
-        File shxFile = new File(filePath + NodusC.TYPE_SHX);
-        try (FileOutputStream shpOutputStream = new FileOutputStream(shpFile);
-            FileOutputStream shxOutputStream = new FileOutputStream(shxFile)) {
-          ShpOutputStream pos = new ShpOutputStream(shpOutputStream);
-          int[][] indexData = pos.writeGeometry(getEsriGraphicList());
-
-          ShxOutputStream xos = new ShxOutputStream(shxOutputStream);
-          xos.writeIndex(indexData, getEsriGraphicList().getType());
-        } catch (IOException ex) {
-          System.out.println(ex.toString());
+    try {
+      Path directory = Path.of(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
+      try (LayerFileSave save = createFileSave(directory)) {
+        if (dirtyShp) {
+          Path shp = save.stage(tableName + NodusC.TYPE_SHP);
+          Path shx = save.stage(tableName + NodusC.TYPE_SHX);
+          EsriGraphicList graphics = getEsriGraphicList();
+          if (getModel().getRowCount() == 0) {
+            graphics =
+                getType() == SHAPE_TYPE_POLYLINE ? new EsriPolylineList() : new EsriPointList();
+          }
+          try (OutputStream geometry = Files.newOutputStream(shp);
+              OutputStream index = Files.newOutputStream(shx)) {
+            int[][] offsets = new ShpOutputStream(geometry).writeGeometry(graphics);
+            new ShxOutputStream(index).writeIndex(offsets, graphics.getType());
+          }
         }
-
-      } else { // Openmap doesn't properly save empty shape files!
-        ProjectFilesTools.createEmptyLayer(path, tableName, getType(), path + tableName);
+        if (dirtyDbf
+            && !ExportDBF.exportFile(save.stage(tableName + NodusC.TYPE_DBF), getModel())) {
+          throw new IOException("Could not write attributes for layer " + tableName);
+        }
+        save.commit();
       }
+      dirtyShp = false;
+      dirtyDbf = false;
+      return true;
+    } catch (Exception error) {
+      reportSaveError(error);
+      return false;
+    } finally {
+      nodusProject.getNodusMapPanel().setBusy(false);
     }
+  }
 
-    // boolean isStructureChanged = isTableStructureChanged();
+  /** Creates the file replacement transaction used by this layer. */
+  protected LayerFileSave createFileSave(Path directory) throws IOException {
+    return new LayerFileSave(directory, tableName);
+  }
 
-    // Associated .dbf file (broken in OpenMap 4.5.4)
-    // if (dirtyDbf || isStructureChanged) {
-    if (dirtyDbf) {
-      ExportDBF.exportTable(nodusProject, tableName + NodusC.TYPE_DBF, getModel());
-    }
-
-    /*
-    if (isStructureChanged) {
-      // Openmap allow the creation of logical fields in DBF files, but booleans are not supported
-      // by some DBMS's. Check and modify structure if needed.
-      fixDBFFile();
-
-      // Reimport table
-      ImportDBF.importTable(nodusProject, tableName);
-    }
-    */
-
-    // Reset the 'dirty' state
-    dirtyShp = false;
-    dirtyDbf = false;
-    // getOriginalTableStructure();
-
-    nodusProject.getNodusMapPanel().setBusy(false);
+  /** Reports save errors without discarding the edited layer. */
+  protected void reportSaveError(Exception error) {
+    TableImport.reportError(error);
   }
 
   /**
@@ -1793,6 +1796,11 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     // Basic settings needed to create a valid EsriLayer
     tablePath = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
     tableName = nodusProject.getLocalProperty(layerName + NodusC.PROP_NAME);
+    try {
+      LayerFileSave.recover(Path.of(tablePath), tableName);
+    } catch (IOException error) {
+      throw new IllegalStateException("Cannot recover layer " + tableName, error);
+    }
 
     /*
      * Fix the shape file if bugged (shape created/ files written by means of

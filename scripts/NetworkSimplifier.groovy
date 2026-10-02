@@ -1820,8 +1820,8 @@ public final class SimplifyNetworks {
   /**
    * Creates backups of the shapefile sidecars that belong to a modified layer.
    *
-   * <p>{@code .shp}, {@code .shx}, and {@code .dbf} are moved out of the way so Nodus can recreate
-   * them on save. {@code .prj} and {@code .cpg} are copied but left in place.
+   * <p>{@code .shp}, {@code .shx}, and {@code .dbf} are copied so the originals remain available
+   * if saving fails. {@code .prj} and {@code .cpg} are copied but left in place.
    */
   private void backupLayerFiles(Path projectDir, String tableName) throws IOException {
     String stamp =
@@ -1833,7 +1833,7 @@ public final class SimplifyNetworks {
       Path src = projectDir.resolve(tableName + ext);
       if (Files.exists(src)) {
         Path dst = projectDir.resolve(tableName + ext + stamp + ".bak");
-        Files.move(src, dst, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING);
         System.out.println("Backup: " + src.getFileName() + " -> " + dst.getFileName());
       }
     }

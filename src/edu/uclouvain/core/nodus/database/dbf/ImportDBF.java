@@ -24,16 +24,15 @@ package edu.uclouvain.core.nodus.database.dbf;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.database.TableImport;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Types;
-import javax.swing.JOptionPane;
 
 /**
  * Imports .dbf tables in the database used by the Nodus project.
@@ -49,34 +48,6 @@ public class ImportDBF {
 
   /** Default constructor. */
   public ImportDBF() {}
-
-  /** Rolls back the current import without disturbing older work on the shared connection. */
-  private static void rollbackToSavepoint(Connection con, Savepoint savepoint) {
-    if (con == null || savepoint == null) {
-      return;
-    }
-
-    try {
-      if (!con.getAutoCommit()) {
-        con.rollback(savepoint);
-      }
-    } catch (SQLException rollbackEx) {
-      rollbackEx.printStackTrace();
-    }
-  }
-
-  /** Restores auto-commit after a transaction started by this importer. */
-  private static void restoreAutoCommit(Connection con, boolean restore) {
-    if (!restore || con == null) {
-      return;
-    }
-
-    try {
-      con.setAutoCommit(true);
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-  }
 
   /**
    * Creates a new table, based on the structure of the dbfReader. Returns true on success.
@@ -102,7 +73,6 @@ public class ImportDBF {
 
     sqlStmt.append(')');
     try (Statement stmt = jdbcConnection.createStatement()) {
-      JDBCUtils.dropTable(tableName);
       stmt.execute(sqlStmt.toString());
 
     } catch (Exception e) {
@@ -235,50 +205,26 @@ public class ImportDBF {
     maxBatchSize = project.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
 
     hasBatchSupport = JDBCUtils.hasBatchSupport();
-    Savepoint savepoint = null;
-    boolean restoreAutoCommit = false;
-
-    // Uppercases? Lowercases?, Mixed? Depends on database capabilities ...
-    String jdbcTableName = JDBCUtils.getCompliantIdentifier(tableName);
-
-    // Create table
-    try (DBFReader dbfReader = new DBFReader(path + tableName + NodusC.TYPE_DBF)) {
-      if (jdbcConnection.getAutoCommit()) {
-        jdbcConnection.setAutoCommit(false);
-        restoreAutoCommit = true;
+    try (DBFReader reader = new DBFReader(path + tableName + NodusC.TYPE_DBF)) {
+      if (!reader.isOpen()) {
+        return false;
       }
-
-      // Create new table and drop existent one
-      if (dbfReader.isOpen()) {
-        if (!createTable(jdbcTableName, dbfReader)) {
-          return false;
-        }
-
-        // HSQLDB invalidates existing savepoints when DROP/CREATE TABLE is executed.
-        // Protect the data insertion phase with a savepoint created after the DDL.
-        savepoint = jdbcConnection.setSavepoint();
-
-        if (!fillTable(jdbcTableName, dbfReader)) {
-          rollbackToSavepoint(jdbcConnection, savepoint);
-          return false;
-        }
-      }
-
-      if (restoreAutoCommit) {
-        jdbcConnection.commit();
-      } else if (savepoint != null) {
-        jdbcConnection.releaseSavepoint(savepoint);
-      }
+      TableImport.replace(
+          project,
+          tableName,
+          (connection, staged) -> {
+            jdbcConnection = connection;
+            if (!createTable(staged, reader) || !fillTable(staged, reader)) {
+              throw new SQLException("Could not import " + tableName);
+            }
+          });
+      return true;
     } catch (Exception e) {
-      rollbackToSavepoint(jdbcConnection, savepoint);
-      JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+      TableImport.reportError(e);
       return false;
     } finally {
-      restoreAutoCommit(jdbcConnection, restoreAutoCommit);
       jdbcConnection = null;
     }
-
-    return true;
   }
 
   /**

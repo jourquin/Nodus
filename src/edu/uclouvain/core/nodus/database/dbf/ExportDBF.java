@@ -359,8 +359,12 @@ public class ExportDBF implements ShapeConstants {
   public static boolean exportTable(
       NodusProject nodusProject, String tableName, DbfTableModel model) {
     String path = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
+    return exportFile(java.nio.file.Path.of(path, tableName), model);
+  }
 
-    DBFWriter dbf = createTable(path, tableName, model);
+  /** Writes a DBF model to an explicit file, including a staged layer-save file. */
+  public static boolean exportFile(java.nio.file.Path file, DbfTableModel model) {
+    DBFWriter dbf = createTable("", file.toString(), model);
 
     if (dbf == null) {
       return false;

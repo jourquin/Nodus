@@ -2,9 +2,7 @@
 
 All modal-choice implementations, estimators and their dialog now live in
 `edu.uclouvain.core.nodus.compute.modalsplit`, alongside `compute.assign`.
-The previous `compute.assign.modalsplit` package is removed. This is a Java API
-change: an existing compiled plugin needs its class references updated before it can load.
-
+The previous `compute.assign.modalsplit` package is removed.
 ## Upgrade an existing plugin JAR
 
 When a project contains a plugin using the old `ModalSplitMethod`, `Path` or

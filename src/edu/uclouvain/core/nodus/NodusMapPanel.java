@@ -2525,7 +2525,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @param e ActionEvent.
    */
   private void menuItemFileSaveActionPerformed(ActionEvent e) {
-    nodusProject.saveEsriLayers();
+    nodusProject.saveEsriLayersSafely();
   }
 
   /**

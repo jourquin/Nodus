@@ -23,11 +23,16 @@ Fixtures and confirmation callbacks keep these checks independent of real projec
 dialogs, including when run directly from Eclipse's JUnit runner.
 No project data, external database, network access, or graphical desktop is needed. Database tests
 create private in-memory databases and close them afterwards. Most use H2; service
-persistence failure/retry and legacy-schema checks also run against HSQLDB.
+persistence failure/retry and legacy-schema checks also run against HSQLDB. Import
+failure tests cover H2 and HSQLDB staging, malformed DBF/XLS/XLSX input, replacement
+failures, and preservation of earlier uncommitted work. SQLite exercises transactional
+schema replacement and rollback. Layer-save tests inject failures at each sidecar
+installation, check interrupted-save recovery and retained backups when recovery
+fails, and verify that a failed save prevents project close callbacks from running.
 File import/export tests use JUnit temporary directories, which are removed after
 the tests. They never read or overwrite files in an existing Nodus project.
 Dependencies are included in the repository: JUnit 5 and OpenTest4J under
-`lib/groovy/`, API Guardian under `devtools/junit/`, and H2/HSQLDB under `lib/`.
+`lib/groovy/`, API Guardian under `devtools/junit/`, and H2/HSQLDB/SQLite under `lib/`.
 
 For a clean application rebuild followed by the tests:
 

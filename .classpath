@@ -43,9 +43,6 @@
 	<classpathentry kind="lib" path="lib/log4j-to-slf4j-2.18.0.jar"/>
 	<classpathentry kind="lib" path="lib/xmlbeans-5.1.1.jar"/>
 	<classpathentry kind="lib" path="jdbcDrivers/postgresql-42.7.3.jar"/>
-	<classpathentry kind="lib" path="lib/poi-5.2.5.jar"/>
-	<classpathentry kind="lib" path="lib/poi-ooxml-5.2.5.jar"/>
-	<classpathentry kind="lib" path="lib/poi-ooxml-full-5.2.5.jar"/>
 	<classpathentry kind="lib" path="lib/commons-collections4-4.5.0-M2.jar"/>
 	<classpathentry kind="lib" path="lib/commons-compress-1.26.2.jar"/>
 	<classpathentry kind="lib" path="lib/rsyntaxtextarea-3.4.0.jar"/>
@@ -122,5 +119,8 @@
 	<classpathentry kind="lib" path="lib/slf4j-nop-1.7.35.jar"/>
 	<classpathentry kind="lib" path="lib/hsqldb-2.7.4.jar"/>
 	<classpathentry kind="lib" path="lib/javadbf4nodus-1.12.3.jar"/>
+	<classpathentry kind="lib" path="lib/poi-5.5.1.jar"/>
+	<classpathentry kind="lib" path="lib/poi-ooxml-5.5.1.jar"/>
+	<classpathentry kind="lib" path="lib/poi-ooxml-full-5.5.1.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>
