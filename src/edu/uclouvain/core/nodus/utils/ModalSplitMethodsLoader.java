@@ -409,26 +409,44 @@ public class ModalSplitMethodsLoader {
     return null;
   }
 
-  /** Dispose resources. */
+  /**
+   * Disposes every loaded method, then closes its project-scoped class path.
+   *
+   * <p>Detach both registries before invoking plugin code so repeated or reentrant cleanup cannot
+   * dispose the same objects again. Class paths remain open until all method disposers have been
+   * attempted, since those disposers may still need plugin classes or resources. Runtime and
+   * linkage failures are reported individually without interrupting the remaining cleanup or the
+   * caller's project cleanup. Fatal VM errors are not suppressed.
+   */
   public static void disposeAvailableModalSplitMethods() {
-    for (ModalSplitMethod method : availableModalSplitMethods) {
-      if (method != null) {
-        method.dispose();
-      }
-    }
-
+    ModalSplitMethod[] methods = availableModalSplitMethods.toArray(new ModalSplitMethod[0]);
+    PluginClassPath[] classPaths = modalSplitClassPaths.toArray(new PluginClassPath[0]);
     availableModalSplitMethods.clear();
+    modalSplitClassPaths.clear();
 
-    /*
-     * Close the project-scoped modal-split class loaders after method.dispose(),
-     * because dispose() may still need classes/resources from the plugin.
-     */
-    for (PluginClassPath classPath : modalSplitClassPaths) {
-      if (classPath != null) {
-        classPath.close();
+    try {
+      for (ModalSplitMethod method : methods) {
+        if (method != null) {
+          try {
+            method.dispose();
+          } catch (RuntimeException | LinkageError failure) {
+            System.err.println(
+                "Could not dispose modal split method " + method.getClass().getName());
+            failure.printStackTrace();
+          }
+        }
+      }
+    } finally {
+      for (PluginClassPath classPath : classPaths) {
+        if (classPath != null) {
+          try {
+            classPath.close();
+          } catch (RuntimeException | LinkageError failure) {
+            System.err.println("Could not close modal split plugin class path");
+            failure.printStackTrace();
+          }
+        }
       }
     }
-
-    modalSplitClassPaths.clear();
   }
 }

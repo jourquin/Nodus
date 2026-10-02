@@ -133,7 +133,15 @@ class LocalDatabaseServerTest {
             .start();
     try {
       assertTrue(child.waitFor(30, TimeUnit.SECONDS), "Server test timed out: " + mode);
-      assertEquals(0, child.exitValue(), Files.readString(output));
+      String diagnostics = Files.readString(output);
+      assertEquals(0, child.exitValue(), diagnostics);
+      if (engine == JDBCUtils.DB_HSQLDB) {
+        if (mode.equals("connect")) {
+          assertTrue(diagnostics.isBlank(), diagnostics);
+        } else if (mode.equals("conflict")) {
+          assertTrue(diagnostics.contains("java.net.BindException"), diagnostics);
+        }
+      }
     } finally {
       child.destroyForcibly();
       child.waitFor(5, TimeUnit.SECONDS);

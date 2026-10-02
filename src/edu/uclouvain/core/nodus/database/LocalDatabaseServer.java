@@ -99,13 +99,14 @@ public final class LocalDatabaseServer implements AutoCloseable {
       switch (engine) {
         case JDBCUtils.DB_HSQLDB:
           owner.hsql = new org.hsqldb.Server();
+          // Configuration setters also log; silence them while retaining the error writer.
+          owner.hsql.setLogWriter(null);
           owner.hsql.setAddress(HOST);
           owner.hsql.setPort(port);
           owner.hsql.setDatabaseName(0, name);
           owner.hsql.setDatabasePath(
               0, "file:" + directory.resolve(name + "_hsqldb") + ";shutdown=true");
           owner.hsql.setNoSystemExit(true);
-          owner.hsql.setLogWriter(null);
           owner.hsql.start();
           if (owner.hsql.getState() != ServerConstants.SERVER_STATE_ONLINE) {
             throw new SQLException(

@@ -38,7 +38,8 @@ The local-server tests launch isolated JVMs with temporary HSQLDB, H2, and Derby
 databases. They require permission to bind loopback TCP ports and check that the
 listeners cannot be reached through the computer's non-loopback interfaces. They
 also cover local script connections, port conflicts, H2 database creation and
-authentication failures, listener cleanup after compaction, and explicit JDBC
+authentication failures, listener cleanup after compaction, quiet HSQLDB startup
+with errors still reported, and explicit JDBC
 configurations that must not start a local server. No remote server or Internet
 connection is used.
 
@@ -308,6 +309,11 @@ for the workflow mechanism.
 - `ModalSplitTest`: proportional and multinomial-logit shares, normalization across modes
   and paths, large costs, invalid costs, legacy negative-cost defaults, and isolation between
   fitted/default groups and worker clones.
+- `ModalSplitMethodsLoaderTest`: failing and reentrant plugin disposers, remaining method
+  cleanup, delayed class-path closure, cleared registries and reported failures.
+- `NodusProjectCleanupTest`: a broken modal-plugin disposer must not prevent layer disposal
+  on normal close, or JDBC connection closure, project-lock release and busy-state reset
+  after failed project opening.
 - `MultinomialProbitTest`, `ProbitProbabilitiesTest`, `LogCostProbitEstimatorTest`: joint normal
   choice probabilities against independent SciPy references, binary and rare-choice limits,
   likelihood derivatives, coefficient recovery, availability, identification, cost/quantity scaling,

@@ -88,6 +88,7 @@ public class Nodus {
    * @param args The name (and path) of the project to load
    */
   public static void main(String[] args) {
+    // Configure H2 binding before any H2 initialization occurs
     LocalDatabaseServer.configureH2Binding();
 
     // Keep the splash visible for one second after startup without blocking initialization
