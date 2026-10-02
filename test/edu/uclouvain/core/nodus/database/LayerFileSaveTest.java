@@ -83,23 +83,26 @@ class LayerFileSaveTest {
   void failedRecoveryRetainsBackupForRetry() throws Exception {
     Path target = directory.resolve("test.dbf");
     Files.writeString(target, "original");
-    // close() is tested through assertThrows below; recover() cleans up after that expected
-    // failure.
-    @SuppressWarnings("resource")
-    LayerFileSave save =
-        new LayerFileSave(directory, "test") {
-          @Override
-          protected void install(Path staged, Path destination) throws IOException {
-            super.install(staged, destination);
-            throw new IOException("Interrupted before commit marker");
+    Path obstruction = target.resolve("obstruction");
+    assertThrows(
+        IOException.class,
+        () -> {
+          try (LayerFileSave save =
+              new LayerFileSave(directory, "test") {
+                @Override
+                protected void install(Path staged, Path destination) throws IOException {
+                  super.install(staged, destination);
+                  throw new IOException("Interrupted before commit marker");
+                }
+              }) {
+            Files.writeString(save.stage("test.dbf"), "new");
+            assertThrows(IOException.class, save::commit);
+            Files.delete(target);
+            Files.createDirectory(target);
+            Files.writeString(obstruction, "blocked");
+            // Automatic close attempts recovery and fails because the destination is obstructed.
           }
-        };
-    Files.writeString(save.stage("test.dbf"), "new");
-    assertThrows(IOException.class, save::commit);
-    Files.delete(target);
-    Files.createDirectory(target);
-    Path obstruction = Files.writeString(target.resolve("obstruction"), "blocked");
-    assertThrows(IOException.class, save::close);
+        });
     assertEquals("original", Files.readString(directory.resolve(".test.nodus-save/test.dbf.bak")));
     Files.delete(obstruction);
     Files.delete(target);
