@@ -25,6 +25,7 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.MapHandler;
 import com.bbn.openmap.gui.OpenMapFrame;
 import com.bbn.openmap.util.I18n;
+import edu.uclouvain.core.nodus.database.LocalDatabaseServer;
 import edu.uclouvain.core.nodus.gui.Splash;
 import edu.uclouvain.core.nodus.utils.LocaleUtils;
 import edu.uclouvain.core.nodus.utils.MacUtils;
@@ -87,6 +88,7 @@ public class Nodus {
    * @param args The name (and path) of the project to load
    */
   public static void main(String[] args) {
+    LocalDatabaseServer.configureH2Binding();
 
     // Keep the splash visible for one second after startup without blocking initialization
     Splash splash = new Splash();

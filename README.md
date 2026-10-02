@@ -66,7 +66,7 @@ Once installed, launch Nodus using:
 - The `Nodus 9` shortcut or `nodus9.bat` on Windows
 
 The software has a modern and integrated user-friendly GUI. Complete reference and user guides
-are not available, but the API is fully documented.
+are not available, but the API is fully documented through Javadoc.
 A documented sample Nodus project can be found in the "[demo](https://github.com/jourquin/Nodus/blob/master/demo)" directory.
 
 > **Note on JDK**: Nodus is very demanding in terms of computing resources, especially when it comes to assignment. Experience

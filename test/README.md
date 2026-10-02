@@ -21,7 +21,7 @@ reflection names, arrays and lambdas. They also verify refusal of existing backu
 removed Abraham references and missing dependencies. Conversion itself does not use a compiler.
 Fixtures and confirmation callbacks keep these checks independent of real project JARs and Swing
 dialogs, including when run directly from Eclipse's JUnit runner.
-No project data, external database, network access, or graphical desktop is needed. Database tests
+No project data, remote database, Internet access, or graphical desktop is needed. Database tests
 create private in-memory databases and close them afterwards. Most use H2; service
 persistence failure/retry and legacy-schema checks also run against HSQLDB. Import
 failure tests cover H2 and HSQLDB staging, malformed DBF/XLS/XLSX input, replacement
@@ -32,7 +32,15 @@ fails, and verify that a failed save prevents project close callbacks from runni
 File import/export tests use JUnit temporary directories, which are removed after
 the tests. They never read or overwrite files in an existing Nodus project.
 Dependencies are included in the repository: JUnit 5 and OpenTest4J under
-`lib/groovy/`, API Guardian under `devtools/junit/`, and H2/HSQLDB/SQLite under `lib/`.
+`lib/groovy/`, API Guardian under `devtools/junit/`, and H2/HSQLDB/Derby/SQLite under `lib/`.
+
+The local-server tests launch isolated JVMs with temporary HSQLDB, H2, and Derby
+databases. They require permission to bind loopback TCP ports and check that the
+listeners cannot be reached through the computer's non-loopback interfaces. They
+also cover local script connections, port conflicts, H2 database creation and
+authentication failures, listener cleanup after compaction, and explicit JDBC
+configurations that must not start a local server. No remote server or Internet
+connection is used.
 
 For a clean application rebuild followed by the tests:
 

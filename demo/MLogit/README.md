@@ -327,6 +327,12 @@ Hessian on the directly weighted likelihood. R is not needed to run the Java tes
 
 ## External estimation examples
 
+The R and Python examples connect to the HSQLDB server started by Nodus on the
+same computer. Keep Nodus open with the `demo` project loaded. The built-in server
+accepts local connections only; these examples continue to use `localhost`, port
+9001, username `SA`, and an empty password. If the project uses different database
+credentials or a custom `hsqldbserverport`, adjust the scripts accordingly.
+
 - The explanatory variable (cost) is gathered from an uncalibrated multimodal assignment, i.e., the total travel cost for all the
 modes and origin-destination pairs. This information is read by the "CreateMLogitInput.groovy" script from the assignment "header" table, 
 along with the expected quantities for each mode (in the modal OD matrixes). The result is written in the "mlogit_input" table.

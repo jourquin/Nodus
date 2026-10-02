@@ -475,6 +475,11 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Add tooltips on (almost) all GUI elements
 
 ## v9.0 - BuildXXXXXXXX
+- Restrict Nodus-managed HSQLDB, H2, and Derby servers to local connections while
+  preserving local R/Python access and independently configured remote JDBC servers.
+- Create H2 databases locally, restrict TCP access to the project database, and
+  reliably stop the owned listener after project close or failed startup.
+- Remove Derby's test-only durability setting.
 - Code cleaning and refactoring
 - Fix a warning in GUIUtils
 - Close a loaded project only when a new one is selected

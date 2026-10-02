@@ -93,27 +93,33 @@ not CPU time. Total elapsed time also includes unlisted work such as loading dem
 volumes to vehicles. Completion dialogs and post-assignment scripts are excluded. Failed or
 cancelled runs print a partial audit, excluding subsequent failure cleanup.
 
-## Import and layer-save recovery
+## Local database servers and external JDBC connections
 
-DBF imports and Excel imports with a schema row load into a staging table before
-replacing the destination. Engines such as H2 and HSQLDB commit schema changes
-implicitly, so these imports use a separate connection: a successful replacement
-is committed independently, while unrelated work on the project's connection
-remains uncommitted. Commit or roll back pending changes to the destination before
-replacing it, to avoid a lock conflict. Excel imports without a schema row replace
-rows within the project's transaction and roll back only the import on failure.
+When no `jdbc.url` is specified in the `.nodus` file, Nodus manages the selected
+built-in database. HSQLDB, H2, and Derby listen only on `127.0.0.1`, so R, Python,
+and other JDBC clients on the same computer can connect while the project is open.
+They are not accessible from another computer. The default ports remain 9001 for
+HSQLDB, 9092 for H2, and 1527 for Derby; override them with `hsqldbserverport`,
+`h2serverport`, or `derbyserverport`. A port conflict aborts project opening rather
+than connecting to the database service already using that port.
 
-Layer saves write changed `.shp`, `.shx` and `.dbf` files to a temporary recovery
-directory named `.<layer>.nodus-save`. Existing files are backed up before any
-replacement. A failed save restores the previous files and keeps the layer marked
-as modified, so saving can be retried. It also prevents the project from closing
-when the user has chosen to save. Each layer is saved independently.
+Existing database credentials are preserved. The demo's HSQLDB scripts still use
+`SA` and an empty password through `localhost`; `127.0.0.1` can also be used explicitly
+to avoid differences in IPv6 hostname resolution. Loopback access does not isolate
+the database from other users or processes on the same computer.
 
-Opening a layer or retrying its save recovers an interrupted replacement. If
-restoration itself fails, the recovery directory is retained; resolve the file
-access problem before retrying, and do not delete those backups. This mechanism
-handles application interruption; it is not a guarantee against power loss or
-storage failure and does not replace project backups.
+Nodus creates H2 project databases locally, then exposes only the project database
+through TCP. TCP clients can create tables and modify data according to their database
+privileges, but cannot create additional databases. H2's binding is configured at
+application startup because H2 caches this setting.
+
+An explicit `jdbc.url` selects an independently managed database. Nodus passes the
+configured URL, driver, username, and password to JDBC without changing the hostname
+or URL options. It neither starts nor stops that server and does not offer server
+shutdown/compaction on project close. This applies to local and remote MariaDB,
+MySQL, PostgreSQL, and other JDBC databases, including separately managed HSQLDB,
+H2, and Derby instances. For a Nodus-managed built-in server, omit `jdbc.url` and
+use the port properties above instead. SQLite uses a direct file connection.
 
 ## Tests and continuous integration
 

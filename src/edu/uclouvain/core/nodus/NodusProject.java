@@ -43,6 +43,7 @@ import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.database.LocalDatabaseServer;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
 import edu.uclouvain.core.nodus.database.ShapeIntegrityTester;
 import edu.uclouvain.core.nodus.database.dbf.DBFException;
@@ -67,7 +68,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -93,8 +93,6 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
-import org.apache.derby.drda.NetworkServerControl;
-import org.hsqldb.persist.HsqlProperties;
 
 /**
  * A Nodus project file is a properties file with a .nodus extension. <br>
@@ -256,15 +254,8 @@ public class NodusProject implements ShapeConstants {
   /** Lat/Lon of center point at starting time. */
   private LatLonPoint initialCenterPoint;
 
-  private org.hsqldb.Server hsqldbServer;
-
-  private NetworkServerControl derbyServer;
-
-  private boolean h2TcpServerStarted = false;
-
-  private int tcpPort;
-
-  private HsqlProperties hsqldbProps = new HsqlProperties();
+  /** Listener owned by this project; null for SQLite and explicit JDBC configurations. */
+  private LocalDatabaseServer databaseServer;
 
   private boolean closeInProgress = false;
 
@@ -470,7 +461,7 @@ public class NodusProject implements ShapeConstants {
               () -> {
                 boolean asyncProjectClosed = false;
                 try {
-                  closeJdbcResourcesAfterClose(connection, true, dbEngine);
+                  closeJdbcResourcesAfterClose(connection);
                   saveLayerDbfTimestamps();
                   saveProjectLocalProperties();
                   asyncProjectClosed = finalizeProjectClose(layer);
@@ -481,7 +472,7 @@ public class NodusProject implements ShapeConstants {
           return;
         }
 
-        closeJdbcResourcesAfterClose(connection, false, dbEngine);
+        closeJdbcResourcesAfterClose(connection);
         saveLayerDbfTimestamps();
         saveProjectLocalProperties();
       }
@@ -593,7 +584,8 @@ public class NodusProject implements ShapeConstants {
 
   /** Returns true when the project close workflow can offer embedded DB compaction. */
   private boolean canCompactDatabaseOnClose(int dbEngine) {
-    if (dbEngine != JDBCUtils.DB_HSQLDB && dbEngine != JDBCUtils.DB_H2) {
+    if (databaseServer == null
+        || (dbEngine != JDBCUtils.DB_HSQLDB && dbEngine != JDBCUtils.DB_H2)) {
       return false;
     }
 
@@ -675,40 +667,25 @@ public class NodusProject implements ShapeConstants {
     }
   }
 
-  /** Closes JDBC resources and stops embedded DB servers during project close. */
-  private void closeJdbcResourcesAfterClose(
-      Connection connection, boolean databaseAlreadyShutdown, int dbEngine) {
+  /** Closes JDBC resources and always releases the owned listener, including after compaction. */
+  private void closeJdbcResourcesAfterClose(Connection connection) {
     try {
-      if (!databaseAlreadyShutdown) {
-        shutdownEmbeddedServersAfterClose(dbEngine);
-      } else {
-        h2TcpServerStarted = false;
-      }
-    } finally {
       closeJdbcConnectionAfterClose(connection);
+    } finally {
+      shutdownLocalDatabaseServer();
     }
   }
 
-  /** Stops embedded DB servers that may have been started for the currently open project. */
-  private void shutdownEmbeddedServersAfterClose(int dbEngine) {
-    try {
-      if (dbEngine == JDBCUtils.DB_HSQLDB && hsqldbServer != null) {
-        hsqldbServer.shutdown();
+  /** Stops this project's listener without affecting an independently configured JDBC server. */
+  private void shutdownLocalDatabaseServer() {
+    if (databaseServer != null) {
+      try {
+        databaseServer.close();
+      } catch (Exception error) {
+        error.printStackTrace();
+      } finally {
+        databaseServer = null;
       }
-
-      if (dbEngine == JDBCUtils.DB_H2 && h2TcpServerStarted) {
-        org.h2.tools.Server.shutdownTcpServer("tcp://localhost:" + tcpPort, "nodus", false, false);
-      }
-
-      if (dbEngine == JDBCUtils.DB_DERBY && derbyServer != null) {
-        derbyServer.shutdown();
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    } finally {
-      hsqldbServer = null;
-      derbyServer = null;
-      h2TcpServerStarted = false;
     }
   }
 
@@ -878,39 +855,6 @@ public class NodusProject implements ShapeConstants {
     }
   }
 
-  /** Stops embedded database servers that may have been started during failed project opening. */
-  private void shutdownEmbeddedServersAfterFailedOpen() {
-    if (hsqldbServer != null) {
-      try {
-        hsqldbServer.shutdown();
-      } catch (Exception e) {
-        e.printStackTrace();
-      } finally {
-        hsqldbServer = null;
-      }
-    }
-
-    if (h2TcpServerStarted) {
-      try {
-        org.h2.tools.Server.shutdownTcpServer("tcp://localhost:" + tcpPort, "nodus", false, false);
-      } catch (Exception e) {
-        e.printStackTrace();
-      } finally {
-        h2TcpServerStarted = false;
-      }
-    }
-
-    if (derbyServer != null) {
-      try {
-        derbyServer.shutdown();
-      } catch (Exception e) {
-        e.printStackTrace();
-      } finally {
-        derbyServer = null;
-      }
-    }
-  }
-
   /**
    * Releases project-scoped resources allocated before a project has fully opened.
    *
@@ -933,7 +877,7 @@ public class NodusProject implements ShapeConstants {
 
     closeLoggerHandler();
     closeJdbcConnectionAfterFailedOpen();
-    shutdownEmbeddedServersAfterFailedOpen();
+    shutdownLocalDatabaseServer();
 
     stylesProperties = null;
     nodeStyle = null;
@@ -1030,8 +974,7 @@ public class NodusProject implements ShapeConstants {
     linkStyle = null;
     stylesProperties = null;
     loggerHandler = null;
-    hsqldbServer = null;
-    derbyServer = null;
+    databaseServer = null;
     projectResourceFileNameAndPath = null;
   }
 
@@ -2297,6 +2240,7 @@ public class NodusProject implements ShapeConstants {
     String defaultURL = "";
     String defaultUser = "";
     String defaultPassword = "";
+    int tcpPort = 0;
 
     String dbName = localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME);
     switch (defaultEmbeddedDbms) {
@@ -2308,12 +2252,9 @@ public class NodusProject implements ShapeConstants {
         property. */
         tcpPort = getLocalProperty(NodusC.PROP_HSQLDB_SERVER_PORT, 9001);
 
-        String dbLocation = projectPath + dbName + "_hsqldb;shutdown=true";
-        defaultURL = "jdbc:hsqldb:hsql://localhost:" + tcpPort + "/" + dbName;
+        defaultURL =
+            "jdbc:hsqldb:hsql://" + LocalDatabaseServer.HOST + ":" + tcpPort + "/" + dbName;
 
-        hsqldbProps.setProperty("server.database.0", "file:" + dbLocation);
-        hsqldbProps.setProperty("server.dbname.0", dbName);
-        hsqldbProps.setProperty("server.port", tcpPort);
         break;
       case JDBCUtils.DB_H2:
         defaultDriver = "org.h2.Driver";
@@ -2322,19 +2263,25 @@ public class NodusProject implements ShapeConstants {
         property. */
         tcpPort = getLocalProperty(NodusC.PROP_H2_SERVER_PORT, 9092);
 
-        defaultURL = "jdbc:h2:tcp://localhost:" + tcpPort + "/" + projectPath + dbName;
+        defaultURL =
+            "jdbc:h2:tcp://"
+                + LocalDatabaseServer.HOST
+                + ":"
+                + tcpPort
+                + "/"
+                + projectPath
+                + dbName;
         break;
       case JDBCUtils.DB_DERBY:
-        System.setProperty("derby.system.home", projectPath);
-        System.setProperty("derby.system.durability", "test");
-
         /* A specific port could have been set in the project file, using the "derbyserverport"
         property. */
         tcpPort = getLocalProperty(NodusC.PROP_DERBY_SERVER_PORT, 1527);
 
         defaultDriver = "org.apache.derby.jdbc.ClientDriver";
         defaultURL =
-            "jdbc:derby://localhost:"
+            "jdbc:derby://"
+                + LocalDatabaseServer.HOST
+                + ":"
                 + tcpPort
                 + "/"
                 + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
@@ -2363,49 +2310,6 @@ public class NodusProject implements ShapeConstants {
      */
     String jdbcURL = projectProperties.getProperty(NodusC.PROP_JDBC_URL, defaultURL);
 
-    // Start HSQLDB server if needed
-    if (jdbcURL.toLowerCase().contains("hsqldb:hsql")) {
-      hsqldbServer = new org.hsqldb.Server();
-      try {
-        hsqldbServer.setProperties(hsqldbProps);
-        hsqldbServer.setLogWriter(null);
-      } catch (Exception e) {
-        e.printStackTrace();
-        cleanupFailedProjectOpen();
-        return;
-      }
-      hsqldbServer.start();
-    }
-
-    // Start H2 server if needed
-    if (jdbcURL.toLowerCase().contains("h2:tcp")) {
-      try {
-        org.h2.tools.Server.createTcpServer(
-                "-tcpAllowOthers",
-                "-ifNotExists",
-                "-tcpPassword",
-                "nodus",
-                "-tcpPort",
-                Integer.toString(tcpPort))
-            .start();
-        h2TcpServerStarted = true;
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-
-    // Start Derby server if needed
-    if (jdbcURL.toLowerCase().contains("derby://")) {
-      try {
-        derbyServer =
-            new NetworkServerControl(
-                InetAddress.getByName("localhost"), tcpPort, defaultUser, defaultPassword);
-        derbyServer.start(null);
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-
     String jdbcDriver = projectProperties.getProperty(NodusC.PROP_JDBC_DRIVER, defaultDriver);
     String userName = projectProperties.getProperty(NodusC.PROP_JDBC_USERNAME, defaultUser);
     String password = projectProperties.getProperty(NodusC.PROP_JDBC_PASSWORD, defaultPassword);
@@ -2414,6 +2318,15 @@ public class NodusProject implements ShapeConstants {
     localProperties.setProperty(NodusC.PROP_JDBC_DRIVER, jdbcDriver);
     localProperties.setProperty(NodusC.PROP_JDBC_URL, jdbcURL);
     try {
+      databaseServer =
+          LocalDatabaseServer.start(
+              projectProperties,
+              defaultEmbeddedDbms,
+              Path.of(projectPath),
+              dbName,
+              tcpPort,
+              userName,
+              password);
       Class.forName(jdbcDriver).getDeclaredConstructor().newInstance();
 
       jdbcConnection = getMainJDBCConnection();
