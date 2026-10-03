@@ -1000,6 +1000,9 @@ public class ServiceHandler {
     serviceLinkOccurrencesForVirtualNetwork.clear();
     loadService();
     mustBeSaved = false;
+    if (serviceEditorDlg != null) {
+      serviceEditorDlg.servicesReloaded();
+    }
   }
 
   /** Closes the service manager and saves the services in the database if needed. */

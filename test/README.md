@@ -271,6 +271,10 @@ for the workflow mechanism.
   services and earlier pending work survive a failed save, and that connection mode is restored.
   Legacy path-index migration is checked on both engines. Error callbacks are captured; unexpected
   persistence errors or invalid-service dialogs fail the fixture immediately.
+- `NetworkSimplifierTest`: compiles the shipped Groovy script and exercises its service guard
+  on H2 and HSQLDB. Checks cancellation, dry runs, unsaved services, custom table prefixes,
+  incomplete table sets and failed deletion. Accepted deletion clears loaded services without
+  recreating tables on a subsequent save and preserves unrelated tables and network layers.
 - `ServiceRoutingIntegrationTest`: real service SQL definitions through virtual-network
   generation and assignment. Checks ordered links including a repeated-link detour,
   boarding/alighting only at stops, through travel, transfer permissions, and waiting/transfer

@@ -41,6 +41,7 @@ When a merge is performed:
 - Supports attribute conflict policies: skip, prompt, keep-left, keep-right.
 - Writes a conflict CSV file for each processed target line layer.
 - Backs up original shapefile components before saving modified layers.
+- Requires confirmation to delete incompatible service lines before a real simplification.
 - Asks the user to reload the Nodus project after saving.
 
 
@@ -91,7 +92,7 @@ Field matching is case-insensitive, so `NUM`, `num`, `Node1`, and `NODE1` are tr
 
 Always test on a copy of a project first.
 
-Open the script and set:
+The checked-in script starts in dry-run mode:
 
 ```java
 private boolean dryRun = true;
@@ -106,6 +107,7 @@ In dry-run mode, the script:
 - writes conflict CSV files;
 - prints processing summaries;
 - does not modify or save any layer.
+- keeps service lines and service tables unchanged, without asking to delete them.
 
 After checking the console output and conflict CSV files, set:
 
@@ -350,6 +352,36 @@ Available values:
 | `max-num` | Keep the largest of the two `NUM` values. |
 
 
+## Service lines cannot be preserved
+
+Service routes refer to link identifiers, and their stops refer to node identifiers.
+Simplification removes some of these links and nodes. The script does not rewrite service
+routes or stops to match the simplified network, so existing services cannot safely be kept.
+
+Before a real run (`dryRun = false`) changes any layer, the script checks for loaded service
+lines, including unsaved lines, and for the project's service tables. If either is present,
+it displays a separate warning with two choices:
+
+- **Cancel** (the default): stop without changing the network or services. Closing the warning
+  has the same effect.
+- **Delete service lines and continue**: drop all existing service header, link-detail and
+  stop-detail tables, then discard loaded services and pending edits before simplifying.
+  The service editor returns to an empty list. Recreate the services after simplification.
+
+The warning lists the actual tables, respecting the project's configured service-table prefix.
+It also appears for empty or incomplete sets of service tables. Deletion applies to **all
+services in the project**, even when only some network layers are selected. Setting
+`askBeforeApplying = false` skips only the general modification dialog; it never skips this
+service-deletion warning. Dry runs keep all services and only print an informational message.
+
+**Back up the database as well as the project files before accepting.** The script's `.bak`
+files cover shapefile components, not service tables. Table deletion happens immediately after
+confirmation, even with `saveProject = false` or if no eligible merges are ultimately found.
+If a table cannot be deleted, simplification stops before editing the network. Some database
+engines commit each table deletion separately, so earlier deletions may already have taken
+effect. A later simplification or save failure does not restore deleted service tables either.
+
+
 ## Backups and saving
 
 When `dryRun = false`, the script modifies loaded Nodus layer objects in memory. If saving is enabled, it then asks Nodus to write the modified ESRI layers back to the current project directory.
@@ -394,6 +426,9 @@ For non-dry-run execution, it can ask for a final confirmation before applying c
 private boolean askBeforeApplying = true;
 ```
 
+This setting does not disable the separate
+[service-line warning](#service-lines-cannot-be-preserved).
+
 ## Output summary
 
 For each processed line layer, the console summary includes:
@@ -421,7 +456,7 @@ The final dialog shows the global summary for all processed layers.
 ## Typical workflow
 
 1. Open the Nodus project.
-2. Make a copy of the project directory.
+2. Make a copy of the project directory and back up its database if it contains service lines.
 3. Load the relevant node and line layers.
 4. Open the Groovy script.
 5. Set `dryRun = true`.
@@ -430,8 +465,8 @@ The final dialog shows the global summary for all processed layers.
 8. Adjust layer detection, exclusions, or conflict policy if needed.
 9. Set `dryRun = false`.
 10. Run the script again.
-11. Confirm the modification dialog.
-12. Reload the Nodus project.
+11. Confirm the modification dialog and, if prompted, accept deletion of all service lines.
+12. Reload the Nodus project and recreate the service lines for the simplified network.
 
 
 ## Troubleshooting
@@ -464,6 +499,7 @@ This means the two candidate lines have different descriptive attributes. Keep t
 
 ## Notes and limitations
 
+- Service routes and stops are not migrated; a real run requires consent to delete all services.
 - The script relies on endpoint topology stored in `NODE1` and `NODE2`; it does not infer topology from geometric intersections alone.
 - Nodes with `Tranship != 0` are never deleted.
 - Connector and blocking layers prevent unsafe deletion at shared nodes.
@@ -471,6 +507,4 @@ This means the two candidate lines have different descriptive attributes. Keep t
 - The script modifies loaded Nodus layer objects when `dryRun = false`.
 - Test on a project copy before using the script on production data.
 - Reload the project after a successful non-dry-run simplification.
-
-
 

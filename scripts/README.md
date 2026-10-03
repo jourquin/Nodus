@@ -163,8 +163,11 @@ when trying them for the first time.
 - [NetworkSimplifier.groovy](NetworkSimplifier.groovy) merges eligible adjacent links
   and removes intermediate transit nodes, subject to topology, connector and attribute
   checks. It scans loaded link layers by default. The checked-in settings include
-  `dryRun=false`, `saveProject=true`, backups enabled and confirmation before applying.
-  Set `dryRun=true` for a preview, then follow the
+  `dryRun=true`, `saveProject=true`, backups enabled and confirmation before applying.
+  After reviewing the preview, set `dryRun=false` to apply changes. Existing service lines
+  cannot be preserved: a separate warning asks for consent to delete all service tables
+  and unsaved services before editing the network. Shapefile backups do not include these
+  tables; back up the database first and recreate services afterward. See the
   [Network Simplifier guide](NetworkSimplifier.md) for layer selection, conflicts and backups.
 
 ## Bundled versions and documentation

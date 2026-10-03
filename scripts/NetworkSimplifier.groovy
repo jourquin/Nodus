@@ -63,6 +63,9 @@
  * script modifies loaded layer objects in memory and then asks Nodus to save
  * them in the current project directory. Backups are created before saving when
  * createBackups = true.
+ * Service lines cannot be preserved when links or stops are removed. A real run
+ * requires separate confirmation to delete all service tables and unsaved services.
+ * Shapefile backups do not include these database tables.
  */
 
 import com.bbn.openmap.dataAccess.shape.DbfTableModel;
@@ -74,6 +77,8 @@ import com.bbn.openmap.proj.ProjMath;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.services.ServiceHandler;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -83,9 +88,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -94,7 +102,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.function.Predicate;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 /**
  * Main simplifier class.
@@ -238,7 +250,7 @@ public final class SimplifyNetworks {
    * If true, evaluate candidates and write conflict CSV files, but do not modify geometries,
    * records, or project files. This is the safest first mode to use on a project.
    */
-  private boolean dryRun = false;
+  private boolean dryRun = true;
 
   /** Create .bak backups of the original modified layer files before saving. */
   private boolean createBackups = true;
@@ -252,7 +264,7 @@ public final class SimplifyNetworks {
   /** Open the Nodus console before printing progress. */
   private boolean openConsole = true;
 
-  /** Ask a final confirmation before applying non-dry-run changes. */
+  /** Ask for general confirmation. Service deletion always requires separate confirmation. */
   private boolean askBeforeApplying = true;
 
   // ------------------------------------------------------------------
@@ -368,6 +380,11 @@ public final class SimplifyNetworks {
       }
     }
 
+    if (!prepareServiceLines(nodusProject, dryRun, tables -> confirmServiceDeletion(tables))) {
+      System.out.println("Canceled by user; service lines and network layers are unchanged.");
+      return;
+    }
+
     List<JobStats> summaries = new ArrayList<JobStats>();
     for (ResolvedJob job : resolvedJobs) {
       summaries.add(simplifyJob(job));
@@ -406,6 +423,97 @@ public final class SimplifyNetworks {
     }
     JOptionPane.showMessageDialog(
         nodusMapPanel, message, NodusC.APPNAME, JOptionPane.INFORMATION_MESSAGE);
+  }
+
+  /**
+   * Warns that service routes and stops cannot survive changes to link and node identifiers.
+   * The caller runs this on the event thread; closing the dialog also cancels the operation.
+   */
+  private boolean confirmServiceDeletion(List<String> tables) {
+    String message =
+        "This project has service lines or service tables.\n"
+        + "Simplification can break their routes and stops by removing links and nodes.\n\n"
+        + "Continuing will permanently delete ALL service lines, including unsaved changes,\n"
+        + "and drop these database tables before editing the network:\n"
+        + (tables.isEmpty() ? "(No saved tables; unsaved services will be discarded.)" :
+            String.join("\n", tables))
+        + "\n\nShapefile backups do not include service tables. Back up the database first.\n"
+        + "Service lines must be recreated after simplification. Continue?";
+    Object[] options = ["Delete service lines and continue", "Cancel"];
+    return JOptionPane.showOptionDialog(
+        nodusMapPanel, message, NodusC.APPNAME, JOptionPane.YES_NO_OPTION,
+        JOptionPane.WARNING_MESSAGE, null, options, options[1]) == 0;
+  }
+
+  /**
+   * Checks saved tables and loaded services before any network mutation. The confirmation is
+   * independent of askBeforeApplying; dry runs only report the limitation and retain all services.
+   *
+   * <p>Uses the handler's configured table names, including custom prefixes. Metadata and DROP
+   * errors propagate to stop simplification. DDL is not atomic on every supported database: an
+   * error may leave some tables deleted, but the network is still untouched at this stage.
+   * Loaded services are discarded only after all drops succeed so they cannot be saved back later.
+   *
+   * <p>The callback receives the existing table names and returns true only for explicit consent.
+   * Running the check, confirmation and cleanup together on the event thread also keeps the
+   * service editor from changing the services between consent and deletion.
+   */
+  private static boolean prepareServiceLines(
+      NodusProject project, boolean dryRun, Predicate<List<String>> confirm) throws Exception {
+    if (!SwingUtilities.isEventDispatchThread()) {
+      FutureTask<Boolean> task = new FutureTask<Boolean>(
+          () -> prepareServiceLines(project, dryRun, confirm));
+      SwingUtilities.invokeAndWait(task);
+      try {
+        return task.get();
+      } catch (ExecutionException ex) {
+        throw ex.getCause();
+      }
+    }
+
+    ServiceHandler handler = project.getServiceHandler();
+    if (handler == null || project.getMainJDBCConnection() == null) {
+      throw new IllegalStateException("Cannot check the project's service lines.");
+    }
+
+    // Detail tables go first; the header is removed last. Do not use tableExists/dropTable:
+    // those convenience methods swallow SQL errors, which must stop this destructive operation.
+    List<String> serviceTables = Arrays.asList(
+        handler.getServiceLinkDetailTableName(), handler.getServiceStopDetailTableName(),
+        handler.getServiceHeaderTableName());
+    Set<String> existingTables = new HashSet<String>();
+    try (ResultSet tables = JDBCUtils.getTables()) {
+      while (tables.next()) {
+        existingTables.add(tables.getString("TABLE_NAME"));
+      }
+    }
+    List<String> tablesToDrop = new ArrayList<String>();
+    for (String table : serviceTables) {
+      if (existingTables.contains(table)) {
+        tablesToDrop.add(table);
+      }
+    }
+    boolean hasServices = handler.getServiceNamesIterator().hasNext()
+        || handler.getCurrentService() != null;
+    if (tablesToDrop.isEmpty() && !hasServices) {
+      return true;
+    }
+    if (dryRun) {
+      System.out.println("Dry run: service lines are unchanged. A real run will require "
+          + "confirmation to delete all service lines and their database tables.");
+      return true;
+    }
+    if (!confirm.test(Collections.unmodifiableList(tablesToDrop))) {
+      return false;
+    }
+    try (Statement statement = project.getMainJDBCConnection().createStatement()) {
+      for (String table : tablesToDrop) {
+        statement.executeUpdate("DROP TABLE " + JDBCUtils.getQuotedCompliantIdentifier(table));
+      }
+    }
+    handler.discardPendingChanges();
+    System.out.println("All service lines were discarded; dropped service tables: " + tablesToDrop);
+    return true;
   }
 
   /**

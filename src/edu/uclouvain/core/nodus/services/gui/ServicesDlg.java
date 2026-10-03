@@ -437,10 +437,18 @@ public class ServicesDlg extends EscapeDialog {
 
   /** Discards changes made in this editor and reloads the persisted services. */
   public void discardPendingChanges() {
+    serviceHandler.discardPendingChanges();
+  }
+
+  /**
+   * Refreshes the editor after the handler reloads its services, including reloads from scripts.
+   * Returns to the list so stale editor fields cannot recreate discarded service lines.
+   */
+  public void servicesReloaded() {
     setShortestPathCreationAllowed(true);
     setShortestPathControlsSelected(false);
-    serviceHandler.discardPendingChanges();
     hasUnsavedServiceChanges = false;
+    resetEditorDirtyState();
     refreshServicesTable();
     updateSaveButtons();
     showCard(LIST_CARD);
