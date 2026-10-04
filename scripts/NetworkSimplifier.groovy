@@ -93,6 +93,7 @@ import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -294,8 +295,17 @@ public final class SimplifyNetworks {
    *     access to the currently open project.
    */
   public SimplifyNetworks(NodusMapPanel nodusMapPanel) {
+    this(nodusMapPanel, true);
+  }
+
+  /** Initializes the workflow separately so individual passes can also run without dialogs. */
+  private SimplifyNetworks(NodusMapPanel nodusMapPanel, boolean startImmediately) {
     this.nodusMapPanel = nodusMapPanel;
     this.nodusProject = nodusMapPanel == null ? null : nodusMapPanel.getNodusProject();
+
+    if (!startImmediately) {
+      return;
+    }
 
     try {
       run();
@@ -678,7 +688,6 @@ public final class SimplifyNetworks {
       usedMiddleNodes.add(Long.valueOf(middleNode));
     }
 
-    sortMergeOperationsForPass(operations);
     return operations;
   }
 
@@ -744,24 +753,59 @@ public final class SimplifyNetworks {
   }
 
   /**
-   * Applies a selected batch of independent merge operations.
-   *
-   * <p>Operations store row indices from the start of the pass. After each deletion, later row
-   * indices shift. The helper {@link #currentIndexAfterDeleted(int, List)} maps the original pass
-   * index to the current layer index before each operation is applied.
+   * Applies independent merges with one compaction and index/label refresh per affected layer.
+   * Original row positions are mapped in one pass, and node locations are indexed once. Geometry
+   * replacements use the compacted positions, so there is no per-merge scan of earlier deletions.
    */
   private void applyMergeOperationsForPass(
       NodusEsriLayer lineLayer, List<NodusEsriLayer> pointLayers, List<MergeOperation> operations) {
-
-    List<Integer> deletedOriginalIndices = new ArrayList<Integer>();
-
+    if (operations.isEmpty()) {
+      return;
+    }
+    Map<Long, NodeRow> nodeRows = new LinkedHashMap<Long, NodeRow>();
+    for (NodusEsriLayer layer : pointLayers) {
+      DbfTableModel model = layer.getModel();
+      int numCol = colIndex(model, "num");
+      for (int row = 0; row < model.getRowCount(); row++) {
+        Long id = Long.valueOf(nodeKey(model.getValueAt(row, numCol)));
+        nodeRows.putIfAbsent(id, new NodeRow(layer, row));
+      }
+    }
+    List<Integer> droppedLines = new ArrayList<Integer>();
+    BitSet removed = new BitSet(lineLayer.getModel().getRowCount());
+    Map<NodusEsriLayer, Set<Integer>> droppedPoints =
+        new LinkedHashMap<NodusEsriLayer, Set<Integer>>();
     for (MergeOperation operation : operations) {
-      int keepIdx = currentIndexAfterDeleted(operation.originalKeepIdx, deletedOriginalIndices);
-      int dropIdx = currentIndexAfterDeleted(operation.originalDropIdx, deletedOriginalIndices);
-
-      applyMerge(lineLayer, pointLayers, keepIdx, dropIdx, operation.middleNode, operation.combined, operation.attrSource, operation.keptNum, operation.zCols);
-
-      deletedOriginalIndices.add(Integer.valueOf(operation.originalDropIdx));
+      droppedLines.add(Integer.valueOf(operation.originalDropIdx));
+      removed.set(operation.originalDropIdx);
+      NodeRow node = nodeRows.get(Long.valueOf(operation.middleNode));
+      if (node != null) {
+        Set<Integer> rows = droppedPoints.get(node.layer);
+        if (rows == null) {
+          rows = new LinkedHashSet<Integer>();
+          droppedPoints.put(node.layer, rows);
+        }
+        rows.add(Integer.valueOf(node.row));
+      }
+    }
+    int[] compactedRows = new int[lineLayer.getModel().getRowCount()];
+    int nextRow = 0;
+    for (int row = 0; row < compactedRows.length; row++) {
+      if (!removed.get(row)) {
+        compactedRows[row] = nextRow++;
+      }
+    }
+    lineLayer.removeRecords(droppedLines, false);
+    for (MergeOperation operation : operations) {
+      applyMergedLine(lineLayer, compactedRows[operation.originalKeepIdx], operation);
+    }
+    lineLayer.reloadLabels();
+    markModified(lineLayer);
+    for (Map.Entry<NodusEsriLayer, Set<Integer>> entry : droppedPoints.entrySet()) {
+      entry.getKey().removeRecords(entry.getValue(), true);
+      markModified(entry.getKey());
+    }
+    for (MergeOperation operation : operations) {
       merges++;
       if (operation.hasAttributeConflict) {
         conflictMerges++;
@@ -770,39 +814,6 @@ public final class SimplifyNetworks {
       }
       deletedNodes.add(Long.valueOf(operation.middleNode));
     }
-  }
-
-  /** Converts an index from the beginning of the pass to the current index after prior deletions. */
-  private int currentIndexAfterDeleted(int originalIndex, List<Integer> deletedOriginalIndices) {
-    int shift = 0;
-    for (Integer deleted : deletedOriginalIndices) {
-      if (deleted.intValue() < originalIndex) {
-        shift++;
-      }
-    }
-    return originalIndex - shift;
-  }
-
-  /**
-   * Sorts operations in a stable descending order of their largest affected row index.
-   *
-   * <p>The index remapping logic makes the algorithm correct regardless of order, but descending
-   * order usually minimizes index shifts and is easier to reason about when reading the console log.
-   */
-  private void sortMergeOperationsForPass(List<MergeOperation> operations) {
-    for (int i = 1; i < operations.size(); i++) {
-      MergeOperation key = operations.get(i);
-      int j = i - 1;
-      while (j >= 0 && mergeOperationSortKey(operations.get(j)) < mergeOperationSortKey(key)) {
-        operations.set(j + 1, operations.get(j));
-        j--;
-      }
-      operations.set(j + 1, key);
-    }
-  }
-
-  private int mergeOperationSortKey(MergeOperation operation) {
-    return Math.max(operation.originalKeepIdx, operation.originalDropIdx);
   }
 
   /** Resets per-job counters and logs. Called before each target line layer is processed. */
@@ -1409,20 +1420,6 @@ public final class SimplifyNetworks {
     return total;
   }
 
-  /**
-   * Finds the point layer that currently contains the node to delete after a successful merge. This
-   * is required when several point layers are relevant to one line layer.
-   */
-  private NodusEsriLayer findPointLayerContainingNode(
-      List<NodusEsriLayer> pointLayers, long nodeId) {
-    for (NodusEsriLayer pointLayer : pointLayers) {
-      if (findRowByNum(pointLayer, nodeId) >= 0) {
-        return pointLayer;
-      }
-    }
-    return null;
-  }
-
   private int countCovered(Set<Long> required, Set<Long> available) {
     int count = 0;
     for (Long value : required) {
@@ -1688,67 +1685,20 @@ public final class SimplifyNetworks {
     return out;
   }
 
-  /**
-   * Applies a completed merge to the loaded Nodus layers.
-   *
-   * <p>This removes the dropped line, replaces the kept line geometry, updates {@code NUM}/{@code
-   * NODE1}/{@code NODE2}, copies selected non-key attributes, deletes the intermediate point from
-   * the correct point layer, marks modified layers dirty, and records them for backup/save.
-   */
-  private void applyMerge(
-      NodusEsriLayer lineLayer,
-      List<NodusEsriLayer> pointLayers,
-      int keepIdx,
-      int dropIdx,
-      long middleNode,
-      CombinedLine combined,
-      List<Object> attrSource,
-      Object keptNum,
-      List<Integer> zCols) {
-
-    DbfTableModel lineModel = lineLayer.getModel();
-    int node1Col = colIndex(lineModel, "node1");
-    int node2Col = colIndex(lineModel, "node2");
-    int numCol = colIndex(lineModel, "num");
-
-    // Remove the dropped line first; update the retained row at its possibly shifted index.
-    lineLayer.removeRecord(dropIdx);
-    int keepIdx2 = dropIdx < keepIdx ? keepIdx - 1 : keepIdx;
-
-    EsriPolyline newPolyline = combined.geometry;
-    OMGraphic oldGraphic = lineLayer.getEsriGraphicList().getOMGraphicAt(keepIdx2);
-    try {
-      newPolyline.putAttribute(0, oldGraphic.getAttribute(0));
-    } catch (Throwable ignored) {
-      // Not essential.
+  /** Replaces a retained line after the batch deletion has established its final row position. */
+  private void applyMergedLine(NodusEsriLayer lineLayer, int row, MergeOperation operation) {
+    DbfTableModel model = lineLayer.getModel();
+    EsriPolyline geometry = operation.combined.geometry;
+    OMGraphic oldGraphic = lineLayer.getEsriGraphicList().getOMGraphicAt(row);
+    geometry.putAttribute(0, oldGraphic.getAttribute(0));
+    lineLayer.getEsriGraphicList().setOMGraphicAt(geometry, row);
+    for (Integer column : operation.zCols) {
+      model.setValueAt(operation.attrSource.get(column.intValue()), row, column.intValue());
     }
-
-    lineLayer.getEsriGraphicList().setOMGraphicAt(newPolyline, keepIdx2);
-    lineLayer.attachStyle(newPolyline, keepIdx2);
-
-    for (Integer colObject : zCols) {
-      int col = colObject.intValue();
-      lineModel.setValueAt(attrSource.get(col), keepIdx2, col);
-    }
-    lineModel.setValueAt(keptNum, keepIdx2, numCol);
-    lineModel.setValueAt(Double.valueOf((double) combined.node1), keepIdx2, node1Col);
-    lineModel.setValueAt(Double.valueOf((double) combined.node2), keepIdx2, node2Col);
-
-    NodusEsriLayer pointLayer = findPointLayerContainingNode(pointLayers, middleNode);
-    if (pointLayer != null) {
-      int pointIdx = findRowByNum(pointLayer, middleNode);
-      if (pointIdx >= 0) {
-        pointLayer.removeRecord(pointIdx);
-        pointLayer.setDirtyShp(true);
-        pointLayer.setDirtyDbf(true);
-        markModified(pointLayer);
-      }
-    }
-
-    lineLayer.setDirtyShp(true);
-    lineLayer.setDirtyDbf(true);
-
-    markModified(lineLayer);
+    model.setValueAt(operation.keptNum, row, colIndex(model, "num"));
+    model.setValueAt(Double.valueOf(operation.combined.node1), row, colIndex(model, "node1"));
+    model.setValueAt(Double.valueOf(operation.combined.node2), row, colIndex(model, "node2"));
+    lineLayer.attachStyle(geometry, row);
   }
 
   /**
@@ -1758,20 +1708,6 @@ public final class SimplifyNetworks {
     String table = layer.getTableName();
     modifiedLayerTables.add(table);
     modifiedLayersByTable.put(table, layer);
-  }
-
-  /**
-   * Finds the row index whose {@code NUM} field equals the requested value, or returns {@code -1}.
-   */
-  private int findRowByNum(NodusEsriLayer layer, long num) {
-    DbfTableModel model = layer.getModel();
-    int numCol = colIndex(model, "num");
-    for (int r = 0; r < model.getRowCount(); r++) {
-      if (nodeKey(model.getValueAt(r, numCol)) == num) {
-        return r;
-      }
-    }
-    return -1;
   }
 
   // ------------------------------------------------------------------
@@ -2152,8 +2088,7 @@ public final class SimplifyNetworks {
    * Fully prepared merge selected for the current topology pass.
    *
    * <p>The row indices are the indices that were valid at the beginning of the pass. They are
-   * remapped just before application because previous operations in the same batch may already have
-   * deleted rows with lower indices.
+   * mapped once to their compacted positions after all deletions in the batch.
    */
   private static final class MergeOperation {
     int originalKeepIdx;
@@ -2164,6 +2099,17 @@ public final class SimplifyNetworks {
     Object keptNum;
     List<Integer> zCols;
     boolean hasAttributeConflict;
+  }
+
+  /** Location of a node before the current pass compacts any point layers. */
+  private static final class NodeRow {
+    final NodusEsriLayer layer;
+    final int row;
+
+    NodeRow(NodusEsriLayer layer, int row) {
+      this.layer = layer;
+      this.row = row;
+    }
   }
 
   /** Row written to the conflict CSV. */

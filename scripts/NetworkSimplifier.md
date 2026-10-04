@@ -352,6 +352,17 @@ Available values:
 | `max-num` | Keep the largest of the two `NUM` values. |
 
 
+## Bulk editing and performance
+
+Each topology pass prepares independent merges before editing. The script indexes node locations
+once, deletes rows in bulk and compacts each affected layer once. Identifier indexes and labels
+are refreshed once per affected layer per pass. This avoids repeatedly scanning node rows,
+shifting row lists, sorting deletions and rebuilding indexes for each individual merge.
+
+See the [performance notes](../devtools/PERFORMANCE.md) for measured corridor results and
+reproducible benchmark commands. Those synthetic results do not predict every project's runtime.
+
+
 ## Service lines cannot be preserved
 
 Service routes refer to link identifiers, and their stops refer to node identifiers.
@@ -507,4 +518,3 @@ This means the two candidate lines have different descriptive attributes. Keep t
 - The script modifies loaded Nodus layer objects when `dryRun = false`.
 - Test on a project copy before using the script on production data.
 - Reload the project after a successful non-dry-run simplification.
-

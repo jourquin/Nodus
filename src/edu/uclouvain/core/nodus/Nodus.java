@@ -54,6 +54,12 @@ import javax.swing.text.DefaultEditorKit;
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 
+/* TODO test R and Python servers */
+/* TODO add more unit tests ? */
+/* TODO test new network simplifier with services */
+/* TODO some performances improvements: see audit */
+/* TODO Test import/export XLS(x) */
+
 /**
  * Main class that creates a new NodusMapPanel, but also initializes the application with a
  * previously saved LookAndFeel and runs a startup nodus.groovy script if it exists.

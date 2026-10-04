@@ -25,6 +25,7 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
+import java.awt.GraphicsEnvironment;
 import java.io.FileOutputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -32,12 +33,13 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.Vector;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.SpreadsheetVersion;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.WorkbookUtil;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
 /**
  * Exports a table in Excel format.
@@ -46,11 +48,18 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
  */
 public class ExportXLS {
 
+  /** Maximum number of XLSX rows retained in memory; older rows use compressed temporary files. */
+  private static final int ROW_WINDOW = 100;
+
   /** Default constructor. */
   public ExportXLS() {}
 
   /**
-   * Export a database table of the Nodus project in a Excel sheet format.
+   * Exports a database table, with a DBF-style schema in the first row.
+   *
+   * <p>XLSX rows are streamed to temporary files, which the workbook closes and deletes on success
+   * or failure. Legacy XLS retains its workbook in memory. Both formats reject rows or columns
+   * beyond their sheet limits; the schema consumes one row of that limit.
    *
    * @param nodusProject The Nodus project.
    * @param tableName The name of the table to export.
@@ -59,7 +68,10 @@ public class ExportXLS {
    */
   public static boolean exportTable(NodusProject nodusProject, String tableName, boolean isXLSX) {
 
-    try (Workbook wbs = isXLSX ? new XSSFWorkbook() : new HSSFWorkbook()) {
+    try (Workbook wbs =
+        isXLSX ? new SXSSFWorkbook(null, ROW_WINDOW, true, false) : new HSSFWorkbook()) {
+      SpreadsheetVersion version =
+          isXLSX ? SpreadsheetVersion.EXCEL2007 : SpreadsheetVersion.EXCEL97;
       String sheetName = WorkbookUtil.createSafeSheetName(tableName);
       if (sheetName.length() > 31) {
         sheetName = sheetName.substring(0, 31);
@@ -75,6 +87,10 @@ public class ExportXLS {
       Row row = sheet.createRow(0);
       try (ResultSet col = JDBCUtils.getColumns(tableName)) {
         while (col.next()) {
+          if (nbColumns >= version.getMaxColumns()) {
+            throw new IllegalArgumentException(
+                "Excel export supports at most " + version.getMaxColumns() + " columns.");
+          }
 
           String s = col.getString(4) + ",";
           // JDBC type codes also cover vendor names such as H2's CHARACTER VARYING.
@@ -111,6 +127,12 @@ public class ExportXLS {
           ResultSet rs = stmt.executeQuery(sqlStmt)) {
         int currentRow = 1;
         while (rs.next()) {
+          if (currentRow >= version.getMaxRows()) {
+            throw new IllegalArgumentException(
+                "Excel export supports at most "
+                    + (version.getMaxRows() - 1)
+                    + " data rows because the first row contains the schema.");
+          }
           row = sheet.createRow(currentRow);
 
           for (int column = 0; column < nbColumns; column++) {
@@ -141,7 +163,9 @@ public class ExportXLS {
         wbs.write(out);
       }
     } catch (Exception e) {
-      new NodusConsole();
+      if (!GraphicsEnvironment.isHeadless()) {
+        new NodusConsole();
+      }
       // nodusProject.getNodusMapPanel().setBusy(false);
       e.printStackTrace();
       return false;

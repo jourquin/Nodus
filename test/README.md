@@ -164,6 +164,8 @@ for the workflow mechanism.
   text and decimal values, and a regression for the spurious identifier zero created by adding
   a blank record before assigning its actual identifier. Also checks real identifier zero,
   insertion of complete link records, and discarding edits before reimporting the saved layer.
+  Bulk deletion checks survivor order and identity, duplicate/invalid positions, one label refresh,
+  and rollback after a later SQL failure or invalid identifier, preserving earlier caller work.
 - `NodusEsriLayerPersistenceTest`: extracts point/link subsets and independently reloads their
   geometry and DBF records; saves and reloads empty layers after deleting every feature,
   preserving their shape type and DBF schema. All files are confined to temporary directories.
@@ -275,6 +277,13 @@ for the workflow mechanism.
   on H2 and HSQLDB. Checks cancellation, dry runs, unsaved services, custom table prefixes,
   incomplete table sets and failed deletion. Accepted deletion clears loaded services without
   recreating tables on a subsequent save and preserves unrelated tables and network layers.
+- `NetworkSimplifierMergeTest`: runs topology passes on real layers with shuffled input rows and
+  all four retained-ID policies. Checks final geometry, conflict boundaries, dry runs, save/reload,
+  and one label refresh per layer per pass on a long corridor. Optional timing measurements are
+  documented in [the performance guide](../devtools/PERFORMANCE.md).
+- `ExcelIoTest`: real XLS/XLSX imports and exports on H2 and HSQLDB, bounded JDBC batch calls,
+  drivers without batch support, rollback after earlier batches succeeded, Unicode and blank
+  cells, streaming temporary-file cleanup on success/failure, and legacy row/column limits.
 - `ServiceRoutingIntegrationTest`: real service SQL definitions through virtual-network
   generation and assignment. Checks ordered links including a repeated-link detour,
   boarding/alighting only at stops, through travel, transfer permissions, and waiting/transfer

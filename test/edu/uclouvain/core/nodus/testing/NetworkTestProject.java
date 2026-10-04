@@ -290,6 +290,7 @@ public final class NetworkTestProject extends NodusProject implements AutoClosea
     private static final long serialVersionUID = 1L;
     public final List<Exception> editErrors = new ArrayList<>();
     public boolean acceptNode = true;
+    public int labelRefreshes;
 
     @Override
     protected void reportEditError(Exception error) {
@@ -312,7 +313,9 @@ public final class NetworkTestProject extends NodusProject implements AutoClosea
     public void doPrepare() {}
 
     @Override
-    public void reloadLabels() {}
+    public void reloadLabels() {
+      labelRefreshes++;
+    }
   }
 
   /** Supplies a real projection without creating a window. */

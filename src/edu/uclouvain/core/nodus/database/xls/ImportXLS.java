@@ -191,6 +191,10 @@ public class ImportXLS {
     try (InputStream input = new FileInputStream(fileName);
         Workbook workbook = WorkbookFactory.create(input)) {
       String schema = getCreateTableStatement(workbook, tableName);
+      int batchSize =
+          Math.max(
+              1,
+              nodusProject.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE));
       if (schema != null) {
         TableImport.replace(
             nodusProject,
@@ -199,7 +203,7 @@ public class ImportXLS {
               try (Statement statement = connection.createStatement()) {
                 statement.execute(getCreateTableStatement(workbook, staged));
               }
-              fillTable(connection, staged, workbook.getSheetAt(0), true);
+              fillTable(connection, staged, workbook.getSheetAt(0), true, batchSize);
             });
       } else {
         if (!JDBCUtils.tableExists(tableName)) {
@@ -223,7 +227,7 @@ public class ImportXLS {
             statement.executeUpdate(
                 "DELETE FROM " + JDBCUtils.getQuotedCompliantIdentifier(tableName));
           }
-          fillTable(connection, tableName, workbook.getSheetAt(0), false);
+          fillTable(connection, tableName, workbook.getSheetAt(0), false, batchSize);
           if (autoCommit) {
             connection.commit();
           } else {
@@ -254,7 +258,11 @@ public class ImportXLS {
     }
   }
 
-  private static void fillTable(Connection connection, String table, Sheet sheet, boolean hasSchema)
+  /**
+   * Reuses the opened sheet and bounds queued JDBC rows without committing intermediate batches.
+   */
+  private static void fillTable(
+      Connection connection, String table, Sheet sheet, boolean hasSchema, int batchSize)
       throws SQLException {
     String quoted = JDBCUtils.getQuotedCompliantIdentifier(table);
     int[] types;
@@ -273,6 +281,8 @@ public class ImportXLS {
       if (hasSchema && rows.hasNext()) {
         rows.next();
       }
+      boolean batchSupported = connection.getMetaData().supportsBatchUpdates();
+      int pending = 0;
       while (rows.hasNext()) {
         Row row = rows.next();
         for (int i = 0; i < types.length; i++) {
@@ -283,7 +293,20 @@ public class ImportXLS {
             statement.setDouble(i + 1, cell == null ? 0 : cell.getNumericCellValue());
           }
         }
-        statement.executeUpdate();
+        if (batchSupported) {
+          statement.addBatch();
+          if (++pending == batchSize) {
+            statement.executeBatch();
+            statement.clearBatch();
+            pending = 0;
+          }
+        } else {
+          statement.executeUpdate();
+        }
+      }
+      if (pending > 0) {
+        statement.executeBatch();
+        statement.clearBatch();
       }
     }
   }
