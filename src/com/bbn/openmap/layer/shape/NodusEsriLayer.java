@@ -76,13 +76,18 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.text.MessageFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -1528,6 +1533,135 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     if (refreshLabels) {
       reloadLabels();
+    }
+  }
+
+  /**
+   * Removes rows in one batch, preserving the order and object identity of the surviving records.
+   * Unlike repeated {@link #removeRecord(int)}, this compacts the lists and rebuilds the identifier
+   * index once. All SQL deletes must succeed before any in-memory state is changed.
+   *
+   * @param indices zero-based row positions before this call; duplicate positions are ignored
+   * @param refreshLabels whether to refresh labels once after compaction
+   * @throws SQLException if deletion fails; SQL is rolled back to the batch's savepoint
+   * @throws IndexOutOfBoundsException if any position is outside the current model
+   */
+  public void removeRecords(Collection<Integer> indices, boolean refreshLabels)
+      throws SQLException {
+    EsriGraphicList list = getEsriGraphicList();
+    synchronized (list) {
+      DbfTableModel model = getModel();
+      int count = model.getRowCount();
+      BitSet removed = new BitSet(count);
+      for (int index : indices) {
+        if (index < 0 || index >= count) {
+          throw new IndexOutOfBoundsException("Invalid layer row: " + index);
+        }
+        removed.set(index);
+      }
+      if (removed.isEmpty()) {
+        return;
+      }
+      deleteRecordBatch(model, removed);
+
+      List<List<Object>> survivors = new ArrayList<>(count - removed.cardinality());
+      for (int row = 0; row < count; row++) {
+        OMGraphic graphic = list.getOMGraphicAt(row);
+        if (removed.get(row)) {
+          hiddenByFilter.remove(graphic);
+        } else {
+          list.setOMGraphicAt(graphic, survivors.size());
+          survivors.add(model.getRecord(row));
+        }
+      }
+      // Removing only from the tail avoids repeated shifts in OpenMap's array-backed lists.
+      while (list.size() > survivors.size()) {
+        list.remove(list.size() - 1);
+      }
+      while (model.getRowCount() > 0) {
+        model.remove(model.getRowCount() - 1);
+      }
+      for (List<Object> record : survivors) {
+        model.addRecord(record);
+      }
+      updateNumIndex();
+      setDirtyShp(true);
+      dirtyDbf = true;
+      model.fireTableDataChanged();
+    }
+    if (refreshLabels) {
+      reloadLabels();
+    }
+  }
+
+  /** Deletes a bounded batch without committing or rolling back earlier caller-owned work. */
+  private void deleteRecordBatch(DbfTableModel model, BitSet removed) throws SQLException {
+    Connection connection = nodusProject.getMainJDBCConnection();
+    boolean autoCommit = connection.getAutoCommit();
+    boolean restoreAutoCommit = autoCommit;
+    Savepoint savepoint = null;
+    try {
+      if (autoCommit) {
+        connection.setAutoCommit(false);
+      }
+      savepoint = connection.setSavepoint();
+      String sql =
+          "DELETE FROM "
+              + JDBCUtils.getQuotedCompliantIdentifier(getTableName())
+              + " WHERE "
+              + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
+              + " IN (";
+      int batchSize =
+          Math.min(
+              NodusC.MAXBATCHSIZE,
+              Math.max(
+                  1,
+                  nodusProject.getLocalProperty(
+                      NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE)));
+      List<Integer> numbers = new ArrayList<>(batchSize);
+      for (int row = removed.nextSetBit(0); row >= 0; row = removed.nextSetBit(row + 1)) {
+        numbers.add(JDBCUtils.getInt(model.getValueAt(row, NodusC.DBF_IDX_NUM)));
+        if (numbers.size() == batchSize) {
+          deleteRecordNumbers(connection, sql, numbers);
+          numbers.clear();
+        }
+      }
+      if (!numbers.isEmpty()) {
+        deleteRecordNumbers(connection, sql, numbers);
+      }
+      if (autoCommit) {
+        connection.commit();
+      } else {
+        connection.releaseSavepoint(savepoint);
+      }
+    } catch (SQLException | RuntimeException error) {
+      try {
+        if (savepoint != null) {
+          connection.rollback(savepoint);
+        } else if (autoCommit) {
+          connection.rollback();
+        }
+      } catch (SQLException recovery) {
+        restoreAutoCommit = false;
+        error.addSuppressed(recovery);
+      }
+      throw error;
+    } finally {
+      if (restoreAutoCommit) {
+        connection.setAutoCommit(true);
+      }
+    }
+  }
+
+  /** Deletes a set of IDs together, avoiding one table scan per row on unindexed layer tables. */
+  private static void deleteRecordNumbers(Connection connection, String prefix, List<Integer> ids)
+      throws SQLException {
+    String sql = prefix + String.join(",", Collections.nCopies(ids.size(), "?")) + ")";
+    try (PreparedStatement statement = connection.prepareStatement(sql)) {
+      for (int i = 0; i < ids.size(); i++) {
+        statement.setInt(i + 1, ids.get(i));
+      }
+      statement.executeUpdate();
     }
   }
 

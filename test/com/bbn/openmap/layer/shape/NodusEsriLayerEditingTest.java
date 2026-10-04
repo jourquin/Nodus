@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
@@ -49,6 +50,80 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 @Timeout(20)
 class NodusEsriLayerEditingTest {
   @TempDir Path directory;
+
+  @TestFactory
+  List<DynamicTest> bulkDeletionCompactsOnceAndPreservesSurvivors() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (boolean links : new boolean[] {false, true}) {
+      tests.add(
+          dynamicTest(
+              "bulk links=" + links,
+              () -> {
+                try (LayerTestProject project = new LayerTestProject(directory, links)) {
+                  final OMGraphic survivor = project.graphic(10);
+                  final List<Object> record = project.layer.getModel().getRecord(1);
+                  final int refreshes = project.layer.labelRefreshCalls;
+                  assertThrows(
+                      IndexOutOfBoundsException.class,
+                      () -> project.layer.removeRecords(List.of(0, 99), true));
+                  assertEquals(3, project.layer.getModel().getRowCount());
+                  assertFalse(project.layer.isDirty());
+                  project.layer.removeRecords(List.of(2, 0, 2), true);
+                  assertEquals(Map.of(10, 0), project.layer.getIndex());
+                  assertSame(survivor, project.graphic(10));
+                  assertSame(record, project.layer.getModel().getRecord(0));
+                  assertEquals(List.of(List.of("10")), project.rows("SELECT NUM FROM features"));
+                  assertEquals(refreshes + 1, project.layer.labelRefreshCalls);
+                  project.layer.removeRecords(List.of(), true);
+                  assertEquals(refreshes + 1, project.layer.labelRefreshCalls);
+                  project.layer.removeRecords(List.of(0), true);
+                  assertEquals(0, project.layer.getModel().getRowCount());
+                  assertEquals(0, project.layer.getEsriGraphicList().size());
+                  assertTrue(project.layer.getIndex().isEmpty());
+                }
+              }));
+    }
+    return tests;
+  }
+
+  @TestFactory
+  List<DynamicTest> failedBulkDeletionRollsBackEarlierBatchesWithoutChangingTheLayer() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (boolean autoCommit : new boolean[] {false, true}) {
+      tests.add(
+          dynamicTest(
+              "bulk rollback autoCommit=" + autoCommit,
+              () -> {
+                try (LayerTestProject project = new LayerTestProject(directory, false)) {
+                  project.setLocalProperty(
+                      edu.uclouvain.core.nodus.NodusC.PROP_MAX_SQL_BATCH_SIZE, "1");
+                  project.execute("ALTER TABLE features ADD CONSTRAINT feature_key UNIQUE(NUM)");
+                  project.execute("CREATE TABLE referenced(num INTEGER REFERENCES features(NUM))");
+                  project.execute("INSERT INTO referenced VALUES(10)");
+                  project.execute("CREATE TABLE earlier(id INTEGER)");
+                  project.connection.setAutoCommit(autoCommit);
+                  project.execute("INSERT INTO earlier VALUES(42)");
+                  final List<List<Object>> records = project.records();
+                  final OMGraphic original = project.graphic(30);
+                  assertThrows(
+                      java.sql.SQLException.class,
+                      () -> project.layer.removeRecords(List.of(0, 1), true));
+                  assertEquals(records, project.records());
+                  assertSame(original, project.graphic(30));
+                  assertEquals(Map.of(30, 0, 10, 1, 20, 2), project.layer.getIndex());
+                  assertFalse(project.layer.isDirty());
+                  assertEquals(3, project.rows("SELECT NUM FROM features").size());
+                  assertEquals(List.of(List.of("42")), project.rows("SELECT id FROM earlier"));
+                  assertEquals(autoCommit, project.connection.getAutoCommit());
+                  if (!autoCommit) {
+                    project.connection.rollback();
+                    assertTrue(project.rows("SELECT id FROM earlier").isEmpty());
+                  }
+                }
+              }));
+    }
+    return tests;
+  }
 
   @TestFactory
   List<DynamicTest> editsKeepIdentifiersAndRecordsInSync() {
@@ -94,6 +169,19 @@ class NodusEsriLayerEditingTest {
               }));
     }
     return tests;
+  }
+
+  @Test
+  void invalidBulkIdentifierRollsBackAlreadyDeletedRows() throws Exception {
+    try (LayerTestProject project = new LayerTestProject(directory, false)) {
+      project.setLocalProperty(edu.uclouvain.core.nodus.NodusC.PROP_MAX_SQL_BATCH_SIZE, "1");
+      project.layer.getModel().setValueAt("invalid", 1, 0);
+      assertThrows(
+          NumberFormatException.class, () -> project.layer.removeRecords(List.of(0, 1), true));
+      assertEquals(3, project.rows("SELECT NUM FROM features").size());
+      assertEquals(3, project.layer.getModel().getRowCount());
+      assertTrue(project.connection.getAutoCommit());
+    }
   }
 
   @Test
