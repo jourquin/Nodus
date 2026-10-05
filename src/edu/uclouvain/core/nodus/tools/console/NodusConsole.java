@@ -35,14 +35,13 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.io.PrintStream;
-import java.text.MessageFormat;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.Charset;
+import java.util.List;
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -54,20 +53,28 @@ import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultCaret;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
 /**
- * Simple console that intercepts the System.out and System.err.
+ * Console that intercepts System.out and System.err and displays their output in batches.
+ *
+ * <p>Producers append to a shared buffer without waiting for Swing. A coalescing timer displays
+ * bounded batches every 50 milliseconds, updating the caret only once per batch. Clear removes
+ * queued text too, and Save includes messages still awaiting display. Closing restores the previous
+ * streams and releases the buffer and timer. The complete log remains available until the user
+ * clears or closes the console.
  *
  * @author Bart Jourquin
  */
-public class NodusConsole extends WindowAdapter
-    implements WindowListener, ActionListener, Runnable {
+public class NodusConsole extends WindowAdapter {
   static I18n i18n = Environment.getI18n();
 
-  private static JTextPane textArea;
+  private JTextPane textArea;
 
   private static String thisComponentName = "NodusConsole";
 
@@ -104,11 +111,9 @@ public class NodusConsole extends WindowAdapter
 
   private ActionListener saveActionListener;
 
-  private PipedInputStream pin = new PipedInputStream();
+  private ConsoleOutputBuffer output;
 
-  private PipedInputStream pin2 = new PipedInputStream();
-
-  private boolean quit;
+  private Timer displayTimer;
 
   private boolean disposed;
 
@@ -120,11 +125,9 @@ public class NodusConsole extends WindowAdapter
 
   private PrintStream redirectedErr;
 
-  private Thread reader;
+  private Style outputStyle;
 
-  private Thread reader2;
-
-  private Style style;
+  private Style errorStyle;
 
   /** Initializes a new console. */
   public NodusConsole() {
@@ -137,12 +140,31 @@ public class NodusConsole extends WindowAdapter
    * @param defaultDirectory The default directory used to save the output.
    */
   public NodusConsole(String defaultDirectory) {
+    if (SwingUtilities.isEventDispatchThread()) {
+      initialize(defaultDirectory);
+    } else {
+      try {
+        SwingUtilities.invokeAndWait(() -> initialize(defaultDirectory));
+      } catch (InterruptedException failure) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException("Interrupted while opening the console", failure);
+      } catch (InvocationTargetException failure) {
+        throw new IllegalStateException("Cannot open the console", failure.getCause());
+      }
+    }
+  }
 
+  /** Creates and connects the console entirely on Swing's event thread. */
+  private void initialize(String defaultDirectory) {
     this.defaultDirectory = defaultDirectory;
 
     // Only create a console if none exists
-    if (isVisible()) {
-      return;
+    for (Frame existing : Frame.getFrames()) {
+      if (thisComponentName.equals(existing.getName()) && existing.isVisible()) {
+        existing.setState(Frame.NORMAL);
+        existing.toFront();
+        return;
+      }
     }
 
     // create all components and add them
@@ -162,9 +184,13 @@ public class NodusConsole extends WindowAdapter
     textArea.setEditable(false);
     textArea.setBackground(Color.WHITE);
     doc = (StyledDocument) textArea.getDocument();
-    style = doc.addStyle("ConsoleStyle", null);
-    StyleConstants.setFontFamily(style, "MonoSpaced");
-    StyleConstants.setFontSize(style, 12);
+    outputStyle = doc.addStyle("ConsoleOutput", null);
+    StyleConstants.setFontFamily(outputStyle, "MonoSpaced");
+    StyleConstants.setFontSize(outputStyle, 12);
+    StyleConstants.setForeground(outputStyle, Color.BLACK);
+    errorStyle = doc.addStyle("ConsoleError", outputStyle);
+    StyleConstants.setForeground(errorStyle, Color.RED);
+    ((DefaultCaret) textArea.getCaret()).setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
 
     clearButton = new JButton(i18n.get(NodusConsole.class, "Clear", "Clear"));
     saveButton = new JButton(i18n.get(NodusConsole.class, "Save", "Save"));
@@ -180,7 +206,6 @@ public class NodusConsole extends WindowAdapter
     frame.setVisible(true);
 
     frame.addWindowListener(this);
-    // clearButton.addActionListener(this);
 
     clearActionListener =
         new java.awt.event.ActionListener() {
@@ -202,33 +227,17 @@ public class NodusConsole extends WindowAdapter
         };
     saveButton.addActionListener(saveActionListener);
 
+    output = new ConsoleOutputBuffer(Charset.defaultCharset());
     redirectStandardStreams();
-
-    quit = false; // signals the Threads that they should exit
-
-    // Starting two separate threads to read from the PipedInputStreams
-    reader = new Thread(this);
-    reader.setName("NodusConsole-stdout");
-    reader.setDaemon(true);
-    // reader.start();
-
-    reader2 = new Thread(this);
-    reader2.setName("NodusConsole-stderr");
-    reader2.setDaemon(true);
-    // reader2.start();
-
-    SwingUtilities.invokeLater(
-        new Runnable() {
-          @Override
-          public void run() {
-            if (!quit && reader != null && reader.getState() == Thread.State.NEW) {
-              reader.start();
-            }
-            if (!quit && reader2 != null && reader2.getState() == Thread.State.NEW) {
-              reader2.start();
-            }
-          }
-        });
+    displayTimer =
+        new Timer(
+            50,
+            event -> {
+              if (!disposed) {
+                appendToConsole(output.drain());
+              }
+            });
+    displayTimer.start();
   }
 
   /** Makes the Escape key close the console. */
@@ -258,14 +267,8 @@ public class NodusConsole extends WindowAdapter
     previousErr = System.err;
 
     try {
-      PipedOutputStream pout = new PipedOutputStream(pin);
-      redirectedOut = new PrintStream(pout, true);
+      redirectedOut = output.createStream(false);
       System.setOut(redirectedOut);
-    } catch (java.io.IOException io) {
-      showRedirectionError(
-          "Couldn_t_redirect_STDOUT_to_this_console",
-          "Couldn't redirect STDOUT to this console",
-          io.getMessage());
     } catch (SecurityException se) {
       showRedirectionError(
           "Couldn_t_redirect_STDOUT_to_this_console",
@@ -274,14 +277,8 @@ public class NodusConsole extends WindowAdapter
     }
 
     try {
-      PipedOutputStream pout2 = new PipedOutputStream(pin2);
-      redirectedErr = new PrintStream(pout2, true);
+      redirectedErr = output.createStream(true);
       System.setErr(redirectedErr);
-    } catch (java.io.IOException io) {
-      showRedirectionError(
-          "Couldn_t_redirect_STDERR_to_this_console",
-          "Couldn't redirect STDERR to this console",
-          io.getMessage());
     } catch (SecurityException se) {
       showRedirectionError(
           "Couldn_t_redirect_STDERR_to_this_console",
@@ -346,7 +343,8 @@ public class NodusConsole extends WindowAdapter
 
     textArea = null;
     doc = null;
-    style = null;
+    outputStyle = null;
+    errorStyle = null;
     clearButton = null;
     saveButton = null;
     clearActionListener = null;
@@ -355,129 +353,40 @@ public class NodusConsole extends WindowAdapter
     frame = null;
     previousOut = null;
     previousErr = null;
-    pin = null;
-    pin2 = null;
-    reader = null;
-    reader2 = null;
+    output = null;
+    displayTimer = null;
   }
 
-  /**
-   * Action performed.
-   *
-   * @param evt ActionEvent
-   * @hidden
-   */
-  @Override
-  public synchronized void actionPerformed(ActionEvent evt) {}
-
-  /** Clears the console. */
+  /** Clears both displayed and queued output on the event thread. */
   public void clear() {
+    if (!SwingUtilities.isEventDispatchThread()) {
+      SwingUtilities.invokeLater(this::clear);
+      return;
+    }
     if (textArea != null) {
+      output.clear();
       textArea.setText("");
     }
   }
 
-  private synchronized String readLine(PipedInputStream in) throws IOException {
-    String input = "";
-    do {
-      int available = in.available();
-      if (available == 0) {
-        break;
-      }
-      byte[] b = new byte[available];
-      in.read(b);
-      input += new String(b, 0, b.length);
-    } while (!input.endsWith("\n") && !input.endsWith("\r\n") && !quit);
-    return input;
-  }
-
-  /** Appends console output to the document on the Swing event thread. */
-  private void appendToConsole(final String input, final Color color) {
-    SwingUtilities.invokeLater(
-        new Runnable() {
-          @Override
-          public void run() {
-            try {
-              StyleConstants.setForeground(style, color);
-              doc.insertString(doc.getLength(), input, style);
-              // Make sure the last line is always visible
-              textArea.setCaretPosition(textArea.getDocument().getLength());
-            } catch (Exception e) {
-              if (textArea != null) {
-                textArea.setText(
-                    "\n"
-                        + i18n.get(
-                            NodusConsole.class,
-                            "Console_reports_an_Internal_error",
-                            "Console reports an Internal error.")
-                        + "\n"
-                        + MessageFormat.format(
-                            i18n.get(NodusConsole.class, "The_error_is", "The error is: {0}"),
-                            e.toString()));
-              }
-            }
-          }
-        });
-  }
-
-  /**
-   * .
-   *
-   * @hidden
-   */
-  @Override
-  public synchronized void run() {
+  /** Inserts a batch with fixed output/error styles and scrolls only after all insertions. */
+  private void appendToConsole(List<ConsoleOutputBuffer.Chunk> batch) {
+    if (disposed || batch.isEmpty()) {
+      return;
+    }
     try {
-      while (Thread.currentThread() == reader) {
-        try {
-          this.wait(100);
-        } catch (InterruptedException ie) {
-          Thread.currentThread().interrupt();
-          return;
-        }
-        if (pin.available() != 0) {
-          String input = readLine(pin);
-          appendToConsole(input, Color.black);
-        }
-        if (quit) {
-          return;
-        }
+      for (ConsoleOutputBuffer.Chunk chunk : batch) {
+        doc.insertString(doc.getLength(), chunk.text(), chunk.error ? errorStyle : outputStyle);
       }
-
-      while (Thread.currentThread() == reader2) {
-        try {
-          this.wait(100);
-        } catch (InterruptedException ie) {
-          Thread.currentThread().interrupt();
-          return;
-        }
-        if (pin2.available() != 0) {
-
-          String input = readLine(pin2);
-          appendToConsole(input, Color.red);
-        }
-        if (quit) {
-          return;
-        }
-      }
-    } catch (Exception e) {
-      if (textArea != null) {
-        textArea.setText(
-            "\n"
-                + i18n.get(
-                    NodusConsole.class,
-                    "Console_reports_an_Internal_error",
-                    "Console reports an Internal error.")
-                + "\n"
-                + MessageFormat.format(
-                    i18n.get(NodusConsole.class, "The_error_is", "The error is: {0}"),
-                    e.toString()));
-      }
+      textArea.setCaretPosition(doc.getLength());
+    } catch (BadLocationException failure) {
+      // Report to the original stream, avoiding recursive logging into the failing document.
+      failure.printStackTrace(previousErr);
     }
   }
 
   /**
-   * Saves the content of the consolde in a text file.
+   * Saves the content of the console in a text file.
    *
    * @return True on success.
    */
@@ -517,8 +426,9 @@ public class NodusConsole extends WindowAdapter
             fileName += extension;
           }
 
+          appendToConsole(output.drainAll());
           try (FileWriter write = new FileWriter(fileName)) {
-            write.write(textArea.getText().toCharArray());
+            write.write(textArea.getText());
             return true;
           } catch (IOException e) {
             e.printStackTrace();
@@ -536,74 +446,37 @@ public class NodusConsole extends WindowAdapter
    * @param height The height, expressed in pixels.
    */
   public void setSize(int width, int height) {
+    if (!SwingUtilities.isEventDispatchThread()) {
+      SwingUtilities.invokeLater(() -> setSize(width, height));
+      return;
+    }
     if (frame != null) {
       frame.setSize(width, height);
     }
   }
 
   /**
-   * Closes the window and stops the "reader" threads.
+   * Stops display updates, restores standard streams and releases the console resources.
    *
    * @param evt WindowEvent
    * @hidden
    */
   @Override
   public void windowClosed(WindowEvent evt) {
-    Thread stdoutReader;
-    Thread stderrReader;
-
-    synchronized (this) {
-      if (disposed) {
-        return;
-      }
-
-      disposed = true;
-      quit = true;
-      notifyAll(); // stop all threads
-
-      restoreStandardStreams();
-      closeRedirectedStreams();
-
-      stdoutReader = reader;
-      stderrReader = reader2;
-
-      closePipe(pin);
-      closePipe(pin2);
-    }
-
-    joinReader(stdoutReader);
-    joinReader(stderrReader);
-
-    synchronized (this) {
-      releaseReferences();
-    }
+    disposeConsole();
   }
 
-  /** Closes a pipe quietly during console shutdown. */
-  private void closePipe(PipedInputStream pipe) {
-    if (pipe == null) {
+  /** Releases stream ownership before another console can be opened on the event thread. */
+  private void disposeConsole() {
+    if (disposed) {
       return;
     }
-
-    try {
-      pipe.close();
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-  }
-
-  /** Waits briefly for a reader thread to stop. */
-  private void joinReader(Thread thread) {
-    if (thread == null) {
-      return;
-    }
-
-    try {
-      thread.interrupt();
-      thread.join(1000);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
+    disposed = true;
+    displayTimer.stop();
+    restoreStandardStreams();
+    output.close();
+    closeRedirectedStreams();
+    releaseReferences();
   }
 
   /**
@@ -620,8 +493,9 @@ public class NodusConsole extends WindowAdapter
   /** Closes the console frame. */
   private void closeConsole() {
     if (frame != null) {
-      frame.setVisible(false); // default behaviour of JFrame
-      frame.dispose();
+      JFrame closingFrame = frame;
+      disposeConsole();
+      closingFrame.dispose();
     }
   }
 }

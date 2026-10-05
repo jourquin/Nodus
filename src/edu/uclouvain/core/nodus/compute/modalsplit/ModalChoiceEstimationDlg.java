@@ -29,6 +29,7 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
+import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.utils.HardwareUtils;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
@@ -76,7 +77,7 @@ import javax.swing.SwingWorker;
  * <p>{@link LogitCalibrationPanel} owns the observed-table editor and reference selection; {@link
  * ModalChoiceFormula} displays the selected model's equations. The model selector stores stable
  * short names, not translated captions. Preferences under {@code modalChoiceEstimation.} are
- * separate from assignment scenarios. Terminal diagnostics are opt-in, while the successful
+ * separate from assignment scenarios. Console diagnostics are opt-in, while the successful
  * cost-file report is always written. No field in this dialog overrides assignment demand.
  */
 public final class ModalChoiceEstimationDlg extends EscapeDialog {
@@ -99,8 +100,8 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
   private final JTextField outputFile = new JTextField();
   /** Fast or exact multi-flow algorithm used to compute modal route costs. */
   private final JComboBox<String> routing = new JComboBox<>();
-  /** Opt-in terminal diagnostics; the successful cost-file report is always written. */
-  private final JCheckBox logToTerminal = new JCheckBox();
+  /** Opt-in console diagnostics; the successful cost-file report is always written. */
+  private final JCheckBox logToConsole = new JCheckBox();
   /** Maximum admissible route-length ratio; zero disables the detour limit. */
   private final JSpinner detour;
   /** Routing-worker count; parameter fitting itself runs sequentially. */
@@ -150,13 +151,20 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     costFile.addActionListener(event -> outputFile.setText((String) costFile.getSelectedItem()));
     detour = spinner("detour", 0, 0, 1000, 0.1);
     threads = spinner("threads", HardwareUtils.getNbCores(), 1, 1024, 1);
-    logToTerminal.setText(text("LogToTerminal", "Log estimation details to terminal"));
-    logToTerminal.setSelected(project.getLocalProperty(PREFIX + "logToTerminal", false));
+    logToConsole.setText(text("LogToConsole", "Log estimation details to console"));
+    // Keep the legacy preference key for existing projects.
+    logToConsole.setSelected(project.getLocalProperty(PREFIX + "logToTerminal", false));
+    logToConsole.addActionListener(
+        event -> {
+          if (logToConsole.isSelected()) {
+            openConsole();
+          }
+        });
     tooltip(
-        logToTerminal,
-        "logToTerminal",
+        logToConsole,
+        "logToConsole",
         "<html>Print skipped OD records, coverage statistics and estimated parameters"
-            + " in the terminal.<br>The estimation report is always saved in the cost"
+            + " in the console.<br>The estimation report is always saved in the cost"
             + " file after a successful fit.</html>");
     LogitCalibrationSettings settings = LogitCalibrationSettings.NONE;
     try {
@@ -220,7 +228,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     specification.add(heading, BorderLayout.NORTH);
     specification.add(formula, BorderLayout.CENTER);
     JPanel bottom = new JPanel(new BorderLayout(0, 10));
-    bottom.add(logToTerminal, BorderLayout.NORTH);
+    bottom.add(logToConsole, BorderLayout.NORTH);
     bottom.add(specification, BorderLayout.CENTER);
     final JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
     JButton cancel = new JButton(text("Cancel", "Cancel"));
@@ -301,7 +309,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     final LogitCalibrationSettings settings;
     final AssignmentParameters parameters = new AssignmentParameters(project);
     final boolean exact = routing.getSelectedIndex() == 1;
-    final boolean logging = logToTerminal.isSelected();
+    final boolean logging = logToConsole.isSelected();
     final LogitCostFile.Target target;
     try {
       settings = observations.getSettings();
@@ -357,6 +365,9 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     project.setLocalProperty(PREFIX + "detour", detour.getValue().toString());
     project.setLocalProperty(PREFIX + "threads", threads.getValue().toString());
     project.setLocalProperty(PREFIX + "logToTerminal", logging);
+    if (logging) {
+      openConsole();
+    }
     mapPanel.getAssignmentMenuItem().setEnabled(false);
     dispose();
     new SwingWorker<Boolean, Void>() {
@@ -384,7 +395,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
             mapPanel.showAssignmentMessage(
                 text("Empty", "No usable observations remain. No coefficients were saved.")
                     + (logging
-                        ? "\n" + text("SeeTerminal", "See the terminal for coverage details.")
+                        ? "\n" + text("SeeConsole", "See the console for coverage details.")
                         : ""),
                 JOptionPane.WARNING_MESSAGE);
           }
@@ -400,6 +411,11 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
         }
       }
     }.execute();
+  }
+
+  /** Opens the console before estimation output, including when the saved option is selected. */
+  private void openConsole() {
+    new NodusConsole(project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
   }
 
   private String text(String key, String fallback) {
