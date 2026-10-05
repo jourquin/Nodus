@@ -1,0 +1,23 @@
+public class edu.uclouvain.core.nodus.database.gui.SQLConsole
+extends java.lang.Object
+implements java.awt.event.ActionListener
+implements java.awt.event.WindowListener
+implements java.awt.event.KeyListener
+protected int edu.uclouvain.core.nodus.database.gui.SQLConsole.showOverwriteDialog(java.lang.String)
+public boolean edu.uclouvain.core.nodus.database.gui.SQLConsole.runBatch(java.lang.String[])
+public edu.uclouvain.core.nodus.database.gui.SQLConsole(edu.uclouvain.core.nodus.NodusProject)
+public edu.uclouvain.core.nodus.database.gui.SQLConsole(edu.uclouvain.core.nodus.NodusProject,boolean)
+public javax.swing.JFrame edu.uclouvain.core.nodus.database.gui.SQLConsole.getFrame()
+public javax.swing.JTextArea edu.uclouvain.core.nodus.database.gui.SQLConsole.getSqlCommandArea()
+public void edu.uclouvain.core.nodus.database.gui.SQLConsole.actionPerformed(java.awt.event.ActionEvent)
+public void edu.uclouvain.core.nodus.database.gui.SQLConsole.keyPressed(java.awt.event.KeyEvent)
+public void edu.uclouvain.core.nodus.database.gui.SQLConsole.keyReleased(java.awt.event.KeyEvent)
+public void edu.uclouvain.core.nodus.database.gui.SQLConsole.keyTyped(java.awt.event.KeyEvent)
+public void edu.uclouvain.core.nodus.database.gui.SQLConsole.resetScript()
+public void edu.uclouvain.core.nodus.database.gui.SQLConsole.windowActivated(java.awt.event.WindowEvent)
+public void edu.uclouvain.core.nodus.database.gui.SQLConsole.windowClosed(java.awt.event.WindowEvent)
+public void edu.uclouvain.core.nodus.database.gui.SQLConsole.windowClosing(java.awt.event.WindowEvent)
+public void edu.uclouvain.core.nodus.database.gui.SQLConsole.windowDeactivated(java.awt.event.WindowEvent)
+public void edu.uclouvain.core.nodus.database.gui.SQLConsole.windowDeiconified(java.awt.event.WindowEvent)
+public void edu.uclouvain.core.nodus.database.gui.SQLConsole.windowIconified(java.awt.event.WindowEvent)
+public void edu.uclouvain.core.nodus.database.gui.SQLConsole.windowOpened(java.awt.event.WindowEvent)

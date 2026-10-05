@@ -153,7 +153,7 @@ for the workflow mechanism.
 
 ## Coverage
 
-- `ExtensionApiCompatibilityTest`: the frozen public/protected API of the three extension
+- `ExtensionApiCompatibilityTest`: the frozen public/protected API of the four extension
   entry classes, a plugin and subclass compiled before their refactoring, plugin menu dispatch
   and project/global disposal, and Groovy bean properties, overloads and shared collections.
   The original bytecode and API baseline are documented in
@@ -318,6 +318,13 @@ for the workflow mechanism.
   definitions and `runBatch()`; restoring confirmation after a script; and execution
   without a desktop window. Only the dialog response is substituted. Exported files
   are read back to check their contents and the project connection remains open.
+- `SQLConsoleCompatibilityTest`: an external subclass compiled before the SQL console split,
+  its overwrite callback on the EDT, and Groovy property access and batch scripts with comments,
+  overlapping variable names and `STOP`. The frozen fixtures are documented in
+  [sql-console-api/README.md](fixtures/sql-console-api/README.md).
+- `SQLConsoleComponentsTest`: JDBC result labels, NULLs, text headers and result-set closure;
+  database metadata tables, columns and indexes; and history wrapping, deduplication,
+  persistence and dispatch to the original listener.
 - `CsvImportExportIntegrationTest`: quoted headers and fields, commas, quotes, Unicode,
   embedded line breaks, empty fields, exact decimal values, header/no-header round trips,
   empty files, batching, missing files, and malformed records. Failed imports must restore

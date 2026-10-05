@@ -1,0 +1,38 @@
+package external.nodus.compat;
+
+import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.database.gui.SQLConsole;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+
+/** Compiled against SQLConsole before the internal split, never rebuilt by the tests. */
+public final class LegacySQLConsole extends SQLConsole {
+  public int prompts;
+  public int resets;
+  public boolean promptOnEdt;
+
+  public LegacySQLConsole(NodusProject project) {
+    super(project, false);
+  }
+
+  @Override
+  protected int showOverwriteDialog(String message) {
+    prompts++;
+    promptOnEdt = SwingUtilities.isEventDispatchThread();
+    return JOptionPane.NO_OPTION;
+  }
+
+  @Override
+  public void resetScript() {
+    resets++;
+    super.resetScript();
+  }
+
+  public boolean batch(String[] commands) {
+    return super.runBatch(commands);
+  }
+
+  public void close() {
+    super.windowClosing(null);
+  }
+}

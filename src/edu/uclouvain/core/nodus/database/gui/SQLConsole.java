@@ -21,6 +21,19 @@
 
 package edu.uclouvain.core.nodus.database.gui;
 
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.CLEARSCENARIO;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.EXPORTCSV;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.EXPORTCSVH;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.EXPORTDBF;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.EXPORTXLS;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.EXPORTXLSX;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.EXTRACTSHP;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTCSV;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTCSVH;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTDBF;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTXLS;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTXLSX;
+
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.util.I18n;
@@ -28,12 +41,6 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
-import edu.uclouvain.core.nodus.database.csv.ExportCSV;
-import edu.uclouvain.core.nodus.database.csv.ImportCSV;
-import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
-import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
-import edu.uclouvain.core.nodus.database.xls.ExportXLS;
-import edu.uclouvain.core.nodus.database.xls.ImportXLS;
 import edu.uclouvain.core.nodus.swing.GUIUtils;
 import edu.uclouvain.core.nodus.swing.GridSwing;
 import edu.uclouvain.core.nodus.swing.TableSorter;
@@ -54,24 +61,14 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.Vector;
 import java.util.concurrent.FutureTask;
 import javax.swing.JButton;
@@ -146,7 +143,6 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  * @author Bart Jourquin
  */
 public class SQLConsole implements ActionListener, WindowListener, KeyListener {
-  private static final String CLEARSCENARIO = "CLEARSCENARIO";
 
   private static final String CLEARSCREEN = "CLRSCR";
 
@@ -166,96 +162,13 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
   private static final String ENABLEHEADERS = "ENABLEHEADERS";
 
-  private static final String EXPORTCSV = "EXPORTCSV";
-
-  private static final String EXPORTCSVH = "EXPORTCSVH";
-
-  private static final String EXPORTDBF = "EXPORTDBF";
-
-  private static final String EXPORTXLS = "EXPORTXLS";
-
-  private static final String EXPORTXLSX = "EXPORTXLSX";
-
-  private static final String EXTRACTSHP = "EXTRACTSHP";
-
   private static I18n i18n = Environment.getI18n();
-
-  private static int maxHistory = 24;
-
-  private static final String IMPORTCSV = "IMPORTCSV";
-
-  private static final String IMPORTCSVH = "IMPORTCSVH";
-
-  private static final String IMPORTDBF = "IMPORTDBF";
-
-  private static final String IMPORTXLS = "IMPORTXLS";
-
-  private static final String IMPORTXLSX = "IMPORTXLSX";
 
   private static final String STOP = "STOP";
 
   private static int maxRows = 1000;
 
   private static final String NL = System.getProperty("line.separator");
-
-  /** Returns true if the statement is exactly the given command, ignoring case and edge spaces. */
-  private static boolean isCommand(String sqlStmt, String command) {
-    return sqlStmt != null && sqlStmt.trim().equalsIgnoreCase(command);
-  }
-
-  /**
-   * Returns true if the statement starts with the given command followed by a whitespace boundary.
-   */
-  private static boolean startsWithCommand(String sqlStmt, String command) {
-    if (sqlStmt == null) {
-      return false;
-    }
-
-    String trimmed = sqlStmt.trim();
-    int commandLength = command.length();
-    if (!trimmed.regionMatches(true, 0, command, 0, commandLength)) {
-      return false;
-    }
-
-    return trimmed.length() == commandLength
-        || Character.isWhitespace(trimmed.charAt(commandLength));
-  }
-
-  /**
-   * Reads a SQL batch file.
-   *
-   * @param file String
-   * @return String
-   */
-  private static String readFile(String file) {
-    try (BufferedReader read = new BufferedReader(new FileReader(file))) {
-      StringBuilder b = new StringBuilder();
-      String s;
-
-      while ((s = read.readLine()) != null) {
-        b.append(s);
-        b.append(NL);
-      }
-
-      return b.toString();
-    } catch (IOException e) {
-      return e.getMessage();
-    }
-  }
-
-  /**
-   * Writes an SQL batch file or an output text file.
-   *
-   * @param file String
-   * @param text String
-   */
-  private static void writeFile(String file, String text) {
-    try (FileWriter write = new FileWriter(file)) {
-      write.write(text);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-  }
 
   private DatabaseMetaData metaData;
 
@@ -267,7 +180,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
   private JScrollPane resultScrollPane;
 
-  private int history;
+  private SQLConsoleHistory history;
 
   int typeOfResultFormat; // 0: grid; 1: text
 
@@ -287,6 +200,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
   private NodusProject nodusProject;
 
+  private SQLConsoleOperations operations;
+
   private JSplitPane nsSplitPane;
 
   private Cursor oldCursor;
@@ -302,8 +217,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   private JTable resultTable;
 
   private RSyntaxTextArea sqlCommandsArea;
-
-  private String[] recentQueries;
 
   private Statement statement;
 
@@ -368,6 +281,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     this.nodusProject = nodusProject;
     nodusMapPanel = nodusProject.getNodusMapPanel();
+    operations = new SQLConsoleOperations(this, nodusProject, withGUI);
 
     defDirectory = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
 
@@ -451,81 +365,22 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     if (s != null && s.startsWith("#")) {
       int i = Integer.parseInt(s.substring(1));
-      sqlCommandsArea.setText(recentQueries[i]);
+      sqlCommandsArea.setText(history.get(i));
       resetScript();
     }
   }
 
-  /**
-   * Adds a new SQL statement in the history.
-   *
-   * @param weights String
-   */
-  private void addToRecent(String s) {
-    if (!withGUI) {
-      return;
+  /** Records successful commands in the GUI history. */
+  void addToRecent(String command) {
+    if (withGUI) {
+      history.addToRecent(command);
     }
-    for (int i = 0; i < maxHistory; i++) {
-      if (s.equals(recentQueries[i])) {
-        return;
-      }
-    }
-
-    if (recentQueries[history] != null) {
-      menuRecent.remove(history);
-    }
-
-    recentQueries[history] = s;
-
-    if (s.length() > 43) {
-      s = s.substring(0, 40) + "...";
-    }
-
-    JMenuItem item = new JMenuItem(s);
-
-    item.setActionCommand("#" + history);
-    item.addActionListener(this); // Clean table
-    menuRecent.insert(item, history);
-
-    history = (history + 1) % maxHistory;
   }
 
   /** Clears the command text area. */
   private void clearCommands() {
     sqlCommandsArea.setText("");
     resetScript();
-  }
-
-  /**
-   * Deletes all the tables related to a scenario.
-   *
-   * @param sqlCommand SQL command
-   */
-  private void clearScenario(String sqlCommand) {
-    String scenarioNumber = sqlCommand.toUpperCase();
-    int index = scenarioNumber.indexOf(CLEARSCENARIO);
-
-    if (index != -1) {
-      scenarioNumber =
-          sqlCommand.substring(index + CLEARSCENARIO.length(), sqlCommand.length()).trim();
-    }
-
-    int scenario;
-
-    try {
-      scenario = Integer.valueOf(scenarioNumber);
-    } catch (NumberFormatException e) {
-      displayMessageInResult(i18n.get(SQLConsole.class, "Usage", "Usage:"), CLEARSCENARIO + " n");
-      return;
-    }
-
-    nodusProject.removeScenario(scenario);
-
-    MessageFormat.format(
-        i18n.get(SQLConsole.class, "_succeeded", "{0} of \"{1}\" succeeded."),
-        CLEARSCENARIO,
-        scenarioNumber);
-    displayMessageInResult(CLEARSCENARIO, scenarioNumber);
   }
 
   /**
@@ -592,7 +447,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * @param head String that will be displayed as header
    * @param msg Message to display
    */
-  private void displayMessageInResult(String head, String msg) {
+  void displayMessageInResult(String head, String msg) {
     runOnEdtAndWait(
         () -> {
           // For grid result
@@ -627,9 +482,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     // Decompose all the statements
     String sqlCommandsText = getSqlCommandsText();
-    ParsedSQLCommands parsed = parseSQLCommands(sqlCommandsText);
-    final boolean confirmOverwrite =
-        !batch && scriptFileName == null && !parsed.multipleCommands;
+    SQLConsoleScript.ParsedSQLCommands parsed = SQLConsoleScript.parseSQLCommands(sqlCommandsText);
+    if (parsed.batchFile) {
+      menuResultInText_actionPerformed(null);
+    }
+    final boolean confirmOverwrite = !batch && scriptFileName == null && !parsed.multipleCommands;
     Vector<String> sqlCommands = parsed.commands;
 
     // Limit the output length of a single line query
@@ -660,12 +517,12 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
       String sync = sqlCommand.trim().toUpperCase();
 
-      if (isCommand(sync, ENABLEECHO)) {
+      if (SQLConsoleScript.isCommand(sync, ENABLEECHO)) {
         withEcho = true;
         continue;
       }
 
-      if (isCommand(sync, DISABLEECHO)) {
+      if (SQLConsoleScript.isCommand(sync, DISABLEECHO)) {
         withEcho = false;
         continue;
       }
@@ -681,21 +538,21 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
       // Intercept Nodus specific commands commands
 
-      if (isCommand(sync, STOP)) {
+      if (SQLConsoleScript.isCommand(sync, STOP)) {
         break;
       }
 
       // Create, Drop, Alter and Rename table commands need to refresh table list
-      if ((startsWithCommand(sync, "CREATE TABLE")
-              || startsWithCommand(sync, "ALTER TABLE")
-              || startsWithCommand(sync, "DROP TABLE")
-              || startsWithCommand(sync, "RENAME TABLE"))
+      if ((SQLConsoleScript.startsWithCommand(sync, "CREATE TABLE")
+              || SQLConsoleScript.startsWithCommand(sync, "ALTER TABLE")
+              || SQLConsoleScript.startsWithCommand(sync, "DROP TABLE")
+              || SQLConsoleScript.startsWithCommand(sync, "RENAME TABLE"))
           && withGUI) {
         treeMustBeRefreshed = true;
       }
 
       // "shutdown compact" is not allowed from the console
-      if (startsWithCommand(sync, "SHUTDOWN COMPACT")) {
+      if (SQLConsoleScript.startsWithCommand(sync, "SHUTDOWN COMPACT")) {
         showMessageDialogOnEdt(
             i18n.get(
                 SQLConsole.class,
@@ -706,40 +563,40 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         continue;
       }
 
-      if (isCommand(sync, ENABLEHEADERS)) {
+      if (SQLConsoleScript.isCommand(sync, ENABLEHEADERS)) {
         displayHeaders = true;
         continue;
       }
 
-      if (isCommand(sync, DISABLEHEADERS)) {
+      if (SQLConsoleScript.isCommand(sync, DISABLEHEADERS)) {
         displayHeaders = false;
         continue;
       }
 
-      if (isCommand(sync, CLEARSCREEN) && withGUI) {
+      if (SQLConsoleScript.isCommand(sync, CLEARSCREEN) && withGUI) {
         clearTextResultArea();
         continue;
       }
 
-      if (isCommand(sync, DISPLAYGRID) && withGUI) {
+      if (SQLConsoleScript.isCommand(sync, DISPLAYGRID) && withGUI) {
         runOnEdtAndWait(menuResultInGrid::doClick);
 
         continue;
       }
 
-      if (isCommand(sync, DISPLAYTEXT) && withGUI) {
+      if (SQLConsoleScript.isCommand(sync, DISPLAYTEXT) && withGUI) {
         runOnEdtAndWait(menuResultInText::doClick);
         continue;
       }
 
-      if (startsWithCommand(sync, CLEARSCENARIO)) {
-        clearScenario(sqlCommand);
+      if (SQLConsoleScript.startsWithCommand(sync, CLEARSCENARIO)) {
+        operations.clearScenario(sqlCommand);
         treeMustBeRefreshed = true;
         continue;
       }
 
-      if (startsWithCommand(sync, EXPORTDBF)) {
-        boolean b = importExport(sqlCommand, EXPORTDBF, confirmOverwrite);
+      if (SQLConsoleScript.startsWithCommand(sync, EXPORTDBF)) {
+        boolean b = operations.importExport(sqlCommand, EXPORTDBF, confirmOverwrite);
 
         if (b) {
           continue;
@@ -749,20 +606,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (startsWithCommand(sync, IMPORTDBF)) {
-        boolean b = importExport(sqlCommand, IMPORTDBF, confirmOverwrite);
-
-        if (b) {
-          treeMustBeRefreshed = true;
-          continue;
-        } else {
-          setBusy(false);
-          return false;
-        }
-      }
-
-      if (startsWithCommand(sync, IMPORTCSVH)) {
-        boolean b = importExport(sqlCommand, IMPORTCSVH, confirmOverwrite);
+      if (SQLConsoleScript.startsWithCommand(sync, IMPORTDBF)) {
+        boolean b = operations.importExport(sqlCommand, IMPORTDBF, confirmOverwrite);
 
         if (b) {
           treeMustBeRefreshed = true;
@@ -773,8 +618,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (startsWithCommand(sync, IMPORTCSV)) {
-        boolean b = importExport(sqlCommand, IMPORTCSV, confirmOverwrite);
+      if (SQLConsoleScript.startsWithCommand(sync, IMPORTCSVH)) {
+        boolean b = operations.importExport(sqlCommand, IMPORTCSVH, confirmOverwrite);
 
         if (b) {
           treeMustBeRefreshed = true;
@@ -785,30 +630,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (startsWithCommand(sync, EXPORTCSVH)) {
-        boolean b = importExport(sqlCommand, EXPORTCSVH, confirmOverwrite);
-
-        if (b) {
-          continue;
-        } else {
-          setBusy(false);
-          return false;
-        }
-      }
-
-      if (startsWithCommand(sync, EXPORTCSV)) {
-        boolean b = importExport(sqlCommand, EXPORTCSV, confirmOverwrite);
-
-        if (b) {
-          continue;
-        } else {
-          setBusy(false);
-          return false;
-        }
-      }
-
-      if (startsWithCommand(sync, IMPORTXLSX)) {
-        boolean b = importExport(sqlCommand, IMPORTXLSX, confirmOverwrite);
+      if (SQLConsoleScript.startsWithCommand(sync, IMPORTCSV)) {
+        boolean b = operations.importExport(sqlCommand, IMPORTCSV, confirmOverwrite);
 
         if (b) {
           treeMustBeRefreshed = true;
@@ -819,8 +642,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (startsWithCommand(sync, EXPORTXLSX)) {
-        boolean b = importExport(sqlCommand, EXPORTXLSX, confirmOverwrite);
+      if (SQLConsoleScript.startsWithCommand(sync, EXPORTCSVH)) {
+        boolean b = operations.importExport(sqlCommand, EXPORTCSVH, confirmOverwrite);
 
         if (b) {
           continue;
@@ -830,8 +653,19 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (startsWithCommand(sync, IMPORTXLS)) {
-        boolean b = importExport(sqlCommand, IMPORTXLS, confirmOverwrite);
+      if (SQLConsoleScript.startsWithCommand(sync, EXPORTCSV)) {
+        boolean b = operations.importExport(sqlCommand, EXPORTCSV, confirmOverwrite);
+
+        if (b) {
+          continue;
+        } else {
+          setBusy(false);
+          return false;
+        }
+      }
+
+      if (SQLConsoleScript.startsWithCommand(sync, IMPORTXLSX)) {
+        boolean b = operations.importExport(sqlCommand, IMPORTXLSX, confirmOverwrite);
 
         if (b) {
           treeMustBeRefreshed = true;
@@ -842,8 +676,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (startsWithCommand(sync, EXPORTXLS)) {
-        boolean b = importExport(sqlCommand, EXPORTXLS, confirmOverwrite);
+      if (SQLConsoleScript.startsWithCommand(sync, EXPORTXLSX)) {
+        boolean b = operations.importExport(sqlCommand, EXPORTXLSX, confirmOverwrite);
 
         if (b) {
           continue;
@@ -853,8 +687,31 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (startsWithCommand(sync, EXTRACTSHP)) {
-        boolean b = extractShp(sqlCommand, confirmOverwrite);
+      if (SQLConsoleScript.startsWithCommand(sync, IMPORTXLS)) {
+        boolean b = operations.importExport(sqlCommand, IMPORTXLS, confirmOverwrite);
+
+        if (b) {
+          treeMustBeRefreshed = true;
+          continue;
+        } else {
+          setBusy(false);
+          return false;
+        }
+      }
+
+      if (SQLConsoleScript.startsWithCommand(sync, EXPORTXLS)) {
+        boolean b = operations.importExport(sqlCommand, EXPORTXLS, confirmOverwrite);
+
+        if (b) {
+          continue;
+        } else {
+          setBusy(false);
+          return false;
+        }
+      }
+
+      if (SQLConsoleScript.startsWithCommand(sync, EXTRACTSHP)) {
+        boolean b = operations.extractShp(sqlCommand, confirmOverwrite);
 
         if (b) {
           continue;
@@ -865,8 +722,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       }
 
       // Intercept delete/insert commands for nodus layers
-      if (startsWithCommand(sync, "DELETE")) {
-        boolean b = isDeleteAllowed(sqlCommand);
+      if (SQLConsoleScript.startsWithCommand(sync, "DELETE")) {
+        boolean b = operations.isDeleteAllowed(sqlCommand);
 
         if (!b) {
           setBusy(false);
@@ -874,8 +731,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
       }
 
-      if (startsWithCommand(sync, "INSERT")) {
-        boolean b = isInsertAllowed(sqlCommand);
+      if (SQLConsoleScript.startsWithCommand(sync, "INSERT")) {
+        boolean b = operations.isInsertAllowed(sqlCommand);
 
         if (!b) {
           setBusy(false);
@@ -987,175 +844,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   }
 
   /**
-   * Routine that extracts a shapefile according to a where statement. The syntax must be as such:
-   * "extractshp from shapefile1 to shapefile2 where 'some sql condition'".
-   *
-   * @param stmt The command string to process
-   * @param confirmOverwrite Whether to ask before replacing existing output files
-   * @return true on success.
-   */
-  private boolean extractShp(String stmt, boolean confirmOverwrite) {
-    String stmtLower = stmt.toLowerCase();
-
-    // Get source shapefile name
-    int index;
-    String token = " from ";
-
-    if ((index = stmtLower.indexOf(token)) == -1) {
-      displayMessageInResult(
-          i18n.get(SQLConsole.class, "Usage", "Usage:"),
-          i18n.get(
-              SQLConsole.class,
-              "EXTRACTSHP_FROM",
-              "EXTRACTSHP FROM shapefile1 TO shapefile2 WHERE some sql condition"));
-
-      return false;
-    }
-
-    String fromClause = stmt.substring(index + token.length()).trim();
-    String fromClauseLower = fromClause.toLowerCase();
-    int toIndexInFromClause = fromClauseLower.indexOf(" to ");
-    if (toIndexInFromClause == -1) {
-      displayMessageInResult(
-          i18n.get(SQLConsole.class, "Usage", "Usage:"),
-          i18n.get(
-              SQLConsole.class,
-              "EXTRACTSHP_FROM",
-              "EXTRACTSHP FROM shapefile1 TO shapefile2 WHERE some sql condition"));
-
-      return false;
-    }
-
-    // Get the destination file name
-    token = " to ";
-
-    if ((index = stmtLower.indexOf(token)) == -1) {
-      displayMessageInResult(
-          i18n.get(SQLConsole.class, "Usage", "Usage:"),
-          i18n.get(
-              SQLConsole.class,
-              "EXTRACTSHP_FROM",
-              "EXTRACTSHP FROM shapefile1 TO shapefile2 WHERE some sql condition"));
-
-      return false;
-    }
-
-    String toClause = stmt.substring(index + token.length()).trim();
-
-    if ((index = toClause.indexOf(" ")) == -1) {
-      displayMessageInResult(
-          i18n.get(SQLConsole.class, "Usage", "Usage:"),
-          i18n.get(
-              SQLConsole.class,
-              "EXTRACTSHP_FROM",
-              "EXTRACTSHP FROM shapefile1 TO shapefile2 WHERE some sql condition"));
-
-      return false;
-    }
-
-    String toShapefile = toClause.substring(0, index);
-
-    // get where statement
-    token = " where ";
-
-    if ((index = stmtLower.indexOf(token)) == -1) {
-      displayMessageInResult(
-          i18n.get(SQLConsole.class, "Usage", "Usage:"),
-          i18n.get(
-              SQLConsole.class,
-              "EXTRACTSHP_FROM",
-              "EXTRACTSHP FROM shapefile1 TO shapefile2 WHERE some sql condition"));
-
-      return false;
-    }
-
-    String whereStmt = stmt.substring(index + token.length()).trim();
-
-    // Test if it is a valid link layer
-    NodusEsriLayer[] layers = nodusProject.getLinkLayers();
-    String fromShapefile = fromClause.substring(0, toIndexInFromClause).trim();
-
-    // Check before either layer type can write over its own source files.
-    if (fromShapefile.equals(toShapefile)) {
-      displayMessageInResult(
-          i18n.get(SQLConsole.class, "Error", "Error"),
-          i18n.get(
-              SQLConsole.class,
-              "Cannot_extract_a_file_to_itself",
-              "Cannot extract a file to itself."));
-      return false;
-    }
-
-    for (NodusEsriLayer element : layers) {
-      if (element.getTableName().equals(fromShapefile)) {
-        if (confirmOverwrite
-            && !confirmExportOverwrite(EXTRACTSHP, toShapefile, getExtractionFiles(toShapefile))) {
-          return false;
-        }
-        boolean ok = element.extract(toShapefile, whereStmt);
-
-        if (ok) {
-          displayMessageInResult(
-              "ExtractShp",
-              MessageFormat.format(
-                  i18n.get(SQLConsole.class, "successfuly_extracted", "{0} successfuly extracted."),
-                  toShapefile));
-
-          addToRecent(stmt);
-        } else {
-          displayMessageInResult(
-              "ExtractShp",
-              MessageFormat.format(
-                  i18n.get(SQLConsole.class, "Error_on_extracting", "Error on extracting {0}"),
-                  toShapefile));
-        }
-
-        return ok;
-      }
-    }
-
-    // Test if it is a valid node layer
-    layers = nodusProject.getNodeLayers();
-
-    for (NodusEsriLayer element : layers) {
-      if (element.getTableName().equals(fromShapefile)) {
-        if (confirmOverwrite
-            && !confirmExportOverwrite(EXTRACTSHP, toShapefile, getExtractionFiles(toShapefile))) {
-          return false;
-        }
-        boolean ok = element.extract(toShapefile, whereStmt);
-
-        if (ok) {
-          displayMessageInResult(
-              "ExtractShp",
-              MessageFormat.format(
-                  i18n.get(SQLConsole.class, "successfuly_extracted", "{0} successfuly extracted."),
-                  toShapefile));
-          addToRecent(stmt);
-
-          return true;
-        } else {
-          displayMessageInResult(
-              "ExtractShp",
-              i18n.get(
-                  SQLConsole.class, "Error_on_extracting", "Error on extracting {0}", toShapefile));
-
-          return false;
-        }
-      }
-    }
-
-    // No valid layer was found
-    displayMessageInResult(
-        i18n.get(SQLConsole.class, "Error", "Error"),
-        MessageFormat.format(
-            i18n.get(SQLConsole.class, "is_not_a_valid_shapefile", "{0} is not a valid shapefile."),
-            fromShapefile));
-
-    return false;
-  }
-
-  /**
    * Formats a ResultSet to display.
    *
    * @param stmt Statement
@@ -1163,51 +851,13 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    */
   private void formatResultSet(Statement stmt, int maxRows) {
     try {
-
-      ResultSet r = stmt.getResultSet();
-
-      if (r == null) {
+      SQLConsoleResults.FormattedResult result = SQLConsoleResults.read(stmt, maxRows);
+      if (result == null) {
         showSingleValueResult(
             i18n.get(SQLConsole.class, "Result", "Result"),
             i18n.get(SQLConsole.class, "empty", "(empty)"));
-        return;
-      }
-
-      try (ResultSet result = r) {
-        ResultSetMetaData m = result.getMetaData();
-
-        int col = m.getColumnCount();
-        String[] header = new String[col];
-        List<String[]> rows = new ArrayList<>();
-
-        for (int i = 1; i <= col; i++) {
-          header[i - 1] = m.getColumnLabel(i);
-        }
-
-        int counter = 0;
-        boolean maxRowsReached = false;
-        while (result.next()) {
-          String[] row = new String[col];
-
-          // The result set may be larger that the max rows set. In such a case, change
-          // the color of the text in the query button in order to warn the user.
-          counter++;
-          if (counter == maxRows) {
-            maxRowsReached = true;
-          }
-
-          for (int i = 1; i <= col; i++) {
-            row[i - 1] = result.getString(i);
-
-            if (result.wasNull()) {
-              row[i - 1] = "(null)";
-            }
-          }
-
-          rows.add(row);
-        }
-
-        applyFormattedResultSet(header, rows, maxRowsReached);
+      } else {
+        applyFormattedResultSet(result.header, result.rows, result.maxRowsReached);
       }
     } catch (SQLException e) {
       e.printStackTrace();
@@ -1232,344 +882,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     return sqlCommandsArea;
   }
 
-  /** Keeps batch information even when variable definitions leave only one executable command. */
-  private static final class ParsedSQLCommands {
-    private final Vector<String> commands;
-    private final boolean multipleCommands;
-
-    private ParsedSQLCommands(Vector<String> commands, boolean multipleCommands) {
-      this.commands = commands;
-      this.multipleCommands = multipleCommands;
-    }
-  }
-
-  /**
-   * Decompose the batch file into commands. A regular batch command must end with a ";" but can be
-   * written on multiple lines. A comment starts with a "--" or "#". A command block is delimited as
-   * in C or Java. Variable definitions start with @@
-   */
-  private ParsedSQLCommands parseSQLCommands(String sqlCommand) {
-
-    // Comparator used to sort strings in reverse order
-    class LengthComparator implements Comparator<String> {
-      public int compare(String o1, String o2) {
-        return -o1.compareTo(o2);
-      }
-    }
-
-    boolean isBatchFile = false;
-
-    // Remove block comments
-    boolean hasBlockComment = true;
-    while (hasBlockComment) {
-      hasBlockComment = false;
-      int beginIdx = sqlCommand.indexOf("/*");
-      int endIdx = sqlCommand.indexOf("*/");
-      if (beginIdx != -1 && endIdx != -1 && beginIdx < endIdx) {
-        String p1 = sqlCommand.substring(0, beginIdx);
-        String p2 = sqlCommand.substring(endIdx + 2, sqlCommand.length());
-        sqlCommand = p1 + " " + p2;
-        hasBlockComment = true;
-      }
-    }
-
-    // Split per line
-    String[] line = sqlCommand.split("\\R");
-
-    // Concatenate multi-line commands
-    Vector<String> commandsToParse = new Vector<>();
-    String currentCommand = "";
-    for (int i = 0; i < line.length; i++) {
-      line[i] = line[i].trim();
-
-      // Ignore comments
-      if (line[i].startsWith("#") || line[i].startsWith("--")) {
-        continue;
-      }
-
-      currentCommand += line[i];
-      if (line[i].endsWith(";")) {
-        // Remove trailing semi-column and store command
-        commandsToParse.add(currentCommand.substring(0, currentCommand.length() - 1).trim());
-        currentCommand = "";
-        isBatchFile = true;
-      } else {
-        currentCommand += " ";
-      }
-    }
-
-    // Parse the commands
-    Vector<String> parsedCommands = new Vector<>();
-
-    // Single command
-    if (!isBatchFile) {
-      parsedCommands.add(currentCommand);
-      return new ParsedSQLCommands(parsedCommands, false);
-    }
-
-    // The names of the variables are stored and sorted by length from longest to shortest.
-    // This is needed for this simple parser
-    Map<String, String> variables = new TreeMap<String, String>(new LengthComparator());
-
-    for (int i = 0; i < commandsToParse.size(); i++) {
-
-      currentCommand = commandsToParse.get(i).trim();
-
-      // Handle variable definitions
-      if (currentCommand.startsWith("@@")) {
-        int idx = currentCommand.indexOf(":=");
-        if (idx != -1) {
-          String varName = currentCommand.substring(0, idx).trim();
-          String varValue = currentCommand.substring(idx + 2, currentCommand.length());
-          if (varValue.endsWith(";")) {
-            varValue = varValue.substring(0, varValue.length() - 1).trim();
-          }
-
-          variables.put(varName, varValue);
-          continue;
-        }
-      }
-
-      // Replace all the user defined variables by their value
-      //      Iterator<String> it = variables.keySet().iterator();
-      //
-      //      while (it.hasNext()) {
-      //        String varName = it.next();
-      //        String varValue = variables.get(varName) + " ";
-      //        currentCommand = currentCommand.replace(varName, varValue);
-      //      }
-      //
-
-      // Replace all the user defined variables by their value.
-      // Longer variable names must be replaced first to avoid partial replacements.
-      List<String> varNames = new ArrayList<>(variables.keySet());
-
-      varNames.sort(
-          (varName1, varName2) -> {
-            int lengthComparison = Integer.compare(varName2.length(), varName1.length());
-
-            if (lengthComparison != 0) {
-              return lengthComparison;
-            }
-
-            return varName1.compareTo(varName2);
-          });
-
-      for (String varName : varNames) {
-        String varValue = variables.get(varName) + " ";
-        currentCommand = currentCommand.replace(varName, varValue);
-      }
-
-      // Store the parsed command command
-      parsedCommands.add(currentCommand);
-    }
-
-    // Handle EOF
-    /*if (!currentCommand.equals("")) {
-      parsedCommands.add(currentCommand);
-    }*/
-
-    if (isBatchFile) {
-      menuResultInText_actionPerformed(null);
-    }
-
-    return new ParsedSQLCommands(parsedCommands, commandsToParse.size() > 1);
-  }
-
-  /**
-   * Handles the Nodus specific import/export commands.
-   *
-   * @param sqlStmt String The command to process
-   * @param operation String The operation to process (IMPORTDBF, EXPORTDBF, IMPORTCSV,
-   *     EXPORTCSV,...)
-   * @param confirmOverwrite Whether to ask before replacing an existing table or output file
-   * @return true on success.
-   */
-  private boolean importExport(String sqlStmt, String operation, boolean confirmOverwrite) {
-    String s = sqlStmt.toUpperCase();
-    int index = s.indexOf(operation);
-
-    if (index != -1) {
-      s = sqlStmt.substring(index + operation.length(), sqlStmt.length());
-    }
-
-    String tableName = s.trim();
-
-    if (tableName.length() == 0) {
-      displayMessageInResult(
-          i18n.get(SQLConsole.class, "Usage", "Usage:"),
-          MessageFormat.format(
-              i18n.get(SQLConsole.class, "TableName", "{0} TableName"), operation));
-
-      return false;
-    }
-
-    File exportFile = getExportFile(operation, tableName);
-    if (confirmOverwrite
-        && exportFile != null
-        && !confirmExportOverwrite(operation, tableName, exportFile)) {
-      return false;
-    }
-    if (confirmOverwrite
-        && operation.startsWith("IMPORT")
-        && !confirmImportOverwrite(operation, tableName)) {
-      return false;
-    }
-
-    boolean succeeded = false;
-
-    if (operation.equals(EXPORTDBF)) {
-      succeeded = ExportDBF.exportTable(nodusProject, tableName);
-    } else if (operation.equals(IMPORTDBF)) {
-      succeeded = ImportDBF.importTable(nodusProject, tableName);
-    } else if (operation.equals(EXPORTCSV)) {
-      succeeded = ExportCSV.exportTable(nodusProject, tableName, false);
-    } else if (operation.equals(EXPORTCSVH)) {
-      succeeded = ExportCSV.exportTable(nodusProject, tableName, true);
-    } else if (operation.equals(IMPORTCSV)) {
-      succeeded = ImportCSV.importTable(nodusProject, tableName, false);
-    } else if (operation.equals(IMPORTCSVH)) {
-      succeeded = ImportCSV.importTable(nodusProject, tableName, true);
-    } else if (operation.equals(IMPORTXLS)) {
-      succeeded = ImportXLS.importTable(nodusProject, tableName, false);
-    } else if (operation.equals(EXPORTXLS)) {
-      succeeded = ExportXLS.exportTable(nodusProject, tableName, false);
-    } else if (operation.equals(IMPORTXLSX)) {
-      succeeded = ImportXLS.importTable(nodusProject, tableName, true);
-    } else if (operation.equals(EXPORTXLSX)) {
-      succeeded = ExportXLS.exportTable(nodusProject, tableName, true);
-    }
-
-    String g = "";
-    if (succeeded) {
-      g =
-          MessageFormat.format(
-              i18n.get(SQLConsole.class, "_succeeded", "{0} of \"{1}\" succeeded."),
-              operation,
-              tableName);
-
-    } else {
-      g =
-          MessageFormat.format(
-              i18n.get(SQLConsole.class, "_failed", "{0} of \"{1}\"{ failed."),
-              operation,
-              tableName);
-    }
-
-    displayMessageInResult(operation, g);
-
-    if (succeeded) {
-      addToRecent(sqlStmt);
-    }
-
-    return succeeded;
-  }
-
-  /** Resolves the same output path as the table exporters; imports have no output file. */
-  private File getExportFile(String operation, String tableName) {
-    String extension;
-    switch (operation) {
-      case EXPORTDBF:
-        extension = NodusC.TYPE_DBF;
-        break;
-      case EXPORTCSV:
-      case EXPORTCSVH:
-        extension = NodusC.TYPE_CSV;
-        break;
-      case EXPORTXLS:
-        extension = NodusC.TYPE_XLS;
-        break;
-      case EXPORTXLSX:
-        extension = NodusC.TYPE_XLSX;
-        break;
-      default:
-        return null;
-    }
-    return new File(
-        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + extension);
-  }
-
-  /** Lists the SHP/SHX and separately written DBF paths used by layer extraction. */
-  private File[] getExtractionFiles(String name) {
-    String path = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + name;
-    String shapePath = path;
-    // OpenMap strips an optional shapefile extension; the separate DBF writer appends its own.
-    if (path.endsWith(NodusC.TYPE_SHP)
-        || path.endsWith(NodusC.TYPE_SHX)
-        || path.endsWith(NodusC.TYPE_DBF)) {
-      shapePath = path.substring(0, path.length() - 4);
-    }
-    return new File[] {
-      new File(shapePath + NodusC.TYPE_SHP),
-      new File(shapePath + NodusC.TYPE_SHX),
-      new File(path + NodusC.TYPE_DBF)
-    };
-  }
-
-  /** Asks before an importer can delete rows or replace the destination table's structure. */
-  private boolean confirmImportOverwrite(String operation, String name) {
-    if (!JDBCUtils.tableExists(name)) {
-      return true;
-    }
-    String message =
-        MessageFormat.format(
-            i18n.get(
-                SQLConsole.class,
-                "Replace_existing_table",
-                "Replace existing table \"{0}\"?\n\nIts current contents will be lost."),
-            name);
-    if (confirmOverwrite(message)) {
-      return true;
-    }
-    return reportOverwriteCancelled(operation, name, "Import_cancelled");
-  }
-
-  /** Reports a declined export separately from a failed export, stopping the command batch. */
-  private boolean confirmExportOverwrite(String operation, String name, File... files) {
-    if (confirmFileOverwrite(files)) {
-      return true;
-    }
-    return reportOverwriteCancelled(operation, name, "Export_cancelled");
-  }
-
-  /** Reports cancellation without adding the declined command to successful query history. */
-  private boolean reportOverwriteCancelled(String operation, String name, String messageKey) {
-    String message =
-        MessageFormat.format(
-            i18n.get(SQLConsole.class, messageKey, "{0} of \"{1}\" cancelled."),
-            operation,
-            name);
-    if (!withGUI && typeOfResultFormat != 1) {
-      System.out.println(message);
-    }
-    displayMessageInResult(operation, message);
-    return false;
-  }
-
-  /** Asks once for all existing targets before any file is opened or layer data is updated. */
-  private boolean confirmFileOverwrite(File... files) {
-    boolean fullPath = nodusMapPanel != null && nodusMapPanel.getDisplayFullPath();
-    StringBuilder existing = new StringBuilder();
-    for (File file : files) {
-      if (file.exists()) {
-        if (existing.length() > 0) {
-          existing.append(NL);
-        }
-        existing.append(fullPath ? file.getAbsolutePath() : file.getName());
-      }
-    }
-    if (existing.length() == 0) {
-      return true;
-    }
-    String message =
-        MessageFormat.format(
-            i18n.get(SQLConsole.class, "Replace_existing_files", "Replace existing file?\n\n{0}"),
-            existing.toString());
-    return confirmOverwrite(message);
-  }
-
   /** Runs file and table overwrite confirmations on the EDT before any destructive work. */
-  private boolean confirmOverwrite(String message) {
+  boolean confirmOverwrite(String message) {
     FutureTask<Integer> prompt = new FutureTask<>(() -> showOverwriteDialog(message));
     try {
       // Commands run on a worker; a console without its own window can also run desktop batches.
@@ -1818,7 +1132,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     frame.setJMenuBar(bar);
     initGUI();
 
-    recentQueries = new String[maxHistory];
+    history = new SQLConsoleHistory(nodusProject, menuRecent, this);
 
     Dimension d = Toolkit.getDefaultToolkit().getScreenSize();
 
@@ -1833,147 +1147,13 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       frame.setSize(d);
     }
 
-    loadHistory();
+    history.loadHistory();
     GUIUtils.installToolTips(this, frame);
 
     if (withGUI) {
       frame.setVisible(true);
     }
     sqlCommandsArea.requestFocus();
-  }
-
-  /**
-   * Returns true if delete SQL operations are allowed. They are not allowed for the tables that
-   * correspond to the DBF files of shapefiles.
-   */
-  private boolean isDeleteAllowed(String sqlStmt) {
-    String tableName = getProtectedTableName(sqlStmt, " from ", false);
-
-    if (tableName == null) {
-      // probably an error in the SQL statement. To be handled by the jdbc driver
-      return true;
-    }
-
-    // Is it a Nodus layer?
-    if (nodusProject.getLayer(tableName) == null) {
-      return true;
-    }
-
-    displayMessageInResult(
-        i18n.get(SQLConsole.class, "Error", "Error"),
-        i18n.get(
-            SQLConsole.class,
-            "Delete_not_allowed_on_Nodus_layers",
-            "SQL DELETE operations not allowed on Nodus layers"));
-    return false;
-  }
-
-  /**
-   * Returns true if insert SQL operations are allowed. They are not allowed for the tables that
-   * correspond to the DBF files of shapefiles.
-   */
-  private boolean isInsertAllowed(String sqlStmt) {
-    String tableName = getProtectedTableName(sqlStmt, " into ", true);
-
-    if (tableName == null) {
-      // probably an error in the SQL statement. To be handled by the jdbc driver
-      return true;
-    }
-
-    // Is it a Nodus layer?
-    if (nodusProject.getLayer(tableName) == null) {
-      return true;
-    }
-
-    displayMessageInResult(
-        i18n.get(SQLConsole.class, "Error", "Error"),
-        i18n.get(
-            SQLConsole.class,
-            "Insert_not_allowed_on_Nodus_layers",
-            "SQL INSERT operations not allowed on Nodus layers"));
-    return false;
-  }
-
-  /**
-   * Extracts and normalizes the table name targeted by a protected SQL command.
-   *
-   * @param sqlStmt Full SQL statement.
-   * @param token Clause token used to locate the table name.
-   * @param stopAtParenthesis Whether an opening parenthesis may terminate the identifier.
-   * @return The normalized table name, or {@code null} if the token was not found.
-   */
-  private String getProtectedTableName(String sqlStmt, String token, boolean stopAtParenthesis) {
-    String lowerSqlStmt = sqlStmt.toLowerCase();
-    int index = lowerSqlStmt.indexOf(token);
-    if (index == -1) {
-      return null;
-    }
-
-    String remainder = sqlStmt.substring(index + token.length()).trim();
-    String identifier = extractSqlIdentifier(remainder, stopAtParenthesis);
-    if (identifier == null || identifier.isBlank()) {
-      return "";
-    }
-
-    String tableName = getLastQualifiedIdentifierPart(identifier);
-    tableName = unquoteSqlIdentifier(tableName);
-    return JDBCUtils.getCompliantIdentifier(tableName);
-  }
-
-  /** Reads a SQL identifier, preserving quoted segments and optional schema qualification. */
-  private String extractSqlIdentifier(String text, boolean stopAtParenthesis) {
-    StringBuilder identifier = new StringBuilder();
-    boolean inQuotes = false;
-
-    for (int i = 0; i < text.length(); i++) {
-      char c = text.charAt(i);
-      if (c == '"') {
-        inQuotes = !inQuotes;
-        identifier.append(c);
-        continue;
-      }
-
-      if (!inQuotes
-          && (Character.isWhitespace(c) || c == ',' || (stopAtParenthesis && c == '('))) {
-        break;
-      }
-
-      identifier.append(c);
-    }
-
-    return identifier.toString().trim();
-  }
-
-  /** Returns the rightmost part of a possibly schema-qualified SQL identifier. */
-  private String getLastQualifiedIdentifierPart(String identifier) {
-    boolean inQuotes = false;
-    int splitIndex = -1;
-
-    for (int i = 0; i < identifier.length(); i++) {
-      char c = identifier.charAt(i);
-      if (c == '"') {
-        inQuotes = !inQuotes;
-      } else if (c == '.' && !inQuotes) {
-        splitIndex = i;
-      }
-    }
-
-    if (splitIndex == -1) {
-      return identifier;
-    }
-
-    return identifier.substring(splitIndex + 1).trim();
-  }
-
-  /** Removes surrounding double quotes from a SQL identifier. */
-  private String unquoteSqlIdentifier(String identifier) {
-    String trimmed = identifier.trim();
-    if (trimmed.length() >= 2
-        && trimmed.charAt(0) == '"'
-        && trimmed.charAt(trimmed.length() - 1) == '"') {
-      return trimmed.substring(1, trimmed.length() - 1);
-    }
-    return trimmed;
   }
 
   /**
@@ -2016,47 +1196,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     // Must be overridden
   }
 
-  /** Loads history (recent SQL statements) from property file. */
-  private void loadHistory() {
-    for (int i = 0; i < maxHistory; i++) {
-      String key = "sql.history" + i;
-      String value = nodusProject.getLocalProperty(key, null);
-
-      if (value != null) {
-        addToRecent(value);
-      }
-    }
-  }
-
-  //  /**
-  //   * Simple tree node factory method - set parent and user object.
-  //   *
-  //   * @param userObject Object
-  //   * @param parent MutableTreeNode
-  //   * @return DefaultMutableTreeNode
-  //   */
-  //  private DefaultMutableTreeNode makeNode(Object userObject, MutableTreeNode parent) {
-  //    DefaultMutableTreeNode node = new DefaultMutableTreeNode(userObject);
-  //
-  //    if (parent != null) {
-  //      treeModel.insertNodeInto(node, parent, parent.getChildCount());
-  //    }
-  //
-  //    return node;
-  //  }
-
-  /** Builds a detached tree node hierarchy that can safely be prepared off the EDT. */
-  private DefaultMutableTreeNode makeDetachedNode(
-      Object userObject, DefaultMutableTreeNode parent) {
-    DefaultMutableTreeNode node = new DefaultMutableTreeNode(userObject);
-
-    if (parent != null) {
-      parent.add(node);
-    }
-
-    return node;
-  }
-
   /** Replaces the visible tree contents with a freshly rebuilt detached root. */
   private void applyTreeRoot(DefaultMutableTreeNode rebuiltRoot) {
     rootNode.removeAllChildren();
@@ -2068,17 +1207,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     treeModel.nodeStructureChanged(rootNode);
   }
-
-  // /** Restores the tree cursor on the EDT after a background refresh completes or aborts. */
-  //  private void restoreTreeCursor(Cursor cursor) {
-  //    Runnable restoreCursor = () -> treeScrollPane.setCursor(cursor);
-  //
-  //    if (SwingUtilities.isEventDispatchThread()) {
-  //      restoreCursor.run();
-  //    } else {
-  //      SwingUtilities.invokeLater(restoreCursor);
-  //    }
-  //  }
 
   /**
    * Exit the console.
@@ -2122,7 +1250,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       String name = nodusMapPanel.getDisplayFullPath() ? scriptFileName : file.getName();
       frame.setTitle(i18n.get(SQLConsole.class, "SQL_Console", "SQL Console") + " [" + name + "]");
     }
-    sqlCommandsArea.setText(readFile(scriptFileName));
+    sqlCommandsArea.setText(SQLConsoleScript.readFile(scriptFileName));
     sqlCommandsArea.setCaretPosition(0);
   }
 
@@ -2245,7 +1373,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         if (file.getName().lastIndexOf(".") == -1) {
           fileName += NodusC.TYPE_TXT;
         }
-        if (!confirmFileOverwrite(new File(fileName))) {
+        if (!operations.confirmFileOverwrite(new File(fileName))) {
           return;
         }
 
@@ -2258,7 +1386,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
           menuResultInText_actionPerformed(null);
         }
 
-        writeFile(fileName, txtResultArea.getText());
+        SQLConsoleScript.writeFile(fileName, txtResultArea.getText());
 
         if (isGrid) {
           menuResultInGrid_actionPerformed(null);
@@ -2278,7 +1406,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
       saveScriptAs();
 
     } else {
-      writeFile(scriptFileName, sqlCommandsArea.getText());
+      SQLConsoleScript.writeFile(scriptFileName, sqlCommandsArea.getText());
     }
   }
 
@@ -2299,142 +1427,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         new SwingWorker<DefaultMutableTreeNode, Void>() {
           @Override
           protected DefaultMutableTreeNode doInBackground() {
-            DefaultMutableTreeNode rebuiltRoot = new DefaultMutableTreeNode("");
-
-            // Now rebuild the tree below its root
-            try {
-              // Start by naming the root node from its URL:
-              rebuiltRoot.setUserObject(metaData.getURL());
-
-              // In Oracle, limit to the schema of the user
-              String schema = null;
-              /*if (JDBCUtils.getDbEngine() == JDBCUtils.DB_ORACLE) {
-                schema =
-                    JDBCUtils.getCompliantIdentifier(
-                        nodusProject.getLocalProperty(NodusC.PROP_JDBC_USERNAME, "null"));
-              }*/
-
-              // For H2 (version 2), specify that only the "PUBLIC" schema must be displayed
-              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_H2) {
-                schema = "PUBLIC";
-              }
-
-              String catalog = null;
-              if (JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL) {
-                catalog = "";
-              }
-
-              Vector<String> tables = new Vector<>();
-              Vector<String> remarks = new Vector<>();
-
-              try (ResultSet result = JDBCUtils.getTables()) {
-                String s;
-                while (result.next()) {
-                  s = result.getString(3);
-                  if (s.indexOf("$") == -1) {
-                    tables.addElement(s);
-                    remarks.addElement(result.getString(5));
-                  }
-                }
-              }
-
-              for (int i = 0; i < tables.size(); i++) {
-                String name = tables.elementAt(i);
-                DefaultMutableTreeNode tableNode = makeDetachedNode(name, rebuiltRoot);
-                String remark = remarks.elementAt(i);
-
-                if (remark != null && !remark.trim().equals("")) {
-                  makeDetachedNode(remark, tableNode);
-                }
-
-                try (ResultSet col = metaData.getColumns(catalog, schema, name, null)) {
-                  while (col.next()) {
-                    String c = col.getString(4);
-                    DefaultMutableTreeNode columnNode = makeDetachedNode(c, tableNode);
-                    String type = col.getString(6);
-
-                    makeDetachedNode(
-                        MessageFormat.format(i18n.get(SQLConsole.class, "Type", "Type: {0}"), type),
-                        columnNode);
-
-                    boolean nullable = col.getInt(11) != DatabaseMetaData.columnNoNulls;
-
-                    makeDetachedNode(
-                        MessageFormat.format(
-                            i18n.get(SQLConsole.class, "Nullable", "Nullable: {0}"), nullable),
-                        columnNode);
-                  }
-                }
-
-                DefaultMutableTreeNode indexesNode =
-                    makeDetachedNode(i18n.get(SQLConsole.class, "Indices", "Indices"), tableNode);
-
-                try (ResultSet ind = metaData.getIndexInfo(catalog, schema, name, false, false)) {
-                  String oldiname = null;
-
-                  while (ind.next()) {
-                    DefaultMutableTreeNode indexNode = null;
-                    boolean nonunique = ind.getBoolean(4);
-                    String iname = ind.getString(6);
-
-                    if (oldiname == null || !oldiname.equals(iname)) {
-                      indexNode = makeDetachedNode(iname, indexesNode);
-                      makeDetachedNode(
-                          MessageFormat.format(
-                              i18n.get(SQLConsole.class, "Unique", "Unique: {0}"), !nonunique),
-                          indexNode);
-                      oldiname = iname;
-                    }
-
-                    makeDetachedNode(ind.getString(9), indexNode);
-                  }
-                }
-              }
-
-              DefaultMutableTreeNode propertiesNode =
-                  makeDetachedNode(
-                      i18n.get(SQLConsole.class, "Properties", "Properties"), rebuiltRoot);
-
-              makeDetachedNode(
-                  MessageFormat.format(
-                      i18n.get(SQLConsole.class, "User", "User: {0}"), metaData.getUserName()),
-                  propertiesNode);
-              makeDetachedNode(
-                  MessageFormat.format(
-                      i18n.get(SQLConsole.class, "ReadOnly", "ReadOnly: {0}"),
-                      jdbcConnection.isReadOnly()),
-                  propertiesNode);
-              makeDetachedNode(
-                  MessageFormat.format(
-                      i18n.get(SQLConsole.class, "AutoCommit", "AutoCommit: {0}"),
-                      jdbcConnection.getAutoCommit()),
-                  propertiesNode);
-              makeDetachedNode(
-                  MessageFormat.format(
-                      i18n.get(SQLConsole.class, "Driver", "Driver: {0}"),
-                      metaData.getDriverName()),
-                  propertiesNode);
-              makeDetachedNode(
-                  MessageFormat.format(
-                      i18n.get(SQLConsole.class, "Product", "Product: {0}"),
-                      metaData.getDatabaseProductName()),
-                  propertiesNode);
-              makeDetachedNode(
-                  MessageFormat.format(
-                      i18n.get(SQLConsole.class, "Version", "Version: {0}"),
-                      metaData.getDatabaseProductVersion()),
-                  propertiesNode);
-            } catch (SQLException se) {
-              DefaultMutableTreeNode propertiesNode =
-                  makeDetachedNode(
-                      i18n.get(SQLConsole.class, "Error_getting_metadata", "Error getting metadata")
-                          + ":",
-                      rebuiltRoot);
-              makeDetachedNode(se.getMessage(), propertiesNode);
-              makeDetachedNode(se.getSQLState(), propertiesNode);
-            }
-
-            return rebuiltRoot;
+            return SQLConsoleMetadata.build(jdbcConnection, metaData);
           }
 
           @Override
@@ -2488,21 +1481,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
   }
 
-  /** Saves history (recent SQL statements) in property file. */
-  private void saveHistory() {
-    if (!withGUI) {
-      return;
-    }
-    if (nodusProject.isOpen()) {
-      for (int i = 0; i < maxHistory; i++) {
-        if (recentQueries[i] != null) {
-          String key = "sql.history" + i;
-          nodusProject.setLocalProperty(key, recentQueries[i]);
-        }
-      }
-    }
-  }
-
   /** Save a SQL batch file. */
   private void saveScriptAs() {
 
@@ -2543,7 +1521,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         }
 
         if (answer == JOptionPane.YES_OPTION) {
-          writeFile(scriptFileName, sqlCommandsArea.getText());
+          SQLConsoleScript.writeFile(scriptFileName, sqlCommandsArea.getText());
 
           // Update title with or without full path
           String name = file.getName();
@@ -2582,96 +1560,13 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
   }
 
-  /** Displays the formatted text result. */
-  private String getResultAsString() {
-
-    StringBuffer b = new StringBuffer();
-
-    if (displayHeaders) {
-      String[] col = gridResultArea.getHead();
-      int width = col.length;
-      int[] size = new int[width];
-      for (int i = 0; i < width; i++) {
-        size[i] = col[i].length();
-      }
-
-      for (int i = 0; i < width; i++) {
-        b.append(col[i]);
-
-        for (int l = col[i].length(); l <= size[i]; l++) {
-          b.append(' ');
-        }
-      }
-
-      b.append(NL);
-
-      for (int i = 0; i < width; i++) {
-        for (int l = 0; l < size[i]; l++) {
-          b.append('-');
-        }
-
-        b.append(' ');
-      }
-
-      b.append(NL);
-
-      // Do not display empty headers
-      if (b.charAt(0) == ' ') {
-        b = new StringBuffer();
-      }
-    }
-
-    Vector<?> data = gridResultArea.getData();
-    if (data.isEmpty()) {
-      return "";
-    }
-    String[] col = (String[]) data.elementAt(0);
-    int width = col.length;
-    String[] row;
-    int height = data.size();
-    int[] size = new int[width];
-
-    for (int i = 0; i < width; i++) {
-      size[i] = col[i].length();
-    }
-
-    for (int i = 0; i < height; i++) {
-      row = (String[]) data.elementAt(i);
-      width = row.length;
-
-      for (int j = 0; j < width; j++) {
-        int l = row[j].length();
-
-        if (l > size[j]) {
-          size[j] = l;
-        }
-      }
-    }
-
-    for (int i = 0; i < height; i++) {
-      row = (String[]) data.elementAt(i);
-
-      for (int j = 0; j < width; j++) {
-        b.append(row[j]);
-
-        for (int l = row[j].length(); l <= size[j]; l++) {
-          b.append(' ');
-        }
-      }
-
-      b.append(NL);
-    }
-
-    return b.toString().trim();
-  }
-
   /** Updates the result text area. */
   private void updateTextResult() {
     if (withGUI) {
       runOnEdtAndWait(
           () -> {
             if (typeOfResultFormat == 1) {
-              String result = getResultAsString();
+              String result = SQLConsoleResults.asText(gridResultArea, displayHeaders);
               if (result.length() > 0) {
                 addToTxtResultArea(result + NL, false);
               }
@@ -2681,7 +1576,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
 
     if (typeOfResultFormat == 1) {
-      String result = getResultAsString();
+      String result = SQLConsoleResults.asText(gridResultArea, displayHeaders);
       if (result.length() > 0) {
         System.out.println(result);
       }
@@ -2722,7 +1617,9 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   public void windowClosing(WindowEvent ev) {
     closeStatement();
 
-    saveHistory();
+    if (withGUI) {
+      history.saveHistory();
+    }
     if (frame != null) {
       frame.dispose();
     }

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.uclouvain.core.nodus.database.gui.SQLConsole;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
@@ -35,14 +36,24 @@ class ExtensionApiCompatibilityTest {
     assertEquals(Files.readAllLines(FIXTURES.resolve("api.txt")), api());
   }
 
+  @Test
+  void sqlConsoleApiMatchesItsPreRefactoringBaseline() throws Exception {
+    assertEquals(
+        Files.readAllLines(Path.of("test", "fixtures", "sql-console-api", "api.txt")),
+        api(SQLConsole.class));
+  }
+
   private static boolean exposed(Member member) {
     return Modifier.isPublic(member.getModifiers()) || Modifier.isProtected(member.getModifiers());
   }
 
   private static List<String> api() {
+    return api(NodusMapPanel.class, NodusProject.class, NodusConsole.class);
+  }
+
+  private static List<String> api(Class<?>... types) {
     List<String> lines = new ArrayList<>();
-    for (Class<?> type :
-        new Class<?>[] {NodusMapPanel.class, NodusProject.class, NodusConsole.class}) {
+    for (Class<?> type : types) {
       lines.add(type.toGenericString());
       lines.add("extends " + type.getGenericSuperclass().getTypeName());
       Arrays.stream(type.getGenericInterfaces())
