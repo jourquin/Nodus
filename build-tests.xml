@@ -40,7 +40,8 @@
 				<fileset dir="${test.build.dir}/classes" includes="${test.includes}" />
 				<listener type="legacy-plain" sendSysOut="true" sendSysErr="true" />
 				<listener type="legacy-xml" sendSysOut="true" sendSysErr="true" />
-				<fork timeout="120000">
+				<!-- Resolve repository fixtures consistently when Ant is launched from Eclipse or elsewhere. -->
+				<fork dir="${basedir}" timeout="120000">
 					<sysproperty key="java.awt.headless" value="true" />
 				</fork>
 			</testclasses>
