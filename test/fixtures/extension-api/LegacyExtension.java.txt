@@ -1,0 +1,71 @@
+/*
+ * Copyright (c) 1991-2026 Université catholique de Louvain
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+package external.nodus.compat;
+
+import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.NodusPlugin;
+import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.tools.console.NodusConsole;
+import java.util.HashMap;
+import java.util.Properties;
+
+/** Compiled against the original API; tests load the resulting JAR without recompiling it. */
+public class LegacyExtension extends NodusPlugin {
+  @Override
+  public Properties getProperties() {
+    Properties properties = new Properties();
+    properties.setProperty(USER_DEFINED_MENUBAR_TEXT, "Compatibility");
+    properties.setProperty(MENU_ITEM__TEXT, "Legacy extension");
+    return properties;
+  }
+
+  @Override
+  public void execute() {
+    NodusMapPanel panel = getNodusMapPanel();
+    NodusProject project = panel.getNodusProject();
+    HashMap<String, Object> objects = panel.getStoredObjects();
+    objects.put("legacy.project", project);
+    panel.storeObject("legacy.styles", project.getStyleProperties());
+    panel.storeObject("legacy.consoleVisible", NodusConsole.isVisible());
+    project.getOtherNodeNumbers().put(42, 42);
+    panel.storeObject("legacy.nodeIds", project.getOtherNodeNumbers());
+    panel.startProgress(2);
+    panel.updateProgress("Legacy extension", 1);
+    panel.stopProgress();
+  }
+
+  @Override
+  public void dispose() {
+    getNodusMapPanel().storeObject("legacy.disposed", true);
+    Integer count = (Integer) getNodusMapPanel().retrieveObject("legacy.disposeCount");
+    getNodusMapPanel().storeObject("legacy.disposeCount", count == null ? 1 : count + 1);
+    super.dispose();
+  }
+
+  /** Uses the protected constructor and overrides used by existing subclasses. */
+  public static class Panel extends NodusMapPanel {
+    private static final long serialVersionUID = 1L;
+    private final NodusProject project = new NodusProject(this);
+
+    public Panel() {
+      super();
+    }
+
+    @Override
+    public NodusProject getNodusProject() {
+      return project;
+    }
+
+    @Override
+    public void setBusy(boolean value) {
+      storeObject("legacy.busy", value);
+    }
+
+    @Override
+    public void resetText() {
+      storeObject("legacy.resetText", true);
+    }
+  }
+}

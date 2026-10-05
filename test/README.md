@@ -153,6 +153,15 @@ for the workflow mechanism.
 
 ## Coverage
 
+- `ExtensionApiCompatibilityTest`: the frozen public/protected API of the three extension
+  entry classes, a plugin and subclass compiled before their refactoring, plugin menu dispatch
+  and project/global disposal, and Groovy bean properties, overloads and shared collections.
+  The original bytecode and API baseline are documented in
+  [fixtures/extension-api/README.md](fixtures/extension-api/README.md).
+- `ProjectScenariosTest`: renaming and deleting scenario tables and properties together,
+  retaining data and unrelated scenarios, and preserving overridden property/UI callbacks.
+- `ConsoleStreamsTest`: separate output/error routing, restoration of previous streams without
+  closing them, and respecting a later stream owner when the console closes.
 - `NodusEsriLayerDatabaseTest`: actual layer initialization from temporary shapefiles and H2
   synchronization by `NUM`, independent of SQL row order. Checks dates, decimals and repeated
   refreshes; rejects incompatible row counts, columns, widths and decimal scales. Unknown or

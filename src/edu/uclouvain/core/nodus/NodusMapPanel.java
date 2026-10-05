@@ -38,7 +38,6 @@ import com.bbn.openmap.event.NavMouseMode;
 import com.bbn.openmap.event.NavMouseMode2;
 import com.bbn.openmap.event.NodusProjMapBeanKeyListener;
 import com.bbn.openmap.event.PanMouseMode;
-import com.bbn.openmap.event.ProgressEvent;
 import com.bbn.openmap.event.SelectMouseMode;
 import com.bbn.openmap.gui.MapPanel;
 import com.bbn.openmap.gui.MouseModeButtonPanel;
@@ -47,12 +46,7 @@ import com.bbn.openmap.gui.NodusOMControlPanel;
 import com.bbn.openmap.gui.OpenMapFrame;
 import com.bbn.openmap.gui.OverviewMapHandler;
 import com.bbn.openmap.gui.ToolPanel;
-import com.bbn.openmap.gui.menu.NodusSaveAsImageMenuItem;
-import com.bbn.openmap.gui.menu.PNGImageFormatter;
-import com.bbn.openmap.gui.menu.ProjectionMenu;
-import com.bbn.openmap.image.AcmeGifFormatter;
 import com.bbn.openmap.image.MapBeanPrinter;
-import com.bbn.openmap.image.SunJPEGFormatter;
 import com.bbn.openmap.layer.LabelLayer;
 import com.bbn.openmap.layer.OMGraphicHandlerLayer;
 import com.bbn.openmap.layer.highlightedarea.HighlightedAreaLayer;
@@ -101,7 +95,6 @@ import edu.uclouvain.core.nodus.tools.notepad.NodusGroovyConsole;
 import edu.uclouvain.core.nodus.tools.notepad.NotePad;
 import edu.uclouvain.core.nodus.utils.GitHubRelease;
 import edu.uclouvain.core.nodus.utils.HardwareUtils;
-import edu.uclouvain.core.nodus.utils.PluginsLoader;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
 import java.awt.BorderLayout;
@@ -131,11 +124,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
@@ -143,15 +133,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
-import java.util.EventObject;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Properties;
 import java.util.Vector;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -161,7 +148,6 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JSeparator;
 import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
@@ -174,6 +160,14 @@ import javax.swing.border.BevelBorder;
  * @author Bart Jourquin
  */
 public class NodusMapPanel extends MapPanel implements ShapeConstants {
+
+  private final NativeGroovyConsole nativeConsole =
+      new NativeGroovyConsole(
+          this,
+          () -> {
+            registerMacApplicationHandlers();
+            setGlobalPreferencesMenu();
+          });
 
   /** This class is used to hold an image while on the clipboard. */
   private static class ImageSelection implements Transferable, ClipboardOwner {
@@ -215,17 +209,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Serial version UID. */
   static final long serialVersionUID = -2848516994072912179L;
 
-  /**
-   * Control variables for the progress bar, as the "setBusy" method can be called several times
-   * with "true".
-   */
-  private int busyDepth = 0;
-
   /** If true, wait before displaying the default political boundaries at startup. */
   private boolean deferDefaultPoliticalBoundaries;
-
-  /** Cancellation requested by the UI and checked by the thread performing the task. */
-  private volatile boolean canceled;
 
   /** OpenMap component. See OpenMap's documentation for more details. */
   private NodusOMControlPanel controlPanel = new NodusOMControlPanel(this);
@@ -239,23 +224,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Key listener that handles Nodus command shortcuts on this panel and on the map bean. */
   private KeyAdapter commandKeyListener = null;
 
-  /** Control variables for the progress bar. */
-  private int currentTask = 0;
-
   /** Default background color. */
   private Color defaultBackgroundColor;
-
-  /** Control variables for the displayed cursor. */
-  private Cursor defaultBeanCursor = null;
-
-  /** Vector of global plugins. */
-  private Vector<JMenuItem> globalPluginsMenuItems = new Vector<>();
-
-  /** Class loaders that must stay alive for application-wide plugins. */
-  private Vector<PluginsLoader> globalPluginLoaders = new Vector<>();
-
-  /** Class loaders that must stay alive for project-specific plugins. */
-  private Vector<PluginsLoader> projectPluginLoaders = new Vector<>();
 
   /** The browser used for the user guide. */
   HelpBrowser helpBrowser = null;
@@ -266,11 +236,10 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** OpenMap component. See OpenMap documentation for more details. */
   private InformationDelegator infoDelegator = new InformationDelegator();
 
+  private final MapProgress progress = new MapProgress(this, infoDelegator);
+
   /** The browser used for the Nodus API. */
   HelpBrowser javaDocBrowser = null;
-
-  /** JPEG image formatter : See OpenMap documentation for more details. */
-  private SunJPEGFormatter jpegFormatter = new SunJPEGFormatter();
 
   /** OpenMap component. See OpenMap documentation for more details. */
   private LayerHandler layerHandler = new LayerHandler();
@@ -281,114 +250,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** MapHandler to use. See OpenMap documentation for more details. */
   private MapHandler mapHandler;
 
-  /** "Control" menu. */
-  private JMenu menuControl = new JMenu();
-
-  /** "File" menu. */
-  private JMenu menuFile = new JMenu();
-
-  /** "Help" menu. */
-  private JMenu menuHelp = new JMenu();
-
-  /** "Control|Background color" menu item. */
-  private JMenuItem menuItemControlBackground = new JMenuItem();
-
-  /** "Control|Hide/Display Controlpanel" menu item. */
-  private JMenuItem menuItemControlControlpanel = new JMenuItem();
-
-  /** "Control|Hide/Display Toolpanel" menu item. */
-  private JMenuItem menuItemControlToolpanel = new JMenuItem();
-
-  /** "File|Close" menu item. */
-  private JMenuItem menuItemFileClose = new JMenuItem();
-
-  /** "File|Exit" menu item. */
-  private JMenuItem menuItemFileExit = new JMenuItem();
-
-  /** "File|Open" menu item. */
-  private JMenuItem menuItemFileOpen = new JMenuItem();
-
-  /** "File|Print" menu item. */
-  private JMenuItem menuItemFilePrint = new JMenuItem();
-
-  /** "File|Save" menu item. */
-  private JMenuItem menuItemFileSave = new JMenuItem();
-
-  /** "File|Save as" menu item. */
-  private JMenu menuItemFileSaveAs = new JMenu();
-
-  /** Save as GIF image : See OpenMap documentation for more details. */
-  private NodusSaveAsImageMenuItem menuItemFileSaveMapAsGIF;
-
-  /** Save as JPEG image : See OpenMap documentation for more details. */
-  private NodusSaveAsImageMenuItem menuItemFileSaveMapAsJPEG;
-
-  /** Save as JPEG image : See OpenMap documentation for more details. */
-  private NodusSaveAsImageMenuItem menuItemFileSaveMapAsPNG;
-
-  /** "Help|About" menu. */
-  private JMenuItem menuItemHelpAbout = new JMenuItem();
-
-  /** "Help|API JavaDoc" menu. */
-  private JMenuItem menuItemHelpApiDoc = new JMenuItem();
-
-  /** Main help. */
-  private JMenuItem menuItemHelpHelp = new JMenuItem();
-
-  /** "Project|Modal choice estimation" menu item. */
-  private JMenuItem menuItemProjectModalChoice = new JMenuItem();
-
-  /** "Project|Assignment" menu item. */
-  private JMenuItem menuItemProjectAssignment = new JMenuItem();
-
-  /** "Project|Cost functions" menu item. */
-  private JMenuItem menuItemProjectCosts = new JMenuItem();
-
-  /** "Project|Display results" menu item. */
-  private JMenuItem menuItemProjectDisplayResults = new JMenuItem();
-
-  /** "Project|Properties" menu item. */
-  private JMenuItem menuItemProjectPreferences = new JMenuItem();
-
-  /** "Project|Scenarios" menu item. */
-  private JMenuItem menuItemProjectScenarios = new JMenuItem();
-
-  /** "Project|Services functions" menu item. */
-  private JMenuItem menuItemProjectServices = new JMenuItem();
-
-  /** "Project|SQL console" menu item. */
-  private JMenuItem menuItemProjectSQLConsole = new JMenuItem();
-
-  /** "File|Open" menu item. */
-  private JMenuItem menuItemSystemProperties = new JMenuItem();
-
-  /** "Tools|Console" menu item. */
-  private JMenuItem menuItemToolConsole = new JMenuItem();
-
-  /** "Tools|Groovy console" menu item. */
-  private JMenuItem menuItemToolGroovyScripts = new JMenuItem();
-
-  /** Native Groovy console instance, when the user selected that console implementation. */
-  private groovy.console.ui.Console nativeGroovyConsole;
-
-  /** "Tools|Language" menu item. */
-  private JMenuItem menuItemToolLanguage = new JMenuItem();
-
-  /** "Tools|Look And feel" menu item. */
-  private JMenuItem menuItemToolLookAndFeel = new JMenuItem();
-
-  /** "Tools|Memory monitor" menu item. */
-  private JMenuItem menuItemToolRessourcesMonitor = new JMenuItem();
-
-  /** "Project" menu. */
-  private JMenu menuProject = new JMenu();
-
-  /** "Projection" menu. See OpenMap documentation for more details. */
-  private ProjectionMenu menuProjection = new ProjectionMenu();
-
-  /** "Tools" menu. */
-  private JMenu menuTools = new JMenu();
-
   /** OpenMap component. See OpenMap documentation for more details. */
   private MouseDelegator mouseDelegator = new MouseDelegator();
 
@@ -397,9 +258,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** OpenMap component. See OpenMap documentation for more details. */
   private NavMouseMode2 navMouseMode2 = new NavMouseMode2();
-
-  /** Number of Nodus wide plugins. */
-  private int nbNodusPlugins = 0;
 
   /** OpenMap component. See OpenMap documentation for more details. */
   private NodusOMDrawingTool nodusDrawingTool;
@@ -412,12 +270,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** OpenMap component. See OpenMap documentation for more details. */
   private NodusLayersPanel nodusLayersPanel;
-
-  /** Main menu bar. */
-  private JMenuBar nodusMenuBar = new JMenuBar();
-
-  /** Array of plugins. */
-  private NodusPlugin[] nodusPlugins;
 
   /** Place holder for the Nodus project that will be opened. */
   private NodusProject nodusProject = null;
@@ -440,9 +292,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** OpenMap component. See OpenMap documentation for more details */
   private ProjectionStack projectionStack = new ProjectionStack();
 
-  /** Vector of project specific plugins menu items. */
-  private Vector<JMenuItem> projectPluginsMenuItems = new Vector<>();
-
   /** Used to know if the scenario is changed in order to reset the displayed results. */
   private int lastScenario = -1;
 
@@ -461,25 +310,34 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Sound feedback. */
   private SoundPlayer soundPlayer;
 
-  /** Control variables for the progress bar. */
-  private int taskLength = 0;
-
-  /** True when task duration is unknown and progress checks must not advance a percentage. */
-  private boolean indeterminateProgress;
-
-  /** True while the portable activity animation replaces the native macOS progress renderer. */
-  private boolean portableProgressUI;
-
   /** OpenMap component. See OpenMap documentation for more details. */
   private ToolPanel toolPanel = new ToolPanel();
-
-  /** "User defined menus (used by plugins). */
-  private Vector<JMenuItem> userDefinedMenus = new Vector<>();
 
   private static MapBeanRepaintPolicy defaultMapBeanRepaintPolicy;
 
   /** Current desktop context. */
   private Desktop desktop = getSupportedDesktop();
+
+  private final MapMenus menus =
+      new MapMenus(
+          this,
+          toolPanel,
+          controlPanel,
+          desktop,
+          this::createMenuActionListeners,
+          this::setGlobalPreferencesMenu,
+          this::registerMacApplicationHandlers,
+          this::useMacDesktopIntegration);
+
+  private final MapPluginManager pluginManager =
+      new MapPluginManager(
+          this,
+          menus.nodusMenuBar,
+          menus.menuFile,
+          menus.menuProject,
+          menus.menuControl,
+          menus.menuTools,
+          menus.menuHelp);
 
   /**
    * Creates an uninitialized panel for adapters that provide their own project and UI callbacks.
@@ -665,10 +523,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * implemented on the MapBean.
    */
   public void cancelLongTask() {
-    if (taskLength > 0) { // If a long task is running
-      java.awt.Toolkit.getDefaultToolkit().beep();
-      canceled = true;
-    }
+    progress.cancelLongTask();
   }
 
   /** Closes the main frame after having save its state in the Nodus properties file. */
@@ -727,7 +582,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
            * Explicitly dispose application-wide plugins and close their loaders before exiting.
            * Do not rely on Swing disposal here because this method calls System.exit(0).
            */
-          disposeAllPlugins();
+          pluginManager.disposeAllPlugins();
 
           setVisible(false);
           System.exit(0);
@@ -835,10 +690,10 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   // @SuppressWarnings("deprecation")
   private void createMenuActionListeners() {
 
-    menuItemFileOpen.setAccelerator(
+    menus.menuItemFileOpen.setAccelerator(
         KeyStroke.getKeyStroke(
             KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
-    menuItemFileOpen.addActionListener(
+    menus.menuItemFileOpen.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -846,7 +701,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemSystemProperties.addActionListener(
+    menus.menuItemSystemProperties.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -854,11 +709,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemFileSave.setEnabled(false);
-    menuItemFileSave.setAccelerator(
+    menus.menuItemFileSave.setEnabled(false);
+    menus.menuItemFileSave.setAccelerator(
         KeyStroke.getKeyStroke(
             KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
-    menuItemFileSave.addActionListener(
+    menus.menuItemFileSave.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -866,8 +721,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemFileClose.setEnabled(false);
-    menuItemFileClose.addActionListener(
+    menus.menuItemFileClose.setEnabled(false);
+    menus.menuItemFileClose.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -875,11 +730,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemFilePrint.setAccelerator(
+    menus.menuItemFilePrint.setAccelerator(
         KeyStroke.getKeyStroke(
             KeyEvent.VK_P, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
-    menuItemFilePrint.setEnabled(false);
-    menuItemFilePrint.addActionListener(
+    menus.menuItemFilePrint.setEnabled(false);
+    menus.menuItemFilePrint.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -887,11 +742,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemFileExit.setAccelerator(
+    menus.menuItemFileExit.setAccelerator(
         KeyStroke.getKeyStroke(
             KeyEvent.VK_Q, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
 
-    menuItemFileExit.addActionListener(
+    menus.menuItemFileExit.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -899,20 +754,22 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemProjectModalChoice.addActionListener(
+    menus.menuItemProjectModalChoice.addActionListener(
         event -> {
-          if (nodusProject.isOpen() && menuItemProjectAssignment.isEnabled()) {
+          if (nodusProject.isOpen() && menus.menuItemProjectAssignment.isEnabled()) {
             new ModalChoiceEstimationDlg(this).setVisible(true);
           }
         });
     // Both commands share routing resources and must not run concurrently.
-    menuItemProjectAssignment.addPropertyChangeListener(
+    menus.menuItemProjectAssignment.addPropertyChangeListener(
         "enabled",
-        event -> menuItemProjectModalChoice.setEnabled(menuItemProjectAssignment.isEnabled()));
+        event ->
+            menus.menuItemProjectModalChoice.setEnabled(
+                menus.menuItemProjectAssignment.isEnabled()));
 
-    menuItemProjectAssignment.setAccelerator(
+    menus.menuItemProjectAssignment.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, 0));
-    menuItemProjectAssignment.addActionListener(
+    menus.menuItemProjectAssignment.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -920,9 +777,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemProjectSQLConsole.setAccelerator(
+    menus.menuItemProjectSQLConsole.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F7, 0));
-    menuItemProjectSQLConsole.addActionListener(
+    menus.menuItemProjectSQLConsole.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -930,9 +787,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemProjectDisplayResults.setAccelerator(
+    menus.menuItemProjectDisplayResults.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, 0));
-    menuItemProjectDisplayResults.addActionListener(
+    menus.menuItemProjectDisplayResults.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -940,9 +797,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemProjectScenarios.setAccelerator(
+    menus.menuItemProjectScenarios.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F6, 0));
-    menuItemProjectScenarios.addActionListener(
+    menus.menuItemProjectScenarios.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -950,8 +807,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemProjectCosts.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F2, 0));
-    menuItemProjectCosts.addActionListener(
+    menus.menuItemProjectCosts.setAccelerator(
+        KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F2, 0));
+    menus.menuItemProjectCosts.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -959,10 +817,10 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemProjectServices.setAccelerator(
+    menus.menuItemProjectServices.setAccelerator(
         KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F3, 0));
 
-    menuItemProjectServices.addActionListener(
+    menus.menuItemProjectServices.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -970,7 +828,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemProjectPreferences.addActionListener(
+    menus.menuItemProjectPreferences.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -978,7 +836,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemToolLookAndFeel.addActionListener(
+    menus.menuItemToolLookAndFeel.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -986,7 +844,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemToolLanguage.addActionListener(
+    menus.menuItemToolLanguage.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -994,7 +852,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemToolConsole.addActionListener(
+    menus.menuItemToolConsole.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -1006,7 +864,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemToolGroovyScripts.addActionListener(
+    menus.menuItemToolGroovyScripts.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -1014,7 +872,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemToolRessourcesMonitor.addActionListener(
+    menus.menuItemToolRessourcesMonitor.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -1022,7 +880,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemHelpAbout.addActionListener(
+    menus.menuItemHelpAbout.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -1030,7 +888,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemControlBackground.addActionListener(
+    menus.menuItemControlBackground.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -1038,7 +896,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemControlToolpanel.addActionListener(
+    menus.menuItemControlToolpanel.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -1046,7 +904,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           }
         });
 
-    menuItemControlControlpanel.addActionListener(
+    menus.menuItemControlControlpanel.addActionListener(
         new java.awt.event.ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -1103,92 +961,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     } catch (URISyntaxException | IllegalArgumentException ex) {
       return resource.getPath();
     }
-  }
-
-  /**
-   * Creates a new menu item at the right place for the plugin.
-   *
-   * @param plugin The plugin for which a menu item must be created
-   * @param commandId The command ID to associate to this plugin
-   * @param menu The menu to which the item must be added to
-   * @param pluginProp The properties associated to the plugin
-   * @return The created menu item
-   */
-  private JMenuItem createPluginMenuItem(
-      NodusPlugin plugin, int commandId, JMenu menu, Properties pluginProp) {
-    JMenuItem menuItem = null;
-    String text;
-    text = pluginProp.getProperty(NodusPlugin.MENU_ITEM__TEXT);
-
-    if (text != null) {
-      menuItem = new JMenuItem(text);
-
-      // Enable the menu?
-      boolean enable = true;
-      text = pluginProp.getProperty(NodusPlugin.IS_ENABLED);
-
-      if (text != null) {
-        if (text.equalsIgnoreCase(NodusPlugin.FALSE)) {
-          enable = false;
-        }
-      }
-
-      menuItem.setEnabled(enable);
-
-      menuItem.setActionCommand(Integer.toString(commandId));
-      menuItem.addActionListener(
-          new java.awt.event.ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-              pluginMenuActionPerformed(e);
-            }
-          });
-    } else {
-      System.err.println(
-          "Plugin " + plugin.getClass().toString() + " doesn't define a MenuItemText");
-    }
-
-    // Now add the menu item at the right place
-    if (menu != null && menuItem != null) {
-      text = pluginProp.getProperty(NodusPlugin.MENU_ITEM_ID);
-
-      int n = -1;
-
-      if (text != null) {
-        n = Integer.parseInt(text);
-      }
-
-      if (n < -1) {
-        System.err.println(
-            "Plugin " + plugin.getClass().toString() + " returns invalid menuItemID");
-      } else {
-        if (n == -1) {
-          // Add item just before last separator, if any
-          int lastSeparator = -1;
-
-          for (int j = 0; j < menu.getItemCount(); j++) {
-            Component c = menu.getMenuComponent(j);
-
-            if (c instanceof JSeparator) {
-              lastSeparator = j;
-            }
-          }
-
-          if (lastSeparator == -1) {
-            // Just append to menu
-            menu.add(menuItem);
-          } else {
-            // Insert before separator
-            menu.insert(menuItem, lastSeparator);
-          }
-        } else {
-          // Insert at the given place
-          menu.insert(menuItem, n);
-        }
-      }
-    }
-
-    return menuItem;
   }
 
   /**
@@ -1277,7 +1049,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Sets the MapBean variable to null and removes all children. */
   @Override
   public void dispose() {
-    disposeAllPlugins();
+    pluginManager.disposeAllPlugins();
     removeRegisteredKeyListeners();
 
     if (onTopKeeper != null) {
@@ -1301,42 +1073,24 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           @Override
           public void run() {
             // Enable some menu items
-            menuProject.setEnabled(state);
-            menuProject.setVisible(state);
-            Iterator<JMenuItem> it = projectPluginsMenuItems.iterator();
-            while (it.hasNext()) {
-              JMenuItem m = it.next();
-              m.setEnabled(state);
-            }
+            menus.menuProject.setEnabled(state);
+            menus.menuProject.setVisible(state);
+            pluginManager.enableMenus(state);
 
-            menuControl.setEnabled(state);
-            menuControl.setVisible(state);
-            menuProjection.setEnabled(state);
-            menuProjection.setVisible(state);
-
-            // Enable/disable user defined menus (plugins)
-            it = userDefinedMenus.iterator();
-            while (it.hasNext()) {
-              JMenu m = (JMenu) it.next();
-              m.setEnabled(state);
-              m.setVisible(state);
-            }
-
-            it = globalPluginsMenuItems.iterator();
-            while (it.hasNext()) {
-              JMenuItem m = it.next();
-              m.setEnabled(true);
-            }
+            menus.menuControl.setEnabled(state);
+            menus.menuControl.setVisible(state);
+            menus.menuProjection.setEnabled(state);
+            menus.menuProjection.setVisible(state);
 
             // In the "File" menu, not all items must be disables/enabled
-            menuItemFileOpen.setEnabled(true);
-            menuItemFileSave.setEnabled(state);
-            menuItemFileClose.setEnabled(state);
-            menuItemFileSaveAs.setEnabled(state);
-            menuItemFilePrint.setEnabled(state);
+            menus.menuItemFileOpen.setEnabled(true);
+            menus.menuItemFileSave.setEnabled(state);
+            menus.menuItemFileClose.setEnabled(state);
+            menus.menuItemFileSaveAs.setEnabled(state);
+            menus.menuItemFilePrint.setEnabled(state);
 
-            menuFile.setEnabled(true);
-            menuFile.setVisible(true);
+            menus.menuFile.setEnabled(true);
+            menus.menuFile.setVisible(true);
             refreshMenuBarUI();
           }
         };
@@ -1361,20 +1115,20 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         new Runnable() {
           @Override
           public void run() {
-            menuFile.setEnabled(true);
-            menuFile.setVisible(true);
+            menus.menuFile.setEnabled(true);
+            menus.menuFile.setVisible(true);
 
             boolean projectOpen = nodusProject != null && nodusProject.isOpen();
             boolean enabled = !busy;
 
-            menuItemFileOpen.setEnabled(enabled);
-            menuItemFileSave.setEnabled(enabled && projectOpen);
-            menuItemFileClose.setEnabled(enabled && projectOpen);
-            menuItemFileSaveAs.setEnabled(enabled && projectOpen);
-            menuItemFilePrint.setEnabled(enabled && projectOpen);
+            menus.menuItemFileOpen.setEnabled(enabled);
+            menus.menuItemFileSave.setEnabled(enabled && projectOpen);
+            menus.menuItemFileClose.setEnabled(enabled && projectOpen);
+            menus.menuItemFileSaveAs.setEnabled(enabled && projectOpen);
+            menus.menuItemFilePrint.setEnabled(enabled && projectOpen);
 
-            if (menuItemFileExit != null) {
-              menuItemFileExit.setEnabled(enabled);
+            if (menus.menuItemFileExit != null) {
+              menus.menuItemFileExit.setEnabled(enabled);
             }
 
             refreshMenuBarUI();
@@ -1390,14 +1144,14 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** Forces Swing and the host window system to refresh the menu bar state. */
   private void refreshMenuBarUI() {
-    nodusMenuBar.revalidate();
-    nodusMenuBar.repaint();
+    menus.nodusMenuBar.revalidate();
+    menus.nodusMenuBar.repaint();
 
     Frame mainFrame = getMainFrame();
     if (mainFrame instanceof JFrame) {
       JFrame frame = (JFrame) mainFrame;
-      if (frame.getJMenuBar() != nodusMenuBar) {
-        frame.setJMenuBar(nodusMenuBar);
+      if (frame.getJMenuBar() != menus.nodusMenuBar) {
+        frame.setJMenuBar(menus.nodusMenuBar);
       }
       if (frame.getJMenuBar() != null) {
         frame.getJMenuBar().revalidate();
@@ -1465,7 +1219,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @return The "Assignment" menu item.
    */
   public JMenuItem getAssignmentMenuItem() {
-    return menuItemProjectAssignment;
+    return menus.menuItemProjectAssignment;
   }
 
   /**
@@ -1527,7 +1281,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @return True if the UI is busy, false otherwise.
    */
   public boolean isBusy() {
-    return busyDepth > 0;
+    return progress.isBusy();
   }
 
   /**
@@ -1606,7 +1360,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @return The "File" menu.
    */
   public JMenu getMenuFile() {
-    return menuFile;
+    return menus.menuFile;
   }
 
   /**
@@ -1652,50 +1406,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   public Properties getNodusProperties() {
     return nodusProperties;
-  }
-
-  /**
-   * Returns the standard menu to which the plugin must be added to..
-   *
-   * @param plugin The plugin to add.
-   * @param menuId The menu number.
-   * @return The JMenu that gies access to the plugins.
-   */
-  private JMenu getPluginMenu(NodusPlugin plugin, int menuId) {
-    JMenu menu = null;
-
-    switch (menuId) {
-      case NodusPlugin.MENU_FILE:
-        menu = menuFile;
-
-        break;
-
-      case NodusPlugin.MENU_PROJECT:
-        menu = menuProject;
-
-        break;
-
-      case NodusPlugin.MENU_CONTROL:
-        menu = menuControl;
-
-        break;
-
-      case NodusPlugin.MENU_TOOLS:
-        menu = menuTools;
-
-        break;
-
-      case NodusPlugin.MENU_HELP:
-        menu = menuHelp;
-
-        break;
-
-      default:
-        System.err.println(
-            "Plugin " + plugin.getClass().toString() + " returns undefined MenuBarID");
-    }
-
-    return menu;
   }
 
   /**
@@ -1757,10 +1467,10 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     loaders.add(equalEarthl);
 
     registerProjectionLoaders(loaders);
-    menuProjection.configure(loaders);
-    menuProjection.setProjectionFactory(mapBean.getProjectionFactory());
+    menus.menuProjection.configure(loaders);
+    menus.menuProjection.setProjectionFactory(mapBean.getProjectionFactory());
 
-    menuProjection.findAndInit(mapBean);
+    menus.menuProjection.findAndInit(mapBean);
 
     // Set default projection
     Projection projection = mapBean.getProjection();
@@ -1818,13 +1528,13 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     initProjections();
 
     // Create all the menus
-    initMenus();
+    menus.initMenus();
 
     // Add the plugins, if any
     nodusHomeDir = System.getProperty("NODUS_HOME", ".");
     loadPlugins(nodusHomeDir + "/plugins", false);
 
-    getMapHandler().add(nodusMenuBar);
+    getMapHandler().add(menus.nodusMenuBar);
 
     // Prepare project
     enableMenus(false);
@@ -1930,9 +1640,9 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   private void initializeHelp() {
 
     // Nodus help
-    menuItemHelpHelp.setText(i18n.get(NodusMapPanel.class, "Help", "Help"));
-    menuItemHelpHelp.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F1, 0));
-    menuItemHelpHelp.addActionListener(
+    menus.menuItemHelpHelp.setText(i18n.get(NodusMapPanel.class, "Help", "Help"));
+    menus.menuItemHelpHelp.setAccelerator(KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F1, 0));
+    menus.menuItemHelpHelp.addActionListener(
         new ActionListener() {
 
           @Override
@@ -1943,11 +1653,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             helpBrowser.launchBrowser(true);
           }
         });
-    menuHelp.add(menuItemHelpHelp);
+    menus.menuHelp.add(menus.menuItemHelpHelp);
 
     // API JavaDoc help
-    menuItemHelpApiDoc.setText(i18n.get(NodusMapPanel.class, "API_Doc", "API Javadoc"));
-    menuItemHelpApiDoc.addActionListener(
+    menus.menuItemHelpApiDoc.setText(i18n.get(NodusMapPanel.class, "API_Doc", "API Javadoc"));
+    menus.menuItemHelpApiDoc.addActionListener(
         new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
@@ -1957,115 +1667,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             javaDocBrowser.launchBrowser(false);
           }
         });
-    menuHelp.add(menuItemHelpApiDoc);
-  }
-
-  /** Create the menus. */
-  private void initMenus() {
-    // Initialize the action listeners
-    setMenuItemsText();
-    createMenuActionListeners();
-
-    setMenusText();
-
-    // menuFile.setText(i18n.get(NodusMapPanel.class, "File", "File"));
-
-    menuItemFileSaveMapAsGIF = new NodusSaveAsImageMenuItem("GIF", new AcmeGifFormatter());
-
-    menuItemFileSaveMapAsPNG = new NodusSaveAsImageMenuItem("PNG", new PNGImageFormatter());
-
-    jpegFormatter.setImageQuality(NodusC.JPEG_QUALITY);
-    menuItemFileSaveMapAsJPEG = new NodusSaveAsImageMenuItem("JPEG", jpegFormatter);
-
-    // menuProject.setText(i18n.get(NodusMapPanel.class, "Project", "Project"));
-
-    menuProject.setEnabled(false);
-
-    // menuTools.setText(i18n.get(NodusMapPanel.class, "Tools", "Tools"));
-
-    // menuHelp.setText(i18n.get(NodusMapPanel.class, "Help", "Help"));
-
-    menuItemFileSaveAs.setEnabled(false);
-    // menuItemFileSaveAs.setText(i18n.get(NodusMapPanel.class, "Save_as_", "Save as..."));
-
-    menuItemFileSaveMapAsGIF.setText("GIF");
-    menuItemFileSaveMapAsGIF.setMapHandler(getMapHandler());
-    menuItemFileSaveAs.add(menuItemFileSaveMapAsGIF);
-
-    menuItemFileSaveMapAsJPEG.setText("JPEG");
-    menuItemFileSaveMapAsJPEG.setMapHandler(getMapHandler());
-    menuItemFileSaveAs.add(menuItemFileSaveMapAsJPEG);
-
-    menuItemFileSaveMapAsPNG.setText("PNG");
-    menuItemFileSaveMapAsPNG.setMapHandler(getMapHandler());
-    menuItemFileSaveAs.add(menuItemFileSaveMapAsPNG);
-
-    // menuControl.setText(i18n.get(NodusMapPanel.class, "Control", "Control"));
-
-    menuControl.setEnabled(false);
-
-    menuProjection.setEnabled(false);
-
-    int n = menuProjection.getMenuComponentCount();
-
-    // Translate the projection names
-    for (int i = 0; i < n; i++) {
-
-      Component c = menuProjection.getMenuComponent(i);
-      if (c instanceof JMenuItem) {
-        JMenuItem mi = (JMenuItem) c;
-        mi.setText(i18n.get(NodusMapPanel.class, mi.getText(), mi.getText()));
-      }
-    }
-
-    nodusMenuBar.add(menuFile);
-    nodusMenuBar.add(menuProject);
-    nodusMenuBar.add(menuControl);
-    nodusMenuBar.add(menuProjection);
-
-    nodusMenuBar.add(menuTools);
-    nodusMenuBar.add(menuHelp);
-
-    menuFile.add(menuItemFileOpen);
-
-    setGlobalPreferencesMenu();
-
-    menuFile.add(menuItemFileSave);
-    menuFile.add(menuItemFileClose);
-    menuFile.add(menuItemFileSaveAs);
-    menuFile.add(menuItemFilePrint);
-
-    registerMacApplicationHandlers();
-
-    if (useMacDesktopIntegration() && desktop.isSupported(Desktop.Action.APP_QUIT_HANDLER)) {
-      // The Quit item is provided by the macOS application menu.
-    } else {
-      menuFile.addSeparator();
-      menuFile.add(menuItemFileExit);
-    }
-
-    menuProject.add(menuItemProjectPreferences);
-    menuProject.add(menuItemProjectCosts);
-    menuProject.add(menuItemProjectServices);
-    menuProject.add(menuItemProjectModalChoice);
-    menuProject.add(menuItemProjectAssignment);
-    menuProject.add(menuItemProjectDisplayResults);
-    menuProject.add(menuItemProjectScenarios);
-    menuProject.add(menuItemProjectSQLConsole);
-
-    menuControl.add(menuItemControlBackground);
-    menuControl.add(menuItemControlToolpanel);
-    menuControl.add(menuItemControlControlpanel);
-
-    menuTools.add(menuItemToolLookAndFeel);
-    menuTools.add(menuItemToolLanguage);
-    menuTools.add(menuItemToolConsole);
-    menuTools.add(menuItemToolGroovyScripts);
-    menuTools.add(menuItemToolRessourcesMonitor);
-
-    if (!useMacDesktopIntegration() || !desktop.isSupported(Desktop.Action.APP_ABOUT)) {
-      menuHelp.add(menuItemHelpAbout);
-    }
+    menus.menuHelp.add(menus.menuItemHelpApiDoc);
   }
 
   /** Initialize the openMap components used in Nodus. */
@@ -2204,157 +1806,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @param projectPlugin True if plugin a project specific. False for global plugins.
    */
   public void loadPlugins(String dir, boolean projectPlugin) {
-
-    // Load all the plugins.
-    PluginsLoader nodusPluginLoader = new PluginsLoader(dir);
-    boolean keepLoader = false;
-
-    try {
-      LinkedList<Class<NodusPlugin>> availableClasses = nodusPluginLoader.getAvailablePlugins();
-
-      if (availableClasses.isEmpty()) {
-        if (!projectPlugin) {
-          nbNodusPlugins = 0;
-        }
-        return;
-      }
-
-      Vector<NodusPlugin> loadedPlugins = new Vector<>();
-
-      Iterator<Class<NodusPlugin>> classIterator = availableClasses.iterator();
-      while (classIterator.hasNext()) {
-        Class<NodusPlugin> loadableClass = classIterator.next();
-        NodusPlugin plugin = null;
-
-        try {
-          plugin = loadableClass.getConstructor().newInstance();
-          plugin.setNodusMapPanel(this);
-        } catch (Exception e) {
-          e.printStackTrace();
-          continue;
-        }
-
-        Properties pluginProp = plugin.getProperties();
-        if (pluginProp == null) {
-          System.err.println("Plugin " + plugin.getClass().toString() + " returns no properties");
-          disposePlugin(plugin);
-          continue;
-        }
-
-        // Where must the plugin be inserted?
-        JMenu menu = null;
-        String text = pluginProp.getProperty(NodusPlugin.USER_DEFINED_MENUBAR_TEXT);
-
-        if (text != null) {
-          // Does this user-defined menu already exists?
-          boolean found = false;
-          Iterator<JMenuItem> it = userDefinedMenus.iterator();
-
-          while (it.hasNext()) {
-            JMenu m = (JMenu) it.next();
-
-            if (m.getText().equals(text)) {
-              found = true;
-              menu = m;
-
-              break;
-            }
-          }
-
-          // No. Add it, just before the "help" menu!
-          if (!found) {
-            menu = new JMenu(text);
-            userDefinedMenus.add(menu);
-            nodusMenuBar.add(menu, nodusMenuBar.getMenuCount() - 1);
-            menu.setEnabled(false);
-          }
-        } else {
-          // Menu item must be added to a Nodus menu
-          text = pluginProp.getProperty(NodusPlugin.MENUBAR_ID);
-
-          if (text != null) {
-            int n = Integer.parseInt(text);
-            menu = getPluginMenu(plugin, n);
-          } else {
-            System.err.println(
-                "Plugin "
-                    + plugin.getClass().toString()
-                    + " doesn't define a MenuBarID "
-                    + "or a UserDefinedMenubarText");
-          }
-        }
-
-        // Create the relevant menu item and associate an actionCommand to it.
-        int commandId = loadedPlugins.size();
-
-        if (projectPlugin) {
-          commandId += nbNodusPlugins;
-        }
-
-        JMenuItem menuItem = createPluginMenuItem(plugin, commandId, menu, pluginProp);
-
-        if (menuItem == null) {
-          disposePlugin(plugin);
-          removeEmptyUserDefinedPluginMenus();
-          continue;
-        }
-
-        // Store the menu in a vector in order to enable/disable/remove it easily.
-        if (!projectPlugin) {
-          globalPluginsMenuItems.add(menuItem);
-        } else {
-          projectPluginsMenuItems.add(menuItem);
-        }
-
-        loadedPlugins.add(plugin);
-      }
-
-      if (loadedPlugins.isEmpty()) {
-        if (!projectPlugin) {
-          nbNodusPlugins = 0;
-        }
-        return;
-      }
-
-      NodusPlugin[] plugins = loadedPlugins.toArray(new NodusPlugin[loadedPlugins.size()]);
-
-      // Add project plugins after global plugins. They will be removed again on project close.
-      if (!projectPlugin) {
-        nodusPlugins = plugins;
-        nbNodusPlugins = plugins.length;
-      } else if (nodusPlugins == null) {
-        nodusPlugins = plugins;
-      } else {
-        NodusPlugin[] tmp = nodusPlugins.clone();
-        int newSize = nodusPlugins.length + plugins.length;
-        nodusPlugins = new NodusPlugin[newSize];
-
-        for (int i = 0; i < tmp.length; i++) {
-          nodusPlugins[i] = tmp[i];
-        }
-
-        for (int i = 0; i < plugins.length; i++) {
-          nodusPlugins[tmp.length + i] = plugins[i];
-        }
-      }
-
-      /*
-       * Keep the loader alive while the plugin instances loaded from it are alive.
-       * Application-wide plugin loaders are closed at Nodus exit.
-       * Project-specific plugin loaders are closed when the project is closed.
-       */
-      if (!projectPlugin) {
-        globalPluginLoaders.add(nodusPluginLoader);
-      } else {
-        projectPluginLoaders.add(nodusPluginLoader);
-      }
-
-      keepLoader = true;
-    } finally {
-      if (!keepLoader) {
-        nodusPluginLoader.close();
-      }
-    }
+    pluginManager.loadPlugins(dir, projectPlugin);
   }
 
   /** "About Nodus" splash screen and info. */
@@ -2372,7 +1824,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   private void menuItemControlBackgroundActionPerformed(ActionEvent e) {
     Paint newPaint =
         OMColorChooser.showDialog(
-            this, menuItemControlBackground.getText(), getMapBean().getBackground());
+            this, menus.menuItemControlBackground.getText(), getMapBean().getBackground());
 
     if (newPaint != null) {
       String colorString = Integer.toString(((java.awt.Color) newPaint).getRGB());
@@ -2392,11 +1844,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     controlPanel.setVisible(!selected);
 
     if (selected) {
-      menuItemControlControlpanel.setText(
+      menus.menuItemControlControlpanel.setText(
           i18n.get(NodusMapPanel.class, "Display_Control_Panel", "Display Control Panel"));
 
     } else {
-      menuItemControlControlpanel.setText(
+      menus.menuItemControlControlpanel.setText(
           i18n.get(NodusMapPanel.class, "Hide_Control_Panel", "Hide Control Panel"));
     }
   }
@@ -2411,11 +1863,11 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     toolPanel.setVisible(!selected);
 
     if (selected) {
-      menuItemControlToolpanel.setText(
+      menus.menuItemControlToolpanel.setText(
           i18n.get(NodusMapPanel.class, "Display_Tool_Panel", "Display Tool Panel"));
 
     } else {
-      menuItemControlToolpanel.setText(
+      menus.menuItemControlToolpanel.setText(
           i18n.get(NodusMapPanel.class, "Hide_Tool_Panel", "Hide Tool Panel"));
     }
   }
@@ -2546,94 +1998,8 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     if (!useGroovyConsole) {
       new NodusGroovyConsole(this, path, "");
     } else {
-      showNativeGroovyConsole(path);
+      nativeConsole.show(path);
     }
-  }
-
-  /** Shows the native Groovy console, or focuses the already open one. */
-  private void showNativeGroovyConsole(String path) {
-    if (focusNativeGroovyConsole()) {
-      return;
-    }
-
-    final groovy.console.ui.Console console = new groovy.console.ui.Console();
-    nativeGroovyConsole = console;
-
-    // Set some defaults in UI
-    console.askToInterruptScript();
-    console.setAutoClearOutput(true);
-    console.setSaveOnRun(true);
-
-    JCheckBox dummyCheckBox = new JCheckBox();
-    dummyCheckBox.setSelected(false);
-    console.showScriptInOutput(new EventObject(dummyCheckBox));
-
-    dummyCheckBox.setSelected(true);
-    console.threadInterruption(new EventObject(dummyCheckBox));
-
-    console.setCurrentFileChooserDir(new File(path));
-    console.setVariable("nodusMapPanel", this);
-    console.run();
-
-    JFrame consoleFrame = getNativeGroovyConsoleFrame(console);
-    if (consoleFrame != null) {
-      consoleFrame.addWindowListener(
-          new WindowAdapter() {
-            @Override
-            public void windowClosed(WindowEvent e) {
-              clearNativeGroovyConsole(console);
-            }
-
-            @Override
-            public void windowClosing(WindowEvent e) {
-              clearNativeGroovyConsole(console);
-            }
-          });
-
-      consoleFrame.setLocationRelativeTo(null);
-      focusFrame(consoleFrame);
-    }
-
-    // Reset the preferences menu
-    registerMacApplicationHandlers();
-    setGlobalPreferencesMenu();
-  }
-
-  /** Brings the already open native Groovy console to the front. */
-  private boolean focusNativeGroovyConsole() {
-    JFrame consoleFrame = getNativeGroovyConsoleFrame(nativeGroovyConsole);
-    if (consoleFrame == null || !consoleFrame.isDisplayable()) {
-      nativeGroovyConsole = null;
-      return false;
-    }
-
-    focusFrame(consoleFrame);
-    return true;
-  }
-
-  /** Clears the retained native console reference if it still points to the closed console. */
-  private void clearNativeGroovyConsole(groovy.console.ui.Console console) {
-    if (nativeGroovyConsole == console) {
-      nativeGroovyConsole = null;
-    }
-  }
-
-  /** Returns the Swing frame that hosts a native Groovy console. */
-  private JFrame getNativeGroovyConsoleFrame(groovy.console.ui.Console console) {
-    if (console == null || console.getFrame() == null) {
-      return null;
-    }
-    return (JFrame) console.getFrame().getRootPane().getParent();
-  }
-
-  /** Makes a frame visible, de-iconified and focused. */
-  private void focusFrame(JFrame frame) {
-    if (frame.getState() == Frame.ICONIFIED) {
-      frame.setState(Frame.NORMAL);
-    }
-    frame.setVisible(true);
-    frame.toFront();
-    frame.requestFocus();
   }
 
   /**
@@ -2820,198 +2186,13 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /**
-   * Handles the call to the relevant plugin's "1execute" command.
-   *
-   * @param e ActionEvent
-   */
-  private void pluginMenuActionPerformed(ActionEvent e) {
-    int n = Integer.parseInt(e.getActionCommand());
-
-    if (nodusPlugins == null || n < 0 || n >= nodusPlugins.length || nodusPlugins[n] == null) {
-      return;
-    }
-
-    nodusPlugins[n].execute();
-  }
-
-  /**
    * Removes project plugin menu items and disposes the associated project plugin instances.
    *
    * <p>This method is called when a project is closed. It gives project plugins a deterministic
    * cleanup point for listeners, timers, threads, windows, and other resources.
    */
   public void removeProjectPlugins() {
-    // Remove all project plugin menu items and detach their listeners.
-    Iterator<JMenuItem> it = projectPluginsMenuItems.iterator();
-
-    while (it.hasNext()) {
-      JMenuItem searchedMenuItem = it.next();
-
-      if (searchedMenuItem == null) {
-        continue;
-      }
-
-      removeActionListeners(searchedMenuItem);
-      removePluginMenuItem(searchedMenuItem);
-    }
-
-    projectPluginsMenuItems.clear();
-
-    removeProjectPluginInstances();
-
-    /*
-     * Project plugin instances have now been disposed. Their project-scoped
-     * class loaders can be closed and released.
-     */
-    closePluginLoaders(projectPluginLoaders);
-
-    removeEmptyUserDefinedPluginMenus();
-  }
-
-  /** Closes all plugin loaders owned by the given lifecycle scope. */
-  private void closePluginLoaders(Vector<PluginsLoader> loaders) {
-    Iterator<PluginsLoader> it = loaders.iterator();
-
-    while (it.hasNext()) {
-      PluginsLoader loader = it.next();
-
-      if (loader == null) {
-        continue;
-      }
-
-      try {
-        loader.close();
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-
-    loaders.clear();
-  }
-
-  /** Calls the plugin lifecycle cleanup method before the plugin instance is released. */
-  private void disposePlugin(NodusPlugin plugin) {
-    if (plugin == null) {
-      return;
-    }
-
-    try {
-      plugin.dispose();
-    } catch (Exception e) {
-      e.printStackTrace();
-    } finally {
-      detachPlugin(plugin);
-    }
-  }
-
-  /** Detaches a plugin from this panel before the plugin instance is released. */
-  private void detachPlugin(NodusPlugin plugin) {
-    if (plugin == null) {
-      return;
-    }
-
-    try {
-      plugin.setNodusMapPanel(null);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
-
-  /** Removes all action listeners from a plugin menu item. */
-  private void removeActionListeners(JMenuItem menuItem) {
-    ActionListener[] listeners = menuItem.getActionListeners();
-
-    for (ActionListener listener : listeners) {
-      menuItem.removeActionListener(listener);
-    }
-  }
-
-  /** Removes a plugin menu item from any top-level menu in the menu bar. */
-  private void removePluginMenuItem(JMenuItem searchedMenuItem) {
-    int nbMenus = nodusMenuBar.getMenuCount();
-
-    for (int i = 0; i < nbMenus; i++) {
-      JMenu menu = nodusMenuBar.getMenu(i);
-
-      if (menu == null) {
-        continue;
-      }
-
-      int nbItems = menu.getMenuComponentCount();
-
-      // Go through the menu from the end because items may be removed.
-      for (int j = nbItems - 1; j >= 0; j--) {
-        JMenuItem menuItem = menu.getItem(j);
-
-        // Could be a separator...
-        if (menuItem == null) {
-          continue;
-        }
-
-        if (menuItem.equals(searchedMenuItem)) {
-          menu.remove(menuItem);
-        }
-      }
-    }
-  }
-
-  /** Removes project-specific plugins from the plugin dispatch array. */
-  private void removeProjectPluginInstances() {
-    if (nodusPlugins == null || nodusPlugins.length <= nbNodusPlugins) {
-      return;
-    }
-
-    for (int i = nbNodusPlugins; i < nodusPlugins.length; i++) {
-      disposePlugin(nodusPlugins[i]);
-      nodusPlugins[i] = null;
-    }
-
-    if (nbNodusPlugins == 0) {
-      nodusPlugins = null;
-      return;
-    }
-
-    NodusPlugin[] globalPlugins = new NodusPlugin[nbNodusPlugins];
-
-    for (int i = 0; i < nbNodusPlugins; i++) {
-      globalPlugins[i] = nodusPlugins[i];
-    }
-
-    nodusPlugins = globalPlugins;
-  }
-
-  /** Disposes all loaded plugins, including global plugins, when the map panel is disposed. */
-  private void disposeAllPlugins() {
-    if (nodusPlugins != null) {
-      for (NodusPlugin plugin : nodusPlugins) {
-        disposePlugin(plugin);
-      }
-      nodusPlugins = null;
-    }
-
-    nbNodusPlugins = 0;
-    globalPluginsMenuItems.clear();
-    projectPluginsMenuItems.clear();
-    userDefinedMenus.clear();
-
-    /*
-     * Project loaders may already have been closed by removeProjectPlugins().
-     * The close operation is intentionally idempotent for the application exit path.
-     */
-    closePluginLoaders(projectPluginLoaders);
-    closePluginLoaders(globalPluginLoaders);
-  }
-
-  /** Removes empty user-defined plugin menus from the menu bar. */
-  private void removeEmptyUserDefinedPluginMenus() {
-    for (int i = userDefinedMenus.size() - 1; i >= 0; i--) {
-      JMenu menu = (JMenu) userDefinedMenus.get(i);
-
-      if (menu.getItemCount() == 0) {
-        nodusMenuBar.remove(menu);
-        userDefinedMenus.remove(i);
-      }
-    }
+    pluginManager.removeProjectPlugins();
   }
 
   /** Resets the "display results" state of the layers. */
@@ -3173,34 +2354,15 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @param busy If true, set the wait cursor, else sets the default cursor.
    */
   public void setBusy(boolean busy) {
-
-    if (busy) {
-      busyDepth++;
-    } else {
-      busyDepth--;
-    }
-
-    if (busyDepth < 0) {
-      busyDepth = 0;
-    }
-
-    if (busy && busyDepth == 1) {
-      defaultBeanCursor = getMapBean().getCursor();
-      getRootPane().getGlassPane().setVisible(true);
-      getRootPane().getGlassPane().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-    } else if (!busy && busyDepth == 0) {
-      getRootPane().getGlassPane().setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-      getRootPane().getGlassPane().setVisible(false);
-      getMapBean().setCursor(defaultBeanCursor);
-    }
+    progress.setBusy(busy);
   }
 
   /** Set application preferences. */
   private void setGlobalPreferencesMenu() {
     if (useMacDesktopIntegration() && desktop.isSupported(Desktop.Action.APP_PREFERENCES)) {
       desktop.setPreferencesHandler(e -> menuItemFileGlobalPreferencesActionPerformed());
-    } else if (menuItemSystemProperties.getParent() == null) {
-      menuFile.add(menuItemSystemProperties);
+    } else if (menus.menuItemSystemProperties.getParent() == null) {
+      menus.menuFile.add(menus.menuItemSystemProperties);
     }
   }
 
@@ -3222,98 +2384,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     if (mapBean != null) {
       getMapHandler().add(mapBean);
       add(mapBean, BorderLayout.CENTER);
-    }
-  }
-
-  private void setMenusText() {
-    menuFile.setText(i18n.get(NodusMapPanel.class, "File", "File"));
-
-    menuProject.setText(i18n.get(NodusMapPanel.class, "Project", "Project"));
-
-    menuTools.setText(i18n.get(NodusMapPanel.class, "Tools", "Tools"));
-
-    menuHelp.setText(i18n.get(NodusMapPanel.class, "Help", "Help"));
-
-    menuItemFileSaveAs.setText(i18n.get(NodusMapPanel.class, "Save_as_", "Save as..."));
-
-    menuControl.setText(i18n.get(NodusMapPanel.class, "Control", "Control"));
-  }
-
-  private void setMenuItemsText() {
-    menuItemFileOpen.setText(i18n.get(NodusMapPanel.class, "Open_project", "Open project"));
-
-    menuItemSystemProperties.setText(
-        i18n.get(NodusMapPanel.class, "Open_preferences", "Global preferences"));
-
-    menuItemFileSave.setText(i18n.get(NodusMapPanel.class, "Save_project", "Save project"));
-
-    menuItemFileClose.setText(i18n.get(NodusMapPanel.class, "Close_project", "Close project"));
-
-    menuItemFilePrint.setText(i18n.get(NodusMapPanel.class, "Print", "Print"));
-
-    menuItemFileExit.setText(i18n.get(NodusMapPanel.class, "Exit", "Exit"));
-
-    menuItemProjectModalChoice.setText(
-        i18n.get(NodusMapPanel.class, "Estimate_modal_choice", "Modal choice estimation"));
-
-    menuItemProjectAssignment.setText(i18n.get(NodusMapPanel.class, "Assignment", "Assignment"));
-
-    menuItemProjectSQLConsole.setText(i18n.get(NodusMapPanel.class, "SQL_Console", "SQL Console"));
-
-    menuItemProjectDisplayResults.setText(
-        i18n.get(NodusMapPanel.class, "Display_results", "Display results"));
-
-    menuItemProjectScenarios.setText(i18n.get(NodusMapPanel.class, "Scenarios", "Scenarios"));
-
-    menuItemProjectCosts.setText(
-        i18n.get(NodusMapPanel.class, "Edit_cost_functions", "Edit cost functions"));
-
-    menuItemProjectServices.setText(
-        i18n.get(NodusMapPanel.class, "Edit_services", "Edit services"));
-
-    menuItemProjectPreferences.setText(
-        i18n.get(NodusMapPanel.class, "Project_preferences", "Project preferences"));
-
-    menuItemToolLookAndFeel.setText(i18n.get(NodusMapPanel.class, "Look_&_Feel", "Look & Feel"));
-
-    menuItemToolLanguage.setText(i18n.get(NodusMapPanel.class, "Language", "Language"));
-
-    menuItemToolConsole.setText(i18n.get(NodusMapPanel.class, "Console", "Console"));
-
-    menuItemToolGroovyScripts.setText(
-        i18n.get(NodusMapPanel.class, "Groovy_scripts", "Groovy scripts"));
-
-    menuItemToolRessourcesMonitor.setText(
-        i18n.get(NodusMapPanel.class, "Resources_monitor", "Resources monitor"));
-
-    menuItemHelpAbout.setText(i18n.get(NodusMapPanel.class, "About", "About"));
-
-    menuItemHelpHelp.setText(i18n.get(NodusMapPanel.class, "Help", "Help"));
-
-    menuItemHelpApiDoc.setText(i18n.get(NodusMapPanel.class, "API_Doc", "API Javadoc"));
-
-    menuItemControlBackground.setText(
-        i18n.get(NodusMapPanel.class, "Set_Background_color", "Set Background color"));
-
-    setControlMenuItemsText();
-  }
-
-  /** Updates labels of control menu items whose text depends on component visibility. */
-  private void setControlMenuItemsText() {
-    if (toolPanel != null && !toolPanel.isVisible()) {
-      menuItemControlToolpanel.setText(
-          i18n.get(NodusMapPanel.class, "Display_Tool_Panel", "Display Tool Panel"));
-    } else {
-      menuItemControlToolpanel.setText(
-          i18n.get(NodusMapPanel.class, "Hide_Tool_Panel", "Hide Tool Panel"));
-    }
-
-    if (controlPanel != null && !controlPanel.isVisible()) {
-      menuItemControlControlpanel.setText(
-          i18n.get(NodusMapPanel.class, "Display_Control_Panel", "Display Control Panel"));
-    } else {
-      menuItemControlControlpanel.setText(
-          i18n.get(NodusMapPanel.class, "Hide_Control_Panel", "Hide Control Panel"));
     }
   }
 
@@ -3392,14 +2462,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    *     work whose total is unknown.
    */
   public void startProgress(int finishedValue) {
-    taskLength = Math.max(1, finishedValue);
-    indeterminateProgress = finishedValue <= 0;
-    currentTask = 0;
-    canceled = false;
-    setBusy(true);
-
-    ProgressEvent evt = new ProgressEvent(getMapBean(), ProgressEvent.START, "", taskLength, 0);
-    displayProgress(evt, indeterminateProgress);
+    progress.startProgress(finishedValue);
   }
 
   /**
@@ -3407,21 +2470,15 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * implemented on the MapBean.
    */
   public void stopProgress() {
-    ProgressEvent evt = new ProgressEvent(getMapBean(), ProgressEvent.DONE, "", 0, 0);
-    indeterminateProgress = false;
-    displayProgress(evt, false);
-    resetText();
-    taskLength = 0;
-    currentTask = 0;
-    setBusy(false);
+    progress.stopProgress();
   }
 
   /**
    * Update menu an other component texts. Must be called when tha applivation Locale is changed.
    */
   public void updateComponentsText() {
-    setMenusText();
-    setMenuItemsText();
+    menus.setMenusText();
+    menus.setMenuItemsText();
 
     scenarioLabel.setText(i18n.get(NodusMapPanel.class, "Scenario", "Scenario"));
     refreshMenuBarUI();
@@ -3460,76 +2517,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @return False if the user confirmed cancellation.
    */
   public boolean updateProgress(String msg, int displayInterval) {
-    if (canceled) {
-      canceled = false;
-      if (JOptionPane.showConfirmDialog(
-              this,
-              i18n.get(NodusMapPanel.class, "Abort_task?", "Abort task?"),
-              "Nodus",
-              JOptionPane.YES_NO_OPTION)
-          == JOptionPane.YES_OPTION) {
-
-        busyDepth = 1;
-        stopProgress();
-        setText(i18n.get(NodusMapPanel.class, "Task_aborted", "Task aborted"));
-
-        return false;
-      }
-    }
-
-    if (!indeterminateProgress) {
-      currentTask++;
-    }
-    if (displayInterval > 1
-        && currentTask > 1
-        && currentTask < taskLength
-        && currentTask % displayInterval != 0) {
-      return true;
-    }
-
-    ProgressEvent evt =
-        new ProgressEvent(getMapBean(), ProgressEvent.UPDATE, "  " + msg, taskLength, currentTask);
-    displayProgress(evt, indeterminateProgress);
-
-    return true;
-  }
-
-  /** Preserves status-message ordering and updates the activity animation on the Swing thread. */
-  private void displayProgress(ProgressEvent event, boolean indeterminate) {
-    infoDelegator.updateProgress(event);
-    if (event.getType() == ProgressEvent.UPDATE) {
-      return;
-    }
-    Runnable update =
-        () -> {
-          javax.swing.JProgressBar bar = infoDelegator.getProgressBar();
-          if (bar != null) {
-            // Aqua's native indeterminate bar can appear empty on macOS. Swing's basic renderer
-            // paints a moving segment itself, independently of the native animation support.
-            if (indeterminate
-                && "com.apple.laf.AquaProgressBarUI".equals(bar.getUI().getClass().getName())) {
-              bar.setUI(new javax.swing.plaf.basic.BasicProgressBarUI());
-              // Aqua declares a black foreground because its native renderer supplies the accent
-              // itself. Use the system selection accent for the portable renderer instead.
-              Color accent = javax.swing.UIManager.getColor("List.selectionBackground");
-              bar.setForeground(
-                  new javax.swing.plaf.ColorUIResource(
-                      accent != null ? accent : new Color(0, 122, 255)));
-              portableProgressUI = true;
-            } else if (!indeterminate && portableProgressUI) {
-              bar.setIndeterminate(false);
-              bar.updateUI();
-              portableProgressUI = false;
-            }
-            bar.setIndeterminate(indeterminate);
-            bar.setString(indeterminate ? "" : null);
-          }
-        };
-    if (javax.swing.SwingUtilities.isEventDispatchThread()) {
-      update.run();
-    } else {
-      javax.swing.SwingUtilities.invokeLater(update);
-    }
+    return progress.updateProgress(msg, displayInterval);
   }
 
   /**

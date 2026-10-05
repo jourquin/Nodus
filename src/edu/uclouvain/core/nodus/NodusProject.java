@@ -24,7 +24,6 @@ package edu.uclouvain.core.nodus;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.Layer;
 import com.bbn.openmap.LayerHandler;
-import com.bbn.openmap.dataAccess.shape.EsriPolyline;
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.event.SelectMouseMode;
 import com.bbn.openmap.layer.DeclutterMatrix;
@@ -32,7 +31,6 @@ import com.bbn.openmap.layer.drawing.NodusDrawingToolLayer;
 import com.bbn.openmap.layer.location.NodusLocationHandler;
 import com.bbn.openmap.layer.location.NodusLocationLayer;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
-import com.bbn.openmap.omGraphics.NodusDrawingAttributes;
 import com.bbn.openmap.omGraphics.NodusOMGraphic;
 import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.proj.Mercator;
@@ -46,12 +44,9 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.LocalDatabaseServer;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
 import edu.uclouvain.core.nodus.database.ShapeIntegrityTester;
-import edu.uclouvain.core.nodus.database.dbf.DBFException;
-import edu.uclouvain.core.nodus.database.dbf.DBFReader;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
 import edu.uclouvain.core.nodus.services.ServiceHandler;
 import edu.uclouvain.core.nodus.swing.GUIUtils;
-import edu.uclouvain.core.nodus.utils.CheckForOM5;
 import edu.uclouvain.core.nodus.utils.CommentedProperties;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.NodusFileFilter;
@@ -67,9 +62,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -146,6 +139,11 @@ import javax.swing.SwingWorker;
  * #---------------------------------------------------------------------- <br>
  */
 public class NodusProject implements ShapeConstants {
+  private final ProjectLayerOperations layerOperations = new ProjectLayerOperations(this);
+
+  private final ProjectScenarios scenarios;
+  private final ProjectStyles styles = new ProjectStyles();
+  private final ProjectLayerIds layerIds = new ProjectLayerIds(this);
 
   /** i18n mechanism. */
   private static I18n i18n = Environment.getI18n();
@@ -178,12 +176,6 @@ public class NodusProject implements ShapeConstants {
   private NodusLocationHandler[] linksLocationHandler = null;
 
   /**
-   * Array of drawings attributes used for each defined numeric style. The style can be used to
-   * render the links on a map (Railway, highway, ...).
-   */
-  private NodusOMGraphic[] linkStyle;
-
-  /**
    * The local properties is the placeholder for a lot of parameters saved and restored when a
    * project is opened or closed (zoom, colors, fonts, ...).
    */
@@ -201,31 +193,8 @@ public class NodusProject implements ShapeConstants {
    */
   private NodusLocationHandler[] nodesLocationHandler = null;
 
-  /**
-   * Array of drawings attributes used for each defined numeric style. The style can be used to
-   * render the nodes on a map.
-   */
-  private NodusOMGraphic[] nodeStyle;
-
   /** Map panel of the application. */
   private NodusMapPanel nodusMapPanel;
-
-  /**
-   * Used to store the ID's of the links that are present in layers that are found in the project
-   * directory, but that are not in the project. This is used to ensure that the ID given to a new
-   * ink is not already used in another, not loaded, layer.
-   */
-  private HashMap<Integer, Integer> otherLinkNumbers = new HashMap<>();
-
-  /**
-   * Used to store the ID's of the nodes that are present in layers that are found in the project
-   * directory, but that are not in the project. This is used to ensure that the ID given to a new
-   * node is not already used in another, not loaded, layer.
-   */
-  private HashMap<Integer, Integer> otherNodeNumbers = new HashMap<>();
-
-  /** True if the ID's of the other layers present in the project directory are loaded. */
-  private boolean otherObjectsLoaded = false;
 
   /** Deferred integrity tester that runs while project layers are loading. */
   private ShapeIntegrityTester shapeIntegrityTester;
@@ -244,9 +213,6 @@ public class NodusProject implements ShapeConstants {
 
   /** Lines and services editor. */
   private ServiceHandler serviceHandler;
-
-  /** Properties file that contains the styles for the nodes and links. */
-  private Properties stylesProperties;
 
   /** Scale of view at starting time. */
   private float initialScale;
@@ -268,6 +234,7 @@ public class NodusProject implements ShapeConstants {
    */
   public NodusProject(NodusMapPanel nodusMapPanel) {
     this.nodusMapPanel = nodusMapPanel;
+    scenarios = new ProjectScenarios(this, nodusMapPanel);
   }
 
   /**
@@ -278,58 +245,7 @@ public class NodusProject implements ShapeConstants {
    * @param props Properties that contains the description of the layers.
    */
   public void addOpenMapLayers(Properties props) {
-    // Test if valid openmap file
-    String s = props.getProperty(NodusC.PROP_OPENMAP_LAYERS);
-
-    if (s == null) {
-      return;
-    }
-
-    // Fetch the path to the project
-    String projectPath = localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH);
-
-    Path projectDir = null;
-    if (projectPath != null && !projectPath.isBlank()) {
-      projectDir = Paths.get(projectPath).toAbsolutePath().normalize();
-    }
-
-    // Upgrade layer class names
-    props = CheckForOM5.upgradeApiNames(props);
-
-    // Merge this property file with the local property
-    Enumeration<?> enumerator = props.propertyNames();
-
-    while (enumerator.hasMoreElements()) {
-      String propName = (String) enumerator.nextElement();
-      String propValue = props.getProperty(propName);
-
-      // Add project path to resource file name that starts with "./" (project's directory)
-      if (propValue != null && propValue.startsWith("./") && projectDir != null) {
-        String relativePath = propValue.substring(2);
-        propValue = projectDir.resolve(relativePath).normalize().toString();
-      }
-
-      if (propValue != null) {
-        localProperties.setProperty(propName, propValue);
-      }
-    }
-
-    List<String> startuplayers;
-    List<String> layersValue;
-
-    layersValue =
-        PropUtils.parseSpacedMarkers(localProperties.getProperty(NodusC.PROP_OPENMAP_LAYERS));
-    startuplayers =
-        PropUtils.parseSpacedMarkers(
-            localProperties.getProperty(NodusC.PROP_OPENMAP_STARTUPLAYERS));
-
-    Layer[] layers = LayerHandler.getLayers(layersValue, startuplayers, localProperties);
-    for (Layer layer : layers) {
-      layer.setAddAsBackground(true);
-      nodusMapPanel.getLayerHandler().addLayer(layer);
-    }
-
-    nodusMapPanel.getLayerHandler().setLayers();
+    layerOperations.addOpenMapLayers(props, localProperties, nodusMapPanel);
   }
 
   /**
@@ -338,17 +254,7 @@ public class NodusProject implements ShapeConstants {
    * @param layerName Tha name of the layer to clear.
    */
   public void clearLayer(String layerName) {
-    NodusEsriLayer layer = getLayer(layerName);
-    if (layer == null) {
-      System.err.println("Layer " + layerName + " not found.");
-      return;
-    }
-
-    // remove all the records
-    int n = layer.getEsriGraphicList().size();
-    for (int i = 0; i < n; i++) {
-      layer.removeRecord(0);
-    }
+    layerOperations.clearLayer(layerName);
   }
 
   /**
@@ -754,9 +660,7 @@ public class NodusProject implements ShapeConstants {
     nodusMapPanel.clearStoredObjects();
     nodusMapPanel.enableMenus(false);
 
-    otherNodeNumbers.clear();
-    otherLinkNumbers.clear();
-    otherObjectsLoaded = false;
+    layerIds.clear();
 
     ProjectLocker.releaseLock();
     isOpen = false;
@@ -879,9 +783,7 @@ public class NodusProject implements ShapeConstants {
     closeJdbcConnectionAfterFailedOpen();
     shutdownLocalDatabaseServer();
 
-    stylesProperties = null;
-    nodeStyle = null;
-    linkStyle = null;
+    styles.clear();
 
     ProjectLocker.releaseLock();
     nodusMapPanel.setFileMenuBusy(false);
@@ -970,9 +872,7 @@ public class NodusProject implements ShapeConstants {
       labelsLayer = null;
     }
 
-    nodeStyle = null;
-    linkStyle = null;
-    stylesProperties = null;
+    styles.clear();
     loggerHandler = null;
     databaseServer = null;
     projectResourceFileNameAndPath = null;
@@ -1035,84 +935,13 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * A set of default styles is embedded in the source tree. These are loaded if no
-   * "shapes.properties" file is found in the project directory.
-   *
-   * @return The default style properties.
-   */
-  private Properties getDefaultStyle() {
-    Properties p = new Properties();
-
-    try (InputStream in = NodusProject.class.getResourceAsStream("shapes.properties")) {
-      if (in == null) {
-        System.err.println("Resource not found: shapes.properties");
-        return null;
-      }
-
-      p.load(in);
-      return p;
-
-    } catch (IOException ioe) { // Should never happen
-      ioe.printStackTrace();
-      return null;
-    }
-  }
-
-  /**
    * Returns the node or link layer which pretty name or table name corresponds to the given name.
    *
    * @param name Pretty name or table name of the layer.
    * @return The corresponding layer or null if not found.
    */
   public NodusEsriLayer getLayer(String name) {
-
-    if (name == null) {
-      return null;
-    }
-
-    NodusEsriLayer layer = getLayerFromArray(nodeLayers, name);
-
-    if (layer != null) {
-      return layer;
-    }
-
-    return getLayerFromArray(linkLayers, name);
-  }
-
-  /**
-   * Returns the first layer in the given array whose layer name or table name matches the given
-   * name.
-   *
-   * @param layers the array of layers to search, may be {@code null}
-   * @param name the layer or table name to look for
-   * @return the matching layer, or {@code null} if none is found
-   */
-  private NodusEsriLayer getLayerFromArray(NodusEsriLayer[] layers, String name) {
-
-    if (layers == null) {
-      return null;
-    }
-
-    for (NodusEsriLayer element : layers) {
-
-      if (element == null) {
-        continue;
-      }
-
-      String layerName = element.getName();
-
-      if (layerName != null && layerName.equalsIgnoreCase(name)) {
-        return element;
-      }
-
-      String tableName = element.getTableName();
-
-      if (tableName != null && tableName.equalsIgnoreCase(name)) {
-        return element;
-      }
-    }
-
-    return null;
+    return layerOperations.getLayer(name, nodeLayers, linkLayers);
   }
 
   /**
@@ -1266,63 +1095,7 @@ public class NodusProject implements ShapeConstants {
    * @return The ID of its style.
    */
   public int getNbStyles(OMGraphic omg) {
-    if (omg instanceof EsriPolyline) {
-      if (linkStyle == null) {
-        return 0;
-      }
-
-      return linkStyle.length;
-    } else {
-      if (nodeStyle == null) {
-        return 0;
-      }
-
-      return nodeStyle.length;
-    }
-  }
-
-  /**
-   * Searches a new unique ID for a node or a link. Existent ID's are searched in the loaded layers,
-   * but also in all the Nodus compatible layers found in the project directory.
-   *
-   * @param layer The array of links or nodes layers.
-   * @return The ID of the new link or node.
-   */
-  private int getNewId(NodusEsriLayer[] layer) {
-    int num = 1;
-    boolean foundNewNumber = false;
-
-    // Get the already given numbers in external layers
-    HashMap<Integer, Integer> otherObjects;
-    if (layer[0].getType() == ShapeConstants.SHAPE_TYPE_POINT) {
-      otherObjects = nodusMapPanel.getNodusProject().getOtherNodeNumbers();
-    } else {
-      otherObjects = nodusMapPanel.getNodusProject().getOtherLinkNumbers();
-    }
-
-    while (!foundNewNumber) {
-
-      // Test if number was already given in an external layer
-      if (otherObjects.get(num) != null) {
-        num++;
-        continue;
-      }
-
-      int currentLayer = 0;
-
-      for (NodusEsriLayer element : layer) {
-        if (!element.numExists(num)) {
-          currentLayer++;
-        }
-      }
-
-      if (currentLayer == layer.length) {
-        foundNewNumber = true;
-      } else {
-        num++;
-      }
-    }
-    return num;
+    return styles.getNbStyles(omg);
   }
 
   /**
@@ -1331,7 +1104,7 @@ public class NodusProject implements ShapeConstants {
    * @return new link ID
    */
   public int getNewLinkId() {
-    return getNewId(linkLayers);
+    return layerIds.getNewId(nodusMapPanel, linkLayers);
   }
 
   /**
@@ -1340,7 +1113,7 @@ public class NodusProject implements ShapeConstants {
    * @return new node ID
    */
   public int getNewNodeId() {
-    return getNewId(nodeLayers);
+    return layerIds.getNewId(nodusMapPanel, nodeLayers);
   }
 
   /**
@@ -1368,7 +1141,7 @@ public class NodusProject implements ShapeConstants {
    * @return The hashmap of "other" links.
    */
   public HashMap<Integer, Integer> getOtherLinkNumbers() {
-    return otherLinkNumbers;
+    return layerIds.getOtherLinkNumbers();
   }
 
   /**
@@ -1378,7 +1151,7 @@ public class NodusProject implements ShapeConstants {
    * @return The hashmap of "other" nodes.
    */
   public HashMap<Integer, Integer> getOtherNodeNumbers() {
-    return otherNodeNumbers;
+    return layerIds.getOtherNodeNumbers();
   }
 
   /**
@@ -1423,19 +1196,7 @@ public class NodusProject implements ShapeConstants {
    * @return A NodusOMGraphic representing a style.
    */
   public NodusOMGraphic getStyle(OMGraphic omg, int index) {
-    if (omg instanceof EsriPolyline) {
-      if (linkStyle == null) {
-        return null;
-      }
-
-      return linkStyle[index];
-    } else {
-      if (nodeStyle == null) {
-        return null;
-      }
-
-      return nodeStyle[index];
-    }
+    return styles.getStyle(omg, index);
   }
 
   /**
@@ -1444,35 +1205,7 @@ public class NodusProject implements ShapeConstants {
    * @return The loaded properties or null on error
    */
   public Properties getStyleProperties() {
-
-    String fileName = null;
-
-    // Test if there is a shape.properties file specific to this project
-    if (localProperties != null) { // project didn't open
-      fileName = localProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH) + "shapes.properties";
-      File f = new File(fileName);
-
-      if (!f.exists()) {
-        // Use embedded styles...
-        return getDefaultStyle();
-      }
-    } else {
-      return getDefaultStyle();
-    }
-
-    // Load the project specific styles
-    Properties prop = new Properties();
-    try (FileInputStream inputStream = new FileInputStream(fileName)) {
-      prop.load(inputStream);
-    } catch (FileNotFoundException ex) {
-      ex.printStackTrace();
-      return null;
-    } catch (IOException ex) {
-      ex.printStackTrace();
-      return null;
-    }
-
-    return prop;
+    return styles.getStyleProperties(localProperties);
   }
 
   /** Returns the tokenized values of a whitespace-separated project property, or an empty list. */
@@ -1619,7 +1352,7 @@ public class NodusProject implements ShapeConstants {
           () ->
               runProjectOpenTask(
                   "Nodus-Project-LoadOtherLayers",
-                  this::loadOtherLayersObjectNumbers,
+                  () -> layerIds.loadOtherLayersObjectNumbers(nodeLayers, linkLayers),
                   () -> finishProjectOpen(layerPosition)));
       return;
     }
@@ -1814,21 +1547,7 @@ public class NodusProject implements ShapeConstants {
    * @return True if at least one layer was modified.
    */
   public boolean isDirty() {
-    boolean dirty = false;
-
-    for (NodusEsriLayer element : nodeLayers) {
-      if (element.isDirty()) {
-        dirty = true;
-      }
-    }
-
-    for (NodusEsriLayer element : linkLayers) {
-      if (element.isDirty()) {
-        dirty = true;
-      }
-    }
-
-    return dirty;
+    return layerOperations.isDirty(nodeLayers, linkLayers);
   }
 
   /**
@@ -1841,38 +1560,13 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Returns true if the name corresponds to a layer of the project.
-   *
-   * @param layerName The name of the shapefile containing the layer.
-   * @param type SHAPE_TYPE_POINT or SHAPE_TYPE_ARC.
-   * @return True if the layer is not associated to the project.
-   */
-  private boolean isOtherNodusLayer(String layerName, int type) {
-
-    NodusEsriLayer[] layer;
-
-    if (type == SHAPE_TYPE_POINT) {
-      layer = nodeLayers;
-    } else {
-      layer = linkLayers;
-    }
-
-    for (NodusEsriLayer element : layer) {
-      if (element.getTableName().equals(layerName)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /**
    * Returns true if the ID's of the nodes or links of the "non project" layers found in the
    * project's directory are loaded.
    *
    * @return True if the ID's are loaded.
    */
   public boolean isOtherObjectsLoaded() {
-    return otherObjectsLoaded;
+    return layerIds.isOtherObjectsLoaded();
   }
 
   /**
@@ -1941,57 +1635,6 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Loads the numbers of the objects of a layer in the given HashMap.
-   *
-   * @param layerName The name of the shapefile containing the layer.
-   * @param The HashMap used to store the ID's
-   */
-  private void loadObjectIDs(String layerName, HashMap<Integer, Integer> map) {
-
-    try (DBFReader dbfReader =
-        new DBFReader(
-            getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + layerName + NodusC.TYPE_DBF)) {
-      Object[] o;
-      if (dbfReader.isOpen()) {
-        while (dbfReader.hasNextRecord()) {
-          o = dbfReader.nextRecord();
-          int num = JDBCUtils.getInt(o[NodusC.DBF_IDX_NUM]);
-          map.put(num, num);
-        }
-      }
-    } catch (DBFException ex) {
-      ex.printStackTrace();
-    }
-  }
-
-  /**
-   * Scan the directory to find other Nodus compatible shapefiles, which object ID's will be stored.
-   */
-  private void loadOtherLayersObjectNumbers() {
-    otherObjectsLoaded = false;
-    // Scan all node layers
-    String[] layerName =
-        ProjectFilesTools.getAvailableLayers(
-            getLocalProperty(NodusC.PROP_PROJECT_DOTPATH), SHAPE_TYPE_POINT);
-    for (String element : layerName) {
-      if (isOtherNodusLayer(element, SHAPE_TYPE_POINT)) {
-        loadObjectIDs(element, otherNodeNumbers);
-      }
-    }
-
-    // Scan all link layers
-    layerName =
-        ProjectFilesTools.getAvailableLayers(
-            getLocalProperty(NodusC.PROP_PROJECT_DOTPATH), SHAPE_TYPE_POLYLINE);
-    for (String element : layerName) {
-      if (isOtherNodusLayer(element, SHAPE_TYPE_POLYLINE)) {
-        loadObjectIDs(element, otherLinkNumbers);
-      }
-    }
-    otherObjectsLoaded = true;
-  }
-
-  /**
    * Loads the styles for a given type of objects. Prefix can be "node" or "link". The drawing
    * attributes are stored in "shape.properties". This file can be modified to add or remove styles
    * for nodes or links. If no such file is found in the project's directory, the default file,
@@ -2001,43 +1644,7 @@ public class NodusProject implements ShapeConstants {
    * @return An array of NodusOMGraphics containing the styles.
    */
   public NodusOMGraphic[] loadStyles(String prefix) {
-    if (stylesProperties == null) {
-      return null;
-    }
-
-    LinkedList<NodusOMGraphic> ll = new LinkedList<>();
-    NodusOMGraphic model;
-
-    // Create default style
-    ll.add(new NodusOMGraphic());
-
-    // Open the properties file
-    NodusDrawingAttributes da = new NodusDrawingAttributes();
-    int index = 1;
-
-    while (true) {
-      if (stylesProperties.getProperty(prefix + index + ".name", null) == null) {
-        break;
-      }
-
-      da.setProperties(prefix + index + ".", stylesProperties);
-      model = new NodusOMGraphic();
-      model.setStroke(da.getStroke());
-      model.setDefaultLinePaint(da.getDefaultLinePaint());
-      model.setFillPaint(da.getFillPaint());
-      model.setLinePaint(da.getLinePaint());
-      model.setMatted(da.isMatted());
-      model.setMattingPaint(da.getMattingPaint());
-      model.setRadius(da.getRadius());
-      model.setOval(da.getOval());
-      model.setAltFillPaint(da.getAltFillPaint());
-      model.setAltLinePaint(da.getAltLinePaint());
-      model.setAltMattingPaint(da.getAltMattingPaint());
-      ll.add(model);
-      index++;
-    }
-
-    return ll.toArray(new NodusOMGraphic[ll.size()]);
+    return styles.loadStyles(prefix);
   }
 
   /**
@@ -2209,9 +1816,7 @@ public class NodusProject implements ShapeConstants {
     nodusMapPanel.setFileMenuBusy(true);
 
     // Load styles from property file
-    stylesProperties = getStyleProperties();
-    nodeStyle = loadStyles("node");
-    linkStyle = loadStyles("link");
+    styles.initialize(this);
 
     // Open a connection to a JDBC compliant db manager
 
@@ -2497,48 +2102,7 @@ public class NodusProject implements ShapeConstants {
    * @param scenario ID of the scenario to delete from database.
    */
   public void removeScenario(int scenario) {
-    String tableName;
-
-    // Virtual network
-    tableName = getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
-    tableName = getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenario;
-    if (JDBCUtils.tableExists(tableName)) {
-      JDBCUtils.dropTable(tableName);
-    }
-
-    // Paths
-    tableName = getLocalProperty(NodusC.PROP_PROJECT_DOTNAME);
-    tableName = getLocalProperty(NodusC.PROP_PATH_TABLE_PREFIX, tableName);
-
-    if (JDBCUtils.tableExists(tableName + scenario + NodusC.SUFFIX_HEADER)) {
-      JDBCUtils.dropTable(tableName + scenario + NodusC.SUFFIX_HEADER);
-    }
-
-    if (JDBCUtils.tableExists(tableName + scenario + NodusC.SUFFIX_DETAIL)) {
-      JDBCUtils.dropTable(tableName + scenario + NodusC.SUFFIX_DETAIL);
-    }
-
-    removeLocalProperty(NodusC.PROP_COST_FUNCTIONS + scenario);
-    removeLocalProperty(NodusC.PROP_OD_TABLE + scenario);
-    removeLocalProperty(NodusC.PROP_ASSIGNMENT_TAB + scenario);
-    removeLocalProperty(NodusC.PROP_ASSIGNMENT_METHOD + scenario);
-    removeLocalProperty(NodusC.PROP_ASSIGNMENT_NB_ITERATIONS + scenario);
-    removeLocalProperty(NodusC.PROP_ASSIGNMENT_PRECISION + scenario);
-    removeLocalProperty(NodusC.PROP_COST_MARKUP + scenario);
-    removeLocalProperty(NodusC.PROP_MAX_DETOUR + scenario);
-    removeLocalProperty(NodusC.PROP_THREADS + scenario);
-    removeLocalProperty(NodusC.PROP_ASSIGNMENT_MODAL_SPLIT_METHOD + scenario);
-    removeLocalProperty(NodusC.PROP_ASSIGNMENT_SAVE_PATHS + scenario);
-    removeLocalProperty(NodusC.PROP_ASSIGNMENT_SAVE_DETAILED_PATHS + scenario);
-    removeLocalProperty(NodusC.PROP_KEEP_CHEAPEST_INTERMODAL_PATH_ONLY + scenario);
-    removeLocalProperty(NodusC.PROP_ASSIGNMENT_LOG_LOST_PATHS + scenario);
-    removeLocalProperty(NodusC.PROP_ASSIGNMENT_RUN_POST_ASSIGNMENT_SCRIPT + scenario);
-    removeLocalProperty(NodusC.PROP_ASSIGNMENT_POST_ASSIGNMENT_SCRIPT + scenario);
-    removeLocalProperty(NodusC.PROP_ASSIGNMENT_LIMIT_TO_HIGHLIGHTED_AREA + scenario);
-    removeLocalProperty(NodusC.PROP_ASSIGNMENT_QUERY + scenario);
-    removeLocalProperty(NodusC.PROP_ASSIGNMENT_DESCRIPTION + scenario);
-
-    nodusMapPanel.updateScenarioComboBox(false);
+    scenarios.removeScenario(scenario);
   }
 
   /**
@@ -2560,78 +2124,7 @@ public class NodusProject implements ShapeConstants {
    * @param newNum New ID of the scenario.
    */
   public void renameScenario(int oldNum, int newNum) {
-    String tableName;
-
-    // Virtual network
-    tableName = getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
-    tableName = getLocalProperty(NodusC.PROP_VNET_TABLE, tableName);
-    if (JDBCUtils.tableExists(tableName + oldNum)) {
-      if (!JDBCUtils.tableExists(tableName + newNum)) {
-        JDBCUtils.renameTable(tableName + oldNum, tableName + newNum);
-      }
-    }
-
-    // Paths
-    tableName = getLocalProperty(NodusC.PROP_PROJECT_DOTNAME);
-    tableName = getLocalProperty(NodusC.PROP_PATH_TABLE_PREFIX, tableName);
-
-    if (JDBCUtils.tableExists(tableName + oldNum + NodusC.SUFFIX_HEADER)) {
-      if (!JDBCUtils.tableExists(tableName + newNum + NodusC.SUFFIX_HEADER)) {
-        JDBCUtils.renameTable(
-            tableName + oldNum + NodusC.SUFFIX_HEADER, tableName + newNum + NodusC.SUFFIX_HEADER);
-      }
-    }
-    if (JDBCUtils.tableExists(tableName + oldNum + NodusC.SUFFIX_DETAIL)) {
-      if (!JDBCUtils.tableExists(tableName + newNum + NodusC.SUFFIX_DETAIL)) {
-        JDBCUtils.renameTable(
-            tableName + oldNum + NodusC.SUFFIX_DETAIL, tableName + newNum + NodusC.SUFFIX_DETAIL);
-      }
-    }
-    renameLocalProperty(NodusC.PROP_COST_FUNCTIONS + oldNum, NodusC.PROP_COST_FUNCTIONS + newNum);
-    renameLocalProperty(NodusC.PROP_OD_TABLE + oldNum, NodusC.PROP_OD_TABLE + newNum);
-    renameLocalProperty(NodusC.PROP_ASSIGNMENT_TAB + oldNum, NodusC.PROP_ASSIGNMENT_TAB + newNum);
-    renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_METHOD + oldNum, NodusC.PROP_ASSIGNMENT_METHOD + newNum);
-    renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_NB_ITERATIONS + oldNum,
-        NodusC.PROP_ASSIGNMENT_NB_ITERATIONS + newNum);
-    renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_PRECISION + oldNum, NodusC.PROP_ASSIGNMENT_PRECISION + newNum);
-    renameLocalProperty(NodusC.PROP_COST_MARKUP + oldNum, NodusC.PROP_COST_MARKUP + newNum);
-    renameLocalProperty(NodusC.PROP_MAX_DETOUR + oldNum, NodusC.PROP_MAX_DETOUR + newNum);
-    renameLocalProperty(NodusC.PROP_THREADS + oldNum, NodusC.PROP_THREADS + newNum);
-    renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_MODAL_SPLIT_METHOD + oldNum,
-        NodusC.PROP_ASSIGNMENT_MODAL_SPLIT_METHOD + newNum);
-    renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_SAVE_PATHS + oldNum, NodusC.PROP_ASSIGNMENT_SAVE_PATHS + newNum);
-    renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_SAVE_DETAILED_PATHS + oldNum,
-        NodusC.PROP_ASSIGNMENT_SAVE_DETAILED_PATHS + newNum);
-    renameLocalProperty(
-        NodusC.PROP_KEEP_CHEAPEST_INTERMODAL_PATH_ONLY + oldNum,
-        NodusC.PROP_KEEP_CHEAPEST_INTERMODAL_PATH_ONLY + newNum);
-    renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_LOG_LOST_PATHS + oldNum,
-        NodusC.PROP_ASSIGNMENT_LOG_LOST_PATHS + newNum);
-    renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_RUN_POST_ASSIGNMENT_SCRIPT + oldNum,
-        NodusC.PROP_ASSIGNMENT_RUN_POST_ASSIGNMENT_SCRIPT + newNum);
-    renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_POST_ASSIGNMENT_SCRIPT + oldNum,
-        NodusC.PROP_ASSIGNMENT_POST_ASSIGNMENT_SCRIPT + newNum);
-    renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_LIMIT_TO_HIGHLIGHTED_AREA + oldNum,
-        NodusC.PROP_ASSIGNMENT_LIMIT_TO_HIGHLIGHTED_AREA + newNum);
-    renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_QUERY + oldNum, NodusC.PROP_ASSIGNMENT_QUERY + newNum);
-    renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_DESCRIPTION + oldNum, NodusC.PROP_ASSIGNMENT_DESCRIPTION + newNum);
-
-    // Change current scenario to new one
-    setLocalProperty(NodusC.PROP_SCENARIO, newNum);
-
-    getNodusMapPanel().updateScenarioComboBox(false);
+    scenarios.renameScenario(oldNum, newNum);
   }
 
   /**
@@ -2641,24 +2134,7 @@ public class NodusProject implements ShapeConstants {
    * imported in the database the next time the project will be opened.
    */
   public void rollBack() {
-    if (isOpen) {
-      nodusMapPanel.setBusy(true);
-
-      if (nodeLayers != null) {
-        for (NodusEsriLayer element : nodeLayers) {
-          element.rollback();
-        }
-      }
-
-      if (linkLayers != null) {
-        for (NodusEsriLayer element : linkLayers) {
-          element.rollback();
-        }
-      }
-
-      Nodus.nodusLogger.info("Rollback project");
-      nodusMapPanel.setBusy(false);
-    }
+    layerOperations.rollBack(isOpen, nodeLayers, linkLayers, nodusMapPanel);
   }
 
   /**
@@ -2673,25 +2149,7 @@ public class NodusProject implements ShapeConstants {
 
   /** Returns false if a layer could not be saved, keeping the project available for retry. */
   public boolean saveEsriLayersSafely() {
-    if (!isOpen()) {
-      return true;
-    }
-    getNodusMapPanel().setBusy(true);
-    try {
-      for (NodusEsriLayer[] layers : new NodusEsriLayer[][] {getNodeLayers(), getLinkLayers()}) {
-        if (layers != null) {
-          for (NodusEsriLayer layer : layers) {
-            if (!layer.saveChanges()) {
-              return false;
-            }
-          }
-        }
-      }
-      Nodus.nodusLogger.info("Save project");
-      return true;
-    } finally {
-      getNodusMapPanel().setBusy(false);
-    }
+    return layerOperations.saveEsriLayersSafely();
   }
 
   /** Saves the project's properties on disk. */
