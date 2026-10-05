@@ -277,6 +277,12 @@ for the workflow mechanism.
   on H2 and HSQLDB. Checks cancellation, dry runs, unsaved services, custom table prefixes,
   incomplete table sets and failed deletion. Accepted deletion clears loaded services without
   recreating tables on a subsequent save and preserves unrelated tables and network layers.
+  Headless dialog tests run the actual warning code for saved and unsaved services, capturing
+  only the Swing window call. They check the warning text, default Cancel choice, and handling
+  of Continue, Cancel and window closure before any deletion or network editing.
+- `ConsoleOutputBufferTest`: checks large output bursts without a display consumer, bounded
+  display batches, stdout/stderr colours and ordering, split Unicode characters, concurrent
+  writers, clear/save backlogs and stream shutdown. These tests do not open desktop windows.
 - `NetworkSimplifierMergeTest`: runs topology passes on real layers with shuffled input rows and
   all four retained-ID policies. Checks final geometry, conflict boundaries, dry runs, save/reload,
   and one label refresh per layer per pass on a long corridor. Optional timing measurements are

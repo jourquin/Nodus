@@ -20,9 +20,9 @@ package. Parameter estimation and demand assignment are separate operations.
    Missing rows and SQL NULL quantities count as zero. Duplicate records are summed.
 4. Choose fast or exact multi-flow routing, maximum detour and worker threads. Calibration always
    uses one route search per mode/means, without cost markup. The detour is a ratio (zero disables
-   its limit). **Log estimation details to terminal** optionally prints skipped OD records,
-   coverage statistics and fitted parameters. It is off by default and remembered per project;
-   the report is always saved in the cost file after successful estimation.
+   its limit). **Log estimation details to console** opens the Nodus console and prints
+   skipped OD records, coverage statistics and fitted parameters.
+   The report is always saved in the cost file after successful estimation.
 5. Click **Estimate**. Nodus computes available modal route costs, estimates each commodity group's
    model, and saves coefficients and diagnostics in the named output cost file. It stops there.
    The main window shows routing progress and an animated activity indicator during data
