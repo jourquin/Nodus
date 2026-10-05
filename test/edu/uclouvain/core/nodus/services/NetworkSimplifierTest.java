@@ -30,10 +30,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.testing.NetworkTestProject;
+import groovy.lang.DelegatingMetaClass;
 import groovy.lang.GroovyClassLoader;
+import groovy.lang.GroovySystem;
+import groovy.lang.MetaClass;
+import groovy.lang.MetaClassRegistry;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -45,6 +51,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -57,11 +64,14 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 /** Exercises the shipped Groovy service guard against real service handlers and databases. */
 @Tag("integration")
 @ResourceLock("JDBCUtils")
+@ResourceLock("JOptionPaneMetaClass")
 class NetworkSimplifierTest {
   @TempDir Path directory;
 
   private static GroovyClassLoader scriptLoader;
   private static Method prepare;
+  private static Method confirm;
+  private static Constructor<?> constructor;
 
   /** Compiles the entire script without executing its GUI entry point. */
   @BeforeAll
@@ -81,12 +91,15 @@ class NetworkSimplifierTest {
     }
     scriptLoader = new GroovyClassLoader(NetworkSimplifierTest.class.getClassLoader());
     scriptLoader.parseClass(script.toFile());
+    Class<?> type = scriptLoader.loadClass("SimplifyNetworks");
     prepare =
-        scriptLoader
-            .loadClass("SimplifyNetworks")
-            .getDeclaredMethod(
-                "prepareServiceLines", NodusProject.class, boolean.class, Predicate.class);
+        type.getDeclaredMethod(
+            "prepareServiceLines", NodusProject.class, boolean.class, Predicate.class);
     prepare.setAccessible(true);
+    confirm = type.getDeclaredMethod("confirmServiceDeletion", List.class);
+    confirm.setAccessible(true);
+    constructor = type.getDeclaredConstructor(NodusMapPanel.class, boolean.class);
+    constructor.setAccessible(true);
   }
 
   @AfterAll
@@ -118,6 +131,103 @@ class NetworkSimplifierTest {
                   DynamicTest.dynamicTest(
                       engine + "failed drop", () -> failedDropStopsBeforeDiscardingServices(hsql)));
             });
+  }
+
+  @TestFactory
+  Stream<DynamicTest> serviceWarningDialog() {
+    return Stream.of(false, true)
+        .flatMap(
+            saved ->
+                Stream.of(0, 1, JOptionPane.CLOSED_OPTION)
+                    .map(
+                        answer ->
+                            DynamicTest.dynamicTest(
+                                (saved ? "Saved" : "Unsaved")
+                                    + " services, dialog answer "
+                                    + answer,
+                                () -> actualWarningHonorsAnswer(saved, answer))));
+  }
+
+  /** Runs the real warning code; replaces only the Swing window with a captured user response. */
+  private void actualWarningHonorsAnswer(boolean saved, int answer) throws Exception {
+    try (NetworkTestProject project = project(false)) {
+      ServiceHandler handler = project.getServiceHandler();
+      TransportService service = createService(handler, saved);
+      final List<List<String>> before = saved ? snapshot(project) : List.of();
+      Object simplifier = constructor.newInstance(project.panel, false);
+      List<Object[]> dialogs = new ArrayList<>();
+      MetaClassRegistry registry = GroovySystem.getMetaClassRegistry();
+      MetaClass original = registry.getMetaClass(JOptionPane.class);
+      MetaClass capture =
+          new DelegatingMetaClass(original) {
+            @Override
+            public Object invokeStaticMethod(Object object, String name, Object[] arguments) {
+              if (!"showOptionDialog".equals(name)) {
+                return super.invokeStaticMethod(object, name, arguments);
+              }
+              assertTrue(SwingUtilities.isEventDispatchThread());
+              assertSame(service, handler.getService("Saved"));
+              for (String table : tableNames(handler)) {
+                assertEquals(saved, JDBCUtils.tableExists(table));
+              }
+              assertEquals(1, project.links.getModel().getRowCount());
+              assertEquals(2, project.nodes.getModel().getRowCount());
+              dialogs.add(arguments.clone());
+              return answer;
+            }
+          };
+      capture.initialize();
+      registry.setMetaClass(JOptionPane.class, capture);
+      try {
+        assertEquals(
+            answer == 0,
+            prepare(
+                project,
+                false,
+                tables -> {
+                  try {
+                    return (Boolean) confirm.invoke(simplifier, tables);
+                  } catch (ReflectiveOperationException ex) {
+                    throw new AssertionError("Cannot display the service warning", ex);
+                  }
+                }));
+      } finally {
+        registry.setMetaClass(JOptionPane.class, original);
+      }
+      assertEquals(1, dialogs.size());
+      Object[] dialog = dialogs.get(0);
+      assertSame(project.panel, dialog[0]);
+      String message = (String) dialog[1];
+      assertTrue(message.contains("Simplification can break their routes and stops"));
+      assertTrue(
+          message.contains("permanently delete ALL service lines, including unsaved changes"));
+      assertTrue(message.contains("Back up the database first."));
+      assertTrue(message.endsWith("Continue?"));
+      if (saved) {
+        assertTrue(message.contains(String.join("\n", tableNames(handler))));
+      } else {
+        assertTrue(message.contains("No saved tables; unsaved services will be discarded."));
+      }
+      assertEquals(NodusC.APPNAME, dialog[2]);
+      assertEquals(JOptionPane.YES_NO_OPTION, dialog[3]);
+      assertEquals(JOptionPane.WARNING_MESSAGE, dialog[4]);
+      assertEquals(
+          List.of("Delete service lines and continue", "Cancel"), List.of((Object[]) dialog[6]));
+      assertEquals("Cancel", dialog[7]);
+      if (answer == 0) {
+        assertFalse(handler.getServiceNamesIterator().hasNext());
+        assertNoServiceTables(handler);
+      } else {
+        assertSame(service, handler.getService("Saved"));
+        if (saved) {
+          assertEquals(before, snapshot(project));
+        } else {
+          assertNoServiceTables(handler);
+        }
+      }
+      assertEquals(1, project.links.getModel().getRowCount());
+      assertEquals(2, project.nodes.getModel().getRowCount());
+    }
   }
 
   private void decliningPreservesSavedAndUnsavedServices(boolean hsql) throws Exception {

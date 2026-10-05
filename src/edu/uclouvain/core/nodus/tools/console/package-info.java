@@ -9,6 +9,8 @@
  * <p>{@link edu.uclouvain.core.nodus.tools.console.NodusConsole} redirects {@code System.out} and
  * {@code System.err} to a text window with clear and save controls. Its cleanup releases the
  * console resources and restores the previous streams when they are still owned by this console.
+ * Output is buffered without reader threads or blocking pipes, then displayed in bounded batches
+ * on Swing's event thread. Clear also discards pending messages; Save includes the current backlog.
  *
  * <p>The console displays program output. SQL command execution belongs to {@link
  * edu.uclouvain.core.nodus.database.gui.SQLConsole}.

@@ -440,7 +440,8 @@ public final class SimplifyNetworks {
    * The caller runs this on the event thread; closing the dialog also cancels the operation.
    */
   private boolean confirmServiceDeletion(List<String> tables) {
-    String message =
+    // Keep the multiline concatenation in one Groovy expression.
+    String message = (
         "This project has service lines or service tables.\n"
         + "Simplification can break their routes and stops by removing links and nodes.\n\n"
         + "Continuing will permanently delete ALL service lines, including unsaved changes,\n"
@@ -448,7 +449,7 @@ public final class SimplifyNetworks {
         + (tables.isEmpty() ? "(No saved tables; unsaved services will be discarded.)" :
             String.join("\n", tables))
         + "\n\nShapefile backups do not include service tables. Back up the database first.\n"
-        + "Service lines must be recreated after simplification. Continue?";
+        + "Service lines must be recreated after simplification. Continue?");
     Object[] options = ["Delete service lines and continue", "Cancel"];
     return JOptionPane.showOptionDialog(
         nodusMapPanel, message, NodusC.APPNAME, JOptionPane.YES_NO_OPTION,
