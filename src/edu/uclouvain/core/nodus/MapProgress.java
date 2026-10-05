@@ -183,12 +183,14 @@ final class MapProgress {
 
   /** Preserves status-message ordering and updates the activity animation on the Swing thread. */
   private void displayProgress(ProgressEvent event, boolean indeterminate) {
-    infoDelegator.updateProgress(event);
-    if (event.getType() == ProgressEvent.UPDATE) {
-      return;
-    }
     Runnable update =
         () -> {
+          // OpenMap changes the Swing model synchronously. Keep those changes on the EDT along
+          // with renderer replacement, or Aqua's model listener can run during UI uninstallation.
+          infoDelegator.updateProgress(event);
+          if (event.getType() == ProgressEvent.UPDATE) {
+            return;
+          }
           javax.swing.JProgressBar bar = infoDelegator.getProgressBar();
           if (bar != null) {
             // Aqua's native indeterminate bar can appear empty on macOS. Swing's basic renderer

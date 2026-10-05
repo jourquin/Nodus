@@ -17,6 +17,8 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.JProgressBar;
 import javax.swing.LookAndFeel;
 import javax.swing.SwingUtilities;
@@ -133,6 +135,34 @@ class NodusMapPanelProgressTest {
         () -> {
           assertFalse(bar.isVisible());
           assertFalse(bar.isIndeterminate());
+        });
+  }
+
+  @Test
+  void progressModelChangesRunOnSwingThread() throws Exception {
+    AtomicBoolean changedOffSwingThread = new AtomicBoolean();
+    AtomicInteger changes = new AtomicInteger();
+    SwingUtilities.invokeAndWait(
+        () ->
+            bar.addChangeListener(
+                event -> {
+                  changes.incrementAndGet();
+                  if (!SwingUtilities.isEventDispatchThread()) {
+                    changedOffSwingThread.set(true);
+                  }
+                }));
+
+    panel.startProgress(10);
+    for (int step = 0; step < 10; step++) {
+      panel.updateProgress("Routing");
+    }
+    panel.stopProgress();
+    SwingUtilities.invokeAndWait(
+        () -> {
+          assertFalse(changedOffSwingThread.get(), "Progress model must only change on the EDT");
+          assertEquals(10, changes.get());
+          assertEquals(100, bar.getValue());
+          assertFalse(bar.isVisible());
         });
   }
 
