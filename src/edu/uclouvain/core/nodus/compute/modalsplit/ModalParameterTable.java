@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Savepoint;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Map;
 import java.util.Properties;
@@ -32,14 +33,38 @@ final class ModalParameterTable {
 
   private ModalParameterTable() {}
 
+  /** Uses the selected cost file's stem so its parameter table has a predictable name. */
+  static String nameForCostFile(String fileName) {
+    if (fileName == null || fileName.length() <= ".costs".length()
+        || !fileName.endsWith(".costs")) {
+      throw new IllegalArgumentException("Select a .costs file for modal choice estimation");
+    }
+    return validateName(fileName.substring(0, fileName.length() - ".costs".length())
+        + "_params");
+  }
+
   static String validateName(String name) {
     if (name == null || name.length() > 64
-        || !name.matches("[A-Za-z_][A-Za-z0-9_]*")) {
+        || !name.matches("[A-Za-z0-9_&()-][A-Za-z0-9_ &()-]*")) {
       throw new IllegalArgumentException(
-          "Enter a table name of at most 64 letters, digits or underscores "
-              + "(not starting with a digit)");
+          "The cost file name must produce a table name of at most 64 characters, "
+              + "using only letters, digits, spaces, underscores, hyphens, ampersands "
+              + "or parentheses (without a leading space)");
     }
     return name;
+  }
+
+  /** Quotes a validated identifier using the active database's own quote character. */
+  private static String quoted(Connection connection, String name) throws SQLException {
+    validateName(name);
+    if (name.matches("[A-Za-z_][A-Za-z0-9_]*")) {
+      return name;
+    }
+    String quote = connection.getMetaData().getIdentifierQuoteString();
+    if (quote == null || quote.isBlank()) {
+      throw new SQLException("This database cannot quote parameter table name: " + name);
+    }
+    return quote + name.replace(quote, quote + quote) + quote;
   }
 
   static boolean exists(Connection connection, String name) throws Exception {
@@ -59,10 +84,11 @@ final class ModalParameterTable {
     if (name == null || name.isBlank()) {
       return assignment.getCostFunctions(); // Existing projects retain their saved coefficient files.
     }
-    validateName(name);
+    Connection connection = assignment.getNodusProject().getMainJDBCConnection();
     Properties values = new Properties();
-    try (Statement statement = assignment.getNodusProject().getMainJDBCConnection().createStatement();
-        ResultSet rows = statement.executeQuery("SELECT param_key, param_value FROM " + name)) {
+    try (Statement statement = connection.createStatement();
+        ResultSet rows = statement.executeQuery(
+            "SELECT param_key, param_value FROM " + quoted(connection, name))) {
       while (rows.next()) {
         String key = rows.getString(1);
         String value = rows.getString(2);
@@ -82,10 +108,10 @@ final class ModalParameterTable {
   }
 
   static void checkSchema(Connection connection, String name) throws Exception {
-    validateName(name);
     try (Statement statement = connection.createStatement();
         ResultSet ignored = statement.executeQuery(
-            "SELECT param_key, param_value, param_type FROM " + name + " WHERE 1=0")) {
+            "SELECT param_key, param_value, param_type FROM " + quoted(connection, name)
+                + " WHERE 1=0")) {
       // A selected existing table must have the same key/value layout as the export.
     }
   }
@@ -134,7 +160,7 @@ final class ModalParameterTable {
   static void save(
       Connection connection, String name, Properties values,
       java.util.function.BooleanSupplier proceed) throws Exception {
-    validateName(name);
+    String table = quoted(connection, name);
     for (String key : values.stringPropertyNames()) {
       if (key.length() > MAX_KEY_LENGTH) {
         throw new IllegalArgumentException("Modal parameter key exceeds "
@@ -146,7 +172,7 @@ final class ModalParameterTable {
       checkSchema(connection, name);
     } else {
       try (Statement statement = connection.createStatement()) {
-        statement.executeUpdate("CREATE TABLE " + name + COLUMNS);
+        statement.executeUpdate("CREATE TABLE " + table + COLUMNS);
       }
     }
     boolean autoCommit = connection.getAutoCommit();
@@ -157,11 +183,11 @@ final class ModalParameterTable {
         savepoint = connection.setSavepoint();
       }
       try (Statement statement = connection.createStatement()) {
-        statement.executeUpdate("DELETE FROM " + name);
+        statement.executeUpdate("DELETE FROM " + table);
       }
       try (PreparedStatement insert =
           connection.prepareStatement(
-              "INSERT INTO " + name + " (param_key,param_value,param_type) VALUES (?,?,?)")) {
+              "INSERT INTO " + table + " (param_key,param_value,param_type) VALUES (?,?,?)")) {
         int count = 0;
         int batchChars = 0;
         for (Map.Entry<Object, Object> entry : values.entrySet()) {
@@ -199,7 +225,7 @@ final class ModalParameterTable {
       }
       if (!present) {
         try (Statement statement = connection.createStatement()) {
-          statement.executeUpdate("DROP TABLE IF EXISTS " + name);
+          statement.executeUpdate("DROP TABLE IF EXISTS " + table);
         } catch (Exception cleanup) {
           failure.addSuppressed(cleanup);
         }

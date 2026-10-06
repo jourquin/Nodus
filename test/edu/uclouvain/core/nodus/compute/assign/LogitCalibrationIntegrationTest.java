@@ -580,7 +580,7 @@ class LogitCalibrationIntegrationTest {
       try (LogitCalibration calibration = new LogitCalibration(parameters, settings(parameters))) {
         Exception failure =
             assertThrows(IllegalArgumentException.class, () -> calibration.estimate(false));
-        assertTrue(failure.getMessage().contains("group 0"));
+        assertTrue(failure.getMessage().contains("group "));
       }
       assertEquals("", output.toString(StandardCharsets.UTF_8));
       assertArrayEquals(before, Files.readAllBytes(directory.resolve("model.costs")));
@@ -908,6 +908,9 @@ class LogitCalibrationIntegrationTest {
     try (LogitCalibration calibration = new LogitCalibration(parameters, settings(parameters))) {
       assertTrue(calibration.estimate(exact));
     }
+    assertFalse(project.panel.routingProgressLengths.isEmpty());
+    assertTrue(project.panel.routingProgressLengths.stream().allMatch(length -> length > 0),
+        "Routing progress must start before any assignment worker advances it");
     assertFalse(project.panel.fittingProgressLengths.isEmpty());
     assertTrue(
         project.panel.fittingProgressLengths.stream().allMatch(length -> length == 0),

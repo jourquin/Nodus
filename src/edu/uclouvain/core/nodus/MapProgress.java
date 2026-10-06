@@ -43,7 +43,7 @@ final class MapProgress {
   /** Control variables for the displayed cursor. */
   private Cursor defaultBeanCursor = null;
   /** Control variables for the progress bar. */
-  private int taskLength = 0;
+  private volatile int taskLength = 0;
   /** True when task duration is unknown and progress checks must not advance a percentage. */
   private boolean indeterminateProgress;
   /** True while the portable activity animation replaces the native macOS progress renderer. */
@@ -107,7 +107,7 @@ final class MapProgress {
    * @param finishedValue The max value to reach; zero or negative selects an activity indicator for
    *     work whose total is unknown.
    */
-  void startProgress(int finishedValue) {
+  synchronized void startProgress(int finishedValue) {
     taskLength = Math.max(1, finishedValue);
     indeterminateProgress = finishedValue <= 0;
     currentTask = 0;
@@ -123,7 +123,7 @@ final class MapProgress {
    * Ends a ProgressBar. See OpenMap documentation for more details on the progress bar mechanism
    * implemented on the MapBean.
    */
-  void stopProgress() {
+  synchronized void stopProgress() {
     ProgressEvent evt = new ProgressEvent(panel.getMapBean(), ProgressEvent.DONE, "", 0, 0);
     indeterminateProgress = false;
     displayProgress(evt, false);
@@ -139,13 +139,15 @@ final class MapProgress {
    * <p>Every call still checks cancellation. Determinate tasks count each call as a step;
    * indeterminate tasks update only their status text. Expensive loops can avoid sending a GUI
    * event for every item while retaining accurate progress and prompt cancellation checks. The
-   * first and final steps are always displayed.
+   * first and final steps are always displayed. Large tasks also limit display events so the Swing
+   * queue can keep up with parallel workers. Calls are serialized to preserve every count and the
+   * order of progress events.
    *
    * @param msg The message to display.
    * @param displayInterval Number of steps between display updates; values below one mean one.
    * @return False if the user confirmed cancellation.
    */
-  boolean updateProgress(String msg, int displayInterval) {
+  synchronized boolean updateProgress(String msg, int displayInterval) {
     if (canceled) {
       canceled = false;
       if (JOptionPane.showConfirmDialog(
@@ -166,10 +168,11 @@ final class MapProgress {
     if (!indeterminateProgress) {
       currentTask++;
     }
-    if (displayInterval > 1
+    int effectiveInterval = Math.max(Math.max(1, displayInterval), taskLength / 250);
+    if (effectiveInterval > 1
         && currentTask > 1
         && currentTask < taskLength
-        && currentTask % displayInterval != 0) {
+        && currentTask % effectiveInterval != 0) {
       return true;
     }
 

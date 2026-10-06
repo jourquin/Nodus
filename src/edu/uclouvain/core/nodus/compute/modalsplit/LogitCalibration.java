@@ -75,9 +75,10 @@ import java.util.function.BooleanSupplier;
  *
  * <p>Each commodity group is fitted separately, pooling its OD classes while retaining their
  * class-specific route costs. The dialog stores successful estimates in a database parameter table,
- * writes diagnostics to a sibling {@code .params} file and adds only {@code @paramTable} to the
- * selected cost file. The earlier cost-file overloads remain available for existing scripted
- * callers. Successful saving also refreshes the caller's in-memory cost properties. The caller's
+ * writes diagnostics to a sibling file named {@code <cost-file-stem>_params.txt},
+ * and adds only {@code @paramTable} to the selected cost file. The earlier cost-file
+ * overloads remain available for existing scripted callers. Successful saving also refreshes the
+ * caller's in-memory cost properties. The caller's
  * assignment OD selection, scenario and routing controls remain unchanged. Exclusions apply only to
  * estimation and never filter a subsequent assignment's demand.
  *
@@ -181,8 +182,7 @@ public final class LogitCalibration implements AutoCloseable {
     outputTable = ModalParameterTable.validateName(table);
     estimatePivots = pivots;
     pivotMaxAbs = ModalParameterTable.validatePivotMaxAbs(maxAbs);
-    java.nio.file.Path report = parameters.getCostFunctionsPath().toAbsolutePath().getParent()
-        .resolve(outputTable + ".params");
+    java.nio.file.Path report = reportPath();
     if (Files.exists(report) && (!Files.isRegularFile(report) || !Files.isWritable(report))) {
       throw new java.io.IOException("Cannot replace estimation report: " + report);
     }
@@ -232,7 +232,7 @@ public final class LogitCalibration implements AutoCloseable {
     }
     if (observations.isEmpty()) {
       if (outputTable != null) {
-        writeReport(outputTable,
+        writeReport(
             method + " calibration: no usable OD observations remain. No coefficients were saved.\n"
                 + skippedSummary + skippedDetails);
       }
@@ -307,7 +307,7 @@ public final class LogitCalibration implements AutoCloseable {
         report.append("# Saved ").append(fitted.size()).append(" parameter rows in ")
             .append(String.format(Locale.ROOT, "%.3f", (System.nanoTime() - saveStarted) / 1e9))
             .append(" seconds.\n");
-        writeReport(outputTable, report.toString());
+        writeReport(report.toString());
       }
       Properties saved = outputTable == null
           ? LogitCostFile.save(target, original, fitted, report.toString(), method)
@@ -607,13 +607,25 @@ public final class LogitCalibration implements AutoCloseable {
     return result;
   }
 
-  private void writeReport(String table, String contents) throws Exception {
-    java.nio.file.Path directory = parameters.getCostFunctionsPath().toAbsolutePath().getParent();
-    java.nio.file.Path destination = directory.resolve(table + ".params");
+  private java.nio.file.Path reportPath() {
+    java.nio.file.Path costFile = parameters.getCostFunctionsPath().toAbsolutePath();
+    String name = costFile.getFileName().toString();
+    String stem = name.endsWith(".costs")
+        ? name.substring(0, name.length() - ".costs".length()) : name;
+    return costFile.resolveSibling(stem + "_params.txt");
+  }
+
+  private void writeReport(String contents) throws Exception {
+    java.nio.file.Path destination = reportPath();
+    java.nio.file.Path directory = destination.getParent();
     java.nio.file.Path temporary = Files.createTempFile(directory, ".nodus-params-", ".tmp");
     try {
       Files.writeString(temporary, contents, StandardCharsets.UTF_8);
       Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING);
+      if (!Files.isRegularFile(destination)
+          || !contents.equals(Files.readString(destination, StandardCharsets.UTF_8))) {
+        throw new java.io.IOException("Estimation report was not saved: " + destination);
+      }
     } finally {
       Files.deleteIfExists(temporary);
     }

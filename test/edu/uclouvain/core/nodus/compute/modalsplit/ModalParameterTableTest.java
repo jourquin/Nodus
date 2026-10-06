@@ -27,6 +27,23 @@ class ModalParameterTableTest {
   @TempDir Path directory;
 
   @Test
+  void costFileStemDeterminesTheParameterTableName() {
+    assertEquals("NodusEstimated_params",
+        ModalParameterTable.nameForCostFile("NodusEstimated.costs"));
+    assertEquals("lineas - Copy_params",
+        ModalParameterTable.nameForCostFile("lineas - Copy.costs"));
+    assertEquals("MoreBoxCox-best_params",
+        ModalParameterTable.nameForCostFile("MoreBoxCox-best.costs"));
+    assertEquals("123_params", ModalParameterTable.nameForCostFile("123.costs"));
+    assertThrows(IllegalArgumentException.class,
+        () -> ModalParameterTable.nameForCostFile("model.csv"));
+    assertThrows(IllegalArgumentException.class,
+        () -> ModalParameterTable.nameForCostFile("model.v2.costs"));
+    assertThrows(IllegalArgumentException.class,
+        () -> ModalParameterTable.nameForCostFile("x".repeat(58) + ".costs"));
+  }
+
+  @Test
   void pivotsAreBoundedAndRestoreOppositeObservedSharesForAllEmbeddedModels() {
     for (String method : List.of("MNL", "MNP", "Proportional")) {
       LogCostChoiceEstimate behavioral = new LogCostChoiceEstimate(
@@ -105,6 +122,29 @@ class ModalParameterTableTest {
                 "SELECT COUNT(*) FROM modal_params WHERE param_type='calibration'")) {
           rows.next();
           assertEquals(0, rows.getInt(1));
+        }
+      }
+    }
+  }
+
+  @Test
+  void costFileNamesWithSpacesAndHyphensWorkOnBothDatabases() throws Exception {
+    String table = ModalParameterTable.nameForCostFile("lineas - Copy.costs");
+    for (String jdbc : List.of("jdbc:h2:mem:", "jdbc:hsqldb:mem:")) {
+      try (Connection connection = DriverManager.getConnection(jdbc + UUID.randomUUID(), "sa", "")) {
+        Properties values = new Properties();
+        values.setProperty(ModalParameterTable.METHOD, "MNL");
+        ModalParameterTable.save(connection, table, values);
+        assertTrue(ModalParameterTable.exists(connection, table));
+        ModalParameterTable.checkSchema(connection, table);
+        values.setProperty("mnl.reference.0", "1");
+        ModalParameterTable.save(connection, table, values);
+        String quote = connection.getMetaData().getIdentifierQuoteString();
+        try (Statement statement = connection.createStatement();
+            ResultSet rows = statement.executeQuery(
+                "SELECT COUNT(*) FROM " + quote + table + quote)) {
+          assertTrue(rows.next());
+          assertEquals(2, rows.getInt(1));
         }
       }
     }

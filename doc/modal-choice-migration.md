@@ -49,23 +49,11 @@ of the package move.
 
 Estimation is a separate operation under **Project > Modal choice estimation**.
 It reads the selected cost file for route costs and fits only the selected embedded method
-using the mapped observed modal OD tables. Each run saves one parameter table (default name
-`modal_choice_params`). The table has `param_key`, `param_value` and `param_type`
-columns. The cost file receives a single `@paramTable=<table>` property; old embedded-model
-coefficients are removed from that file. The estimation report is saved beside it as
-`<table>.params`. The worker setting applies to both route-cost calculation and independent
-commodity-group parameter and pivot fitting. Completion plays the same success or failure sound
-as assignment. Subsequent assignments use their own selected cost file, OD matrix and modal
-choice method. To assign with the fitted parameters, select the updated cost file and its
-embedded modal method in the assignment dialog; estimation does not change scenario settings.
-
-The table layout follows the supplied `CalibratedODModalChoice` plugin, while the three embedded
-models keep their own coefficient namespaces. A table exported by the Python model contains `mc.*`
-coefficients for that plugin and cannot be assigned with an embedded model; the embedded model's
-table records its method as `@nodus.method`.
-The existing `modal_choice_params_model1`, `modal_choice_params_model2` and
-`modal_choice_params_model3` tables belong to the paper's three dataset examples; Nodus does not
-create all three in one estimation.
+using the mapped observed modal OD tables. Each run saves one parameter table named after the
+selected cost file: `NodusEstimated.costs` gives `NodusEstimated_params`.
+The table has `param_key`, `param_value` and `param_type` columns. 
+The cost file receives a single `@paramTable=<table>` property. The estimation report is saved beside it as
+`<cost-file-stem>_params.txt`, for example `NodusEstimated_params.txt`. To assign with the fitted parameters, select the (updated) cost file and its embedded modal method in the assignment dialog; estimation does not change scenario settings.
 
 Selecting **Estimate pivots** adds bounded utility constants for nonreference modes at the
 mode–origin–destination–commodity-group level. The behavioral coefficients are estimated first;

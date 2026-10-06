@@ -48,7 +48,6 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
-import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingWorker;
 
@@ -61,10 +60,11 @@ import javax.swing.SwingWorker;
  * command remains disabled while routing and fitting run. Completion never launches an assignment,
  * changes its OD selection or publishes scenario results.
  *
- * <p>Estimation uses the selected source cost file without numbered scenario overrides. The named
- * database table receives behavioral parameters and optional bounded OD/group pivots. A single
- * {@code @paramTable} key is written to the selected cost file, and diagnostics are saved in a
- * {@code table.params} file in the project directory. An existing table requires confirmation.
+ * <p>Estimation uses the selected source cost file without numbered scenario overrides. A database
+ * table named after the cost file receives behavioral parameters and optional bounded OD/group
+ * pivots. A single {@code @paramTable} key is written to the selected cost file, and diagnostics
+ * are saved as {@code <cost-file-stem>_params.txt} in the project directory. An existing table requires
+ * confirmation.
  * The isolated routing pass always performs one search per mode/means without cost markup. Legacy
  * scenario, iteration and markup preferences are ignored.
  *
@@ -96,8 +96,6 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
   private final JComboBox<String> method = new JComboBox<>();
   /** Existing project cost file supplying transport costs and receiving the table reference. */
   private final JComboBox<String> costFile = new JComboBox<>();
-  /** Database table receiving behavioral parameters and optional pivots. */
-  private final JTextField parameterTable = new JTextField();
   /** Fast or exact multi-flow algorithm used to compute modal route costs. */
   private final JComboBox<String> routing = new JComboBox<>();
   /** Adds bounded OD/group residual utilities after behavioral estimation. */
@@ -141,6 +139,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
       Arrays.sort(files);
       Arrays.stream(files).forEach(costFile::addItem);
     }
+    // Estimation keeps its own last-used file, even when Assignment selects another one.
     String previousFile =
         project.getLocalProperty(
             PREFIX + "costFile", project.getLocalProperty(NodusC.PROP_COST_FUNCTIONS, ""));
@@ -149,8 +148,6 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
         costFile.setSelectedIndex(index);
       }
     }
-    parameterTable.setText(
-        project.getLocalProperty(PREFIX + "parameterTable", "modal_choice_params"));
     detour = spinner("detour", 0, 0, 1000, 0.1);
     threads = spinner("threads", HardwareUtils.getNbCores(), 1, 1024, 1);
     double savedPivotMaxAbs = project.getLocalProperty(
@@ -190,13 +187,10 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
         costFile,
         "costFile",
         "<html>Choose the existing file supplying transport costs and receiving @paramTable."
+            + "<br>Its name without .costs plus _params names the parameter table."
             + "<br>Base and commodity/class definitions apply;"
             + " numbered scenario"
             + " overrides are ignored.</html>");
-    tooltip(
-        parameterTable,
-        "parameterTable",
-        "Name of the database table for the estimated parameters and optional pivots.");
     tooltip(
         routing,
         "routing",
@@ -215,7 +209,6 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     JPanel controls = new JPanel(new GridLayout(0, 2, 12, 8));
     addControl(controls, text("Method", "Modal-choice method:"), method);
     addControl(controls, text("Costs", "Source cost functions:"), costFile);
-    addControl(controls, text("ParameterTable", "Parameter table:"), parameterTable);
     addControl(controls, text("PivotMaxAbs", "Maximum absolute pivot:"), pivotMaxAbs);
     addControl(controls, text("Routing", "Route-cost computation:"), routing);
     addControl(controls, text("Detour", "Maximum detour ratio (0 = unlimited):"), detour);
@@ -327,7 +320,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
       parameters.setModalSplitMethodName(selectedMethod());
       selectedCostFile = costFile.getSelectedItem().toString();
       parameters.setCostFunctions(selectedCostFile);
-      table = ModalParameterTable.validateName(parameterTable.getText().trim());
+      table = ModalParameterTable.nameForCostFile(selectedCostFile);
       parameters.setMaxDetourRatio(((Number) detour.getValue()).doubleValue());
       parameters.setThreads(((Number) threads.getValue()).intValue());
     } catch (Exception failure) {
@@ -366,7 +359,6 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     project.setLocalProperty(PREFIX + "exact", exact);
     project.setLocalProperty(PREFIX + "detour", detour.getValue().toString());
     project.setLocalProperty(PREFIX + "threads", threads.getValue().toString());
-    project.setLocalProperty(PREFIX + "parameterTable", table);
     project.setLocalProperty(PREFIX + "estimatePivots", pivots);
     project.setLocalProperty(PREFIX + "pivotMaxAbs", Double.toString(maxAbs));
     mapPanel.getAssignmentMenuItem().setEnabled(false);

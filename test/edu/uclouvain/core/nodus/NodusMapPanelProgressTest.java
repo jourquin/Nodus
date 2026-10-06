@@ -14,8 +14,13 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -164,6 +169,48 @@ class NodusMapPanelProgressTest {
           assertEquals(100, bar.getValue());
           assertFalse(bar.isVisible());
         });
+  }
+
+  @Test
+  void parallelProgressCountsEveryStepWithoutFloodingSwing() throws Exception {
+    int workers = 8;
+    int stepsPerWorker = 500;
+    AtomicInteger displayed = new AtomicInteger();
+    AtomicInteger lastValue = new AtomicInteger(-1);
+    AtomicBoolean regressed = new AtomicBoolean();
+    SwingUtilities.invokeAndWait(() -> bar.addChangeListener(event -> {
+      displayed.incrementAndGet();
+      int current = bar.getValue();
+      if (current < lastValue.getAndSet(current)) {
+        regressed.set(true);
+      }
+    }));
+    panel.startProgress(workers * stepsPerWorker);
+    ExecutorService pool = Executors.newFixedThreadPool(workers);
+    CountDownLatch start = new CountDownLatch(1);
+    try {
+      List<Future<?>> jobs = new ArrayList<>();
+      for (int worker = 0; worker < workers; worker++) {
+        jobs.add(pool.submit(() -> {
+          start.await();
+          for (int step = 0; step < stepsPerWorker; step++) {
+            panel.updateProgress("Routing");
+          }
+          return null;
+        }));
+      }
+      start.countDown();
+      for (Future<?> job : jobs) {
+        job.get();
+      }
+      SwingUtilities.invokeAndWait(() -> {
+        assertEquals(100, bar.getValue());
+        assertFalse(regressed.get(), "Parallel updates must not move the bar backwards");
+        assertTrue(displayed.get() <= 300, "Long tasks should not enqueue every step");
+      });
+    } finally {
+      pool.shutdownNow();
+    }
   }
 
   @Test

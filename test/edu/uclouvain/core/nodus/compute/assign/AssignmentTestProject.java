@@ -49,6 +49,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -379,7 +380,8 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
     String cancelAt;
     int cancelAfterChecks = 1;
     final List<Integer> fittingProgressLengths = new ArrayList<>();
-    private int progressLength;
+    final List<Integer> routingProgressLengths = Collections.synchronizedList(new ArrayList<>());
+    private volatile int progressLength;
     private final List<Integer> assignmentMessageTypes = new ArrayList<>();
     private final SoundPlayer sounds =
         new SoundPlayer(false) {
@@ -397,6 +399,7 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
     void prepareRun(int threads) {
       workers.clear();
       fittingProgressLengths.clear();
+      routingProgressLengths.clear();
       started = new CountDownLatch(threads);
       completionSound = 0;
       assignmentMessageTypes.clear();
@@ -457,6 +460,9 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
         return false;
       }
       Thread worker = Thread.currentThread();
+      if (worker instanceof AssignmentWorker) {
+        routingProgressLengths.add(progressLength);
+      }
       if (worker instanceof AssignmentWorker && workers.add(worker)) {
         // Hold initial jobs until the requested number of workers have started.
         started.countDown();

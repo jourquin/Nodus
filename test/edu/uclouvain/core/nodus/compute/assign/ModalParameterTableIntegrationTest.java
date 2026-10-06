@@ -50,8 +50,9 @@ class ModalParameterTableIntegrationTest {
         assertFalse(estimation.estimateToTable(false, "empty_params", true));
       }
       assertTrue(java.util.Arrays.equals(original, Files.readAllBytes(file)));
-      assertTrue(Files.readString(directory.resolve("empty_params.params"))
+      assertTrue(Files.readString(directory.resolve("model_params.txt"))
           .contains("No coefficients were saved"));
+      assertFalse(Files.exists(directory.resolve("empty_params.params")));
       assertEquals(0, project.number("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES "
           + "WHERE TABLE_NAME='EMPTY_PARAMS'"));
     }
@@ -60,20 +61,24 @@ class ModalParameterTableIntegrationTest {
   @Test
   void behavioralOnlyEstimateStoresNoPivotRows() throws Exception {
     try (AssignmentTestProject project = project()) {
-      Files.writeString(directory.resolve("model.costs"),
+      Files.writeString(directory.resolve("model-test.costs"),
           "ld.1,1=0\nul.1,1=0\ntr.1,1=0\nmv.1,1=BASECOST\n"
               + "ld.2,1=0\nul.2,1=0\ntr.2,1=0\nmv.2,1=BASECOST\n");
       AssignmentParameters parameters = project.parameters(2);
-      parameters.setCostFunctions("model.costs");
+      parameters.setCostFunctions("model-test.costs");
       parameters.setModalSplitMethodName("MNL");
       project.panel.prepareRun(2);
       try (LogitCalibration estimation = new LogitCalibration(parameters,
           new LogitCalibrationSettings(1,
               Map.of(1, "observed_road", 2, "observed_rail")))) {
-        assertTrue(estimation.estimateToTable(false, "behavior_only", false));
+        assertTrue(estimation.estimateToTable(false, "model-test_params", false));
       }
       assertEquals(0, project.number(
-          "SELECT COUNT(*) FROM behavior_only WHERE param_type='calibration'"));
+          "SELECT COUNT(*) FROM \"model-test_params\" WHERE param_type='calibration'"));
+      assertTrue(Files.readString(directory.resolve("model-test.costs"))
+          .contains("@paramTable=model-test_params"));
+      assertTrue(Files.readString(directory.resolve("model-test_params.txt"))
+          .contains("# Model: MNL"));
       project.run(new FastMFAssignment(parameters), 2);
       assertEquals(900, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 1e-3);
     }
@@ -104,7 +109,7 @@ class ModalParameterTableIntegrationTest {
       Map<String, String> single = tableValues(project, "single_params");
       assertTrue(single.keySet().stream().anyMatch(key -> key.startsWith("pivot.")));
       assertEquals(single, tableValues(project, "parallel_params"));
-      String report = Files.readString(directory.resolve("parallel_params.params"));
+      String report = Files.readString(directory.resolve("parallel_params.txt"));
       assertTrue(report.indexOf("# Group 0:") < report.indexOf("# Group 1:"));
     }
   }
@@ -132,7 +137,7 @@ class ModalParameterTableIntegrationTest {
           String costs = Files.readString(costFile);
           assertTrue(costs.contains("@paramTable=" + table));
           assertTrue(costs.contains("# Transport cost expressions"));
-          assertTrue(Files.readString(directory.resolve(table + ".params"))
+          assertTrue(Files.readString(directory.resolve("model_params.txt"))
               .contains("Estimated bounded OD/group pivot constants"));
           assertTrue(project.number("SELECT COUNT(*) FROM " + table
               + " WHERE param_type='calibration'") > 0);

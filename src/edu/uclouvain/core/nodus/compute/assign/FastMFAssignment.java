@@ -171,6 +171,18 @@ public class FastMFAssignment extends Assignment {
         return false;
       }
 
+      // Start counting before workers can process the first origin.
+      int lengthOfTask = 0;
+      for (byte groupIndex = 0; groupIndex < (byte) virtualNet.getGroups().length; groupIndex++) {
+        for (int nodeIndex = 0; nodeIndex < virtualNet.getVirtualNodeLists().length; nodeIndex++) {
+          if (virtualNet.getVirtualNodeLists()[nodeIndex].hasDemandForGroup(
+              virtualNet.getGroups()[groupIndex], odClass)) {
+            lengthOfTask++;
+          }
+        }
+      }
+      nodusMapPanel.startProgress(lengthOfTask);
+
       // Create the work queue
       WorkQueue queue = new WorkQueue();
 
@@ -197,21 +209,6 @@ public class FastMFAssignment extends Assignment {
       for (int i = 0; i < assignmentWorkers.length; i++) {
         queue.addWork(WorkQueue.NO_MORE_WORK);
       }
-
-      // Initialize a progress monitor with the number of OD matrix rows to assign
-      int lengthOfTask = 0;
-
-      for (byte groupIndex = 0; groupIndex < (byte) virtualNet.getGroups().length; groupIndex++) {
-        for (int nodeIndex = 0; nodeIndex < virtualNet.getVirtualNodeLists().length; nodeIndex++) {
-          // Get the demand associated to this node and group
-          if (virtualNet.getVirtualNodeLists()[nodeIndex].hasDemandForGroup(
-              virtualNet.getGroups()[groupIndex], odClass)) {
-            lengthOfTask++;
-          }
-        }
-      }
-
-      nodusMapPanel.startProgress(lengthOfTask);
 
       // Wait until all the works are completed
       if (!waitForAssignmentWorkers()) {

@@ -16,7 +16,7 @@ import java.sql.ResultSet
 // quantities by mode, group, origin and destination. A zero denominator is undefined.
 String modeIds = "1,2,3"
 String modalTables = "od_road,od_iww,od_rail" // Same order as modeIds
-String pathHeaderTable = "demo_path5_header"
+String pathHeaderTable = "demo_path1_header"
 
 class ComputeWAPE_ {
 
