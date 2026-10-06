@@ -28,6 +28,9 @@ import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -44,9 +47,17 @@ import java.util.Properties;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 
 /**
- * Coordinates standalone modal estimation from observed OD tables through guarded cost-file saving.
+ * Coordinates standalone modal estimation from observed OD tables.
  *
  * <p>Despite its historical name, this workflow supports logit, probit and proportional cost
  * factors. {@link ModalChoiceEstimationDlg} supplies the selected method, cost file, observed-table
@@ -63,9 +74,10 @@ import java.util.concurrent.CancellationException;
  * route excludes the entire OD record from the fit, preserving the retained observations' shares.
  *
  * <p>Each commodity group is fitted separately, pooling its OD classes while retaining their
- * class-specific route costs. All groups must succeed before {@link LogitCostFile} updates the
- * selected output file. By default this is the source; saving under another name leaves the source
- * unchanged. Successful saving also refreshes the caller's in-memory cost properties. The caller's
+ * class-specific route costs. The dialog stores successful estimates in a database parameter table,
+ * writes diagnostics to a sibling {@code .params} file and adds only {@code @paramTable} to the
+ * selected cost file. The earlier cost-file overloads remain available for existing scripted
+ * callers. Successful saving also refreshes the caller's in-memory cost properties. The caller's
  * assignment OD selection, scenario and routing controls remain unchanged. Exclusions apply only to
  * estimation and never filter a subsequent assignment's demand.
  *
@@ -73,12 +85,12 @@ import java.util.concurrent.CancellationException;
  * owns its scratch table but borrows the project's JDBC connection, which it never closes. The
  * caller must serialize computations using the project's assignment resources; this workflow is not
  * reentrant. Routing workers share the observation map only while its keys are stable and own
- * distinct OD records. Fitting resumes after those workers have joined.
+ * distinct OD records. After routing, independent commodity groups fit on a bounded worker pool.
+ * Workers share no JDBC connection; the coordinating thread saves the completed result once.
  *
  * <p>Preparation and fitting report indeterminate progress; routing reports its own progress.
  * Cancellation is propagated as {@link CancellationException}, not a failed statistical fit.
- * Optional terminal logging controls diagnostics only; a successful cost-file report is always
- * written. Closing after success, failure or cancellation removes the scratch demand table.
+ * Closing after success, failure or cancellation removes the scratch demand table.
  */
 public final class LogitCalibration implements AutoCloseable {
   private final AssignmentParameters parameters;
@@ -87,38 +99,39 @@ public final class LogitCalibration implements AutoCloseable {
   private final Map<String, Observation> observations = new LinkedHashMap<>();
   private final int[] modes;
   private final String method;
-  private final boolean logToTerminal;
+  private String outputTable;
+  private boolean estimatePivots;
+  private double pivotMaxAbs = ModalParameterTable.DEFAULT_PIVOT_MAX_ABS;
+  private final StringBuilder skippedDetails = new StringBuilder();
   private String temporaryTable;
 
   /**
-   * Creates a standalone estimator with terminal logging enabled for scripted callers.
+   * Creates a standalone estimator.
    *
    * @param parameters cost file, modal method, detour and threads; scenario, routing iterations,
    *     markup and OD selection are not used
    * @param settings observed modal tables and reference mode
    */
   public LogitCalibration(AssignmentParameters parameters, LogitCalibrationSettings settings) {
-    this(parameters, settings, true);
+    this(parameters, settings, false);
   }
 
   /**
    * Creates a standalone estimator; no assignment is launched and no scenario is replaced.
    *
-   * <p>Terminal logging is independent of the report saved in the cost file. Disabling it
-   * suppresses skipped-OD details, coverage summaries and fitted parameters on stdout, without
-   * changing the fitted model, saved report or error handling.
+   * <p>The former terminal-logging argument is ignored; diagnostics are saved with the estimate.
    *
    * @param parameters cost file, modal method, detour and threads; scenario, routing iterations,
    *     markup and OD selection are not used
    * @param settings observed modal tables and reference mode
-   * @param logToTerminal whether to print estimation diagnostics and results in the terminal
+   * @param logToTerminal retained for binary compatibility; ignored
    */
+  @Deprecated
   public LogitCalibration(
       AssignmentParameters parameters, LogitCalibrationSettings settings, boolean logToTerminal) {
     this.parameters = parameters;
     method = parameters.getModalSplitMethodName();
     this.settings = settings;
-    this.logToTerminal = logToTerminal;
     connection = parameters.getNodusProject().getMainJDBCConnection();
     modes = settings.getTables().keySet().stream().mapToInt(Integer::intValue).toArray();
   }
@@ -155,6 +168,26 @@ public final class LogitCalibration implements AutoCloseable {
    */
   public boolean estimate(boolean exact, java.nio.file.Path output) throws Exception {
     return estimate(exact, LogitCostFile.target(parameters.getCostFunctionsPath(), output));
+  }
+
+  /** Fits the behavioral model and optional OD/group pivots into a named parameter table. */
+  public boolean estimateToTable(boolean exact, String table, boolean pivots) throws Exception {
+    return estimateToTable(exact, table, pivots, ModalParameterTable.DEFAULT_PIVOT_MAX_ABS);
+  }
+
+  /** Fits the selected model with an optional user-chosen bound on OD/group pivots. */
+  public boolean estimateToTable(boolean exact, String table, boolean pivots, double maxAbs)
+      throws Exception {
+    outputTable = ModalParameterTable.validateName(table);
+    estimatePivots = pivots;
+    pivotMaxAbs = ModalParameterTable.validatePivotMaxAbs(maxAbs);
+    java.nio.file.Path report = parameters.getCostFunctionsPath().toAbsolutePath().getParent()
+        .resolve(outputTable + ".params");
+    if (Files.exists(report) && (!Files.isRegularFile(report) || !Files.isWritable(report))) {
+      throw new java.io.IOException("Cannot replace estimation report: " + report);
+    }
+    return estimate(exact,
+        LogitCostFile.target(parameters.getCostFunctionsPath(), parameters.getCostFunctionsPath()));
   }
 
   /** Runs a dialog-approved save using the destination snapshot captured before confirmation. */
@@ -198,10 +231,11 @@ public final class LogitCalibration implements AutoCloseable {
       parameters.getNodusProject().getNodusMapPanel().stopProgress();
     }
     if (observations.isEmpty()) {
-      log(
-          method
-              + " calibration: no usable OD observations remain. "
-              + "No coefficients were saved.");
+      if (outputTable != null) {
+        writeReport(outputTable,
+            method + " calibration: no usable OD observations remain. No coefficients were saved.\n"
+                + skippedSummary + skippedDetails);
+      }
       return false;
     }
     Map<Integer, List<Observation>> groups = new TreeMap<>();
@@ -232,33 +266,54 @@ public final class LogitCalibration implements AutoCloseable {
     report.append("# SEs use original quantities as frequency weights; not robust/clustered.\n");
     parameters.getNodusProject().getNodusMapPanel().startProgress(0);
     try {
-      for (Map.Entry<Integer, List<Observation>> entry : groups.entrySet()) {
-        int group = entry.getKey();
-        checkCancelled("Estimating " + method + " for group " + group);
-        double[][] costs = entry.getValue().stream().map(row -> row.costs).toArray(double[][]::new);
-        double[][] quantities =
-            entry.getValue().stream().map(row -> row.quantities).toArray(double[][]::new);
-        try {
-          estimateGroup(group, costs, quantities, fitted, report);
-        } catch (CancellationException cancelled) {
-          // CancellationException is an IllegalStateException, but is not a failed fit.
-          throw cancelled;
-        } catch (IllegalArgumentException | IllegalStateException failure) {
-          throw new IllegalArgumentException(
-              method
-                  + " group "
-                  + group
-                  + ": "
-                  + failure.getMessage()
-                  + "\nNo estimated coefficients have been saved.",
-              failure);
-        }
+      Map<Integer, GroupFit> results = fitGroups(groups, fitted);
+      int pivotCount = 0;
+      for (GroupFit result : results.values()) {
+        report.append(result.report);
+        pivotCount += result.pivots;
       }
       checkCancelled("Saving " + method + " coefficients");
-      Properties saved = LogitCostFile.save(target, original, fitted, report.toString(), method);
+      report.append(skippedDetails);
+      if (outputTable != null) {
+        fitted.setProperty(ModalParameterTable.METHOD, method);
+        fitted.setProperty(ModalParameterTable.PIVOTS, Boolean.toString(estimatePivots));
+        if (estimatePivots) {
+          fitted.setProperty(ModalParameterTable.PIVOT_MAX_ABS, Double.toString(pivotMaxAbs));
+        }
+        report.append("# Pivot calibration: ")
+            .append(estimatePivots ? "mode_od_group, 80 iterations maximum, damping=0.7, "
+                + "maximum step=2, absolute bound=" + pivotMaxAbs + ", epsilon=1e-6 tonnes"
+                : "disabled")
+            .append('\n');
+        if (estimatePivots) {
+          report.append("# Estimated bounded OD/group pivot constants: ")
+              .append(pivotCount).append('\n');
+        }
+        java.util.TreeSet<String> reportedKeys = new java.util.TreeSet<>();
+        for (String key : fitted.stringPropertyNames()) {
+          if (!key.startsWith("pivot.")) {
+            reportedKeys.add(key);
+          }
+        }
+        for (String key : reportedKeys) {
+          report.append(key).append('=').append(fitted.getProperty(key)).append('\n');
+        }
+        target.checkUnchanged();
+        long saveStarted = System.nanoTime();
+        ModalParameterTable.save(connection, outputTable, fitted,
+            () -> !Thread.currentThread().isInterrupted()
+                && parameters.getNodusProject().getNodusMapPanel()
+                    .updateProgress("Saving modal parameters"));
+        report.append("# Saved ").append(fitted.size()).append(" parameter rows in ")
+            .append(String.format(Locale.ROOT, "%.3f", (System.nanoTime() - saveStarted) / 1e9))
+            .append(" seconds.\n");
+        writeReport(outputTable, report.toString());
+      }
+      Properties saved = outputTable == null
+          ? LogitCostFile.save(target, original, fitted, report.toString(), method)
+          : LogitCostFile.saveParameterTable(target, outputTable);
       parameters.getCostFunctions().clear();
       parameters.getCostFunctions().putAll(saved);
-      log(report.toString());
     } finally {
       parameters.getNodusProject().getNodusMapPanel().stopProgress();
     }
@@ -271,7 +326,7 @@ public final class LogitCalibration implements AutoCloseable {
    * <p>Coverage denominators use the original observations in each group/mode scope. Excluded
    * quantity includes both genuinely unroutable flow and otherwise routable flow discarded with the
    * same record. Modal record counts include positive modal demand only. The returned report is
-   * preserved for the cost file even when terminal logging is disabled.
+   * preserved for the estimation report.
    */
   private String skipUnroutableObservations() throws Exception {
     final int total = observations.size();
@@ -308,9 +363,8 @@ public final class LogitCalibration implements AutoCloseable {
         groupModes[mode].add(row.quantities[mode], missingQuantity, excluded);
       }
       if (excluded) {
-        if (logToTerminal) {
-          log(
-              method
+        skippedDetails.append(
+              "# " + method
                   + " calibration: skipping OD record: group="
                   + row.group
                   + ", org="
@@ -322,8 +376,7 @@ public final class LogitCalibration implements AutoCloseable {
                   + "; no admissible route for mode(s) "
                   + String.join(", ", missing)
                   + "; excluded quantity across all modes="
-                  + row.total());
-        }
+                  + row.total() + "\n");
         skipped.add(row);
         iterator.remove();
       }
@@ -362,15 +415,7 @@ public final class LogitCalibration implements AutoCloseable {
             group.getValue()[mode]);
       }
     }
-    log(diagnostics.toString());
     return diagnostics.toString();
-  }
-
-  /** Emits optional terminal output without affecting the report written to the cost file. */
-  private void log(String message) {
-    if (logToTerminal) {
-      System.out.println(message);
-    }
   }
 
   /** Allocates independent counters in the fixed ascending mode-column order. */
@@ -380,8 +425,107 @@ public final class LogitCalibration implements AutoCloseable {
     return result;
   }
 
+  /** Fits each independent commodity group, including its optional pivots, on the worker pool. */
+  private Map<Integer, GroupFit> fitGroups(
+      Map<Integer, List<Observation>> groups, Properties fitted) throws Exception {
+    int workers = Math.max(1, Math.min(parameters.getThreads(), groups.size()));
+    ExecutorService pool = Executors.newFixedThreadPool(workers);
+    ExecutorCompletionService<GroupFit> completed = new ExecutorCompletionService<>(pool);
+    AtomicBoolean active = new AtomicBoolean(true);
+    Map<Integer, GroupFit> results = new TreeMap<>();
+    try {
+      for (Map.Entry<Integer, List<Observation>> entry : groups.entrySet()) {
+        checkCancelled("Estimating " + method + " for group " + entry.getKey());
+        final int group = entry.getKey();
+        final List<Observation> rows = entry.getValue();
+        completed.submit(() -> fitGroup(group, rows, fitted,
+            () -> active.get() && !Thread.currentThread().isInterrupted()));
+      }
+      for (int remaining = groups.size(); remaining > 0; remaining--) {
+        Future<GroupFit> future;
+        do {
+          checkCancelled("Estimating " + method + " for group parameters");
+          future = completed.poll(200, TimeUnit.MILLISECONDS);
+        } while (future == null);
+        GroupFit result = future.get();
+        results.put(result.group, result);
+      }
+      return results;
+    } catch (ExecutionException failed) {
+      Throwable cause = failed.getCause();
+      if (cause instanceof Error) {
+        throw (Error) cause;
+      }
+      if (cause instanceof Exception) {
+        throw (Exception) cause;
+      }
+      throw new IllegalStateException(cause);
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+      throw new CancellationException(method + " calibration canceled");
+    } finally {
+      active.set(false);
+      pool.shutdownNow();
+      try {
+        pool.awaitTermination(5, TimeUnit.SECONDS);
+      } catch (InterruptedException interrupted) {
+        Thread.currentThread().interrupt();
+      }
+    }
+  }
+
+  /** Each worker writes only its own group's keys and returns its report for ordered assembly. */
+  private GroupFit fitGroup(
+      int group, List<Observation> rows, Properties fitted, BooleanSupplier proceed)
+      throws Exception {
+    if (!proceed.getAsBoolean()) {
+      throw new CancellationException(method + " calibration canceled");
+    }
+    double[][] costs = rows.stream().map(row -> row.costs).toArray(double[][]::new);
+    double[][] quantities = rows.stream().map(row -> row.quantities).toArray(double[][]::new);
+    StringBuilder groupReport = new StringBuilder();
+    Properties groupCoefficients = new Properties();
+    try {
+      LogCostChoiceEstimate behavioral =
+          estimateGroup(group, costs, quantities, groupCoefficients, groupReport, proceed);
+      for (String key : groupCoefficients.stringPropertyNames()) {
+        fitted.setProperty(key, groupCoefficients.getProperty(key));
+      }
+      int pivots = 0;
+      if (outputTable != null && estimatePivots) {
+        List<ModalPivotEstimator.Row> pivotRows = new ArrayList<>(rows.size());
+        for (Observation row : rows) {
+          pivotRows.add(new ModalPivotEstimator.Row(
+              row.group, row.origin, row.destination, row.costs, row.quantities));
+        }
+        pivots = ModalPivotEstimator.estimate(pivotRows, Map.of(group, behavioral), modes,
+            Arrays.binarySearch(modes, settings.getReferenceMode()), method, pivotMaxAbs, fitted,
+            proceed);
+      }
+      return new GroupFit(group, groupReport.toString(), pivots);
+    } catch (CancellationException cancelled) {
+      throw cancelled;
+    } catch (IllegalArgumentException | IllegalStateException failure) {
+      throw new IllegalArgumentException(
+          method + " group " + group + ": " + failure.getMessage()
+              + "\nNo estimated coefficients have been saved.", failure);
+    }
+  }
+
+  private static final class GroupFit {
+    final int group;
+    final String report;
+    final int pivots;
+
+    GroupFit(int group, String report, int pivots) {
+      this.group = group;
+      this.report = report;
+      this.pivots = pivots;
+    }
+  }
+
   /**
-   * Appends one scope's coverage line using the same original-demand denominators as the terminal.
+   * Appends one scope's coverage line using the original-demand denominators.
    */
   private void appendCoverage(StringBuilder report, String scope, RouteStatistics statistics) {
     report
@@ -401,16 +545,10 @@ public final class LogitCalibration implements AutoCloseable {
    * cancellation separately. Model-specific export keeps namespaces separate and reports
    * uncertainty on the displayed scale.
    */
-  private void estimateGroup(
-      int group, double[][] costs, double[][] quantities, Properties fitted, StringBuilder report)
+  private LogCostChoiceEstimate estimateGroup(
+      int group, double[][] costs, double[][] quantities, Properties fitted, StringBuilder report,
+      BooleanSupplier proceed)
       throws Exception {
-    java.util.function.BooleanSupplier proceed =
-        () ->
-            !Thread.currentThread().isInterrupted()
-                && parameters
-                    .getNodusProject()
-                    .getNodusMapPanel()
-                    .updateProgress("Estimating " + method + " for group " + group);
     int reference = Arrays.binarySearch(modes, settings.getReferenceMode());
     final LogCostChoiceEstimate result;
     final String referenceKey;
@@ -457,7 +595,7 @@ public final class LogitCalibration implements AutoCloseable {
           .append("# Cost-factor SEs (delta method): ")
           .append(Arrays.toString(proportional.getCostFactorStandardErrors()))
           .append('\n');
-      return;
+      return result;
     }
     report
         .append("# Intercept SEs (modes ")
@@ -466,6 +604,19 @@ public final class LogitCalibration implements AutoCloseable {
         .append(Arrays.toString(result.getInterceptStandardErrors()))
         .append('\n');
     report.append("# Log-cost SE=").append(result.getCostStandardError()).append('\n');
+    return result;
+  }
+
+  private void writeReport(String table, String contents) throws Exception {
+    java.nio.file.Path directory = parameters.getCostFunctionsPath().toAbsolutePath().getParent();
+    java.nio.file.Path destination = directory.resolve(table + ".params");
+    java.nio.file.Path temporary = Files.createTempFile(directory, ".nodus-params-", ".tmp");
+    try {
+      Files.writeString(temporary, contents, StandardCharsets.UTF_8);
+      Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING);
+    } finally {
+      Files.deleteIfExists(temporary);
+    }
   }
 
   /**

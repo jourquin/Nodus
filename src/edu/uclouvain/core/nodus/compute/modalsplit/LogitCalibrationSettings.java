@@ -44,7 +44,7 @@ import org.json.simple.JSONValue;
  * <p>{@link #encode()} and {@link #decode(String)} persist the mapping under {@link #PROPERTY} as
  * JSON, including table names containing spaces or punctuation. Decoding accepts the observed-data
  * portion of legacy settings, ignoring their former assignment/estimation flags. Model selection,
- * cost file, routing controls and optional logging belong to the enclosing dialog's preferences.
+ * cost file and routing controls belong to the enclosing dialog's preferences.
  */
 public final class LogitCalibrationSettings {
   /** Project property containing only the observed-table mapping and reference selection. */

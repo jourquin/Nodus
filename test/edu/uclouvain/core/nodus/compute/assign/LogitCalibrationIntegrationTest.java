@@ -364,7 +364,7 @@ class LogitCalibrationIntegrationTest {
   }
 
   @Test
-  void optionalTerminalLoggingPreservesCoefficientsAndSavedCoverage() throws Exception {
+  void estimationWritesCoverageWithoutConsoleLogging() throws Exception {
     for (boolean probit : new boolean[] {false, true}) {
       Properties quietCoefficients = null;
       for (boolean logging : new boolean[] {false, true}) {
@@ -380,17 +380,14 @@ class LogitCalibrationIntegrationTest {
               new LogitCalibration(parameters, settings(parameters), logging)) {
             assertTrue(calibration.estimate(probit));
           }
-          String log = output.toString(StandardCharsets.UTF_8);
+          assertEquals("", output.toString(StandardCharsets.UTF_8));
           if (logging) {
-            assertTrue(log.contains("skipping OD record:"));
-            assertTrue(log.contains("calibration coverage [all groups/modes]"));
-            assertTrue(log.contains("# Group 0:"));
             assertEquals(quietCoefficients, parameters.getCostFunctions());
           } else {
-            assertEquals("", log);
             quietCoefficients = (Properties) parameters.getCostFunctions().clone();
           }
           String report = Files.readString(directory.resolve("model.costs"));
+          assertTrue(report.contains("skipping OD record:"));
           assertTrue(report.contains("calibration coverage [all groups/modes]"));
           assertTrue(report.contains("skipped 2 of 6 OD records"));
           assertTrue(report.contains("# Group 0:"));
@@ -469,7 +466,7 @@ class LogitCalibrationIntegrationTest {
       assertEquals(1020, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 1e-3);
       assertEquals(10, project.number("SELECT COUNT(*) FROM mini_paths1_header"));
       assertCoverage(
-          output.toString(StandardCharsets.UTF_8),
+          Files.readString(directory.resolve("model.costs")),
           "all groups/modes",
           "skipped records=0/6 (0.000%)",
           "observed quantity=1020.0",
@@ -499,15 +496,15 @@ class LogitCalibrationIntegrationTest {
   }
 
   @Test
-  void cancellationInsideEitherSolverIsNotReportedAsAFailedFit() throws Exception {
+  void cancellationDuringEitherParallelFitIsNotReportedAsAFailedFit() throws Exception {
     for (boolean probit : new boolean[] {false, true}) {
       try (AssignmentTestProject project = project()) {
         final AssignmentParameters parameters =
             probit ? probitParameters(project) : parameters(project);
         project.panel.prepareRun(2);
         project.panel.cancelAt = "Estimating " + (probit ? "MNP" : "MNL") + " for group";
-        // Let the pre-group check pass, then cancel from inside the solver's callback.
-        project.panel.cancelAfterChecks = 2;
+        // Let both groups be submitted, then cancel while waiting for fitted results.
+        project.panel.cancelAfterChecks = 3;
         project.execute("CREATE TABLE mini_paths1_header (sentinel INT)");
         project.execute("INSERT INTO mini_paths1_header VALUES (37)");
         byte[] before = Files.readAllBytes(directory.resolve("model.costs"));
@@ -585,13 +582,7 @@ class LogitCalibrationIntegrationTest {
             assertThrows(IllegalArgumentException.class, () -> calibration.estimate(false));
         assertTrue(failure.getMessage().contains("group 0"));
       }
-      assertCoverage(
-          output.toString(StandardCharsets.UTF_8),
-          "mode=2",
-          "skipped records=0/0 (n/a)",
-          "observed quantity=0.0",
-          "excluded quantity=0.0 (n/a)",
-          "unroutable quantity=0.0 (n/a)");
+      assertEquals("", output.toString(StandardCharsets.UTF_8));
       assertArrayEquals(before, Files.readAllBytes(directory.resolve("model.costs")));
       assertEquals(23, project.number("SELECT sentinel FROM mini_paths1_header"));
       assertNoTemporaryTables(project);
@@ -615,7 +606,7 @@ class LogitCalibrationIntegrationTest {
             project.execute("INSERT INTO observed_road VALUES (0,1,2,15,1), (0,99,100,5,0)");
             project.execute("INSERT INTO observed_rail VALUES (0,99,100,7,0)");
             estimate(project, parameters, exact);
-            String log = output.toString(StandardCharsets.UTF_8);
+            String log = Files.readString(directory.resolve("model.costs"));
             assertEquals(
                 3, log.lines().filter(line -> line.contains("skipping OD record:")).count());
             assertTrue(log.contains("group=0, org=1, dst=2, class=0"));
@@ -662,12 +653,7 @@ class LogitCalibrationIntegrationTest {
                 "unroutable quantity=5.0 (1.136%)",
                 "other excluded quantity=20.0");
             String costFile = Files.readString(directory.resolve("model.costs"));
-            log.lines()
-                .filter(
-                    line ->
-                        line.startsWith(
-                            parameters.getModalSplitMethodName() + " calibration coverage ["))
-                .forEach(line -> assertTrue(costFile.contains("# " + line)));
+            assertTrue(costFile.contains("calibration coverage [all groups/modes]"));
             assertTrue(
                 Files.readString(directory.resolve("model.costs"))
                     .contains("skipped 3 of 8 OD records"));
@@ -707,7 +693,7 @@ class LogitCalibrationIntegrationTest {
             selectObservedDemand(project, parameters);
             project.run(
                 exact ? new ExactMFAssignment(parameters) : new FastMFAssignment(parameters), 2);
-            String log = output.toString(StandardCharsets.UTF_8);
+            String log = Files.readString(directory.resolve("model.costs"));
             assertTrue(log.contains("skipped 2 of 6 OD records"));
             assertTrue(log.contains("Exclusions apply only to estimation"));
             assertEquals(
@@ -780,16 +766,7 @@ class LogitCalibrationIntegrationTest {
             new LogitCalibration(parameters, settings(parameters))) {
           assertFalse(calibration.estimate(false));
         }
-        String log = output.toString(StandardCharsets.UTF_8);
-        assertEquals(6, log.lines().filter(line -> line.contains("skipping OD record:")).count());
-        assertTrue(log.contains("skipped 6 of 6 OD records"));
-        assertTrue(log.contains("no usable OD observations remain"));
-        assertCoverage(
-            log,
-            "all groups/modes",
-            "skipped records=6/6 (100.000%)",
-            "excluded quantity=" + (probit ? "680.0" : "1110.0") + " (100.000%)",
-            "other excluded quantity=" + (probit ? "560.0" : "840.0"));
+        assertEquals("", output.toString(StandardCharsets.UTF_8));
         assertArrayEquals(before, Files.readAllBytes(directory.resolve("model.costs")));
         assertEquals(61, project.number("SELECT sentinel FROM mini_paths1_header"));
         assertEquals("mini_od", parameters.getODMatrix());

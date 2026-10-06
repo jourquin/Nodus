@@ -29,8 +29,8 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
-import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import edu.uclouvain.core.nodus.utils.HardwareUtils;
+import edu.uclouvain.core.nodus.utils.SoundPlayer;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -61,24 +61,24 @@ import javax.swing.SwingWorker;
  * command remains disabled while routing and fitting run. Completion never launches an assignment,
  * changes its OD selection or publishes scenario results.
  *
- * <p>Calibration uses the selected source cost file without numbered scenario overrides. The output
- * filename defaults to that source; another existing output requires confirmation before fitting
- * starts. Only the output receives estimated parameters, using the source as its basis. Its
- * isolated routing pass always performs one search per mode/means without cost markup. Legacy
+ * <p>Estimation uses the selected source cost file without numbered scenario overrides. The named
+ * database table receives behavioral parameters and optional bounded OD/group pivots. A single
+ * {@code @paramTable} key is written to the selected cost file, and diagnostics are saved in a
+ * {@code table.params} file in the project directory. An existing table requires confirmation.
+ * The isolated routing pass always performs one search per mode/means without cost markup. Legacy
  * scenario, iteration and markup preferences are ignored.
  *
  * <p>Construct and show the dialog on Swing's event dispatch thread. Controls hold a draft until
  * Estimate validates it, persists project-level preferences and acquires the shared computation
  * slot by disabling Assignment. The dialog then closes and a {@link SwingWorker} runs the {@link
- * LogitCalibration} workflow; completion restores the menu and presents the outcome on the event
+ * LogitCalibration} workflow; completion restores the menu and plays the outcome sound on the event
  * thread. Closing this dialog before starting discards draft edits. Once started, the main progress
  * control handles cancellation and no partial coefficients are saved.
  *
  * <p>{@link LogitCalibrationPanel} owns the observed-table editor and reference selection; {@link
  * ModalChoiceFormula} displays the selected model's equations. The model selector stores stable
  * short names, not translated captions. Preferences under {@code modalChoiceEstimation.} are
- * separate from assignment scenarios. Console diagnostics are opt-in, while the successful
- * cost-file report is always written. No field in this dialog overrides assignment demand.
+ * separate from assignment scenarios. No field in this dialog overrides assignment demand.
  */
 public final class ModalChoiceEstimationDlg extends EscapeDialog {
   private static final long serialVersionUID = -3764840165326503487L;
@@ -88,23 +88,25 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
   private static final String[] METHODS = {"MNL", "MNP", "Proportional"};
   /** Translation service for labels, tooltips and estimation messages. */
   private final I18n i18n = Environment.getI18n();
-  /** Main window providing progress, cancellation, assignment access and completion messages. */
+  /** Main window providing progress, cancellation, assignment access and sounds. */
   private final NodusMapPanel mapPanel;
   /** Open project supplying observed tables, cost files and saved estimation preferences. */
   private final NodusProject project;
   /** Model selector whose index maps to the stable identifiers in {@link #METHODS}. */
   private final JComboBox<String> method = new JComboBox<>();
-  /** Existing project cost file supplying transport costs and the basis of the saved output. */
+  /** Existing project cost file supplying transport costs and receiving the table reference. */
   private final JComboBox<String> costFile = new JComboBox<>();
-  /** Output filename in the project directory, initially matching the selected source. */
-  private final JTextField outputFile = new JTextField();
+  /** Database table receiving behavioral parameters and optional pivots. */
+  private final JTextField parameterTable = new JTextField();
   /** Fast or exact multi-flow algorithm used to compute modal route costs. */
   private final JComboBox<String> routing = new JComboBox<>();
-  /** Opt-in console diagnostics; the successful cost-file report is always written. */
-  private final JCheckBox logToConsole = new JCheckBox();
+  /** Adds bounded OD/group residual utilities after behavioral estimation. */
+  private final JCheckBox estimatePivots = new JCheckBox();
+  /** Maximum absolute utility correction fitted for each nonreference mode. */
+  private final JSpinner pivotMaxAbs;
   /** Maximum admissible route-length ratio; zero disables the detour limit. */
   private final JSpinner detour;
-  /** Routing-worker count; parameter fitting itself runs sequentially. */
+  /** Worker count for routing and independent commodity-group fits. */
   private final JSpinner threads;
   /** Draft mapping of modes to observed OD tables, including the reference mode selection. */
   private final LogitCalibrationPanel observations;
@@ -147,25 +149,26 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
         costFile.setSelectedIndex(index);
       }
     }
-    outputFile.setText((String) costFile.getSelectedItem());
-    costFile.addActionListener(event -> outputFile.setText((String) costFile.getSelectedItem()));
+    parameterTable.setText(
+        project.getLocalProperty(PREFIX + "parameterTable", "modal_choice_params"));
     detour = spinner("detour", 0, 0, 1000, 0.1);
     threads = spinner("threads", HardwareUtils.getNbCores(), 1, 1024, 1);
-    logToConsole.setText(text("LogToConsole", "Log estimation details to console"));
-    // Keep the legacy preference key for existing projects.
-    logToConsole.setSelected(project.getLocalProperty(PREFIX + "logToTerminal", false));
-    logToConsole.addActionListener(
-        event -> {
-          if (logToConsole.isSelected()) {
-            openConsole();
-          }
-        });
+    double savedPivotMaxAbs = project.getLocalProperty(
+        PREFIX + "pivotMaxAbs", ModalParameterTable.DEFAULT_PIVOT_MAX_ABS);
+    if (!Double.isFinite(savedPivotMaxAbs) || savedPivotMaxAbs <= 0) {
+      savedPivotMaxAbs = ModalParameterTable.DEFAULT_PIVOT_MAX_ABS;
+    }
+    pivotMaxAbs = new JSpinner(new SpinnerNumberModel(savedPivotMaxAbs, 0.0, null, 0.5));
+    tooltip(pivotMaxAbs, "pivotMaxAbs",
+        "Maximum absolute pivot utility; enter a positive value (default 8).");
+    estimatePivots.setText(text("EstimatePivots", "Estimate pivots"));
+    estimatePivots.setSelected(project.getLocalProperty(PREFIX + "estimatePivots", false));
+    pivotMaxAbs.setEnabled(estimatePivots.isSelected());
+    estimatePivots.addActionListener(event -> pivotMaxAbs.setEnabled(estimatePivots.isSelected()));
     tooltip(
-        logToConsole,
-        "logToConsole",
-        "<html>Print skipped OD records, coverage statistics and estimated parameters"
-            + " in the console.<br>The estimation report is always saved in the cost"
-            + " file after a successful fit.</html>");
+        estimatePivots,
+        "estimatePivots",
+        "Add bounded utility constants for each mode, OD pair and commodity group.");
     LogitCalibrationSettings settings = LogitCalibrationSettings.NONE;
     try {
       settings =
@@ -182,20 +185,18 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     tooltip(
         method,
         "method",
-        "Choose the modal model to estimate: logit, probit or proportional cost factors.");
+        "Each run estimates only the selected method using all mapped modal OD tables.");
     tooltip(
         costFile,
         "costFile",
-        "<html>Choose the existing file supplying transport costs and the basis of the output."
+        "<html>Choose the existing file supplying transport costs and receiving @paramTable."
             + "<br>Base and commodity/class definitions apply;"
             + " numbered scenario"
             + " overrides are ignored.</html>");
     tooltip(
-        outputFile,
-        "outputFile",
-        "<html>Name of the cost file to save in the project directory."
-            + "<br>Keep the source name to update it, or enter another name to keep the source."
-            + "<br>Replacing a different existing file requires confirmation.</html>");
+        parameterTable,
+        "parameterTable",
+        "Name of the database table for the estimated parameters and optional pivots.");
     tooltip(
         routing,
         "routing",
@@ -209,12 +210,13 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     tooltip(
         threads,
         "threads",
-        "<html>Set the number of workers used to compute route costs."
-            + "<br>Parameter fitting runs sequentially.</html>");
+        "<html>Set the number of workers used for route costs and"
+            + " commodity-group parameter fitting.</html>");
     JPanel controls = new JPanel(new GridLayout(0, 2, 12, 8));
     addControl(controls, text("Method", "Modal-choice method:"), method);
     addControl(controls, text("Costs", "Source cost functions:"), costFile);
-    addControl(controls, text("OutputCosts", "Save cost functions as:"), outputFile);
+    addControl(controls, text("ParameterTable", "Parameter table:"), parameterTable);
+    addControl(controls, text("PivotMaxAbs", "Maximum absolute pivot:"), pivotMaxAbs);
     addControl(controls, text("Routing", "Route-cost computation:"), routing);
     addControl(controls, text("Detour", "Maximum detour ratio (0 = unlimited):"), detour);
     addControl(controls, text("Threads", "Worker threads:"), threads);
@@ -228,7 +230,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     specification.add(heading, BorderLayout.NORTH);
     specification.add(formula, BorderLayout.CENTER);
     JPanel bottom = new JPanel(new BorderLayout(0, 10));
-    bottom.add(logToConsole, BorderLayout.NORTH);
+    bottom.add(estimatePivots, BorderLayout.NORTH);
     bottom.add(specification, BorderLayout.CENTER);
     final JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
     JButton cancel = new JButton(text("Cancel", "Cancel"));
@@ -237,8 +239,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     tooltip(
         estimate,
         "estimate",
-        "<html>Compute modal costs, estimate parameters and save them in the"
-            + " output cost file.<br>Assignment remains a separate operation.</html>");
+        "Compute modal costs and save estimated parameters in the database table.");
     estimate.setEnabled(costFile.getItemCount() > 0);
     cancel.addActionListener(event -> dispose());
     estimate.addActionListener(event -> startEstimation());
@@ -309,33 +310,24 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     final LogitCalibrationSettings settings;
     final AssignmentParameters parameters = new AssignmentParameters(project);
     final boolean exact = routing.getSelectedIndex() == 1;
-    final boolean logging = logToConsole.isSelected();
-    final LogitCostFile.Target target;
+    final boolean pivots = estimatePivots.isSelected();
+    final String table;
+    final String selectedCostFile;
+    final double maxAbs;
     try {
       settings = observations.getSettings();
       for (JSpinner spinner : new JSpinner[] {detour, threads}) {
         spinner.commitEdit();
       }
+      if (pivots) {
+        pivotMaxAbs.commitEdit();
+      }
+      maxAbs = ModalParameterTable.validatePivotMaxAbs(
+          ((Number) pivotMaxAbs.getValue()).doubleValue());
       parameters.setModalSplitMethodName(selectedMethod());
-      parameters.setCostFunctions(costFile.getSelectedItem().toString());
-      String name = outputFile.getText().trim();
-      if (name.isEmpty()
-          || name.contains("/")
-          || name.contains("\\")
-          || new File(name).isAbsolute()
-          || name.equals(".")
-          || name.equals("..")) {
-        throw new IllegalArgumentException(
-            text("InvalidOutputName", "Enter a cost filename in the project directory."));
-      }
-      if (!name.endsWith(".costs")) {
-        name += ".costs";
-      }
-      outputFile.setText(name);
-      target =
-          LogitCostFile.target(
-              parameters.getCostFunctionsPath(),
-              new File(project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH), name).toPath());
+      selectedCostFile = costFile.getSelectedItem().toString();
+      parameters.setCostFunctions(selectedCostFile);
+      table = ModalParameterTable.validateName(parameterTable.getText().trim());
       parameters.setMaxDetourRatio(((Number) detour.getValue()).doubleValue());
       parameters.setThreads(((Number) threads.getValue()).intValue());
     } catch (Exception failure) {
@@ -346,12 +338,22 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     if (!mapPanel.getAssignmentMenuItem().isEnabled()) {
       return;
     }
-    if (target.requiresConfirmation()
+    boolean tableExists;
+    try {
+      tableExists = ModalParameterTable.exists(project.getMainJDBCConnection(), table);
+      if (tableExists) {
+        ModalParameterTable.checkSchema(project.getMainJDBCConnection(), table);
+      }
+    } catch (Exception failure) {
+      JOptionPane.showMessageDialog(this, failure.getMessage(), getTitle(), JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+    if (tableExists
         && JOptionPane.showConfirmDialog(
                 this,
-                text("OverwriteOutput", "The output cost file already exists. Replace it?")
+                text("OverwriteTable", "The parameter table already exists. Replace its contents?")
                     + "\n"
-                    + target.file,
+                    + table,
                 getTitle(),
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE)
@@ -360,21 +362,20 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     }
     project.setLocalProperty(LogitCalibrationSettings.PROPERTY, settings.encode());
     project.setLocalProperty(PREFIX + "method", selectedMethod());
-    project.setLocalProperty(PREFIX + "costFile", costFile.getSelectedItem().toString());
+    project.setLocalProperty(PREFIX + "costFile", selectedCostFile);
     project.setLocalProperty(PREFIX + "exact", exact);
     project.setLocalProperty(PREFIX + "detour", detour.getValue().toString());
     project.setLocalProperty(PREFIX + "threads", threads.getValue().toString());
-    project.setLocalProperty(PREFIX + "logToTerminal", logging);
-    if (logging) {
-      openConsole();
-    }
+    project.setLocalProperty(PREFIX + "parameterTable", table);
+    project.setLocalProperty(PREFIX + "estimatePivots", pivots);
+    project.setLocalProperty(PREFIX + "pivotMaxAbs", Double.toString(maxAbs));
     mapPanel.getAssignmentMenuItem().setEnabled(false);
     dispose();
     new SwingWorker<Boolean, Void>() {
       @Override
       protected Boolean doInBackground() throws Exception {
-        try (LogitCalibration calibration = new LogitCalibration(parameters, settings, logging)) {
-          return calibration.estimate(exact, target);
+        try (LogitCalibration calibration = new LogitCalibration(parameters, settings)) {
+          return calibration.estimateToTable(exact, table, pivots, maxAbs);
         }
       }
 
@@ -384,38 +385,25 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
         mapPanel.resetText();
         try {
           if (get()) {
-            mapPanel.showAssignmentMessage(
-                text("Saved", "Parameters saved to:")
-                    + "\n"
-                    + target.file
-                    + "\n"
-                    + text("Finished", "Estimation finished. You can now launch an assignment."),
-                JOptionPane.INFORMATION_MESSAGE);
+            mapPanel.getSoundPlayer().play(SoundPlayer.SOUND_OK);
           } else {
-            mapPanel.showAssignmentMessage(
-                text("Empty", "No usable observations remain. No coefficients were saved.")
-                    + (logging
-                        ? "\n" + text("SeeConsole", "See the console for coverage details.")
-                        : ""),
-                JOptionPane.WARNING_MESSAGE);
+            mapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
           }
         } catch (InterruptedException failure) {
           Thread.currentThread().interrupt();
+          mapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
         } catch (ExecutionException failure) {
           if (!(failure.getCause() instanceof CancellationException)) {
             mapPanel.showAssignmentMessage(
                 failure.getCause().getMessage(), JOptionPane.ERROR_MESSAGE);
           }
+          mapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
         } catch (CancellationException cancelled) {
           // Cancellation leaves previous coefficients and scenario results untouched.
+          mapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
         }
       }
     }.execute();
-  }
-
-  /** Opens the console before estimation output, including when the saved option is selected. */
-  private void openConsole() {
-    new NodusConsole(project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
   }
 
   private String text(String key, String fallback) {

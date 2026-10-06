@@ -306,4 +306,83 @@ final class LogitCostFile {
     return key.matches("(?:\\(intercept\\)|log\\(cost\\))\\.\\d+\\.\\d+")
         || key.matches("mnl\\.reference\\.\\d+");
   }
+
+  /** Replaces old embedded estimates with the single database-table reference. */
+  static Properties saveParameterTable(Target target, String table) throws IOException {
+    ModalParameterTable.validateName(table);
+    target.checkUnchanged();
+    String source = new String(target.original, StandardCharsets.ISO_8859_1);
+    String newline = source.contains("\r\n") ? "\r\n" : "\n";
+    StringBuilder preserved = new StringBuilder();
+    StringBuilder logical = new StringBuilder();
+    boolean generated = false;
+    for (String line : source.split("(?<=\n)", -1)) {
+      String trimmed = line.strip();
+      if (trimmed.startsWith("# BEGIN NODUS ESTIMATED ")) {
+        generated = true;
+      }
+      if (generated) {
+        if (trimmed.startsWith("# END NODUS ESTIMATED ")) {
+          generated = false;
+        }
+        continue;
+      }
+      logical.append(line);
+      String content = line.replaceFirst("[\\r\\n]+$", "");
+      int slashes = 0;
+      for (int i = content.length() - 1; i >= 0 && content.charAt(i) == '\\'; i--) {
+        slashes++;
+      }
+      if (slashes % 2 == 1 && !trimmed.startsWith("#") && !trimmed.startsWith("!")) {
+        continue;
+      }
+      preserveNonModalParameter(preserved, logical.toString());
+      logical.setLength(0);
+    }
+    if (generated) {
+      throw new IOException("Unterminated generated modal estimation section");
+    }
+    if (logical.length() > 0) {
+      preserveNonModalParameter(preserved, logical.toString());
+    }
+    if (preserved.length() > 0 && preserved.charAt(preserved.length() - 1) != '\n') {
+      preserved.append(newline);
+    }
+    preserved.append(ModalParameterTable.POINTER).append('=').append(table).append(newline);
+    byte[] replacement = preserved.toString().getBytes(StandardCharsets.ISO_8859_1);
+    Path temporary = Files.createTempFile(target.file.getParent(), ".nodus-params-", ".tmp");
+    try {
+      Files.write(temporary, replacement);
+      try {
+        Files.setPosixFilePermissions(
+            temporary, Files.getPosixFilePermissions(target.file));
+      } catch (UnsupportedOperationException ignored) {
+        // Filesystems without POSIX permissions retain their defaults.
+      }
+      target.checkUnchanged();
+      if (Thread.currentThread().isInterrupted()) {
+        throw new java.util.concurrent.CancellationException("Modal estimation canceled");
+      }
+      Files.move(temporary, target.file, StandardCopyOption.ATOMIC_MOVE,
+          StandardCopyOption.REPLACE_EXISTING);
+    } finally {
+      Files.deleteIfExists(temporary);
+    }
+    Properties result = new Properties();
+    result.load(new ByteArrayInputStream(replacement));
+    return result;
+  }
+
+  private static void preserveNonModalParameter(StringBuilder output, String block)
+      throws IOException {
+    Properties parsed = new Properties();
+    parsed.load(new StringReader(block));
+    if (parsed.stringPropertyNames().stream().noneMatch(key ->
+        key.equals(ModalParameterTable.POINTER)
+            || isCoefficient(key, "MNL")
+            || isCoefficient(key, "MNP")
+            || isCoefficient(key, "Proportional"))) {
+      output.append(block);
+    }
+  }
 }

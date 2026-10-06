@@ -25,6 +25,7 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import java.util.Arrays;
 import java.util.List;
@@ -39,8 +40,9 @@ import java.util.Properties;
  * among routes of the same mode remain unchanged. Calibrated groups require unimodal alternatives,
  * matching the estimator's cost collection. Legacy uncalibrated intermodal splitting is supported.
  *
- * <p>The file keys are {@code proportional.costFactor.mode.group} and {@code
- * proportional.reference.group}. Any entry for a group makes it calibrated: missing factors for
+ * <p>The estimated keys are {@code proportional.costFactor.mode.group} and {@code
+ * proportional.reference.group}. They are read from the table named by {@code @paramTable}, or from
+ * the cost file for an older project. Any entry for a group makes it calibrated: missing factors for
  * available modes then fail instead of defaulting to one. A group with no entries starts with all
  * factors one, independently of factors loaded for the previous group. The reference mode may be
  * unavailable for a particular OD; its factor only establishes the overall cost scale.
@@ -57,6 +59,9 @@ public class Proportional extends ModalSplitMethod {
   private static final I18n i18n = Environment.getI18n();
   private double[] logFactors = new double[NodusC.MAXMM];
   private boolean calibrated;
+  private Properties choiceParameters;
+  private boolean usePivots;
+  private double pivotMaxAbs;
 
   /**
    * Associates this modal split with a project.
@@ -77,6 +82,16 @@ public class Proportional extends ModalSplitMethod {
     return i18n.get(ModalSplitMethod.class, "Proportional", "Proportional");
   }
 
+  @Override
+  public void initialize(AssignmentParameters assignmentParameters) {
+    super.initialize(assignmentParameters);
+    choiceParameters = ModalParameterTable.load(assignmentParameters, getName());
+    usePivots = Boolean.parseBoolean(
+        choiceParameters.getProperty(ModalParameterTable.PIVOTS, "false"));
+    pivotMaxAbs = usePivots ? ModalParameterTable.pivotMaxAbs(choiceParameters)
+        : ModalParameterTable.DEFAULT_PIVOT_MAX_ABS;
+  }
+
   /**
    * Loads positive cost factors for a group or restores all factors to one for an uncalibrated
    * group.
@@ -87,7 +102,7 @@ public class Proportional extends ModalSplitMethod {
   @Override
   public void initializeGroup(int group) {
     super.initializeGroup(group);
-    Properties costs = getAssignmentParameters().getCostFunctions();
+    Properties costs = choiceParameters;
     logFactors = new double[NodusC.MAXMM];
     Arrays.fill(logFactors, Double.NaN);
     String suffix = "." + group;
@@ -158,6 +173,11 @@ public class Proportional extends ModalSplitMethod {
       }
       // Work in logs so the product k*C and reciprocal costs cannot overflow.
       mode.utility = -logFactors[id] - Math.log(mode.cheapestPathWeights.getCost());
+      if (calibrated && usePivots && odCell != null) {
+        mode.utility += ModalParameterTable.pivot(
+            choiceParameters, id, odCell.getOriginNodeId(), odCell.getDestinationNodeId(),
+            odCell.getGroup(), pivotMaxAbs);
+      }
       maximum = Math.max(maximum, mode.utility);
     }
     double denominator = 0;

@@ -45,8 +45,10 @@ import javax.swing.SwingUtilities;
  * and a single available mode receives all demand. Within a mode, its flow is split in proportion
  * to inverse route cost; this second-stage rule is not estimated from modal OD matrices.
  *
- * <p>Coefficients are read per commodity group from {@code (intercept).mode.group}, {@code
- * log(cost).mode.group} and {@code mnl.reference.group}. All modes must share the same beta, which
+ * <p>When {@code @paramTable} names a database table, coefficients and optional pivots are read from
+ * its {@code param_key,param_value} rows. Otherwise legacy cost-file coefficients are read per
+ * commodity group from {@code (intercept).mode.group}, {@code log(cost).mode.group} and {@code
+ * mnl.reference.group}. All modes must share the same beta, which
  * may have either sign or be zero. The reference intercept must be zero; for older R demo files,
  * the smallest mode with a slope is the default reference and its missing intercept defaults to
  * zero. Incomplete or invalid saved coefficients are errors.
@@ -75,6 +77,9 @@ public class MultinomialLogit extends ModalSplitMethod {
   private double[] intercepts;
   private double beta;
   private boolean calibrated;
+  private Properties choiceParameters;
+  private boolean usePivots;
+  private double pivotMaxAbs;
   // Shallow worker clones share this flag, but initialize starts a new assignment's warning state.
   private AtomicBoolean defaultsWarningShown = new AtomicBoolean();
 
@@ -107,6 +112,11 @@ public class MultinomialLogit extends ModalSplitMethod {
     super.initialize(assignmentParameters);
     intercepts = null;
     calibrated = false;
+    choiceParameters = ModalParameterTable.load(assignmentParameters, getName());
+    usePivots = Boolean.parseBoolean(
+        choiceParameters.getProperty(ModalParameterTable.PIVOTS, "false"));
+    pivotMaxAbs = usePivots ? ModalParameterTable.pivotMaxAbs(choiceParameters)
+        : ModalParameterTable.DEFAULT_PIVOT_MAX_ABS;
     defaultsWarningShown = new AtomicBoolean();
   }
 
@@ -126,7 +136,7 @@ public class MultinomialLogit extends ModalSplitMethod {
   @Override
   public void initializeGroup(int group) {
     super.initializeGroup(group);
-    Properties costs = getAssignmentParameters().getCostFunctions();
+    Properties costs = choiceParameters;
     intercepts = null;
     TreeSet<Integer> modes = new TreeSet<>();
     String suffix = "." + group;
@@ -332,6 +342,11 @@ public class MultinomialLogit extends ModalSplitMethod {
           calibrated
               ? intercepts[id] + beta * (Math.log(mode.cheapestPathWeights.getCost()) - baseLogCost)
               : -mode.cheapestPathWeights.getCost();
+      if (calibrated && usePivots && demand != null) {
+        mode.utility += ModalParameterTable.pivot(
+            choiceParameters, id, demand.getOriginNodeId(), demand.getDestinationNodeId(),
+            demand.getGroup(), pivotMaxAbs);
+      }
       if (!Double.isFinite(mode.utility)) {
         throw new IllegalArgumentException(getName() + " utility exceeds the numeric range");
       }
