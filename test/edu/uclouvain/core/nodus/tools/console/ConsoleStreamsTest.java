@@ -1,7 +1,8 @@
 /*
- * Copyright (c) 1991-2026 Université catholique de Louvain
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * Copyright (c) 1991-2026 Université catholique de Louvain SPDX-License-Identifier:
+ * GPL-3.0-or-later
  */
+
 package edu.uclouvain.core.nodus.tools.console;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

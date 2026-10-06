@@ -277,14 +277,14 @@ class LogitCalibrationIntegrationTest {
   }
 
   @Test
-  void proportionalSkipsUnroutableObservationsAndHonorsQuietLogging() throws Exception {
+  void proportionalSkipsUnroutableObservationsWithoutConsoleLogging() throws Exception {
     try (AssignmentTestProject project = project()) {
       final AssignmentParameters parameters = proportionalParameters(project);
       project.links.getModel().setValueAt(0.0, 1, NodusC.DBF_IDX_ENABLED);
       project.panel.prepareRun(2);
       output.reset();
       try (LogitCalibration calibration =
-          new LogitCalibration(parameters, settings(parameters), false)) {
+          new LogitCalibration(parameters, settings(parameters))) {
         assertTrue(calibration.estimate(false));
       }
       assertEquals("", output.toString(StandardCharsets.UTF_8));
@@ -364,6 +364,7 @@ class LogitCalibrationIntegrationTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation") // Both values of the legacy logging argument must be ignored.
   void estimationWritesCoverageWithoutConsoleLogging() throws Exception {
     for (boolean probit : new boolean[] {false, true}) {
       Properties quietCoefficients = null;
@@ -399,7 +400,7 @@ class LogitCalibrationIntegrationTest {
   }
 
   @Test
-  void quietEmptyCalibrationPreservesTheCostFileWithoutTerminalOutput() throws Exception {
+  void emptyCalibrationPreservesTheCostFileWithoutTerminalOutput() throws Exception {
     for (boolean probit : new boolean[] {false, true}) {
       try (AssignmentTestProject project = project()) {
         final AssignmentParameters parameters =
@@ -411,7 +412,7 @@ class LogitCalibrationIntegrationTest {
         project.panel.prepareRun(2);
         output.reset();
         try (LogitCalibration calibration =
-            new LogitCalibration(parameters, settings(parameters), false)) {
+            new LogitCalibration(parameters, settings(parameters))) {
           assertFalse(calibration.estimate(probit));
         }
         assertEquals("", output.toString(StandardCharsets.UTF_8));

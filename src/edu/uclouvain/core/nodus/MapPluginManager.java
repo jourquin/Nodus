@@ -53,7 +53,11 @@ final class MapPluginManager {
 
   private final NodusMapPanel panel;
   private final JMenuBar nodusMenuBar;
-  private final JMenu menuFile, menuProject, menuControl, menuTools, menuHelp;
+  private final JMenu menuFile;
+  private final JMenu menuProject;
+  private final JMenu menuControl;
+  private final JMenu menuTools;
+  private final JMenu menuHelp;
 
   MapPluginManager(
       NodusMapPanel panel,

@@ -2,6 +2,7 @@
  * Copyright (c) 1991-2026 Université catholique de Louvain
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
+
 package edu.uclouvain.core.nodus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -154,7 +155,6 @@ class ExtensionApiCompatibilityTest {
               assertEquals(1, menuBar.getMenuCount());
               javax.swing.JMenu menu = menuBar.getMenu(0);
               assertEquals(2, menu.getItemCount());
-              javax.swing.JMenuItem globalItem = menu.getItem(0);
               javax.swing.JMenuItem projectItem = menu.getItem(1);
               panel.enableMenus(true);
               projectItem.doClick();
@@ -163,6 +163,7 @@ class ExtensionApiCompatibilityTest {
               assertEquals(1, panel.retrieveObject("legacy.disposeCount"));
               assertEquals(0, projectItem.getActionListeners().length);
               assertEquals(1, menu.getItemCount());
+              javax.swing.JMenuItem globalItem = menu.getItem(0);
               assertSame(globalItem, menu.getItem(0));
               panel.enableMenus(false);
               assertTrue(globalItem.isEnabled());

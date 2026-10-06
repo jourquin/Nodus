@@ -407,7 +407,11 @@ public class NodusProject implements ShapeConstants {
     return false;
   }
 
-  /** Presents the close-time layer confirmation; separate from persistence for headless tests. */
+  /**
+   * Presents the close-time layer confirmation; separate from persistence for headless tests.
+   *
+   * @return the selected {@link JOptionPane} option
+   */
   protected int confirmLayerSaveOnClose() {
     return JOptionPane.showConfirmDialog(
         null,
@@ -2147,7 +2151,11 @@ public class NodusProject implements ShapeConstants {
     }
   }
 
-  /** Returns false if a layer could not be saved, keeping the project available for retry. */
+  /**
+   * Saves the project's changed layers while keeping the project available for retry on failure.
+   *
+   * @return false if a layer could not be saved
+   */
   public boolean saveEsriLayersSafely() {
     return layerOperations.saveEsriLayersSafely();
   }

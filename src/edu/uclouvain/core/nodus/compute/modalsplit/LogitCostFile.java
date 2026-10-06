@@ -312,7 +312,6 @@ final class LogitCostFile {
     ModalParameterTable.validateName(table);
     target.checkUnchanged();
     String source = new String(target.original, StandardCharsets.ISO_8859_1);
-    String newline = source.contains("\r\n") ? "\r\n" : "\n";
     StringBuilder preserved = new StringBuilder();
     StringBuilder logical = new StringBuilder();
     boolean generated = false;
@@ -345,6 +344,7 @@ final class LogitCostFile {
     if (logical.length() > 0) {
       preserveNonModalParameter(preserved, logical.toString());
     }
+    String newline = source.contains("\r\n") ? "\r\n" : "\n";
     if (preserved.length() > 0 && preserved.charAt(preserved.length() - 1) != '\n') {
       preserved.append(newline);
     }

@@ -42,10 +42,10 @@ import java.util.Properties;
  *
  * <p>The estimated keys are {@code proportional.costFactor.mode.group} and {@code
  * proportional.reference.group}. They are read from the table named by {@code @paramTable}, or from
- * the cost file for an older project. Any entry for a group makes it calibrated: missing factors for
- * available modes then fail instead of defaulting to one. A group with no entries starts with all
- * factors one, independently of factors loaded for the previous group. The reference mode may be
- * unavailable for a particular OD; its factor only establishes the overall cost scale.
+ * the cost file for an older project. Any entry for a group makes it calibrated: missing factors
+ * for available modes then fail instead of defaulting to one. A group with no entries starts with
+ * all factors one, independently of factors loaded for the previous group. The reference mode may
+ * be unavailable for a particular OD; its factor only establishes the overall cost scale.
  *
  * <p>Assignment initializes and clones the method before workers call {@link #initializeGroup}.
  * Each group load allocates a new array of log factors, so clones do not modify each other's group
@@ -86,10 +86,12 @@ public class Proportional extends ModalSplitMethod {
   public void initialize(AssignmentParameters assignmentParameters) {
     super.initialize(assignmentParameters);
     choiceParameters = ModalParameterTable.load(assignmentParameters, getName());
-    usePivots = Boolean.parseBoolean(
-        choiceParameters.getProperty(ModalParameterTable.PIVOTS, "false"));
-    pivotMaxAbs = usePivots ? ModalParameterTable.pivotMaxAbs(choiceParameters)
-        : ModalParameterTable.DEFAULT_PIVOT_MAX_ABS;
+    usePivots =
+        Boolean.parseBoolean(choiceParameters.getProperty(ModalParameterTable.PIVOTS, "false"));
+    pivotMaxAbs =
+        usePivots
+            ? ModalParameterTable.pivotMaxAbs(choiceParameters)
+            : ModalParameterTable.DEFAULT_PIVOT_MAX_ABS;
   }
 
   /**
@@ -174,9 +176,14 @@ public class Proportional extends ModalSplitMethod {
       // Work in logs so the product k*C and reciprocal costs cannot overflow.
       mode.utility = -logFactors[id] - Math.log(mode.cheapestPathWeights.getCost());
       if (calibrated && usePivots && odCell != null) {
-        mode.utility += ModalParameterTable.pivot(
-            choiceParameters, id, odCell.getOriginNodeId(), odCell.getDestinationNodeId(),
-            odCell.getGroup(), pivotMaxAbs);
+        mode.utility +=
+            ModalParameterTable.pivot(
+                choiceParameters,
+                id,
+                odCell.getOriginNodeId(),
+                odCell.getDestinationNodeId(),
+                odCell.getGroup(),
+                pivotMaxAbs);
       }
       maximum = Math.max(maximum, mode.utility);
     }

@@ -161,6 +161,7 @@ import javax.swing.border.BevelBorder;
  */
 public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
+  /** Console integration for native desktop actions. */
   private final NativeGroovyConsole nativeConsole =
       new NativeGroovyConsole(
           this,
@@ -236,6 +237,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** OpenMap component. See OpenMap documentation for more details. */
   private InformationDelegator infoDelegator = new InformationDelegator();
 
+  /** Assignment progress controller shown by the map panel. */
   private final MapProgress progress = new MapProgress(this, infoDelegator);
 
   /** The browser used for the Nodus API. */
@@ -318,6 +320,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   /** Current desktop context. */
   private Desktop desktop = getSupportedDesktop();
 
+  /** Menus and actions owned by this panel. */
   private final MapMenus menus =
       new MapMenus(
           this,
@@ -329,6 +332,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           this::registerMacApplicationHandlers,
           this::useMacDesktopIntegration);
 
+  /** Loads and registers map plug-ins with this panel's menus. */
   private final MapPluginManager pluginManager =
       new MapPluginManager(
           this,

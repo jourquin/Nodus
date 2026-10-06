@@ -2,6 +2,7 @@
  * Copyright (c) 1991-2026 Université catholique de Louvain
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
+
 package edu.uclouvain.core.nodus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,9 +26,21 @@ class ProjectScenariosTest {
 
   @Test
   void renameAndRemoveKeepDatabasePropertiesAndOverrideCallbacksTogether() throws Exception {
+
+    Properties properties = new Properties();
+    for (Field constant : NodusC.class.getFields()) {
+      if (constant.getType() == String.class && constant.getName().startsWith("PROP_")) {
+        String key = (String) constant.get(null);
+        properties.setProperty(key + "1", "saved " + key);
+      }
+    }
+    properties.setProperty(NodusC.PROP_PROJECT_DOTNAME, "compat");
+    properties.setProperty(NodusC.PROP_VNET_TABLE, "network_");
+    properties.setProperty(NodusC.PROP_PATH_TABLE_PREFIX, "paths_");
+    Field local = NodusProject.class.getDeclaredField("localProperties");
+    local.setAccessible(true);
+
     AtomicInteger refreshed = new AtomicInteger();
-    AtomicInteger renamed = new AtomicInteger();
-    AtomicInteger removed = new AtomicInteger();
     NodusMapPanel panel =
         new NodusMapPanel() {
           private static final long serialVersionUID = 1L;
@@ -38,6 +51,8 @@ class ProjectScenariosTest {
             refreshed.incrementAndGet();
           }
         };
+    AtomicInteger renamed = new AtomicInteger();
+    AtomicInteger removed = new AtomicInteger();
     NodusProject project =
         new NodusProject(panel) {
           @Override
@@ -52,18 +67,6 @@ class ProjectScenariosTest {
             super.removeLocalProperty(key);
           }
         };
-    Properties properties = new Properties();
-    for (Field constant : NodusC.class.getFields()) {
-      if (constant.getType() == String.class && constant.getName().startsWith("PROP_")) {
-        String key = (String) constant.get(null);
-        properties.setProperty(key + "1", "saved " + key);
-      }
-    }
-    properties.setProperty(NodusC.PROP_PROJECT_DOTNAME, "compat");
-    properties.setProperty(NodusC.PROP_VNET_TABLE, "network_");
-    properties.setProperty(NodusC.PROP_PATH_TABLE_PREFIX, "paths_");
-    Field local = NodusProject.class.getDeclaredField("localProperties");
-    local.setAccessible(true);
     local.set(project, properties);
     try (DatabaseFixture database = new DatabaseFixture(directory)) {
       database.execute("CREATE TABLE network_1 (marker INTEGER)");
@@ -87,7 +90,7 @@ class ProjectScenariosTest {
       assertNull(project.getLocalProperty(NodusC.PROP_COST_FUNCTIONS + "1"));
       assertEquals(2, project.getCurrentScenario());
       assertTrue(renamed.get() > 0, "Keep virtual property migration hooks");
-      int removalsAfterRename = removed.get();
+      final int removalsAfterRename = removed.get();
       project.removeScenario(2);
       assertFalse(JDBCUtils.tableExists("network_2"));
       assertFalse(JDBCUtils.tableExists("paths_2" + NodusC.SUFFIX_HEADER));

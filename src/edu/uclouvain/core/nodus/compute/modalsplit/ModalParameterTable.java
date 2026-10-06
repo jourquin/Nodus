@@ -9,8 +9,8 @@ import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Savepoint;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.Map;
 import java.util.Properties;
@@ -28,24 +28,25 @@ final class ModalParameterTable {
   // A 191-character UTF-8 key stays below MariaDB's 1000-byte index limit with utf8mb4.
   private static final int MAX_KEY_LENGTH = 191;
   private static final String COLUMNS =
-      " (param_key VARCHAR(" + MAX_KEY_LENGTH + ") NOT NULL PRIMARY KEY,"
+      " (param_key VARCHAR("
+          + MAX_KEY_LENGTH
+          + ") NOT NULL PRIMARY KEY,"
           + " param_value VARCHAR(4096) NOT NULL, param_type VARCHAR(32) NOT NULL)";
 
   private ModalParameterTable() {}
 
   /** Uses the selected cost file's stem so its parameter table has a predictable name. */
   static String nameForCostFile(String fileName) {
-    if (fileName == null || fileName.length() <= ".costs".length()
+    if (fileName == null
+        || fileName.length() <= ".costs".length()
         || !fileName.endsWith(".costs")) {
       throw new IllegalArgumentException("Select a .costs file for modal choice estimation");
     }
-    return validateName(fileName.substring(0, fileName.length() - ".costs".length())
-        + "_params");
+    return validateName(fileName.substring(0, fileName.length() - ".costs".length()) + "_params");
   }
 
   static String validateName(String name) {
-    if (name == null || name.length() > 64
-        || !name.matches("[A-Za-z0-9_&()-][A-Za-z0-9_ &()-]*")) {
+    if (name == null || name.length() > 64 || !name.matches("[A-Za-z0-9_&()-][A-Za-z0-9_ &()-]*")) {
       throw new IllegalArgumentException(
           "The cost file name must produce a table name of at most 64 characters, "
               + "using only letters, digits, spaces, underscores, hyphens, ampersands "
@@ -69,7 +70,8 @@ final class ModalParameterTable {
 
   static boolean exists(Connection connection, String name) throws Exception {
     validateName(name);
-    try (ResultSet tables = connection.getMetaData().getTables(null, null, "%", new String[] {"TABLE"})) {
+    try (ResultSet tables =
+        connection.getMetaData().getTables(null, null, "%", new String[] {"TABLE"})) {
       while (tables.next()) {
         if (name.equalsIgnoreCase(tables.getString("TABLE_NAME"))) {
           return true;
@@ -82,13 +84,15 @@ final class ModalParameterTable {
   static Properties load(AssignmentParameters assignment, String method) {
     String name = assignment.getCostFunctions().getProperty(POINTER);
     if (name == null || name.isBlank()) {
-      return assignment.getCostFunctions(); // Existing projects retain their saved coefficient files.
+      return assignment
+          .getCostFunctions(); // Existing projects retain their saved coefficient files.
     }
     Connection connection = assignment.getNodusProject().getMainJDBCConnection();
     Properties values = new Properties();
     try (Statement statement = connection.createStatement();
-        ResultSet rows = statement.executeQuery(
-            "SELECT param_key, param_value FROM " + quoted(connection, name))) {
+        ResultSet rows =
+            statement.executeQuery(
+                "SELECT param_key, param_value FROM " + quoted(connection, name))) {
       while (rows.next()) {
         String key = rows.getString(1);
         String value = rows.getString(2);
@@ -97,7 +101,8 @@ final class ModalParameterTable {
         }
       }
     } catch (Exception failure) {
-      throw new IllegalArgumentException("Cannot read modal-choice parameter table " + name, failure);
+      throw new IllegalArgumentException(
+          "Cannot read modal-choice parameter table " + name, failure);
     }
     String storedMethod = values.getProperty(METHOD);
     if (!method.equals(storedMethod)) {
@@ -109,16 +114,19 @@ final class ModalParameterTable {
 
   static void checkSchema(Connection connection, String name) throws Exception {
     try (Statement statement = connection.createStatement();
-        ResultSet ignored = statement.executeQuery(
-            "SELECT param_key, param_value, param_type FROM " + quoted(connection, name)
-                + " WHERE 1=0")) {
+        ResultSet ignored =
+            statement.executeQuery(
+                "SELECT param_key, param_value, param_type FROM "
+                    + quoted(connection, name)
+                    + " WHERE 1=0")) {
       // A selected existing table must have the same key/value layout as the export.
     }
   }
 
   static double validatePivotMaxAbs(double maxAbs) {
     if (!Double.isFinite(maxAbs) || maxAbs <= 0) {
-      throw new IllegalArgumentException("Pivot maximum absolute value must be finite and positive");
+      throw new IllegalArgumentException(
+          "Pivot maximum absolute value must be finite and positive");
     }
     return maxAbs;
   }
@@ -132,8 +140,8 @@ final class ModalParameterTable {
     }
   }
 
-  static double pivot(Properties values, int mode, int origin, int destination, int group,
-      double maxAbs) {
+  static double pivot(
+      Properties values, int mode, int origin, int destination, int group, double maxAbs) {
     String value = values.getProperty(pivotKey(mode, origin, destination, group));
     if (value == null) {
       return 0;
@@ -158,13 +166,16 @@ final class ModalParameterTable {
   }
 
   static void save(
-      Connection connection, String name, Properties values,
-      java.util.function.BooleanSupplier proceed) throws Exception {
+      Connection connection,
+      String name,
+      Properties values,
+      java.util.function.BooleanSupplier proceed)
+      throws Exception {
     String table = quoted(connection, name);
     for (String key : values.stringPropertyNames()) {
       if (key.length() > MAX_KEY_LENGTH) {
-        throw new IllegalArgumentException("Modal parameter key exceeds "
-            + MAX_KEY_LENGTH + " characters: " + key);
+        throw new IllegalArgumentException(
+            "Modal parameter key exceeds " + MAX_KEY_LENGTH + " characters: " + key);
       }
     }
     boolean present = exists(connection, name);
@@ -195,14 +206,18 @@ final class ModalParameterTable {
           String value = (String) entry.getValue();
           insert.setString(1, key);
           insert.setString(2, value);
-          insert.setString(3, key.startsWith("pivot.") ? "calibration" :
-              key.startsWith("@") ? "setting" : "coefficient");
+          insert.setString(
+              3,
+              key.startsWith("pivot.")
+                  ? "calibration"
+                  : key.startsWith("@") ? "setting" : "coefficient");
           insert.addBatch();
           count++;
           batchChars += key.length() + value.length() + 32;
           if (count >= MAX_BATCH_ROWS || batchChars >= MAX_BATCH_CHARS) {
             if (!proceed.getAsBoolean() || Thread.currentThread().isInterrupted()) {
-              throw new java.util.concurrent.CancellationException("Modal parameter saving canceled");
+              throw new java.util.concurrent.CancellationException(
+                  "Modal parameter saving canceled");
             }
             insert.executeBatch();
             count = 0;
@@ -235,5 +250,4 @@ final class ModalParameterTable {
       connection.setAutoCommit(autoCommit);
     }
   }
-
 }

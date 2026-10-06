@@ -75,12 +75,11 @@ import java.util.function.BooleanSupplier;
  *
  * <p>Each commodity group is fitted separately, pooling its OD classes while retaining their
  * class-specific route costs. The dialog stores successful estimates in a database parameter table,
- * writes diagnostics to a sibling file named {@code <cost-file-stem>_params.txt},
- * and adds only {@code @paramTable} to the selected cost file. The earlier cost-file
- * overloads remain available for existing scripted callers. Successful saving also refreshes the
- * caller's in-memory cost properties. The caller's
- * assignment OD selection, scenario and routing controls remain unchanged. Exclusions apply only to
- * estimation and never filter a subsequent assignment's demand.
+ * writes diagnostics to a sibling file named {@code <cost-file-stem>_params.txt}, and adds only
+ * {@code @paramTable} to the selected cost file. The earlier cost-file overloads remain available
+ * for existing scripted callers. Successful saving also refreshes the caller's in-memory cost
+ * properties. The caller's assignment OD selection, scenario and routing controls remain unchanged.
+ * Exclusions apply only to estimation and never filter a subsequent assignment's demand.
  *
  * <p>Use a fresh instance for one estimation and close it in a try-with-resources block. The class
  * owns its scratch table but borrows the project's JDBC connection, which it never closes. The
@@ -171,25 +170,6 @@ public final class LogitCalibration implements AutoCloseable {
     return estimate(exact, LogitCostFile.target(parameters.getCostFunctionsPath(), output));
   }
 
-  /** Fits the behavioral model and optional OD/group pivots into a named parameter table. */
-  public boolean estimateToTable(boolean exact, String table, boolean pivots) throws Exception {
-    return estimateToTable(exact, table, pivots, ModalParameterTable.DEFAULT_PIVOT_MAX_ABS);
-  }
-
-  /** Fits the selected model with an optional user-chosen bound on OD/group pivots. */
-  public boolean estimateToTable(boolean exact, String table, boolean pivots, double maxAbs)
-      throws Exception {
-    outputTable = ModalParameterTable.validateName(table);
-    estimatePivots = pivots;
-    pivotMaxAbs = ModalParameterTable.validatePivotMaxAbs(maxAbs);
-    java.nio.file.Path report = reportPath();
-    if (Files.exists(report) && (!Files.isRegularFile(report) || !Files.isWritable(report))) {
-      throw new java.io.IOException("Cannot replace estimation report: " + report);
-    }
-    return estimate(exact,
-        LogitCostFile.target(parameters.getCostFunctionsPath(), parameters.getCostFunctionsPath()));
-  }
-
   /** Runs a dialog-approved save using the destination snapshot captured before confirmation. */
   boolean estimate(boolean exact, LogitCostFile.Target target) throws Exception {
     if (!LogitCalibrationSettings.supportsMethod(method)) {
@@ -233,8 +213,10 @@ public final class LogitCalibration implements AutoCloseable {
     if (observations.isEmpty()) {
       if (outputTable != null) {
         writeReport(
-            method + " calibration: no usable OD observations remain. No coefficients were saved.\n"
-                + skippedSummary + skippedDetails);
+            method
+                + " calibration: no usable OD observations remain. No coefficients were saved.\n"
+                + skippedSummary
+                + skippedDetails);
       }
       return false;
     }
@@ -280,14 +262,21 @@ public final class LogitCalibration implements AutoCloseable {
         if (estimatePivots) {
           fitted.setProperty(ModalParameterTable.PIVOT_MAX_ABS, Double.toString(pivotMaxAbs));
         }
-        report.append("# Pivot calibration: ")
-            .append(estimatePivots ? "mode_od_group, 80 iterations maximum, damping=0.7, "
-                + "maximum step=2, absolute bound=" + pivotMaxAbs + ", epsilon=1e-6 tonnes"
-                : "disabled")
+        report
+            .append("# Pivot calibration: ")
+            .append(
+                estimatePivots
+                    ? "mode_od_group, 80 iterations maximum, damping=0.7, "
+                        + "maximum step=2, absolute bound="
+                        + pivotMaxAbs
+                        + ", epsilon=1e-6 tonnes"
+                    : "disabled")
             .append('\n');
         if (estimatePivots) {
-          report.append("# Estimated bounded OD/group pivot constants: ")
-              .append(pivotCount).append('\n');
+          report
+              .append("# Estimated bounded OD/group pivot constants: ")
+              .append(pivotCount)
+              .append('\n');
         }
         java.util.TreeSet<String> reportedKeys = new java.util.TreeSet<>();
         for (String key : fitted.stringPropertyNames()) {
@@ -300,24 +289,71 @@ public final class LogitCalibration implements AutoCloseable {
         }
         target.checkUnchanged();
         long saveStarted = System.nanoTime();
-        ModalParameterTable.save(connection, outputTable, fitted,
-            () -> !Thread.currentThread().isInterrupted()
-                && parameters.getNodusProject().getNodusMapPanel()
-                    .updateProgress("Saving modal parameters"));
-        report.append("# Saved ").append(fitted.size()).append(" parameter rows in ")
+        ModalParameterTable.save(
+            connection,
+            outputTable,
+            fitted,
+            () ->
+                !Thread.currentThread().isInterrupted()
+                    && parameters
+                        .getNodusProject()
+                        .getNodusMapPanel()
+                        .updateProgress("Saving modal parameters"));
+        report
+            .append("# Saved ")
+            .append(fitted.size())
+            .append(" parameter rows in ")
             .append(String.format(Locale.ROOT, "%.3f", (System.nanoTime() - saveStarted) / 1e9))
             .append(" seconds.\n");
         writeReport(report.toString());
       }
-      Properties saved = outputTable == null
-          ? LogitCostFile.save(target, original, fitted, report.toString(), method)
-          : LogitCostFile.saveParameterTable(target, outputTable);
+      Properties saved =
+          outputTable == null
+              ? LogitCostFile.save(target, original, fitted, report.toString(), method)
+              : LogitCostFile.saveParameterTable(target, outputTable);
       parameters.getCostFunctions().clear();
       parameters.getCostFunctions().putAll(saved);
     } finally {
       parameters.getNodusProject().getNodusMapPanel().stopProgress();
     }
     return true;
+  }
+
+  /**
+   * Fits the behavioral model and optional OD/group pivots into a named parameter table.
+   *
+   * @param exact whether to use exact multi-flow routing
+   * @param table name of the parameter table to create or replace
+   * @param pivots whether to estimate OD/group pivot constants
+   * @return false when every observed OD record was skipped because of missing routes
+   * @throws Exception if validation, routing, estimation or saving fails, or on cancellation
+   */
+  public boolean estimateToTable(boolean exact, String table, boolean pivots) throws Exception {
+    return estimateToTable(exact, table, pivots, ModalParameterTable.DEFAULT_PIVOT_MAX_ABS);
+  }
+
+  /**
+   * Fits the selected model with an optional user-chosen bound on OD/group pivots.
+   *
+   * @param exact whether to use exact multi-flow routing
+   * @param table name of the parameter table to create or replace
+   * @param pivots whether to estimate OD/group pivot constants
+   * @param maxAbs maximum absolute value of an estimated pivot
+   * @return false when every observed OD record was skipped because of missing routes
+   * @throws Exception if validation, routing, estimation or saving fails, or on cancellation
+   */
+  public boolean estimateToTable(boolean exact, String table, boolean pivots, double maxAbs)
+      throws Exception {
+    outputTable = ModalParameterTable.validateName(table);
+    estimatePivots = pivots;
+    pivotMaxAbs = ModalParameterTable.validatePivotMaxAbs(maxAbs);
+    java.nio.file.Path report = reportPath();
+    if (Files.exists(report) && (!Files.isRegularFile(report) || !Files.isWritable(report))) {
+      throw new java.io.IOException("Cannot replace estimation report: " + report);
+    }
+    return estimate(
+        exact,
+        LogitCostFile.target(parameters.getCostFunctionsPath(), parameters.getCostFunctionsPath()));
   }
 
   /**
@@ -364,19 +400,21 @@ public final class LogitCalibration implements AutoCloseable {
       }
       if (excluded) {
         skippedDetails.append(
-              "# " + method
-                  + " calibration: skipping OD record: group="
-                  + row.group
-                  + ", org="
-                  + row.origin
-                  + ", dst="
-                  + row.destination
-                  + ", class="
-                  + row.odClass
-                  + "; no admissible route for mode(s) "
-                  + String.join(", ", missing)
-                  + "; excluded quantity across all modes="
-                  + row.total() + "\n");
+            "# "
+                + method
+                + " calibration: skipping OD record: group="
+                + row.group
+                + ", org="
+                + row.origin
+                + ", dst="
+                + row.destination
+                + ", class="
+                + row.odClass
+                + "; no admissible route for mode(s) "
+                + String.join(", ", missing)
+                + "; excluded quantity across all modes="
+                + row.total()
+                + "\n");
         skipped.add(row);
         iterator.remove();
       }
@@ -438,8 +476,13 @@ public final class LogitCalibration implements AutoCloseable {
         checkCancelled("Estimating " + method + " for group " + entry.getKey());
         final int group = entry.getKey();
         final List<Observation> rows = entry.getValue();
-        completed.submit(() -> fitGroup(group, rows, fitted,
-            () -> active.get() && !Thread.currentThread().isInterrupted()));
+        completed.submit(
+            () ->
+                fitGroup(
+                    group,
+                    rows,
+                    fitted,
+                    () -> active.get() && !Thread.currentThread().isInterrupted()));
       }
       for (int remaining = groups.size(); remaining > 0; remaining--) {
         Future<GroupFit> future;
@@ -495,20 +538,33 @@ public final class LogitCalibration implements AutoCloseable {
       if (outputTable != null && estimatePivots) {
         List<ModalPivotEstimator.Row> pivotRows = new ArrayList<>(rows.size());
         for (Observation row : rows) {
-          pivotRows.add(new ModalPivotEstimator.Row(
-              row.group, row.origin, row.destination, row.costs, row.quantities));
+          pivotRows.add(
+              new ModalPivotEstimator.Row(
+                  row.group, row.origin, row.destination, row.costs, row.quantities));
         }
-        pivots = ModalPivotEstimator.estimate(pivotRows, Map.of(group, behavioral), modes,
-            Arrays.binarySearch(modes, settings.getReferenceMode()), method, pivotMaxAbs, fitted,
-            proceed);
+        pivots =
+            ModalPivotEstimator.estimate(
+                pivotRows,
+                Map.of(group, behavioral),
+                modes,
+                Arrays.binarySearch(modes, settings.getReferenceMode()),
+                method,
+                pivotMaxAbs,
+                fitted,
+                proceed);
       }
       return new GroupFit(group, groupReport.toString(), pivots);
     } catch (CancellationException cancelled) {
       throw cancelled;
     } catch (IllegalArgumentException | IllegalStateException failure) {
       throw new IllegalArgumentException(
-          method + " group " + group + ": " + failure.getMessage()
-              + "\nNo estimated coefficients have been saved.", failure);
+          method
+              + " group "
+              + group
+              + ": "
+              + failure.getMessage()
+              + "\nNo estimated coefficients have been saved.",
+          failure);
     }
   }
 
@@ -524,9 +580,7 @@ public final class LogitCalibration implements AutoCloseable {
     }
   }
 
-  /**
-   * Appends one scope's coverage line using the original-demand denominators.
-   */
+  /** Appends one scope's coverage line using the original-demand denominators. */
   private void appendCoverage(StringBuilder report, String scope, RouteStatistics statistics) {
     report
         .append(method)
@@ -546,7 +600,11 @@ public final class LogitCalibration implements AutoCloseable {
    * uncertainty on the displayed scale.
    */
   private LogCostChoiceEstimate estimateGroup(
-      int group, double[][] costs, double[][] quantities, Properties fitted, StringBuilder report,
+      int group,
+      double[][] costs,
+      double[][] quantities,
+      Properties fitted,
+      StringBuilder report,
       BooleanSupplier proceed)
       throws Exception {
     int reference = Arrays.binarySearch(modes, settings.getReferenceMode());
@@ -610,8 +668,8 @@ public final class LogitCalibration implements AutoCloseable {
   private java.nio.file.Path reportPath() {
     java.nio.file.Path costFile = parameters.getCostFunctionsPath().toAbsolutePath();
     String name = costFile.getFileName().toString();
-    String stem = name.endsWith(".costs")
-        ? name.substring(0, name.length() - ".costs".length()) : name;
+    String stem =
+        name.endsWith(".costs") ? name.substring(0, name.length() - ".costs".length()) : name;
     return costFile.resolveSibling(stem + "_params.txt");
   }
 

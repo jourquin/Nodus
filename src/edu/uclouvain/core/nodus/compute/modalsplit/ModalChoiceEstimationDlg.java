@@ -63,10 +63,9 @@ import javax.swing.SwingWorker;
  * <p>Estimation uses the selected source cost file without numbered scenario overrides. A database
  * table named after the cost file receives behavioral parameters and optional bounded OD/group
  * pivots. A single {@code @paramTable} key is written to the selected cost file, and diagnostics
- * are saved as {@code <cost-file-stem>_params.txt} in the project directory. An existing table requires
- * confirmation.
- * The isolated routing pass always performs one search per mode/means without cost markup. Legacy
- * scenario, iteration and markup preferences are ignored.
+ * are saved as {@code <cost-file-stem>_params.txt} in the project directory. An existing table
+ * requires confirmation. The isolated routing pass always performs one search per mode/means
+ * without cost markup. Legacy scenario, iteration and markup preferences are ignored.
  *
  * <p>Construct and show the dialog on Swing's event dispatch thread. Controls hold a draft until
  * Estimate validates it, persists project-level preferences and acquires the shared computation
@@ -150,13 +149,15 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     }
     detour = spinner("detour", 0, 0, 1000, 0.1);
     threads = spinner("threads", HardwareUtils.getNbCores(), 1, 1024, 1);
-    double savedPivotMaxAbs = project.getLocalProperty(
-        PREFIX + "pivotMaxAbs", ModalParameterTable.DEFAULT_PIVOT_MAX_ABS);
+    double savedPivotMaxAbs =
+        project.getLocalProperty(PREFIX + "pivotMaxAbs", ModalParameterTable.DEFAULT_PIVOT_MAX_ABS);
     if (!Double.isFinite(savedPivotMaxAbs) || savedPivotMaxAbs <= 0) {
       savedPivotMaxAbs = ModalParameterTable.DEFAULT_PIVOT_MAX_ABS;
     }
     pivotMaxAbs = new JSpinner(new SpinnerNumberModel(savedPivotMaxAbs, 0.0, null, 0.5));
-    tooltip(pivotMaxAbs, "pivotMaxAbs",
+    tooltip(
+        pivotMaxAbs,
+        "pivotMaxAbs",
         "Maximum absolute pivot utility; enter a positive value (default 8).");
     estimatePivots.setText(text("EstimatePivots", "Estimate pivots"));
     estimatePivots.setSelected(project.getLocalProperty(PREFIX + "estimatePivots", false));
@@ -315,8 +316,8 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
       if (pivots) {
         pivotMaxAbs.commitEdit();
       }
-      maxAbs = ModalParameterTable.validatePivotMaxAbs(
-          ((Number) pivotMaxAbs.getValue()).doubleValue());
+      maxAbs =
+          ModalParameterTable.validatePivotMaxAbs(((Number) pivotMaxAbs.getValue()).doubleValue());
       parameters.setModalSplitMethodName(selectedMethod());
       selectedCostFile = costFile.getSelectedItem().toString();
       parameters.setCostFunctions(selectedCostFile);
@@ -338,7 +339,8 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
         ModalParameterTable.checkSchema(project.getMainJDBCConnection(), table);
       }
     } catch (Exception failure) {
-      JOptionPane.showMessageDialog(this, failure.getMessage(), getTitle(), JOptionPane.ERROR_MESSAGE);
+      JOptionPane.showMessageDialog(
+          this, failure.getMessage(), getTitle(), JOptionPane.ERROR_MESSAGE);
       return;
     }
     if (tableExists

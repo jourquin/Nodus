@@ -39,7 +39,6 @@ class ModalParameterTableIntegrationTest {
       AssignmentParameters parameters = project.parameters(2);
       parameters.setCostFunctions("model.costs");
       parameters.setModalSplitMethodName("MNL");
-      byte[] original = Files.readAllBytes(file);
       for (int row : new int[] {1, 3, 5}) {
         project.links.getModel().setValueAt(0.0, row, NodusC.DBF_IDX_ENABLED);
       }
@@ -49,6 +48,7 @@ class ModalParameterTableIntegrationTest {
               Map.of(1, "observed_road", 2, "observed_rail")))) {
         assertFalse(estimation.estimateToTable(false, "empty_params", true));
       }
+      byte[] original = Files.readAllBytes(file);
       assertTrue(java.util.Arrays.equals(original, Files.readAllBytes(file)));
       assertTrue(Files.readString(directory.resolve("model_params.txt"))
           .contains("No coefficients were saved"));
@@ -171,18 +171,6 @@ class ModalParameterTableIntegrationTest {
     return project(false);
   }
 
-  private Map<String, String> tableValues(AssignmentTestProject project, String table)
-      throws Exception {
-    Map<String, String> values = new TreeMap<>();
-    try (Statement statement = project.getMainJDBCConnection().createStatement();
-        ResultSet rows = statement.executeQuery("SELECT param_key,param_value FROM " + table)) {
-      while (rows.next()) {
-        values.put(rows.getString(1), rows.getString(2));
-      }
-    }
-    return values;
-  }
-
   private AssignmentTestProject project(boolean hsql) throws Exception {
     AssignmentTestProject project = new AssignmentTestProject(directory, 6,
         new double[][] {
@@ -210,5 +198,17 @@ class ModalParameterTableIntegrationTest {
       }
     }
     return project;
+  }
+
+  private Map<String, String> tableValues(AssignmentTestProject project, String table)
+      throws Exception {
+    Map<String, String> values = new TreeMap<>();
+    try (Statement statement = project.getMainJDBCConnection().createStatement();
+        ResultSet rows = statement.executeQuery("SELECT param_key,param_value FROM " + table)) {
+      while (rows.next()) {
+        values.put(rows.getString(1), rows.getString(2));
+      }
+    }
+    return values;
   }
 }

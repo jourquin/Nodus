@@ -1686,7 +1686,11 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     }
   }
 
-  /** Saves changed sidecars as a recoverable set, retaining dirty state on any failure. */
+  /**
+   * Saves changed sidecars as a recoverable set, retaining dirty state on any failure.
+   *
+   * @return true if the layer was already clean or all changed sidecars were saved
+   */
   public synchronized boolean saveChanges() {
     if (!isDirty()) {
       return true;
@@ -1726,12 +1730,22 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     }
   }
 
-  /** Creates the file replacement transaction used by this layer. */
+  /**
+   * Creates the file replacement transaction used by this layer.
+   *
+   * @param directory project directory containing the layer files
+   * @return a transaction for staging and replacing this layer's files
+   * @throws IOException if recovery or staging directory creation fails
+   */
   protected LayerFileSave createFileSave(Path directory) throws IOException {
     return new LayerFileSave(directory, tableName);
   }
 
-  /** Reports save errors without discarding the edited layer. */
+  /**
+   * Reports save errors without discarding the edited layer.
+   *
+   * @param error the failure that prevented the save
+   */
   protected void reportSaveError(Exception error) {
     TableImport.reportError(error);
   }

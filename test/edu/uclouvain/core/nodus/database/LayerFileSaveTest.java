@@ -40,6 +40,8 @@ class LayerFileSaveTest {
     for (String name : List.of("test.shp", "test.shx", "test.dbf")) {
       Files.writeString(directory.resolve(name), "original " + name);
     }
+    // Leave the save open to simulate interruption before close() can roll back.
+    @SuppressWarnings("resource")
     LayerFileSave save =
         new LayerFileSave(directory, "test") {
           int installed;
@@ -57,7 +59,7 @@ class LayerFileSaveTest {
     }
     assertThrows(IOException.class, save::commit);
     assertEquals("new test.shp", Files.readString(directory.resolve("test.shp")));
-    // Simulate interruption before close()/rollback runs; the next load performs recovery.
+    // The next load performs recovery without closing the interrupted save.
     LayerFileSave.recover(directory, "test");
     for (String name : List.of("test.shp", "test.shx", "test.dbf")) {
       assertEquals("original " + name, Files.readString(directory.resolve(name)));

@@ -40,6 +40,13 @@ public final class TableImport {
   /** Creates and fills the supplied staging table, throwing if any part of the input is invalid. */
   @FunctionalInterface
   public interface Loader {
+    /**
+     * Loads data into a staging table before it replaces the destination.
+     *
+     * @param connection connection on which the staging table exists
+     * @param table name of the staging table to fill
+     * @throws Exception if the input cannot be loaded
+     */
     void load(Connection connection, String table) throws Exception;
   }
 
@@ -48,6 +55,11 @@ public final class TableImport {
    * DDL use an independent connection so failed imports cannot commit unrelated work on the project
    * connection. Successful schema replacements on those engines are necessarily committed
    * independently. A locked destination must be unlocked by the caller.
+   *
+   * @param project project providing the database connection
+   * @param table destination table to replace
+   * @param loader operation that fills the staging table
+   * @throws Exception if loading or replacing the table fails
    */
   public static void replace(NodusProject project, String table, Loader loader) throws Exception {
     Connection main = project.getMainJDBCConnection();
@@ -194,7 +206,11 @@ public final class TableImport {
     }
   }
 
-  /** Reports failures in interactive use and remains usable from headless scripts and tests. */
+  /**
+   * Reports failures in interactive use and remains usable from headless scripts and tests.
+   *
+   * @param error failure to report
+   */
   public static void reportError(Exception error) {
     error.printStackTrace();
     if (!GraphicsEnvironment.isHeadless()) {

@@ -49,13 +49,16 @@ final class ModalPivotEstimator {
     ModalParameterTable.validatePivotMaxAbs(maxAbs);
     Map<String, List<Row>> cells = new HashMap<>();
     for (Row row : rows) {
-      cells.computeIfAbsent(row.group + ":" + row.origin + ":" + row.destination,
-          ignored -> new ArrayList<>()).add(row);
+      cells
+          .computeIfAbsent(
+              row.group + ":" + row.origin + ":" + row.destination, ignored -> new ArrayList<>())
+          .add(row);
     }
     int saved = 0;
     int checked = 0;
     for (List<Row> cell : cells.values()) {
-      if (checked++ % 128 == 0 && (!proceed.getAsBoolean() || Thread.currentThread().isInterrupted())) {
+      if (checked++ % 128 == 0
+          && (!proceed.getAsBoolean() || Thread.currentThread().isInterrupted())) {
         throw new java.util.concurrent.CancellationException("Modal pivot estimation canceled");
       }
       Row first = cell.get(0);
@@ -75,9 +78,10 @@ final class ModalPivotEstimator {
         for (Row row : cell) {
           double[] utilities = new double[modes.length];
           for (int m = 0; m < modes.length; m++) {
-            utilities[m] = Double.isFinite(row.costs[m]) && row.costs[m] > 0
-                ? intercepts[m] + beta * Math.log(row.costs[m]) + correction[m]
-                : Double.NEGATIVE_INFINITY;
+            utilities[m] =
+                Double.isFinite(row.costs[m]) && row.costs[m] > 0
+                    ? intercepts[m] + beta * Math.log(row.costs[m]) + correction[m]
+                    : Double.NEGATIVE_INFINITY;
           }
           double[] probability = probabilities(utilities, method);
           double quantity = 0;

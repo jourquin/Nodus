@@ -362,7 +362,13 @@ public class ExportDBF implements ShapeConstants {
     return exportFile(java.nio.file.Path.of(path, tableName), model);
   }
 
-  /** Writes a DBF model to an explicit file, including a staged layer-save file. */
+  /**
+   * Writes a DBF model to an explicit file, including a staged layer-save file.
+   *
+   * @param file destination DBF file
+   * @param model table data to write
+   * @return true if the table was created and all records were written
+   */
   public static boolean exportFile(java.nio.file.Path file, DbfTableModel model) {
     DBFWriter dbf = createTable("", file.toString(), model);
 
