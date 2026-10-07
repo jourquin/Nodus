@@ -89,12 +89,13 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
     super(null);
     nodes = nodes(nodeCount);
     links = links(linkRows);
-    connection =
-        DriverManager.getConnection(
-            (hsql ? "jdbc:hsqldb:mem:assignment_" : "jdbc:h2:mem:assignment_") + UUID.randomUUID(),
-            "sa",
-            "");
+    String jdbcUrl =
+        (hsql ? "jdbc:hsqldb:mem:assignment_" : "jdbc:h2:mem:assignment_") + UUID.randomUUID();
+    connection = DriverManager.getConnection(jdbcUrl, "sa", "");
     assertTrue(JDBCUtils.setConnection(connection));
+    properties.setProperty(NodusC.PROP_JDBC_URL, jdbcUrl);
+    properties.setProperty(NodusC.PROP_JDBC_USERNAME, "sa");
+    properties.setProperty(NodusC.PROP_JDBC_PASSWORD, "");
     properties.setProperty(NodusC.PROP_PROJECT_DOTPATH, directory + File.separator);
     properties.setProperty(NodusC.PROP_PROJECT_DOTNAME, "mini");
     properties.setProperty(NodusC.PROP_PATH_TABLE_PREFIX, "mini_paths");

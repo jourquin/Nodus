@@ -67,7 +67,7 @@ final class LogitCostFile {
     final Path source;
     final Path file;
     final byte[] original;
-    private final byte[] previous;
+    final byte[] previous;
 
     private Target(Path source, Path file, byte[] original, byte[] previous) {
       this.source = source.toAbsolutePath().normalize();

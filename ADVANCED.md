@@ -6,6 +6,7 @@ see the [main README](README.md).
 
 - [Memory allocation and JVM options](#memory-allocation)
 - [Session settings in NodusC.java](#session-settings)
+- [Local database servers and external JDBC connections](#local-database-servers-and-external-jdbc-connections)
 - [Assignment information dialogs](#assignment-information-dialogs)
 - [Assignment runtime audit](#assignment-runtime-audit)
 - [Tests and continuous integration](#tests-and-continuous-integration)
@@ -120,6 +121,21 @@ shutdown/compaction on project close. This applies to local and remote MariaDB,
 MySQL, PostgreSQL, and other JDBC databases, including separately managed HSQLDB,
 H2, and Derby instances. For a Nodus-managed built-in server, omit `jdbc.url` and
 use the port properties above instead. SQLite uses a direct file connection.
+
+For MySQL/MariaDB projects, Nodus sends a JDBC validation ping every minute while
+the project is open. This keeps a normally idle server session active and detects a
+lost connection. The interval must be shorter than the server's `wait_timeout`;
+idle transaction timeouts may still close a session. MariaDB Connector/J 3.x enables
+TCP keepalive by default, but TCP keepalive does not reset the server's SQL session timeout.
+Connector/J 3.x also removed the `autoReconnect` URL option, so adding it to
+`jdbc.url` will not recover a lost session.
+
+Once a project session is lost, Nodus warns once and prevents saving network layer
+edits to DBF files. Closing discards those unsaved network edits and does not save
+pending service changes or run the project close script. Reopen the project through
+**File > Open project** with **Re-import** checked to rebuild the database tables
+from the DBF files. Nodus does not silently replace the session: the old connection
+may have uncommitted work, and editors and database utilities still refer to it.
 
 ## Tests and continuous integration
 

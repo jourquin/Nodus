@@ -7,6 +7,7 @@ package edu.uclouvain.core.nodus.compute.assign;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.uclouvain.core.nodus.NodusC;
@@ -81,6 +82,58 @@ class ModalParameterTableIntegrationTest {
           .contains("# Model: MNL"));
       project.run(new FastMFAssignment(parameters), 2);
       assertEquals(900, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 1e-3);
+    }
+  }
+
+  @Test
+  void estimateDoesNotCommitUnrelatedProjectChanges() throws Exception {
+    for (boolean hsql : new boolean[] {false, true}) {
+      try (AssignmentTestProject project = project(hsql)) {
+        Files.writeString(directory.resolve("model.costs"),
+            "ld.1,1=0\nul.1,1=0\ntr.1,1=0\nmv.1,1=BASECOST\n"
+                + "ld.2,1=0\nul.2,1=0\ntr.2,1=0\nmv.2,1=BASECOST\n");
+        project.execute("CREATE TABLE pending (id INT)");
+        project.execute("INSERT INTO pending VALUES (1)");
+        AssignmentParameters parameters = project.parameters(2);
+        parameters.setCostFunctions("model.costs");
+        parameters.setModalSplitMethodName("MNL");
+        project.panel.prepareRun(2);
+        try (LogitCalibration estimation = new LogitCalibration(parameters,
+            new LogitCalibrationSettings(1,
+                Map.of(1, "observed_road", 2, "observed_rail")))) {
+          assertTrue(estimation.estimateToTable(false, "isolated_params", false));
+        }
+        assertEquals(1, project.number("SELECT COUNT(*) FROM pending"));
+        project.getMainJDBCConnection().rollback();
+        assertEquals(0, project.number("SELECT COUNT(*) FROM pending"));
+        assertTrue(project.number("SELECT COUNT(*) FROM isolated_params") > 0);
+      }
+    }
+  }
+
+  @Test
+  void failedScratchConnectionDoesNotCommitProjectChanges() throws Exception {
+    for (boolean hsql : new boolean[] {false, true}) {
+      try (AssignmentTestProject project = project(hsql)) {
+        Files.writeString(directory.resolve("model.costs"),
+            "ld.1,1=0\nul.1,1=0\ntr.1,1=0\nmv.1,1=BASECOST\n"
+                + "ld.2,1=0\nul.2,1=0\ntr.2,1=0\nmv.2,1=BASECOST\n");
+        project.execute("CREATE TABLE pending (id INT)");
+        project.execute("INSERT INTO pending VALUES (1)");
+        project.properties.setProperty(NodusC.PROP_JDBC_URL, "jdbc:missing:database");
+        AssignmentParameters parameters = project.parameters(2);
+        parameters.setCostFunctions("model.costs");
+        parameters.setModalSplitMethodName("MNL");
+        project.panel.prepareRun(2);
+        try (LogitCalibration estimation = new LogitCalibration(parameters,
+            new LogitCalibrationSettings(1,
+                Map.of(1, "observed_road", 2, "observed_rail")))) {
+          assertThrows(java.sql.SQLException.class,
+              () -> estimation.estimateToTable(false, "isolated_params", false));
+        }
+        project.getMainJDBCConnection().rollback();
+        assertEquals(0, project.number("SELECT COUNT(*) FROM pending"));
+      }
     }
   }
 

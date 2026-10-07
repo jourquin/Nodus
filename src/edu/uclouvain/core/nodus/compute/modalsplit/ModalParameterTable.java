@@ -17,6 +17,11 @@ import java.util.Properties;
 
 /** Database-backed parameters shared by the three embedded modal-choice methods. */
 final class ModalParameterTable {
+  @FunctionalInterface
+  interface SaveAction {
+    void run() throws Exception;
+  }
+
   static final String POINTER = "@paramTable";
   static final String METHOD = "@nodus.method";
   static final String PIVOTS = "@nodus.estimatePivots";
@@ -171,27 +176,51 @@ final class ModalParameterTable {
       Properties values,
       java.util.function.BooleanSupplier proceed)
       throws Exception {
-    String table = quoted(connection, name);
+    save(connection, name, values, proceed, () -> {}, () -> {});
+  }
+
+  /** Runs file installation before committing, and file recovery if the database save fails. */
+  static void save(
+      Connection connection,
+      String name,
+      Properties values,
+      java.util.function.BooleanSupplier proceed,
+      SaveAction beforeCommit,
+      SaveAction onFailure)
+      throws Exception {
+    
     for (String key : values.stringPropertyNames()) {
       if (key.length() > MAX_KEY_LENGTH) {
         throw new IllegalArgumentException(
             "Modal parameter key exceeds " + MAX_KEY_LENGTH + " characters: " + key);
       }
     }
+    boolean autoCommit = connection.getAutoCommit();
     boolean present = exists(connection, name);
+    boolean transactionalDdl =
+        connection.getMetaData().supportsDataDefinitionAndDataManipulationTransactions()
+            && !connection.getMetaData().dataDefinitionCausesTransactionCommit();
+    if (!present && !autoCommit && !transactionalDdl) {
+      // H2 and HSQLDB commit the caller's pending work when CREATE TABLE is executed.
+      throw new SQLException(
+          "Create parameter table " + name + " using a separate auto-commit connection");
+    }
     if (present) {
       checkSchema(connection, name);
-    } else {
-      try (Statement statement = connection.createStatement()) {
-        statement.executeUpdate("CREATE TABLE " + table + COLUMNS);
-      }
     }
-    boolean autoCommit = connection.getAutoCommit();
+    
     Savepoint savepoint = null;
+    String table = quoted(connection, name);
     try {
-      connection.setAutoCommit(false);
-      if (!autoCommit) {
+      if (autoCommit) {
+        connection.setAutoCommit(false);
+      } else {
         savepoint = connection.setSavepoint();
+      }
+      if (!present) {
+        try (Statement statement = connection.createStatement()) {
+          statement.executeUpdate("CREATE TABLE " + table + COLUMNS);
+        }
       }
       try (Statement statement = connection.createStatement()) {
         statement.executeUpdate("DELETE FROM " + table);
@@ -231,14 +260,29 @@ final class ModalParameterTable {
           insert.executeBatch();
         }
       }
-      connection.commit();
-    } catch (Exception failure) {
-      if (savepoint == null) {
-        connection.rollback();
-      } else {
-        connection.rollback(savepoint);
+      beforeCommit.run();
+      if (!proceed.getAsBoolean() || Thread.currentThread().isInterrupted()) {
+        throw new java.util.concurrent.CancellationException("Modal parameter saving canceled");
       }
-      if (!present) {
+      if (autoCommit) {
+        connection.commit();
+      }
+    } catch (Exception failure) {
+      try {
+        if (savepoint == null) {
+          connection.rollback();
+        } else {
+          connection.rollback(savepoint);
+        }
+      } catch (Exception rollbackFailure) {
+        failure.addSuppressed(rollbackFailure);
+      }
+      try {
+        onFailure.run();
+      } catch (Exception recoveryFailure) {
+        failure.addSuppressed(recoveryFailure);
+      }
+      if (!present && !transactionalDdl) {
         try (Statement statement = connection.createStatement()) {
           statement.executeUpdate("DROP TABLE IF EXISTS " + table);
         } catch (Exception cleanup) {
@@ -247,7 +291,9 @@ final class ModalParameterTable {
       }
       throw failure;
     } finally {
-      connection.setAutoCommit(autoCommit);
+      if (autoCommit) {
+        connection.setAutoCommit(true);
+      }
     }
   }
 }

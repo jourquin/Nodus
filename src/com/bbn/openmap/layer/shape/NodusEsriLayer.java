@@ -48,6 +48,7 @@ import com.bbn.openmap.util.PropUtils;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.ProjectConnectionStatus;
 import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.real.RealNode;
@@ -1694,6 +1695,9 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
   public synchronized boolean saveChanges() {
     if (!isDirty()) {
       return true;
+    }
+    if (!ProjectConnectionStatus.canSaveNetworkEdits(nodusProject)) {
+      return false;
     }
     nodusProject.getNodusMapPanel().setBusy(true);
     try {

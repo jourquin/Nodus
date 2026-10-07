@@ -27,11 +27,13 @@ import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -82,8 +84,11 @@ import java.util.function.BooleanSupplier;
  * Exclusions apply only to estimation and never filter a subsequent assignment's demand.
  *
  * <p>Use a fresh instance for one estimation and close it in a try-with-resources block. The class
- * owns its scratch table but borrows the project's JDBC connection, which it never closes. The
- * caller must serialize computations using the project's assignment resources; this workflow is not
+ * owns its scratch table but borrows the project's JDBC connection, which it never closes. It uses
+ * an isolated connection for scratch-table DDL and parameter saving when database DDL can commit
+ * unrelated project changes. SQLite uses the borrowed connection and a savepoint because its DDL is
+ * transactional and a second writer would conflict with the calibration's scratch table. caller
+ * must serialize computations using the project's assignment resources; this workflow is not
  * reentrant. Routing workers share the observation map only while its keys are stable and own
  * distinct OD records. After routing, independent commodity groups fit on a bounded worker pool.
  * Workers share no JDBC connection; the coordinating thread saves the completed result once.
@@ -104,6 +109,7 @@ public final class LogitCalibration implements AutoCloseable {
   private double pivotMaxAbs = ModalParameterTable.DEFAULT_PIVOT_MAX_ABS;
   private final StringBuilder skippedDetails = new StringBuilder();
   private String temporaryTable;
+  private Connection scratchConnection;
 
   /**
    * Creates a standalone estimator.
@@ -287,32 +293,35 @@ public final class LogitCalibration implements AutoCloseable {
         for (String key : reportedKeys) {
           report.append(key).append('=').append(fitted.getProperty(key)).append('\n');
         }
-        target.checkUnchanged();
-        long saveStarted = System.nanoTime();
-        ModalParameterTable.save(
-            connection,
-            outputTable,
-            fitted,
-            () ->
-                !Thread.currentThread().isInterrupted()
-                    && parameters
-                        .getNodusProject()
-                        .getNodusMapPanel()
-                        .updateProgress("Saving modal parameters"));
-        report
-            .append("# Saved ")
-            .append(fitted.size())
-            .append(" parameter rows in ")
-            .append(String.format(Locale.ROOT, "%.3f", (System.nanoTime() - saveStarted) / 1e9))
-            .append(" seconds.\n");
-        writeReport(report.toString());
+        boolean sqlite = JDBCUtils.getDbEngine() == JDBCUtils.DB_SQLITE;
+        Connection parameterConnection = sqlite ? connection : openParameterConnection();
+        try {
+          Properties saved =
+              saveTableOutputs(
+                  parameterConnection,
+                  outputTable,
+                  fitted,
+                  target,
+                  reportPath(),
+                  report,
+                  () ->
+                      !Thread.currentThread().isInterrupted()
+                          && parameters
+                              .getNodusProject()
+                              .getNodusMapPanel()
+                              .updateProgress("Saving modal parameters"));
+          parameters.getCostFunctions().clear();
+          parameters.getCostFunctions().putAll(saved);
+        } finally {
+          if (!sqlite) {
+            parameterConnection.close();
+          }
+        }
+      } else {
+        Properties saved = LogitCostFile.save(target, original, fitted, report.toString(), method);
+        parameters.getCostFunctions().clear();
+        parameters.getCostFunctions().putAll(saved);
       }
-      Properties saved =
-          outputTable == null
-              ? LogitCostFile.save(target, original, fitted, report.toString(), method)
-              : LogitCostFile.saveParameterTable(target, outputTable);
-      parameters.getCostFunctions().clear();
-      parameters.getCostFunctions().putAll(saved);
     } finally {
       parameters.getNodusProject().getNodusMapPanel().stopProgress();
     }
@@ -674,11 +683,16 @@ public final class LogitCalibration implements AutoCloseable {
   }
 
   private void writeReport(String contents) throws Exception {
-    java.nio.file.Path destination = reportPath();
+    writeReport(reportPath(), contents);
+  }
+
+  private static void writeReport(java.nio.file.Path destination, String contents)
+      throws Exception {
     java.nio.file.Path directory = destination.getParent();
     java.nio.file.Path temporary = Files.createTempFile(directory, ".nodus-params-", ".tmp");
     try {
       Files.writeString(temporary, contents, StandardCharsets.UTF_8);
+      copyPosixPermissions(destination, temporary);
       Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING);
       if (!Files.isRegularFile(destination)
           || !contents.equals(Files.readString(destination, StandardCharsets.UTF_8))) {
@@ -686,6 +700,136 @@ public final class LogitCalibration implements AutoCloseable {
       }
     } finally {
       Files.deleteIfExists(temporary);
+    }
+  }
+
+  /** Opens a connection owned solely by the parameter save and its commit. */
+  private Connection openParameterConnection() throws Exception {
+    var project = parameters.getNodusProject();
+    Connection separate =
+        DriverManager.getConnection(
+            project.getLocalProperty(NodusC.PROP_JDBC_URL, connection.getMetaData().getURL()),
+            project.getLocalProperty(
+                NodusC.PROP_JDBC_USERNAME, connection.getMetaData().getUserName()),
+            project.getLocalProperty(NodusC.PROP_JDBC_PASSWORD, ""));
+    try {
+      String schema = connection.getSchema();
+      if (schema != null) {
+        separate.setSchema(schema);
+      }
+      return separate;
+    } catch (Exception failure) {
+      try {
+        separate.close();
+      } catch (Exception closeFailure) {
+        failure.addSuppressed(closeFailure);
+      }
+      throw failure;
+    }
+  }
+
+  /** Coordinates the database commit with recoverable report and cost-file replacements. */
+  static Properties saveTableOutputs(
+      Connection parameterConnection,
+      String table,
+      Properties values,
+      LogitCostFile.Target target,
+      java.nio.file.Path reportFile,
+      StringBuilder report,
+      BooleanSupplier proceed)
+      throws Exception {
+    target.checkUnchanged();
+    byte[] previousReport = Files.exists(reportFile) ? Files.readAllBytes(reportFile) : null;
+    byte[][] installedCost = {null};
+    boolean[] reportAttempted = {false};
+    Properties[] saved = {null};
+    long saveStarted = System.nanoTime();
+    ModalParameterTable.save(
+        parameterConnection,
+        table,
+        values,
+        proceed,
+        () -> {
+          target.checkUnchanged();
+          if (!sameFileContents(reportFile, previousReport)) {
+            throw new IOException("Estimation report changed during saving: " + reportFile);
+          }
+          report
+              .append("# Saved ")
+              .append(values.size())
+              .append(" parameter rows in ")
+              .append(String.format(Locale.ROOT, "%.3f", (System.nanoTime() - saveStarted) / 1e9))
+              .append(" seconds.\n");
+          reportAttempted[0] = true;
+          writeReport(reportFile, report.toString());
+          saved[0] = LogitCostFile.saveParameterTable(target, table);
+          installedCost[0] = Files.readAllBytes(target.file);
+        },
+        () -> {
+          IOException recoveryFailure = null;
+          try {
+            if (installedCost[0] != null
+                && Arrays.equals(installedCost[0], Files.readAllBytes(target.file))) {
+              restoreFile(target.file, target.previous);
+            }
+          } catch (IOException failure) {
+            recoveryFailure = failure;
+          }
+          try {
+            if (reportAttempted[0]
+                && Files.isRegularFile(reportFile)
+                && Arrays.equals(
+                    report.toString().getBytes(StandardCharsets.UTF_8),
+                    Files.readAllBytes(reportFile))) {
+              restoreFile(reportFile, previousReport);
+            }
+          } catch (IOException failure) {
+            if (recoveryFailure == null) {
+              recoveryFailure = failure;
+            } else {
+              recoveryFailure.addSuppressed(failure);
+            }
+          }
+          if (recoveryFailure != null) {
+            throw recoveryFailure;
+          }
+        });
+    return saved[0];
+  }
+
+  private static boolean sameFileContents(java.nio.file.Path file, byte[] expected)
+      throws IOException {
+    return expected == null
+        ? Files.notExists(file)
+        : Files.isRegularFile(file) && Arrays.equals(expected, Files.readAllBytes(file));
+  }
+
+  private static void restoreFile(java.nio.file.Path file, byte[] previous) throws IOException {
+    if (previous == null) {
+      Files.deleteIfExists(file);
+      return;
+    }
+    java.nio.file.Path temporary =
+        Files.createTempFile(file.getParent(), ".nodus-restore-", ".tmp");
+    try {
+      Files.write(temporary, previous);
+      copyPosixPermissions(file, temporary);
+      Files.move(
+          temporary, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+    } finally {
+      Files.deleteIfExists(temporary);
+    }
+  }
+
+  private static void copyPosixPermissions(java.nio.file.Path source, java.nio.file.Path target)
+      throws IOException {
+    if (!Files.isRegularFile(source)) {
+      return;
+    }
+    try {
+      Files.setPosixFilePermissions(target, Files.getPosixFilePermissions(source));
+    } catch (UnsupportedOperationException ignored) {
+      // Windows and other filesystems without POSIX permissions use their defaults.
     }
   }
 
@@ -797,9 +941,15 @@ public final class LogitCalibration implements AutoCloseable {
    * workflow.
    */
   private void createDemandTable() throws Exception {
+    boolean sqlite = JDBCUtils.getDbEngine() == JDBCUtils.DB_SQLITE;
+    Connection writer = connection;
+    if (!sqlite) {
+      scratchConnection = openParameterConnection();
+      writer = scratchConnection;
+    }
     temporaryTable = "nodus_mnl_" + UUID.randomUUID().toString().replace("-", "");
     String odClass = JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_CLASS);
-    try (Statement statement = connection.createStatement()) {
+    try (Statement statement = writer.createStatement()) {
       statement.executeUpdate(
           "CREATE TABLE "
               + temporaryTable
@@ -807,8 +957,11 @@ public final class LogitCalibration implements AutoCloseable {
               + odClass
               + " INTEGER)");
     }
+    if (!sqlite) {
+      writer.setAutoCommit(false);
+    }
     try (PreparedStatement insert =
-        connection.prepareStatement("INSERT INTO " + temporaryTable + " VALUES (?,?,?,?,?)")) {
+        writer.prepareStatement("INSERT INTO " + temporaryTable + " VALUES (?,?,?,?,?)")) {
       int batch = 0;
       for (Observation row : observations.values()) {
         insert.setInt(1, row.group);
@@ -823,6 +976,22 @@ public final class LogitCalibration implements AutoCloseable {
         }
       }
       insert.executeBatch();
+      if (!sqlite) {
+        writer.commit();
+      }
+    } catch (Exception failure) {
+      if (!sqlite) {
+        try {
+          writer.rollback();
+        } catch (Exception rollbackFailure) {
+          failure.addSuppressed(rollbackFailure);
+        }
+      }
+      throw failure;
+    } finally {
+      if (!sqlite) {
+        writer.setAutoCommit(true);
+      }
     }
   }
 
@@ -849,9 +1018,17 @@ public final class LogitCalibration implements AutoCloseable {
    */
   @Override
   public void close() throws Exception {
-    if (temporaryTable != null) {
-      try (Statement statement = connection.createStatement()) {
-        statement.executeUpdate("DROP TABLE IF EXISTS " + temporaryTable);
+    try {
+      if (temporaryTable != null) {
+        Connection writer = scratchConnection == null ? connection : scratchConnection;
+        try (Statement statement = writer.createStatement()) {
+          statement.executeUpdate("DROP TABLE IF EXISTS " + temporaryTable);
+        }
+      }
+    } finally {
+      if (scratchConnection != null) {
+        scratchConnection.close();
+        scratchConnection = null;
       }
     }
   }

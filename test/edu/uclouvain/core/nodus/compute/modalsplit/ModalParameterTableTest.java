@@ -234,6 +234,171 @@ class ModalParameterTableTest {
   }
 
   @Test
+  void successfulSaveDoesNotCommitCallerTransaction() throws Exception {
+    for (String jdbc : List.of("jdbc:h2:mem:", "jdbc:hsqldb:mem:")) {
+      try (Connection connection =
+          DriverManager.getConnection(jdbc + UUID.randomUUID(), "sa", "")) {
+        Properties old = new Properties();
+        old.setProperty(ModalParameterTable.METHOD, "MNL");
+        ModalParameterTable.save(connection, "modal_params", old);
+        try (Statement statement = connection.createStatement()) {
+          statement.executeUpdate("CREATE TABLE pending (id INT)");
+        }
+        connection.setAutoCommit(false);
+        try (Statement statement = connection.createStatement()) {
+          statement.executeUpdate("INSERT INTO pending VALUES (1)");
+        }
+        Properties replacement = new Properties();
+        replacement.setProperty(ModalParameterTable.METHOD, "MNP");
+        ModalParameterTable.save(connection, "modal_params", replacement);
+        assertFalse(connection.getAutoCommit());
+        connection.rollback();
+        try (Statement statement = connection.createStatement();
+            ResultSet pending = statement.executeQuery("SELECT COUNT(*) FROM pending")) {
+          assertTrue(pending.next());
+          assertEquals(0, pending.getInt(1));
+        }
+        try (Statement statement = connection.createStatement();
+            ResultSet parameter =
+                statement.executeQuery(
+                    "SELECT param_value FROM modal_params WHERE param_key='@nodus.method'")) {
+          assertTrue(parameter.next());
+          assertEquals("MNL", parameter.getString(1));
+        }
+      }
+    }
+  }
+
+  @Test
+  void nontransactionalDdlCannotCommitCallerWork() throws Exception {
+    for (String jdbc : List.of("jdbc:h2:mem:", "jdbc:hsqldb:mem:")) {
+      try (Connection connection =
+          DriverManager.getConnection(jdbc + UUID.randomUUID(), "sa", "")) {
+        try (Statement statement = connection.createStatement()) {
+          statement.executeUpdate("CREATE TABLE pending (id INT)");
+        }
+        connection.setAutoCommit(false);
+        try (Statement statement = connection.createStatement()) {
+          statement.executeUpdate("INSERT INTO pending VALUES (1)");
+        }
+        Properties values = new Properties();
+        values.setProperty(ModalParameterTable.METHOD, "MNL");
+        assertThrows(
+            java.sql.SQLException.class,
+            () -> ModalParameterTable.save(connection, "new_params", values));
+        connection.rollback();
+        assertFalse(ModalParameterTable.exists(connection, "new_params"));
+        try (Statement statement = connection.createStatement();
+            ResultSet pending = statement.executeQuery("SELECT COUNT(*) FROM pending")) {
+          assertTrue(pending.next());
+          assertEquals(0, pending.getInt(1));
+        }
+      }
+    }
+  }
+
+  @Test
+  void sqliteSchemaAndRowsRollBackWithCallerTransaction() throws Exception {
+    try (Connection connection =
+        DriverManager.getConnection("jdbc:sqlite:" + directory.resolve("modal.db"))) {
+      try (Statement statement = connection.createStatement()) {
+        statement.executeUpdate("CREATE TABLE pending (id INT)");
+      }
+      connection.setAutoCommit(false);
+      try (Statement statement = connection.createStatement()) {
+        statement.executeUpdate("INSERT INTO pending VALUES (1)");
+      }
+      Properties values = new Properties();
+      values.setProperty(ModalParameterTable.METHOD, "MNL");
+      ModalParameterTable.save(connection, "new_params", values);
+      connection.rollback();
+      assertFalse(ModalParameterTable.exists(connection, "new_params"));
+      try (Statement statement = connection.createStatement();
+          ResultSet pending = statement.executeQuery("SELECT COUNT(*) FROM pending")) {
+        assertTrue(pending.next());
+        assertEquals(0, pending.getInt(1));
+      }
+    }
+  }
+
+  @Test
+  void fileFailureRollsBackParameterRowsAndRestoresEarlierOutput() throws Exception {
+    try (Connection connection =
+        DriverManager.getConnection("jdbc:h2:mem:" + UUID.randomUUID(), "sa", "")) {
+      Properties old = new Properties();
+      old.setProperty(ModalParameterTable.METHOD, "MNL");
+      ModalParameterTable.save(connection, "modal_params", old);
+      Path costFile = directory.resolve("model.costs");
+      String original = "mv.1,1=BASECOST\n@paramTable=modal_params\n";
+      Files.writeString(costFile, original);
+      LogitCostFile.Target target = LogitCostFile.target(costFile, costFile);
+      Properties replacement = new Properties();
+      replacement.setProperty(ModalParameterTable.METHOD, "MNP");
+      // Reusing the cost-file path as the report destination makes the report write
+      // succeed, then forces the guarded cost-file replacement to fail.
+      assertThrows(
+          java.io.IOException.class,
+          () ->
+              LogitCalibration.saveTableOutputs(
+                  connection,
+                  "modal_params",
+                  replacement,
+                  target,
+                  costFile,
+                  new StringBuilder("# report\n"),
+                  () -> true));
+      assertEquals(original, Files.readString(costFile));
+      try (Statement statement = connection.createStatement();
+          ResultSet parameter =
+              statement.executeQuery(
+                  "SELECT param_value FROM modal_params WHERE param_key='@nodus.method'")) {
+        assertTrue(parameter.next());
+        assertEquals("MNL", parameter.getString(1));
+      }
+    }
+  }
+
+  @Test
+  void cancellationAfterFileInstallationRestoresFilesAndParameterRows() throws Exception {
+    try (Connection connection =
+        DriverManager.getConnection("jdbc:h2:mem:" + UUID.randomUUID(), "sa", "")) {
+      Properties old = new Properties();
+      old.setProperty(ModalParameterTable.METHOD, "MNL");
+      ModalParameterTable.save(connection, "modal_params", old);
+      Path costFile = directory.resolve("model.costs");
+      Path reportFile = directory.resolve("model_params.txt");
+      String originalCost = "mv.1,1=BASECOST\n@paramTable=modal_params\n";
+      String originalReport = "previous estimation\n";
+      Files.writeString(costFile, originalCost);
+      Files.writeString(reportFile, originalReport);
+      LogitCostFile.Target target = LogitCostFile.target(costFile, costFile);
+      Properties replacement = new Properties();
+      replacement.setProperty(ModalParameterTable.METHOD, "MNP");
+      int[] checks = {0};
+      assertThrows(
+          java.util.concurrent.CancellationException.class,
+          () ->
+              LogitCalibration.saveTableOutputs(
+                  connection,
+                  "modal_params",
+                  replacement,
+                  target,
+                  reportFile,
+                  new StringBuilder("# new report\n"),
+                  () -> ++checks[0] == 1));
+      assertEquals(originalCost, Files.readString(costFile));
+      assertEquals(originalReport, Files.readString(reportFile));
+      try (Statement statement = connection.createStatement();
+          ResultSet parameter =
+              statement.executeQuery(
+                  "SELECT param_value FROM modal_params WHERE param_key='@nodus.method'")) {
+        assertTrue(parameter.next());
+        assertEquals("MNL", parameter.getString(1));
+      }
+    }
+  }
+
+  @Test
   void unrelatedTableCannotBeReplaced() throws Exception {
     try (Connection connection =
         DriverManager.getConnection("jdbc:h2:mem:" + UUID.randomUUID(), "sa", "")) {

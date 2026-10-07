@@ -74,6 +74,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -157,6 +159,15 @@ public class NodusProject implements ShapeConstants {
   /** JDBC connection to the database that holds the tables managed by Nodus. */
   private Connection jdbcConnection = null;
 
+  /** A lost session cannot be replaced without losing transactions and cached connection users. */
+  private volatile boolean jdbcConnectionLost;
+
+  /** Remember the DB type because metadata lookup itself fails after a disconnect. */
+  private boolean monitorMainConnection;
+
+  /** Sends a JDBC ping while an external MySQL/MariaDB project is idle. */
+  private Timer jdbcKeepAliveTimer;
+
   /**
    * The layer that will handle the different location handlers. See OpenMap documentation for more
    * details on LocationLayers.
@@ -223,7 +234,7 @@ public class NodusProject implements ShapeConstants {
   /** Listener owned by this project; null for SQLite and explicit JDBC configurations. */
   private LocalDatabaseServer databaseServer;
 
-  private boolean closeInProgress = false;
+  private volatile boolean closeInProgress = false;
 
   private final List<Runnable> closeCompletionCallbacks = new LinkedList<>();
 
@@ -293,19 +304,43 @@ public class NodusProject implements ShapeConstants {
     closeInProgress = true;
     nodusMapPanel.setBusy(true);
     nodusMapPanel.setFileMenuBusy(true);
+    boolean restartIntegrityTester = shapeIntegrityTester != null;
     stopShapeIntegrityTester();
-    int dbEngine = JDBCUtils.getDbEngine();
-    runProjectLifecycleScriptAsync(false, true, () -> continueProjectClose(dbEngine));
+    boolean readyToClose = false;
+    try {
+      readyToClose = saveModifiedLayersBeforeClose();
+    } finally {
+      if (!readyToClose) {
+        if (restartIntegrityTester && isOpen) {
+          shapeIntegrityTester = new ShapeIntegrityTester(this);
+        }
+        finishCloseUi(false);
+      }
+    }
+    if (!readyToClose) {
+      return;
+    }
+    int dbEngine = monitorMainConnection ? JDBCUtils.DB_MYSQL : JDBCUtils.getDbEngine();
+    try {
+      if (jdbcConnectionLost) {
+        continueProjectClose(dbEngine);
+      } else {
+        runProjectLifecycleScriptAsync(false, true, () -> continueProjectClose(dbEngine));
+      }
+    } catch (RuntimeException | Error failure) {
+      if (restartIntegrityTester && isOpen) {
+        shapeIntegrityTester = new ShapeIntegrityTester(this);
+      }
+      finishCloseUi(false);
+      throw failure;
+    }
   }
 
-  /** Continues the close workflow after the optional project Groovy hook has completed. */
+  /** Continues the close workflow after saving and the optional project Groovy hook. */
   private void continueProjectClose(int dbEngine) {
     boolean projectClosed = false;
     boolean closeDeferred = false;
     try {
-      if (!saveModifiedLayersBeforeClose()) {
-        return;
-      }
       Layer[] layer = nodusMapPanel.getLayerHandler().getLayers();
 
       String layerOrder = "";
@@ -349,7 +384,7 @@ public class NodusProject implements ShapeConstants {
         Connection connection = jdbcConnection;
 
         try {
-          if (connection != null && !connection.getAutoCommit()) {
+          if (!jdbcConnectionLost && connection != null && !connection.getAutoCommit()) {
             connection.commit();
           }
         } catch (Exception e) {
@@ -393,6 +428,10 @@ public class NodusProject implements ShapeConstants {
 
   /** Preserves the open project when saving fails or the close prompt is dismissed. */
   private boolean saveModifiedLayersBeforeClose() {
+    // The DB transaction has been lost. Keep the DBF files as they were and require re-import.
+    if (jdbcConnectionLost || !isMainConnectionHealthy()) {
+      return true;
+    }
     if (!isDirty()) {
       return true;
     }
@@ -579,6 +618,7 @@ public class NodusProject implements ShapeConstants {
 
   /** Closes JDBC resources and always releases the owned listener, including after compaction. */
   private void closeJdbcResourcesAfterClose(Connection connection) {
+    stopJdbcKeepAlive();
     try {
       closeJdbcConnectionAfterClose(connection);
     } finally {
@@ -667,6 +707,7 @@ public class NodusProject implements ShapeConstants {
     layerIds.clear();
 
     ProjectLocker.releaseLock();
+    stopJdbcKeepAlive();
     isOpen = false;
 
     // Reset rendering scale threshold
@@ -726,7 +767,11 @@ public class NodusProject implements ShapeConstants {
   /** Saves and releases the lines and services handler. */
   private void closeServiceHandler() {
     if (serviceHandler != null) {
-      serviceHandler.close();
+      if (jdbcConnectionLost) {
+        serviceHandler.dispose();
+      } else {
+        serviceHandler.close();
+      }
       serviceHandler = null;
     }
   }
@@ -748,6 +793,7 @@ public class NodusProject implements ShapeConstants {
 
   /** Closes the project JDBC connection during failed project opening. */
   private void closeJdbcConnectionAfterFailedOpen() {
+    stopJdbcKeepAlive();
     if (jdbcConnection == null) {
       JDBCUtils.setConnection(null);
       return;
@@ -1064,6 +1110,11 @@ public class NodusProject implements ShapeConstants {
    */
   public Connection getMainJDBCConnection() {
     try {
+      if (isOpen && !isMainConnectionHealthy()) {
+        // Returning the original connection preserves existing JDBC references. The caller's
+        // operation will fail, but it cannot silently run in a fresh, empty transaction.
+        return jdbcConnection;
+      }
       if (jdbcConnection == null || jdbcConnection.isClosed()) {
         jdbcConnection =
             DriverManager.getConnection(
@@ -1090,6 +1141,89 @@ public class NodusProject implements ShapeConstants {
     }
 
     return jdbcConnection;
+  }
+
+  /** Checks the actual server session, not just the local JDBC closed flag. */
+  private boolean isMainConnectionHealthy() {
+    if (!isOpen || !monitorMainConnection) {
+      return true;
+    }
+    if (jdbcConnectionLost) {
+      return false;
+    }
+    try {
+      if (jdbcConnection != null && jdbcConnection.isValid(2)) {
+        return true;
+      }
+    } catch (SQLException failure) {
+      Logger.getLogger(NodusProject.class.getName())
+          .log(Level.WARNING, "Project JDBC connection is lost", failure);
+    }
+    markJdbcConnectionLost();
+    return false;
+  }
+
+  /** Prevents layer files from being saved after their database session has been lost. */
+  boolean canSaveNetworkEdits() {
+    return isMainConnectionHealthy();
+  }
+
+  private synchronized void markJdbcConnectionLost() {
+    if (jdbcConnectionLost) {
+      return;
+    }
+    jdbcConnectionLost = true;
+    stopJdbcKeepAlive();
+    if (SwingUtilities.isEventDispatchThread()) {
+      showJdbcConnectionLostWarning();
+    } else {
+      SwingUtilities.invokeLater(
+          () -> {
+            if (jdbcConnectionLost) {
+              showJdbcConnectionLostWarning();
+            }
+          });
+    }
+  }
+
+  /** Shown once per lost project session; may be overridden by headless tests. */
+  void showJdbcConnectionLostWarning() {
+    JOptionPane.showMessageDialog(
+        nodusMapPanel,
+        i18n.get(
+            NodusProject.class,
+            "Connection_lost",
+            "Database connection lost. Unsaved network and service edits will be discarded.\n"
+                + "Close this project, then reopen it with Re-import checked to synchronize "
+                + "the DBF files and database."),
+        NodusC.APPNAME,
+        JOptionPane.ERROR_MESSAGE);
+  }
+
+  private synchronized void startJdbcKeepAlive() {
+    if (!monitorMainConnection) {
+      return;
+    }
+    stopJdbcKeepAlive();
+    jdbcKeepAliveTimer = new Timer("Nodus-JdbcKeepAlive", true);
+    jdbcKeepAliveTimer.schedule(
+        new TimerTask() {
+          @Override
+          public void run() {
+            if (!closeInProgress) {
+              isMainConnectionHealthy();
+            }
+          }
+        },
+        60_000,
+        60_000);
+  }
+
+  private synchronized void stopJdbcKeepAlive() {
+    if (jdbcKeepAliveTimer != null) {
+      jdbcKeepAliveTimer.cancel();
+      jdbcKeepAliveTimer = null;
+    }
   }
 
   /**
@@ -1482,6 +1616,7 @@ public class NodusProject implements ShapeConstants {
   private void completeProjectOpenUi() {
 
     isOpen = true;
+    startJdbcKeepAlive();
     nodusMapPanel.getNodusLayersPanel().enableButtons(true);
 
     String mouseModeId = getLocalProperty(NodusC.PROP_ACTIVE_MOUSE_MODE, SelectMouseMode.modeID);
@@ -1696,6 +1831,8 @@ public class NodusProject implements ShapeConstants {
    */
   public void openProject(String projectName) throws OutOfMemoryError {
 
+    jdbcConnectionLost = false;
+    monitorMainConnection = false;
     projectResourceFileNameAndPath = projectName;
 
     // Save current view
@@ -1960,6 +2097,7 @@ public class NodusProject implements ShapeConstants {
 
     // Initialize JDBCUtils
     JDBCUtils.setConnection(jdbcConnection);
+    monitorMainConnection = JDBCUtils.getDbEngine() == JDBCUtils.DB_MYSQL;
 
     // Set some defaults for HSQLDB
     if (JDBCUtils.getDbEngine() == JDBCUtils.DB_HSQLDB) {
@@ -2157,6 +2295,9 @@ public class NodusProject implements ShapeConstants {
    * @return false if a layer could not be saved
    */
   public boolean saveEsriLayersSafely() {
+    if (!canSaveNetworkEdits()) {
+      return false;
+    }
     return layerOperations.saveEsriLayersSafely();
   }
 
