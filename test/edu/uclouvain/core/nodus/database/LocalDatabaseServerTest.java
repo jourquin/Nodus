@@ -50,14 +50,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.io.TempDir;
 
-/** Runs actual listeners in separate JVMs to isolate H2 and Derby's process-wide settings. */
+/** Runs actual listeners in separate JVMs to isolate H2's process-wide settings. */
 class LocalDatabaseServerTest {
   @TempDir Path directory;
 
   @TestFactory
   List<DynamicTest> localServersPreserveJdbcAccessAndHandleFailures() {
     List<DynamicTest> tests = new ArrayList<>();
-    for (int engine : new int[] {JDBCUtils.DB_HSQLDB, JDBCUtils.DB_H2, JDBCUtils.DB_DERBY}) {
+    for (int engine : new int[] {JDBCUtils.DB_HSQLDB, JDBCUtils.DB_H2}) {
       for (String mode : List.of("connect", "conflict")) {
         tests.add(DynamicTest.dynamicTest(engine + "/" + mode, () -> runChild(engine, mode)));
       }
@@ -82,8 +82,7 @@ class LocalDatabaseServerTest {
             "jdbc:mysql://database.example/project",
             "jdbc:postgresql://database.example/project",
             "jdbc:h2:tcp://database.example/project",
-            "jdbc:hsqldb:hsql://localhost/project",
-            "jdbc:derby://localhost/project")) {
+            "jdbc:hsqldb:hsql://localhost/project")) {
       tests.add(
           DynamicTest.dynamicTest(
               url,
@@ -94,9 +93,7 @@ class LocalDatabaseServerTest {
                 properties.setProperty(NodusC.PROP_JDBC_PASSWORD, "nodus");
                 Properties original = (Properties) properties.clone();
                 String h2Binding = System.getProperty("h2.bindAddress");
-                final String derbyHome = System.getProperty("derby.system.home");
-                for (int engine :
-                    new int[] {JDBCUtils.DB_HSQLDB, JDBCUtils.DB_H2, JDBCUtils.DB_DERBY}) {
+                for (int engine : new int[] {JDBCUtils.DB_HSQLDB, JDBCUtils.DB_H2}) {
                   // Even an unusable port must be ignored when the URL specifies an external
                   // server.
                   assertNull(
@@ -105,7 +102,6 @@ class LocalDatabaseServerTest {
                 }
                 assertEquals(original, properties);
                 assertEquals(h2Binding, System.getProperty("h2.bindAddress"));
-                assertEquals(derbyHome, System.getProperty("derby.system.home"));
                 try (var files = Files.list(directory)) {
                   assertEquals(0, files.count());
                 }
@@ -213,29 +209,23 @@ class LocalDatabaseServerTest {
           "project",
           port,
           user(engine),
-          engine == JDBCUtils.DB_DERBY ? "nodus" : password);
+          password);
     }
 
     private static String user(int engine) {
-      return engine == JDBCUtils.DB_HSQLDB ? "SA" : engine == JDBCUtils.DB_DERBY ? "nodus" : "";
+      return engine == JDBCUtils.DB_HSQLDB ? "SA" : "";
     }
 
     private static String url(int engine, Path directory, int port, String host) {
       if (engine == JDBCUtils.DB_HSQLDB) {
         return "jdbc:hsqldb:hsql://" + host + ":" + port + "/project";
       }
-      if (engine == JDBCUtils.DB_H2) {
-        return "jdbc:h2:tcp://" + host + ":" + port + "/" + directory.resolve("project");
-      }
-      return "jdbc:derby://" + host + ":" + port + "/project_derby;create=true";
+      return "jdbc:h2:tcp://" + host + ":" + port + "/" + directory.resolve("project");
     }
 
     private static Connection connect(int engine, Path directory, int port, String host)
         throws SQLException {
-      return DriverManager.getConnection(
-          url(engine, directory, port, host),
-          user(engine),
-          engine == JDBCUtils.DB_DERBY ? "nodus" : "");
+      return DriverManager.getConnection(url(engine, directory, port, host), user(engine), "");
     }
 
     private static void exercise(int engine, Path directory, int port) throws Exception {
@@ -262,11 +252,7 @@ class LocalDatabaseServerTest {
                 });
             assertFalse(Files.exists(directory.resolve("unrelated.mv.db")));
           }
-          if (engine != JDBCUtils.DB_DERBY) {
-            write.execute("SHUTDOWN COMPACT");
-          } else {
-            assertFalse("test".equals(System.getProperty("derby.system.durability")));
-          }
+          write.execute("SHUTDOWN COMPACT");
         }
       }
     }

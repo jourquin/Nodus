@@ -22,16 +22,11 @@
 package edu.uclouvain.core.nodus.database;
 
 import edu.uclouvain.core.nodus.NodusC;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
-import org.apache.derby.drda.NetworkServerControl;
 import org.hsqldb.server.ServerConstants;
 
 /**
@@ -48,7 +43,6 @@ public final class LocalDatabaseServer implements AutoCloseable {
 
   private org.hsqldb.Server hsql;
   private org.h2.tools.Server h2;
-  private NetworkServerControl derby;
 
   private LocalDatabaseServer() {}
 
@@ -86,9 +80,7 @@ public final class LocalDatabaseServer implements AutoCloseable {
       String password)
       throws Exception {
     if (project.getProperty(NodusC.PROP_JDBC_URL) != null
-        || (engine != JDBCUtils.DB_HSQLDB
-            && engine != JDBCUtils.DB_H2
-            && engine != JDBCUtils.DB_DERBY)) {
+        || (engine != JDBCUtils.DB_HSQLDB && engine != JDBCUtils.DB_H2)) {
       return null;
     }
     if (port < 1 || port > 65535) {
@@ -132,19 +124,6 @@ public final class LocalDatabaseServer implements AutoCloseable {
             connection.getMetaData();
           }
           break;
-        case JDBCUtils.DB_DERBY:
-          // Derby starts asynchronously. Reject an occupied port before creating a control handle,
-          // so startup failure cannot cause cleanup to shut down an existing server on that port.
-          try (ServerSocket probe = new ServerSocket()) {
-            probe.bind(new InetSocketAddress(HOST, port));
-          }
-          System.setProperty("derby.system.home", directory.toAbsolutePath().toString());
-          NetworkServerControl control =
-              new NetworkServerControl(InetAddress.getByName(HOST), port, user, password);
-          control.start(null);
-          owner.derby = control;
-          awaitDerby(control);
-          break;
         default:
           throw new IllegalArgumentException("Unsupported local server: " + engine);
       }
@@ -157,22 +136,6 @@ public final class LocalDatabaseServer implements AutoCloseable {
       }
       throw failure;
     }
-  }
-
-  /** Waits for Derby's asynchronous startup before the project opens a JDBC connection. */
-  private static void awaitDerby(NetworkServerControl control) throws Exception {
-    long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
-    Exception last = null;
-    while (System.nanoTime() < deadline) {
-      try {
-        control.ping();
-        return;
-      } catch (Exception starting) {
-        last = starting;
-        Thread.sleep(25);
-      }
-    }
-    throw new IOException("Local Derby server did not start", last);
   }
 
   /**
@@ -193,10 +156,6 @@ public final class LocalDatabaseServer implements AutoCloseable {
     if (h2 != null) {
       h2.stop();
       h2 = null;
-    }
-    if (derby != null) {
-      derby.shutdown();
-      derby = null;
     }
   }
 }

@@ -42,8 +42,8 @@ along with contributions to congresses and seminars can be found on
 [Python](https://www.python.org) through a [Py4J](https://www.py4j.org/index.html) bridge or
 [R](https://www.r-project.org) through a [J4R](https://sourceforge.net/p/repiceasource/wiki/J4R/) bridge)
 or plugins (in Java jar files).
-- JDBC: compatible with most DBMS’s. Shipped with [HSQLDB](http://hsqldb.org/),
-[H2](http://h2database.com/) and [Apache Derby](https://db.apache.org/derby/).
+- JDBC: compatible with most DBMS’s. Shipped with [HSQLDB](http://hsqldb.org/) and
+[H2](http://h2database.com/).
 - Flexible: user defined database fields, variables, cost functions, mode choice models…
 
 See also the [documentation](https://nodus.uclouvain.be/doc/help.html) and

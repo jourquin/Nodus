@@ -55,13 +55,11 @@ in `jdbcDrivers/`.
 
 | Component / JAR family | Bundled version | License |
 | --- | --- | --- |
-| [Apache Derby][derby] `derby*.jar` | 10.15.2.0 | Apache-2.0 |
 | [H2][h2] `h2-*` | 2.4.240 | MPL-2.0 OR EPL-1.0 |
 | [HSQLDB][hsqldb] `hsqldb-*` | 2.7.4 | HSQLDB BSD-style license |
 | [MariaDB Connector/J][mariadb] `mariadb-java-client-*` | 3.5.3 | LGPL-2.1-or-later |
 | [PostgreSQL JDBC][postgresql] `postgresql-*` | 42.7.3 | BSD-2-Clause |
 
-Derby's version is recorded in its bundle metadata despite its unversioned filenames.
 The PostgreSQL JAR also includes BSD-2-Clause notices for its embedded SCRAM and
 string-preparation dependencies.
 
@@ -157,7 +155,6 @@ installation; the Ant companion JARs bundled with Groovy are listed separately.
 [slf4j]: https://www.slf4j.org/license.html
 [xchart]: https://github.com/knowm/XChart
 [xmlbeans]: https://xmlbeans.apache.org/
-[derby]: https://db.apache.org/derby/
 [h2]: https://github.com/h2database/h2database/blob/version-2.4.240/LICENSE.txt
 [hsqldb]: https://hsqldb.org/web/hsqlLicense.html
 [mariadb]: https://github.com/mariadb-corporation/mariadb-connector-j

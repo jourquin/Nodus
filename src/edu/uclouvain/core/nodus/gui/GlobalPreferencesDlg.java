@@ -29,7 +29,9 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import edu.uclouvain.core.nodus.swing.GUIUtils;
 import edu.uclouvain.core.nodus.utils.GitHubRelease;
-import java.awt.Color;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -39,6 +41,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -49,7 +52,6 @@ import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.WindowConstants;
-import javax.swing.border.TitledBorder;
 
 /**
  * Dialog that permits to modify some Nodus system wide preferences.
@@ -70,9 +72,6 @@ public class GlobalPreferencesDlg extends EscapeDialog {
 
   /** . */
   private JPanel dbPanel;
-
-  /** . */
-  private JRadioButton derbyRadioButton;
 
   /** . */
   private JCheckBox displayFullPathCheckBox;
@@ -137,33 +136,12 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     setTitle(i18n.get(GlobalPreferencesDlg.class, "Global_preferences", "Global preferences"));
     this.nodusMapPanel = nodusMapPanel;
 
-    GridBagLayout contentPaneGridBagLayout = new GridBagLayout();
-    getContentPane().setLayout(contentPaneGridBagLayout);
+    getContentPane().setLayout(new BorderLayout());
+    contentPanel.setLayout(new GridBagLayout());
+    contentPanel.setBorder(BorderFactory.createEmptyBorder(8, 8, 0, 8));
+    getContentPane().add(contentPanel, BorderLayout.CENTER);
 
-    GridBagConstraints gbcContentPanel = new GridBagConstraints();
-    gbcContentPanel.insets = new Insets(0, 0, 0, 5);
-    getContentPane().add(contentPanel, gbcContentPanel);
-    GridBagLayout gblContentPanel = new GridBagLayout();
-    gblContentPanel.columnWeights = new double[] {0.0, 1.0};
-    gblContentPanel.rowWeights =
-        new double[] {0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    contentPanel.setLayout(gblContentPanel);
-
-    final JLabel forcedGcIntervalLabel =
-        new JLabel(
-            i18n.get(
-                GlobalPreferencesDlg.class,
-                "GC_interval",
-                "GC interval in seconds (0 if not forced)"));
-    GridBagConstraints gbcLblForcedGcInterval = new GridBagConstraints();
-    gbcLblForcedGcInterval.fill = GridBagConstraints.HORIZONTAL;
-    gbcLblForcedGcInterval.anchor = GridBagConstraints.WEST;
-    gbcLblForcedGcInterval.insets = new Insets(5, 5, 5, 5);
-    gbcLblForcedGcInterval.gridx = 0;
-    gbcLblForcedGcInterval.gridy = 0;
-    contentPanel.add(forcedGcIntervalLabel, gbcLblForcedGcInterval);
-
-    gcIntervalTextField = new JTextField();
+    gcIntervalTextField = new JTextField(7);
     gcIntervalTextField.addKeyListener(
         new KeyAdapter() {
           @Override
@@ -177,23 +155,8 @@ public class GlobalPreferencesDlg extends EscapeDialog {
         });
     gcIntervalTextField.setHorizontalAlignment(SwingConstants.LEFT);
     gcIntervalTextField.setText("0");
-    GridBagConstraints gbcTextField = new GridBagConstraints();
-    gbcTextField.insets = new Insets(5, 5, 5, 0);
-    gbcTextField.fill = GridBagConstraints.HORIZONTAL;
-    gbcTextField.gridx = 1;
-    gbcTextField.gridy = 0;
-    contentPanel.add(gcIntervalTextField, gbcTextField);
 
-    final JLabel maxSqlRowsLabel =
-        new JLabel(i18n.get(GlobalPreferencesDlg.class, "Max_SQL_rows", "Max SQL rows"));
-    GridBagConstraints gbcLblMaxSqlRows = new GridBagConstraints();
-    gbcLblMaxSqlRows.anchor = GridBagConstraints.WEST;
-    gbcLblMaxSqlRows.insets = new Insets(5, 5, 5, 5);
-    gbcLblMaxSqlRows.gridx = 0;
-    gbcLblMaxSqlRows.gridy = 1;
-    contentPanel.add(maxSqlRowsLabel, gbcLblMaxSqlRows);
-
-    maxSqlRowsTextField = new JTextField();
+    maxSqlRowsTextField = new JTextField(7);
     maxSqlRowsTextField.addKeyListener(
         new KeyAdapter() {
           @Override
@@ -207,23 +170,10 @@ public class GlobalPreferencesDlg extends EscapeDialog {
         });
     maxSqlRowsTextField.setHorizontalAlignment(SwingConstants.LEFT);
     maxSqlRowsTextField.setText("0");
-    GridBagConstraints gbcSqltextField = new GridBagConstraints();
-    gbcSqltextField.insets = new Insets(5, 5, 5, 0);
-    gbcSqltextField.fill = GridBagConstraints.HORIZONTAL;
-    gbcSqltextField.gridx = 1;
-    gbcSqltextField.gridy = 1;
-    contentPanel.add(maxSqlRowsTextField, gbcSqltextField);
 
     reloadLastProjectCheckBox =
         new JCheckBox(
             i18n.get(GlobalPreferencesDlg.class, "Reopen_last_project", "Reopen last project"));
-    GridBagConstraints gbcChckbxReloadLastProject = new GridBagConstraints();
-    gbcChckbxReloadLastProject.anchor = GridBagConstraints.WEST;
-    gbcChckbxReloadLastProject.insets = new Insets(5, 5, 5, 5);
-    gbcChckbxReloadLastProject.gridx = 0;
-    gbcChckbxReloadLastProject.gridy = 2;
-    contentPanel.add(reloadLastProjectCheckBox, gbcChckbxReloadLastProject);
-
     subframesAlwaysOnCheckBox =
         new JCheckBox(
             i18n.get(
@@ -232,159 +182,50 @@ public class GlobalPreferencesDlg extends EscapeDialog {
         new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
-            if (subframesAlwaysOnCheckBox.isSelected()) {
-              stickyDrawingToolCheckBox.setEnabled(true);
-            } else {
-              stickyDrawingToolCheckBox.setEnabled(false);
-            }
+            stickyDrawingToolCheckBox.setEnabled(subframesAlwaysOnCheckBox.isSelected());
           }
         });
-    GridBagConstraints gbcChckbxSubframesAlwaysOn = new GridBagConstraints();
-    gbcChckbxSubframesAlwaysOn.anchor = GridBagConstraints.WEST;
-    gbcChckbxSubframesAlwaysOn.insets = new Insets(5, 5, 5, 5);
-    gbcChckbxSubframesAlwaysOn.gridx = 0;
-    gbcChckbxSubframesAlwaysOn.gridy = 3;
-    contentPanel.add(subframesAlwaysOnCheckBox, gbcChckbxSubframesAlwaysOn);
-
     stickyDrawingToolCheckBox =
         new JCheckBox(
             i18n.get(GlobalPreferencesDlg.class, "Sticky_drawing_tool", "Sticky drawing tool"));
-    GridBagConstraints gbcTglbtnStickyDrawingTool = new GridBagConstraints();
-    gbcTglbtnStickyDrawingTool.anchor = GridBagConstraints.WEST;
-    gbcTglbtnStickyDrawingTool.insets = new Insets(5, 5, 5, 5);
-    gbcTglbtnStickyDrawingTool.gridx = 0;
-    gbcTglbtnStickyDrawingTool.gridy = 4;
-    contentPanel.add(stickyDrawingToolCheckBox, gbcTglbtnStickyDrawingTool);
-
     displayFullPathCheckBox =
         new JCheckBox(
             i18n.get(
                 GlobalPreferencesDlg.class,
                 "Display_full_path_in_title",
                 "Display full path in title"));
-    GridBagConstraints gbcChckbxDisplayFullPath = new GridBagConstraints();
-    gbcChckbxDisplayFullPath.anchor = GridBagConstraints.WEST;
-    gbcChckbxDisplayFullPath.insets = new Insets(5, 5, 5, 5);
-    gbcChckbxDisplayFullPath.gridx = 0;
-    gbcChckbxDisplayFullPath.gridy = 5;
-    contentPanel.add(displayFullPathCheckBox, gbcChckbxDisplayFullPath);
-
     useNativeGroovyConsoleCheckBox =
         new JCheckBox(
             i18n.get(
                 GlobalPreferencesDlg.class,
                 "Use_native_Groovy_console",
                 "Use native Groovy console"));
-    GridBagConstraints gbcChckbxUseNativeGroovy = new GridBagConstraints();
-    gbcChckbxUseNativeGroovy.anchor = GridBagConstraints.WEST;
-    gbcChckbxUseNativeGroovy.insets = new Insets(5, 5, 5, 5);
-    gbcChckbxUseNativeGroovy.gridx = 0;
-    gbcChckbxUseNativeGroovy.gridy = 6;
-    contentPanel.add(useNativeGroovyConsoleCheckBox, gbcChckbxUseNativeGroovy);
-
-    dbPanel = new JPanel();
-    String title = i18n.get(GlobalPreferencesDlg.class, "Default_DBMS", "Default DBMS");
-    dbPanel.setBorder(
-        new TitledBorder(
-            null, title, TitledBorder.LEADING, TitledBorder.TOP, null, new Color(59, 59, 59)));
-
-    GridBagConstraints gbcPanel = new GridBagConstraints();
-    gbcPanel.gridheight = 5;
-    gbcPanel.insets = new Insets(5, 5, 5, 0);
-    gbcPanel.fill = GridBagConstraints.BOTH;
-    gbcPanel.gridx = 1;
-    gbcPanel.gridy = 2;
-    dbPanel.setLayout(new GridBagLayout());
-    contentPanel.add(dbPanel, gbcPanel);
 
     hsqldbRadioButton = new JRadioButton("HSQLDB");
-    GridBagConstraints gbcRdbtnNewRadioButton = new GridBagConstraints();
-    gbcRdbtnNewRadioButton.ipadx = 50;
-    gbcRdbtnNewRadioButton.anchor = GridBagConstraints.WEST;
-    gbcRdbtnNewRadioButton.insets = new Insets(5, 5, 5, 5);
-    gbcRdbtnNewRadioButton.gridx = 0;
-    gbcRdbtnNewRadioButton.gridy = 0;
-    dbPanel.add(hsqldbRadioButton, gbcRdbtnNewRadioButton);
-
     h2RadioButton = new JRadioButton("H2");
-    GridBagConstraints gbcRdbtnH = new GridBagConstraints();
-    gbcRdbtnH.anchor = GridBagConstraints.WEST;
-    gbcRdbtnH.insets = new Insets(5, 5, 5, 5);
-    gbcRdbtnH.gridx = 0;
-    gbcRdbtnH.gridy = 1;
-    dbPanel.add(h2RadioButton, gbcRdbtnH);
-
-    derbyRadioButton = new JRadioButton("Derby");
-    GridBagConstraints gbcRdbtnDerby = new GridBagConstraints();
-    gbcRdbtnDerby.anchor = GridBagConstraints.WEST;
-    gbcRdbtnDerby.insets = new Insets(5, 5, 5, 5);
-    gbcRdbtnDerby.gridx = 0;
-    gbcRdbtnDerby.gridy = 2;
-    dbPanel.add(derbyRadioButton, gbcRdbtnDerby);
-
     sgdbGroup = new ButtonGroup();
     sgdbGroup.add(hsqldbRadioButton);
     sgdbGroup.add(h2RadioButton);
-    sgdbGroup.add(derbyRadioButton);
 
     navMouseModeCheckBox =
         new JCheckBox(
             i18n.get(GlobalPreferencesDlg.class, "Use_NavMouseMode2", "Centered zoom navigation"));
-    GridBagConstraints gbcChckbxUseCenteredNav = new GridBagConstraints();
-    gbcChckbxUseCenteredNav.anchor = GridBagConstraints.WEST;
-    gbcChckbxUseCenteredNav.insets = new Insets(5, 5, 5, 5);
-    gbcChckbxUseCenteredNav.gridx = 0;
-    gbcChckbxUseCenteredNav.gridy = 7;
-    contentPanel.add(navMouseModeCheckBox, gbcChckbxUseCenteredNav);
-
     antialiasingCheckBox =
         new JCheckBox(i18n.get(GlobalPreferencesDlg.class, "Antialiasing", "Antialiasing"));
-    GridBagConstraints gbcChckbxUseAntialiasing = new GridBagConstraints();
-    gbcChckbxUseAntialiasing.anchor = GridBagConstraints.WEST;
-    gbcChckbxUseAntialiasing.insets = new Insets(5, 5, 5, 5);
-    gbcChckbxUseAntialiasing.gridx = 0;
-    gbcChckbxUseAntialiasing.gridy = 8;
-    contentPanel.add(antialiasingCheckBox, gbcChckbxUseAntialiasing);
-
     confirmQuitCheckBox =
         new JCheckBox(
             i18n.get(
                 GlobalPreferencesDlg.class, "Confirm_before_quitting", "Confirm before quitting"));
-    GridBagConstraints gbcChckbxConfirmQuit = new GridBagConstraints();
-    gbcChckbxConfirmQuit.anchor = GridBagConstraints.WEST;
-    gbcChckbxConfirmQuit.insets = new Insets(5, 5, 5, 5);
-    gbcChckbxConfirmQuit.gridx = 0;
-    gbcChckbxConfirmQuit.gridy = 9;
-    contentPanel.add(confirmQuitCheckBox, gbcChckbxConfirmQuit);
-
     displayToolTipsCheckBox =
-        new JCheckBox(
-            i18n.get(GlobalPreferencesDlg.class, "Display_tooltips", "Display tooltips"));
-    GridBagConstraints gbcChckbxDisplayToolTips = new GridBagConstraints();
-    gbcChckbxDisplayToolTips.anchor = GridBagConstraints.WEST;
-    gbcChckbxDisplayToolTips.insets = new Insets(5, 5, 5, 5);
-    gbcChckbxDisplayToolTips.gridx = 0;
-    gbcChckbxDisplayToolTips.gridy = 10;
-    contentPanel.add(displayToolTipsCheckBox, gbcChckbxDisplayToolTips);
-
+        new JCheckBox(i18n.get(GlobalPreferencesDlg.class, "Display_tooltips", "Display tooltips"));
     checkForUpdatesCheckBox =
         new JCheckBox(
             i18n.get(
                 GlobalPreferencesDlg.class, "AutoCheckForUpdates", "Check for updates at startup"));
-    GridBagConstraints gbcChckbxCheckForUpdates = new GridBagConstraints();
-    gbcChckbxCheckForUpdates.anchor = GridBagConstraints.WEST;
-    gbcChckbxCheckForUpdates.insets = new Insets(5, 5, 0, 5);
-    gbcChckbxCheckForUpdates.gridx = 0;
-    gbcChckbxCheckForUpdates.gridy = 11;
-    contentPanel.add(checkForUpdatesCheckBox, gbcChckbxCheckForUpdates);
 
     final JButton checkForUpdateButton =
-        new JButton(i18n.get(GlobalPreferencesDlg.class, "CheckForUpdates", "Check for updates"));
-    GridBagConstraints gbcCheckForUpdateButton = new GridBagConstraints();
-    gbcCheckForUpdateButton.gridx = 1;
-    gbcCheckForUpdateButton.gridy = 11;
-    gbcCheckForUpdateButton.insets = new Insets(5, 5, 5, 5);
-    contentPanel.add(checkForUpdateButton, gbcCheckForUpdateButton);
+        new JButton(
+            i18n.get(GlobalPreferencesDlg.class, "CheckForUpdates", "Check for updates now"));
     EscapeDialog parent = this;
     checkForUpdateButton.addActionListener(
         new ActionListener() {
@@ -394,41 +235,70 @@ public class GlobalPreferencesDlg extends EscapeDialog {
           }
         });
 
-    final JPanel buttonPane = new JPanel();
-    GridBagConstraints gbcButtonPane = new GridBagConstraints();
-    gbcButtonPane.anchor = GridBagConstraints.NORTH;
-    gbcButtonPane.fill = GridBagConstraints.HORIZONTAL;
-    gbcButtonPane.gridx = 0;
-    gbcButtonPane.gridy = 1;
-    getContentPane().add(buttonPane, gbcButtonPane);
-    GridBagLayout gblButtonPane = new GridBagLayout();
-    gblButtonPane.columnWidths = new int[] {0, 0, 0};
-    gblButtonPane.columnWeights = new double[] {0.0, 0.0, Double.MIN_VALUE};
-    buttonPane.setLayout(gblButtonPane);
+    JPanel startupPanel =
+        createSection(i18n.get(GlobalPreferencesDlg.class, "Startup_and_exit", "Startup and exit"));
 
-    final JButton cancelButton = new JButton("Cancel");
-    i18n.get(GlobalPreferencesDlg.class, "", "");
-    GridBagConstraints gbcCancelbutton = new GridBagConstraints();
-    gbcCancelbutton.insets = new Insets(5, 5, 5, 5);
-    gbcCancelbutton.gridx = 1;
-    gbcCancelbutton.gridy = 0;
-    buttonPane.add(cancelButton, gbcCancelbutton);
-    cancelButton.addActionListener(
-        new ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
-            requestCloseDialog();
-          }
-        });
+    addControl(startupPanel, reloadLastProjectCheckBox, 0, 8);
+    addControl(startupPanel, checkForUpdatesCheckBox, 1, 8);
+    JPanel updateButtonRow = new JPanel(new FlowLayout(FlowLayout.LEADING, 0, 0));
+    updateButtonRow.add(checkForUpdateButton);
+    addControl(startupPanel, updateButtonRow, 2, 28);
+    addControl(startupPanel, confirmQuitCheckBox, 3, 8);
+    JPanel leftColumn = new JPanel(new GridBagLayout());
+    addSection(leftColumn, startupPanel, 0);
+
+    dbPanel = createSection(i18n.get(GlobalPreferencesDlg.class, "Database", "Database"));
+    addControl(
+        dbPanel,
+        new JLabel(i18n.get(GlobalPreferencesDlg.class, "Default_DBMS", "Default DBMS")),
+        0,
+        8);
+    JPanel dbChoices = new JPanel(new FlowLayout(FlowLayout.LEADING, 12, 0));
+    dbChoices.add(hsqldbRadioButton);
+    dbChoices.add(h2RadioButton);
+    addControl(dbPanel, dbChoices, 1, 8);
+    addLabeledField(
+        dbPanel,
+        new JLabel(i18n.get(GlobalPreferencesDlg.class, "Max_SQL_rows", "Max SQL rows")),
+        maxSqlRowsTextField,
+        2);
+    JPanel rightColumn = new JPanel(new GridBagLayout());
+    addSection(rightColumn, dbPanel, 0);
+
+    JPanel windowsPanel =
+        createSection(
+            i18n.get(GlobalPreferencesDlg.class, "Windows_and_tools", "Windows and tools"));
+    addControl(windowsPanel, subframesAlwaysOnCheckBox, 0, 8);
+    addControl(windowsPanel, stickyDrawingToolCheckBox, 1, 28);
+    addControl(windowsPanel, displayFullPathCheckBox, 2, 8);
+    addControl(windowsPanel, useNativeGroovyConsoleCheckBox, 3, 8);
+    addSection(leftColumn, windowsPanel, 1);
+
+    JPanel displayPanel =
+        createSection(i18n.get(GlobalPreferencesDlg.class, "Map_and_display", "Map and display"));
+    addControl(displayPanel, navMouseModeCheckBox, 0, 8);
+    addControl(displayPanel, displayToolTipsCheckBox, 1, 8);
+    addSection(rightColumn, displayPanel, 1);
+
+    JPanel performancePanel =
+        createSection(i18n.get(GlobalPreferencesDlg.class, "Performance", "Performance"));
+    addControl(performancePanel, antialiasingCheckBox, 0, 8);
+    addLabeledField(
+        performancePanel,
+        new JLabel(
+            i18n.get(GlobalPreferencesDlg.class, "GC_interval", "GC interval (seconds; 0 = off)")),
+        gcIntervalTextField,
+        1);
+    addSection(rightColumn, performancePanel, 2);
+
+    addColumn(leftColumn, 0);
+    addColumn(rightColumn, 1);
+
+    final JPanel buttonPane = new JPanel(new FlowLayout(FlowLayout.TRAILING, 8, 4));
+    getContentPane().add(buttonPane, BorderLayout.SOUTH);
 
     final JButton okButton = new JButton("OK");
-    i18n.get(GlobalPreferencesDlg.class, "", "");
-    // okButton.setActionCommand("OK");
-    GridBagConstraints gbcOkbutton = new GridBagConstraints();
-    gbcOkbutton.insets = new Insets(5, 5, 5, 5);
-    gbcOkbutton.gridx = 0;
-    gbcOkbutton.gridy = 0;
-    buttonPane.add(okButton, gbcOkbutton);
+    buttonPane.add(okButton);
     okButton.addActionListener(
         new ActionListener() {
           @Override
@@ -438,11 +308,20 @@ public class GlobalPreferencesDlg extends EscapeDialog {
           }
         });
 
+    final JButton cancelButton = new JButton("Cancel");
+    buttonPane.add(cancelButton);
+    cancelButton.addActionListener(
+        new ActionListener() {
+          @Override
+          public void actionPerformed(ActionEvent e) {
+            requestCloseDialog();
+          }
+        });
+
     loadSettings();
     originalValuesSnapshot = getValuesSnapshot();
 
     getRootPane().setDefaultButton(okButton);
-    setLocationRelativeTo(nodusMapPanel);
     setModal(true);
     setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
     addWindowListener(
@@ -453,6 +332,63 @@ public class GlobalPreferencesDlg extends EscapeDialog {
           }
         });
     pack();
+    setLocationRelativeTo(nodusMapPanel);
+  }
+
+  private static JPanel createSection(String title) {
+    JPanel section = new JPanel(new GridBagLayout());
+    section.setBorder(BorderFactory.createTitledBorder(title));
+    return section;
+  }
+
+  private void addColumn(JPanel column, int index) {
+    GridBagConstraints constraints = new GridBagConstraints();
+    constraints.gridx = index;
+    constraints.gridy = 0;
+    constraints.weightx = 1;
+    constraints.fill = GridBagConstraints.HORIZONTAL;
+    constraints.anchor = GridBagConstraints.NORTH;
+    contentPanel.add(column, constraints);
+  }
+
+  private static void addSection(JPanel container, JPanel section, int row) {
+    GridBagConstraints constraints = new GridBagConstraints();
+    constraints.gridx = 0;
+    constraints.gridy = row;
+    constraints.weightx = 1;
+    constraints.fill = GridBagConstraints.HORIZONTAL;
+    constraints.anchor = GridBagConstraints.NORTH;
+    constraints.insets = new Insets(4, 4, 4, 4);
+    container.add(section, constraints);
+  }
+
+  private static void addControl(JPanel section, Component control, int row, int leftInset) {
+    GridBagConstraints constraints = new GridBagConstraints();
+    constraints.gridx = 0;
+    constraints.gridy = row;
+    constraints.gridwidth = 2;
+    constraints.weightx = 1;
+    constraints.fill = GridBagConstraints.HORIZONTAL;
+    constraints.anchor = GridBagConstraints.WEST;
+    constraints.insets = new Insets(2, leftInset, 2, 8);
+    section.add(control, constraints);
+  }
+
+  private static void addLabeledField(JPanel section, JLabel label, JTextField field, int row) {
+    GridBagConstraints labelConstraints = new GridBagConstraints();
+    labelConstraints.gridx = 0;
+    labelConstraints.gridy = row;
+    labelConstraints.anchor = GridBagConstraints.WEST;
+    labelConstraints.insets = new Insets(3, 8, 3, 8);
+    section.add(label, labelConstraints);
+
+    GridBagConstraints fieldConstraints = new GridBagConstraints();
+    fieldConstraints.gridx = 1;
+    fieldConstraints.gridy = row;
+    fieldConstraints.weightx = 1;
+    fieldConstraints.fill = GridBagConstraints.HORIZONTAL;
+    fieldConstraints.insets = new Insets(3, 0, 3, 8);
+    section.add(field, fieldConstraints);
   }
 
   @Override
@@ -534,9 +470,6 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     if (h2RadioButton.isSelected()) {
       return JDBCUtils.DB_H2;
     }
-    if (derbyRadioButton.isSelected()) {
-      return JDBCUtils.DB_DERBY;
-    }
     return JDBCUtils.DB_HSQLDB;
   }
 
@@ -606,9 +539,6 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     switch (db) {
       case JDBCUtils.DB_H2:
         h2RadioButton.setSelected(true);
-        break;
-      case JDBCUtils.DB_DERBY:
-        derbyRadioButton.setSelected(true);
         break;
       default:
         hsqldbRadioButton.setSelected(true);

@@ -183,16 +183,7 @@ public final class TableImport {
   }
 
   private static void rename(Connection connection, String from, String to) throws SQLException {
-    String command =
-        connection.getMetaData().getDatabaseProductName().contains("Derby")
-            ? "RENAME TABLE "
-            : "ALTER TABLE ";
-    execute(
-        connection,
-        command
-            + quoted(from)
-            + (command.startsWith("ALTER") ? " RENAME TO " : " TO ")
-            + quoted(to));
+    execute(connection, "ALTER TABLE " + quoted(from) + " RENAME TO " + quoted(to));
   }
 
   private static String quoted(String name) {

@@ -97,11 +97,11 @@ cancelled runs print a partial audit, excluding subsequent failure cleanup.
 ## Local database servers and external JDBC connections
 
 When no `jdbc.url` is specified in the `.nodus` file, Nodus manages the selected
-built-in database. HSQLDB, H2, and Derby listen only on `127.0.0.1`, so R, Python,
+built-in database. HSQLDB and H2 listen only on `127.0.0.1`, so R, Python,
 and other JDBC clients on the same computer can connect while the project is open.
 They are not accessible from another computer. The default ports remain 9001 for
-HSQLDB, 9092 for H2, and 1527 for Derby; override them with `hsqldbserverport`,
-`h2serverport`, or `derbyserverport`. A port conflict aborts project opening rather
+HSQLDB and 9092 for H2; override them with `hsqldbserverport` or
+`h2serverport`. A port conflict aborts project opening rather
 than connecting to the database service already using that port.
 
 Existing database credentials are preserved. The demo's HSQLDB scripts still use
@@ -118,8 +118,8 @@ An explicit `jdbc.url` selects an independently managed database. Nodus passes t
 configured URL, driver, username, and password to JDBC without changing the hostname
 or URL options. It neither starts nor stops that server and does not offer server
 shutdown/compaction on project close. This applies to local and remote MariaDB,
-MySQL, PostgreSQL, and other JDBC databases, including separately managed HSQLDB,
-H2, and Derby instances. For a Nodus-managed built-in server, omit `jdbc.url` and
+MySQL, PostgreSQL, and other JDBC databases, including separately managed HSQLDB
+and H2 instances. For a Nodus-managed built-in server, omit `jdbc.url` and
 use the port properties above instead.
 
 For MySQL/MariaDB projects, Nodus sends a JDBC validation ping every minute while

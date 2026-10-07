@@ -56,7 +56,7 @@ When adapting it, use the current lifecycle variable `quitNodus` and J4R's publi
 
 These bridge settings are separate from Nodus's database listeners. The J4R sample uses
 public-server mode, a fixed demonstration key, and sockets without an explicit loopback
-binding. The local-only HSQLDB/H2/Derby settings do not restrict that bridge's listeners.
+binding. The local-only HSQLDB/H2 settings do not restrict that bridge's listeners.
 See the [database connection guide][database-connections]
 for direct JDBC access, which does not require a Py4J or J4R bridge.
 

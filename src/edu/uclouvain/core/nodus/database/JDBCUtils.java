@@ -44,9 +44,6 @@ import javax.swing.JOptionPane;
  */
 public class JDBCUtils {
 
-  /** Apache Derby. */
-  public static final int DB_DERBY = 6;
-
   /** H2. */
   public static final int DB_H2 = 5;
 
@@ -376,10 +373,6 @@ public class JDBCUtils {
 
       if (productName.toLowerCase().indexOf("h2") != -1) {
         return DB_H2;
-      }
-
-      if (productName.toLowerCase().indexOf("derby") != -1) {
-        return DB_DERBY;
       }
 
     } catch (SQLException e) {
@@ -923,14 +916,7 @@ public class JDBCUtils {
     String newTableIdentifier = getQuotedCompliantIdentifier(newTableName);
 
     if (tableExists(currentTableName)) {
-      String sqlStmt;
-      switch (dbEngine) {
-        case DB_DERBY:
-          sqlStmt = "rename table " + currentTableIdentifier + " to " + newTableIdentifier;
-          break;
-        default:
-          sqlStmt = "alter table " + currentTableIdentifier + " rename to " + newTableIdentifier;
-      }
+      String sqlStmt = "alter table " + currentTableIdentifier + " rename to " + newTableIdentifier;
 
       try (Statement stmt = jdbcConnection.createStatement()) {
         stmt.execute(sqlStmt);

@@ -1278,10 +1278,4 @@ public class NodusC {
    */
   public static final String PROP_H2_SERVER_PORT = "h2serverport";
 
-  /**
-   * Properties strings used in project and/or project local properties.
-   *
-   * @hidden
-   */
-  public static final String PROP_DERBY_SERVER_PORT = "derbyserverport";
 }

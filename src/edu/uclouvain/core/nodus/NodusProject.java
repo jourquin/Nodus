@@ -1980,9 +1980,7 @@ public class NodusProject implements ShapeConstants {
       } catch (NumberFormatException e) {
         defaultEmbeddedDbms = JDBCUtils.DB_HSQLDB;
       }
-      if (defaultEmbeddedDbms != JDBCUtils.DB_HSQLDB
-          && defaultEmbeddedDbms != JDBCUtils.DB_H2
-          && defaultEmbeddedDbms != JDBCUtils.DB_DERBY) {
+      if (defaultEmbeddedDbms != JDBCUtils.DB_HSQLDB && defaultEmbeddedDbms != JDBCUtils.DB_H2) {
         defaultEmbeddedDbms = JDBCUtils.DB_HSQLDB;
       }
     }
@@ -2022,24 +2020,6 @@ public class NodusProject implements ShapeConstants {
                 + "/"
                 + projectPath
                 + dbName;
-        break;
-      case JDBCUtils.DB_DERBY:
-        /* A specific port could have been set in the project file, using the "derbyserverport"
-        property. */
-        tcpPort = getLocalProperty(NodusC.PROP_DERBY_SERVER_PORT, 1527);
-
-        defaultDriver = "org.apache.derby.jdbc.ClientDriver";
-        defaultURL =
-            "jdbc:derby://"
-                + LocalDatabaseServer.HOST
-                + ":"
-                + tcpPort
-                + "/"
-                + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
-                + "_derby"
-                + ";create=true";
-        defaultUser = "nodus";
-        defaultPassword = "nodus";
         break;
       default:
         break;
@@ -2109,19 +2089,6 @@ public class NodusProject implements ShapeConstants {
         System.err.println(ex.toString());
         cleanupFailedProjectOpen();
         return;
-      }
-    }
-
-    /* Derby hasn't a ROUND function. Add it */
-    if (JDBCUtils.getDbEngine() == JDBCUtils.DB_DERBY) {
-      try (Statement stmt = jdbcConnection.createStatement()) {
-        String s =
-            "create function ROUND (value DOUBLE, precision INTEGER) "
-                + "returns DOUBLE language java parameter style java no sql "
-                + "external name 'edu.uclouvain.core.nodus.utils.NodusDerbyFunctions.round'";
-        stmt.execute(s);
-      } catch (SQLException ex) {
-        // Probably because the function was already added
       }
     }
 
