@@ -37,6 +37,7 @@ import edu.uclouvain.core.nodus.compute.assign.IncFrankWolfeAssignment;
 import edu.uclouvain.core.nodus.compute.assign.IncrementalAssignment;
 import edu.uclouvain.core.nodus.compute.assign.MSAAssignment;
 import edu.uclouvain.core.nodus.compute.assign.StaticAoNTimeDependentAssignment;
+import edu.uclouvain.core.nodus.compute.modalsplit.ModalParameterTable;
 import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
@@ -55,6 +56,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileFilter;
+import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.Iterator;
@@ -215,6 +217,12 @@ public class AssignmentDlg extends EscapeDialog {
 
   /** . */
   private JComboBox<ModalSplitMethodName> modalSplitMethodComboBox = null;
+
+  /** Whether the selected parameter table names an available modal split method. */
+  private boolean modalSplitMethodAvailable = true;
+
+  /** User or scenario choice to restore when switching back from a linked cost file. */
+  private ModalSplitMethodName manualModalSplitMethod;
 
   /** . */
   private JLabel modalSplitMethodLabel = null;
@@ -381,6 +389,11 @@ public class AssignmentDlg extends EscapeDialog {
    * @param e ActionEvent
    */
   private void assignButton_actionPerformed(ActionEvent e) {
+
+    updateModalSplitMethodFromCostFile();
+    if (!assignButton.isEnabled()) {
+      return;
+    }
 
     int nbThreads = Integer.parseInt(threadsSpinner.getValue().toString());
     if (nbThreads > nbCores) {
@@ -666,7 +679,14 @@ public class AssignmentDlg extends EscapeDialog {
 
       modalSplitMethodComboBox = new JComboBox<ModalSplitMethodName>();
       modalSplitMethodComboBox.setModel(new DefaultComboBoxModel<>(modalSplitMethodNames));
-      modalSplitMethodComboBox.addActionListener(event -> updateAssignmentSelection());
+      modalSplitMethodComboBox.addActionListener(
+          event -> {
+            if (modalSplitMethodComboBox.isEnabled()) {
+              manualModalSplitMethod =
+                  (ModalSplitMethodName) modalSplitMethodComboBox.getSelectedItem();
+            }
+            updateAssignmentSelection();
+          });
     }
     return modalSplitMethodComboBox;
   }
@@ -691,6 +711,67 @@ public class AssignmentDlg extends EscapeDialog {
 
     System.err.println("'" + name + "' is not a valid modal split method name");
     return null;
+  }
+
+  /** Selects and locks the method declared by the selected cost file's parameter table. */
+  private void updateModalSplitMethodFromCostFile() {
+    boolean wasLocked = !modalSplitMethodComboBox.isEnabled();
+    if (!wasLocked) {
+      manualModalSplitMethod =
+          (ModalSplitMethodName) modalSplitMethodComboBox.getSelectedItem();
+    }
+    modalSplitMethodAvailable = true;
+    boolean linked = false;
+    ModalSplitMethodName linkedMethod = null;
+    String tooltip =
+        i18n.get(
+            AssignmentDlg.class,
+            "tooltip.modalSplitMethodComboBox",
+            "Choose the method used to split demand between transport modes.");
+    Object selectedFile = costFunctionsComboBox.getSelectedItem();
+    if (selectedFile != null) {
+      try {
+        NodusProject project = nodusMapPanel.getNodusProject();
+        Path path =
+            Path.of(
+                project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH), selectedFile.toString());
+        String method =
+            ModalParameterTable.methodForCostFile(project.getMainJDBCConnection(), path);
+        if (method != null) {
+          linked = true;
+          linkedMethod = getModalSplitPrettyName(method);
+          modalSplitMethodAvailable = linkedMethod != null;
+          tooltip =
+              MessageFormat.format(
+                  i18n.get(
+                      AssignmentDlg.class,
+                      modalSplitMethodAvailable
+                          ? "tooltip.modalSplitMethodLocked"
+                          : "tooltip.modalSplitMethodUnavailable",
+                      modalSplitMethodAvailable
+                          ? "The parameter table fixes the modal split method to {0}."
+                          : "The parameter table requires unavailable modal split method {0}."),
+                  method);
+        }
+      } catch (Exception failure) {
+        linked = false;
+        modalSplitMethodAvailable = false;
+        tooltip =
+            i18n.get(
+                AssignmentDlg.class,
+                "tooltip.modalSplitMethodUnreadable",
+                "Cannot read this cost file or its modal parameter table.");
+      }
+    }
+    modalSplitMethodComboBox.setEnabled(!linked);
+    if (linked) {
+      modalSplitMethodComboBox.setSelectedItem(linkedMethod);
+    } else if (wasLocked) {
+      modalSplitMethodComboBox.setSelectedItem(manualModalSplitMethod);
+    }
+    modalSplitMethodComboBox.setToolTipText(tooltip);
+    modalSplitMethodLabel.setToolTipText(tooltip);
+    updateAssignmentSelection();
   }
 
   /**
@@ -1298,7 +1379,7 @@ public class AssignmentDlg extends EscapeDialog {
           }
         });
 
-    costFunctionsComboBox.addActionListener(event -> updateAssignmentSelection());
+    costFunctionsComboBox.addActionListener(event -> updateModalSplitMethodFromCostFile());
     odTablesComboBox.addActionListener(
         new ActionListener() {
           @Override
@@ -1522,6 +1603,10 @@ public class AssignmentDlg extends EscapeDialog {
     saveButton.addActionListener(
         new ActionListener() {
           public void actionPerformed(ActionEvent e) {
+            updateModalSplitMethodFromCostFile();
+            if (!saveButton.isEnabled()) {
+              return;
+            }
             saveState();
             nodusMapPanel.updateScenarioComboBox(false);
           }
@@ -1855,7 +1940,8 @@ public class AssignmentDlg extends EscapeDialog {
               .getLocalProperty(NodusC.PROP_ASSIGNMENT_MODAL_SPLIT_METHOD, null);
     }
 
-    modalSplitMethodComboBox.setSelectedItem(getModalSplitPrettyName(stringValue));
+    manualModalSplitMethod = getModalSplitPrettyName(stringValue);
+    modalSplitMethodComboBox.setSelectedItem(manualModalSplitMethod);
 
     // Save path
     intValue =
@@ -2022,7 +2108,7 @@ public class AssignmentDlg extends EscapeDialog {
     sqlLabel.setText("SELECT * FROM " + odTableName + " WHERE");
     sqlTextArea.setText(queryString);
 
-    updateAssignmentSelection();
+    updateModalSplitMethodFromCostFile();
   }
 
   /** Save the state of the values of the GUI components in the properties. */
@@ -2295,10 +2381,13 @@ public class AssignmentDlg extends EscapeDialog {
     updateOptions();
   }
 
-  /** Enables assignment only when both the cost functions and demand matrix are selected. */
+  /** Enables assignment when the cost file, demand and required modal method are usable. */
   private void updateAssignmentSelection() {
     boolean ready =
-        costFunctionsComboBox.getSelectedIndex() != -1 && odTablesComboBox.getSelectedIndex() != -1;
+        costFunctionsComboBox.getSelectedIndex() != -1
+            && odTablesComboBox.getSelectedIndex() != -1
+            && (modalSplitMethodAvailable
+                || !(fastMFRadioButton.isSelected() || exactMFRadioButton.isSelected()));
     assignButton.setEnabled(ready);
     saveButton.setEnabled(ready);
   }

@@ -7,6 +7,7 @@ package edu.uclouvain.core.nodus.compute.modalsplit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -15,6 +16,7 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +45,30 @@ class ModalParameterTableTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> ModalParameterTable.nameForCostFile("x".repeat(58) + ".costs"));
+  }
+
+  @Test
+  void costFileMethodLookupUsesTheLinkedTable() throws Exception {
+    Path costs = directory.resolve("choice.costs");
+    for (String jdbc : List.of("jdbc:h2:mem:", "jdbc:hsqldb:mem:")) {
+      try (Connection connection =
+          DriverManager.getConnection(jdbc + UUID.randomUUID(), "sa", "")) {
+        Files.writeString(costs, "mv.1,1=BASECOST\n");
+        assertNull(ModalParameterTable.methodForCostFile(connection, costs));
+
+        String table = "choice params";
+        Properties values = new Properties();
+        values.setProperty(ModalParameterTable.METHOD, "MNP");
+        ModalParameterTable.save(connection, table, values);
+        Files.writeString(costs, "mv.1,1=BASECOST\n@paramTable=" + table + "\n");
+        assertEquals("MNP", ModalParameterTable.methodForCostFile(connection, costs));
+
+        values.remove(ModalParameterTable.METHOD);
+        ModalParameterTable.save(connection, table, values);
+        assertThrows(
+            SQLException.class, () -> ModalParameterTable.methodForCostFile(connection, costs));
+      }
+    }
   }
 
   @Test

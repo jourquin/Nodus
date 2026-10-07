@@ -9,7 +9,12 @@ package edu.uclouvain.core.nodus;
 public final class ProjectConnectionStatus {
   private ProjectConnectionStatus() {}
 
-  /** Returns false once the project has lost its MySQL/MariaDB session. */
+  /**
+   * Checks whether network edits can safely be saved to the project.
+   *
+   * @param project the project whose database connection is checked
+   * @return true if the project connection is healthy; false if it has been lost
+   */
   public static boolean canSaveNetworkEdits(NodusProject project) {
     return project.canSaveNetworkEdits();
   }

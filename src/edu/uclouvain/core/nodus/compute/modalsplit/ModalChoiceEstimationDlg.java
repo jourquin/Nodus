@@ -162,7 +162,11 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     estimatePivots.setText(text("EstimatePivots", "Estimate pivots"));
     estimatePivots.setSelected(project.getLocalProperty(PREFIX + "estimatePivots", false));
     pivotMaxAbs.setEnabled(estimatePivots.isSelected());
-    estimatePivots.addActionListener(event -> pivotMaxAbs.setEnabled(estimatePivots.isSelected()));
+    estimatePivots.addActionListener(
+        event -> {
+          pivotMaxAbs.setEnabled(estimatePivots.isSelected());
+          updateFormula();
+        });
     tooltip(
         estimatePivots,
         "estimatePivots",
@@ -178,6 +182,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
       panel.showAssignmentMessage(failure.getMessage(), JOptionPane.WARNING_MESSAGE);
     }
     observations = new LogitCalibrationPanel(ODReader.getValidODTables(project), settings);
+    observations.addReferenceChangeListener(event -> updateFormula());
     updateModel();
     method.addActionListener(event -> updateModel());
     tooltip(
@@ -250,7 +255,13 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
   /** Keeps the reference controls and visible equations synchronized with the selected model. */
   private void updateModel() {
     observations.setMethod(selectedMethod());
-    formula.setMethod(selectedMethod());
+    updateFormula();
+  }
+
+  /** Keeps the displayed equations synchronized with the pivot checkbox. */
+  private void updateFormula() {
+    formula.setMethod(
+        selectedMethod(), estimatePivots.isSelected(), observations.getReferenceMode());
   }
 
   /**

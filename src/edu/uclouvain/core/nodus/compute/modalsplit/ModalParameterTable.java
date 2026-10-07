@@ -6,6 +6,10 @@
 package edu.uclouvain.core.nodus.compute.modalsplit;
 
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -16,7 +20,7 @@ import java.util.Map;
 import java.util.Properties;
 
 /** Database-backed parameters shared by the three embedded modal-choice methods. */
-final class ModalParameterTable {
+public final class ModalParameterTable {
   @FunctionalInterface
   interface SaveAction {
     void run() throws Exception;
@@ -115,6 +119,44 @@ final class ModalParameterTable {
           "Parameter table " + name + " is for " + storedMethod + ", not " + method);
     }
     return values;
+  }
+
+  /**
+   * Returns the modal method declared by the parameter table linked from a cost file, if present.
+   * A cost file without a table pointer leaves the choice to the user. A linked table must declare
+   * its method, as required when loading its parameters for an assignment.
+   *
+   * @param connection the project's database connection
+   * @param costFile the selected cost-functions file
+   * @return the stored method name, or null when there is no table pointer
+   * @throws IOException if the selected cost file cannot be read
+   * @throws SQLException if the linked parameter table cannot be read or has no method
+   */
+  public static String methodForCostFile(Connection connection, Path costFile)
+      throws IOException, SQLException {
+    Properties costs = new Properties();
+    try (InputStream input = Files.newInputStream(costFile)) {
+      costs.load(input);
+    }
+    String table = costs.getProperty(POINTER);
+    if (table == null || table.isBlank()) {
+      return null;
+    }
+    try (PreparedStatement statement =
+        connection.prepareStatement(
+            "SELECT param_value FROM " + quoted(connection, table) + " WHERE param_key=?")) {
+      statement.setString(1, METHOD);
+      try (ResultSet rows = statement.executeQuery()) {
+        if (!rows.next()) {
+          throw new SQLException("Parameter table " + table + " has no " + METHOD + " value");
+        }
+        String method = rows.getString(1);
+        if (method == null || method.isBlank()) {
+          throw new SQLException("Parameter table " + table + " has no " + METHOD + " value");
+        }
+        return method;
+      }
+    }
   }
 
   static void checkSchema(Connection connection, String name) throws Exception {

@@ -40,6 +40,7 @@ import javax.swing.JSpinner;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.event.ChangeListener;
 import javax.swing.table.DefaultTableModel;
 
 /**
@@ -176,6 +177,16 @@ final class LogitCalibrationPanel extends JPanel {
     referenceLabel.setToolTipText(reference.getToolTipText());
   }
 
+  /** Returns the reference mode currently selected in the draft. */
+  int getReferenceMode() {
+    return ((Number) reference.getValue()).intValue();
+  }
+
+  /** Notifies the enclosing dialog when the reference mode changes. */
+  void addReferenceChangeListener(ChangeListener listener) {
+    reference.addChangeListener(listener);
+  }
+
   /**
    * Commits active edits and validates the observed-data snapshot.
    *
@@ -205,7 +216,7 @@ final class LogitCalibrationPanel extends JPanel {
       }
     }
     LogitCalibrationSettings settings =
-        new LogitCalibrationSettings(((Number) reference.getValue()).intValue(), mapping);
+        new LogitCalibrationSettings(getReferenceMode(), mapping);
     settings.validate();
     return settings;
   }

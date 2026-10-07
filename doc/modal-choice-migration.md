@@ -53,7 +53,7 @@ using the mapped observed modal OD tables. Each run saves one parameter table na
 selected cost file: `NodusEstimated.costs` gives `NodusEstimated_params`.
 The table has `param_key`, `param_value` and `param_type` columns. 
 The cost file receives a single `@paramTable=<table>` property. The estimation report is saved beside it as
-`<cost-file-stem>_params.txt`, for example `NodusEstimated_params.txt`. To assign with the fitted parameters, select the (updated) cost file and its embedded modal method in the assignment dialog; estimation does not change scenario settings.
+`<cost-file-stem>_params.txt`, for example `NodusEstimated_params.txt`. To assign with the fitted parameters, select the updated cost file in the assignment dialog. Its parameter table selects and locks the embedded modal method automatically; estimation does not change scenario settings.
 
 Selecting **Estimate pivots** adds bounded utility constants for nonreference modes at the
 mode–origin–destination–commodity-group level. The behavioral coefficients are estimated first;
