@@ -50,7 +50,6 @@
         <pathelement location="lib/commons-codec-1.18.0.jar"/>
         <pathelement location="lib/commons-io-2.19.0.jar"/>
         <pathelement location="jdbcDrivers/mariadb-java-client-3.5.3.jar"/>
-        <pathelement location="lib/sqlite-jdbc-3.49.1.0.jar"/>
         <pathelement location="lib/groovy/ant-1.10.17.jar"/>
         <pathelement location="lib/groovy/ant-antlr-1.10.17.jar"/>
         <pathelement location="lib/groovy/ant-junit-1.10.17.jar"/>
@@ -157,7 +156,6 @@
         <pathelement location="lib/commons-codec-1.18.0.jar"/>
         <pathelement location="lib/commons-io-2.19.0.jar"/>
         <pathelement location="jdbcDrivers/mariadb-java-client-3.5.3.jar"/>
-        <pathelement location="lib/sqlite-jdbc-3.49.1.0.jar"/>
         <pathelement location="lib/groovy/ant-1.10.17.jar"/>
         <pathelement location="lib/groovy/ant-antlr-1.10.17.jar"/>
         <pathelement location="lib/groovy/ant-junit-1.10.17.jar"/>
@@ -262,7 +260,6 @@
         <pathelement location="lib/commons-codec-1.18.0.jar"/>
         <pathelement location="lib/commons-io-2.19.0.jar"/>
         <pathelement location="jdbcDrivers/mariadb-java-client-3.5.3.jar"/>
-        <pathelement location="lib/sqlite-jdbc-3.49.1.0.jar"/>
         <pathelement location="lib/groovy/ant-1.10.17.jar"/>
         <pathelement location="lib/groovy/ant-antlr-1.10.17.jar"/>
         <pathelement location="lib/groovy/ant-junit-1.10.17.jar"/>

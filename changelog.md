@@ -505,6 +505,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
   and prevent project closure when saving fails
 - Upgrade to POI 5.5.1   
 - An error while cleaning up one modal-split plugin doesn't interrupt the cleanup of the entire project
+- Remove SQLite support
   
   
   

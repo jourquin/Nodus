@@ -60,12 +60,10 @@ in `jdbcDrivers/`.
 | [HSQLDB][hsqldb] `hsqldb-*` | 2.7.4 | HSQLDB BSD-style license |
 | [MariaDB Connector/J][mariadb] `mariadb-java-client-*` | 3.5.3 | LGPL-2.1-or-later |
 | [PostgreSQL JDBC][postgresql] `postgresql-*` | 42.7.3 | BSD-2-Clause |
-| [SQLite JDBC][sqlite] `sqlite-jdbc-*` | 3.49.1.0 | Apache-2.0; see bundled notices |
 
 Derby's version is recorded in its bundle metadata despite its unversioned filenames.
 The PostgreSQL JAR also includes BSD-2-Clause notices for its embedded SCRAM and
-string-preparation dependencies. SQLite JDBC includes its Xerial and Zentus notices;
-the SQLite engine itself is [in the public domain][sqlite-license].
+string-preparation dependencies.
 
 ## Groovy distribution and companion libraries in `lib/groovy/`
 
@@ -164,8 +162,6 @@ installation; the Ant companion JARs bundled with Groovy are listed separately.
 [hsqldb]: https://hsqldb.org/web/hsqlLicense.html
 [mariadb]: https://github.com/mariadb-corporation/mariadb-connector-j
 [postgresql]: https://jdbc.postgresql.org/about/license/
-[sqlite]: https://github.com/xerial/sqlite-jdbc
-[sqlite-license]: https://www.sqlite.org/copyright.html
 [groovy]: https://groovy-lang.org/license.html
 [ant]: https://ant.apache.org/license.html
 [gpars]: https://www.gpars.org/

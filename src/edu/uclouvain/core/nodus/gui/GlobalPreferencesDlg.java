@@ -100,8 +100,6 @@ public class GlobalPreferencesDlg extends EscapeDialog {
 
   /** . */
   private ButtonGroup sgdbGroup;
-  /** . */
-  private JRadioButton sqliteRadioButton;
 
   /** . */
   private JCheckBox stickyDrawingToolCheckBox;
@@ -324,24 +322,10 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     gbcRdbtnDerby.gridy = 2;
     dbPanel.add(derbyRadioButton, gbcRdbtnDerby);
 
-    sqliteRadioButton = new JRadioButton("SQLite");
-    GridBagConstraints gbcRdbtnSqlite = new GridBagConstraints();
-    gbcRdbtnSqlite.anchor = GridBagConstraints.WEST;
-    gbcRdbtnSqlite.insets = new Insets(5, 5, 5, 5);
-    gbcRdbtnSqlite.gridx = 0;
-    gbcRdbtnSqlite.gridy = 3;
-    dbPanel.add(sqliteRadioButton, gbcRdbtnSqlite);
-
-    // The SQLite JDBC driver is provided with Nodus, but SQLite may not be installed
-    if (!JDBCUtils.isSQliteInstalled()) {
-      sqliteRadioButton.setEnabled(false);
-    }
-
     sgdbGroup = new ButtonGroup();
     sgdbGroup.add(hsqldbRadioButton);
     sgdbGroup.add(h2RadioButton);
     sgdbGroup.add(derbyRadioButton);
-    sgdbGroup.add(sqliteRadioButton);
 
     navMouseModeCheckBox =
         new JCheckBox(
@@ -553,9 +537,6 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     if (derbyRadioButton.isSelected()) {
       return JDBCUtils.DB_DERBY;
     }
-    if (sqliteRadioButton.isSelected()) {
-      return JDBCUtils.DB_SQLITE;
-    }
     return JDBCUtils.DB_HSQLDB;
   }
 
@@ -629,9 +610,6 @@ public class GlobalPreferencesDlg extends EscapeDialog {
       case JDBCUtils.DB_DERBY:
         derbyRadioButton.setSelected(true);
         break;
-      case JDBCUtils.DB_SQLITE:
-        sqliteRadioButton.setSelected(true);
-        break;
       default:
         hsqldbRadioButton.setSelected(true);
     }
@@ -698,17 +676,9 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_NAV_MOUSE_MODE, navType);
 
     // Default DBMS
-    int intValue = JDBCUtils.DB_HSQLDB;
-    if (h2RadioButton.isSelected()) {
-      intValue = JDBCUtils.DB_H2;
-    }
-    if (derbyRadioButton.isSelected()) {
-      intValue = JDBCUtils.DB_DERBY;
-    }
-    if (sqliteRadioButton.isSelected()) {
-      intValue = JDBCUtils.DB_SQLITE;
-    }
-    nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_EMBEDDED_DB, "" + intValue);
+    nodusMapPanel
+        .getNodusProperties()
+        .setProperty(NodusC.PROP_EMBEDDED_DB, "" + getSelectedDbEngine());
 
     nodusMapPanel.updateScenarioComboBox(false);
 

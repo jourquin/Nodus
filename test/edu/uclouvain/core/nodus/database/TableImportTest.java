@@ -250,69 +250,6 @@ class TableImportTest {
   }
 
   @TestFactory
-  List<DynamicTest> transactionalDdlRespectsCallerTransaction() {
-    List<DynamicTest> tests = new ArrayList<>();
-    for (boolean autoCommit : new boolean[] {false, true}) {
-      for (boolean fail : new boolean[] {false, true}) {
-        tests.add(
-            DynamicTest.dynamicTest(
-                "SQLite/" + autoCommit + "/" + fail,
-                () -> {
-                  try (Connection connection =
-                      java.sql.DriverManager.getConnection("jdbc:sqlite::memory:")) {
-                    assertTrue(JDBCUtils.setConnection(connection));
-                    var project =
-                        new edu.uclouvain.core.nodus.NodusProject(null) {
-                          @Override
-                          public Connection getMainJDBCConnection() {
-                            return connection;
-                          }
-                        };
-                    try (Statement s = connection.createStatement()) {
-                      s.execute("CREATE TABLE original (a INTEGER, b INTEGER)");
-                      s.execute("INSERT INTO original VALUES (17,23)");
-                      s.execute("CREATE TABLE earlier (id INTEGER)");
-                      connection.setAutoCommit(autoCommit);
-                      s.execute("INSERT INTO earlier VALUES (99)");
-                    }
-                    TableImport.Loader loader =
-                        (c, staged) -> {
-                          try (Statement s = c.createStatement()) {
-                            s.execute("CREATE TABLE " + staged + " (a INTEGER, b INTEGER)");
-                            s.execute("INSERT INTO " + staged + " VALUES (42,43)");
-                          }
-                          if (fail) {
-                            throw new java.sql.SQLException("Invalid input");
-                          }
-                        };
-                    if (fail) {
-                      assertThrows(
-                          java.sql.SQLException.class,
-                          () -> TableImport.replace(project, "original", loader));
-                    } else {
-                      TableImport.replace(project, "original", loader);
-                    }
-                    assertEquals(
-                        List.of(fail ? "17:23" : "42:43"),
-                        rows(connection, "SELECT a,b FROM original"));
-                    assertEquals(autoCommit, connection.getAutoCommit());
-                    assertEquals(1, count(connection, "earlier"));
-                    if (!autoCommit) {
-                      connection.rollback();
-                      assertEquals(List.of("17:23"), rows(connection, "SELECT a,b FROM original"));
-                      assertEquals(0, count(connection, "earlier"));
-                    }
-                    assertNoStagingTables(connection);
-                  } finally {
-                    JDBCUtils.setConnection(null);
-                  }
-                }));
-      }
-    }
-    return tests;
-  }
-
-  @TestFactory
   List<DynamicTest> failedNewTableImportLeavesNoPartialTable() {
     List<DynamicTest> tests = new ArrayList<>();
     for (boolean hsql : new boolean[] {false, true}) {
@@ -344,8 +281,12 @@ class TableImportTest {
 
   @Test
   void failedRollbackDoesNotImplicitlyCommitFailedImport() throws Exception {
-    try (Connection connection = java.sql.DriverManager.getConnection("jdbc:sqlite::memory:")) {
+    try (Connection connection = java.sql.DriverManager.getConnection(
+        "jdbc:h2:mem:rollback_" + java.util.UUID.randomUUID(), "sa", "")) {
       assertTrue(JDBCUtils.setConnection(connection));
+      try (Statement statement = connection.createStatement()) {
+        statement.execute("CREATE TABLE earlier (id INTEGER)");
+      }
       Connection failing =
           (Connection)
               java.lang.reflect.Proxy.newProxyInstance(
@@ -370,8 +311,7 @@ class TableImportTest {
                       "original",
                       (c, staged) -> {
                         try (Statement statement = c.createStatement()) {
-                          statement.execute("CREATE TABLE " + staged + " (a INTEGER)");
-                          statement.execute("INSERT INTO " + staged + " VALUES (42)");
+                          statement.execute("INSERT INTO earlier VALUES (42)");
                         }
                         throw new java.sql.SQLException("Invalid input");
                       },
@@ -381,6 +321,7 @@ class TableImportTest {
       assertFalse(
           connection.getAutoCommit(), "Do not commit the failed import after rollback fails");
       connection.rollback();
+      assertEquals(0, count(connection, "earlier"));
       assertNoStagingTables(connection);
     } finally {
       JDBCUtils.setConnection(null);

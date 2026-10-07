@@ -231,7 +231,7 @@ public class NodusProject implements ShapeConstants {
   /** Lat/Lon of center point at starting time. */
   private LatLonPoint initialCenterPoint;
 
-  /** Listener owned by this project; null for SQLite and explicit JDBC configurations. */
+  /** Listener owned by this project; null for explicit JDBC configurations. */
   private LocalDatabaseServer databaseServer;
 
   private volatile boolean closeInProgress = false;
@@ -1980,6 +1980,11 @@ public class NodusProject implements ShapeConstants {
       } catch (NumberFormatException e) {
         defaultEmbeddedDbms = JDBCUtils.DB_HSQLDB;
       }
+      if (defaultEmbeddedDbms != JDBCUtils.DB_HSQLDB
+          && defaultEmbeddedDbms != JDBCUtils.DB_H2
+          && defaultEmbeddedDbms != JDBCUtils.DB_DERBY) {
+        defaultEmbeddedDbms = JDBCUtils.DB_HSQLDB;
+      }
     }
 
     String defaultDriver = "";
@@ -2036,14 +2041,6 @@ public class NodusProject implements ShapeConstants {
         defaultUser = "nodus";
         defaultPassword = "nodus";
         break;
-      case JDBCUtils.DB_SQLITE:
-        defaultDriver = "org.sqlite.JDBC";
-        defaultURL =
-            "jdbc:sqlite:"
-                + projectPath
-                + localProperties.getProperty(NodusC.PROP_PROJECT_DOTNAME)
-                + ".sqlite";
-        break;
       default:
         break;
     }
@@ -2073,6 +2070,10 @@ public class NodusProject implements ShapeConstants {
               tcpPort,
               userName,
               password);
+      if (jdbcDriver.isBlank()) {
+        throw new IllegalArgumentException(
+            "Unsupported embedded database engine ID: " + defaultEmbeddedDbms);
+      }
       Class.forName(jdbcDriver).getDeclaredConstructor().newInstance();
 
       jdbcConnection = getMainJDBCConnection();

@@ -26,7 +26,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -62,9 +61,6 @@ public class JDBCUtils {
 
   /** PostgreSQL. */
   public static final int DB_POSTGRESQL = 3;
-
-  /** SQLite. */
-  public static final int DB_SQLITE = 7;
 
   /** Any other DBMS - Could work with Nodus or not, as not tested. */
   public static final int DB_UNKNOWN = -1;
@@ -384,10 +380,6 @@ public class JDBCUtils {
 
       if (productName.toLowerCase().indexOf("derby") != -1) {
         return DB_DERBY;
-      }
-
-      if (productName.toLowerCase().indexOf("sqlite") != -1) {
-        return DB_SQLITE;
       }
 
     } catch (SQLException e) {
@@ -912,27 +904,6 @@ public class JDBCUtils {
     }
 
     return false;
-  }
-
-  /**
-   * Tests if SQLite is installed on the computer.
-   *
-   * @return True if SQLite is installed on the computer.
-   */
-  public static boolean isSQliteInstalled() {
-
-    try {
-      Class.forName("org.sqlite.JDBC").getDeclaredConstructor().newInstance();
-    } catch (ReflectiveOperationException | IllegalArgumentException | SecurityException e) {
-      e.printStackTrace();
-      return false;
-    }
-
-    try (Connection sqliteConnection = DriverManager.getConnection("jdbc:sqlite::memory:")) {
-      return sqliteConnection != null;
-    } catch (SQLException e) {
-      return false;
-    }
   }
 
   /**

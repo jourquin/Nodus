@@ -120,7 +120,7 @@ or URL options. It neither starts nor stops that server and does not offer serve
 shutdown/compaction on project close. This applies to local and remote MariaDB,
 MySQL, PostgreSQL, and other JDBC databases, including separately managed HSQLDB,
 H2, and Derby instances. For a Nodus-managed built-in server, omit `jdbc.url` and
-use the port properties above instead. SQLite uses a direct file connection.
+use the port properties above instead.
 
 For MySQL/MariaDB projects, Nodus sends a JDBC validation ping every minute while
 the project is open. This keeps a normally idle server session active and detects a

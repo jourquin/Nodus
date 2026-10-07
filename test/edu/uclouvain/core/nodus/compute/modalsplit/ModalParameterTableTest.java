@@ -324,30 +324,6 @@ class ModalParameterTableTest {
   }
 
   @Test
-  void sqliteSchemaAndRowsRollBackWithCallerTransaction() throws Exception {
-    try (Connection connection =
-        DriverManager.getConnection("jdbc:sqlite:" + directory.resolve("modal.db"))) {
-      try (Statement statement = connection.createStatement()) {
-        statement.executeUpdate("CREATE TABLE pending (id INT)");
-      }
-      connection.setAutoCommit(false);
-      try (Statement statement = connection.createStatement()) {
-        statement.executeUpdate("INSERT INTO pending VALUES (1)");
-      }
-      Properties values = new Properties();
-      values.setProperty(ModalParameterTable.METHOD, "MNL");
-      ModalParameterTable.save(connection, "new_params", values);
-      connection.rollback();
-      assertFalse(ModalParameterTable.exists(connection, "new_params"));
-      try (Statement statement = connection.createStatement();
-          ResultSet pending = statement.executeQuery("SELECT COUNT(*) FROM pending")) {
-        assertTrue(pending.next());
-        assertEquals(0, pending.getInt(1));
-      }
-    }
-  }
-
-  @Test
   void fileFailureRollsBackParameterRowsAndRestoresEarlierOutput() throws Exception {
     try (Connection connection =
         DriverManager.getConnection("jdbc:h2:mem:" + UUID.randomUUID(), "sa", "")) {

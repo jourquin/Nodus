@@ -25,14 +25,13 @@ No project data, remote database, Internet access, or graphical desktop is neede
 create private in-memory databases and close them afterwards. Most use H2; service
 persistence failure/retry and legacy-schema checks also run against HSQLDB. Import
 failure tests cover H2 and HSQLDB staging, malformed DBF/XLS/XLSX input, replacement
-failures, and preservation of earlier uncommitted work. SQLite exercises transactional
-schema replacement and rollback. Layer-save tests inject failures at each sidecar
-installation, check interrupted-save recovery and retained backups when recovery
-fails, and verify that a failed save prevents project close callbacks from running.
+failures, and preservation of earlier uncommitted work. Layer-save tests inject failures at each
+sidecar installation, check interrupted-save recovery and retained backups when recovery fails,
+and verify that a failed save prevents project close callbacks from running.
 File import/export tests use JUnit temporary directories, which are removed after
 the tests. They never read or overwrite files in an existing Nodus project.
 Dependencies are included in the repository: JUnit 5 and OpenTest4J under
-`lib/groovy/`, API Guardian under `devtools/junit/`, and H2/HSQLDB/Derby/SQLite under `lib/`.
+`lib/groovy/`, API Guardian under `devtools/junit/`, and H2/HSQLDB/Derby under `lib/`.
 
 The local-server tests launch isolated JVMs with temporary HSQLDB, H2, and Derby
 databases. They require permission to bind loopback TCP ports and check that the
@@ -412,10 +411,10 @@ outside this headless suite. Calibration estimation, coefficient persistence and
 assignments are covered by `LogitCalibrationIntegrationTest`; invalid vehicle properties
 that display dialogs remain untested.
 
-Most database integration tests use H2 and HSQLDB. SQLite has targeted schema-import and
-rollback coverage; Derby has local-server and JDBC access coverage. The suite does not run
-against external MySQL, MariaDB or PostgreSQL servers. Explicit JDBC configuration tests
-check that Nodus leaves those servers independently managed, without connecting to them.
+Most database integration tests use H2 and HSQLDB. Derby has local-server and JDBC access
+coverage. The suite does not run against external MySQL, MariaDB or PostgreSQL servers. Explicit
+JDBC configuration tests check that Nodus leaves those servers independently managed, without
+connecting to them.
 
 `NetworkEditFailureTest` covers SQL write failures partway through insertions and link splits,
 including rollback and preservation of earlier uncommitted work. Integrity tests cover automatic

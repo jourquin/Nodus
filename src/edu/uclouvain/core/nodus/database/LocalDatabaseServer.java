@@ -64,7 +64,7 @@ public final class LocalDatabaseServer implements AutoCloseable {
   }
 
   /**
-   * Starts the selected built-in server, or returns null for an explicit JDBC URL or SQLite.
+   * Starts the selected built-in server, or returns null for an explicit JDBC URL.
    *
    * @param project properties from the .nodus file, excluding saved .local defaults
    * @param engine selected built-in DBMS identifier from JDBCUtils

@@ -85,11 +85,10 @@ import java.util.function.BooleanSupplier;
  *
  * <p>Use a fresh instance for one estimation and close it in a try-with-resources block. The class
  * owns its scratch table but borrows the project's JDBC connection, which it never closes. It uses
- * an isolated connection for scratch-table DDL and parameter saving when database DDL can commit
- * unrelated project changes. SQLite uses the borrowed connection and a savepoint because its DDL is
- * transactional and a second writer would conflict with the calibration's scratch table. caller
- * must serialize computations using the project's assignment resources; this workflow is not
- * reentrant. Routing workers share the observation map only while its keys are stable and own
+ * isolated connections for scratch-table DDL and parameter saving so database DDL cannot commit
+ * unrelated project changes. The caller must serialize computations using the project's assignment
+ * resources; this workflow is not reentrant. Routing workers share the observation map only while
+ * its keys are stable and own
  * distinct OD records. After routing, independent commodity groups fit on a bounded worker pool.
  * Workers share no JDBC connection; the coordinating thread saves the completed result once.
  *
@@ -293,9 +292,7 @@ public final class LogitCalibration implements AutoCloseable {
         for (String key : reportedKeys) {
           report.append(key).append('=').append(fitted.getProperty(key)).append('\n');
         }
-        boolean sqlite = JDBCUtils.getDbEngine() == JDBCUtils.DB_SQLITE;
-        Connection parameterConnection = sqlite ? connection : openParameterConnection();
-        try {
+        try (Connection parameterConnection = openParameterConnection()) {
           Properties saved =
               saveTableOutputs(
                   parameterConnection,
@@ -312,10 +309,6 @@ public final class LogitCalibration implements AutoCloseable {
                               .updateProgress("Saving modal parameters"));
           parameters.getCostFunctions().clear();
           parameters.getCostFunctions().putAll(saved);
-        } finally {
-          if (!sqlite) {
-            parameterConnection.close();
-          }
         }
       } else {
         Properties saved = LogitCostFile.save(target, original, fitted, report.toString(), method);
@@ -941,12 +934,8 @@ public final class LogitCalibration implements AutoCloseable {
    * workflow.
    */
   private void createDemandTable() throws Exception {
-    boolean sqlite = JDBCUtils.getDbEngine() == JDBCUtils.DB_SQLITE;
-    Connection writer = connection;
-    if (!sqlite) {
-      scratchConnection = openParameterConnection();
-      writer = scratchConnection;
-    }
+    scratchConnection = openParameterConnection();
+    Connection writer = scratchConnection;
     temporaryTable = "nodus_mnl_" + UUID.randomUUID().toString().replace("-", "");
     String odClass = JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_CLASS);
     try (Statement statement = writer.createStatement()) {
@@ -957,9 +946,7 @@ public final class LogitCalibration implements AutoCloseable {
               + odClass
               + " INTEGER)");
     }
-    if (!sqlite) {
-      writer.setAutoCommit(false);
-    }
+    writer.setAutoCommit(false);
     try (PreparedStatement insert =
         writer.prepareStatement("INSERT INTO " + temporaryTable + " VALUES (?,?,?,?,?)")) {
       int batch = 0;
@@ -976,22 +963,16 @@ public final class LogitCalibration implements AutoCloseable {
         }
       }
       insert.executeBatch();
-      if (!sqlite) {
-        writer.commit();
-      }
+      writer.commit();
     } catch (Exception failure) {
-      if (!sqlite) {
-        try {
-          writer.rollback();
-        } catch (Exception rollbackFailure) {
-          failure.addSuppressed(rollbackFailure);
-        }
+      try {
+        writer.rollback();
+      } catch (Exception rollbackFailure) {
+        failure.addSuppressed(rollbackFailure);
       }
       throw failure;
     } finally {
-      if (!sqlite) {
-        writer.setAutoCommit(true);
-      }
+      writer.setAutoCommit(true);
     }
   }
 
