@@ -54,6 +54,12 @@ public final class MapProgress {
   private final NodusMapPanel panel;
   private final InformationDelegator infoDelegator;
 
+  /**
+   * Creates a progress controller for a map panel.
+   *
+   * @param panel panel whose busy state is tracked
+   * @param infoDelegator OpenMap progress event handler
+   */
   public MapProgress(NodusMapPanel panel, InformationDelegator infoDelegator) {
     this.panel = panel;
     this.infoDelegator = infoDelegator;
@@ -225,6 +231,11 @@ public final class MapProgress {
     }
   }
 
+  /**
+   * Reports whether at least one operation has marked the panel busy.
+   *
+   * @return true while the busy depth is positive
+   */
   public boolean isBusy() {
     return busyDepth > 0;
   }

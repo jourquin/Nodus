@@ -43,12 +43,22 @@ public final class NativeGroovyConsole {
   private final NodusMapPanel panel;
   private final Runnable restoreApplicationMenus;
 
+  /**
+   * Creates a native Groovy console controller for a map panel.
+   *
+   * @param panel panel exposed to Groovy scripts
+   * @param restoreApplicationMenus action that restores the application menus
+   */
   public NativeGroovyConsole(NodusMapPanel panel, Runnable restoreApplicationMenus) {
     this.panel = panel;
     this.restoreApplicationMenus = restoreApplicationMenus;
   }
 
-  /** Shows the native Groovy console, or focuses the already open one. */
+  /**
+   * Shows the native Groovy console, or focuses the already open one.
+   *
+   * @param path initial directory for the console's file chooser
+   */
   public void show(String path) {
     if (focusNativeGroovyConsole()) {
       return;
@@ -97,7 +107,11 @@ public final class NativeGroovyConsole {
     restoreApplicationMenus.run();
   }
 
-  /** Keeps Groovy's menu and toolbar copy actions pointed at the pane the user selected. */
+  /**
+   * Keeps Groovy's menu and toolbar copy actions pointed at the pane the user selected.
+   *
+   * @param console console whose copy target is configured
+   */
   public static void configureCopyTarget(groovy.console.ui.Console console) {
     // Groovy remembers the output pane on focus gain, but does not reset that reference when
     // the editor regains focus. Mouse selection must also work before a focus event arrives.

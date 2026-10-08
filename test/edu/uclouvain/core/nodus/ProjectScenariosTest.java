@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.uclouvain.core.nodus.database.DatabaseFixture;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
-import edu.uclouvain.core.nodus.project.ProjectScenarios;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.util.Properties;

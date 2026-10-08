@@ -31,6 +31,12 @@ public final class ProjectScenarios {
   private final NodusProject project;
   private final NodusMapPanel panel;
 
+  /**
+   * Creates a scenario manager for a project.
+   *
+   * @param project project containing scenario tables and properties
+   * @param panel map panel used for scenario operations
+   */
   public ProjectScenarios(NodusProject project, NodusMapPanel panel) {
     this.project = project;
     this.panel = panel;

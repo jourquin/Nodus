@@ -66,7 +66,6 @@ class BridgeCredentialsTest {
     Properties properties = new Properties();
     BridgeCredentials.ensure(home, properties);
     String token = properties.getProperty(BridgeCredentials.PY4J_TOKEN_PROPERTY);
-    String key = properties.getProperty(BridgeCredentials.J4R_KEY_PROPERTY);
     Path file = home.resolve(".nodus9.properties");
     if (Files.getFileStore(home).supportsFileAttributeView("posix")) {
       Files.setPosixFilePermissions(
@@ -80,6 +79,7 @@ class BridgeCredentialsTest {
     Properties reloaded = NodusPreferences.load(home);
     BridgeCredentials.ensure(home, reloaded);
 
+    String key = properties.getProperty(BridgeCredentials.J4R_KEY_PROPERTY);
     assertEquals(token, reloaded.getProperty(BridgeCredentials.PY4J_TOKEN_PROPERTY));
     assertEquals(key, reloaded.getProperty(BridgeCredentials.J4R_KEY_PROPERTY));
     if (Files.getFileStore(home).supportsFileAttributeView("posix")) {

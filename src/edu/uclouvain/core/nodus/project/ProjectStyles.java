@@ -37,6 +37,9 @@ import java.util.Properties;
 
 /** Loads and owns the node and link drawing styles for one project. */
 public final class ProjectStyles {
+  /** Creates an empty style cache for a project. */
+  public ProjectStyles() {}
+
   /**
    * Array of drawings attributes used for each defined numeric style. The style can be used to
    * render the nodes on a map.
@@ -50,13 +53,18 @@ public final class ProjectStyles {
   /** Properties file that contains the styles for the nodes and links. */
   private Properties stylesProperties;
 
-  /** Keep public loading hooks on the project in the initialization path. */
+  /**
+   * Loads styles through the project's public loading hooks.
+   *
+   * @param project project whose styles are loaded
+   */
   public void initialize(NodusProject project) {
     stylesProperties = project.getStyleProperties();
     nodeStyle = project.loadStyles("node");
     linkStyle = project.loadStyles("link");
   }
 
+  /** Releases the styles and properties cached for the current project. */
   public void clear() {
     nodeStyle = null;
     linkStyle = null;
@@ -113,6 +121,7 @@ public final class ProjectStyles {
   /**
    * Loads the styles used to render real nodes and links.
    *
+   * @param localProperties project properties, or null to load default styles
    * @return The loaded properties or null on error
    */
   public Properties getStyleProperties(Properties localProperties) {

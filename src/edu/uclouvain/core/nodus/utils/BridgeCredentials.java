@@ -41,6 +41,10 @@ public final class BridgeCredentials {
   /**
    * Reuses existing credentials or saves new ones before a Groovy hook can start a bridge.
    * In-memory preferences are updated only after the file has been written successfully.
+   *
+   * @param home directory containing the preferences file
+   * @param properties preferences to update with the bridge credentials
+   * @throws IOException if the preferences file cannot be saved or protected
    */
   public static void ensure(Path home, Properties properties) throws IOException {
     String token = properties.getProperty(PY4J_TOKEN_PROPERTY);

@@ -29,6 +29,7 @@
  * <p>{@link edu.uclouvain.core.nodus.NodusProject} manages a project described by a {@code .nodus}
  * properties file, its network layers, database connection and project settings. {@link
  * edu.uclouvain.core.nodus.NodusC} defines shared constants.
+ * 
  * <p>Map-panel and project implementation helpers live in the {@link
  * edu.uclouvain.core.nodus.mappanel} and {@link edu.uclouvain.core.nodus.project} packages.
  *

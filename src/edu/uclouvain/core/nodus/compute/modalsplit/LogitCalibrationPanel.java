@@ -53,9 +53,8 @@ import javax.swing.table.DefaultTableModel;
  *
  * <p>The estimator computes costs for the union of these observations. An unavailable mode with
  * zero observed flow is valid. Positive flow on an unavailable mode excludes the entire OD record
- * from estimation and is reported in the {@code _params.txt} report. No control in
- * this panel selects, filters or replaces assignment demand. Assignments remain separate
- * operations.
+ * from estimation and is reported in the {@code _params.txt} report. No control in this panel
+ * selects, filters or replaces assignment demand. Assignments remain separate operations.
  *
  * <p>The panel edits a draft: {@link #getSettings()} commits active cell/spinner edits and
  * validates an immutable snapshot. It does not persist project properties or launch computation.
@@ -104,7 +103,8 @@ final class LogitCalibrationPanel extends JPanel {
             "tooltip.table",
             "<html>Match each network mode ID to its observed OD table."
                 + "<br>Tables supply grp, org, dst and qty; class is optional."
-                + "<br>These matrices supply parameter estimation and optional merged demand.</html>"));
+                + "<br>These matrices supply parameter estimation and optional merged demand."
+                + "</html>"));
     table.getTableHeader().setToolTipText(table.getToolTipText());
     JTextField modeEditor = new JTextField();
     modeEditor.setToolTipText(
@@ -144,9 +144,7 @@ final class LogitCalibrationPanel extends JPanel {
     referenceLabel.setText(text("Reference", "Reference mode:"));
     actions.add(referenceLabel);
     actions.add(reference);
-    add(
-        new JLabel(text("Scope", "Observed modal matrices:")),
-        BorderLayout.NORTH);
+    add(new JLabel(text("Scope", "Observed modal matrices:")), BorderLayout.NORTH);
     add(new JScrollPane(table), BorderLayout.CENTER);
     add(actions, BorderLayout.SOUTH);
     setMethod(method);
@@ -215,8 +213,7 @@ final class LogitCalibrationPanel extends JPanel {
         throw new IllegalArgumentException(text("Duplicate", "Each mode ID must appear only once"));
       }
     }
-    LogitCalibrationSettings settings =
-        new LogitCalibrationSettings(getReferenceMode(), mapping);
+    LogitCalibrationSettings settings = new LogitCalibrationSettings(getReferenceMode(), mapping);
     settings.validate();
     return settings;
   }

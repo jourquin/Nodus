@@ -38,7 +38,15 @@ public final class ProjectCleanupRegistry {
   private final Map<String, Runnable> actions = new LinkedHashMap<>();
   private CompletableFuture<Void> completion;
 
-  /** Registers an action while the project is opening or open. */
+  /** Creates an empty project cleanup registry. */
+  public ProjectCleanupRegistry() {}
+
+  /**
+   * Registers an action while the project is opening or open.
+   *
+   * @param name unique name of the cleanup action
+   * @param action cleanup action to run when the project closes
+   */
   public synchronized void register(String name, Runnable action) {
     Objects.requireNonNull(name, "name");
     Objects.requireNonNull(action, "action");
@@ -51,7 +59,11 @@ public final class ProjectCleanupRegistry {
     actions.put(name, action);
   }
 
-  /** Starts cleanup off the UI thread and returns the same completion on repeated calls. */
+  /**
+   * Starts cleanup off the UI thread and returns the same completion on repeated calls.
+   *
+   * @return future completed when all registered cleanup actions have run
+   */
   public synchronized CompletableFuture<Void> closeAsync() {
     if (completion != null) {
       return completion;

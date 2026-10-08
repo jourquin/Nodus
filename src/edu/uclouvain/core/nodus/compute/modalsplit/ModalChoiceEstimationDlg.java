@@ -224,7 +224,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     tooltip(
         mergedMatrix,
         "mergedMatrix",
-        "<html>Optional OD table containing summed quantities by commodity group, origin and destination."
+        "<html>Optional OD table containing summed quantities by group, origin and destination."
             + "<br>Leave blank to skip merging. Select this table later in Assignment.</html>");
     addControl(controls, text("MergedMatrix", "Merged OD table (optional):"), mergedMatrix);
     addControl(controls, text("PivotMaxAbs", "Maximum absolute pivot:"), pivotMaxAbs);

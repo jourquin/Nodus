@@ -103,7 +103,8 @@ class ModalMatrixMergeTest {
       try (Connection connection = database(jdbc)) {
         try (Statement s = connection.createStatement()) {
           s.executeUpdate(
-              "CREATE TABLE total (grp INTEGER, org INTEGER, dst INTEGER, qty DOUBLE, class INTEGER NOT NULL)");
+              "CREATE TABLE total (grp INTEGER, org INTEGER, dst INTEGER, qty DOUBLE, "
+                  + "class INTEGER NOT NULL)");
           s.executeUpdate("INSERT INTO total VALUES (9,8,7,6,5)");
         }
         ModalParameterTable.save(connection, "params", new Properties());
@@ -162,9 +163,12 @@ class ModalMatrixMergeTest {
     Connection connection = DriverManager.getConnection(jdbc + UUID.randomUUID(), "sa", "");
     try (Statement s = connection.createStatement()) {
       s.executeUpdate(
-          "CREATE TABLE road (grp INTEGER, org INTEGER, dst INTEGER, qty DECIMAL(38,12), class INTEGER)");
-      s.executeUpdate("CREATE TABLE rail (grp INTEGER, org INTEGER, dst INTEGER, qty DECIMAL(38,12))");
-      s.executeUpdate("INSERT INTO road VALUES (1,10,20,10.250000000001,0),(1,10,20,20,1),(2,10,20,NULL,0)");
+          "CREATE TABLE road (grp INTEGER, org INTEGER, dst INTEGER, "
+              + "qty DECIMAL(38,12), class INTEGER)");
+      s.executeUpdate(
+          "CREATE TABLE rail (grp INTEGER, org INTEGER, dst INTEGER, qty DECIMAL(38,12))");
+      s.executeUpdate(
+          "INSERT INTO road VALUES (1,10,20,10.250000000001,0),(1,10,20,20,1),(2,10,20,NULL,0)");
       s.executeUpdate("INSERT INTO rail VALUES (1,10,20,30.5),(1,10,30,4)");
     }
     return connection;

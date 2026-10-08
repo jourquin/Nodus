@@ -34,6 +34,7 @@
  * metadata. {@link edu.uclouvain.core.nodus.utils.WorkQueue} provides the synchronized job queue
  * used by computation workers. These utilities have separate ownership and error-handling contracts
  * documented by their classes.
+ * 
  * <p>{@link edu.uclouvain.core.nodus.utils.NodusPreferences} stores application preferences;
  * {@link edu.uclouvain.core.nodus.utils.BridgeCredentials} prepares optional bridge credentials;
  * {@link edu.uclouvain.core.nodus.utils.ProjectConnectionStatus} exposes the project's network

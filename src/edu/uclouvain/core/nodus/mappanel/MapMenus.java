@@ -125,6 +125,18 @@ public final class MapMenus {
   private final Runnable installApplicationHandlers;
   private final java.util.function.BooleanSupplier useMacDesktopIntegration;
 
+  /**
+   * Creates the built-in menus for a map panel.
+   *
+   * @param panel panel that owns the menus
+   * @param toolPanel tool panel controlled by menu actions
+   * @param controlPanel control panel controlled by menu actions
+   * @param desktop desktop used for application menu integration
+   * @param installActionListeners action-listener setup performed during menu initialization
+   * @param installPreferences preferences setup performed during menu initialization
+   * @param installApplicationHandlers application-handler setup performed during initialization
+   * @param useMacDesktopIntegration whether native macOS application menus are used
+   */
   public MapMenus(
       NodusMapPanel panel,
       ToolPanel toolPanel,
@@ -254,6 +266,7 @@ public final class MapMenus {
     }
   }
 
+  /** Refreshes the translated labels of the top-level menus. */
   public void setMenusText() {
     menuFile.setText(i18n.get(NodusMapPanel.class, "File", "File"));
 
@@ -268,6 +281,7 @@ public final class MapMenus {
     menuControl.setText(i18n.get(NodusMapPanel.class, "Control", "Control"));
   }
 
+  /** Refreshes the translated labels of built-in menu items. */
   public void setMenuItemsText() {
     menuItemFileOpen.setText(i18n.get(NodusMapPanel.class, "Open_project", "Open project"));
 

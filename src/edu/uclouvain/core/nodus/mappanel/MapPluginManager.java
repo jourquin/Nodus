@@ -61,6 +61,17 @@ public final class MapPluginManager {
   private final JMenu menuTools;
   private final JMenu menuHelp;
 
+  /**
+   * Creates a plug-in manager using the map panel's menu components.
+   *
+   * @param panel panel that owns the plug-ins
+   * @param menuBar main menu bar
+   * @param file file menu
+   * @param project project menu
+   * @param control control menu
+   * @param tools tools menu
+   * @param help help menu
+   */
   public MapPluginManager(
       NodusMapPanel panel,
       JMenuBar menuBar,
@@ -78,7 +89,11 @@ public final class MapPluginManager {
     menuHelp = help;
   }
 
-  /** Updates plugin menus on the same event-thread turn as the built-in menus. */
+  /**
+   * Updates plugin menus on the same event-thread turn as the built-in menus.
+   *
+   * @param state whether project plug-in menus should be enabled
+   */
   public void enableMenus(boolean state) {
     for (JMenuItem item : projectPluginsMenuItems) {
       item.setEnabled(state);

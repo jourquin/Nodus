@@ -365,7 +365,18 @@ public final class LogitCalibration implements AutoCloseable {
     return estimateToTable(exact, table, pivots, maxAbs, "", false);
   }
 
-  /** Saves an optional merged assignment matrix in the same transaction as the parameters. */
+  /**
+   * Saves an optional merged assignment matrix in the same transaction as the parameters.
+   *
+   * @param exact whether to use exact multi-flow routing
+   * @param table name of the parameter table to create or replace
+   * @param pivots whether to estimate OD/group pivot constants
+   * @param maxAbs maximum absolute value of an estimated pivot
+   * @param mergedMatrix name of the optional merged assignment matrix
+   * @param overwrite whether an existing merged matrix may be replaced
+   * @return false when every observed OD record was skipped because of missing routes
+   * @throws Exception if validation, routing, estimation or saving fails, or on cancellation
+   */
   public boolean estimateToTable(
       boolean exact,
       String table,

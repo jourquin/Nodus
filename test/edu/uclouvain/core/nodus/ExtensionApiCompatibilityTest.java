@@ -59,7 +59,8 @@ class ExtensionApiCompatibilityTest {
                 + "(java.lang.String,java.lang.Runnable)"));
     // This safety check is exposed for layer code after its helper moved to utils.
     assertTrue(
-        current.remove("public boolean edu.uclouvain.core.nodus.NodusProject.canSaveNetworkEdits()"));
+        current.remove(
+            "public boolean edu.uclouvain.core.nodus.NodusProject.canSaveNetworkEdits()"));
     assertEquals(Files.readAllLines(FIXTURES.resolve("api.txt")), current);
   }
 

@@ -40,6 +40,11 @@ import java.util.Properties;
 public final class ProjectLayerOperations {
   private final NodusProject project;
 
+  /**
+   * Creates layer operations for a project.
+   *
+   * @param project project whose layers are managed
+   */
   public ProjectLayerOperations(NodusProject project) {
     this.project = project;
   }
@@ -50,8 +55,11 @@ public final class ProjectLayerOperations {
    * available layer types and the way they must be described in the property file.
    *
    * @param props Properties that contains the description of the layers.
+   * @param localProperties project properties used to resolve layer paths
+   * @param nodusMapPanel map panel to which the layers are added
    */
-  public void addOpenMapLayers(Properties props, Properties localProperties, NodusMapPanel nodusMapPanel) {
+  public void addOpenMapLayers(
+      Properties props, Properties localProperties, NodusMapPanel nodusMapPanel) {
     // Test if valid openmap file
     String s = props.getProperty(NodusC.PROP_OPENMAP_LAYERS);
 
@@ -129,9 +137,12 @@ public final class ProjectLayerOperations {
    * Returns the node or link layer which pretty name or table name corresponds to the given name.
    *
    * @param name Pretty name or table name of the layer.
+   * @param nodeLayers node layers to search
+   * @param linkLayers link layers to search
    * @return The corresponding layer or null if not found.
    */
-  public NodusEsriLayer getLayer(String name, NodusEsriLayer[] nodeLayers, NodusEsriLayer[] linkLayers) {
+  public NodusEsriLayer getLayer(
+      String name, NodusEsriLayer[] nodeLayers, NodusEsriLayer[] linkLayers) {
 
     if (name == null) {
       return null;
@@ -149,6 +160,8 @@ public final class ProjectLayerOperations {
   /**
    * Returns true if any node or link layer is dirty (modified).
    *
+   * @param nodeLayers node layers to inspect
+   * @param linkLayers link layers to inspect
    * @return True if at least one layer was modified.
    */
   public boolean isDirty(NodusEsriLayer[] nodeLayers, NodusEsriLayer[] linkLayers) {
@@ -174,6 +187,11 @@ public final class ProjectLayerOperations {
    * procedure is simple: as the database tables are not synchronized with the .dbf files, the
    * relevant database tables will be deleted. In this ways, the .dbf tables will be automatically
    * imported in the database the next time the project will be opened.
+   *
+   * @param isOpen whether the project is open
+   * @param nodeLayers node layers to roll back
+   * @param linkLayers link layers to roll back
+   * @param nodusMapPanel map panel whose busy state is updated
    */
   public void rollBack(
       boolean isOpen,
@@ -200,7 +218,11 @@ public final class ProjectLayerOperations {
     }
   }
 
-  /** Returns false if a layer could not be saved, keeping the project available for retry. */
+  /**
+   * Saves the project layers while keeping the project available for retry on failure.
+   *
+   * @return false if a layer could not be saved
+   */
   public boolean saveEsriLayersSafely() {
     if (!project.isOpen()) {
       return true;

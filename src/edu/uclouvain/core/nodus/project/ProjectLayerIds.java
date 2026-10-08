@@ -51,10 +51,16 @@ public final class ProjectLayerIds implements ShapeConstants {
 
   private final NodusProject project;
 
+  /**
+   * Creates an ID tracker for a project.
+   *
+   * @param project project whose network layers are tracked
+   */
   public ProjectLayerIds(NodusProject project) {
     this.project = project;
   }
 
+  /** Clears IDs cached from network layers outside the current project. */
   public void clear() {
     otherNodeNumbers.clear();
     otherLinkNumbers.clear();
@@ -95,6 +101,7 @@ public final class ProjectLayerIds implements ShapeConstants {
    * Searches a new unique ID for a node or a link. Existent ID's are searched in the loaded layers,
    * but also in all the Nodus compatible layers found in the project directory.
    *
+   * @param nodusMapPanel map panel associated with the project
    * @param layer The array of links or nodes layers.
    * @return The ID of the new link or node.
    */
@@ -161,8 +168,12 @@ public final class ProjectLayerIds implements ShapeConstants {
 
   /**
    * Scan the directory to find other Nodus compatible shapefiles, which object ID's will be stored.
+   *
+   * @param nodeLayers node layers already loaded in the project
+   * @param linkLayers link layers already loaded in the project
    */
-  public void loadOtherLayersObjectNumbers(NodusEsriLayer[] nodeLayers, NodusEsriLayer[] linkLayers) {
+  public void loadOtherLayersObjectNumbers(
+      NodusEsriLayer[] nodeLayers, NodusEsriLayer[] linkLayers) {
     otherObjectsLoaded = false;
     // Scan all node layers
     String[] layerName =
