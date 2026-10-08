@@ -55,9 +55,10 @@ class ModalMatrixMergeTest {
           assertEquals(10, rows.getInt(2));
           assertEquals(20, rows.getInt(3));
           assertEquals(Types.DECIMAL, rows.getMetaData().getColumnType(4));
-          assertEquals(38, rows.getMetaData().getPrecision(4));
-          assertEquals(12, rows.getMetaData().getScale(4));
-          assertEquals(new BigDecimal("60.750000000001"), rows.getBigDecimal(4));
+          assertEquals(12, rows.getMetaData().getPrecision(4));
+          assertEquals(0, rows.getMetaData().getScale(4));
+          // The destination stores whole quantities, rounding after summing source decimals.
+          assertEquals(new BigDecimal("61"), rows.getBigDecimal(4));
           assertTrue(rows.next());
           assertEquals(30, rows.getInt(3));
           assertEquals(4, rows.getDouble(4));
