@@ -255,10 +255,11 @@ for the workflow mechanism.
   credentials, private POSIX permissions, replacement of invalid values, and failure
   without publishing credentials that were not saved. Uses a temporary home directory.
 - `SetJVMArgsTest`: migration of legacy JVM argument files, preservation of heap and custom
-  settings, backups, repeated runs, and leaving current or customized scripts intact. Shell
-  execution checks the generated options using simulated Java 11, 16, 17, 25 and 27 version
-  output (including early-access syntax); Windows batch files are checked as text. These
-  tests do not require those JDK versions to be installed or execute the Nodus application.
+  settings, backups, repeated runs, and leaving current or customized scripts intact. The
+  previous generated shell format also gains the macOS fullscreen export. Shell execution
+  checks the generated options using simulated macOS/Linux systems and Java 11, 16, 17, 25
+  and 27 version output (including early-access syntax); Windows batch files are checked as
+  text. These tests do not require those JDK versions to be installed or execute the Nodus application.
 - `AllOrNothingAssignmentIntegrationTest`: complete all-or-nothing assignments on a four-node
   network with independently known results, including real demand loading, virtual-network
   generation, cost evaluation, worker jobs, vehicle conversion and saved H2 outputs. Checks

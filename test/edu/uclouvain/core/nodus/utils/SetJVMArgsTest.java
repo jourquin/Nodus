@@ -57,12 +57,19 @@ class SetJVMArgsTest {
     SetJVMArgs.upgradeLegacyScript(script, false);
     assertEquals(legacy, read(script.resolveSibling("jvmargs.sh.bak")));
 
-    final String arguments = shellArguments(script, version);
-    assertTrue(arguments.contains("-Xmx4096m -Xms1024m -Dcustom=value"), arguments);
-    boolean oldJava = version.startsWith("11.") || version.startsWith("16.");
-    assertEquals(oldJava, arguments.contains("--illegal-access=deny"), arguments);
-    boolean nativeAccess = version.startsWith("25.") || version.startsWith("27");
-    assertEquals(nativeAccess, arguments.contains("--enable-native-access=ALL-UNNAMED"), arguments);
+    for (String system : new String[] {"Darwin", "Linux"}) {
+      final String arguments = shellArguments(script, version, system);
+      assertTrue(arguments.contains("-Xmx4096m -Xms1024m -Dcustom=value"), arguments);
+      boolean oldJava = version.startsWith("11.") || version.startsWith("16.");
+      assertEquals(oldJava, arguments.contains("--illegal-access=deny"), arguments);
+      boolean nativeAccess = version.startsWith("25.") || version.startsWith("27");
+      assertEquals(
+          nativeAccess, arguments.contains("--enable-native-access=ALL-UNNAMED"), arguments);
+      assertEquals(
+          system.equals("Darwin"),
+          arguments.contains("--add-exports=java.desktop/com.apple.eawt=ALL-UNNAMED"),
+          arguments);
+    }
 
     // Running SetJVMArgs again must neither regenerate the file nor overwrite the original backup.
     String migrated = read(script);
@@ -120,10 +127,53 @@ class SetJVMArgsTest {
       Path script = directory.resolve(windows ? "jvmargs.bat" : "jvmargs.sh");
       SetJVMArgs.createScript(script, "-Xmx2048m -Dcustom=value", windows);
       String original = read(script);
+      assertEquals(
+          !windows, original.contains("--add-exports=java.desktop/com.apple.eawt=ALL-UNNAMED"));
       SetJVMArgs.upgradeLegacyScript(script, windows);
       assertEquals(original, read(script));
       assertFalse(Files.exists(script.resolveSibling(script.getFileName() + ".bak")));
     }
+  }
+
+  @Test
+  @EnabledOnOs({OS.LINUX, OS.MAC})
+  void previousGeneratedShellScriptsGainTheMacExportWithoutLosingCustomSettings() throws Exception {
+    String fixture = read(Path.of("test/fixtures/jvmargs/generated-before-macos-export.sh"));
+    for (String ending : new String[] {"\n", "\r\n"}) {
+      Path script =
+          Files.createDirectory(directory.resolve(ending.equals("\n") ? "lf" : "crlf"))
+              .resolve("jvmargs.sh");
+      String original = fixture.replace("\n", ending);
+      write(script, original);
+      SetJVMArgs.upgradeLegacyScript(script, false);
+      assertEquals(original, read(script.resolveSibling("jvmargs.sh.bak")));
+      assertEquals(
+          "JVMARGS=\"-Xmx3072m -Xms512m -Dcustom=value\"",
+          read(script).lines().findFirst().orElseThrow());
+      assertTrue(
+          shellArguments(script, "11.0.32", "Darwin")
+              .contains("--add-exports=java.desktop/com.apple.eawt=ALL-UNNAMED"));
+      assertFalse(
+          shellArguments(script, "27", "Linux")
+              .contains("--add-exports=java.desktop/com.apple.eawt=ALL-UNNAMED"));
+
+      String migrated = read(script);
+      SetJVMArgs.upgradeLegacyScript(script, false);
+      assertEquals(migrated, read(script));
+      assertEquals(original, read(script.resolveSibling("jvmargs.sh.bak")));
+    }
+  }
+
+  @Test
+  void customizedGeneratedShellScriptIsNotRewritten() throws Exception {
+    Path script = directory.resolve("jvmargs.sh");
+    String original =
+        read(Path.of("test/fixtures/jvmargs/generated-before-macos-export.sh"))
+            + "\nJVMARGS=\"$JVMARGS -Dcustom.logic=true\"\n";
+    write(script, original);
+    SetJVMArgs.upgradeLegacyScript(script, false);
+    assertEquals(original, read(script));
+    assertFalse(Files.exists(script.resolveSibling("jvmargs.sh.bak")));
   }
 
   @Test
@@ -151,16 +201,19 @@ class SetJVMArgsTest {
     assertFalse(Files.exists(script.resolveSibling("jvmargs.bat.bak")));
   }
 
-  private static String shellArguments(Path script, String version) throws Exception {
+  private static String shellArguments(Path script, String version, String system)
+      throws Exception {
     ProcessBuilder builder =
         new ProcessBuilder(
             "sh",
             "-c",
             "java() { printf 'openjdk version \"%s\"\\n' \"$NODUS_TEST_JAVA_VERSION\" >&2; }\n"
+                + "uname() { printf '%s\\n' \"$NODUS_TEST_SYSTEM\"; }\n"
                 + ". \"$1\"\nprintf '%s\\n' \"$JVMARGS\"",
             "nodus-jvmargs-test",
             script.toString());
     builder.environment().put("NODUS_TEST_JAVA_VERSION", version);
+    builder.environment().put("NODUS_TEST_SYSTEM", system);
     builder.redirectErrorStream(true);
     Process process = builder.start();
     try {
