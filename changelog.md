@@ -475,6 +475,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Add tooltips on (almost) all GUI elements
 
 ## v9.0 - BuildXXXXXXXX
+- Keep the native Groovy console's Copy and Select All actions targeted at the selected
+  editor or output pane, including mouse selection on macOS
 - Remove Derby support and its bundled drivers
 - Restrict Nodus-managed HSQLDB and H2 servers to local connections while
   preserving local R/Python access and independently configured remote JDBC servers

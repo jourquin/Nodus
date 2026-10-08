@@ -22,12 +22,17 @@
 package edu.uclouvain.core.nodus;
 
 import java.awt.Frame;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.EventObject;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
+import javax.swing.JTextPane;
 
 /** Manages the optional native Groovy console without replacing its script entry point. */
 final class NativeGroovyConsole {
@@ -66,6 +71,7 @@ final class NativeGroovyConsole {
     console.setCurrentFileChooserDir(new File(path));
     console.setVariable("nodusMapPanel", panel);
     console.run();
+    configureCopyTarget(console);
 
     JFrame consoleFrame = getNativeGroovyConsoleFrame(console);
     if (consoleFrame != null) {
@@ -88,6 +94,31 @@ final class NativeGroovyConsole {
 
     // Reset the preferences menu
     restoreApplicationMenus.run();
+  }
+
+  /** Keeps Groovy's menu and toolbar copy actions pointed at the pane the user selected. */
+  static void configureCopyTarget(groovy.console.ui.Console console) {
+    // Groovy remembers the output pane on focus gain, but does not reset that reference when
+    // the editor regains focus. Mouse selection must also work before a focus event arrives.
+    FocusAdapter focusListener =
+        new FocusAdapter() {
+          @Override
+          public void focusGained(FocusEvent event) {
+            console.setCopyFromComponent(event.getComponent());
+          }
+        };
+    MouseAdapter mouseListener =
+        new MouseAdapter() {
+          @Override
+          public void mousePressed(MouseEvent event) {
+            console.setCopyFromComponent(event.getComponent());
+            event.getComponent().requestFocusInWindow();
+          }
+        };
+    for (JTextPane pane : new JTextPane[] {console.getInputArea(), console.getOutputArea()}) {
+      pane.addFocusListener(focusListener);
+      pane.addMouseListener(mouseListener);
+    }
   }
 
   /** Brings the already open native Groovy console to the front. */
