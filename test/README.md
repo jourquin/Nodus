@@ -253,7 +253,12 @@ for the workflow mechanism.
   isolation of a failing action; and rejection of duplicate or late registrations.
 - `BridgeCredentialsTest`: generation, persistence and reuse of the Python and R bridge
   credentials, private POSIX permissions, replacement of invalid values, and failure
-  without publishing credentials that were not saved. Uses a temporary home directory.
+  without publishing credentials that were not saved. Two independent JVMs starting with
+  empty preferences must adopt the same saved credentials. Uses a temporary home directory.
+- `ScriptRunnerTest`: a Groovy assertion failure still reports failure and invokes the
+  asynchronous lifecycle continuation on the event dispatch thread.
+- `GitHubReleaseTest`: older, equal, newer and malformed release tags are compared without
+  contacting GitHub.
 - `SetJVMArgsTest`: migration of legacy JVM argument files, preservation of heap and custom
   settings, backups, repeated runs, and leaving current or customized scripts intact. Shell
   execution checks the generated options using simulated Java 11, 16, 17, 25 and 27 version
@@ -298,8 +303,8 @@ for the workflow mechanism.
   writers, clear/save backlogs and stream shutdown. These tests do not open desktop windows.
 - `NetworkSimplifierMergeTest`: runs topology passes on real layers with shuffled input rows and
   all four retained-ID policies. Checks final geometry, conflict boundaries, dry runs, save/reload,
-  and one label refresh per layer per pass on a long corridor. Optional timing measurements are
-  documented in [the performance guide](../devtools/PERFORMANCE.md).
+  and one label refresh per layer per pass on a long corridor. These tests check behavior,
+  not elapsed time.
 - `ExcelIoTest`: real XLS/XLSX imports and exports on H2 and HSQLDB, bounded JDBC batch calls,
   drivers without batch support, rollback after earlier batches succeeded, Unicode and blank
   cells, streaming temporary-file cleanup on success/failure, and legacy row/column limits.

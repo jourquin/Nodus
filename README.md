@@ -111,7 +111,6 @@ This is useful for source changes that do not change the external libraries.
 To run the tests separately, use `ant Test`.
 
 You can also import Nodus as an [Eclipse](https://www.eclipse.org/) project.
-See the [test guide](test/README.md) for Ant and Eclipse test setup.
 
 ## Advanced use and development
 
@@ -137,7 +136,7 @@ with an automatic continuous integration workflow. The release also adds embedde
 parameter estimation and moves the modal-choice API into its own package. Custom modal-choice
 plugin sources need updated imports. Nodus can upgrade eligible existing plugin JARs
 without recompilation, keeping a `.jar.nodus8` backup; see the
-[Nodus 9.0 migration guide](doc/modal-choice-migration.md).
+[Nodus 9.0 migration guide](https://github.com/jourquin/Nodus/blob/master/doc/modal-choice-migration.md).
 
 
 See the [change log](changelog.md) for a detailed build history.
@@ -148,6 +147,8 @@ The software doesn't modify the "registry" of any supported OS (Mac OS, Linux or
 delete the installation directory to remove the software from your system.
 
 You can also delete the small ".nodus9.properties" file that is located at the root of your "home" dir.
+The empty ".nodus9.properties.lock" file used to coordinate simultaneous starts can also be deleted
+after all Nodus instances have closed.
 On first launch, Nodus 9 copies ".nodus8.properties" if the new file does not yet exist.
 The old file is left unchanged; remove it too if you no longer need your Nodus 8 preferences.
 

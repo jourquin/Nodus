@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.EnumSet;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -58,6 +59,103 @@ class BridgeCredentialsTest {
       assertEquals(
           EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE),
           Files.getPosixFilePermissions(home.resolve(".nodus9.properties")));
+      assertEquals(
+          EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE),
+          Files.getPosixFilePermissions(home.resolve(".nodus9.properties.lock")));
+    }
+  }
+
+  @Test
+  void simultaneousFirstLaunchesAdoptTheSameSavedCredentials() throws Exception {
+    Path start = home.resolve("start");
+    Path firstReady = home.resolve("first.ready");
+    Path secondReady = home.resolve("second.ready");
+    Path firstResult = home.resolve("first.result");
+    Path secondResult = home.resolve("second.result");
+    Path firstOutput = home.resolve("first.log");
+    Path secondOutput = home.resolve("second.log");
+    Process first = startProbe(firstReady, start, firstResult, firstOutput);
+    Process second = null;
+    try {
+      second = startProbe(secondReady, start, secondResult, secondOutput);
+      awaitFile(firstReady);
+      awaitFile(secondReady);
+      assertTrue(Files.notExists(home.resolve(".nodus9.properties")));
+      Files.createFile(start);
+
+      assertTrue(first.waitFor(30, TimeUnit.SECONDS), "First Nodus process timed out");
+      assertTrue(second.waitFor(30, TimeUnit.SECONDS), "Second Nodus process timed out");
+      assertEquals(0, first.exitValue(), Files.readString(firstOutput));
+      assertEquals(0, second.exitValue(), Files.readString(secondOutput));
+
+      String credentials = Files.readString(firstResult);
+      assertEquals(credentials, Files.readString(secondResult));
+      Properties saved = NodusPreferences.load(home);
+      assertEquals(
+          saved.getProperty(BridgeCredentials.PY4J_TOKEN_PROPERTY)
+              + "\n"
+              + saved.getProperty(BridgeCredentials.J4R_KEY_PROPERTY),
+          credentials);
+    } finally {
+      first.destroyForcibly();
+      if (second != null) {
+        second.destroyForcibly();
+      }
+    }
+  }
+
+  private Process startProbe(Path ready, Path start, Path result, Path output) throws IOException {
+    String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
+    return new ProcessBuilder(
+            java,
+            "-cp",
+            System.getProperty("java.class.path"),
+            FirstLaunchProbe.class.getName(),
+            home.toString(),
+            ready.toString(),
+            start.toString(),
+            result.toString())
+        .redirectErrorStream(true)
+        .redirectOutput(output.toFile())
+        .start();
+  }
+
+  private static void awaitFile(Path file) throws Exception {
+    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+    while (Files.notExists(file) && System.nanoTime() < deadline) {
+      Thread.sleep(10);
+    }
+    assertTrue(Files.exists(file), "Timed out waiting for " + file);
+  }
+
+  /** Models the Nodus startup load followed by a deliberately synchronized first launch. */
+  public static final class FirstLaunchProbe {
+    private FirstLaunchProbe() {}
+
+    /**
+     * Loads preferences before the start signal, then saves and reports bridge credentials.
+     *
+     * @param args home directory, ready file, start file, result file
+     * @throws Exception if startup or credential initialization fails
+     */
+    public static void main(String[] args) throws Exception {
+      Files.createFile(Path.of(args[1]));
+      Path start = Path.of(args[2]);
+      long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+      while (Files.notExists(start) && System.nanoTime() < deadline) {
+        Thread.sleep(10);
+      }
+      if (Files.notExists(start)) {
+        throw new IllegalStateException("First-launch start signal timed out");
+      }
+      Path home = Path.of(args[0]);
+      Properties properties = NodusPreferences.load(home);
+      BridgeCredentials.ensure(home, properties);
+      Files.writeString(
+          Path.of(args[3]),
+          properties.getProperty(BridgeCredentials.PY4J_TOKEN_PROPERTY)
+              + "\n"
+              + properties.getProperty(BridgeCredentials.J4R_KEY_PROPERTY));
     }
   }
 

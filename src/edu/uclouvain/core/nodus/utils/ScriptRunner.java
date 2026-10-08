@@ -68,7 +68,7 @@ public class ScriptRunner {
    */
   public boolean run(boolean ignoreMissingScript) {
 
-    AtomicBoolean success = new AtomicBoolean(true);
+    AtomicBoolean success = new AtomicBoolean(false);
 
     Thread thread =
         new Thread(
@@ -99,9 +99,15 @@ public class ScriptRunner {
     Thread thread =
         new Thread(
             () -> {
-              boolean success = evaluateScript(ignoreMissingScript);
-              if (onDone != null) {
-                SwingUtilities.invokeLater(() -> onDone.accept(Boolean.valueOf(success)));
+              boolean success = false;
+              try {
+                success = evaluateScript(ignoreMissingScript);
+              } finally {
+                if (onDone != null) {
+                  boolean completedSuccessfully = success;
+                  SwingUtilities.invokeLater(
+                      () -> onDone.accept(Boolean.valueOf(completedSuccessfully)));
+                }
               }
             },
             "Nodus-ScriptRunner");

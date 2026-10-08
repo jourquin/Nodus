@@ -47,7 +47,7 @@ left intact; remove an unconditional obsolete option manually in those files.
 
 ## Session settings
 
-Public settings in [NodusC.java](src/edu/uclouvain/core/nodus/NodusC.java) can be set
+Public settings in [NodusC.java](https://github.com/jourquin/Nodus/blob/master/src/edu/uclouvain/core/nodus/NodusC.java) can be set
 from the startup [nodus.groovy](nodus.groovy) script or the Groovy console. The examples
 below control assignment reporting for the current session. Put them in the startup
 script to apply them whenever Nodus starts.
@@ -173,11 +173,11 @@ folder or an individual test class. For Ant, right-click `build-tests.xml` and c
 build file, so `ant Test` also runs the suite. `ant Installer` runs the suite before
 packaging and aborts if it fails.
 
-[GitHub Actions](.github/workflows/tests.yml) runs the full suite on Temurin Java 11,
+[GitHub Actions](https://github.com/jourquin/Nodus/blob/master/.github/workflows/tests.yml) runs the full suite on Temurin Java 11,
 25 and 27 on Ubuntu for pushes and pull requests, and saves the reports as downloadable
-artifacts. See the [test guide](test/README.md) for coverage, Eclipse runtime setup
+artifacts. See the [test guide](https://github.com/jourquin/Nodus/blob/master/test/README.md) for coverage, Eclipse runtime setup
 and guidelines for adding tests, and its
-[CI instructions](test/README.md#continuous-integration-on-github) for activation
+[CI instructions](https://github.com/jourquin/Nodus/blob/master/test/README.md#continuous-integration-on-github) for activation
 and required status checks.
 
 ## Code quality tools

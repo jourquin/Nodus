@@ -32,6 +32,7 @@ import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -43,9 +44,6 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 import javax.swing.Timer;
-import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -56,6 +54,7 @@ import org.json.simple.parser.JSONParser;
  */
 public class GitHubRelease {
 
+  private static final int HTTP_TIMEOUT_MILLIS = 5_000;
   private static I18n i18n = Environment.getI18n();
 
   /** Returns a desktop instance only when URI browsing is supported on this runtime. */
@@ -134,14 +133,6 @@ public class GitHubRelease {
       return result;
     }
 
-    if (!isConnectedToInternet()) {
-      if (!autoCheck) {
-        result.message =
-            i18n.get(GitHubRelease.class, "NoInternetConnection", "No Internet connection");
-      }
-      return result;
-    }
-
     try {
       JSONObject gitHubInfo = getLatestBuildInfoFromGitHub();
 
@@ -151,9 +142,25 @@ public class GitHubRelease {
       // Get version of running app
       String currentVersion = NodusC.VERSION;
 
+      int versionOrder;
+      try {
+        versionOrder = compareVersions(remoteVersion, currentVersion);
+      } catch (IllegalArgumentException invalidVersion) {
+        if (!autoCheck) {
+          result.message =
+              MessageFormat.format(
+                  i18n.get(
+                      GitHubRelease.class,
+                      "CannotParseVersion",
+                      "Could not determine the latest version from tag \"{0}\""),
+                  remoteVersion);
+        }
+        return result;
+      }
+
       boolean newReleaseAvailable = false;
 
-      if (!remoteVersion.equals(currentVersion)) {
+      if (versionOrder > 0) {
         newReleaseAvailable = true;
         result.message =
             MessageFormat.format(
@@ -164,7 +171,7 @@ public class GitHubRelease {
                 remoteVersion);
         result.url = NodusC.nodusUrl;
 
-      } else {
+      } else if (versionOrder == 0) {
         // A new build may be available.
         // Accept release names such as:
         // "Build20260607", "Build 20260607", "Nodus Build20260607", etc.
@@ -204,10 +211,47 @@ public class GitHubRelease {
         result.message = i18n.get(GitHubRelease.class, "UpToDate", "Nodus is up-to-date");
       }
 
+    } catch (IOException e) {
+      if (!autoCheck) {
+        result.message =
+            i18n.get(GitHubRelease.class, "CheckFailed", "Could not check for updates");
+      }
     } catch (Exception e) {
       e.printStackTrace();
+      if (!autoCheck) {
+        result.message =
+            i18n.get(GitHubRelease.class, "CheckFailed", "Could not check for updates");
+      }
     }
     return result;
+  }
+
+  /** Compares dotted numeric release tags, treating absent trailing components as zero. */
+  static int compareVersions(String remoteVersion, String currentVersion) {
+    String[] remote = versionParts(remoteVersion);
+    String[] current = versionParts(currentVersion);
+    for (int index = 0; index < Math.max(remote.length, current.length); index++) {
+      BigInteger remotePart =
+          index < remote.length ? new BigInteger(remote[index]) : BigInteger.ZERO;
+      BigInteger currentPart =
+          index < current.length ? new BigInteger(current[index]) : BigInteger.ZERO;
+      int difference = remotePart.compareTo(currentPart);
+      if (difference != 0) {
+        return difference;
+      }
+    }
+    return 0;
+  }
+
+  private static String[] versionParts(String version) {
+    if (version == null) {
+      throw new IllegalArgumentException("Missing release version");
+    }
+    String numeric = version.replaceFirst("^[vV]", "");
+    if (!numeric.matches("[0-9]+(\\.[0-9]+)*")) {
+      throw new IllegalArgumentException("Invalid release version: " + version);
+    }
+    return numeric.split("\\.");
   }
 
   /** Displays the worker result on the EDT. */
@@ -369,10 +413,12 @@ public class GitHubRelease {
       conn = (HttpURLConnection) url.openConnection();
       conn.setRequestMethod("GET");
       conn.setRequestProperty("Accept", "application/vnd.github.v3+json");
+      conn.setConnectTimeout(HTTP_TIMEOUT_MILLIS);
+      conn.setReadTimeout(HTTP_TIMEOUT_MILLIS);
 
       int responseCode = conn.getResponseCode();
       if (responseCode != HttpURLConnection.HTTP_OK) {
-        throw new RuntimeException("Erreur HTTP : " + responseCode);
+        throw new IOException("GitHub release request failed: HTTP " + responseCode);
       }
 
       StringBuilder response = new StringBuilder();
@@ -394,22 +440,4 @@ public class GitHubRelease {
     }
   }
 
-  /**
-   * Test for an Internet connection.
-   *
-   * @return True if GitHub is reachable.
-   */
-  private static boolean isConnectedToInternet() {
-    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-      HttpGet request = new HttpGet(NodusC.gitHubUrlString);
-      return httpClient.execute(
-          request,
-          response -> {
-            int statusCode = response.getCode();
-            return statusCode >= 200 && statusCode < 300;
-          });
-    } catch (IOException e) {
-      return false;
-    }
-  }
 }

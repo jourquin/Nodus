@@ -22,10 +22,16 @@
 package edu.uclouvain.core.nodus.utils;
 
 import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermission;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.EnumSet;
 import java.util.Properties;
 
 /** Creates the credentials used by optional project Python and R bridges. */
@@ -33,46 +39,84 @@ public final class BridgeCredentials {
 
   static final String PY4J_TOKEN_PROPERTY = "bridge.py4j.token";
   static final String J4R_KEY_PROPERTY = "bridge.j4r.key";
+  private static final String PREFERENCES_FILE = ".nodus9.properties";
+  private static final String LOCK_FILE = ".nodus9.properties.lock";
 
   private static final SecureRandom RANDOM = new SecureRandom();
 
   private BridgeCredentials() {}
 
   /**
-   * Reuses existing credentials or saves new ones before a Groovy hook can start a bridge.
-   * In-memory preferences are updated only after the file has been written successfully.
+   * Reuses existing credentials or saves new ones before a Groovy hook can start a bridge. A
+   * separate lock file coordinates simultaneous Nodus processes; the preferences file itself is
+   * replaced during saving. In-memory credentials are updated only after a successful save.
    *
    * @param home directory containing the preferences file
    * @param properties preferences to update with the bridge credentials
    * @throws IOException if the preferences file cannot be saved or protected
    */
-  public static void ensure(Path home, Properties properties) throws IOException {
-    String token = properties.getProperty(PY4J_TOKEN_PROPERTY);
-    String key = properties.getProperty(J4R_KEY_PROPERTY);
-    boolean newToken = !isValidToken(token);
-    boolean newKey = !isValidKey(key);
+  public static synchronized void ensure(Path home, Properties properties) throws IOException {
+    Path lockFile = home.resolve(LOCK_FILE);
+    try (FileChannel channel =
+            FileChannel.open(
+                lockFile,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.WRITE,
+                LinkOption.NOFOLLOW_LINKS);
+        FileLock ignored = channel.lock()) {
+      if (Files.getFileStore(lockFile).supportsFileAttributeView("posix")) {
+        Files.setPosixFilePermissions(
+            lockFile,
+            EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+      }
 
-    if (!newToken && !newKey && Files.isRegularFile(home.resolve(".nodus9.properties"))) {
-      NodusPreferences.protect(home);
-      return;
-    }
+      // The caller loaded preferences before acquiring the lock. Another process may have saved
+      // credentials in the meantime, so only this reread can decide which values to use.
+      Properties stored = NodusPreferences.load(home);
+      String token = stored.getProperty(PY4J_TOKEN_PROPERTY);
+      String key = stored.getProperty(J4R_KEY_PROPERTY);
+      boolean needsSave =
+          !Files.isRegularFile(home.resolve(PREFERENCES_FILE))
+              || !isValidToken(token)
+              || !isValidKey(key);
 
-    if (newToken) {
-      byte[] bytes = new byte[32];
-      RANDOM.nextBytes(bytes);
-      token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-    if (newKey) {
-      key = Integer.toString(RANDOM.nextInt(Integer.MAX_VALUE) + 1);
-    }
+      if (needsSave) {
+        if (!isValidToken(token)) {
+          token = properties.getProperty(PY4J_TOKEN_PROPERTY);
+          if (!isValidToken(token)) {
+            byte[] bytes = new byte[32];
+            RANDOM.nextBytes(bytes);
+            token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+          }
+        }
+        if (!isValidKey(key)) {
+          key = properties.getProperty(J4R_KEY_PROPERTY);
+          if (!isValidKey(key)) {
+            key = Integer.toString(RANDOM.nextInt(Integer.MAX_VALUE) + 1);
+          }
+        }
 
-    Properties updated = new Properties();
-    updated.putAll(properties);
-    updated.setProperty(PY4J_TOKEN_PROPERTY, token);
-    updated.setProperty(J4R_KEY_PROPERTY, key);
-    NodusPreferences.save(home, updated);
-    properties.setProperty(PY4J_TOKEN_PROPERTY, token);
-    properties.setProperty(J4R_KEY_PROPERTY, key);
+        Properties updated = new Properties();
+        updated.putAll(stored);
+        // Preserve settings supplied for a fresh installation without overwriting newer values
+        // another Nodus instance has already saved.
+        for (String name : properties.stringPropertyNames()) {
+          if (!updated.containsKey(name)
+              && !PY4J_TOKEN_PROPERTY.equals(name)
+              && !J4R_KEY_PROPERTY.equals(name)) {
+            updated.setProperty(name, properties.getProperty(name));
+          }
+        }
+        updated.setProperty(PY4J_TOKEN_PROPERTY, token);
+        updated.setProperty(J4R_KEY_PROPERTY, key);
+        NodusPreferences.save(home, updated);
+      } else {
+        NodusPreferences.protect(home);
+      }
+
+      properties.setProperty(PY4J_TOKEN_PROPERTY, token);
+      properties.setProperty(J4R_KEY_PROPERTY, key);
+    }
   }
 
   private static boolean isValidToken(String token) {

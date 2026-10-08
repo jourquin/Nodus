@@ -359,8 +359,8 @@ once, deletes rows in bulk and compacts each affected layer once. Identifier ind
 are refreshed once per affected layer per pass. This avoids repeatedly scanning node rows,
 shifting row lists, sorting deletions and rebuilding indexes for each individual merge.
 
-See the [performance notes](../devtools/PERFORMANCE.md) for measured corridor results and
-reproducible benchmark commands. Those synthetic results do not predict every project's runtime.
+Test the script on a copy of a representative project before using it on a large network.
+The merge tests check the resulting topology and layer updates; they do not measure runtime.
 
 
 ## Service lines cannot be preserved

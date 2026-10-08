@@ -21,6 +21,8 @@ Nodus generates a Py4J token and a J4R key at startup and saves them in
 `~/.nodus9.properties` (the current user's home directory on Windows, macOS,
 or Linux). Existing valid values are reused. The properties are named
 `bridge.py4j.token` and `bridge.j4r.key`.
+An empty `.nodus9.properties.lock` file coordinates simultaneous starts of Nodus. It contains no
+credentials and may remain after the application closes.
 
 Copy the example below into `MyProject.groovy`. Set `enablePython` and
 `enableR` at the top to choose which bridges start when that project opens.
