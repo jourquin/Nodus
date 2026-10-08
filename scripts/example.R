@@ -21,8 +21,23 @@
 
 require(J4R)
 
-# Connect to the server previously launched by Nodus
-connectToJava(port = 18000:18001, internalPort = 50000:50001, public=T, key=212)
+# Read the key saved by Nodus for the explicitly enabled project bridge.
+preferences <- path.expand("~/.nodus9.properties")
+if (!file.exists(preferences)) {
+    stop(paste("Start Nodus first; preferences file is missing:", preferences))
+}
+settings <- readLines(preferences, warn=FALSE, encoding="latin1")
+keyLines <- settings[startsWith(settings, "bridge.j4r.key=")]
+if (length(keyLines) == 0) {
+    stop(paste("No bridge.j4r.key in", preferences))
+}
+keyText <- sub("^[^=]*=", "", tail(keyLines, 1))
+rKey <- suppressWarnings(as.integer(keyText))
+if (!grepl("^[0-9]+$", keyText) || is.na(rKey) || rKey <= 0) {
+    stop(paste("Invalid bridge.j4r.key in", preferences))
+}
+connectToJava(port = 18000:18001, internalPort = 50000:50001,
+              public=TRUE, key=rKey)
 
 # Get the entry point, an instance of a NodusMapPanel
 nodusMapPanel <- getMainInstance()

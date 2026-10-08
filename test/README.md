@@ -249,6 +249,9 @@ for the workflow mechanism.
   the old file, precedence of existing Nodus 9 preferences (including an empty file), and
   saving fresh-installation settings exclusively to `.nodus9.properties`. Uses a temporary
   home directory and never reads or writes the user's actual preferences.
+- `BridgeCredentialsTest`: generation, persistence and reuse of the Python and R bridge
+  credentials, private POSIX permissions, replacement of invalid values, and failure
+  without publishing credentials that were not saved. Uses a temporary home directory.
 - `SetJVMArgsTest`: migration of legacy JVM argument files, preservation of heap and custom
   settings, backups, repeated runs, and leaving current or customized scripts intact. Shell
   execution checks the generated options using simulated Java 11, 16, 17, 25 and 27 version

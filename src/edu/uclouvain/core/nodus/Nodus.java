@@ -100,8 +100,14 @@ public class Nodus {
     nodusLogger.setLevel(Level.ALL);
 
     // Load Nodus 9 preferences, importing Nodus 8 settings on first use.
+    Path preferencesHome = Paths.get(System.getProperty("user.home"));
     try {
-      nodusProperties = NodusPreferences.load(Paths.get(System.getProperty("user.home")));
+      nodusProperties = NodusPreferences.load(preferencesHome);
+      try {
+        BridgeCredentials.ensure(preferencesHome, nodusProperties);
+      } catch (IOException ex) {
+        System.err.println("Unable to prepare bridge credentials: " + ex.getMessage());
+      }
     } catch (IOException ex) {
       System.err.println("Unable to load .nodus9.properties: " + ex.getMessage());
     }

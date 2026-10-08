@@ -8,10 +8,17 @@ package edu.uclouvain.core.nodus;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.EnumSet;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * Stores application preferences in {@code .nodus9.properties} in the user's home directory.
@@ -24,6 +31,10 @@ final class NodusPreferences {
 
   /** Current application preferences filename. */
   private static final String FILE_NAME = ".nodus9.properties";
+
+  /** Bridge credentials in this file must be readable only by the current user on POSIX systems. */
+  private static final Set<PosixFilePermission> PRIVATE_PERMISSIONS =
+      EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE);
 
   /** Prevents instantiation of this persistence utility. */
   private NodusPreferences() {}
@@ -58,14 +69,43 @@ final class NodusPreferences {
 
   /**
    * Saves application state to the Nodus 9 file without modifying the previous version's file.
+   * Writes a replacement file so readers see complete preferences; its POSIX permissions are
+   * owner-only because bridge credentials are stored here.
    *
    * @param home User's home directory
    * @param properties Current application preferences
    * @throws IOException If the preferences cannot be written
    */
   static void save(Path home, Properties properties) throws IOException {
-    try (OutputStream out = Files.newOutputStream(home.resolve(FILE_NAME))) {
-      properties.store(out, null);
+    FileAttribute<?>[] attributes =
+        Files.getFileStore(home).supportsFileAttributeView("posix")
+            ? new FileAttribute<?>[] {PosixFilePermissions.asFileAttribute(PRIVATE_PERMISSIONS)}
+            : new FileAttribute<?>[0];
+    Path temporary = Files.createTempFile(home, ".nodus9-", ".tmp", attributes);
+    try {
+      try (OutputStream out = Files.newOutputStream(temporary)) {
+        properties.store(out, null);
+      }
+      Path destination = home.resolve(FILE_NAME);
+      try {
+        Files.move(
+            temporary,
+            destination,
+            StandardCopyOption.ATOMIC_MOVE,
+            StandardCopyOption.REPLACE_EXISTING);
+      } catch (AtomicMoveNotSupportedException ex) {
+        Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING);
+      }
+    } finally {
+      Files.deleteIfExists(temporary);
+    }
+  }
+
+  /** Restricts access to an existing preferences file without rewriting its contents. */
+  static void protect(Path home) throws IOException {
+    Path file = home.resolve(FILE_NAME);
+    if (Files.exists(file) && Files.getFileStore(file).supportsFileAttributeView("posix")) {
+      Files.setPosixFilePermissions(file, PRIVATE_PERMISSIONS);
     }
   }
 }

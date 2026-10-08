@@ -32,17 +32,19 @@ and start the bridge before running the client example.
 
 ### Start the bridge in Nodus
 
-[demo/demo.groovy](../demo/demo.groovy) starts both bridges when the demo project opens
-and stops them when it closes. For another project, adapt its bridge blocks in a
-`<projectname>.groovy` file beside `<projectname>.nodus`, retaining any existing hooks.
-Open the project and wait for loading to finish before connecting the client.
+[The project bridge guide](RandPythonBrigdges.md) shows how to start either bridge
+from a `<projectname>.groovy` file beside `<projectname>.nodus`, retaining any
+existing hooks. Nodus generates the required credentials at startup and saves
+them in the current user's `~/.nodus9.properties`; the Python and R examples
+read them from the same file. Open the project and wait for loading to finish
+before connecting the client.
 
 The examples use these settings:
 
 | Bridge | Client settings |
 | --- | --- |
-| Py4J | Default gateway at `127.0.0.1:25333`. |
-| J4R | Ports `18000:18001`, internal ports `50000:50001`, `public=TRUE`, key `212`. |
+| Py4J | `127.0.0.1:25333`, with the saved `bridge.py4j.token`. |
+| J4R | Ports `18000:18001`, internal ports `50000:50001`, `public=TRUE`, with the saved `bridge.j4r.key`. |
 
 If several Nodus instances run simultaneously, give their bridges different ports and
 adjust the clients accordingly. Start each bridge in one lifecycle scope, so application
@@ -50,13 +52,13 @@ and project hooks do not compete for the same ports.
 
 The repository-root [nodus.groovy](../nodus.groovy) changes the initial map view and
 assignment settings; it does not currently start either bridge.
-[scripts/nodus.groovy](nodus.groovy) is another application-wide bridge example.
-When adapting it, use the current lifecycle variable `quitNodus` and J4R's public
-`requestShutdown()` method, as used in the demo project hook.
+[scripts/nodus.groovy](nodus.groovy) also leaves both bridges off. The bridge
+guide uses project hooks so each project controls its server lifetime.
 
 These bridge settings are separate from Nodus's database listeners. The J4R sample uses
-public-server mode, a fixed demonstration key, and sockets without an explicit loopback
-binding. The local-only HSQLDB/H2 settings do not restrict that bridge's listeners.
+public-server mode and sockets without an explicit loopback binding. Keep it
+disabled on hosts exposed to an untrusted network. The local-only HSQLDB/H2
+settings do not restrict that bridge's listeners.
 See the [database connection guide][database-connections]
 for direct JDBC access, which does not require a Py4J or J4R bridge.
 
@@ -76,8 +78,9 @@ With Nodus, its project and the bridge running, execute this from the repository
 python3 scripts/example.py
 ```
 
-[example.py](example.py) uses `JavaGateway()` and obtains `nodusMapPanel` from
-`gateway.entry_point`. A custom server port also requires a matching client configuration.
+[example.py](example.py) reads the token from `~/.nodus9.properties`, then obtains
+`nodusMapPanel` from `gateway.entry_point`. A custom server port also requires
+a matching client configuration.
 
 ### R client
 
@@ -114,7 +117,7 @@ The project-open hook runs before `project.isOpen()` becomes true, so scripts gu
 that check are intended to run after project loading, not unchanged inside the open hook.
 
 Use `nodusMapPanel.storeObject(key, value)` and `retrieveObject(key)` to keep bridge
-instances or other objects between calls, as the demo hook does.
+instances or other objects between calls, as the project bridge guide shows.
 
 ## Basic examples and current limitations
 
