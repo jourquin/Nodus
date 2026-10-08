@@ -508,6 +508,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Upgrade to POI 5.5.1   
 - An error while cleaning up one modal-split plugin doesn't interrupt the cleanup of the entire project
 - Remove SQLite support
+- Upgrade Groovy to 5.1.3 and its matching companion libraries so the native console
+  works on Java 26 and later, where the Applet API has been removed
   
   
   

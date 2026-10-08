@@ -71,36 +71,36 @@ Some of these libraries serve optional Groovy modules rather than Nodus's main c
 
 | Component / JAR family | Bundled version | License |
 | --- | --- | --- |
-| [Apache Groovy][groovy] `groovy-*` | 5.0.6 | Apache-2.0 |
+| [Apache Groovy][groovy] `groovy-*` | 5.1.3 | Apache-2.0 |
 | [Apache Ant][ant] `ant-*` | 1.10.17 | Apache-2.0 |
 | [Apache Commons CLI][commons] `commons-cli-*` | 1.11.0 | Apache-2.0 |
 | [GPars][gpars] `gpars-*` | 1.2.1 | Apache-2.0 |
 | [Hamcrest][hamcrest] `hamcrest-core-*` | 1.3 | BSD-3-Clause |
-| [Apache Ivy][ivy] `ivy-*` | 2.5.3 | Apache-2.0 |
-| [Jackson][jackson] `jackson-annotations-*` | 2.21 | Apache-2.0 |
-| Jackson `jackson-core-*`, `jackson-databind-*`, `jackson-dataformat-*` | 2.21.2 | Apache-2.0 |
-| [JLine][jline] `jline-*`, `jansi-*` | 3.30.9 | BSD-3-Clause |
-| [JavaParser][javaparser] `javaparser-core-*` | 3.28.0 | Apache-2.0 OR LGPL-3.0 |
+| [Apache Ivy][ivy] `ivy-*` | 2.6.0 | Apache-2.0 |
+| [Jackson][jackson] `jackson-annotations-*` | 2.22 | Apache-2.0 |
+| Jackson `jackson-core-*`, `jackson-databind-*`, `jackson-dataformat-*` | 2.22.2 | Apache-2.0 |
+| [JLine][jline] `jline-*`, `jansi-*` | 3.30.16 | BSD-3-Clause |
+| [JavaParser][javaparser] `javaparser-core-*` | 3.28.2 | Apache-2.0 OR LGPL-3.0 |
 | [JCommander][jcommander] `jcommander-*` | 1.83 | Apache-2.0 |
-| [JNA][jna] `jna-*` | 5.18.1 | Apache-2.0 OR LGPL-2.1-or-later |
+| [JNA][jna] `jna-*` | 5.19.1 | Apache-2.0 OR LGPL-2.1-or-later |
 | [jQuery][jquery] `jquery-*` | 3.7.1 | MIT |
 | [JSR166y][jsr166] `jsr166y-*` | 1.7.0 | Public domain |
 | [JUnit 4][junit4] `junit-4*` | 4.13.2 | EPL-1.0 |
-| [JUnit 5][junit5] `junit-jupiter-*` | 5.14.3 | EPL-2.0 |
-| JUnit Platform `junit-platform-*` | 1.14.3 | EPL-2.0 |
+| [JUnit 5][junit5] `junit-jupiter-*` | 5.14.4 | EPL-2.0 |
+| JUnit Platform `junit-platform-*` | 1.14.4 | EPL-2.0 |
 | [Multiverse][multiverse] `multiverse-core-*` | 0.7.0 | Apache-2.0 |
 | [MXParser][mxparser] `mxparser-*` | 1.2.2 | Indiana University Extreme! Lab license 1.2 |
 | [OpenTest4J][opentest4j] `opentest4j-*` | 1.3.0 | Apache-2.0 |
 | [abego TreeLayout][treelayout] `org.abego.treelayout.core-*` | 1.0.3 | BSD-3-Clause |
 | [QDox][qdox] `qdox-*` | 2.2.0 | Apache-2.0 |
-| [SLF4J][slf4j] `slf4j-api-*` | 2.0.17 | MIT |
+| [SLF4J][slf4j] `slf4j-api-*` | 2.0.18 | MIT |
 | [SnakeYAML][snakeyaml] `snakeyaml-*` | 2.5 | Apache-2.0 |
 | [TestNG][testng] `testng-*` | 7.12.0 | Apache-2.0 |
 | [XStream][xstream] `xstream-*` | 1.4.21 | BSD-3-Clause |
 
 Groovy's embedded `META-INF/LICENSE` and `META-INF/NOTICE` also describe incorporated
 code and documentation assets under additional licenses. The JLine distribution's
-`jansi-3.30.9.jar` declares BSD-3-Clause in its manifest.
+`jansi-3.30.16.jar` declares BSD-3-Clause in its manifest.
 
 MXParser's bundled license requires this acknowledgement:
 
@@ -172,7 +172,7 @@ installation; the Ant companion JARs bundled with Groovy are listed separately.
 [jquery]: https://jquery.org/license/
 [jsr166]: https://gee.cs.oswego.edu/dl/concurrency-interest/
 [junit4]: https://github.com/junit-team/junit4/blob/main/LICENSE-junit.txt
-[junit5]: https://github.com/junit-team/junit5/blob/r5.14.3/LICENSE.md
+[junit5]: https://github.com/junit-team/junit5/blob/r5.14.4/LICENSE.md
 [multiverse]: https://github.com/pveentjer/Multiverse/blob/master/LICENSE
 [mxparser]: https://github.com/x-stream/mxparser/blob/master/LICENSE.txt
 [opentest4j]: https://github.com/ota4j-team/opentest4j

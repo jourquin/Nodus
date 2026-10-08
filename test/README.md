@@ -116,8 +116,8 @@ The JUnit execution and reports still use the dedicated `build-tests.xml` approa
 ## Continuous integration on GitHub
 
 [The Tests workflow](../.github/workflows/tests.yml) runs the complete suite on
-pushes and pull requests, with separate jobs for Temurin JDK 11 and 25 on Ubuntu.
-Both jobs compile for Java 11 and execute the tests on their selected runtime.
+pushes and pull requests, with separate jobs for Temurin JDK 11, 25 and 27 on Ubuntu.
+All jobs compile for Java 11 and execute the tests on their selected runtime.
 The workflow downloads the full Apache Ant 1.10.17 distribution, verifies its
 SHA-512 checksum, and checks that `ant-junitlauncher.jar` is present. It runs:
 
@@ -138,9 +138,9 @@ even after test failures; a failure before test execution may leave no reports.
 After the workflow is on the default branch, **Actions > Tests > Run workflow**
 also allows a manual run.
 
-For CI to prevent merging a failing pull request, add **Tests (Java 11)** and
-**Tests (Java 25)** as required status checks in the default branch's ruleset or
-branch protection rule after the first run. Running CI alone does not require
+For CI to prevent merging a failing pull request, add **Tests (Java 11)**,
+**Tests (Java 25)** and **Tests (Java 27)** as required status checks in the default
+branch's ruleset or branch protection rule after the first run. Running CI alone does not require
 those checks to pass before merging.
 
 The same Ant command works with other CI providers: install a JDK and a full Ant

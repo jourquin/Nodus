@@ -172,7 +172,7 @@ when trying them for the first time.
 
 ## Bundled versions and documentation
 
-The current repository bundles **Groovy 5.0.6**, **Py4J 0.10.9.2** and **J4R 1.1.1**;
+The current repository bundles **Groovy 5.1.3**, **Py4J 0.10.9.2** and **J4R 1.1.1**;
 its R client archive is version **1.1.1-228**. These are bundled versions, not a statement
 that every example has been tested with every Python or R release.
 

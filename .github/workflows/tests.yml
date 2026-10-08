@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: ['11', '25']
+        java: ['11', '25', '27']
 
     steps:
       - name: Check out sources

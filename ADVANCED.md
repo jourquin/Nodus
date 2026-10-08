@@ -173,8 +173,8 @@ folder or an individual test class. For Ant, right-click `build-tests.xml` and c
 build file, so `ant Test` also runs the suite. `ant Installer` runs the suite before
 packaging and aborts if it fails.
 
-[GitHub Actions](.github/workflows/tests.yml) runs the full suite on Temurin Java 11
-and 25 on Ubuntu for pushes and pull requests, and saves the reports as downloadable
+[GitHub Actions](.github/workflows/tests.yml) runs the full suite on Temurin Java 11,
+25 and 27 on Ubuntu for pushes and pull requests, and saves the reports as downloadable
 artifacts. See the [test guide](test/README.md) for coverage, Eclipse runtime setup
 and guidelines for adding tests, and its
 [CI instructions](test/README.md#continuous-integration-on-github) for activation
