@@ -53,7 +53,8 @@ and project hooks do not compete for the same ports.
 The repository-root [nodus.groovy](../nodus.groovy) changes the initial map view and
 assignment settings; it does not currently start either bridge.
 [scripts/nodus.groovy](nodus.groovy) also leaves both bridges off. The bridge
-guide uses project hooks so each project controls its server lifetime.
+guide uses project hooks to choose which servers start, then registers their
+shutdown actions with the project so Nodus can stop them after connection loss.
 
 These bridge settings are separate from Nodus's database listeners. The J4R sample uses
 public-server mode and sockets without an explicit loopback binding. Keep it
@@ -98,8 +99,8 @@ source("scripts/example.R")
 ```
 
 [example.R](example.R) connects with `connectToJava(...)`, retrieves the map panel with
-`getMainInstance()`, and calls `shutdownClient()` at the end. The project hook owns the
-server's lifetime; disconnecting this client does not close the Nodus project.
+`getMainInstance()`, and calls `shutdownClient()` at the end. Nodus owns the
+registered server's lifetime; disconnecting this client does not close the project.
 
 ## Automatic scripts and lifecycle variables
 
@@ -116,8 +117,12 @@ The lifecycle flags are not automatically supplied to scripts run manually in th
 The project-open hook runs before `project.isOpen()` becomes true, so scripts guarded by
 that check are intended to run after project loading, not unchanged inside the open hook.
 
-Use `nodusMapPanel.storeObject(key, value)` and `retrieveObject(key)` to keep bridge
-instances or other objects between calls, as the project bridge guide shows.
+Use `nodusMapPanel.getNodusProject().registerProjectCleanup(name, action)` for
+project-owned servers or other resources that must stop even when a lost
+database connection prevents the closing hook from running. `storeObject` and
+`retrieveObject` can still share ordinary values between scripts, but clearing
+those values does not close resources. Cleanup actions run on a background
+thread and should not access the project database or update Swing directly.
 
 ## Basic examples and current limitations
 

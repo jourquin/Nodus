@@ -12,6 +12,8 @@ Use the same basename, including capitalization. Nodus runs the script with
 a normal close. It supplies `nodusMapPanel` as the Java API entry point. If you
 already have a project hook, add the bridge blocks to it rather than replacing
 its other actions. The opening hook runs before `project.isOpen()` becomes true.
+Nodus stops registered bridges on project close or database connection loss,
+even when it cannot run the closing hook.
 
 ## Choose which bridges to enable
 
@@ -62,7 +64,8 @@ if (openProject) {
             .build()
         try {
             pythonBridge.start()
-            nodusMapPanel.storeObject('project.pythonBridge', pythonBridge)
+            nodusMapPanel.getNodusProject().registerProjectCleanup(
+                'Python bridge', { pythonBridge.shutdown() } as Runnable)
         } catch (Exception failure) {
             try {
                 pythonBridge.shutdown()
@@ -88,7 +91,8 @@ if (openProject) {
         JavaGatewayServer rBridge = new JavaGatewayServer(config, nodusMapPanel)
         try {
             rBridge.startApplication()
-            nodusMapPanel.storeObject('project.rBridge', rBridge)
+            nodusMapPanel.getNodusProject().registerProjectCleanup(
+                'R bridge', { rBridge.requestShutdown() } as Runnable)
         } catch (Exception failure) {
             try {
                 rBridge.requestShutdown()
@@ -99,44 +103,18 @@ if (openProject) {
         }
     }
 }
-
-if (closeProject) {
-    JavaGatewayServer rBridge =
-        (JavaGatewayServer) nodusMapPanel.retrieveObject('project.rBridge')
-    if (rBridge != null) {
-        try {
-            rBridge.requestShutdown()
-        } catch (Exception failure) {
-            System.err.println("Could not stop the R bridge: ${failure.message}")
-        } finally {
-            nodusMapPanel.removeStoredObject('project.rBridge')
-        }
-    }
-
-    GatewayServer pythonBridge =
-        (GatewayServer) nodusMapPanel.retrieveObject('project.pythonBridge')
-    if (pythonBridge != null) {
-        try {
-            pythonBridge.shutdown()
-        } catch (Exception failure) {
-            System.err.println("Could not stop the Python bridge: ${failure.message}")
-        } finally {
-            nodusMapPanel.removeStoredObject('project.pythonBridge')
-        }
-    }
-}
 ```
 
-The stored objects let the closing invocation stop the same server instances
-that were started during opening. If either startup fails, Nodus reports the
-script error; check for a port conflict or invalid key. The separate shutdown
-handlers let a failure in one bridge leave the other cleanup running.
-
-**Current lifecycle limit:** if the project database connection is lost, Nodus
-skips the project close hook. Project closing alone may therefore leave an
-enabled bridge running. Exit the Nodus process to close it in this case. A
-future project-owned cleanup path should stop bridges independently of Groovy
-hooks and database health.
+Each bridge registers its shutdown action after it starts. Nodus runs those
+actions once, in reverse registration order, on normal close, failed opening,
+or database connection loss. A failed action does not prevent the other bridge
+from stopping. Nodus still runs your other closing-hook code on normal close;
+after a database connection loss it skips that hook because it may use the
+broken connection. If either startup fails, Nodus reports the script error;
+check for a port conflict or invalid key. If your existing project hook uses
+`storeObject` for a bridge, replace that startup storage and its matching
+shutdown block with `registerProjectCleanup` as shown above. Stored objects
+alone do not receive automatic shutdown.
 
 ## Connect clients
 
@@ -149,4 +127,4 @@ The bundled [R example](example.R) reads `bridge.j4r.key`. Install the included
 [J4R client archive](J4R_1.1.1-228.tar.gz) in R, then run
 `source("scripts/example.R")` from the repository root. It uses public ports
 `18000:18001` and internal ports `50000:50001`. The R client disconnects when
-it finishes; the project hook controls the server lifetime.
+it finishes; Nodus controls the registered server lifetime.

@@ -249,6 +249,8 @@ for the workflow mechanism.
   the old file, precedence of existing Nodus 9 preferences (including an empty file), and
   saving fresh-installation settings exclusively to `.nodus9.properties`. Uses a temporary
   home directory and never reads or writes the user's actual preferences.
+- `ProjectCleanupRegistryTest`: exactly-once, reverse-order project resource shutdown;
+  isolation of a failing action; and rejection of duplicate or late registrations.
 - `BridgeCredentialsTest`: generation, persistence and reuse of the Python and R bridge
   credentials, private POSIX permissions, replacement of invalid values, and failure
   without publishing credentials that were not saved. Uses a temporary home directory.
@@ -355,7 +357,10 @@ for the workflow mechanism.
   cleanup, delayed class-path closure, cleared registries and reported failures.
 - `NodusProjectCleanupTest`: a broken modal-plugin disposer must not prevent layer disposal
   on normal close, or JDBC connection closure, project-lock release and busy-state reset
-  after failed project opening.
+  after failed project opening. Registered project resources also stop after failed opening
+  and when the project closes before opening completes.
+- `NodusProjectConnectionLossTest`: a lost JDBC session stops registered project resources
+  once, warns once, and prevents further network edits or DBF saves.
 - `MultinomialProbitTest`, `ProbitProbabilitiesTest`, `LogCostProbitEstimatorTest`: joint normal
   choice probabilities against independent SciPy references, binary and rare-choice limits,
   likelihood derivatives, coefficient recovery, availability, identification, cost/quantity scaling,

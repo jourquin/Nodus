@@ -34,7 +34,13 @@ class ExtensionApiCompatibilityTest {
 
   @Test
   void publicAndProtectedApiMatchesThePreRefactoringClasses() throws Exception {
-    assertEquals(Files.readAllLines(FIXTURES.resolve("api.txt")), api());
+    List<String> current = api();
+    // This additive API lets Groovy hooks register resources without changing the old surface.
+    assertTrue(
+        current.remove(
+            "public void edu.uclouvain.core.nodus.NodusProject.registerProjectCleanup"
+                + "(java.lang.String,java.lang.Runnable)"));
+    assertEquals(Files.readAllLines(FIXTURES.resolve("api.txt")), current);
   }
 
   @Test

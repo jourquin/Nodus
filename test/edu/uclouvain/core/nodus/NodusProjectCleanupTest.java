@@ -26,7 +26,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -115,6 +118,37 @@ class NodusProjectCleanupTest {
     assertEquals(1, disposed.get());
   }
 
+  @Test
+  void failedOpeningStopsRegisteredResourcesBeforeFinishingCleanup() throws Exception {
+    Panel panel = new Panel();
+    NodusProject project = new NodusProject(panel);
+    AtomicInteger stopped = new AtomicInteger();
+    project.registerProjectCleanup("test bridge", stopped::incrementAndGet);
+
+    Method cleanup = NodusProject.class.getDeclaredMethod("cleanupFailedProjectOpen");
+    cleanup.setAccessible(true);
+    cleanup.invoke(project);
+
+    assertTrue(panel.cleanupFinished.await(5, TimeUnit.SECONDS));
+    assertEquals(1, stopped.get());
+    assertFalse(panel.busy);
+    assertFalse(panel.fileMenuBusy);
+  }
+
+  @Test
+  void closingBeforeProjectIsFullyOpenStillStopsRegisteredResources() throws Exception {
+    Panel panel = new Panel();
+    NodusProject project = new NodusProject(panel);
+    AtomicInteger stopped = new AtomicInteger();
+    CountDownLatch closed = new CountDownLatch(1);
+    project.registerProjectCleanup("test bridge", stopped::incrementAndGet);
+
+    SwingUtilities.invokeAndWait(() -> project.close(closed::countDown));
+
+    assertTrue(closed.await(5, TimeUnit.SECONDS));
+    assertEquals(1, stopped.get());
+  }
+
   /** Invokes the lifecycle stage directly, avoiding unrelated project-loading dialogs. */
   private void invokeCleanup(NodusProject project, String name) throws Exception {
     Method cleanup = NodusProject.class.getDeclaredMethod(name);
@@ -136,15 +170,25 @@ class NodusProjectCleanupTest {
     private static final long serialVersionUID = 1L;
     boolean busy = true;
     boolean fileMenuBusy = true;
+    final CountDownLatch cleanupFinished = new CountDownLatch(1);
 
     @Override
     public void setBusy(boolean value) {
       busy = value;
+      if (!value) {
+        cleanupFinished.countDown();
+      }
     }
 
     @Override
     public void setFileMenuBusy(boolean value) {
       fileMenuBusy = value;
     }
+
+    @Override
+    public void enableMenus(boolean value) {}
+
+    @Override
+    public void restoreMainFrameFocus() {}
   }
 }

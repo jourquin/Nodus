@@ -76,6 +76,7 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -146,6 +147,7 @@ public class NodusProject implements ShapeConstants {
   private final ProjectScenarios scenarios;
   private final ProjectStyles styles = new ProjectStyles();
   private final ProjectLayerIds layerIds = new ProjectLayerIds(this);
+  private final ProjectCleanupRegistry projectCleanup = new ProjectCleanupRegistry();
 
   /** i18n mechanism. */
   private static I18n i18n = Environment.getI18n();
@@ -249,6 +251,19 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
+   * Registers a project-owned shutdown action, for example for a bridge started by a Groovy hook.
+   * Actions run on a background thread in reverse registration order on close, failed opening, or
+   * JDBC connection loss. They must not require the project database or update Swing directly. A
+   * resource started after cleanup begins must be stopped by its caller if registration fails.
+   *
+   * @param name Unique name for the resource in this project
+   * @param action Shutdown action that does not require a working project database connection
+   */
+  public void registerProjectCleanup(String name, Runnable action) {
+    projectCleanup.register(name, action);
+  }
+
+  /**
    * Adds OpenMap layers to the project. All kinds of layers can be added to the display. These
    * layers are described in a property file. See OpenMap documentation for more details on the
    * available layer types and the way they must be described in the property file.
@@ -293,7 +308,7 @@ public class NodusProject implements ShapeConstants {
     }
 
     if (!isOpen) {
-      finishCloseUi(false);
+      closeProjectResourcesThen(() -> finishCloseUi(false));
       return;
     }
 
@@ -323,9 +338,10 @@ public class NodusProject implements ShapeConstants {
     int dbEngine = monitorMainConnection ? JDBCUtils.DB_MYSQL : JDBCUtils.getDbEngine();
     try {
       if (jdbcConnectionLost) {
-        continueProjectClose(dbEngine);
+        closeProjectResourcesThen(() -> continueProjectClose(dbEngine));
       } else {
-        runProjectLifecycleScriptAsync(false, true, () -> continueProjectClose(dbEngine));
+        runProjectLifecycleScriptAsync(
+            false, true, () -> closeProjectResourcesThen(() -> continueProjectClose(dbEngine)));
       }
     } catch (RuntimeException | Error failure) {
       if (restartIntegrityTester && isOpen) {
@@ -333,6 +349,29 @@ public class NodusProject implements ShapeConstants {
       }
       finishCloseUi(false);
       throw failure;
+    }
+  }
+
+  /** Waits for project resources to stop before discarding their project state. */
+  private void closeProjectResourcesThen(Runnable onDone) {
+    CompletableFuture<Void> cleanup = projectCleanup.closeAsync();
+    if (cleanup.isDone() && SwingUtilities.isEventDispatchThread()) {
+      cleanup.whenComplete((unused, failure) -> logProjectCleanupFailure(failure));
+      onDone.run();
+    } else {
+      cleanup.whenComplete(
+          (unused, failure) -> {
+            logProjectCleanupFailure(failure);
+            SwingUtilities.invokeLater(onDone);
+          });
+    }
+  }
+
+  /** Reports failures that prevented the cleanup worker itself from completing. */
+  private void logProjectCleanupFailure(Throwable failure) {
+    if (failure != null) {
+      Logger.getLogger(NodusProject.class.getName())
+          .log(Level.WARNING, "Project resource cleanup failed", failure);
     }
   }
 
@@ -817,6 +856,23 @@ public class NodusProject implements ShapeConstants {
    * been loaded, their class loaders must still be closed.
    */
   private void cleanupFailedProjectOpen() {
+    CompletableFuture<Void> cleanup = projectCleanup.closeAsync();
+    if (cleanup.isDone()) {
+      if (cleanup.isCompletedExceptionally()) {
+        cleanup.whenComplete((unused, failure) -> logProjectCleanupFailure(failure));
+      }
+      finishFailedProjectOpenCleanup();
+    } else {
+      cleanup.whenComplete(
+          (unused, failure) -> {
+            logProjectCleanupFailure(failure);
+            SwingUtilities.invokeLater(this::finishFailedProjectOpenCleanup);
+          });
+    }
+  }
+
+  /** Releases project state after registered resources have stopped. */
+  private void finishFailedProjectOpenCleanup() {
     closeServiceHandler();
 
     /*
@@ -1174,6 +1230,7 @@ public class NodusProject implements ShapeConstants {
     }
     jdbcConnectionLost = true;
     stopJdbcKeepAlive();
+    projectCleanup.closeAsync();
     if (SwingUtilities.isEventDispatchThread()) {
       showJdbcConnectionLostWarning();
     } else {

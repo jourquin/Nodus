@@ -17,6 +17,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.util.Timer;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.SwingUtilities;
@@ -63,6 +65,14 @@ class NodusProjectConnectionLossTest {
     setField(project, "jdbcConnection", connection);
     setField(project, "monitorMainConnection", true);
     setField(project, "isOpen", true);
+    CountDownLatch bridgeStopped = new CountDownLatch(1);
+    AtomicInteger shutdowns = new AtomicInteger();
+    project.registerProjectCleanup(
+        "test bridge",
+        () -> {
+          shutdowns.incrementAndGet();
+          bridgeStopped.countDown();
+        });
 
     Method start = NodusProject.class.getDeclaredMethod("startJdbcKeepAlive");
     start.setAccessible(true);
@@ -73,6 +83,7 @@ class NodusProjectConnectionLossTest {
     valid.set(false);
     assertSame(connection, project.getMainJDBCConnection());
     SwingUtilities.invokeAndWait(() -> {});
+    assertTrue(bridgeStopped.await(5, TimeUnit.SECONDS));
 
     assertEquals(1, warnings.get());
     assertNull(getField(project, "jdbcKeepAliveTimer"));
@@ -94,6 +105,7 @@ class NodusProjectConnectionLossTest {
     assertTrue((Boolean) beforeClose.invoke(project));
     assertEquals(1, warnings.get());
     assertEquals(1, pings.get());
+    assertEquals(1, shutdowns.get());
   }
 
   private static void setField(NodusProject project, String name, Object value) throws Exception {
