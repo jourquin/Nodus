@@ -195,6 +195,7 @@ public class JFontChooser extends JDialog {
     buttonPane.add(fontPreview, gbcFontPreview);
 
     JButton okButton = new JButton("OK");
+    GUIUtils.setToolTip(okButton, JFontChooser.class, "okButton", "Apply the selected font.");
     okButton.setActionCommand("OK");
     GridBagConstraints gbcOkButton = new GridBagConstraints();
     gbcOkButton.anchor = GridBagConstraints.SOUTH;
@@ -213,6 +214,11 @@ public class JFontChooser extends JDialog {
         });
 
     JButton cancelButton = new JButton("Cancel");
+    GUIUtils.setToolTip(
+        cancelButton,
+        JFontChooser.class,
+        "cancelButton",
+        "Close the font chooser without applying the selection.");
     cancelButton.setActionCommand("Cancel");
     GridBagConstraints gbcCancelButton = new GridBagConstraints();
     gbcCancelButton.insets = new Insets(5, 5, 5, 10);

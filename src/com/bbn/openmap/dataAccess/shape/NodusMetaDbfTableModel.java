@@ -483,6 +483,11 @@ public class NodusMetaDbfTableModel extends MetaDbfTableModel {
         if (button.getText().equals(i18n.get(DbfTableModel.class, "Done", "Done"))) {
           // Change text
           button.setText(i18n.get(DbfTableModel.class, "Cancel", "Cancel"));
+          GUIUtils.setToolTip(
+              button,
+              NodusMetaDbfTableModel.class,
+              "cancelButton",
+              "Close the structure editor, with a save prompt if changes are pending.");
 
           // Remove current action listener
           ActionListener[] al = button.getActionListeners();

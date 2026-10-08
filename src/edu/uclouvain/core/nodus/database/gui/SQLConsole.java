@@ -392,6 +392,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     JButton jbuttonClear =
         new JButton(i18n.get(SQLConsole.class, "Clear_SQL_Statement", "Clear SQL Statement"));
+    GUIUtils.setToolTip(
+        jbuttonClear,
+        SQLConsole.class,
+        "jbuttonClear",
+        "Clear the SQL editor and reset the current script.");
 
     jbuttonClear.addActionListener(
         new ActionListener() {
@@ -413,6 +418,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         });
 
     JButton jbuttonStatistics = new JButton(i18n.get(SQLConsole.class, "Statistics", "Statistics"));
+    GUIUtils.setToolTip(
+        jbuttonStatistics,
+        SQLConsole.class,
+        "jbuttonStatistics",
+        "Choose assignment statistics and generate their SQL queries.");
 
     final SQLConsole _this = this;
     jbuttonStatistics.addActionListener(
@@ -1079,6 +1089,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         });
 
     JMenu menuFile = new JMenu(i18n.get(SQLConsole.class, "File", "File"));
+    GUIUtils.setToolTip(
+        menuFile,
+        SQLConsole.class,
+        "menuFile",
+        "Open, save, or export SQL console files and results.");
     menuFile.add(menuOpenScript);
     menuFile.add(menuSaveScript);
     menuFile.add(menuSaveScriptAs);
@@ -1121,6 +1136,11 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         });
 
     JMenu menuView = new JMenu(i18n.get(SQLConsole.class, "View", "View"));
+    GUIUtils.setToolTip(
+        menuView,
+        SQLConsole.class,
+        "menuView",
+        "Refresh the database tree or change the result display.");
     menuView.add(menuRefreshTree);
     menuView.add(menuResultInGrid);
     menuView.add(menuResultInText);

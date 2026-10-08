@@ -26,6 +26,7 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
+import edu.uclouvain.core.nodus.swing.GUIUtils;
 import edu.uclouvain.core.nodus.swing.TableSorter;
 import edu.uclouvain.core.nodus.utils.ColorUtils;
 import java.awt.Color;
@@ -267,6 +268,8 @@ public class StatPieDlg extends EscapeDialog {
         });
 
     JButton closeButton = new JButton(i18n.get(StatPieDlg.class, "Close", "Close"));
+    GUIUtils.setToolTip(
+        closeButton, StatPieDlg.class, "closeButton", "Close the statistics charts.");
     closeButton.addActionListener(
         new java.awt.event.ActionListener() {
           @Override

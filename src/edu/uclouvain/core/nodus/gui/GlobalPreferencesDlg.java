@@ -226,6 +226,11 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     final JButton checkForUpdateButton =
         new JButton(
             i18n.get(GlobalPreferencesDlg.class, "CheckForUpdates", "Check for updates now"));
+    GUIUtils.setToolTip(
+        checkForUpdateButton,
+        GlobalPreferencesDlg.class,
+        "checkForUpdateButton",
+        "Check if a newer version of Nodus is available");
     EscapeDialog parent = this;
     checkForUpdateButton.addActionListener(
         new ActionListener() {
@@ -298,6 +303,11 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     getContentPane().add(buttonPane, BorderLayout.SOUTH);
 
     final JButton okButton = new JButton("OK");
+    GUIUtils.setToolTip(
+        okButton,
+        GlobalPreferencesDlg.class,
+        "okButton",
+        "Save the global preferences and close this dialog.");
     buttonPane.add(okButton);
     okButton.addActionListener(
         new ActionListener() {
@@ -309,6 +319,11 @@ public class GlobalPreferencesDlg extends EscapeDialog {
         });
 
     final JButton cancelButton = new JButton("Cancel");
+    GUIUtils.setToolTip(
+        cancelButton,
+        GlobalPreferencesDlg.class,
+        "cancelButton",
+        "Close the dialog, with a confirmation if preferences have changed.");
     buttonPane.add(cancelButton);
     cancelButton.addActionListener(
         new ActionListener() {
