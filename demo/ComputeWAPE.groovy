@@ -44,6 +44,8 @@ class ComputeWAPE_ {
 
     BigDecimal allError = BigDecimal.ZERO
     BigDecimal allObserved = BigDecimal.ZERO
+    Map<Object, Map> allGroups = [:]
+    Map<Integer, Map<Object, Map>> modeGroups = [:]
     println "WAPE by mode for ${pathHeaderTable}:"
 
     modes.eachWithIndex { int mode, int i ->
@@ -68,6 +70,7 @@ class ComputeWAPE_ {
       BigDecimal error = BigDecimal.ZERO
       BigDecimal observed = BigDecimal.ZERO
       int cells = 0
+      Map<Object, Map> groups = [:]
       connection.prepareStatement(sql).withCloseable { statement ->
         statement.setInt(1, mode)
         statement.executeQuery().withCloseable { ResultSet rows ->
@@ -76,6 +79,9 @@ class ComputeWAPE_ {
             BigDecimal assigned = rows.getBigDecimal(5)
             error = error.add(actual.subtract(assigned).abs())
             observed = observed.add(actual.abs())
+            Object group = rows.getObject(1)
+            addGroupCell(groups, group, actual, assigned)
+            addGroupCell(allGroups, group, actual, assigned)
             cells++
           }
         }
@@ -83,6 +89,7 @@ class ComputeWAPE_ {
 
       allError = allError.add(error)
       allObserved = allObserved.add(observed)
+      modeGroups[mode] = groups
       println "  Mode ${mode} (${tables[i]}): ${formatWAPE(error, observed)} " +
           "[OD cells=${cells}; absolute error=${error}; observed weight=${observed}]"
     }
@@ -91,6 +98,35 @@ class ComputeWAPE_ {
     // modes cannot cancel one another out for the same grp/org/dst.
     println "  All specified modes: ${formatWAPE(allError, allObserved)} " +
         "[absolute error=${allError}; observed weight=${allObserved}]"
+
+    println "WAPE by mode and commodity group for ${pathHeaderTable}:"
+    allGroups.keySet().toList().sort().each { group ->
+      println "  Group ${group}:"
+      modes.eachWithIndex { int mode, int i ->
+        Map totals = modeGroups[mode][group]
+        if (totals != null) {
+          printGroupTotals("    Mode ${mode} (${tables[i]})", totals)
+        }
+      }
+      printGroupTotals("    All specified modes", allGroups[group])
+    }
+  }
+
+  static void addGroupCell(Map<Object, Map> groups, Object group,
+      BigDecimal actual, BigDecimal assigned) {
+    if (!groups.containsKey(group)) {
+      groups[group] = [error: BigDecimal.ZERO, observed: BigDecimal.ZERO, cells: 0]
+    }
+    Map totals = groups[group]
+    totals.error = totals.error.add(actual.subtract(assigned).abs())
+    totals.observed = totals.observed.add(actual.abs())
+    totals.cells++
+  }
+
+  static void printGroupTotals(String label, Map totals) {
+    println "${label}: ${formatWAPE(totals.error, totals.observed)} " +
+        "[OD cells=${totals.cells}; absolute error=${totals.error}; " +
+        "observed weight=${totals.observed}]"
   }
 
   static String formatWAPE(BigDecimal error, BigDecimal observed) {
