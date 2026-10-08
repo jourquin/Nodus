@@ -88,9 +88,9 @@ import java.util.function.BooleanSupplier;
  * isolated connections for scratch-table DDL and parameter saving so database DDL cannot commit
  * unrelated project changes. The caller must serialize computations using the project's assignment
  * resources; this workflow is not reentrant. Routing workers share the observation map only while
- * its keys are stable and own
- * distinct OD records. After routing, independent commodity groups fit on a bounded worker pool.
- * Workers share no JDBC connection; the coordinating thread saves the completed result once.
+ * its keys are stable and own distinct OD records. After routing, independent commodity groups fit
+ * on a bounded worker pool. Workers share no JDBC connection; the coordinating thread saves the
+ * completed result once.
  *
  * <p>Preparation and fitting report indeterminate progress; routing reports its own progress.
  * Cancellation is propagated as {@link CancellationException}, not a failed statistical fit.
@@ -104,6 +104,8 @@ public final class LogitCalibration implements AutoCloseable {
   private final int[] modes;
   private final String method;
   private String outputTable;
+  private String mergedTable = "";
+  private boolean overwriteMergedTable;
   private boolean estimatePivots;
   private double pivotMaxAbs = ModalParameterTable.DEFAULT_PIVOT_MAX_ABS;
   private final StringBuilder skippedDetails = new StringBuilder();
@@ -292,7 +294,17 @@ public final class LogitCalibration implements AutoCloseable {
         for (String key : reportedKeys) {
           report.append(key).append('=').append(fitted.getProperty(key)).append('\n');
         }
-        try (Connection parameterConnection = openParameterConnection()) {
+        try (Connection parameterConnection = openParameterConnection();
+            ModalMatrixMerge.Prepared merge =
+                mergedTable.isEmpty()
+                    ? null
+                    : ModalMatrixMerge.prepare(
+                        parameterConnection,
+                        connection,
+                        mergedTable,
+                        settings.getTables().values(),
+                        outputTable,
+                        overwriteMergedTable)) {
           Properties saved =
               saveTableOutputs(
                   parameterConnection,
@@ -306,7 +318,11 @@ public final class LogitCalibration implements AutoCloseable {
                           && parameters
                               .getNodusProject()
                               .getNodusMapPanel()
-                              .updateProgress("Saving modal parameters"));
+                              .updateProgress("Saving modal parameters"),
+                  merge == null ? () -> {} : merge::write);
+          if (merge != null) {
+            merge.complete();
+          }
           parameters.getCostFunctions().clear();
           parameters.getCostFunctions().putAll(saved);
         }
@@ -346,7 +362,21 @@ public final class LogitCalibration implements AutoCloseable {
    */
   public boolean estimateToTable(boolean exact, String table, boolean pivots, double maxAbs)
       throws Exception {
+    return estimateToTable(exact, table, pivots, maxAbs, "", false);
+  }
+
+  /** Saves an optional merged assignment matrix in the same transaction as the parameters. */
+  public boolean estimateToTable(
+      boolean exact,
+      String table,
+      boolean pivots,
+      double maxAbs,
+      String mergedMatrix,
+      boolean overwrite)
+      throws Exception {
     outputTable = ModalParameterTable.validateName(table);
+    mergedTable = ModalMatrixMerge.validateName(mergedMatrix, settings.getTables().values(), table);
+    overwriteMergedTable = overwrite;
     estimatePivots = pivots;
     pivotMaxAbs = ModalParameterTable.validatePivotMaxAbs(maxAbs);
     java.nio.file.Path report = reportPath();
@@ -731,6 +761,20 @@ public final class LogitCalibration implements AutoCloseable {
       StringBuilder report,
       BooleanSupplier proceed)
       throws Exception {
+    return saveTableOutputs(
+        parameterConnection, table, values, target, reportFile, report, proceed, () -> {});
+  }
+
+  static Properties saveTableOutputs(
+      Connection parameterConnection,
+      String table,
+      Properties values,
+      LogitCostFile.Target target,
+      java.nio.file.Path reportFile,
+      StringBuilder report,
+      BooleanSupplier proceed,
+      ModalParameterTable.SaveAction saveMergedMatrix)
+      throws Exception {
     target.checkUnchanged();
     byte[] previousReport = Files.exists(reportFile) ? Files.readAllBytes(reportFile) : null;
     byte[][] installedCost = {null};
@@ -743,6 +787,7 @@ public final class LogitCalibration implements AutoCloseable {
         values,
         proceed,
         () -> {
+          saveMergedMatrix.run();
           target.checkUnchanged();
           if (!sameFileContents(reportFile, previousReport)) {
             throw new IOException("Estimation report changed during saving: " + reportFile);

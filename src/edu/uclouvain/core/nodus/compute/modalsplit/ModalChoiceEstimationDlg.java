@@ -48,6 +48,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
+import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingWorker;
 
@@ -64,6 +65,8 @@ import javax.swing.SwingWorker;
  * table named after the cost file receives behavioral parameters and optional bounded OD/group
  * pivots. A single {@code @paramTable} key is written to the selected cost file, and diagnostics
  * are saved as {@code <cost-file-stem>_params.txt} in the project directory. An existing table
+ * requires confirmation. An optional merged OD table sums the selected modal matrices by commodity
+ * group, origin and destination for later selection in Assignment; replacing its contents also
  * requires confirmation. The isolated routing pass always performs one search per mode/means
  * without cost markup. Legacy scenario, iteration and markup preferences are ignored.
  *
@@ -95,6 +98,8 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
   private final JComboBox<String> method = new JComboBox<>();
   /** Existing project cost file supplying transport costs and receiving the table reference. */
   private final JComboBox<String> costFile = new JComboBox<>();
+  /** Optional destination for summed modal demand, for later selection in Assignment. */
+  private final JTextField mergedMatrix = new JTextField(24);
   /** Fast or exact multi-flow algorithm used to compute modal route costs. */
   private final JComboBox<String> routing = new JComboBox<>();
   /** Adds bounded OD/group residual utilities after behavioral estimation. */
@@ -215,6 +220,13 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     JPanel controls = new JPanel(new GridLayout(0, 2, 12, 8));
     addControl(controls, text("Method", "Modal-choice method:"), method);
     addControl(controls, text("Costs", "Source cost functions:"), costFile);
+    mergedMatrix.setText(project.getLocalProperty(PREFIX + "mergedMatrix", ""));
+    tooltip(
+        mergedMatrix,
+        "mergedMatrix",
+        "<html>Optional OD table containing summed quantities by commodity group, origin and destination."
+            + "<br>Leave blank to skip merging. Select this table later in Assignment.</html>");
+    addControl(controls, text("MergedMatrix", "Merged OD table (optional):"), mergedMatrix);
     addControl(controls, text("PivotMaxAbs", "Maximum absolute pivot:"), pivotMaxAbs);
     addControl(controls, text("Routing", "Route-cost computation:"), routing);
     addControl(controls, text("Detour", "Maximum detour ratio (0 = unlimited):"), detour);
@@ -319,6 +331,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     final String table;
     final String selectedCostFile;
     final double maxAbs;
+    final String mergedTable;
     try {
       settings = observations.getSettings();
       for (JSpinner spinner : new JSpinner[] {detour, threads}) {
@@ -333,6 +346,9 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
       selectedCostFile = costFile.getSelectedItem().toString();
       parameters.setCostFunctions(selectedCostFile);
       table = ModalParameterTable.nameForCostFile(selectedCostFile);
+      mergedTable =
+          ModalMatrixMerge.validateName(
+              mergedMatrix.getText(), settings.getTables().values(), table);
       parameters.setMaxDetourRatio(((Number) detour.getValue()).doubleValue());
       parameters.setThreads(((Number) threads.getValue()).intValue());
     } catch (Exception failure) {
@@ -344,11 +360,15 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
       return;
     }
     boolean tableExists;
+    final boolean mergedExists;
     try {
       tableExists = ModalParameterTable.exists(project.getMainJDBCConnection(), table);
       if (tableExists) {
         ModalParameterTable.checkSchema(project.getMainJDBCConnection(), table);
       }
+      mergedExists =
+          !mergedTable.isEmpty()
+              && ModalMatrixMerge.exists(project.getMainJDBCConnection(), mergedTable);
     } catch (Exception failure) {
       JOptionPane.showMessageDialog(
           this, failure.getMessage(), getTitle(), JOptionPane.ERROR_MESSAGE);
@@ -366,7 +386,22 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
             != JOptionPane.YES_OPTION) {
       return;
     }
+    if (mergedExists
+        && JOptionPane.showConfirmDialog(
+                this,
+                text(
+                        "OverwriteMergedMatrix",
+                        "The merged OD table already exists. Replace its contents?")
+                    + "\n"
+                    + mergedTable,
+                getTitle(),
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE)
+            != JOptionPane.YES_OPTION) {
+      return;
+    }
     project.setLocalProperty(LogitCalibrationSettings.PROPERTY, settings.encode());
+    project.setLocalProperty(PREFIX + "mergedMatrix", mergedTable);
     project.setLocalProperty(PREFIX + "method", selectedMethod());
     project.setLocalProperty(PREFIX + "costFile", selectedCostFile);
     project.setLocalProperty(PREFIX + "exact", exact);
@@ -380,7 +415,8 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
       @Override
       protected Boolean doInBackground() throws Exception {
         try (LogitCalibration calibration = new LogitCalibration(parameters, settings)) {
-          return calibration.estimateToTable(exact, table, pivots, maxAbs);
+          return calibration.estimateToTable(
+              exact, table, pivots, maxAbs, mergedTable, mergedExists);
         }
       }
 

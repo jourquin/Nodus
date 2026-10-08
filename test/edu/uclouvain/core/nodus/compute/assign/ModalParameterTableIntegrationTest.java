@@ -31,6 +31,33 @@ class ModalParameterTableIntegrationTest {
   @TempDir Path directory;
 
   @Test
+  void optionalMergedMatrixCanBeUsedForAssignment() throws Exception {
+    for (boolean hsql : new boolean[] {false, true}) {
+      try (AssignmentTestProject project = project(hsql)) {
+        Files.writeString(directory.resolve("model.costs"),
+            "ld.1,1=0\nul.1,1=0\ntr.1,1=0\nmv.1,1=BASECOST\n"
+                + "ld.2,1=0\nul.2,1=0\ntr.2,1=0\nmv.2,1=BASECOST\n");
+        AssignmentParameters parameters = project.parameters(2);
+        parameters.setCostFunctions("model.costs");
+        parameters.setModalSplitMethodName("MNL");
+        project.panel.prepareRun(2);
+        try (LogitCalibration estimation = new LogitCalibration(parameters,
+            new LogitCalibrationSettings(1,
+                Map.of(1, "observed_road", 2, "observed_rail")))) {
+          assertTrue(estimation.estimateToTable(false, "model_params", false, 8,
+              "merged_od", false));
+        }
+        double total = project.number("SELECT SUM(qty) FROM observed_road")
+            + project.number("SELECT SUM(qty) FROM observed_rail");
+        assertEquals(total, project.number("SELECT SUM(qty) FROM merged_od"), 1e-6);
+        parameters.setODMatrix("merged_od");
+        project.run(new FastMFAssignment(parameters), 2);
+        assertEquals(total, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 1e-3);
+      }
+    }
+  }
+
+  @Test
   void emptyFitWritesReportWithoutChangingCostsOrCreatingParameters() throws Exception {
     try (AssignmentTestProject project = project()) {
       Path file = directory.resolve("model.costs");

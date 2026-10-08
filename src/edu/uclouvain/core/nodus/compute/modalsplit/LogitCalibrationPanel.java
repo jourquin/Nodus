@@ -104,7 +104,7 @@ final class LogitCalibrationPanel extends JPanel {
             "tooltip.table",
             "<html>Match each network mode ID to its observed OD table."
                 + "<br>Tables supply grp, org, dst and qty; class is optional."
-                + "<br>These observations are used only to estimate parameters.</html>"));
+                + "<br>These matrices supply parameter estimation and optional merged demand.</html>"));
     table.getTableHeader().setToolTipText(table.getToolTipText());
     JTextField modeEditor = new JTextField();
     modeEditor.setToolTipText(
@@ -145,7 +145,7 @@ final class LogitCalibrationPanel extends JPanel {
     actions.add(referenceLabel);
     actions.add(reference);
     add(
-        new JLabel(text("Scope", "Observed matrices used only for parameter estimation:")),
+        new JLabel(text("Scope", "Observed modal matrices:")),
         BorderLayout.NORTH);
     add(new JScrollPane(table), BorderLayout.CENTER);
     add(actions, BorderLayout.SOUTH);
