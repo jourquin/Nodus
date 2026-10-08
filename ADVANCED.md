@@ -41,9 +41,16 @@ Older releases could save `--illegal-access` permanently in a single-line `JVMAR
 assignment. `SetJVMArgs` now upgrades these legacy files automatically, keeping custom
 heap sizes and other arguments, and saving the original as `jvmargs.sh.bak` or
 `jvmargs.bat.bak`. The replacement selects its flags at each launch, so Java 17 and
-later (including Java 27) receive no `--illegal-access` option. Existing multi-line
-scripts and assignments containing custom shell commands or variable expansion are
+later (including Java 27) receive no `--illegal-access` option. Custom multiline
+scripts and single assignments containing shell commands or variable expansion are
 left intact; remove an unconditional obsolete option manually in those files.
+
+`SetJVMArgs` also adds a macOS-only
+`--add-exports=java.desktop/com.apple.eawt=ALL-UNNAMED` option to generated
+`jvmargs.sh` files for Groovy's native console fullscreen support. It upgrades the
+previous generated shell format automatically, preserving custom JVM arguments
+and the first backup. Custom multiline scripts stay unchanged; add the option
+manually if needed.
 
 ## Session settings
 

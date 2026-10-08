@@ -25,9 +25,9 @@ import java.awt.GraphicsEnvironment;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.StringWriter;
 import java.lang.management.ManagementFactory;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -99,8 +99,9 @@ public class SetJVMArgs {
   }
 
   /**
-   * Upgrades the single-assignment format written by older releases. Multi-line scripts are left
-   * alone because they may contain user-defined logic. The first backup is never overwritten.
+   * Upgrades legacy single assignments and the previous generated shell format. Custom multi-line
+   * scripts are left alone because they may contain user-defined logic. The first backup is never
+   * overwritten.
    *
    * @param scriptFile The existing JVM arguments file.
    * @param windows Whether this is a Windows batch file.
@@ -114,6 +115,16 @@ public class SetJVMArgs {
             : "(?:export[ \\t]+)?JVMARGS=\"([^\\r\\n]*)\"";
     Matcher match = Pattern.compile(assignment).matcher(script);
     if (!match.matches()) {
+      if (!windows) {
+        Matcher firstLine = Pattern.compile("JVMARGS=\"([^\\r\\n]*)\"\\r?\\n").matcher(script);
+        if (firstLine.lookingAt()) {
+          String parameters = firstLine.group(1);
+          String previous = renderScript(parameters, false, false).strip();
+          if (script.replace("\r\n", "\n").equals(previous.replace("\r\n", "\n"))) {
+            backupAndCreateScript(scriptFile, parameters, false);
+          }
+        }
+      }
       return;
     }
     String parameters = match.group(1);
@@ -139,11 +150,17 @@ public class SetJVMArgs {
     }
     arguments.appendTail(updated);
 
+    backupAndCreateScript(scriptFile, updated.toString().strip(), windows);
+  }
+
+  /** Preserves the first backup before upgrading a recognized generated arguments file. */
+  private static void backupAndCreateScript(Path scriptFile, String parameters, boolean windows)
+      throws IOException {
     Path backup = scriptFile.resolveSibling(scriptFile.getFileName() + ".bak");
     if (!Files.exists(backup)) {
       Files.copy(scriptFile, backup);
     }
-    createScript(scriptFile, updated.toString().strip(), windows);
+    createScript(scriptFile, parameters, windows);
   }
 
   /**
@@ -236,8 +253,15 @@ public class SetJVMArgs {
    * @throws IOException If writing the script fails
    */
   static void createScript(Path scriptFile, String parameters, boolean windows) throws IOException {
+    Files.writeString(
+        scriptFile, renderScript(parameters, windows, true), Charset.defaultCharset());
+  }
 
-    try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(scriptFile.toFile()))) {
+  /** Renders the current script, or the previous format for conservative migration matching. */
+  private static String renderScript(String parameters, boolean windows, boolean includeMacExport)
+      throws IOException {
+    StringWriter script = new StringWriter();
+    try (BufferedWriter bufferedWriter = new BufferedWriter(script)) {
 
       if (windows) {
         bufferedWriter.write("set \"JVMARGS=" + parameters + "\"");
@@ -303,8 +327,19 @@ public class SetJVMArgs {
         bufferedWriter.write("    JVMARGS=\"$JVMARGS --sun-misc-unsafe-memory-access=warn\"");
         bufferedWriter.newLine();
         bufferedWriter.write("fi");
+        if (includeMacExport) {
+          bufferedWriter.newLine();
+          bufferedWriter.write("if [ \"$(uname -s)\" = \"Darwin\" ]; then");
+          bufferedWriter.newLine();
+          bufferedWriter.write(
+              "    JVMARGS=\"$JVMARGS --add-exports=java.desktop/com.apple.eawt=ALL-UNNAMED\"");
+          bufferedWriter.newLine();
+          bufferedWriter.write("fi");
+          bufferedWriter.newLine();
+        }
       }
     }
+    return script.toString();
   }
 
   /** The Times font is not always installed on MacOS. */
