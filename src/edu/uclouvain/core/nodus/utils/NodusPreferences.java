@@ -1,9 +1,25 @@
 /*
  * Copyright (c) 1991-2026 Université catholique de Louvain
- * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * <p>Center for Operations Research and Econometrics (CORE)
+ *
+ * <p>http://www.uclouvain.be
+ *
+ * <p>This file is part of Nodus.
+ *
+ * <p>Nodus is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * General Public License as published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * <p>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * <p>You should have received a copy of the GNU General Public License along with this program. If
+ * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus;
+package edu.uclouvain.core.nodus.utils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,7 +43,7 @@ import java.util.Set;
  * does not exist. Subsequent loads and saves use only the new file, leaving Nodus 8 preferences
  * intact. An existing Nodus 9 file, including an empty one, always takes precedence.
  */
-final class NodusPreferences {
+public final class NodusPreferences {
 
   /** Current application preferences filename. */
   private static final String FILE_NAME = ".nodus9.properties";
@@ -46,7 +62,7 @@ final class NodusPreferences {
    * @return Saved preferences, or empty preferences when neither version's file exists
    * @throws IOException If the migration or reading an existing file fails
    */
-  static Properties load(Path home) throws IOException {
+  public static Properties load(Path home) throws IOException {
     Path file = home.resolve(FILE_NAME);
     Path legacyFile = home.resolve(".nodus8.properties");
     if (Files.notExists(file) && Files.isRegularFile(legacyFile)) {
@@ -76,7 +92,7 @@ final class NodusPreferences {
    * @param properties Current application preferences
    * @throws IOException If the preferences cannot be written
    */
-  static void save(Path home, Properties properties) throws IOException {
+  public static void save(Path home, Properties properties) throws IOException {
     FileAttribute<?>[] attributes =
         Files.getFileStore(home).supportsFileAttributeView("posix")
             ? new FileAttribute<?>[] {PosixFilePermissions.asFileAttribute(PRIVATE_PERMISSIONS)}

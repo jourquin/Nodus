@@ -20,13 +20,10 @@
  */
 
 /**
- * SQL syntax highlighting for the Nodus database console.
+ * Implementation helpers for {@link edu.uclouvain.core.nodus.NodusMapPanel}.
  *
- * <p>{@link edu.uclouvain.core.nodus.database.sql.NodusSQLTokenMaker} produces RSyntaxTextArea
- * tokens for SQL and Nodus-specific console commands. It is derived from a JFlex scanner and
- * adapted to process editor line buffers.
- *
- * <p>This is a display lexer, not the SQL execution engine. Consult the token maker class
- * documentation before regenerating it, because the generated scanner requires local adaptations.
+ * <p>These classes own menus, plug-ins, progress feedback and the native Groovy console. The
+ * panel remains the stable extension point; helpers are public only so the panel can call them
+ * across the Java package boundary.
  */
-package edu.uclouvain.core.nodus.database.sql;
+package edu.uclouvain.core.nodus.mappanel;

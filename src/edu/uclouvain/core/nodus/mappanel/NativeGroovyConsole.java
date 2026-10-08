@@ -19,8 +19,9 @@
  * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus;
+package edu.uclouvain.core.nodus.mappanel;
 
+import edu.uclouvain.core.nodus.NodusMapPanel;
 import java.awt.Frame;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
@@ -35,20 +36,20 @@ import javax.swing.JFrame;
 import javax.swing.JTextPane;
 
 /** Manages the optional native Groovy console without replacing its script entry point. */
-final class NativeGroovyConsole {
+public final class NativeGroovyConsole {
   /** Native Groovy console instance, when the user selected that console implementation. */
   private groovy.console.ui.Console nativeGroovyConsole;
 
   private final NodusMapPanel panel;
   private final Runnable restoreApplicationMenus;
 
-  NativeGroovyConsole(NodusMapPanel panel, Runnable restoreApplicationMenus) {
+  public NativeGroovyConsole(NodusMapPanel panel, Runnable restoreApplicationMenus) {
     this.panel = panel;
     this.restoreApplicationMenus = restoreApplicationMenus;
   }
 
   /** Shows the native Groovy console, or focuses the already open one. */
-  void show(String path) {
+  public void show(String path) {
     if (focusNativeGroovyConsole()) {
       return;
     }
@@ -97,7 +98,7 @@ final class NativeGroovyConsole {
   }
 
   /** Keeps Groovy's menu and toolbar copy actions pointed at the pane the user selected. */
-  static void configureCopyTarget(groovy.console.ui.Console console) {
+  public static void configureCopyTarget(groovy.console.ui.Console console) {
     // Groovy remembers the output pane on focus gain, but does not reset that reference when
     // the editor regains focus. Mouse selection must also work before a focus event arrives.
     FocusAdapter focusListener =

@@ -19,12 +19,14 @@
  * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus;
+package edu.uclouvain.core.nodus.project;
 
 import com.bbn.openmap.dataAccess.shape.EsriPolyline;
 import com.bbn.openmap.omGraphics.NodusDrawingAttributes;
 import com.bbn.openmap.omGraphics.NodusOMGraphic;
 import com.bbn.openmap.omGraphics.OMGraphic;
+import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.NodusProject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -34,7 +36,7 @@ import java.util.LinkedList;
 import java.util.Properties;
 
 /** Loads and owns the node and link drawing styles for one project. */
-final class ProjectStyles {
+public final class ProjectStyles {
   /**
    * Array of drawings attributes used for each defined numeric style. The style can be used to
    * render the nodes on a map.
@@ -49,13 +51,13 @@ final class ProjectStyles {
   private Properties stylesProperties;
 
   /** Keep public loading hooks on the project in the initialization path. */
-  void initialize(NodusProject project) {
+  public void initialize(NodusProject project) {
     stylesProperties = project.getStyleProperties();
     nodeStyle = project.loadStyles("node");
     linkStyle = project.loadStyles("link");
   }
 
-  void clear() {
+  public void clear() {
     nodeStyle = null;
     linkStyle = null;
     stylesProperties = null;
@@ -67,7 +69,7 @@ final class ProjectStyles {
    * @param omg An OMGraphic.
    * @return The ID of its style.
    */
-  int getNbStyles(OMGraphic omg) {
+  public int getNbStyles(OMGraphic omg) {
     if (omg instanceof EsriPolyline) {
       if (linkStyle == null) {
         return 0;
@@ -92,7 +94,7 @@ final class ProjectStyles {
    * @param index The index of the style.
    * @return A NodusOMGraphic representing a style.
    */
-  NodusOMGraphic getStyle(OMGraphic omg, int index) {
+  public NodusOMGraphic getStyle(OMGraphic omg, int index) {
     if (omg instanceof EsriPolyline) {
       if (linkStyle == null) {
         return null;
@@ -113,7 +115,7 @@ final class ProjectStyles {
    *
    * @return The loaded properties or null on error
    */
-  Properties getStyleProperties(Properties localProperties) {
+  public Properties getStyleProperties(Properties localProperties) {
 
     String fileName = null;
 
@@ -154,7 +156,7 @@ final class ProjectStyles {
    * @param prefix "node" or "link".
    * @return An array of NodusOMGraphics containing the styles.
    */
-  NodusOMGraphic[] loadStyles(String prefix) {
+  public NodusOMGraphic[] loadStyles(String prefix) {
     if (stylesProperties == null) {
       return null;
     }

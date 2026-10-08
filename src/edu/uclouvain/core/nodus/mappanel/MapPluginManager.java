@@ -19,8 +19,10 @@
  * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus;
+package edu.uclouvain.core.nodus.mappanel;
 
+import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.NodusPlugin;
 import edu.uclouvain.core.nodus.utils.PluginsLoader;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
@@ -35,7 +37,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JSeparator;
 
 /** Owns plugin instances, menus and class loaders for one map panel. */
-final class MapPluginManager {
+public final class MapPluginManager {
   /** Vector of global plugins. */
   private Vector<JMenuItem> globalPluginsMenuItems = new Vector<>();
   /** Class loaders that must stay alive for application-wide plugins. */
@@ -59,7 +61,7 @@ final class MapPluginManager {
   private final JMenu menuTools;
   private final JMenu menuHelp;
 
-  MapPluginManager(
+  public MapPluginManager(
       NodusMapPanel panel,
       JMenuBar menuBar,
       JMenu file,
@@ -77,7 +79,7 @@ final class MapPluginManager {
   }
 
   /** Updates plugin menus on the same event-thread turn as the built-in menus. */
-  void enableMenus(boolean state) {
+  public void enableMenus(boolean state) {
     for (JMenuItem item : projectPluginsMenuItems) {
       item.setEnabled(state);
     }
@@ -229,7 +231,7 @@ final class MapPluginManager {
    * @param dir Place where the plugin is located
    * @param projectPlugin True if plugin a project specific. False for global plugins.
    */
-  void loadPlugins(String dir, boolean projectPlugin) {
+  public void loadPlugins(String dir, boolean projectPlugin) {
 
     // Load all the plugins.
     PluginsLoader nodusPluginLoader = new PluginsLoader(dir);
@@ -404,7 +406,7 @@ final class MapPluginManager {
    * <p>This method is called when a project is closed. It gives project plugins a deterministic
    * cleanup point for listeners, timers, threads, windows, and other resources.
    */
-  void removeProjectPlugins() {
+  public void removeProjectPlugins() {
     // Remove all project plugin menu items and detach their listeners.
     Iterator<JMenuItem> it = projectPluginsMenuItems.iterator();
 
@@ -545,7 +547,7 @@ final class MapPluginManager {
   }
 
   /** Disposes all loaded plugins, including global plugins, when the map panel is disposed. */
-  void disposeAllPlugins() {
+  public void disposeAllPlugins() {
     if (nodusPlugins != null) {
       for (NodusPlugin plugin : nodusPlugins) {
         disposePlugin(plugin);

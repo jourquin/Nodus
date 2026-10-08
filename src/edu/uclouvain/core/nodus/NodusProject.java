@@ -45,6 +45,11 @@ import edu.uclouvain.core.nodus.database.LocalDatabaseServer;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
 import edu.uclouvain.core.nodus.database.ShapeIntegrityTester;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
+import edu.uclouvain.core.nodus.project.ProjectCleanupRegistry;
+import edu.uclouvain.core.nodus.project.ProjectLayerIds;
+import edu.uclouvain.core.nodus.project.ProjectLayerOperations;
+import edu.uclouvain.core.nodus.project.ProjectScenarios;
+import edu.uclouvain.core.nodus.project.ProjectStyles;
 import edu.uclouvain.core.nodus.services.ServiceHandler;
 import edu.uclouvain.core.nodus.swing.GUIUtils;
 import edu.uclouvain.core.nodus.utils.CommentedProperties;
@@ -1219,8 +1224,13 @@ public class NodusProject implements ShapeConstants {
     return false;
   }
 
-  /** Prevents layer files from being saved after their database session has been lost. */
-  boolean canSaveNetworkEdits() {
+  /**
+   * Checks whether layer files can safely be saved. A failed connection check marks the project
+   * connection as lost and starts its cleanup.
+   *
+   * @return true when there is no lost active project database session
+   */
+  public boolean canSaveNetworkEdits() {
     return isMainConnectionHealthy();
   }
 

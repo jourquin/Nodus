@@ -19,16 +19,19 @@
  * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus;
+package edu.uclouvain.core.nodus.project;
 
+import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 
 /** Maintains scenario tables and their associated project properties. */
-final class ProjectScenarios {
+public final class ProjectScenarios {
   private final NodusProject project;
   private final NodusMapPanel panel;
 
-  ProjectScenarios(NodusProject project, NodusMapPanel panel) {
+  public ProjectScenarios(NodusProject project, NodusMapPanel panel) {
     this.project = project;
     this.panel = panel;
   }
@@ -38,7 +41,7 @@ final class ProjectScenarios {
    *
    * @param scenario ID of the scenario to delete from database.
    */
-  void removeScenario(int scenario) {
+  public void removeScenario(int scenario) {
     String tableName;
 
     // Virtual network
@@ -89,7 +92,7 @@ final class ProjectScenarios {
    * @param oldNum ID of the scenario to rename.
    * @param newNum New ID of the scenario.
    */
-  void renameScenario(int oldNum, int newNum) {
+  public void renameScenario(int oldNum, int newNum) {
     String tableName;
 
     // Virtual network

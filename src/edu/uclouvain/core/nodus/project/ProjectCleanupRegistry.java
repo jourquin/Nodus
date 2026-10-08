@@ -19,7 +19,7 @@
  * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus;
+package edu.uclouvain.core.nodus.project;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,14 +32,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /** Runs project-owned cleanup actions once, independently of JDBC and Groovy close hooks. */
-final class ProjectCleanupRegistry {
+public final class ProjectCleanupRegistry {
   private static final Logger LOGGER = Logger.getLogger(ProjectCleanupRegistry.class.getName());
 
   private final Map<String, Runnable> actions = new LinkedHashMap<>();
   private CompletableFuture<Void> completion;
 
   /** Registers an action while the project is opening or open. */
-  synchronized void register(String name, Runnable action) {
+  public synchronized void register(String name, Runnable action) {
     Objects.requireNonNull(name, "name");
     Objects.requireNonNull(action, "action");
     if (completion != null) {
@@ -52,7 +52,7 @@ final class ProjectCleanupRegistry {
   }
 
   /** Starts cleanup off the UI thread and returns the same completion on repeated calls. */
-  synchronized CompletableFuture<Void> closeAsync() {
+  public synchronized CompletableFuture<Void> closeAsync() {
     if (completion != null) {
       return completion;
     }

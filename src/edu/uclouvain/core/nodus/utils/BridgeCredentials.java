@@ -1,9 +1,25 @@
 /*
  * Copyright (c) 1991-2026 Université catholique de Louvain
- * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * <p>Center for Operations Research and Econometrics (CORE)
+ *
+ * <p>http://www.uclouvain.be
+ *
+ * <p>This file is part of Nodus.
+ *
+ * <p>Nodus is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * General Public License as published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * <p>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * <p>You should have received a copy of the GNU General Public License along with this program. If
+ * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus;
+package edu.uclouvain.core.nodus.utils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,7 +29,7 @@ import java.util.Base64;
 import java.util.Properties;
 
 /** Creates the credentials used by optional project Python and R bridges. */
-final class BridgeCredentials {
+public final class BridgeCredentials {
 
   static final String PY4J_TOKEN_PROPERTY = "bridge.py4j.token";
   static final String J4R_KEY_PROPERTY = "bridge.j4r.key";
@@ -26,7 +42,7 @@ final class BridgeCredentials {
    * Reuses existing credentials or saves new ones before a Groovy hook can start a bridge.
    * In-memory preferences are updated only after the file has been written successfully.
    */
-  static void ensure(Path home, Properties properties) throws IOException {
+  public static void ensure(Path home, Properties properties) throws IOException {
     String token = properties.getProperty(PY4J_TOKEN_PROPERTY);
     String key = properties.getProperty(J4R_KEY_PROPERTY);
     boolean newToken = !isValidToken(token);

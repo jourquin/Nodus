@@ -19,12 +19,16 @@
  * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus;
+package edu.uclouvain.core.nodus.project;
 
 import com.bbn.openmap.Layer;
 import com.bbn.openmap.LayerHandler;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.util.PropUtils;
+import edu.uclouvain.core.nodus.Nodus;
+import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.utils.CheckForOM5;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,10 +37,10 @@ import java.util.List;
 import java.util.Properties;
 
 /** Performs layer lookup, editing and persistence through the existing project API. */
-final class ProjectLayerOperations {
+public final class ProjectLayerOperations {
   private final NodusProject project;
 
-  ProjectLayerOperations(NodusProject project) {
+  public ProjectLayerOperations(NodusProject project) {
     this.project = project;
   }
 
@@ -47,7 +51,7 @@ final class ProjectLayerOperations {
    *
    * @param props Properties that contains the description of the layers.
    */
-  void addOpenMapLayers(Properties props, Properties localProperties, NodusMapPanel nodusMapPanel) {
+  public void addOpenMapLayers(Properties props, Properties localProperties, NodusMapPanel nodusMapPanel) {
     // Test if valid openmap file
     String s = props.getProperty(NodusC.PROP_OPENMAP_LAYERS);
 
@@ -107,7 +111,7 @@ final class ProjectLayerOperations {
    *
    * @param layerName Tha name of the layer to clear.
    */
-  void clearLayer(String layerName) {
+  public void clearLayer(String layerName) {
     NodusEsriLayer layer = project.getLayer(layerName);
     if (layer == null) {
       System.err.println("Layer " + layerName + " not found.");
@@ -127,7 +131,7 @@ final class ProjectLayerOperations {
    * @param name Pretty name or table name of the layer.
    * @return The corresponding layer or null if not found.
    */
-  NodusEsriLayer getLayer(String name, NodusEsriLayer[] nodeLayers, NodusEsriLayer[] linkLayers) {
+  public NodusEsriLayer getLayer(String name, NodusEsriLayer[] nodeLayers, NodusEsriLayer[] linkLayers) {
 
     if (name == null) {
       return null;
@@ -147,7 +151,7 @@ final class ProjectLayerOperations {
    *
    * @return True if at least one layer was modified.
    */
-  boolean isDirty(NodusEsriLayer[] nodeLayers, NodusEsriLayer[] linkLayers) {
+  public boolean isDirty(NodusEsriLayer[] nodeLayers, NodusEsriLayer[] linkLayers) {
     boolean dirty = false;
 
     for (NodusEsriLayer element : nodeLayers) {
@@ -171,7 +175,7 @@ final class ProjectLayerOperations {
    * relevant database tables will be deleted. In this ways, the .dbf tables will be automatically
    * imported in the database the next time the project will be opened.
    */
-  void rollBack(
+  public void rollBack(
       boolean isOpen,
       NodusEsriLayer[] nodeLayers,
       NodusEsriLayer[] linkLayers,
@@ -197,7 +201,7 @@ final class ProjectLayerOperations {
   }
 
   /** Returns false if a layer could not be saved, keeping the project available for retry. */
-  boolean saveEsriLayersSafely() {
+  public boolean saveEsriLayersSafely() {
     if (!project.isOpen()) {
       return true;
     }

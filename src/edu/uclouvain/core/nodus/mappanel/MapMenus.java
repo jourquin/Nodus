@@ -19,7 +19,7 @@
  * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus;
+package edu.uclouvain.core.nodus.mappanel;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.gui.NodusOMControlPanel;
@@ -30,6 +30,8 @@ import com.bbn.openmap.gui.menu.ProjectionMenu;
 import com.bbn.openmap.image.AcmeGifFormatter;
 import com.bbn.openmap.image.SunJPEGFormatter;
 import com.bbn.openmap.util.I18n;
+import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.NodusMapPanel;
 import java.awt.Component;
 import java.awt.Desktop;
 import javax.swing.JMenu;
@@ -37,81 +39,81 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 
 /** Owns built-in menu components, layout and translated labels. */
-final class MapMenus {
+public final class MapMenus {
   /** JPEG image formatter : See OpenMap documentation for more details. */
-  SunJPEGFormatter jpegFormatter = new SunJPEGFormatter();
+  private SunJPEGFormatter jpegFormatter = new SunJPEGFormatter();
   /** "Control" menu. */
-  JMenu menuControl = new JMenu();
+  public final JMenu menuControl = new JMenu();
   /** "File" menu. */
-  JMenu menuFile = new JMenu();
+  public final JMenu menuFile = new JMenu();
   /** "Help" menu. */
-  JMenu menuHelp = new JMenu();
+  public final JMenu menuHelp = new JMenu();
   /** "Control|Background color" menu item. */
-  JMenuItem menuItemControlBackground = new JMenuItem();
+  public final JMenuItem menuItemControlBackground = new JMenuItem();
   /** "Control|Hide/Display Controlpanel" menu item. */
-  JMenuItem menuItemControlControlpanel = new JMenuItem();
+  public final JMenuItem menuItemControlControlpanel = new JMenuItem();
   /** "Control|Hide/Display Toolpanel" menu item. */
-  JMenuItem menuItemControlToolpanel = new JMenuItem();
+  public final JMenuItem menuItemControlToolpanel = new JMenuItem();
   /** "File|Close" menu item. */
-  JMenuItem menuItemFileClose = new JMenuItem();
+  public final JMenuItem menuItemFileClose = new JMenuItem();
   /** "File|Exit" menu item. */
-  JMenuItem menuItemFileExit = new JMenuItem();
+  public final JMenuItem menuItemFileExit = new JMenuItem();
   /** "File|Open" menu item. */
-  JMenuItem menuItemFileOpen = new JMenuItem();
+  public final JMenuItem menuItemFileOpen = new JMenuItem();
   /** "File|Print" menu item. */
-  JMenuItem menuItemFilePrint = new JMenuItem();
+  public final JMenuItem menuItemFilePrint = new JMenuItem();
   /** "File|Save" menu item. */
-  JMenuItem menuItemFileSave = new JMenuItem();
+  public final JMenuItem menuItemFileSave = new JMenuItem();
   /** "File|Save as" menu item. */
-  JMenu menuItemFileSaveAs = new JMenu();
+  public final JMenu menuItemFileSaveAs = new JMenu();
   /** Save as GIF image : See OpenMap documentation for more details. */
-  NodusSaveAsImageMenuItem menuItemFileSaveMapAsGIF;
+  private NodusSaveAsImageMenuItem menuItemFileSaveMapAsGIF;
   /** Save as JPEG image : See OpenMap documentation for more details. */
-  NodusSaveAsImageMenuItem menuItemFileSaveMapAsJPEG;
+  private NodusSaveAsImageMenuItem menuItemFileSaveMapAsJPEG;
   /** Save as JPEG image : See OpenMap documentation for more details. */
-  NodusSaveAsImageMenuItem menuItemFileSaveMapAsPNG;
+  private NodusSaveAsImageMenuItem menuItemFileSaveMapAsPNG;
   /** "Help|About" menu. */
-  JMenuItem menuItemHelpAbout = new JMenuItem();
+  public final JMenuItem menuItemHelpAbout = new JMenuItem();
   /** "Help|API JavaDoc" menu. */
-  JMenuItem menuItemHelpApiDoc = new JMenuItem();
+  public final JMenuItem menuItemHelpApiDoc = new JMenuItem();
   /** Main help. */
-  JMenuItem menuItemHelpHelp = new JMenuItem();
+  public final JMenuItem menuItemHelpHelp = new JMenuItem();
   /** "Project|Modal choice estimation" menu item. */
-  JMenuItem menuItemProjectModalChoice = new JMenuItem();
+  public final JMenuItem menuItemProjectModalChoice = new JMenuItem();
   /** "Project|Assignment" menu item. */
-  JMenuItem menuItemProjectAssignment = new JMenuItem();
+  public final JMenuItem menuItemProjectAssignment = new JMenuItem();
   /** "Project|Cost functions" menu item. */
-  JMenuItem menuItemProjectCosts = new JMenuItem();
+  public final JMenuItem menuItemProjectCosts = new JMenuItem();
   /** "Project|Display results" menu item. */
-  JMenuItem menuItemProjectDisplayResults = new JMenuItem();
+  public final JMenuItem menuItemProjectDisplayResults = new JMenuItem();
   /** "Project|Properties" menu item. */
-  JMenuItem menuItemProjectPreferences = new JMenuItem();
+  public final JMenuItem menuItemProjectPreferences = new JMenuItem();
   /** "Project|Scenarios" menu item. */
-  JMenuItem menuItemProjectScenarios = new JMenuItem();
+  public final JMenuItem menuItemProjectScenarios = new JMenuItem();
   /** "Project|Services functions" menu item. */
-  JMenuItem menuItemProjectServices = new JMenuItem();
+  public final JMenuItem menuItemProjectServices = new JMenuItem();
   /** "Project|SQL console" menu item. */
-  JMenuItem menuItemProjectSQLConsole = new JMenuItem();
+  public final JMenuItem menuItemProjectSQLConsole = new JMenuItem();
   /** "File|Open" menu item. */
-  JMenuItem menuItemSystemProperties = new JMenuItem();
+  public final JMenuItem menuItemSystemProperties = new JMenuItem();
   /** "Tools|Console" menu item. */
-  JMenuItem menuItemToolConsole = new JMenuItem();
+  public final JMenuItem menuItemToolConsole = new JMenuItem();
   /** "Tools|Groovy console" menu item. */
-  JMenuItem menuItemToolGroovyScripts = new JMenuItem();
+  public final JMenuItem menuItemToolGroovyScripts = new JMenuItem();
   /** "Tools|Language" menu item. */
-  JMenuItem menuItemToolLanguage = new JMenuItem();
+  public final JMenuItem menuItemToolLanguage = new JMenuItem();
   /** "Tools|Look And feel" menu item. */
-  JMenuItem menuItemToolLookAndFeel = new JMenuItem();
+  public final JMenuItem menuItemToolLookAndFeel = new JMenuItem();
   /** "Tools|Memory monitor" menu item. */
-  JMenuItem menuItemToolRessourcesMonitor = new JMenuItem();
+  public final JMenuItem menuItemToolRessourcesMonitor = new JMenuItem();
   /** "Project" menu. */
-  JMenu menuProject = new JMenu();
+  public final JMenu menuProject = new JMenu();
   /** "Projection" menu. See OpenMap documentation for more details. */
-  ProjectionMenu menuProjection = new ProjectionMenu();
+  public final ProjectionMenu menuProjection = new ProjectionMenu();
   /** "Tools" menu. */
-  JMenu menuTools = new JMenu();
+  public final JMenu menuTools = new JMenu();
   /** Main menu bar. */
-  JMenuBar nodusMenuBar = new JMenuBar();
+  public final JMenuBar nodusMenuBar = new JMenuBar();
 
   private static final I18n i18n = Environment.getI18n();
   private final NodusMapPanel panel;
@@ -123,7 +125,7 @@ final class MapMenus {
   private final Runnable installApplicationHandlers;
   private final java.util.function.BooleanSupplier useMacDesktopIntegration;
 
-  MapMenus(
+  public MapMenus(
       NodusMapPanel panel,
       ToolPanel toolPanel,
       NodusOMControlPanel controlPanel,
@@ -143,7 +145,7 @@ final class MapMenus {
   }
 
   /** Create the menus. */
-  void initMenus() {
+  public void initMenus() {
     // Initialize the action listeners
     setMenuItemsText();
     installActionListeners.run();
@@ -252,7 +254,7 @@ final class MapMenus {
     }
   }
 
-  void setMenusText() {
+  public void setMenusText() {
     menuFile.setText(i18n.get(NodusMapPanel.class, "File", "File"));
 
     menuProject.setText(i18n.get(NodusMapPanel.class, "Project", "Project"));
@@ -266,7 +268,7 @@ final class MapMenus {
     menuControl.setText(i18n.get(NodusMapPanel.class, "Control", "Control"));
   }
 
-  void setMenuItemsText() {
+  public void setMenuItemsText() {
     menuItemFileOpen.setText(i18n.get(NodusMapPanel.class, "Open_project", "Open project"));
 
     menuItemSystemProperties.setText(
@@ -326,7 +328,7 @@ final class MapMenus {
   }
 
   /** Updates labels of control menu items whose text depends on component visibility. */
-  void setControlMenuItemsText() {
+  public void setControlMenuItemsText() {
     if (toolPanel != null && !toolPanel.isVisible()) {
       menuItemControlToolpanel.setText(
           i18n.get(NodusMapPanel.class, "Display_Tool_Panel", "Display Tool Panel"));

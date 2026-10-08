@@ -19,14 +19,21 @@
  * not, see http://www.gnu.org/licenses/.
  */
 
-/**
- * SQL syntax highlighting for the Nodus database console.
- *
- * <p>{@link edu.uclouvain.core.nodus.database.sql.NodusSQLTokenMaker} produces RSyntaxTextArea
- * tokens for SQL and Nodus-specific console commands. It is derived from a JFlex scanner and
- * adapted to process editor line buffers.
- *
- * <p>This is a display lexer, not the SQL execution engine. Consult the token maker class
- * documentation before regenerating it, because the generated scanner requires local adaptations.
- */
-package edu.uclouvain.core.nodus.database.sql;
+package edu.uclouvain.core.nodus.utils;
+
+import edu.uclouvain.core.nodus.NodusProject;
+
+/** Gives layer code in another package access to the project's save safety check. */
+public final class ProjectConnectionStatus {
+  private ProjectConnectionStatus() {}
+
+  /**
+   * Checks whether network edits can safely be saved to the project.
+   *
+   * @param project the project whose database connection is checked
+   * @return true if the project connection is healthy; false if it has been lost
+   */
+  public static boolean canSaveNetworkEdits(NodusProject project) {
+    return project.canSaveNetworkEdits();
+  }
+}

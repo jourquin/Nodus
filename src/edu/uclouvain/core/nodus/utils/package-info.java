@@ -1,6 +1,22 @@
 /*
  * Copyright (c) 1991-2026 Université catholique de Louvain
- * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * <p>Center for Operations Research and Econometrics (CORE)
+ *
+ * <p>http://www.uclouvain.be
+ *
+ * <p>This file is part of Nodus.
+ *
+ * <p>Nodus is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * General Public License as published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * <p>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * <p>You should have received a copy of the GNU General Public License along with this program. If
+ * not, see http://www.gnu.org/licenses/.
  */
 
 /**
@@ -18,5 +34,9 @@
  * metadata. {@link edu.uclouvain.core.nodus.utils.WorkQueue} provides the synchronized job queue
  * used by computation workers. These utilities have separate ownership and error-handling contracts
  * documented by their classes.
+ * <p>{@link edu.uclouvain.core.nodus.utils.NodusPreferences} stores application preferences;
+ * {@link edu.uclouvain.core.nodus.utils.BridgeCredentials} prepares optional bridge credentials;
+ * {@link edu.uclouvain.core.nodus.utils.ProjectConnectionStatus} exposes the project's network
+ * save safety check to layer code.
  */
 package edu.uclouvain.core.nodus.utils;

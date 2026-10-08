@@ -19,18 +19,19 @@
  * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus;
+package edu.uclouvain.core.nodus.mappanel;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.InformationDelegator;
 import com.bbn.openmap.event.ProgressEvent;
 import com.bbn.openmap.util.I18n;
+import edu.uclouvain.core.nodus.NodusMapPanel;
 import java.awt.Color;
 import java.awt.Cursor;
 import javax.swing.JOptionPane;
 
 /** Tracks progress, nested busy state and cancellation for one map panel. */
-final class MapProgress {
+public final class MapProgress {
   /**
    * Control variables for the progress bar, as the "setBusy" method can be called several times
    * with "true".
@@ -53,7 +54,7 @@ final class MapProgress {
   private final NodusMapPanel panel;
   private final InformationDelegator infoDelegator;
 
-  MapProgress(NodusMapPanel panel, InformationDelegator infoDelegator) {
+  public MapProgress(NodusMapPanel panel, InformationDelegator infoDelegator) {
     this.panel = panel;
     this.infoDelegator = infoDelegator;
   }
@@ -62,7 +63,7 @@ final class MapProgress {
    * Cancels a ProgressBar. See OpenMap documentation for more details on the progress bar mechanism
    * implemented on the MapBean.
    */
-  void cancelLongTask() {
+  public void cancelLongTask() {
     if (taskLength > 0) { // If a long task is running
       java.awt.Toolkit.getDefaultToolkit().beep();
       canceled = true;
@@ -74,7 +75,7 @@ final class MapProgress {
    *
    * @param busy If true, set the wait cursor, else sets the default cursor.
    */
-  void setBusy(boolean busy) {
+  public void setBusy(boolean busy) {
 
     if (busy) {
       busyDepth++;
@@ -107,7 +108,7 @@ final class MapProgress {
    * @param finishedValue The max value to reach; zero or negative selects an activity indicator for
    *     work whose total is unknown.
    */
-  synchronized void startProgress(int finishedValue) {
+  public synchronized void startProgress(int finishedValue) {
     taskLength = Math.max(1, finishedValue);
     indeterminateProgress = finishedValue <= 0;
     currentTask = 0;
@@ -123,7 +124,7 @@ final class MapProgress {
    * Ends a ProgressBar. See OpenMap documentation for more details on the progress bar mechanism
    * implemented on the MapBean.
    */
-  synchronized void stopProgress() {
+  public synchronized void stopProgress() {
     ProgressEvent evt = new ProgressEvent(panel.getMapBean(), ProgressEvent.DONE, "", 0, 0);
     indeterminateProgress = false;
     displayProgress(evt, false);
@@ -147,7 +148,7 @@ final class MapProgress {
    * @param displayInterval Number of steps between display updates; values below one mean one.
    * @return False if the user confirmed cancellation.
    */
-  synchronized boolean updateProgress(String msg, int displayInterval) {
+  public synchronized boolean updateProgress(String msg, int displayInterval) {
     if (canceled) {
       canceled = false;
       if (JOptionPane.showConfirmDialog(
@@ -224,7 +225,7 @@ final class MapProgress {
     }
   }
 
-  boolean isBusy() {
+  public boolean isBusy() {
     return busyDepth > 0;
   }
 }

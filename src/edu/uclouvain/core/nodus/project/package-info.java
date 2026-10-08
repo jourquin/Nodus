@@ -20,13 +20,10 @@
  */
 
 /**
- * SQL syntax highlighting for the Nodus database console.
+ * Implementation helpers for {@link edu.uclouvain.core.nodus.NodusProject}.
  *
- * <p>{@link edu.uclouvain.core.nodus.database.sql.NodusSQLTokenMaker} produces RSyntaxTextArea
- * tokens for SQL and Nodus-specific console commands. It is derived from a JFlex scanner and
- * adapted to process editor line buffers.
- *
- * <p>This is a display lexer, not the SQL execution engine. Consult the token maker class
- * documentation before regenerating it, because the generated scanner requires local adaptations.
+ * <p>These classes manage project cleanup, layers, IDs, scenarios and styles. The project remains
+ * the stable extension point; helpers are public only so it can call them across the Java package
+ * boundary.
  */
-package edu.uclouvain.core.nodus.database.sql;
+package edu.uclouvain.core.nodus.project;

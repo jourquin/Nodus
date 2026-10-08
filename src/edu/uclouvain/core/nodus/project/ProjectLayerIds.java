@@ -19,10 +19,13 @@
  * not, see http://www.gnu.org/licenses/.
  */
 
-package edu.uclouvain.core.nodus;
+package edu.uclouvain.core.nodus.project;
 
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
+import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
 import edu.uclouvain.core.nodus.database.dbf.DBFException;
@@ -30,7 +33,7 @@ import edu.uclouvain.core.nodus.database.dbf.DBFReader;
 import java.util.HashMap;
 
 /** Tracks IDs in unloaded network layers when allocating new node and link IDs. */
-final class ProjectLayerIds implements ShapeConstants {
+public final class ProjectLayerIds implements ShapeConstants {
   /**
    * Used to store the ID's of the links that are present in layers that are found in the project
    * directory, but that are not in the project. This is used to ensure that the ID given to a new
@@ -48,11 +51,11 @@ final class ProjectLayerIds implements ShapeConstants {
 
   private final NodusProject project;
 
-  ProjectLayerIds(NodusProject project) {
+  public ProjectLayerIds(NodusProject project) {
     this.project = project;
   }
 
-  void clear() {
+  public void clear() {
     otherNodeNumbers.clear();
     otherLinkNumbers.clear();
     otherObjectsLoaded = false;
@@ -64,7 +67,7 @@ final class ProjectLayerIds implements ShapeConstants {
    *
    * @return The hashmap of "other" links.
    */
-  HashMap<Integer, Integer> getOtherLinkNumbers() {
+  public HashMap<Integer, Integer> getOtherLinkNumbers() {
     return otherLinkNumbers;
   }
 
@@ -74,7 +77,7 @@ final class ProjectLayerIds implements ShapeConstants {
    *
    * @return The hashmap of "other" nodes.
    */
-  HashMap<Integer, Integer> getOtherNodeNumbers() {
+  public HashMap<Integer, Integer> getOtherNodeNumbers() {
     return otherNodeNumbers;
   }
 
@@ -84,7 +87,7 @@ final class ProjectLayerIds implements ShapeConstants {
    *
    * @return True if the ID's are loaded.
    */
-  boolean isOtherObjectsLoaded() {
+  public boolean isOtherObjectsLoaded() {
     return otherObjectsLoaded;
   }
 
@@ -95,7 +98,7 @@ final class ProjectLayerIds implements ShapeConstants {
    * @param layer The array of links or nodes layers.
    * @return The ID of the new link or node.
    */
-  int getNewId(NodusMapPanel nodusMapPanel, NodusEsriLayer[] layer) {
+  public int getNewId(NodusMapPanel nodusMapPanel, NodusEsriLayer[] layer) {
     int num = 1;
     boolean foundNewNumber = false;
 
@@ -159,7 +162,7 @@ final class ProjectLayerIds implements ShapeConstants {
   /**
    * Scan the directory to find other Nodus compatible shapefiles, which object ID's will be stored.
    */
-  void loadOtherLayersObjectNumbers(NodusEsriLayer[] nodeLayers, NodusEsriLayer[] linkLayers) {
+  public void loadOtherLayersObjectNumbers(NodusEsriLayer[] nodeLayers, NodusEsriLayer[] linkLayers) {
     otherObjectsLoaded = false;
     // Scan all node layers
     String[] layerName =
