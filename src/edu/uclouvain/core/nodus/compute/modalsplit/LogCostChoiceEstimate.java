@@ -183,17 +183,29 @@ public class LogCostChoiceEstimate {
     return costStandardErrors[0];
   }
 
-  /** Whether the result has a single common log-cost coefficient. */
+  /**
+   * Whether the result has a single common log-cost coefficient.
+   *
+   * @return true for a common coefficient, false for mode-specific coefficients
+   */
   public boolean isConditional() {
     return conditional;
   }
 
-  /** Returns log-cost coefficients in input mode order, repeating a common coefficient. */
+  /**
+   * Returns log-cost coefficients in input mode order, repeating a common coefficient.
+   *
+   * @return a defensive copy of the coefficients
+   */
   public double[] getCostCoefficients() {
     return costCoefficients.clone();
   }
 
-  /** Returns log-cost coefficient standard errors in input mode order. */
+  /**
+   * Returns log-cost coefficient standard errors in input mode order.
+   *
+   * @return a defensive copy of the conventional standard errors
+   */
   public double[] getCostStandardErrors() {
     return costStandardErrors.clone();
   }

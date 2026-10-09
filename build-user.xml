@@ -127,6 +127,88 @@
 	</target>
 
 	<target name="ServicesWorkflowHtml" depends="GenerateServicesWorkflowHtml" description="Generates doc/services/services-workflow.html from Markdown when Pandoc is available." />
+
+	<!-- Root-level notes share the standalone help style. Native MathML keeps formulas offline. -->
+	<target name="CheckPandocMath" depends="CheckPandoc" if="pandoc.available">
+		<exec executable="${pandoc.executable}" searchpath="true" failonerror="false"
+			failifexecutionfails="false" outputproperty="pandoc.help">
+			<arg value="--help" />
+		</exec>
+		<condition property="pandoc.math.option" value="--math-method=mathml" else="--mathml">
+			<contains string="${pandoc.help}" substring="--math-method" />
+		</condition>
+	</target>
+
+	<macrodef name="pandoc-help-page">
+		<attribute name="source" />
+		<attribute name="output" />
+		<attribute name="title" />
+		<sequential>
+			<local name="help.page.result" />
+			<local name="help.page.failed" />
+			<local name="help.page.exists" />
+			<local name="help.page.missing" />
+			<local name="help.page.generated" />
+			<echo message="Generating @{output} with ${pandoc.executable}" />
+			<exec executable="${pandoc.executable}" searchpath="true" failonerror="false"
+				failifexecutionfails="false" resultproperty="help.page.result">
+				<arg value="@{source}" />
+				<arg value="-f" />
+				<arg value="markdown-smart" />
+				<arg value="-s" />
+				<arg value="${pandoc.math.option}" />
+				<arg value="--toc" />
+				<arg value="--toc-depth=2" />
+				<arg value="--metadata" />
+				<arg value="pagetitle=@{title}" />
+				<arg value="-c" />
+				<arg value="style.css" />
+				<arg value="-o" />
+				<arg value="@{output}" />
+			</exec>
+			<condition property="help.page.failed">
+				<not><equals arg1="${help.page.result}" arg2="0" /></not>
+			</condition>
+			<available file="@{output}" property="help.page.exists" />
+			<condition property="help.page.missing">
+				<not><isset property="help.page.exists" /></not>
+			</condition>
+			<condition property="help.page.generated">
+				<and>
+					<equals arg1="${help.page.result}" arg2="0" />
+					<isset property="help.page.exists" />
+				</and>
+			</condition>
+			<echo if:set="help.page.failed" level="warning"
+				message="Pandoc failed while generating @{output}. Continuing without regenerating the help page." />
+			<echo if:set="help.page.missing" level="warning"
+				message="The generated help page @{output} was not found." />
+			<echo if:set="help.page.generated" message="Generated @{output}" />
+		</sequential>
+	</macrodef>
+
+	<target name="RunModalChoiceMigrationHtml" depends="CheckPandocMath" if="pandoc.available">
+		<pandoc-help-page source="${basedir}/doc/modal-choice-migration.md"
+			output="${basedir}/doc/modal-choice-migration.html" title="Modal-choice plugins in Nodus 9.0" />
+	</target>
+	<target name="ModalChoiceMigrationHtml" depends="RunModalChoiceMigrationHtml"
+		description="Generates doc/modal-choice-migration.html from Markdown when Pandoc is available.">
+		<echo unless:set="pandoc.available" level="warning"
+			message="Pandoc not found. Skipping doc/modal-choice-migration.html. Use -Dpandoc.executable=/path/to/pandoc if needed." />
+	</target>
+
+	<target name="RunModelPerformanceHtml" depends="CheckPandocMath" if="pandoc.available">
+		<pandoc-help-page source="${basedir}/doc/model-performance.md"
+			output="${basedir}/doc/model-performance.html" title="Model performance indicators in Nodus" />
+	</target>
+	<target name="ModelPerformanceHtml" depends="RunModelPerformanceHtml"
+		description="Generates doc/model-performance.html from Markdown when Pandoc is available.">
+		<echo unless:set="pandoc.available" level="warning"
+			message="Pandoc not found. Skipping doc/model-performance.html. Use -Dpandoc.executable=/path/to/pandoc if needed." />
+	</target>
+
+	<target name="MarkdownHelp" depends="ModalChoiceMigrationHtml,ModelPerformanceHtml"
+		description="Generates root-level Markdown help notes as part of the normal build." />
 	
 
 	<!-- Launches IzPack installer -->

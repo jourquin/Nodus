@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.12" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Model performance indicators in Nodus</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#model-performance-indicators-in-nodus"
+id="toc-model-performance-indicators-in-nodus">Model performance
+indicators in Nodus</a>
+<ul>
+<li><a href="#computing-a-comparison" id="toc-computing-a-comparison">1.
+Computing a comparison</a></li>
+<li><a href="#notation-scope-and-missing-values"
+id="toc-notation-scope-and-missing-values">2. Notation, scope, and
+missing values</a></li>
+<li><a href="#wape-weighted-absolute-percentage-error"
+id="toc-wape-weighted-absolute-percentage-error">3. WAPE: weighted
+absolute percentage error</a></li>
+<li><a href="#relative-bias" id="toc-relative-bias">4. Relative
+bias</a></li>
+<li><a href="#rmse-root-mean-squared-error"
+id="toc-rmse-root-mean-squared-error">5. RMSE: root mean squared
+error</a></li>
+<li><a href="#aggregate-modal-shares-and-od-share-error"
+id="toc-aggregate-modal-shares-and-od-share-error">6. Aggregate modal
+shares and OD share error</a></li>
+<li><a href="#cross-entropy" id="toc-cross-entropy">7.
+Cross-entropy</a></li>
+<li><a href="#jensenshannon-divergence"
+id="toc-jensenshannon-divergence">8. Jensen–Shannon divergence</a></li>
+<li><a href="#coverage-and-zero-prediction-diagnostics"
+id="toc-coverage-and-zero-prediction-diagnostics">9. Coverage and
+zero-prediction diagnostics</a></li>
+<li><a href="#worked-example" id="toc-worked-example">10. Worked
+example</a></li>
+<li><a href="#choosing-and-comparing-indicators"
+id="toc-choosing-and-comparing-indicators">11. Choosing and comparing
+indicators</a></li>
+<li><a href="#references" id="toc-references">12. References</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="model-performance-indicators-in-nodus">Model performance
+indicators in Nodus</h1>
+<p>This note explains every indicator available in <strong>Results &gt;
+Performance</strong>, its formula, its reporting scope, and how to
+interpret its value. The indicators compare a saved assignment with
+reference modal origin–destination (OD) matrices. They assess quantities
+and modal distributions; they do not directly validate link volumes,
+travel times, transport costs, or the feasibility of individual
+paths.</p>
+<h2 id="computing-a-comparison">1. Computing a comparison</h2>
+<ol type="1">
+<li>Open the Results dialog and click <strong>Performance</strong>.</li>
+<li>Associate each selected network <strong>mode ID</strong> with its
+reference modal OD matrix, using the same matrix editor as modal-choice
+estimation. The IDs must match <code>ldmode</code> in the assignment
+results. At least one mapped mode is required.</li>
+<li>Select the assignment's <strong>path-header table</strong> from the
+dropdown.</li>
+<li>Check the indicators to display and click
+<strong>Compute</strong>.</li>
+</ol>
+<p>The computation runs in the background with a busy cursor.
+<strong>Cancel</strong> stops it; closing during computation requests
+cancellation and waits for reading to finish. The HTML results can be
+scrolled and the dialog resized. The last matrix mappings, path-header
+table, and checkbox choices are remembered independently of estimation
+preferences. The comparison does not modify matrices or assignment
+result tables.</p>
+<h3 id="inputs-and-aggregation">Inputs and aggregation</h3>
+<p>Reference matrices require <code>grp</code>, <code>org</code>,
+<code>dst</code>, and <code>qty</code>. Available path-header tables are
+identified in the current database schema by their <code>_header</code>
+suffix and <code>grp</code>, <code>org</code>, <code>dst</code>,
+<code>ldmode</code>, and <code>qty</code> fields. A table can contain
+many paths for one OD; their quantities are summed before
+comparison.</p>
+<p>Both sides are aggregated by <strong>commodity group, origin,
+destination, and mode</strong>. Duplicate matrix rows, paths, OD
+classes, and departure times are combined. This matches the aggregation
+used by <code>../demo/ComputeWAPE.groovy</code>. Consequently, this
+report does not measure accuracy separately by OD class or departure
+time.</p>
+<p>An absent modal cell is treated as zero. Null quantities are also
+treated as zero; negative or nonfinite quantities and invalid OD/mode
+keys are rejected. Only the selected modes enter the comparison. Other
+modes in the assignment table are listed as excluded, with their
+assigned quantities.</p>
+<p>Reference and assigned data must use the same quantity unit, zone
+identifiers, commodity-group definitions, time period, and direction of
+OD flows. Unexpected assigned-only ODs or very low coverage can indicate
+incompatible identifiers or a wrong scenario/table, rather than a
+problem with modal behaviour.</p>
+<h2 id="notation-scope-and-missing-values">2. Notation, scope, and
+missing values</h2>
+<p>Let
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mi>g</mi><mo>,</mo><mi>o</mi><mo>,</mo><mi>d</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">r=(g,o,d)</annotation></semantics></math>
+identify a commodity group and OD pair, and let
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math>
+identify a selected mode. Write:</p>
+<ul>
+<li><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>≥</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">q_{rm}\geq 0</annotation></semantics></math>:
+reference, or observed, quantity;</li>
+<li><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>≥</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\hat q_{rm}\geq 0</annotation></semantics></math>:
+quantity from the saved assignment;</li>
+<li><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>e</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>−</mo><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow><annotation encoding="application/x-tex">e_{rm}=\hat q_{rm}-q_{rm}</annotation></semantics></math>:
+signed quantity error;</li>
+<li><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="script">ℳ</mi><annotation encoding="application/x-tex">\mathcal M</annotation></semantics></math>:
+the selected modes;</li>
+<li><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="script">ℛ</mi><annotation encoding="application/x-tex">\mathcal R</annotation></semantics></math>:
+the union of OD/group keys found on either side for those modes.</li>
+</ul>
+<p>Totals for one OD/group are</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Q</mi><mi>r</mi></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>,</mo><mspace width="2.0em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+Q_r=\sum_{m\in\mathcal M}q_{rm},
+\qquad
+\hat Q_r=\sum_{m\in\mathcal M}\hat q_{rm}.
+</annotation></semantics></math></p>
+<p>The comparison grid contains every selected mode for every key in
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="script">ℛ</mi><annotation encoding="application/x-tex">\mathcal R</annotation></semantics></math>,
+including cells where both quantities are zero. Quantity indicators use
+a cell set
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="script">𝒞</mi><annotation encoding="application/x-tex">\mathcal C</annotation></semantics></math>:
+the complete grid, one mode, one commodity group, or a particular
+group/mode intersection. Let
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>n</mi><mi mathvariant="script">𝒞</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">|</mo><mi mathvariant="script">𝒞</mi><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">n_{\mathcal C}=|\mathcal C|</annotation></semantics></math>.</p>
+<p>Distribution indicators use a set
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="script">𝒮</mi><annotation encoding="application/x-tex">\mathcal S</annotation></semantics></math>
+of OD/group keys: all commodity groups combined or one commodity group.
+Their <strong>eligible ODs</strong> are</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">{</mo><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi><mo>:</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">}</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\mathcal E_{\mathcal S}
+=\{r\in\mathcal S:Q_r&gt;0\ \text{and}\ \hat Q_r&gt;0\}.
+</annotation></semantics></math></p>
+<p>For each eligible OD, normalize each side separately:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><mfrac><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mi>Q</mi><mi>r</mi></msub></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><mfrac><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+p_{rm}=\frac{q_{rm}}{Q_r},
+\qquad
+\hat p_{rm}=\frac{\hat q_{rm}}{\hat Q_r}.
+</annotation></semantics></math></p>
+<p>Eligibility requires positive <strong>OD totals</strong>, not
+positive flow on every mode. An unavailable waterway mode may therefore
+have
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">p_{rm}=\hat p_{rm}=0</annotation></semantics></math>
+on an eligible OD. Normalization removes differences in total OD
+quantity, so share scores must be read together with quantity and
+coverage indicators.</p>
+<p><strong>Undefined</strong> means the calculation has no valid
+denominator or eligible sample. It is neither a zero error nor an
+infinite error. For example, a distribution score is undefined when
+there are no eligible ODs. A displayed <strong>infinity</strong> is an
+actual infinite cross-entropy penalty, as explained below.</p>
+<h2 id="wape-weighted-absolute-percentage-error">3. WAPE: weighted
+absolute percentage error</h2>
+<p>For the chosen cell set,</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">WAPE</mi><mo>&#8289;</mo></mrow><mi mathvariant="script">𝒞</mi></msub><mo>=</mo><mn>100</mn><mspace width="0.167em"></mspace><mfrac><mrow><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><mo stretchy="false" form="prefix">|</mo><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>−</mo><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="prefix">|</mo></mrow><mrow><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\operatorname{WAPE}_{\mathcal C}
+=100\,
+\frac{\sum_{(r,m)\in\mathcal C}|\hat q_{rm}-q_{rm}|}
+     {\sum_{(r,m)\in\mathcal C}q_{rm}}.
+</annotation></semantics></math></p>
+<p><strong>Interpretation:</strong> 0% means every compared quantity is
+reproduced exactly. A value of 20% means the total absolute error equals
+20% of the reference quantity in that scope. Lower is better when
+comparing the same reference data and scope. Large flows generally have
+more influence because errors are measured in quantity units before
+being normalized.</p>
+<p>WAPE is not the unweighted average of cell percentage errors. Unlike
+MAPE, it does not divide by each individual observed cell. Zero observed
+cells are allowed: assigned flow in such a cell increases the numerator.
+WAPE is undefined only when the <strong>total</strong> observed quantity
+in the reporting scope is zero.</p>
+<p>Its range is <strong>0% to no fixed upper limit</strong>. Values
+above 100% are possible and do not indicate a calculation error. There
+is no universal threshold separating a "good" WAPE from a "bad" one.
+Expected accuracy depends on the data, aggregation, market, and intended
+use.</p>
+<p>If every OD retains the same total quantity across the selected
+modes, the combined WAPE cannot exceed 200%. Moving one tonne between
+modes creates two one-tonne cell errors: one overprediction and one
+underprediction. In this special case, WAPE is twice the
+observed-quantity-weighted mean OD share error in Section 6. Thus WAPE =
+30% corresponds to a 15% minimum redistribution of the total freight
+between modes, provided each OD total is conserved.</p>
+<p>The report gives WAPE overall, by mode, by commodity group, and by
+group/mode.</p>
+<h2 id="relative-bias">4. Relative bias</h2>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">Bias</mi><mo>&#8289;</mo></mrow><mi mathvariant="script">𝒞</mi></msub><mo>=</mo><mn>100</mn><mspace width="0.167em"></mspace><mfrac><mrow><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>−</mo><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><mrow><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\operatorname{Bias}_{\mathcal C}
+=100\,
+\frac{\sum_{(r,m)\in\mathcal C}(\hat q_{rm}-q_{rm})}
+     {\sum_{(r,m)\in\mathcal C}q_{rm}}.
+</annotation></semantics></math></p>
+<p><strong>Interpretation:</strong> +10% means assigned quantity is 10%
+higher than reference quantity in that scope; -10% means it is 10%
+lower. The ideal value is zero, and a smaller absolute bias indicates a
+better match of the totals.</p>
+<p>The range is <strong>-100% to no fixed upper limit</strong>, since
+assigned quantities are nonnegative. Bias is undefined if total observed
+quantity is zero.</p>
+<p>Unlike WAPE, signed errors can cancel. A zero bias does not mean
+accurate cells or modal shares. When an assignment conserves demand,
+overall bias can be zero while one mode is systematically overestimated
+and another underestimated. Inspect the mode and group/mode rows
+alongside WAPE.</p>
+<h2 id="rmse-root-mean-squared-error">5. RMSE: root mean squared
+error</h2>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">RMSE</mi><mo>&#8289;</mo></mrow><mi mathvariant="script">𝒞</mi></msub><mo>=</mo><msqrt><mrow><mfrac><mn>1</mn><msub><mi>n</mi><mi mathvariant="script">𝒞</mi></msub></mfrac><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>−</mo><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><msup><mo stretchy="false" form="postfix">)</mo><mn>2</mn></msup></mrow></msqrt><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\operatorname{RMSE}_{\mathcal C}
+=\sqrt{\frac{1}{n_{\mathcal C}}
+       \sum_{(r,m)\in\mathcal C}(\hat q_{rm}-q_{rm})^2}.
+</annotation></semantics></math></p>
+<p><strong>Interpretation:</strong> RMSE is in the same unit as the
+quantities, for example tonnes. Zero means a perfect cell-by-cell match.
+Lower is better for a fixed comparison scope. Squaring gives large cell
+errors more influence than an absolute-error measure, making RMSE useful
+for detecting poor reproduction of major flows.</p>
+<p>Its range is <strong>0 to no fixed upper limit</strong>. It is
+undefined when there are no comparison cells. It remains defined when
+all observed quantities are zero, as long as the comparison grid is
+nonempty.</p>
+<p>The denominator is the number of cells in the full selected-mode
+grid, including cells with zero quantities on both sides. Adding an
+unused mode or changing the OD grid can therefore reduce RMSE even if
+the existing errors remain unchanged. Compare RMSE only with the same
+mode selection, evaluation cells, quantity unit, and aggregation. Values
+from groups with very different flow magnitudes are not directly
+comparable as relative accuracy measures.</p>
+<h2 id="aggregate-modal-shares-and-od-share-error">6. Aggregate modal
+shares and OD share error</h2>
+<h3 id="aggregate-modal-shares">Aggregate modal shares</h3>
+<p>For an OD/group scope
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="script">𝒮</mi><annotation encoding="application/x-tex">\mathcal S</annotation></semantics></math>,
+aggregate reference and assigned shares are</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>m</mi></msub><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub></mrow></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mover><mi>s</mi><mo accent="true">̂</mo></mover><mi>m</mi></msub><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+s_m=\frac{\sum_{r\in\mathcal S}q_{rm}}
+          {\sum_{r\in\mathcal S}Q_r},
+\qquad
+\hat s_m=\frac{\sum_{r\in\mathcal S}\hat q_{rm}}
+               {\sum_{r\in\mathcal S}\hat Q_r}.
+</annotation></semantics></math></p>
+<p>The report displays
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>100</mn><msub><mi>s</mi><mi>m</mi></msub></mrow><annotation encoding="application/x-tex">100s_m</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>100</mn><msub><mover><mi>s</mi><mo accent="true">̂</mo></mover><mi>m</mi></msub></mrow><annotation encoding="application/x-tex">100\hat s_m</annotation></semantics></math>,
+and</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="normal">Δ</mi><mi>m</mi></msub><mo>=</mo><mn>100</mn><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>s</mi><mo accent="true">̂</mo></mover><mi>m</mi></msub><mo>−</mo><msub><mi>s</mi><mi>m</mi></msub><mo stretchy="false" form="postfix">)</mo><mspace width="1.0em"></mspace><mtext mathvariant="normal">in percentage points</mtext><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\Delta_m=100(\hat s_m-s_m)
+\quad\text{in percentage points}.
+</annotation></semantics></math></p>
+<p><strong>Interpretation:</strong> an observed road share of 40% and
+assigned share of 45% give an error of <strong>+5 percentage
+points</strong>, not +5%. A negative difference indicates a mode's
+aggregate share is underestimated. Zero differences are the ideal
+values. Each share lies between 0% and 100%; a difference lies between
+-100 and +100 percentage points. A share is undefined if its own side's
+total quantity is zero; the difference is undefined if either share is
+undefined.</p>
+<p>These results are shown overall and by commodity group. They describe
+the global modal split, not the geographical distribution of flows.
+Overprediction on one OD can cancel underprediction on another, so
+correct aggregate shares do not imply correct OD shares. Shares can also
+match while total quantities differ substantially.</p>
+<h3 id="share-error-for-an-individual-odgroup">Share error for an
+individual OD/group</h3>
+<p>For each eligible OD/group,</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mi>r</mi></msub><mo>=</mo><mn>50</mn><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><mo stretchy="false" form="prefix">|</mo><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>−</mo><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="prefix">|</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+T_r=50\sum_{m\in\mathcal M}|\hat p_{rm}-p_{rm}|.
+</annotation></semantics></math></p>
+<p>This is the total-variation distance expressed as a percentage. Its
+range is <strong>0% to 100%</strong>. Zero means identical modal shares;
+100% means the two distributions put all their freight on different
+modes.</p>
+<p><strong>Interpretation:</strong> with a common total quantity,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>T</mi><mi>r</mi></msub><annotation encoding="application/x-tex">T_r</annotation></semantics></math>
+is the minimum percentage of that OD's freight that would need to change
+modes to reproduce the reference distribution. If the totals differ, it
+describes the separately normalized compositions, not the actual tonnage
+discrepancy.</p>
+<p>Nodus reports the <strong>median</strong> and <strong>90th percentile
+(P90)</strong> of these errors, overall and by commodity group. Every
+eligible OD/group receives equal weight, regardless of its quantity. The
+median describes a typical OD; P90 describes the upper part of the error
+distribution and helps identify less well reproduced ODs. Lower values
+are better. P90 is not the maximum error.</p>
+<p>For sorted errors
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>T</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>n</mi><mo stretchy="false" form="postfix">)</mo></mrow></msub></mrow><annotation encoding="application/x-tex">T_{(1)},\ldots,T_{(n)}</annotation></semantics></math>,
+Nodus uses linear interpolation. For percentile fraction
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>u</mi><annotation encoding="application/x-tex">u</annotation></semantics></math>,
+set
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mi>n</mi><mo>−</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo><mi>u</mi></mrow><annotation encoding="application/x-tex">t=(n-1)u</annotation></semantics></math>,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi><mo>=</mo><mo stretchy="false" form="prefix">⌊</mo><mi>t</mi><mo stretchy="false" form="postfix">⌋</mo></mrow><annotation encoding="application/x-tex">j=\lfloor t\rfloor</annotation></semantics></math>,
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>a</mi><mo>=</mo><mi>t</mi><mo>−</mo><mi>j</mi></mrow><annotation encoding="application/x-tex">a=t-j</annotation></semantics></math>.
+Then</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>P</mi><mi>u</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>a</mi><mo stretchy="false" form="postfix">)</mo><msub><mi>T</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>j</mi><mo>+</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow></msub><mo>+</mo><mi>a</mi><msub><mi>T</mi><mrow><mo stretchy="false" form="prefix">(</mo><mo stretchy="false" form="prefix">⌈</mo><mi>t</mi><mo stretchy="false" form="postfix">⌉</mo><mo>+</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+P_u=(1-a)T_{(j+1)}+aT_{(\lceil t\rceil+1)}.
+</annotation></semantics></math></p>
+<p>The median uses
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">u=0.5</annotation></semantics></math>
+and P90 uses
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi><mo>=</mo><mn>0.9</mn></mrow><annotation encoding="application/x-tex">u=0.9</annotation></semantics></math>.
+For the three errors 0%, 10%, and 20%, the median is 10% and P90 is 18%.
+For very small samples, an interpolated P90 need not be the value below
+which exactly 90% of the observed errors lie.</p>
+<p>These statistics are undefined if no OD is eligible. Missing assigned
+ODs are not assigned an arbitrary modal distribution and are excluded;
+their counts and quantities are reported separately.</p>
+<h2 id="cross-entropy">7. Cross-entropy</h2>
+<p>For each eligible OD/group,</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mi>r</mi></msub><mo>=</mo><mi>−</mi><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mrow><mi mathvariant="normal">ln</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+C_r=-\sum_{m\in\mathcal M}p_{rm}\ln(\hat p_{rm}).
+</annotation></semantics></math></p>
+<p>The reporting scope's score is the observed-quantity-weighted
+mean:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>C</mi><mo accent="true">¯</mo></mover><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub><msub><mi>C</mi><mi>r</mi></msub></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\overline C_{\mathcal S}
+=\frac{\sum_{r\in\mathcal E_{\mathcal S}}Q_r C_r}
+       {\sum_{r\in\mathcal E_{\mathcal S}}Q_r}.
+</annotation></semantics></math></p>
+<p>Natural logarithms are used, so the score is measured in
+<strong>nats</strong>. Lower is better when comparing models on the same
+reference observations and eligible scope. The range is <strong>0 to
+infinity</strong>. It is undefined when there are no eligible ODs. An
+assigned distribution that gives a very small share to an observed mode
+receives a large penalty.</p>
+<p>Cross-entropy is <strong>not generally zero for a perfect
+match</strong>. Its minimum for the fixed observed shares is their
+weighted entropy, where</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mi>r</mi></msub><mo>=</mo><mi>−</mi><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mrow><mi mathvariant="normal">ln</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+H_r=-\sum_{m\in\mathcal M}p_{rm}\ln(p_{rm}).
+</annotation></semantics></math></p>
+<p>For instance, when the reference split is 50% road and 50% rail,
+predicting those shares exactly gives
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mi>r</mi></msub><mo>=</mo><mrow><mi mathvariant="normal">ln</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mn>2</mn><mo stretchy="false" form="postfix">)</mo><mo>≈</mo><mn>0.6931</mn></mrow><annotation encoding="application/x-tex">C_r=\ln(2)\approx0.6931</annotation></semantics></math>.
+A zero score is possible when the reference and prediction both put all
+flow on the same mode. Different commodity groups can have different
+inherent modal entropies; their raw cross-entropies should not be
+interpreted as directly comparable fit errors without that context.</p>
+<h3 id="zero-flows-and-infinite-cross-entropy">Zero flows and infinite
+cross-entropy</h3>
+<p>The standard zero-share convention is:</p>
+<table>
+<thead>
+<tr>
+<th>Observed share</th>
+<th>Assigned share</th>
+<th>Cross-entropy contribution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>0 or positive</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Positive</td>
+<td>Positive</td>
+<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>−</mi><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mrow><mi mathvariant="normal">ln</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">-p_{rm}\ln(\hat p_{rm})</annotation></semantics></math></td>
+</tr>
+<tr>
+<td>Positive</td>
+<td>0</td>
+<td>Infinity</td>
+</tr>
+</tbody>
+</table>
+<p>One observed-positive modal cell with zero assigned flow on an
+eligible OD makes the entire reporting scope's cross-entropy infinite.
+This does not mean every OD is poorly reproduced. It can reflect an
+unavailable alternative, assignment rules, or a small positive flow
+rounded to zero in the saved results. The score uses <strong>saved
+quantities</strong>, not the model's unrounded internal choice
+probabilities. No probability floor or smoothing is applied.</p>
+<p>When infinite cross-entropy is selected, the report gives the
+affected eligible OD count, affected modal-cell count, observed quantity
+in those cells, and up to 20 example cells with the largest observed
+quantities. These diagnostics concern eligible ODs only; completely
+unassigned ODs are reported separately.</p>
+<h2 id="jensenshannon-divergence">8. Jensen–Shannon divergence</h2>
+<p>For each eligible OD/group, form the mean distribution</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><mfrac><mrow><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>+</mo><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow><mn>2</mn></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\mu_{rm}=\frac{p_{rm}+\hat p_{rm}}{2}.
+</annotation></semantics></math></p>
+<p>The Jensen–Shannon divergence is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>J</mi><mi>r</mi></msub><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mn>2</mn></msub><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mi>μ</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mn>2</mn></msub><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mi>μ</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
+J_r=\frac12\sum_{m\in\mathcal M}p_{rm}
+             \log_2\!\left(\frac{p_{rm}}{\mu_{rm}}\right)
+   +\frac12\sum_{m\in\mathcal M}\hat p_{rm}
+             \log_2\!\left(\frac{\hat p_{rm}}{\mu_{rm}}\right).
+</annotation></semantics></math></p>
+<p>Its overall or commodity-group value is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>J</mi><mo accent="true">¯</mo></mover><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub><msub><mi>J</mi><mi>r</mi></msub></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\overline J_{\mathcal S}
+=\frac{\sum_{r\in\mathcal E_{\mathcal S}}Q_r J_r}
+       {\sum_{r\in\mathcal E_{\mathcal S}}Q_r}.
+</annotation></semantics></math></p>
+<p><strong>Interpretation:</strong> with the base-2 logarithms used by
+Nodus, the range is <strong>0 to 1</strong>. Zero means matching
+distributions; 1 means disjoint distributions, with no mode carrying
+positive shares on both sides. Lower values are better. Intermediate
+values measure composition disagreement, but are not percentages of
+misallocated tonnes. There is no universal acceptable-value
+threshold.</p>
+<p>Zero-share terms contribute zero. If one side has a positive share,
+its mean share
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>μ</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><annotation encoding="application/x-tex">\mu_{rm}</annotation></semantics></math>
+is also positive. As a result, zero observed or assigned shares do not
+produce infinite Jensen–Shannon divergence. A waterway mode with zero
+flow on both sides contributes nothing. For
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>0.3</mn><mo>,</mo><mn>0.7</mn><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0.3,0.7,0)</annotation></semantics></math>
+versus
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0,1,0)</annotation></semantics></math>,
+the divergence is approximately 0.1692; for
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>,</mo><mn>0</mn><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(1,0,0)</annotation></semantics></math>
+versus
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(0,1,0)</annotation></semantics></math>,
+it is 1.</p>
+<p>Nodus reports the <strong>divergence</strong>, not the square-root
+Jensen–Shannon distance. The divergence for a single OD is symmetric in
+the observed and assigned share vectors. The report then uses reference
+quantities as weights; swapping the full observed and assigned quantity
+datasets can change those weights when OD totals differ. The reference
+data and weights should be held fixed when comparing models.</p>
+<p>This is useful for comparing sparse assignments whose cross-entropy
+is infinite. It still ignores total-quantity differences through share
+normalization and is undefined with no eligible ODs. It replaces the
+former KL checkbox; saved KL selections automatically select
+Jensen–Shannon when reopened.</p>
+<h2 id="coverage-and-zero-prediction-diagnostics">9. Coverage and
+zero-prediction diagnostics</h2>
+<p>These diagnostics explain which observations the assignment
+reproduces or misses. They are computed overall and by commodity group,
+with modal zero-prediction counts also available by mode and
+group/mode.</p>
+<h3 id="observed-and-eligible-od-counts">Observed and eligible OD
+counts</h3>
+<p>Using an indicator function
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><mi>⋅</mi><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\mathbf1[\cdot]</annotation></semantics></math>,
+the observed OD count is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">o</mi><mi mathvariant="normal">b</mi><mi mathvariant="normal">s</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+N_{\mathrm{obs}}=\sum_{r\in\mathcal S}\mathbf1[Q_r&gt;0].
+</annotation></semantics></math></p>
+<p>The eligible count displayed with distribution scores is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">e</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">b</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+N_{\mathrm{eligible}}
+=\sum_{r\in\mathcal S}\mathbf1[Q_r&gt;0\ \text{and}\ \hat Q_r&gt;0].
+</annotation></semantics></math></p>
+<p>An OD appearing in several commodity groups counts separately for
+each group. These counts describe the evaluated sample, rather than its
+accuracy by themselves.</p>
+<h3 id="quantity-coverage-on-ods-with-some-assigned-flow">Quantity
+coverage on ODs with some assigned flow</h3>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">Coverage</mi><mo>&#8289;</mo></mrow><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><mn>100</mn><mspace width="0.167em"></mspace><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\operatorname{Coverage}_{\mathcal S}
+=100\,
+\frac{\sum_{r\in\mathcal S}Q_r\mathbf1[\hat Q_r&gt;0]}
+     {\sum_{r\in\mathcal S}Q_r}.
+</annotation></semantics></math></p>
+<p>The range is <strong>0% to 100%</strong>; higher is better for
+inclusion of observed demand. It is undefined with no observed quantity.
+A value of 100% means every observed OD carrying reference quantity has
+<strong>some</strong> assigned flow across the selected modes. It does
+<strong>not</strong> mean all its quantity was assigned correctly. For
+example, one assigned tonne on an OD with 1,000 observed tonnes is
+enough for that OD to count as covered. Inspect quantity shortfalls and
+modal-cell errors as well.</p>
+<h3 id="observed-ods-without-assigned-flow">Observed ODs without
+assigned flow</h3>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">g</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>=</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>Q</mi><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">g</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>=</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+N_{\mathrm{missing}}
+=\sum_{r\in\mathcal S}\mathbf1[Q_r&gt;0\ \text{and}\ \hat Q_r=0],
+\qquad
+Q_{\mathrm{missing}}
+=\sum_{r\in\mathcal S}Q_r\mathbf1[\hat Q_r=0].
+</annotation></semantics></math></p>
+<p>The count and observed quantity have ideal values of zero. These ODs
+are excluded from distribution scores because no assigned distribution
+can be normalized.</p>
+<h3 id="od-quantity-shortfall-and-excess">OD quantity shortfall and
+excess</h3>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>−</mo><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>X</mi><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>−</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+S_{\mathcal S}=\sum_{r\in\mathcal S}\max(Q_r-\hat Q_r,0),
+\qquad
+X_{\mathcal S}=\sum_{r\in\mathcal S}\max(\hat Q_r-Q_r,0).
+</annotation></semantics></math></p>
+<p>Both are in quantity units, nonnegative, and ideally zero. Shortfall
+measures underassignment relative to reference OD totals; excess
+measures overassignment. They are computed separately so that opposite
+OD discrepancies do not cancel. Equal global totals can coexist with
+substantial shortfalls and excesses. These diagnostics assess OD totals,
+so incorrect modal splits can remain even when both values are zero.</p>
+<h3 id="assigned-only-ods">Assigned-only ODs</h3>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">e</mi><mi mathvariant="normal">x</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">a</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>=</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+N_{\mathrm{extra}}
+=\sum_{r\in\mathcal S}\mathbf1[Q_r=0\ \text{and}\ \hat Q_r&gt;0].
+</annotation></semantics></math></p>
+<p>The ideal count is zero when both datasets are intended to cover the
+same demand. Their assigned quantities contribute to excess. They are
+excluded from share scores because no positive observed total
+exists.</p>
+<h3 id="observed-positive-assigned-zero-modal-cells">Observed-positive,
+assigned-zero modal cells</h3>
+<p>Let</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">𝒵</mi><mi mathvariant="script">𝒞</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">{</mo><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi><mo>:</mo><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>&gt;</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><mn>0</mn><mo stretchy="false" form="postfix">}</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\mathcal Z_{\mathcal C}
+=\{(r,m)\in\mathcal C:q_{rm}&gt;0\ \text{and}\ \hat q_{rm}=0\}.
+</annotation></semantics></math></p>
+<p>The report gives</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">z</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">o</mi></mrow></msub><mo>=</mo><mo stretchy="false" form="prefix">|</mo><msub><mi mathvariant="script">𝒵</mi><mi mathvariant="script">𝒞</mi></msub><mo stretchy="false" form="prefix">|</mo><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>Q</mi><mrow><mi mathvariant="normal">z</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">o</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><msub><mi mathvariant="script">𝒵</mi><mi mathvariant="script">𝒞</mi></msub></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+N_{\mathrm{zero}}=|\mathcal Z_{\mathcal C}|,
+\qquad
+Q_{\mathrm{zero}}=\sum_{(r,m)\in\mathcal Z_{\mathcal C}}q_{rm}.
+</annotation></semantics></math></p>
+<p>These identify observed modal flows absent from the assigned matrix.
+Unlike the infinite-cross-entropy diagnostics, they also include
+completely unassigned ODs. Zero observed waterway flow on an infeasible
+route does not enter this set. A zero observation alone, however, does
+not establish infeasibility: a mode can be available but unused.</p>
+<h3 id="reference-coverage-versus-assignment-demand-coverage">Reference
+coverage versus assignment demand coverage</h3>
+<p>All diagnostics above compare with the <strong>chosen reference
+matrices</strong>. They cannot establish the assignment's original
+unassigned-demand rate if its input demand has different OD totals,
+groups, or coverage. A difference can be legitimate when comparing
+different demand scenarios. To interpret it as assignment failure, first
+verify that reference quantities and assignment input demand are
+intended to match.</p>
+<h2 id="worked-example">10. Worked example</h2>
+<p>Consider one commodity group, two ODs and two selected modes, in
+tonnes:</p>
+<table>
+<thead>
+<tr>
+<th>OD</th>
+<th>Mode</th>
+<th style="text-align: right;">Observed</th>
+<th style="text-align: right;">Assigned</th>
+<th style="text-align: right;">Signed error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>Road</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">-10</td>
+</tr>
+<tr>
+<td>A</td>
+<td>Waterway</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">50</td>
+<td style="text-align: right;">+10</td>
+</tr>
+<tr>
+<td>B</td>
+<td>Road</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">+20</td>
+</tr>
+<tr>
+<td>B</td>
+<td>Waterway</td>
+<td style="text-align: right;">80</td>
+<td style="text-align: right;">60</td>
+<td style="text-align: right;">-20</td>
+</tr>
+</tbody>
+</table>
+<p>Each OD has 100 tonnes on both sides. The resulting indicators
+are:</p>
+<table>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 40%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr>
+<th>Indicator</th>
+<th style="text-align: right;">Value</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Overall WAPE</td>
+<td style="text-align: right;">30%</td>
+<td>60 tonnes of absolute modal-cell error relative to 200 observed
+tonnes.</td>
+</tr>
+<tr>
+<td>Overall bias</td>
+<td style="text-align: right;">0%</td>
+<td>Totals match, although the modal cells do not.</td>
+</tr>
+<tr>
+<td>Road bias / waterway bias</td>
+<td style="text-align: right;">+12.5% / -8.3333%</td>
+<td>Road quantity is overestimated; waterway quantity
+underestimated.</td>
+</tr>
+<tr>
+<td>RMSE</td>
+<td style="text-align: right;">15.8114 tonnes</td>
+<td>Square root of the mean of 100, 100, 400 and 400.</td>
+</tr>
+<tr>
+<td>Road share difference</td>
+<td style="text-align: right;">+5 percentage points</td>
+<td>Observed road share 40%; assigned road share 45%.</td>
+</tr>
+<tr>
+<td>Waterway share difference</td>
+<td style="text-align: right;">-5 percentage points</td>
+<td>Observed waterway share 60%; assigned waterway share 55%.</td>
+</tr>
+<tr>
+<td>OD share errors</td>
+<td style="text-align: right;">10% and 20%</td>
+<td>Composition errors for A and B.</td>
+</tr>
+<tr>
+<td>Median / P90 OD share error</td>
+<td style="text-align: right;">15% / 19%</td>
+<td>Equal OD weights and linear percentile interpolation.</td>
+</tr>
+<tr>
+<td>Cross-entropy</td>
+<td style="text-align: right;">0.6425 nats</td>
+<td>Quantity-weighted mean of the two OD cross-entropies.</td>
+</tr>
+<tr>
+<td>Jensen–Shannon divergence</td>
+<td style="text-align: right;">0.0211</td>
+<td>Quantity-weighted mean of base-2 OD divergences, not their square
+roots.</td>
+</tr>
+<tr>
+<td>Coverage</td>
+<td style="text-align: right;">100%</td>
+<td>Both observed ODs have some assigned quantity.</td>
+</tr>
+<tr>
+<td>Missing ODs / assigned-only ODs</td>
+<td style="text-align: right;">0 / 0</td>
+<td>Both sides contain the same positive-demand ODs.</td>
+</tr>
+<tr>
+<td>Quantity shortfall / excess</td>
+<td style="text-align: right;">0 / 0 tonnes</td>
+<td>Every OD total matches.</td>
+</tr>
+<tr>
+<td>Observed-positive, assigned-zero cells</td>
+<td style="text-align: right;">0</td>
+<td>No observed modal cell is entirely missed.</td>
+</tr>
+</tbody>
+</table>
+<p>This example shows why a zero overall bias, full coverage and
+matching OD totals do not establish a correct modal split. It also shows
+the factor of two between WAPE and redistributed freight: the minimum
+modal redistribution is 15% of the 200-tonne total, while WAPE is
+30%.</p>
+<h2 id="choosing-and-comparing-indicators">11. Choosing and comparing
+indicators</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Question</th>
+<th>Useful indicators</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>How much total cell error is there relative to freight volume?</td>
+<td>WAPE</td>
+</tr>
+<tr>
+<td>Is a mode systematically overestimated or underestimated?</td>
+<td>Relative bias by mode and group/mode</td>
+</tr>
+<tr>
+<td>Are some large flows badly reproduced?</td>
+<td>RMSE, alongside WAPE</td>
+</tr>
+<tr>
+<td>Is the overall modal split correct?</td>
+<td>Aggregate modal-share differences</td>
+</tr>
+<tr>
+<td>How well are typical and difficult ODs reproduced?</td>
+<td>Median and P90 OD share error</td>
+</tr>
+<tr>
+<td>How do modal distributions compare when many shares are zero?</td>
+<td>Jensen–Shannon divergence</td>
+</tr>
+<tr>
+<td>Does the assignment give implausibly small or zero shares to
+observed flows?</td>
+<td>Cross-entropy and its zero-share diagnostics</td>
+</tr>
+<tr>
+<td>Are whole ODs missing, or are total OD quantities mismatched?</td>
+<td>Coverage, missing/extra ODs, shortfall and excess</td>
+</tr>
+</tbody>
+</table>
+<p>For routine assessment, use WAPE, modal-share differences, median/P90
+share error, Jensen–Shannon divergence and coverage together. Add
+relative bias to diagnose direction and RMSE to examine sensitivity to
+large errors. Cross-entropy is useful as a distribution diagnostic, but
+infinite values cannot rank affected models. None of these indicators
+has a universal good/bad threshold independent of the application and
+comparison scope.</p>
+<p>Always use the same reference observations, selected modes, units and
+aggregation for competing models. If their eligible OD sets differ,
+compare coverage and consider a common eligible subset before ranking
+share scores. A good score on a small, easy subset is not evidence of
+accurate prediction of all freight flows.</p>
+<p>For <strong>predictive validation</strong>, evaluate ODs or periods
+not used to estimate the parameters. OD pivots must not be fitted to the
+validation observations. Comparing an assignment with the same matrices
+used for calibration measures reproduction of the calibration data,
+which can be much better than performance on new demand.</p>
+<p>Tonnage weighting describes freight-volume performance; tonnes are
+not independent choice observations. The displayed values are
+descriptive scores, not significance tests, confidence intervals or a
+substitute for a suitable sampling design.</p>
+<h2 id="references">12. References</h2>
+<ul>
+<li><a href="https://otexts.com/fpp3/accuracy.html">Forecasting:
+Principles and Practice — evaluating point forecast accuracy</a>:
+absolute and squared errors, percentage errors, and evaluation on unused
+data.</li>
+<li><a
+href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.entropy.html">SciPy
+entropy documentation</a>: entropy, cross-entropy and logarithm
+conventions.</li>
+<li><a
+href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.rel_entr.html">SciPy
+relative-entropy convention</a>: zero observed shares and zero predicted
+shares.</li>
+<li><a
+href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.jensenshannon.html">SciPy
+Jensen–Shannon documentation</a>: the mean-distribution definition and
+distinction between divergence and its square-root distance.</li>
+</ul>
+</body>
+</html>

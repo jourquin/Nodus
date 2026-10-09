@@ -130,12 +130,9 @@ external connections. Upgrade to Groovy 4.
 - 8.3 - November 2025: Tested with Java 25, but still runs on Java 11 and Groovy is upgraded to version 5.
 - 8.4 - June 2026: The Frank-Wolfe based algorithms are reintroduced. Major code refactoring with a focus on code robustness.
 - 8.5 - September 2026: Lines & services are reintroduced with a completely redesigned workflow based on Virtual Network Version 4.
-- 9.0 - October 2026: is a performance-focused release, highlighting faster assignments (at least four times faster on a set of selected projects),
-more responsive map navigation and faster database operations. From the developers' perspective, a series of unit tests have been added
-with an automatic continuous integration workflow. The release also adds embedded modal-choice
-parameter estimation and moves the modal-choice API into its own package. Custom modal-choice
-plugin sources need updated imports. Nodus can upgrade eligible existing plugin JARs
-without recompilation, keeping a `.jar.nodus8` backup; see the
+- 9.0 - October 2026: Adds embedded modal-choice parameter estimation for univariate logit, probit and proportional methods and modal choice 
+performance measurement indicators. It is also a performance-focused release, highlighting faster assignments (at least four times faster on a set of selected projects), more responsive map navigation and faster database operations. From the developers' perspective, a series of unit tests have been added with an automatic continuous integration workflow. The modal-choice API is moved into its own package. Therefore, custom modal-choice
+plugin sources need updated imports. Nodus can upgrade eligible existing plugin JARs without recompilation, keeping a `.jar.nodus8` backup; see the
 [Nodus 9.0 migration guide](https://github.com/jourquin/Nodus/blob/master/doc/modal-choice-migration.md).
 
 

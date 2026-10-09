@@ -1,8 +1,8 @@
 # Nodus development tools
 
 This directory contains the formatter, lexer generator, Checkstyle configuration,
-installer libraries and test annotations used by the project. Run the Ant commands
-below from the repository root, using a JDK 11 or later and a full Apache Ant 1.10.6+
+Ant XML schema, installer libraries and test annotations used by the project.
+Run the Ant commands below from the repository root, using a JDK 11 or later and a full Apache Ant 1.10.6+
 installation. The [test guide](../test/README.md) covers Ant and Eclipse setup.
 
 ## Build and test targets
@@ -19,10 +19,12 @@ check that `build.xml` still contains `<import file="build-user.xml"/>`.
 | `ant Jar` | Rebuilds and packages `nodus9.jar`, including a new build ID; does not run tests. |
 | `ant Installer` | Runs tests, then builds help, the application JAR, API docs and installer. |
 | `ant ServicesWorkflowHtml` | Regenerates service workflow HTML when Pandoc is available. |
+| `ant MarkdownHelp` | Regenerates the modal-choice migration and model-performance help notes. |
 
 The installer is written to `BinaryDistribution/Nodus9-install.jar`. Test failures
 stop the `Installer` target before packaging. Use `ant -projecthelp` to list the
 available targets; `build-user.xml` itself has no default target.
+
 
 ## Java formatting and Checkstyle
 
@@ -75,6 +77,12 @@ Ant task must come from the installed Ant distribution (`ant-junitlauncher.jar`)
 [Pandoc](https://pandoc.org/) is an external tool and is not bundled here. Run
 `ant ServicesWorkflowHtml` to convert
 [services-workflow.md](../doc/services/services-workflow.md) to its HTML help page.
+The normal `ant build` also converts [modal-choice-migration.md](../doc/modal-choice-migration.md)
+and [model-performance.md](../doc/model-performance.md) to standalone HTML pages in `doc/`.
+Both pages are linked from the English and French help indexes. Their formulas use
+native MathML, so the pages can be read offline without a MathJax service.
+Use `ant MarkdownHelp` to regenerate just these two pages, or the individual
+`ModalChoiceMigrationHtml` and `ModelPerformanceHtml` targets.
 If Pandoc is outside Ant's search path, supply its location:
 
 ```sh
@@ -84,5 +92,8 @@ ant -Dpandoc.executable=/path/to/pandoc ServicesWorkflowHtml
 The target checks the usual Homebrew locations and Ant's environment path. If Pandoc
 is unavailable, generation is skipped with a warning. Conversion failures also produce
 a warning without aborting the build. `Installer` invokes this target automatically.
+If Eclipse regenerates `build.xml`, retain `MarkdownHelp` in the dependencies of
+its `build` target, alongside `build-subprojects,build-project`, and retain the
+`build-user.xml` import. The conversion implementation belongs in `build-user.xml`.
 
 See the [license inventory](../licenses/LICENSES.md) for bundled components' licenses.

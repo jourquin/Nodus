@@ -152,7 +152,7 @@ public class NodusProject implements ShapeConstants {
   private final ProjectScenarios scenarios;
   private final ProjectStyles styles = new ProjectStyles();
   private final ProjectLayerIds layerIds = new ProjectLayerIds(this);
-  private final ProjectCleanupRegistry projectCleanup = new ProjectCleanupRegistry();
+  private volatile ProjectCleanupRegistry projectCleanup = new ProjectCleanupRegistry();
 
   /** i18n mechanism. */
   private static I18n i18n = Environment.getI18n();
@@ -783,6 +783,9 @@ public class NodusProject implements ShapeConstants {
     nodusMapPanel.setBusy(false);
     nodusMapPanel.restoreMainFrameFocus();
     if (projectClosed || !isOpen) {
+      // This NodusProject instance is reused when another project is opened.
+      // The previous registry cannot accept actions after closeAsync() has run.
+      projectCleanup = new ProjectCleanupRegistry();
       runCloseCompletionCallbacks();
     } else {
       // Do not open another project or exit after an unsuccessful save/close.
@@ -897,6 +900,7 @@ public class NodusProject implements ShapeConstants {
     styles.clear();
 
     ProjectLocker.releaseLock();
+    projectCleanup = new ProjectCleanupRegistry();
     nodusMapPanel.setFileMenuBusy(false);
     nodusMapPanel.setBusy(false);
   }

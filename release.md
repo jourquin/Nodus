@@ -14,10 +14,11 @@ Release history:
 - Nodus 8.3 (first build on November 26, 2025) updates the embedded Groovy runtime to version 5.x. This version change is justified by the fact that, although unlikely, some scripts written in this language may need to be slightly adapted.
 - Nodus 8.4 (first build on June 23, 2026) reintroduces the Frank-Wolfe based assignment algorithms, which were removed since 8.0 because they were buggy. It should primarily be seen as a stability and robustness update: several sensitive parts of the code were reviewed and strengthened, in particular the project open/close workflows, SQL console execution, time-dependent result display, and resource release. 
 - Nodus 8.5 (first build on September 17, 2026) reintroduces lines & services, which were disabled since Nodus 8.0, with a completely redesigned workflow based on Virtual Network Version 4.
-- Nodus 9.0 (first build on XXXXXXXX) is a performance-focused release, highlighting faster assignments, more responsive map navigation and faster database operations. It also embeds a new modal choice module, able to estimate simple logit and probit models and proportional modal cost adjustment factors.
+- Nodus 9.0 (first build on XXXXXXXX) adds embedded modal-choice parameter estimation for univariate logit, probit and proportional methods and modal choice 
+performance measurement indicators. It is also a performance-focused release, highlighting faster assignments, more responsive map navigation and faster database operations.
 
 The CHANGELOG.MD file contains an exhaustive list of the improvements made to the software.
 
 Nodus 8.x is **compatible** with projects developed for Nodus 7.x. However, specific modal choice plugins need to be adapted to the new API.
 
-For Nodus 9.x, modal choice plugin source code needs updated imports, but Nodus offers to convert eligible old modal-choice JARs without recompilation.
+For Nodus 9.x, modal choice plugin source code needs updated imports, but Nodus offers to convert eligible Nodus 8.x modal-choice JARs without recompilation.

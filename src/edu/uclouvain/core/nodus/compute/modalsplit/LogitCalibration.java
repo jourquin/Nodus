@@ -124,7 +124,11 @@ public final class LogitCalibration implements AutoCloseable {
     this(parameters, settings, false);
   }
 
-  /** Selects common or mode-specific cost coefficients before starting estimation. */
+  /**
+   * Selects common or mode-specific cost coefficients before starting estimation.
+   *
+   * @param conditional true for a common coefficient, false for mode-specific logit/probit slopes
+   */
   public void setConditional(boolean conditional) {
     this.conditional = conditional;
   }

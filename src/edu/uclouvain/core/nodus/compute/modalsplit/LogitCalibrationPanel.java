@@ -44,12 +44,13 @@ import javax.swing.event.ChangeListener;
 import javax.swing.table.DefaultTableModel;
 
 /**
- * Edits the observed-data inputs of standalone modal-choice estimation.
+ * Edits modal matrix mappings for standalone estimation or assignment performance comparisons.
  *
  * <p>Each row maps a Nodus mode ID to an observed OD table. Empty table selections are ignored;
  * selected rows must have unique mode IDs. The tables supply quantities by group, origin,
- * destination and optional OD class. At least two modes are required. Logit and probit fix the
- * reference intercept at zero; proportional choice fixes its cost factor at one.
+ * destination and optional OD class. Estimation requires at least two modes; comparisons can use
+ * one mode and hide the reference control. Logit and probit fix the reference intercept at zero;
+ * proportional choice fixes its cost factor at one.
  *
  * <p>The estimator computes costs for the union of these observations. An unavailable mode with
  * zero observed flow is valid. Positive flow on an unavailable mode excludes the entire OD record
@@ -68,14 +69,20 @@ import javax.swing.table.DefaultTableModel;
  * <p>The parent dialog saves the snapshot only when the user starts estimation; closing it discards
  * the draft. All access must occur on Swing's event dispatch thread.
  */
-final class LogitCalibrationPanel extends JPanel {
+public final class LogitCalibrationPanel extends JPanel {
   private static final long serialVersionUID = -5719556462890100316L;
+  /** Translates labels and validation messages. */
   private final I18n i18n = Environment.getI18n();
+  /** Draft mode-to-table mappings edited by the table. */
   private final DefaultTableModel model;
+  /** Editor for the draft mappings. */
   private final JTable table;
+  /** Draft network mode ID used to identify the estimation model. */
   private final JSpinner reference =
       new JSpinner(new SpinnerNumberModel(1, 1, NodusC.MAXMM - 1, 1));
+  /** Label hidden together with the reference spinner during performance comparisons. */
   private final JLabel referenceLabel = new JLabel();
+  /** Selected estimation method, used for reference-mode labels and availability. */
   private String method = "MNL";
 
   /**
@@ -151,6 +158,25 @@ final class LogitCalibrationPanel extends JPanel {
   }
 
   /**
+   * Reuses the modal matrix editor for result comparisons, without a reference-mode control.
+   *
+   * @param tables available observed OD table names
+   * @param mapping previously selected network mode IDs and reference matrices
+   */
+  public LogitCalibrationPanel(List<String> tables, Map<Integer, String> mapping) {
+    this(tables, new LogitCalibrationSettings(1, mapping));
+    reference.setVisible(false);
+    reference.setEnabled(false);
+    referenceLabel.setVisible(false);
+    table.setToolTipText(
+        text(
+            "tooltip.performanceTable",
+            "Match each network mode ID to its reference OD matrix. Quantities are summed by"
+                + " commodity group, origin and destination."));
+    table.getTableHeader().setToolTipText(table.getToolTipText());
+  }
+
+  /**
    * Updates model-specific controls without losing the draft reference choice.
    *
    * @param value short model name, MNL, MNP or Proportional
@@ -192,15 +218,28 @@ final class LogitCalibrationPanel extends JPanel {
    * @throws IllegalArgumentException when a mode is repeated or inputs are incomplete
    */
   LogitCalibrationSettings getSettings() {
-    if (table.isEditing() && !table.getCellEditor().stopCellEditing()) {
-      throw new IllegalArgumentException(text("InvalidEdit", "Complete the observed-table edit"));
-    }
+    Map<Integer, String> mapping = getTableMapping();
     if (reference.isEnabled()) {
       try {
         reference.commitEdit();
       } catch (java.text.ParseException failure) {
         throw new IllegalArgumentException(failure.getMessage(), failure);
       }
+    }
+    LogitCalibrationSettings settings = new LogitCalibrationSettings(getReferenceMode(), mapping);
+    settings.validate();
+    return settings;
+  }
+
+  /**
+   * Commits edits and returns the selected matrices; comparison requires at least one mode.
+   *
+   * @return an immutable mapping from network mode IDs to observed OD table names
+   * @throws IllegalArgumentException for incomplete edits, invalid or duplicate IDs, or no matrices
+   */
+  public Map<Integer, String> getTableMapping() {
+    if (table.isEditing() && !table.getCellEditor().stopCellEditing()) {
+      throw new IllegalArgumentException(text("InvalidEdit", "Complete the observed-table edit"));
     }
     Map<Integer, String> mapping = new TreeMap<>();
     for (int row = 0; row < model.getRowCount(); row++) {
@@ -209,13 +248,24 @@ final class LogitCalibrationPanel extends JPanel {
       if (name.isEmpty() || name.equals("null")) {
         continue;
       }
-      if (mapping.put(Integer.valueOf(mode), name) != null) {
+      int id;
+      try {
+        id = Integer.parseInt(mode);
+      } catch (NumberFormatException failure) {
+        throw new IllegalArgumentException(text("InvalidMode", "Enter a valid mode ID"));
+      }
+      if (id <= 0 || id >= NodusC.MAXMM) {
+        throw new IllegalArgumentException(text("InvalidMode", "Enter a valid mode ID"));
+      }
+      if (mapping.put(id, name) != null) {
         throw new IllegalArgumentException(text("Duplicate", "Each mode ID must appear only once"));
       }
     }
-    LogitCalibrationSettings settings = new LogitCalibrationSettings(getReferenceMode(), mapping);
-    settings.validate();
-    return settings;
+    if (mapping.isEmpty()) {
+      throw new IllegalArgumentException(
+          text("EmptyMapping", "Select at least one modal OD table"));
+    }
+    return java.util.Collections.unmodifiableMap(mapping);
   }
 
   private String text(String key, String fallback) {

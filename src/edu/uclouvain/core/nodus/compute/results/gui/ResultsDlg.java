@@ -162,6 +162,9 @@ public class ResultsDlg extends EscapeDialog {
   /** . */
   private final JButton statsButton = new JButton();
 
+  /** Compares observed modal matrices with a saved assignment. */
+  private final JButton performanceButton = new JButton();
+
   /** . */
   private final JCheckBox relativeToViewCheckBox = new JCheckBox();
 
@@ -603,7 +606,7 @@ public class ResultsDlg extends EscapeDialog {
     GridBagConstraints statsButtonConstraints = new GridBagConstraints();
     statsButtonConstraints.anchor = GridBagConstraints.EAST;
     statsButtonConstraints.insets = new Insets(5, 5, 0, 0);
-    statsButtonConstraints.gridx = 4;
+    statsButtonConstraints.gridx = 5;
     statsButtonConstraints.gridy = 3;
     statsButton.addActionListener(
         new ActionListener() {
@@ -616,19 +619,41 @@ public class ResultsDlg extends EscapeDialog {
     GridBagConstraints relativeToViewGridBagConstraint = new GridBagConstraints();
     relativeToViewGridBagConstraint.anchor = GridBagConstraints.EAST;
     relativeToViewGridBagConstraint.insets = new Insets(0, 0, 5, 5);
-    relativeToViewGridBagConstraint.gridx = 3;
+    relativeToViewGridBagConstraint.gridx = 4;
     relativeToViewGridBagConstraint.gridy = 1;
     relativeToViewCheckBox.setText(
         i18n.get(ResultsDlg.class, "Relative_to_view", "Relative to view"));
     mainPanel.add(relativeToViewCheckBox, relativeToViewGridBagConstraint);
 
     GridBagConstraints exportGridBagConstraint = new GridBagConstraints();
-    exportGridBagConstraint.gridx = 4;
+    exportGridBagConstraint.gridx = 5;
     exportGridBagConstraint.anchor = GridBagConstraints.EAST;
     exportGridBagConstraint.insets = new Insets(0, 0, 5, 10);
     exportGridBagConstraint.gridy = 1;
     mainPanel.add(getExportCheckBox(), exportGridBagConstraint);
     mainPanel.add(statsButton, statsButtonConstraints);
+    performanceButton.setText(i18n.get(ResultsDlg.class, "Performance", "Performance"));
+    performanceButton.setToolTipText(
+        i18n.get(
+            ResultsDlg.class,
+            "tooltip.performanceButton",
+            "Compare reference modal OD matrices with a saved assignment."));
+    performanceButton.addActionListener(
+        event -> new PerformanceDlg(this, nodusMapPanel).setVisible(true));
+    mainPanel.add(
+        performanceButton,
+        new GridBagConstraints(
+            4,
+            3,
+            1,
+            1,
+            0,
+            0,
+            GridBagConstraints.EAST,
+            GridBagConstraints.NONE,
+            new Insets(5, 5, 0, 0),
+            0,
+            0));
 
     actionsComboBox.setMinimumSize(new Dimension(350, 24));
     actionsComboBox.setPreferredSize(new Dimension(350, 24));
@@ -659,7 +684,7 @@ public class ResultsDlg extends EscapeDialog {
         new GridBagConstraints(
             2,
             0,
-            3,
+            4,
             1,
             0.0,
             0.0,
@@ -673,7 +698,7 @@ public class ResultsDlg extends EscapeDialog {
         new GridBagConstraints(
             0,
             2,
-            5,
+            6,
             1,
             0.5,
             0.5,

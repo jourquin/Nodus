@@ -88,6 +88,17 @@ public final class LogCostProbitEstimator {
   /**
    * Fits a common log-cost coefficient when conditional, or one coefficient per mode otherwise. All
    * fitted cost coefficients must be strictly negative.
+   *
+   * @param costs costs by OD row and mode
+   * @param quantities observed quantities with the same shape
+   * @param referenceMode zero-based column whose intercept is fixed at zero
+   * @param conditional true for a common cost coefficient, false for mode-specific coefficients
+   * @param continueEstimation returns false to cancel
+   * @return fitted coefficients and likelihood diagnostics
+   * @throws IllegalArgumentException for invalid observations
+   * @throws IllegalStateException for unidentified models, numerical failure, nonconvergence or a
+   *     nonnegative cost coefficient at solver precision
+   * @throws java.util.concurrent.CancellationException on callback cancellation or interruption
    */
   public static LogCostChoiceEstimate estimate(
       double[][] costs,

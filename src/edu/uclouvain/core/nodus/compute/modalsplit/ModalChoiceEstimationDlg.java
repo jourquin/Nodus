@@ -249,11 +249,11 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     specification.setBorder(
         BorderFactory.createTitledBorder(text("Specification", "Model specification")));
     specification.add(formula, BorderLayout.CENTER);
-    JPanel bottom = new JPanel(new BorderLayout(0, 10));
     JPanel options = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
     options.add(conditional);
     options.add(estimatePivots);
     specification.add(options, BorderLayout.NORTH);
+    JPanel bottom = new JPanel(new BorderLayout(0, 10));
     bottom.add(specification, BorderLayout.CENTER);
     final JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
     JButton cancel = new JButton(text("Cancel", "Cancel"));

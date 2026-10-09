@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.12" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Modal-choice plugins in Nodus 9.0</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#modal-choice-plugins-in-nodus-9.0"
+id="toc-modal-choice-plugins-in-nodus-9.0">Modal-choice plugins in Nodus
+9.0</a>
+<ul>
+<li><a href="#update-source-code-or-rebuild-manually"
+id="toc-update-source-code-or-rebuild-manually">Update source code or
+rebuild manually</a></li>
+<li><a href="#what-stays-compatible" id="toc-what-stays-compatible">What
+stays compatible</a></li>
+<li><a href="#why-there-are-no-deprecated-package-aliases"
+id="toc-why-there-are-no-deprecated-package-aliases">Why there are no
+deprecated package aliases</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="modal-choice-plugins-in-nodus-9.0">Modal-choice plugins in Nodus
+9.0</h1>
+<p>All modal-choice implementations, estimators and their dialog now
+live in <code>edu.uclouvain.core.nodus.compute.modalsplit</code>,
+alongside <code>compute.assign</code>. The previous
+<code>compute.assign.modalsplit</code> package is removed. ## Upgrade an
+existing plugin JAR</p>
+<p>When a project contains a plugin using the old
+<code>ModalSplitMethod</code>, <code>Path</code> or
+<code>PathsForMode</code> classes, Nodus offers <strong>Upgrade</strong>
+or <strong>Skip plugin</strong>. Accepting the upgrade rewrites the
+compiled references to these unchanged API classes, checks that the
+converted classes can load, then installs the converted JAR under its
+original name. No Java compiler or plugin source is required.</p>
+<p>The original archive is preserved byte for byte beside it as
+<code>pluginName.jar.nodus8</code>. Nodus does not load this backup and
+never overwrites an existing backup. Converted plugins load immediately;
+subsequent project openings do not prompt again. Skipping leaves the JAR
+unchanged and continues loading the project without that modal
+method.</p>
+<p>The converter updates class references, descriptors, generic
+signatures and literal reflection names stored in Java's <a
+href="https://docs.oracle.com/javase/specs/jvms/se25/html/jvms-4.html#jvms-4.4">class-file
+constant pool</a>. It preserves other JAR resources and uses an atomic
+file replacement after validation and backup. Conversion failures leave
+the original JAR in place.</p>
+<p>This is a migration of the three shared API types, not a repair tool
+for arbitrary binary incompatibilities.</p>
+<h2 id="update-source-code-or-rebuild-manually">Update source code or
+rebuild manually</h2>
+<ol type="1">
+<li>Replace
+<code>edu.uclouvain.core.nodus.compute.assign.modalsplit</code> with
+<code>edu.uclouvain.core.nodus.compute.modalsplit</code> in Java and
+Groovy imports and any fully qualified class names. Update reflection
+strings and external configuration that explicitly names those classes
+as well.</li>
+<li>Recompile Java plugins against <code>nodus9.jar</code> and the
+supplied libraries. The <code>ModalSplitMethod</code> lifecycle and
+<code>split(ODCell, List&lt;PathsForMode&gt;)</code> signature are
+unchanged apart from the package names of their types. Update imports
+for <code>ModalSplitMethod</code>, <code>PathsForMode</code> and
+<code>Path</code> together.</li>
+<li>Replace the old plugin JAR in the project directory with the
+recompiled JAR. Remove duplicate old copies, then reopen the project.
+Groovy source scripts need updated imports. The automatic JAR converter
+does not edit source scripts.</li>
+</ol>
+<p>The updated <a href="../demo/MLogit/MLogit.java">MLogit example</a>
+and its compilation scripts show the new imports and build
+classpath.</p>
+<h2 id="what-stays-compatible">What stays compatible</h2>
+<p>The package move does not change OD tables, network tables, project
+properties or cost-file parameter keys. No model needs re-estimation
+solely because of the package move.</p>
+<p>Estimation is a separate operation under <strong>Project &gt; Modal
+choice estimation</strong>. It reads the selected cost file for route
+costs and fits only the selected embedded method using the mapped
+observed modal OD tables. Each run saves one parameter table named after
+the selected cost file: <code>NodusEstimated.costs</code> gives
+<code>NodusEstimated_params</code>. The table has
+<code>param_key</code>, <code>param_value</code> and
+<code>param_type</code> columns. The cost file receives a single
+<code>@paramTable=&lt;table&gt;</code> property. The estimation report
+is saved beside it as <code>&lt;cost-file-stem&gt;_params.txt</code>,
+for example <code>NodusEstimated_params.txt</code>. To assign with the
+fitted parameters, select the updated cost file in the assignment
+dialog. Its parameter table selects and locks the embedded modal method
+automatically; estimation does not change scenario settings.</p>
+<p>If the optional merged OD table already exists, choose
+<strong>Cancel</strong> to return to the estimation dialog,
+<strong>Overwrite</strong> to replace it, or <strong>Skip
+merging</strong> to estimate and save the model without changing that
+table. Skipping applies to the current run; the entered table name
+remains available for the next estimation.</p>
+<p>Selecting <strong>Estimate pivots</strong> adds bounded utility
+constants for nonreference modes at the
+mode–origin–destination–commodity-group level. The behavioral
+coefficients are estimated first; the pivots are then fitted against
+observed modal OD quantities using iterative log-ratio updates. The
+reference mode's correction stays zero; the dialog's maximum absolute
+pivot defaults to 8 and can be changed before estimation. Pivot rows use
+<code>pivot.&lt;mode&gt;.&lt;origin&gt;.&lt;destination&gt;.&lt;group&gt;</code>;
+the table stores the chosen bound in <code>@nodus.pivotMaxAbs</code>.
+Absent pivot keys are interpreted as zero during assignment. For
+scenario assignments the stored constants stay fixed while route costs
+and behavioral utilities change. Re-estimating a table replaces its
+previous rows after confirmation. Existing projects without
+<code>@paramTable</code> can still read legacy coefficient keys from
+their cost files.</p>
+<p>For logit and probit, <strong>Conditional</strong> is checked by
+default: one coefficient of <code>ln(cost)</code> is estimated per
+commodity group, alongside modal constants. Uncheck it to estimate a
+separate cost coefficient for every mode, including the reference mode
+(only its constant is fixed at zero). The choice is saved as an
+estimation preference; assignment reads the coefficients from the
+parameter table or legacy cost file. The checkbox is disabled for
+<strong>Proportional</strong>, which estimates modal adjustment factors
+and fixes the common log-cost coefficient at -1.</p>
+<p>Logit and probit fits start with negative cost coefficients. A
+converged coefficient that is positive or zero at solver precision
+causes estimation to fail with a warning identifying the affected modes
+and commodity group. Coefficients are not clamped to an arbitrary
+negative value, and failed runs do not replace existing saved
+parameters.</p>
+<p>Groups without parameters for the selected embedded logit or probit
+model use <code>V = -C</code> (cost factor 1, modal constants 0), after
+one warning per assignment. For MNL, this preserves the earlier modal
+and exponential route shares. Probit uses the same fallback utility with
+independent normal errors. Defaults are not written to the cost file;
+saved log-cost coefficients continue to take precedence, and incomplete
+or invalid saved coefficients remain errors.</p>
+<p>Nodus 9.0 distributions use <code>nodus9.jar</code>,
+<code>nodus9.sh</code> / <code>nodus9.bat</code>, and the
+<code>Nodus9</code> installation directory. Preferences are stored in
+<code>.nodus9.properties</code> in the user's home directory.</p>
+<h2 id="why-there-are-no-deprecated-package-aliases">Why there are no
+deprecated package aliases</h2>
+<p>Modal plugins exchange mutable lists of <code>Path</code> and
+<code>PathsForMode</code> objects. Empty subclasses cannot preserve both
+their old generic signatures and their original inheritance
+relationships. Keeping binary compatibility would require data and
+method adapters at the plugin boundary. Nodus 9.0 instead makes the
+package change explicit and keeps one implementation and one extension
+API.</p>
+<p>For the estimation architecture and input conventions, see <a
+href="../src/edu/uclouvain/core/nodus/compute/modalsplit/package-info.java">the
+package documentation</a>.</p>
+</body>
+</html>

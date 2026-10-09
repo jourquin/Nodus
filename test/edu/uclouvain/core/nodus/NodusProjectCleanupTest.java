@@ -149,6 +149,13 @@ class NodusProjectCleanupTest {
     assertEquals(1, stopped.get());
     assertFalse(panel.busy);
     assertFalse(panel.fileMenuBusy);
+
+    AtomicInteger nextStopped = new AtomicInteger();
+    CountDownLatch nextClosed = new CountDownLatch(1);
+    project.registerProjectCleanup("next bridge", nextStopped::incrementAndGet);
+    SwingUtilities.invokeAndWait(() -> project.close(nextClosed::countDown));
+    assertTrue(nextClosed.await(5, TimeUnit.SECONDS));
+    assertEquals(1, nextStopped.get());
   }
 
   @Test
@@ -163,6 +170,26 @@ class NodusProjectCleanupTest {
 
     assertTrue(closed.await(5, TimeUnit.SECONDS));
     assertEquals(1, stopped.get());
+  }
+
+  @Test
+  void switchingProjectsAcceptsNewBridgeCleanupActions() throws Exception {
+    Panel panel = new Panel();
+    NodusProject project = new NodusProject(panel);
+    AtomicInteger firstStopped = new AtomicInteger();
+    CountDownLatch firstClosed = new CountDownLatch(1);
+
+    project.registerProjectCleanup("Python bridge", firstStopped::incrementAndGet);
+    SwingUtilities.invokeAndWait(() -> project.close(firstClosed::countDown));
+    assertTrue(firstClosed.await(5, TimeUnit.SECONDS));
+
+    AtomicInteger secondStopped = new AtomicInteger();
+    project.registerProjectCleanup("Python bridge", secondStopped::incrementAndGet);
+    CountDownLatch secondClosed = new CountDownLatch(1);
+    SwingUtilities.invokeAndWait(() -> project.close(secondClosed::countDown));
+    assertTrue(secondClosed.await(5, TimeUnit.SECONDS));
+    assertEquals(1, firstStopped.get());
+    assertEquals(1, secondStopped.get());
   }
 
   /** Invokes the lifecycle stage directly, avoiding unrelated project-loading dialogs. */

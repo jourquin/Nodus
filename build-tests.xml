@@ -20,9 +20,13 @@
 		<delete dir="${test.build.dir}" />
 	</target>
 
-	<target name="Test" depends="build,CleanTests" description="Runs the JUnit 5 unit and integration tests without opening the GUI.">
+	<target name="Test" depends="CleanTests,init" description="Runs the JUnit 5 unit and integration tests without opening the GUI.">
 		<mkdir dir="${test.build.dir}/classes" />
 		<mkdir dir="${test.build.dir}/reports" />
+		<javac srcdir="${basedir}/src" destdir="${basedir}/classes"
+			includeantruntime="false" release="${target}" encoding="UTF-8" debug="true">
+			<classpath refid="Nodus.classpath" />
+		</javac>
 		<javac srcdir="${basedir}/test" destdir="${test.build.dir}/classes"
 			includeantruntime="false" release="${target}" encoding="UTF-8" debug="true">
 			<classpath refid="Nodus.test.classpath" />

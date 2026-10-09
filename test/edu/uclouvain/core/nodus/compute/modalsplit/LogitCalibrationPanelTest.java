@@ -37,6 +37,26 @@ import org.junit.jupiter.api.Test;
 /** Checks draft validation and model-specific controls independently of assignment settings. */
 class LogitCalibrationPanelTest {
   @Test
+  void resultComparisonReusesMappingsWithoutRequiringAReferenceMode() throws Exception {
+    SwingUtilities.invokeAndWait(
+        () -> {
+          LogitCalibrationPanel panel =
+              new LogitCalibrationPanel(List.of("road"), Map.of(5, "road"));
+          assertEquals(Map.of(5, "road"), panel.getTableMapping());
+          assertTrue(!find(panel, JSpinner.class).isVisible());
+          JTable table = find(panel, JTable.class);
+          table.editCellAt(0, 0);
+          ((javax.swing.JTextField) table.getEditorComponent()).setText("6");
+          assertEquals(Map.of(6, "road"), panel.getTableMapping());
+          table.setValueAt(0, 0, 0);
+          assertThrows(IllegalArgumentException.class, panel::getTableMapping);
+          table.setValueAt(6, 0, 0);
+          table.setValueAt("", 0, 1);
+          assertThrows(IllegalArgumentException.class, panel::getTableMapping);
+        });
+  }
+
+  @Test
   void probitKeepsTheReferenceControlAndTheMnlReferenceChoice() throws Exception {
     SwingUtilities.invokeAndWait(
         () -> {

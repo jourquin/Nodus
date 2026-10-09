@@ -90,8 +90,9 @@ so completion dialogs do not appear even without `-Djava.awt.headless=true`.
 
 ## Build-file arrangement
 
-`build-tests.xml` imports the application build so Eclipse can resolve its `build`
-dependency. `build-user.xml` contains forwarding targets, preserving `ant Test` and
+`build-tests.xml` imports the application build for its classpath and resource-copying
+`init` target. It compiles with `release="11"` independently of Eclipse's generated
+`build-project` target. `build-user.xml` contains forwarding targets, preserving `ant Test` and
 `ant CleanTests` even after Eclipse regenerates `build.xml`. The forwarding targets
 also work when launched directly from `build-user.xml`, which has no default target.
 After exporting `build.xml` from Eclipse again, verify that it still contains
