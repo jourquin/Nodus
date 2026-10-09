@@ -55,6 +55,11 @@ The table has `param_key`, `param_value` and `param_type` columns.
 The cost file receives a single `@paramTable=<table>` property. The estimation report is saved beside it as
 `<cost-file-stem>_params.txt`, for example `NodusEstimated_params.txt`. To assign with the fitted parameters, select the updated cost file in the assignment dialog. Its parameter table selects and locks the embedded modal method automatically; estimation does not change scenario settings.
 
+If the optional merged OD table already exists, choose **Cancel** to return to the
+estimation dialog, **Overwrite** to replace it, or **Skip merging** to estimate and save
+the model without changing that table. Skipping applies to the current run; the entered
+table name remains available for the next estimation.
+
 Selecting **Estimate pivots** adds bounded utility constants for nonreference modes at the
 mode–origin–destination–commodity-group level. The behavioral coefficients are estimated first;
 the pivots are then fitted against observed modal OD quantities using iterative log-ratio updates.
@@ -65,6 +70,19 @@ zero during assignment. For scenario assignments the stored constants stay fixed
 while route costs and behavioral utilities change. Re-estimating a table replaces its previous
 rows after confirmation. Existing projects without `@paramTable` can still read legacy coefficient
 keys from their cost files.
+
+For logit and probit, **Conditional** is checked by default: one coefficient of
+`ln(cost)` is estimated per commodity group, alongside modal constants. Uncheck it
+to estimate a separate cost coefficient for every mode, including the reference mode
+(only its constant is fixed at zero). The choice is saved as an estimation preference;
+assignment reads the coefficients from the parameter table or legacy cost file.
+The checkbox is disabled for **Proportional**, which estimates modal adjustment factors
+and fixes the common log-cost coefficient at -1.
+
+Logit and probit fits start with negative cost coefficients. A converged coefficient
+that is positive or zero at solver precision causes estimation to fail with a warning
+identifying the affected modes and commodity group. Coefficients are not clamped to
+an arbitrary negative value, and failed runs do not replace existing saved parameters.
 
 Groups without parameters for the selected embedded logit or probit model use
 `V = -C` (cost factor 1, modal constants 0), after one warning per assignment.

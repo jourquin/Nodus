@@ -25,7 +25,7 @@ import com.bbn.openmap.Environment;
 import edu.uclouvain.core.nodus.NodusProject;
 
 /**
- * Assignment-time probit with a modal constant and a shared coefficient of log modal cost.
+ * Assignment-time probit with modal constants and common or mode-specific log-cost coefficients.
  *
  * <p>The systematic utility is {@code V = intercept + beta * ln(C)}, using the cheapest admissible
  * modal cost. Independent utility errors have distribution N(0,1); the probability of selecting a

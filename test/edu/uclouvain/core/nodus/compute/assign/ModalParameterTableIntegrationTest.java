@@ -74,6 +74,53 @@ class ModalParameterTableIntegrationTest {
   }
 
   @Test
+  void existingMergedMatrixCanBeOverwrittenOrSkippedWhileEstimating() throws Exception {
+    for (boolean hsql : new boolean[] {false, true}) {
+      for (boolean overwrite : new boolean[] {false, true}) {
+        try (AssignmentTestProject project = project(hsql)) {
+          Files.writeString(
+              directory.resolve("model.costs"),
+              "ld.1,1=0\nul.1,1=0\ntr.1,1=0\nmv.1,1=BASECOST\n"
+                  + "ld.2,1=0\nul.2,1=0\ntr.2,1=0\nmv.2,1=BASECOST\n");
+          project.execute("CREATE TABLE merged_od (grp INT,org INT,dst INT,qty DOUBLE)");
+          project.execute("INSERT INTO merged_od VALUES (77,88,99,123)");
+          project.getMainJDBCConnection().commit();
+          AssignmentParameters parameters = project.parameters(2);
+          parameters.setCostFunctions("model.costs");
+          parameters.setModalSplitMethodName("MNL");
+          project.panel.prepareRun(2);
+          try (LogitCalibration estimation =
+              new LogitCalibration(
+                  parameters,
+                  new LogitCalibrationSettings(
+                      1, Map.of(1, "observed_road", 2, "observed_rail")))) {
+            // The dialog passes an empty output name when the user chooses Skip merging.
+            assertTrue(
+                estimation.estimateToTable(
+                    false, "model_params", false, 8, overwrite ? "merged_od" : "", overwrite));
+          }
+          assertTrue(project.number("SELECT COUNT(*) FROM model_params") > 0);
+          assertTrue(
+              Files.readString(directory.resolve("model.costs"))
+                  .contains("@paramTable=model_params"));
+          if (overwrite) {
+            double expected =
+                project.number("SELECT SUM(qty) FROM observed_road")
+                    + project.number("SELECT SUM(qty) FROM observed_rail");
+            assertEquals(expected, project.number("SELECT SUM(qty) FROM merged_od"), 1e-6);
+            assertEquals(0, project.number("SELECT COUNT(*) FROM merged_od WHERE grp=77"));
+          } else {
+            assertEquals(1, project.number("SELECT COUNT(*) FROM merged_od"));
+            assertEquals(
+                123,
+                project.number("SELECT qty FROM merged_od WHERE grp=77 AND org=88 AND dst=99"));
+          }
+        }
+      }
+    }
+  }
+
+  @Test
   void emptyFitWritesReportWithoutChangingCostsOrCreatingParameters() throws Exception {
     try (AssignmentTestProject project = project()) {
       Path file = directory.resolve("model.costs");

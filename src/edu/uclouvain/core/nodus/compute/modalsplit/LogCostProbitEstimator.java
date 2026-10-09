@@ -21,9 +21,10 @@ package edu.uclouvain.core.nodus.compute.modalsplit;
  *
  * <p>One intercept is fixed at zero. NaN or nonpositive costs denote unavailable modes, which must
  * have zero observed quantity; infinite costs are rejected. Observations with zero total quantity
- * are ignored. Coefficients are estimated without sign constraints or regularization. Standard
- * errors treat quantities as frequency weights, not independent survey observations. Probit errors
- * have fixed variance one; no covariance parameters are estimated.
+ * are ignored. Fits start with negative cost coefficients; a zero or positive fitted coefficient is
+ * reported as a failed estimate rather than clamped or regularized. Standard errors treat
+ * quantities as frequency weights, not independent survey observations. Probit errors have fixed
+ * variance one; no covariance parameters are estimated.
  *
  * <p>Each call fits one commodity group from {@code [OD row][mode column]} arrays, reading them
  * without modification. The reference argument is a zero-based column index; Nodus mode IDs are
@@ -81,7 +82,20 @@ public final class LogCostProbitEstimator {
       double[][] quantities,
       int referenceMode,
       java.util.function.BooleanSupplier continueEstimation) {
+    return estimate(costs, quantities, referenceMode, true, continueEstimation);
+  }
+
+  /**
+   * Fits a common log-cost coefficient when conditional, or one coefficient per mode otherwise. All
+   * fitted cost coefficients must be strictly negative.
+   */
+  public static LogCostChoiceEstimate estimate(
+      double[][] costs,
+      double[][] quantities,
+      int referenceMode,
+      boolean conditional,
+      java.util.function.BooleanSupplier continueEstimation) {
     return LogCostChoiceEstimator.estimate(
-        costs, quantities, referenceMode, continueEstimation, true);
+        costs, quantities, referenceMode, continueEstimation, true, conditional);
   }
 }

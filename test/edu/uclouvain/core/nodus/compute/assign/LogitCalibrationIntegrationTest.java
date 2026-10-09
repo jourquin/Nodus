@@ -283,8 +283,7 @@ class LogitCalibrationIntegrationTest {
       project.links.getModel().setValueAt(0.0, 1, NodusC.DBF_IDX_ENABLED);
       project.panel.prepareRun(2);
       output.reset();
-      try (LogitCalibration calibration =
-          new LogitCalibration(parameters, settings(parameters))) {
+      try (LogitCalibration calibration = new LogitCalibration(parameters, settings(parameters))) {
         assertTrue(calibration.estimate(false));
       }
       assertEquals("", output.toString(StandardCharsets.UTF_8));
@@ -797,6 +796,119 @@ class LogitCalibrationIntegrationTest {
   }
 
   @Test
+  void modeSpecificFitsPersistAndAssignWithPivotsForBothModels() throws Exception {
+    for (boolean probit : new boolean[] {false, true}) {
+      try (AssignmentTestProject project = project()) {
+        AssignmentParameters parameters = parameters(project);
+        parameters.setModalSplitMethodName(probit ? "MNP" : "MNL");
+        project.links.getModel().setValueAt(2.0, 2, 9); // Road cost on OD 3 -> 4.
+        double beta = probit ? -Math.sqrt(2) / (2 * Math.log(2)) : -1;
+        for (int group = 0; group < 2; group++) {
+          for (int row = 0; row < 3; row++) {
+            double roadCost = row == 1 ? 2 : 1;
+            double railCost = Math.pow(2, row);
+            double difference =
+                beta * Math.log(roadCost)
+                    - ((probit ? 0 : Math.log(1.5 * (group + 1))) + 2 * beta * Math.log(railCost));
+            double roadShare =
+                probit
+                    ? new double[] {0.5, 0.6914624612740131, 0.9772498680518208}[row]
+                    : 1 / (1 + Math.exp(-difference));
+            String where = " WHERE grp=" + group + " AND org=" + (2 * row + 1);
+            project.execute("UPDATE observed_road SET qty=" + 100 * roadShare + where);
+            project.execute("UPDATE observed_rail SET qty=" + 100 * (1 - roadShare) + where);
+          }
+        }
+        project.panel.prepareRun(2);
+        try (LogitCalibration calibration =
+            new LogitCalibration(parameters, settings(parameters))) {
+          calibration.setConditional(false);
+          assertTrue(calibration.estimateToTable(false, "specific_params", true));
+        }
+        String prefix = probit ? "probit." : "";
+        for (int group = 0; group < 2; group++) {
+          assertEquals(
+              beta,
+              project.number(
+                  "SELECT param_value FROM specific_params WHERE param_key='"
+                      + prefix
+                      + "log(cost).1."
+                      + group
+                      + "'"),
+              1e-6);
+          assertEquals(
+              2 * beta,
+              project.number(
+                  "SELECT param_value FROM specific_params WHERE param_key='"
+                      + prefix
+                      + "log(cost).2."
+                      + group
+                      + "'"),
+              1e-6);
+        }
+        assertTrue(
+            Files.readString(directory.resolve("model_params.txt")).contains("mode-specific"));
+        parameters.setCostFunctions("model.costs");
+        selectObservedDemand(project, parameters);
+        project.run(new FastMFAssignment(parameters), 2);
+        for (int group = 0; group < 2; group++) {
+          for (int origin : new int[] {1, 3, 5}) {
+            double expected =
+                project.number(
+                    "SELECT qty FROM observed_road WHERE grp=" + group + " AND org=" + origin);
+            assertEquals(
+                expected,
+                project.number(
+                    "SELECT qty FROM mini_paths1_header WHERE grp="
+                        + group
+                        + " AND org="
+                        + origin
+                        + " AND ldmode=1"),
+                1e-3);
+          }
+        }
+        assertNoTemporaryTables(project);
+      }
+    }
+  }
+
+  @Test
+  void nonnegativeCostFitLeavesExistingParametersAndReportsUntouched() throws Exception {
+    for (boolean probit : new boolean[] {false, true}) {
+      for (boolean zero : new boolean[] {false, true}) {
+        try (AssignmentTestProject project = project()) {
+          AssignmentParameters parameters = parameters(project);
+          parameters.setModalSplitMethodName(probit ? "MNP" : "MNL");
+          for (int origin : new int[] {1, 3, 5}) {
+            double rail = zero ? 20 : 20 * Math.pow(2, (origin - 1) / 2);
+            project.execute("UPDATE observed_road SET qty=20 WHERE org=" + origin);
+            project.execute("UPDATE observed_rail SET qty=" + rail + " WHERE org=" + origin);
+          }
+          project.execute("CREATE TABLE previous_params (sentinel INT)");
+          project.execute("INSERT INTO previous_params VALUES (71)");
+          Path report = directory.resolve("model_params.txt");
+          Files.writeString(report, "previous report");
+          byte[] before = Files.readAllBytes(parameters.getCostFunctionsPath());
+          project.panel.prepareRun(2);
+          try (LogitCalibration calibration =
+              new LogitCalibration(parameters, settings(parameters))) {
+            IllegalArgumentException failure =
+                assertThrows(
+                    IllegalArgumentException.class,
+                    () -> calibration.estimateToTable(false, "previous_params", false));
+            assertTrue(failure.getMessage().contains("zero or positive"));
+            assertTrue(failure.getMessage().contains("No estimated coefficients have been saved"));
+          }
+          assertArrayEquals(before, Files.readAllBytes(parameters.getCostFunctionsPath()));
+          assertEquals("previous report", Files.readString(report));
+          assertEquals(71, project.number("SELECT sentinel FROM previous_params"));
+          assertNoTemporaryTables(project);
+        }
+      }
+    }
+  }
+
+  @Test
   void probitFitsBothGroupsAndReusesSavedCoefficientsForForecasts() throws Exception {
     for (boolean hsql : new boolean[] {false, true}) {
       for (boolean exact : new boolean[] {false, true}) {
@@ -910,7 +1022,8 @@ class LogitCalibrationIntegrationTest {
       assertTrue(calibration.estimate(exact));
     }
     assertFalse(project.panel.routingProgressLengths.isEmpty());
-    assertTrue(project.panel.routingProgressLengths.stream().allMatch(length -> length > 0),
+    assertTrue(
+        project.panel.routingProgressLengths.stream().allMatch(length -> length > 0),
         "Routing progress must start before any assignment worker advances it");
     assertFalse(project.panel.fittingProgressLengths.isEmpty());
     assertTrue(

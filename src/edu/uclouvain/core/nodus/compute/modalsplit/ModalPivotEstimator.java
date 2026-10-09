@@ -80,7 +80,7 @@ final class ModalPivotEstimator {
       Row first = cell.get(0);
       LogCostChoiceEstimate behavioral = fitted.get(first.group);
       double[] intercepts = behavioral.getIntercepts();
-      double beta = behavioral.getCostCoefficient();
+      double[] coefficients = behavioral.getCostCoefficients();
       double[] correction = new double[modes.length];
       double[] observed = new double[modes.length];
       for (Row row : cell) {
@@ -96,7 +96,7 @@ final class ModalPivotEstimator {
           for (int m = 0; m < modes.length; m++) {
             utilities[m] =
                 Double.isFinite(row.costs[m]) && row.costs[m] > 0
-                    ? intercepts[m] + beta * Math.log(row.costs[m]) + correction[m]
+                    ? intercepts[m] + coefficients[m] * Math.log(row.costs[m]) + correction[m]
                     : Double.NEGATIVE_INFINITY;
           }
           double[] probability = probabilities(utilities, method);

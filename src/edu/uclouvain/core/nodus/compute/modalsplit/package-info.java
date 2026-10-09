@@ -33,7 +33,7 @@
  *
  * <ul>
  *   <li>{@link edu.uclouvain.core.nodus.compute.modalsplit.MultinomialLogit} uses a modal intercept
- *       and a common coefficient of log cost, with softmax probabilities.
+ *       and common or mode-specific coefficients of log cost, with softmax probabilities.
  *   <li>{@link edu.uclouvain.core.nodus.compute.modalsplit.MultinomialProbit} uses the same utility
  *       form with independent normal errors of variance one and joint multinomial probabilities.
  *   <li>{@link edu.uclouvain.core.nodus.compute.modalsplit.Proportional} uses inverse adjusted
@@ -52,7 +52,10 @@
  * routing, observed-table mappings and exported parameters use Nodus mode IDs. Quantities are
  * frequency weights. Unavailable alternatives require zero observed quantity; the retained choice
  * sets must jointly identify finite coefficients. See the estimator classes for validation,
- * statistical assumptions, uncertainty and cooperative cancellation contracts.
+ * statistical assumptions, uncertainty and cooperative cancellation contracts. Logit and probit
+ * estimation defaults to a common cost coefficient (the Conditional checkbox); unchecking it
+ * estimates one slope per mode. Fits start with negative slopes and fail if any converged slope is
+ * zero or positive. Proportional choice fixes the common slope at -1.
  *
  * <p>{@link edu.uclouvain.core.nodus.compute.modalsplit.LogitCalibration} connects these numerical
  * APIs to a project: it reads observed modal matrices, builds scratch demand, routes once per
@@ -61,9 +64,8 @@
  * groups succeed are coefficients and optional OD/group pivots written to the named database table.
  * The source file supplies transport costs and receives the {@code @paramTable} pointer. The
  * estimation report is written as {@code <cost-file-stem>_params.txt} in the project directory.
- * Existing tables
- * require confirmation before replacement. Older cost files with embedded coefficients remain
- * readable when they have no table pointer.
+ * Existing tables require confirmation before replacement. Older cost files with embedded
+ * coefficients remain readable when they have no table pointer.
  *
  * <p>{@link edu.uclouvain.core.nodus.compute.modalsplit.ModalChoiceEstimationDlg} owns the Swing
  * workflow and its background worker. Parameter estimation and assignment are separate operations;

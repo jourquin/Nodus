@@ -37,7 +37,7 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 /**
- * Assignment-time conditional logit using a modal constant and a shared log-cost coefficient.
+ * Assignment-time logit using modal constants and common or mode-specific log-cost coefficients.
  *
  * <p>For every available mode, {@code V = intercept + beta * ln(C)}, where {@code C} is its
  * cheapest admissible route cost; modal probabilities are the softmax of these utilities. A common
@@ -48,10 +48,10 @@ import javax.swing.SwingUtilities;
  * <p>When {@code @paramTable} names a database table, coefficients and optional pivots are read
  * from its {@code param_key,param_value} rows. Otherwise legacy cost-file coefficients are read per
  * commodity group from {@code (intercept).mode.group}, {@code log(cost).mode.group} and {@code
- * mnl.reference.group}. All modes must share the same beta, which may have either sign or be zero.
- * The reference intercept must be zero; for older R demo files, the smallest mode with a slope is
- * the default reference and its missing intercept defaults to zero. Incomplete or invalid saved
- * coefficients are errors.
+ * mnl.reference.group}. Coefficients may differ by mode. Legacy saved coefficients of either sign
+ * remain readable; new estimates require negative slopes. The reference intercept must be zero; for
+ * older R demo files, the smallest mode with a slope is the default reference and its missing
+ * intercept defaults to zero. Incomplete or invalid saved coefficients are errors.
  *
  * <p>If this model has no parameters at all for a group, assignment warns once and uses {@code V =
  * -C}: cost factor one and zero modal constants. This preserves the former built-in MNL, including
@@ -75,7 +75,8 @@ import javax.swing.SwingUtilities;
  */
 public class MultinomialLogit extends ModalSplitMethod {
   private double[] intercepts;
-  private double beta;
+  private double[] coefficients;
+  private boolean conditional;
   private boolean calibrated;
   private Properties choiceParameters;
   private boolean usePivots;
@@ -126,8 +127,8 @@ public class MultinomialLogit extends ModalSplitMethod {
    * Loads and validates this group's saved coefficients before its OD records are split.
    *
    * <p>Allocates a fresh intercept array, marking unconfigured modes as NaN. Validates all
-   * configured slopes against the common coefficient and checks the reference normalization. The
-   * probit subclass supplies different property prefixes through the protected namespace hooks.
+   * configured slopes and checks the reference normalization. The probit subclass supplies
+   * different property prefixes through the protected namespace hooks.
    *
    * <p>A group without any entries in this model's namespace uses the legacy {@code -C} utility. A
    * reference or intercept entry without slopes is an incomplete calibration, not a default.
@@ -166,7 +167,7 @@ public class MultinomialLogit extends ModalSplitMethod {
     }
     if (!calibrated) {
       intercepts = new double[NodusC.MAXMM];
-      beta = -1;
+      coefficients = new double[NodusC.MAXMM];
       warnAboutDefaults();
       return;
     }
@@ -189,13 +190,15 @@ public class MultinomialLogit extends ModalSplitMethod {
     }
     intercepts = new double[NodusC.MAXMM];
     java.util.Arrays.fill(intercepts, Double.NaN);
-    beta = parameter(costs, coefficientPrefix() + "log(cost)." + modes.first() + suffix, null);
+    coefficients = new double[NodusC.MAXMM];
+    java.util.Arrays.fill(coefficients, Double.NaN);
+    double beta =
+        parameter(costs, coefficientPrefix() + "log(cost)." + modes.first() + suffix, null);
+    conditional = true;
     for (int mode : modes) {
       double slope = parameter(costs, coefficientPrefix() + "log(cost)." + mode + suffix, null);
-      if (Math.abs(slope - beta) > 1e-10 * Math.max(1, Math.abs(beta))) {
-        throw new IllegalArgumentException(
-            getName() + " log-cost coefficients must agree within group " + group);
-      }
+      conditional &= slope == beta;
+      coefficients[mode] = slope;
       intercepts[mode] =
           parameter(
               costs,
@@ -342,7 +345,10 @@ public class MultinomialLogit extends ModalSplitMethod {
       }
       mode.utility =
           calibrated
-              ? intercepts[id] + beta * (Math.log(mode.cheapestPathWeights.getCost()) - baseLogCost)
+              ? intercepts[id]
+                  + coefficients[id]
+                      * (Math.log(mode.cheapestPathWeights.getCost())
+                          - (conditional ? baseLogCost : 0))
               : -mode.cheapestPathWeights.getCost();
       if (calibrated && usePivots && demand != null) {
         mode.utility +=

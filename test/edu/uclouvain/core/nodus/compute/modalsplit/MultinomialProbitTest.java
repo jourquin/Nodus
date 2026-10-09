@@ -35,6 +35,26 @@ import org.junit.jupiter.api.Test;
 /** Assignment uses the same joint probit probabilities and available-mode set as estimation. */
 class MultinomialProbitTest {
   @Test
+  void appliesDifferentCostCoefficientsToEachMode() {
+    double beta = -Math.sqrt(2) / Math.log(2);
+    Properties entries = new Properties();
+    entries.setProperty("probit.log(cost).1.0", Double.toString(beta));
+    entries.setProperty("probit.log(cost).2.0", Double.toString(2 * beta));
+    entries.setProperty("probit.(intercept).2.0", "0");
+    AssignmentParameters parameters = new AssignmentParameters(null);
+    parameters.setCostFunctions(entries);
+    MultinomialProbit model = new MultinomialProbit(null);
+    model.initialize(parameters);
+    model.initializeGroup(0);
+    PathsForMode road = mode(1, 2);
+    PathsForMode rail = mode(2, 2);
+    model.split(null, List.of(road, rail));
+    assertEquals(0.8413447460685429, road.marketShare, 2e-13);
+    model.split(null, List.of(rail, road));
+    assertEquals(0.8413447460685429, road.marketShare, 2e-13);
+  }
+
+  @Test
   void cheapestRouteDefinesModalCostAndOtherRoutesOnlyShareItsFlow() {
     MultinomialProbit model = model(-Math.sqrt(2) / Math.log(2), 0, 0);
     PathsForMode road = mode(1, 10, 12);

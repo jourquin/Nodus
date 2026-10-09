@@ -33,7 +33,6 @@ import edu.uclouvain.core.nodus.utils.HardwareUtils;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
-import java.awt.Font;
 import java.awt.GridLayout;
 import java.io.File;
 import java.util.Arrays;
@@ -67,8 +66,9 @@ import javax.swing.SwingWorker;
  * are saved as {@code <cost-file-stem>_params.txt} in the project directory. An existing table
  * requires confirmation. An optional merged OD table sums the selected modal matrices by commodity
  * group, origin and destination for later selection in Assignment; replacing its contents also
- * requires confirmation. The isolated routing pass always performs one search per mode/means
- * without cost markup. Legacy scenario, iteration and markup preferences are ignored.
+ * offers cancel, overwrite or skip when the destination already exists. The isolated routing pass
+ * always performs one search per mode/means without cost markup. Legacy scenario, iteration and
+ * markup preferences are ignored.
  *
  * <p>Construct and show the dialog on Swing's event dispatch thread. Controls hold a draft until
  * Estimate validates it, persists project-level preferences and acquires the shared computation
@@ -104,6 +104,8 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
   private final JComboBox<String> routing = new JComboBox<>();
   /** Adds bounded OD/group residual utilities after behavioral estimation. */
   private final JCheckBox estimatePivots = new JCheckBox();
+  /** Common cost coefficient when checked; otherwise one coefficient per mode. */
+  private final JCheckBox conditional = new JCheckBox();
   /** Maximum absolute utility correction fitted for each nonreference mode. */
   private final JSpinner pivotMaxAbs;
   /** Maximum admissible route-length ratio; zero disables the detour limit. */
@@ -176,6 +178,14 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
         estimatePivots,
         "estimatePivots",
         "Add bounded utility constants for each mode, OD pair and commodity group.");
+    conditional.setText(text("Conditional", "Conditional"));
+    conditional.setSelected(project.getLocalProperty(PREFIX + "conditional", true));
+    tooltip(
+        conditional,
+        "conditional",
+        "Checked: estimate one common cost coefficient per commodity group."
+            + " Unchecked: estimate a separate cost coefficient for each mode.");
+    conditional.addActionListener(event -> updateFormula());
     LogitCalibrationSettings settings = LogitCalibrationSettings.NONE;
     try {
       settings =
@@ -236,12 +246,14 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     content.add(controls, BorderLayout.NORTH);
     content.add(observations, BorderLayout.CENTER);
     JPanel specification = new JPanel(new BorderLayout(0, 6));
-    JLabel heading = new JLabel(text("Specification", "Model specification:"));
-    heading.setFont(heading.getFont().deriveFont(Font.BOLD));
-    specification.add(heading, BorderLayout.NORTH);
+    specification.setBorder(
+        BorderFactory.createTitledBorder(text("Specification", "Model specification")));
     specification.add(formula, BorderLayout.CENTER);
     JPanel bottom = new JPanel(new BorderLayout(0, 10));
-    bottom.add(estimatePivots, BorderLayout.NORTH);
+    JPanel options = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+    options.add(conditional);
+    options.add(estimatePivots);
+    specification.add(options, BorderLayout.NORTH);
     bottom.add(specification, BorderLayout.CENTER);
     final JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
     JButton cancel = new JButton(text("Cancel", "Cancel"));
@@ -267,13 +279,17 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
   /** Keeps the reference controls and visible equations synchronized with the selected model. */
   private void updateModel() {
     observations.setMethod(selectedMethod());
+    conditional.setEnabled(!"Proportional".equals(selectedMethod()));
     updateFormula();
   }
 
-  /** Keeps the displayed equations synchronized with the pivot checkbox. */
+  /** Keeps the displayed equations synchronized with the conditional and pivot checkboxes. */
   private void updateFormula() {
     formula.setMethod(
-        selectedMethod(), estimatePivots.isSelected(), observations.getReferenceMode());
+        selectedMethod(),
+        estimatePivots.isSelected(),
+        observations.getReferenceMode(),
+        conditional.isSelected());
   }
 
   /**
@@ -328,6 +344,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     final AssignmentParameters parameters = new AssignmentParameters(project);
     final boolean exact = routing.getSelectedIndex() == 1;
     final boolean pivots = estimatePivots.isSelected();
+    final boolean conditionalFit = conditional.isSelected();
     final String table;
     final String selectedCostFile;
     final double maxAbs;
@@ -386,20 +403,30 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
             != JOptionPane.YES_OPTION) {
       return;
     }
-    if (mergedExists
-        && JOptionPane.showConfirmDialog(
-                this,
-                text(
-                        "OverwriteMergedMatrix",
-                        "The merged OD table already exists. Replace its contents?")
-                    + "\n"
-                    + mergedTable,
-                getTitle(),
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.WARNING_MESSAGE)
-            != JOptionPane.YES_OPTION) {
-      return;
+    int mergeChoice = 1;
+    if (mergedExists) {
+      String[] choices = {
+        text("Cancel", "Cancel"), text("Overwrite", "Overwrite"), text("SkipMerge", "Skip merging")
+      };
+      mergeChoice =
+          JOptionPane.showOptionDialog(
+              this,
+              text("OverwriteMergedMatrix", "The merged OD table already exists.")
+                  + "\n"
+                  + mergedTable,
+              getTitle(),
+              JOptionPane.DEFAULT_OPTION,
+              JOptionPane.WARNING_MESSAGE,
+              null,
+              choices,
+              choices[0]);
+      if (mergeChoice != 1 && mergeChoice != 2) {
+        return;
+      }
     }
+    // Skipping applies only to this run; retain the requested name for the next estimation.
+    final String mergeOutput = mergedExists && mergeChoice == 2 ? "" : mergedTable;
+    final boolean overwriteMerge = mergedExists && mergeChoice == 1;
     project.setLocalProperty(LogitCalibrationSettings.PROPERTY, settings.encode());
     project.setLocalProperty(PREFIX + "mergedMatrix", mergedTable);
     project.setLocalProperty(PREFIX + "method", selectedMethod());
@@ -408,6 +435,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     project.setLocalProperty(PREFIX + "detour", detour.getValue().toString());
     project.setLocalProperty(PREFIX + "threads", threads.getValue().toString());
     project.setLocalProperty(PREFIX + "estimatePivots", pivots);
+    project.setLocalProperty(PREFIX + "conditional", conditionalFit);
     project.setLocalProperty(PREFIX + "pivotMaxAbs", Double.toString(maxAbs));
     mapPanel.getAssignmentMenuItem().setEnabled(false);
     dispose();
@@ -415,8 +443,9 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
       @Override
       protected Boolean doInBackground() throws Exception {
         try (LogitCalibration calibration = new LogitCalibration(parameters, settings)) {
+          calibration.setConditional(conditionalFit);
           return calibration.estimateToTable(
-              exact, table, pivots, maxAbs, mergedTable, mergedExists);
+              exact, table, pivots, maxAbs, mergeOutput, overwriteMerge);
         }
       }
 
@@ -436,7 +465,10 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
         } catch (ExecutionException failure) {
           if (!(failure.getCause() instanceof CancellationException)) {
             mapPanel.showAssignmentMessage(
-                failure.getCause().getMessage(), JOptionPane.ERROR_MESSAGE);
+                failure.getCause().getMessage(),
+                NonNegativeCostCoefficientException.causedBy(failure)
+                    ? JOptionPane.WARNING_MESSAGE
+                    : JOptionPane.ERROR_MESSAGE);
           }
           mapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
         } catch (CancellationException cancelled) {

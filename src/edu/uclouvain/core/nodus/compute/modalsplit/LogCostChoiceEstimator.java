@@ -29,12 +29,16 @@ import java.util.List;
  * inconsistent dimensions are rejected. Zero-total rows are ignored. The reference is a column
  * index, not a Nodus mode ID. Inputs are read without modification.
  *
- * <p>The free parameter vector contains the nonreference intercepts in column order, followed by
- * the common log-cost coefficient for logit/probit. Within each OD, log costs are centered on the
- * first available alternative; common utility shifts leave probabilities unchanged. Log-cost
- * features are scaled for optimization and coefficients/uncertainty are transformed back before
- * returning. Proportional choice instead fixes the cost coefficient at -1 and puts the centered log
- * cost in a utility offset, so its optimizer has only the intercept parameters.
+ * <p>The free parameter vector contains the nonreference intercepts in column order, followed by a
+ * common log-cost coefficient or M mode-specific coefficients for logit/probit. Within each OD,
+ * features are centered on the first available alternative; common utility shifts leave
+ * probabilities unchanged. Log-cost features are scaled for optimization and
+ * coefficients/uncertainty are transformed back before returning. Proportional choice instead fixes
+ * the cost coefficient at -1 and puts the centered log cost in a utility offset, so its optimizer
+ * has only the intercept parameters. Mode-specific log costs are also centered per mode, then
+ * intercepts and their covariance are transformed back to the original cost units. Fitting starts
+ * with negative slopes and rejects converged slopes that are nonnegative or zero at solver
+ * precision.
  *
  * <p>The objective is negative log-likelihood divided by total quantity. Damped Newton steps use
  * analytic softmax derivatives or {@link ProbitProbabilities} derivatives. The information matrix's
@@ -69,7 +73,7 @@ final class LogCostChoiceEstimator {
       double[][] quantities,
       int referenceMode,
       java.util.function.BooleanSupplier continueEstimation) {
-    return estimate(costs, quantities, referenceMode, continueEstimation, false, true);
+    return estimate(costs, quantities, referenceMode, continueEstimation, false, true, true);
   }
 
   /**
@@ -88,7 +92,19 @@ final class LogCostChoiceEstimator {
       int referenceMode,
       java.util.function.BooleanSupplier continueEstimation,
       boolean probit) {
-    return estimate(costs, quantities, referenceMode, continueEstimation, probit, false);
+    return estimate(costs, quantities, referenceMode, continueEstimation, probit, true);
+  }
+
+  /** Fits either a common coefficient or one coefficient for each input mode. */
+  static LogCostChoiceEstimate estimate(
+      double[][] costs,
+      double[][] quantities,
+      int referenceMode,
+      java.util.function.BooleanSupplier continueEstimation,
+      boolean probit,
+      boolean conditional) {
+    return estimate(
+        costs, quantities, referenceMode, continueEstimation, probit, false, conditional);
   }
 
   /**
@@ -105,7 +121,8 @@ final class LogCostChoiceEstimator {
       int referenceMode,
       java.util.function.BooleanSupplier continueEstimation,
       boolean probit,
-      boolean proportional) {
+      boolean proportional,
+      boolean conditional) {
     if (costs == null
         || quantities == null
         || costs.length == 0
@@ -117,13 +134,16 @@ final class LogCostChoiceEstimator {
     }
     checkCancelled(continueEstimation);
     int modes = costs[0].length;
-    int size = proportional ? modes - 1 : modes;
+    int slopes = proportional ? 0 : conditional ? 1 : modes;
+    int size = modes - 1 + slopes;
     if (referenceMode < 0 || referenceMode >= modes) {
       throw new IllegalArgumentException("Reference mode must be a zero-based column index");
     }
     List<Observation> observations = new ArrayList<>();
     double totalQuantity = 0;
-    double costScale = 0;
+    double[] costScales = new double[slopes];
+    double[] costCenters = new double[modes];
+    java.util.Arrays.fill(costCenters, Double.NaN);
     double[] modeQuantities = new double[modes];
     for (int row = 0; row < costs.length; row++) {
       if (row % 256 == 0) {
@@ -180,11 +200,27 @@ final class LogCostChoiceEstimator {
         double difference = logCost - baseLogCost;
         if (proportional) {
           offsets[alternative] = -difference;
-        } else {
+        } else if (conditional) {
           features[alternative][modes - 1] = difference;
+          costScales[0] = Math.max(costScales[0], Math.abs(difference));
+        } else {
+          if (Double.isNaN(costCenters[mode])) {
+            costCenters[mode] = logCost;
+          }
+          double centered = logCost - costCenters[mode];
+          features[alternative][modes - 1 + mode] = centered;
+          costScales[mode] = Math.max(costScales[mode], Math.abs(centered));
         }
-        costScale = Math.max(costScale, Math.abs(difference));
         observed[alternative++] = quantities[row][mode];
+      }
+      if (!proportional && !conditional) {
+        // Subtract the complete first-alternative feature vector, a common utility shift.
+        double[] base = features[0].clone();
+        for (double[] feature : features) {
+          for (int p = modes - 1; p < size; p++) {
+            feature[p] -= base[p];
+          }
+        }
       }
       observations.add(new Observation(features, offsets, observed, rowQuantity));
     }
@@ -197,14 +233,17 @@ final class LogCostChoiceEstimator {
             "Mode " + mode + " has no observed quantity; no finite intercept");
       }
     }
-    if (!proportional && costScale == 0) {
-      throw new IllegalStateException(
-          "Log-cost coefficient is unidentified: no within-row cost variation");
+    for (double scale : costScales) {
+      if (scale == 0) {
+        throw new IllegalStateException("Log-cost coefficient is unidentified: no cost variation");
+      }
     }
     for (Observation observation : observations) {
       if (!proportional) {
         for (double[] feature : observation.features) {
-          feature[modes - 1] /= costScale;
+          for (int slope = 0; slope < slopes; slope++) {
+            feature[modes - 1 + slope] /= costScales[slope];
+          }
         }
       }
       for (int mode = 0; mode < observation.quantities.length; mode++) {
@@ -220,6 +259,14 @@ final class LogCostChoiceEstimator {
       throw new IllegalArgumentException(
           "Quantity weights make the log-likelihood exceed the numeric range");
     }
+    if (!proportional) {
+      // Seek the maximum likelihood estimate from a negative-cost starting point. Do not clamp
+      // a nonnegative optimum to an arbitrary negative value: report it as a failed estimate.
+      for (int slope = 0; slope < slopes; slope++) {
+        parameters[modes - 1 + slope] = -1;
+      }
+      current = evaluate(observations, parameters, continueEstimation, probit);
+    }
     for (int iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
       if (!continueEstimation.getAsBoolean() || Thread.currentThread().isInterrupted()) {
         throw new java.util.concurrent.CancellationException("Modal estimation canceled");
@@ -233,6 +280,32 @@ final class LogCostChoiceEstimator {
         improvement += current.gradient[p] * step[p];
       }
       if (relativeStep < TOLERANCE) {
+        if (!proportional) {
+          List<Integer> invalid = new ArrayList<>();
+          for (int mode = 0; mode < modes; mode++) {
+            if (parameters[modes - 1 + (conditional ? 0 : mode)] >= -TOLERANCE) {
+              invalid.add(mode);
+            }
+          }
+          if (!invalid.isEmpty()) {
+            throw new NonNegativeCostCoefficientException(
+                invalid.stream().mapToInt(Integer::intValue).toArray());
+          }
+        }
+        if (!conditional) {
+          return modeSpecificResult(
+              parameters,
+              information,
+              costCenters,
+              costScales,
+              referenceMode,
+              -current.loss * totalQuantity,
+              nullLogLikelihood,
+              totalQuantity,
+              observations.size(),
+              iteration,
+              probit);
+        }
         double[] errors = new double[modes];
         for (int p = 0; p < size; p++) {
           double[] unit = new double[size];
@@ -246,8 +319,8 @@ final class LogCostChoiceEstimator {
         if (proportional) {
           parameters[modes - 1] = -1;
         } else {
-          parameters[modes - 1] /= costScale;
-          errors[modes - 1] /= costScale;
+          parameters[modes - 1] /= costScales[0];
+          errors[modes - 1] /= costScales[0];
         }
         return new LogCostChoiceEstimate(
             parameters,
@@ -290,6 +363,68 @@ final class LogCostChoiceEstimator {
         "Modal estimation did not converge in "
             + MAX_ITERATIONS
             + " iterations; check separation or weak identification");
+  }
+
+  /** Removes per-mode centering/scaling and transforms uncertainty using the full covariance. */
+  private static LogCostChoiceEstimate modeSpecificResult(
+      double[] parameters,
+      Cholesky information,
+      double[] centers,
+      double[] scales,
+      int reference,
+      double likelihood,
+      double nullLikelihood,
+      double quantity,
+      int observations,
+      int iterations,
+      boolean probit) {
+    int modes = centers.length;
+    double[] intercepts = new double[modes];
+    double[] interceptErrors = new double[modes];
+    double[] coefficients = new double[modes];
+    double[] coefficientErrors = new double[modes];
+    for (int mode = 0; mode < modes; mode++) {
+      coefficients[mode] = parameters[modes - 1 + mode] / scales[mode];
+      double[] slope = new double[parameters.length];
+      slope[modes - 1 + mode] = 1 / scales[mode];
+      coefficientErrors[mode] = standardError(slope, information, quantity);
+      if (mode != reference) {
+        int index = mode < reference ? mode : mode - 1;
+        intercepts[mode] =
+            parameters[index]
+                - coefficients[mode] * centers[mode]
+                + parameters[modes - 1 + reference] / scales[reference] * centers[reference];
+        double[] transform = new double[parameters.length];
+        transform[index] = 1;
+        transform[modes - 1 + mode] = -centers[mode] / scales[mode];
+        transform[modes - 1 + reference] = centers[reference] / scales[reference];
+        interceptErrors[mode] = standardError(transform, information, quantity);
+      }
+    }
+    return new LogCostChoiceEstimate(
+        intercepts,
+        interceptErrors,
+        coefficients,
+        coefficientErrors,
+        likelihood,
+        nullLikelihood,
+        quantity,
+        observations,
+        iterations,
+        probit);
+  }
+
+  private static double standardError(double[] transform, Cholesky information, double quantity) {
+    double[] covariance = information.solve(transform);
+    double variance = 0;
+    for (int p = 0; p < transform.length; p++) {
+      variance += transform[p] * covariance[p];
+    }
+    double error = Math.sqrt(variance / quantity);
+    if (!Double.isFinite(error)) {
+      throw new IllegalStateException("Coefficient uncertainty exceeds the numeric range");
+    }
+    return error;
   }
 
   /**

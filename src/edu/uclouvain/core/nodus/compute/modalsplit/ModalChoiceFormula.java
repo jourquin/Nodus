@@ -72,7 +72,9 @@ final class ModalChoiceFormula extends JLabel {
           + PIVOT
           + ",&nbsp;&nbsp; k<sub>r</sub> = 1,&nbsp;&nbsp; ";
   private static final String PROPORTIONAL_WITH_PIVOT =
-      "P<sub>i</sub> = [exp(" + PIVOT + ") / (k<sub>i</sub>C<sub>i</sub>)] / "
+      "P<sub>i</sub> = [exp("
+          + PIVOT
+          + ") / (k<sub>i</sub>C<sub>i</sub>)] / "
           + "&#8721;<sub>j&#8712;A</sub> [exp(&#948;<sub>j,o,d,g</sub>) / "
           + "(k<sub>j</sub>C<sub>j</sub>)]";
 
@@ -80,10 +82,12 @@ final class ModalChoiceFormula extends JLabel {
     Dimension size = new Dimension();
     for (String method : new String[] {"Proportional", "MNP", "MNL"}) {
       for (boolean pivots : new boolean[] {false, true}) {
-        setMethod(method, pivots, NodusC.MAXMM - 1);
-        Dimension preferred = getPreferredSize();
-        size.width = Math.max(size.width, preferred.width);
-        size.height = Math.max(size.height, preferred.height);
+        for (boolean conditional : new boolean[] {true, false}) {
+          setMethod(method, pivots, NodusC.MAXMM - 1, conditional);
+          Dimension preferred = getPreferredSize();
+          size.width = Math.max(size.width, preferred.width);
+          size.height = Math.max(size.height, preferred.height);
+        }
       }
     }
     setMethod("MNL", false, 1);
@@ -98,12 +102,20 @@ final class ModalChoiceFormula extends JLabel {
    * @param referenceMode numeric ID of the selected reference mode
    */
   void setMethod(String method, boolean pivots, int referenceMode) {
+    setMethod(method, pivots, referenceMode, true);
+  }
+
+  /** Displays a shared beta or mode-specific beta_i for logit/probit. */
+  void setMethod(String method, boolean pivots, int referenceMode, boolean conditional) {
     boolean probit = "MNP".equals(method);
     boolean proportional = "Proportional".equals(method);
     String utility =
         proportional
             ? (pivots ? PROPORTIONAL_UTILITY_WITH_PIVOT : PROPORTIONAL_UTILITY)
             : (pivots ? UTILITY_WITH_PIVOT : UTILITY);
+    if (!proportional && !conditional) {
+      utility = utility.replace("&#946;", "&#946;<sub>i</sub>");
+    }
     if (pivots) {
       utility += "&#948;<sub>" + referenceMode + ",o,d,g</sub> = 0";
     }
@@ -131,10 +143,12 @@ final class ModalChoiceFormula extends JLabel {
           Environment.getI18n()
               .get(
                   ModalChoiceFormula.class,
-                  probit ? "tooltip.probit" : "tooltip.logit",
+                  (probit ? "tooltip.probit" : "tooltip.logit") + (conditional ? "" : ".specific"),
                   "<html>A: available modes; C: cheapest admissible modal cost; r: reference mode."
                       + "<br>V: systematic utility; alpha: modal intercept; "
-                      + "beta: shared log-cost coefficient."
+                      + (conditional
+                          ? "beta: shared log-cost coefficient."
+                          : "beta_i: mode-specific log-cost coefficient.")
                       + "<br>Coefficients are estimated separately for each commodity group."
                       + (probit
                           ? "<br>phi and Phi: standard-normal density and cumulative distribution."

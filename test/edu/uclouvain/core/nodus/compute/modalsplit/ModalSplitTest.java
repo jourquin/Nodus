@@ -141,6 +141,24 @@ class ModalSplitTest {
   }
 
   @Test
+  void logitAppliesModeSpecificSlopesWithoutSubtractingModeSpecificUtilityShifts() {
+    Properties costs = new Properties();
+    costs.setProperty("log(cost).1.0", "-1");
+    costs.setProperty("log(cost).2.0", "-2");
+    costs.setProperty("(intercept).2.0", "0");
+    MultinomialLogit model = logit(costs);
+    PathsForMode road = mode(1, 2, 4);
+    PathsForMode rail = mode(2, 2);
+    for (List<PathsForMode> alternatives : List.of(List.of(road, rail), List.of(rail, road))) {
+      model.split(null, alternatives);
+      assertEquals(2.0 / 3, road.marketShare, 1e-12);
+      assertEquals(1.0 / 3, rail.marketShare, 1e-12);
+      assertEquals(4.0 / 9, road.pathList.get(0).marketShare, 1e-12);
+      assertSharesSumToOne(alternatives);
+    }
+  }
+
+  @Test
   void logitRejectsInvalidCostsAndMissingParameters() {
     for (double cost : new double[] {0, -1, Double.NaN, Double.POSITIVE_INFINITY}) {
       assertThrows(

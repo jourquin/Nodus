@@ -117,7 +117,7 @@ class LogCostLogitEstimatorTest {
   @Test
   void acceptsZeroCellsAndIgnoresEmptyRows() {
     double[][] quantities = {{0, 10, 20}, {30, 0, 10}, {10, 20, 0}};
-    double[][] costs = {{1, 2, 3}, {3, 1, 2}, {2, 3, 1}};
+    double[][] costs = {{3, 2, 1}, {1, 3, 2}, {2, 1, 3}};
     LogCostLogitEstimator.Result original = LogCostLogitEstimator.estimate(costs, quantities);
     double[][] extendedCosts = {costs[0], costs[1], costs[2], {Double.NaN, 0, -1}};
     double[][] extendedQuantities = {quantities[0], quantities[1], quantities[2], {0, 0, 0}};

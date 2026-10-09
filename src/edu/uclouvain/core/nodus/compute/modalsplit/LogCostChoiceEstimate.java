@@ -20,7 +20,7 @@ package edu.uclouvain.core.nodus.compute.modalsplit;
  * Immutable reporting snapshot for one successfully fitted commodity group's modal model.
  *
  * <p>Intercepts and their standard errors follow the estimator's input column order, including an
- * explicit zero at the reference column. The cost coefficient is shared by every mode. For
+ * explicit zero at the reference column. Cost coefficients are common or mode-specific. For
  * proportional estimation, intercepts are the internal values {@code -ln(k)}, the coefficient is
  * fixed at -1 and its standard error is zero; {@link ProportionalEstimator.Result} exposes the
  * positive factors and their transformed uncertainty.
@@ -40,8 +40,9 @@ package edu.uclouvain.core.nodus.compute.modalsplit;
 public class LogCostChoiceEstimate {
   private final double[] intercepts;
   private final double[] interceptStandardErrors;
-  private final double costCoefficient;
-  private final double costStandardError;
+  private final double[] costCoefficients;
+  private final double[] costStandardErrors;
+  private final boolean conditional;
   private final double logLikelihood;
   private final double nullLogLikelihood;
   private final double totalQuantity;
@@ -85,8 +86,36 @@ public class LogCostChoiceEstimate {
         interceptStandardErrors[mode] = errors[index];
       }
     }
-    costCoefficient = parameters[parameters.length - 1];
-    costStandardError = errors[errors.length - 1];
+    costCoefficients = new double[parameters.length];
+    costStandardErrors = new double[parameters.length];
+    java.util.Arrays.fill(costCoefficients, parameters[parameters.length - 1]);
+    java.util.Arrays.fill(costStandardErrors, errors[errors.length - 1]);
+    conditional = true;
+    this.logLikelihood = logLikelihood;
+    this.nullLogLikelihood = nullLogLikelihood;
+    this.totalQuantity = totalQuantity;
+    this.observations = observations;
+    this.iterations = iterations;
+    this.probit = probit;
+  }
+
+  /** Creates a mode-specific result with parameters already on the original log-cost scale. */
+  LogCostChoiceEstimate(
+      double[] intercepts,
+      double[] interceptStandardErrors,
+      double[] costCoefficients,
+      double[] costStandardErrors,
+      double logLikelihood,
+      double nullLogLikelihood,
+      double totalQuantity,
+      int observations,
+      int iterations,
+      boolean probit) {
+    this.intercepts = intercepts.clone();
+    this.interceptStandardErrors = interceptStandardErrors.clone();
+    this.costCoefficients = costCoefficients.clone();
+    this.costStandardErrors = costStandardErrors.clone();
+    conditional = false;
     this.logLikelihood = logLikelihood;
     this.nullLogLikelihood = nullLogLikelihood;
     this.totalQuantity = totalQuantity;
@@ -103,8 +132,9 @@ public class LogCostChoiceEstimate {
   protected LogCostChoiceEstimate(LogCostChoiceEstimate source) {
     intercepts = source.intercepts.clone();
     interceptStandardErrors = source.interceptStandardErrors.clone();
-    costCoefficient = source.costCoefficient;
-    costStandardError = source.costStandardError;
+    costCoefficients = source.costCoefficients.clone();
+    costStandardErrors = source.costStandardErrors.clone();
+    conditional = source.conditional;
     logLikelihood = source.logLikelihood;
     nullLogLikelihood = source.nullLogLikelihood;
     totalQuantity = source.totalQuantity;
@@ -135,18 +165,43 @@ public class LogCostChoiceEstimate {
    * Returns the common log-cost coefficient, estimated for logit/probit and fixed for proportional.
    *
    * @return common coefficient of log(cost), or -1 for proportional choice
+   * @throws IllegalStateException for a mode-specific result; use {@link #getCostCoefficients()}
    */
   public double getCostCoefficient() {
-    return costCoefficient;
+    requireConditional();
+    return costCoefficients[0];
   }
 
   /**
    * Returns the standard error of the shared log-cost coefficient.
    *
    * @return conventional standard error, or zero when the cost coefficient is fixed
+   * @throws IllegalStateException for a mode-specific result; use {@link #getCostStandardErrors()}
    */
   public double getCostStandardError() {
-    return costStandardError;
+    requireConditional();
+    return costStandardErrors[0];
+  }
+
+  /** Whether the result has a single common log-cost coefficient. */
+  public boolean isConditional() {
+    return conditional;
+  }
+
+  /** Returns log-cost coefficients in input mode order, repeating a common coefficient. */
+  public double[] getCostCoefficients() {
+    return costCoefficients.clone();
+  }
+
+  /** Returns log-cost coefficient standard errors in input mode order. */
+  public double[] getCostStandardErrors() {
+    return costStandardErrors.clone();
+  }
+
+  private void requireConditional() {
+    if (!conditional) {
+      throw new IllegalStateException("This estimate has mode-specific cost coefficients");
+    }
   }
 
   /**
@@ -221,7 +276,7 @@ public class LogCostChoiceEstimate {
           .append('\n');
       text.append(probit ? "probit.log(cost)" : "log(cost)")
           .append(suffix)
-          .append(costCoefficient)
+          .append(costCoefficients[mode])
           .append('\n');
     }
     return text.toString();

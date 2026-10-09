@@ -107,6 +107,7 @@ public final class LogitCalibration implements AutoCloseable {
   private String mergedTable = "";
   private boolean overwriteMergedTable;
   private boolean estimatePivots;
+  private boolean conditional = true;
   private double pivotMaxAbs = ModalParameterTable.DEFAULT_PIVOT_MAX_ABS;
   private final StringBuilder skippedDetails = new StringBuilder();
   private String temporaryTable;
@@ -121,6 +122,11 @@ public final class LogitCalibration implements AutoCloseable {
    */
   public LogitCalibration(AssignmentParameters parameters, LogitCalibrationSettings settings) {
     this(parameters, settings, false);
+  }
+
+  /** Selects common or mode-specific cost coefficients before starting estimation. */
+  public void setConditional(boolean conditional) {
+    this.conditional = conditional;
   }
 
   /**
@@ -235,6 +241,12 @@ public final class LogitCalibration implements AutoCloseable {
     StringBuilder report = new StringBuilder("# Estimated by Nodus at " + Instant.now() + "\n");
     report.append("# Observed matrices: ").append(settings.encode()).append('\n');
     report.append("# Model: ").append(method).append('\n');
+    if (!"Proportional".equals(method)) {
+      report
+          .append("# Cost coefficients: ")
+          .append(conditional ? "conditional (common)" : "mode-specific")
+          .append("; negative coefficients required.\n");
+    }
     report
         .append("# Routing: ")
         .append(exact ? "Exact multi-flow" : "Fast multi-flow")
@@ -599,6 +611,22 @@ public final class LogitCalibration implements AutoCloseable {
       return new GroupFit(group, groupReport.toString(), pivots);
     } catch (CancellationException cancelled) {
       throw cancelled;
+    } catch (NonNegativeCostCoefficientException failure) {
+      int[] invalidModes =
+          Arrays.stream(failure.getModeColumns()).map(column -> modes[column]).toArray();
+      throw new IllegalArgumentException(
+          java.text.MessageFormat.format(
+              com.bbn.openmap.Environment.getI18n()
+                  .get(
+                      LogitCalibration.class,
+                      "NonNegativeCostCoefficients",
+                      "{0} estimation failed for commodity group {1}: cost coefficients are zero or"
+                          + " positive for modes {2}. All cost coefficients must be negative.\n"
+                          + "No estimated coefficients have been saved."),
+              method,
+              group,
+              Arrays.toString(invalidModes)),
+          failure);
     } catch (IllegalArgumentException | IllegalStateException failure) {
       throw new IllegalArgumentException(
           method
@@ -657,10 +685,10 @@ public final class LogitCalibration implements AutoCloseable {
       result = ProportionalEstimator.estimate(costs, quantities, reference, proceed);
       referenceKey = Proportional.REFERENCE_PREFIX;
     } else if ("MNP".equals(method)) {
-      result = LogCostProbitEstimator.estimate(costs, quantities, reference, proceed);
+      result = LogCostProbitEstimator.estimate(costs, quantities, reference, conditional, proceed);
       referenceKey = "probit.reference.";
     } else {
-      result = LogCostLogitEstimator.estimate(costs, quantities, reference, proceed);
+      result = LogCostLogitEstimator.estimate(costs, quantities, reference, conditional, proceed);
       referenceKey = "mnl.reference.";
     }
     fitted.load(new java.io.StringReader(result.toCostFileEntries(modes, group)));
@@ -704,7 +732,20 @@ public final class LogitCalibration implements AutoCloseable {
         .append("): ")
         .append(Arrays.toString(result.getInterceptStandardErrors()))
         .append('\n');
-    report.append("# Log-cost SE=").append(result.getCostStandardError()).append('\n');
+    if (result.isConditional()) {
+      report.append("# Log-cost SE=").append(result.getCostStandardError()).append('\n');
+    } else {
+      report
+          .append("# Log-cost coefficients (modes ")
+          .append(Arrays.toString(modes))
+          .append("): ")
+          .append(Arrays.toString(result.getCostCoefficients()))
+          .append('\n');
+      report
+          .append("# Log-cost SEs: ")
+          .append(Arrays.toString(result.getCostStandardErrors()))
+          .append('\n');
+    }
     return result;
   }
 
