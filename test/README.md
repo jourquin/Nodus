@@ -10,6 +10,10 @@ Ant's `lib` directory):
 ant -f build-tests.xml
 ```
 
+On Fedora, install Ant's optional JUnit 5 task with `sudo dnf install ant-junit5`.
+The test fork uses the repository's JUnit libraries rather than Ant's system JUnit
+Platform libraries to avoid mixing incompatible versions.
+
 The default target is `Test`; `ant -f build-tests.xml Test` is equivalent. It builds
 the application using the normal build, recompiles the tests, then runs JUnit
 Jupiter in a separate JVM with `java.awt.headless=true`.

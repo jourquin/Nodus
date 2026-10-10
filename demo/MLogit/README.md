@@ -205,8 +205,7 @@ with the data used for calibration.
 
 `LogCostLogitEstimator` and `LogCostProbitEstimator` are Java 11 classes with no additional
 dependencies. Both accept the same cost/quantity arrays; probit returns `LogCostChoiceEstimate`.
-Developers can call them directly from Java or Groovy, as illustrated in the
-[Java API example](#java-api). For estimation from a Nodus project, use
+Developers can call them directly from Java or Groovy. For estimation from a Nodus project, use
 **Project → Modal choice estimation…** to compute route costs, fill the parameter table, and link it
 from the selected cost file.
 

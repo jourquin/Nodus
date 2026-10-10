@@ -45,7 +45,8 @@
 				<listener type="legacy-plain" sendSysOut="true" sendSysErr="true" />
 				<listener type="legacy-xml" sendSysOut="true" sendSysErr="true" />
 				<!-- Resolve repository fixtures consistently when Ant is launched from Eclipse or elsewhere. -->
-				<fork dir="${basedir}" timeout="120000">
+				<!-- Use the project's matched JUnit versions, not those bundled with system Ant. -->
+				<fork dir="${basedir}" timeout="120000" includeJUnitPlatformLibraries="false">
 					<sysproperty key="java.awt.headless" value="true" />
 				</fork>
 			</testclasses>
