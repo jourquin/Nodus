@@ -116,36 +116,57 @@ class ModeSpecificChoiceEstimatorTest {
   }
 
   @Test
-  void rejectsZeroAndPositiveCoefficientsWithoutClampingThem() {
-    for (boolean probit : new boolean[] {false, true}) {
-      for (double invalid : new double[] {0, 0.5}) {
-        NonNegativeCostCoefficientException failure =
-            assertThrows(
-                NonNegativeCostCoefficientException.class,
-                () ->
-                    fit(
-                        probit,
-                        COSTS,
-                        quantities(
-                            probit, new double[] {0, 0.4, -0.2}, new double[] {-0.7, invalid, -2}),
-                        0,
-                        false));
-        assertArrayEquals(new int[] {1}, failure.getModeColumns());
-        assertTrue(failure.getMessage().contains("zero or positive"));
-        assertTrue(
-            NonNegativeCostCoefficientException.causedBy(
-                new IllegalArgumentException("group failed", failure)));
+  void logitFitsModeSpecificCostAtTheZeroBound() {
+    for (double generatingSlope : new double[] {0, 0.5}) {
+      LogCostChoiceEstimate result =
+          fit(
+              false,
+              COSTS,
+              quantities(
+                  false,
+                  new double[] {0, 0.4, -0.2},
+                  new double[] {-0.7, generatingSlope, -2}),
+              0,
+              false);
+      assertEquals(0, result.getCostCoefficients()[1], 1e-8);
+      assertTrue(result.getCostCoefficients()[0] < 0);
+      assertTrue(result.getCostCoefficients()[2] < 0);
+      if (generatingSlope == 0) {
+        assertArrayEquals(new double[] {0, 0.4, -0.2}, result.getIntercepts(), 2e-7);
+        assertArrayEquals(new double[] {-0.7, 0, -2}, result.getCostCoefficients(), 2e-7);
       }
-      for (double coefficient : new double[] {0, 1}) {
-        double[][] quantities =
-            quantities(
-                probit,
-                new double[] {0, 0.4, -0.2},
-                new double[] {coefficient, coefficient, coefficient});
-        assertThrows(
-            NonNegativeCostCoefficientException.class,
-            () -> fit(probit, COSTS, quantities, 0, true));
-      }
+    }
+  }
+
+  @Test
+  void probitRejectsZeroAndPositiveCoefficientsWithoutClampingThem() {
+    for (double invalid : new double[] {0, 0.5}) {
+      NonNegativeCostCoefficientException failure =
+          assertThrows(
+              NonNegativeCostCoefficientException.class,
+              () ->
+                  fit(
+                      true,
+                      COSTS,
+                      quantities(
+                          true, new double[] {0, 0.4, -0.2}, new double[] {-0.7, invalid, -2}),
+                      0,
+                      false));
+      assertArrayEquals(new int[] {1}, failure.getModeColumns());
+      assertTrue(failure.getMessage().contains("zero or positive"));
+      assertTrue(
+          NonNegativeCostCoefficientException.causedBy(
+              new IllegalArgumentException("group failed", failure)));
+    }
+    for (double coefficient : new double[] {0, 1}) {
+      double[][] quantities =
+          quantities(
+              true,
+              new double[] {0, 0.4, -0.2},
+              new double[] {coefficient, coefficient, coefficient});
+      assertThrows(
+          NonNegativeCostCoefficientException.class,
+          () -> fit(true, COSTS, quantities, 0, true));
     }
   }
 

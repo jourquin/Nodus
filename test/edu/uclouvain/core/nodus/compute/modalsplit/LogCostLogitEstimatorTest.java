@@ -62,6 +62,20 @@ class LogCostLogitEstimatorTest {
   }
 
   @Test
+  void fitsAZeroBoundWhenCostDoesNotReduceDemand() {
+    double[][] costs = {{1, 1}, {1, 2}};
+    LogCostLogitEstimator.Result flat =
+        LogCostLogitEstimator.estimate(costs, new double[][] {{1, 1}, {1, 1}});
+    assertEquals(0, flat.getCostCoefficient(), 1e-8);
+    assertEquals(0, flat.getIntercepts()[1], 1e-8);
+
+    LogCostLogitEstimator.Result increasing =
+        LogCostLogitEstimator.estimate(costs, new double[][] {{1, 1}, {1, 2}});
+    assertEquals(0, increasing.getCostCoefficient(), 1e-8);
+    assertEquals(Math.log(1.5), increasing.getIntercepts()[1], 1e-8);
+  }
+
+  @Test
   void recoversSharedSlopeWithUnavailableModesAndFractionalFlows() {
     // With beta=-1 and exp(intercepts)=[1,2,3], unnormalised shares are [1/c1,2/c2,3/c3].
     double[][] costs = {{1, 2, 3}, {2, 1, 3}, {3, 2, 1}, {1, Double.NaN, 2}, {0, 1, 3}, {2, 3, -1}};

@@ -36,9 +36,9 @@ import java.util.List;
  * coefficients/uncertainty are transformed back before returning. Proportional choice instead fixes
  * the cost coefficient at -1 and puts the centered log cost in a utility offset, so its optimizer
  * has only the intercept parameters. Mode-specific log costs are also centered per mode, then
- * intercepts and their covariance are transformed back to the original cost units. Fitting starts
- * with negative slopes and rejects converged slopes that are nonnegative or zero at solver
- * precision.
+ * intercepts and their covariance are transformed back to the original cost units. Logit slopes
+ * have a zero upper bound; a boundary solution means the corresponding mode has no fitted cost
+ * sensitivity. Probit fits still reject nonnegative slopes.
  *
  * <p>The objective is negative log-likelihood divided by total quantity. Damped Newton steps use
  * analytic softmax derivatives or {@link ProbitProbabilities} derivatives. The information matrix's
@@ -136,6 +136,7 @@ final class LogCostChoiceEstimator {
     int modes = costs[0].length;
     int slopes = proportional ? 0 : conditional ? 1 : modes;
     int size = modes - 1 + slopes;
+    boolean boundedLogit = !proportional && !probit;
     if (referenceMode < 0 || referenceMode >= modes) {
       throw new IllegalArgumentException("Reference mode must be a zero-based column index");
     }
@@ -260,8 +261,7 @@ final class LogCostChoiceEstimator {
           "Quantity weights make the log-likelihood exceed the numeric range");
     }
     if (!proportional) {
-      // Seek the maximum likelihood estimate from a negative-cost starting point. Do not clamp
-      // a nonnegative optimum to an arbitrary negative value: report it as a failed estimate.
+      // Start with negative cost coefficients, including when logit is bounded above by zero.
       for (int slope = 0; slope < slopes; slope++) {
         parameters[modes - 1 + slope] = -1;
       }
@@ -272,7 +272,10 @@ final class LogCostChoiceEstimator {
         throw new java.util.concurrent.CancellationException("Modal estimation canceled");
       }
       Cholesky information = new Cholesky(current.information);
-      double[] step = information.solve(current.gradient);
+      double[] step =
+          boundedLogit
+              ? boundedNewtonStep(current, parameters, modes - 1)
+              : information.solve(current.gradient);
       double relativeStep = 0;
       double improvement = 0;
       for (int p = 0; p < size; p++) {
@@ -280,7 +283,7 @@ final class LogCostChoiceEstimator {
         improvement += current.gradient[p] * step[p];
       }
       if (relativeStep < TOLERANCE) {
-        if (!proportional) {
+        if (!proportional && !boundedLogit) {
           List<Integer> invalid = new ArrayList<>();
           for (int mode = 0; mode < modes; mode++) {
             if (parameters[modes - 1 + (conditional ? 0 : mode)] >= -TOLERANCE) {
@@ -341,13 +344,22 @@ final class LogCostChoiceEstimator {
       double fraction = 1;
       for (int search = 0; search < 50; search++) {
         double[] candidate = new double[size];
+        double predictedImprovement = 0;
         for (int p = 0; p < size; p++) {
           candidate[p] = parameters[p] - fraction * step[p];
+          if (boundedLogit && p >= modes - 1) {
+            candidate[p] = Math.min(0, candidate[p]);
+          }
+          predictedImprovement += current.gradient[p] * (parameters[p] - candidate[p]);
+        }
+        if (!Double.isFinite(predictedImprovement) || predictedImprovement <= 0) {
+          fraction *= 0.5;
+          continue;
         }
         Evaluation next = evaluate(observations, candidate, continueEstimation, probit);
         double roundoff = 1e-14 * Math.max(1, current.loss);
         if (Double.isFinite(next.loss)
-            && next.loss <= current.loss - 1e-4 * fraction * improvement + roundoff) {
+            && next.loss <= current.loss - 1e-4 * predictedImprovement + roundoff) {
           parameters = candidate;
           current = next;
           accepted = true;
@@ -363,6 +375,34 @@ final class LogCostChoiceEstimator {
         "Modal estimation did not converge in "
             + MAX_ITERATIONS
             + " iterations; check separation or weak identification");
+  }
+
+  /** Solves the free Newton system while holding logit slopes active at their zero upper bound. */
+  private static double[] boundedNewtonStep(
+      Evaluation current, double[] parameters, int firstSlope) {
+    int size = parameters.length;
+    int[] free = new int[size];
+    int count = 0;
+    for (int p = 0; p < size; p++) {
+      // At the upper bound, a nonpositive loss gradient satisfies the KKT condition.
+      if (p < firstSlope || parameters[p] < 0 || current.gradient[p] > 0) {
+        free[count++] = p;
+      }
+    }
+    double[][] reducedInformation = new double[count][count];
+    double[] reducedGradient = new double[count];
+    for (int p = 0; p < count; p++) {
+      reducedGradient[p] = current.gradient[free[p]];
+      for (int q = 0; q <= p; q++) {
+        reducedInformation[p][q] = current.information[free[p]][free[q]];
+      }
+    }
+    double[] freeStep = new Cholesky(reducedInformation).solve(reducedGradient);
+    double[] step = new double[size];
+    for (int p = 0; p < count; p++) {
+      step[free[p]] = freeStep[p];
+    }
+    return step;
   }
 
   /** Removes per-mode centering/scaling and transforms uncertainty using the full covariance. */

@@ -21,8 +21,8 @@ package edu.uclouvain.core.nodus.compute.modalsplit;
  *
  * <p>One intercept is fixed at zero. NaN or nonpositive costs denote unavailable modes, which must
  * have zero observed quantity; infinite costs are rejected. Observations with zero total quantity
- * are ignored. Fits start with negative cost coefficients; a zero or positive fitted coefficient is
- * reported as a failed estimate rather than clamped or regularized. Standard errors treat
+ * are ignored. Cost coefficients have a zero upper bound. A coefficient estimated at zero means
+ * that mode has no fitted cost sensitivity. Standard errors treat
  * quantities as frequency weights, not independent survey observations. The logit error scale
  * follows the usual standard Gumbel convention.
  *
@@ -86,7 +86,7 @@ public final class LogCostLogitEstimator {
 
   /**
    * Fits a common log-cost coefficient when conditional, or one coefficient per mode otherwise. All
-   * fitted cost coefficients must be strictly negative.
+   * fitted cost coefficients are nonpositive; zero is an active upper bound.
    *
    * @param costs costs by OD row and mode
    * @param quantities observed quantities with the same shape
@@ -95,8 +95,7 @@ public final class LogCostLogitEstimator {
    * @param continueEstimation returns false to cancel
    * @return fitted coefficients and likelihood diagnostics
    * @throws IllegalArgumentException for invalid observations
-   * @throws IllegalStateException for unidentified models, numerical failure, nonconvergence or a
-   *     nonnegative cost coefficient at solver precision
+   * @throws IllegalStateException for unidentified models, numerical failure or nonconvergence
    * @throws java.util.concurrent.CancellationException on callback cancellation or interruption
    */
   public static Result estimate(

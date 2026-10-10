@@ -79,10 +79,11 @@ assignment reads the coefficients from the parameter table or legacy cost file.
 The checkbox is disabled for **Proportional**, which estimates modal adjustment factors
 and fixes the common log-cost coefficient at -1.
 
-Logit and probit fits start with negative cost coefficients. A converged coefficient
-that is positive or zero at solver precision causes estimation to fail with a warning
-identifying the affected modes and commodity group. Coefficients are not clamped to
-an arbitrary negative value, and failed runs do not replace existing saved parameters.
+Logit fits constrain each cost coefficient to be at most zero. A coefficient at the
+zero bound means the fitted modal utility does not respond to cost; the estimation
+report identifies these modes, and standard errors at the boundary need caution.
+Probit fits start with negative cost coefficients and still fail if a converged
+coefficient is zero or positive. Failed runs do not replace existing saved parameters.
 
 Groups without parameters for the selected embedded logit or probit model use
 `V = -C` (cost factor 1, modal constants 0), after one warning per assignment.

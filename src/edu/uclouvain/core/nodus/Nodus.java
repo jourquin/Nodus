@@ -64,8 +64,6 @@ import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
  * 
  * TODO Biogeme script for normal logit
  * 
- * TODO Check only WAPE on first use 
- * 
  */
 
 /**

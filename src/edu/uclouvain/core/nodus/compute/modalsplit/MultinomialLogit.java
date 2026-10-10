@@ -49,9 +49,9 @@ import javax.swing.SwingUtilities;
  * from its {@code param_key,param_value} rows. Otherwise legacy cost-file coefficients are read per
  * commodity group from {@code (intercept).mode.group}, {@code log(cost).mode.group} and {@code
  * mnl.reference.group}. Coefficients may differ by mode. Legacy saved coefficients of either sign
- * remain readable; new estimates require negative slopes. The reference intercept must be zero; for
- * older R demo files, the smallest mode with a slope is the default reference and its missing
- * intercept defaults to zero. Incomplete or invalid saved coefficients are errors.
+ * remain readable; new estimates constrain slopes to be nonpositive. The reference intercept must
+ * be zero. For older R demo files, the smallest mode with a slope is the default reference and its
+ * missing intercept defaults to zero. Incomplete or invalid saved coefficients are errors.
  *
  * <p>If this model has no parameters at all for a group, assignment warns once and uses {@code V =
  * -C}: cost factor one and zero modal constants. This preserves the former built-in MNL, including

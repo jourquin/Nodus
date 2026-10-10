@@ -249,7 +249,10 @@ public final class LogitCalibration implements AutoCloseable {
       report
           .append("# Cost coefficients: ")
           .append(conditional ? "conditional (common)" : "mode-specific")
-          .append("; negative coefficients required.\n");
+          .append(
+              "MNL".equals(method)
+                  ? "; cost coefficients bounded above by zero.\n"
+                  : "; negative coefficients required.\n");
     }
     report
         .append("# Routing: ")
@@ -749,6 +752,21 @@ public final class LogitCalibration implements AutoCloseable {
           .append("# Log-cost SEs: ")
           .append(Arrays.toString(result.getCostStandardErrors()))
           .append('\n');
+    }
+    if ("MNL".equals(method)) {
+      List<Integer> atBound = new ArrayList<>();
+      double[] coefficients = result.getCostCoefficients();
+      for (int mode = 0; mode < modes.length; mode++) {
+        if (coefficients[mode] == 0) {
+          atBound.add(modes[mode]);
+        }
+      }
+      if (!atBound.isEmpty()) {
+        report
+            .append("# Cost coefficient at zero upper bound for modes ")
+            .append(atBound)
+            .append("; curvature SEs at the boundary need caution.\n");
+      }
     }
     return result;
   }

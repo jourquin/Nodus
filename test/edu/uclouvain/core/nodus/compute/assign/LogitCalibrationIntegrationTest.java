@@ -873,38 +873,72 @@ class LogitCalibrationIntegrationTest {
   }
 
   @Test
-  void nonnegativeCostFitLeavesExistingParametersAndReportsUntouched() throws Exception {
-    for (boolean probit : new boolean[] {false, true}) {
-      for (boolean zero : new boolean[] {false, true}) {
-        try (AssignmentTestProject project = project()) {
-          AssignmentParameters parameters = parameters(project);
-          parameters.setModalSplitMethodName(probit ? "MNP" : "MNL");
-          for (int origin : new int[] {1, 3, 5}) {
-            double rail = zero ? 20 : 20 * Math.pow(2, (origin - 1) / 2);
-            project.execute("UPDATE observed_road SET qty=20 WHERE org=" + origin);
-            project.execute("UPDATE observed_rail SET qty=" + rail + " WHERE org=" + origin);
-          }
-          project.execute("CREATE TABLE previous_params (sentinel INT)");
-          project.execute("INSERT INTO previous_params VALUES (71)");
-          Path report = directory.resolve("model_params.txt");
-          Files.writeString(report, "previous report");
-          byte[] before = Files.readAllBytes(parameters.getCostFunctionsPath());
-          project.panel.prepareRun(2);
-          try (LogitCalibration calibration =
-              new LogitCalibration(parameters, settings(parameters))) {
-            IllegalArgumentException failure =
-                assertThrows(
-                    IllegalArgumentException.class,
-                    () -> calibration.estimateToTable(false, "previous_params", false));
-            assertTrue(failure.getMessage().contains("zero or positive"));
-            assertTrue(failure.getMessage().contains("No estimated coefficients have been saved"));
-          }
-          assertArrayEquals(before, Files.readAllBytes(parameters.getCostFunctionsPath()));
-          assertEquals("previous report", Files.readString(report));
-          assertEquals(71, project.number("SELECT sentinel FROM previous_params"));
-          assertNoTemporaryTables(project);
+  void probitNonnegativeCostFitLeavesExistingParametersAndReportsUntouched() throws Exception {
+    for (boolean zero : new boolean[] {false, true}) {
+      try (AssignmentTestProject project = project()) {
+        AssignmentParameters parameters = parameters(project);
+        parameters.setModalSplitMethodName("MNP");
+        for (int origin : new int[] {1, 3, 5}) {
+          double rail = zero ? 20 : 20 * Math.pow(2, (origin - 1) / 2);
+          project.execute("UPDATE observed_road SET qty=20 WHERE org=" + origin);
+          project.execute("UPDATE observed_rail SET qty=" + rail + " WHERE org=" + origin);
         }
+        project.execute("CREATE TABLE previous_params (sentinel INT)");
+        project.execute("INSERT INTO previous_params VALUES (71)");
+        Path report = directory.resolve("model_params.txt");
+        Files.writeString(report, "previous report");
+        byte[] before = Files.readAllBytes(parameters.getCostFunctionsPath());
+        project.panel.prepareRun(2);
+        try (LogitCalibration calibration =
+            new LogitCalibration(parameters, settings(parameters))) {
+          IllegalArgumentException failure =
+              assertThrows(
+                  IllegalArgumentException.class,
+                  () -> calibration.estimateToTable(false, "previous_params", false));
+          assertTrue(failure.getMessage().contains("zero or positive"));
+          assertTrue(failure.getMessage().contains("No estimated coefficients have been saved"));
+        }
+        assertArrayEquals(before, Files.readAllBytes(parameters.getCostFunctionsPath()));
+        assertEquals("previous report", Files.readString(report));
+        assertEquals(71, project.number("SELECT sentinel FROM previous_params"));
+        assertNoTemporaryTables(project);
       }
+    }
+  }
+
+  @Test
+  void logitSavesAZeroBoundCostCoefficient() throws Exception {
+    try (AssignmentTestProject project = project()) {
+      AssignmentParameters parameters = parameters(project);
+      parameters.setModalSplitMethodName("MNL");
+      for (int origin : new int[] {1, 3, 5}) {
+        project.execute("UPDATE observed_road SET qty=20 WHERE org=" + origin);
+        project.execute("UPDATE observed_rail SET qty=20 WHERE org=" + origin);
+      }
+      project.panel.prepareRun(2);
+      try (LogitCalibration calibration = new LogitCalibration(parameters, settings(parameters))) {
+        assertTrue(calibration.estimateToTable(false, "bounded_params", false));
+      }
+      for (int group = 0; group < 2; group++) {
+        assertEquals(
+            0,
+            project.number(
+                "SELECT param_value FROM bounded_params WHERE param_key='log(cost).1."
+                    + group
+                    + "'"),
+            1e-8);
+        assertEquals(
+            0,
+            project.number(
+                "SELECT param_value FROM bounded_params WHERE param_key='log(cost).2."
+                    + group
+                    + "'"),
+            1e-8);
+      }
+      assertTrue(
+          Files.readString(directory.resolve("model_params.txt"))
+              .contains("Cost coefficient at zero upper bound"));
+      assertNoTemporaryTables(project);
     }
   }
 

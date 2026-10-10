@@ -29,6 +29,8 @@ package edu.uclouvain.core.nodus.compute.modalsplit;
  * They are not robust or clustered survey errors. Changing the quantity unit changes likelihoods
  * and standard errors even though the fitted modal shares remain the same. Array getters return
  * copies, so a result may be retained or shared independently of subsequent assignments.
+ * For logit coefficients at the zero upper bound, the curvature standard error is descriptive;
+ * symmetric normal confidence intervals are not appropriate at that boundary.
  *
  * <p>Export methods produce property text only. They do not update a file, select an assignment
  * method or persist the reference mode; {@link LogitCalibration} performs those bookkeeping steps.

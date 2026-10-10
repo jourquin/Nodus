@@ -120,11 +120,12 @@ pairwise probits and does not use random draws. Log probabilities and analytical
 the integral support stable estimation of small shares; quadrature is refined and checked before
 accepting a result. This costs more computation than logit's closed-form probabilities.
 
-Each group has one shared log-cost coefficient and one intercept per mode except the reference,
-whose intercept is zero. The errors' variance is fixed at one to identify coefficient scale.
+With **Conditional** checked, each group has one shared log-cost coefficient; uncheck it to fit
+one coefficient per mode. Each mode except the reference has an intercept, and the reference
+intercept is zero. The errors' variance is fixed at one to identify coefficient scale.
 This initial specification does **not** estimate correlations or mode-specific variances.
 It is an independent-error multinomial probit, rather than a general covariance model.
-Coefficients are unconstrained as for logit; inspect the fitted cost coefficient's sign.
+MNP still rejects a fitted zero or positive cost coefficient; inspect the fit before using it.
 
 Probit coefficients use their own parameter-table keys (or the same keys in an unlinked legacy
 cost file):
@@ -220,8 +221,9 @@ directly, without expanding flows into individual observations.
 The solver uses analytical derivatives and damped Newton steps, with scaled log-cost differences,
 stable logit exponentials and probit normal integrals. Unidentified models (for example, constant cost ratios when fitting the cost coefficient, disconnected choice
 sets or a mode with no observed flow), singular information and nonconvergence produce descriptive
-exceptions. It does not add ridge penalties or impose a negative cost coefficient. Inspect the sign
-and fit before using an estimate. Perfect or near separation can prevent finite, reliable estimates;
+exceptions. MNL cost coefficients have a zero upper bound; a fitted zero means that mode has no
+cost sensitivity. MNP still rejects a nonnegative coefficient. Inspect the fit before using an
+estimate. Perfect or near separation can prevent finite, reliable estimates;
 the convergence checks are not a general separation test.
 
 ## Optional external estimation examples
@@ -237,9 +239,14 @@ uses another database or port.
    source is `demo_path5_header`; adjust that name to the scenario actually assigned. The script
    combines route costs with `od_road`, `od_iww`, and `od_rail` in `mlogit_input`.
 2. Run [`MLogit.R`](MLogit.R) with R, RJDBC and `mlogit`, or [`MLogit.py`](MLogit.py) with the
-   packages in [`Python-requirements.txt`](Python-requirements.txt) to estimate externally. The R
-   script writes `mlogit.txt` and `mlogit_coefs.txt`; its coefficient lines can be copied into a
-   **separate cost file without `@paramTable`**.
+   packages in [`Python-requirements.txt`](Python-requirements.txt) to estimate externally. The
+   Python script fits one shared log-cost coefficient with a zero upper bound. The R script writes
+   `mlogit.txt` and `mlogit_coefs.txt`; its coefficient lines can be copied into a **separate cost
+   file without `@paramTable`**.
 3. [`MLogit.java`](MLogit.java) implements the external plug-in, built with [`compile.sh`](compile.sh)
    or [`compile.bat`](compile.bat). Select that plug-in and the unlinked cost file in Assignment.
    A file linked to a built-in parameter table locks Assignment to the method stored in that table.
+
+The Python script prints results separately for groups 0 and 1. Copy its `log(cost)` value to all
+three `log(cost).<mode>.<group>` keys for that group. Copy `(Intercept).2` from group 0 as
+`(intercept).2.0 = <estimate>` (and likewise for mode 3); reference mode 1 has intercept zero.

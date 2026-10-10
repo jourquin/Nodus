@@ -52,7 +52,7 @@ except ModuleNotFoundError as exc:
     raise SystemExit(
         f"Missing Python package: {missing_package}\n"
         "Install the demo dependencies with:\n"
-        "  python3 -m pip install -r requirements.txt\n"
+        f"  python3 -m pip install -r \"{SCRIPT_DIR / 'Python-requirements.txt'}\"\n"
         "or install the missing package directly with:\n"
         f"  python3 -m pip install {missing_package}"
     ) from exc
@@ -149,11 +149,12 @@ def run():
         share3 = Variable('share3')
         weight = Variable('weight')
         
-        # Parameters to estimate (use same names as for the R solution) 
+        # Parameters to estimate (use same names as for the R solution).
+        # The log-cost coefficient has an upper bound of zero.
         INTERCEPT1 = Beta('(Intercept).1', 0, None, None, 1)
         INTERCEPT2 = Beta('(Intercept).2', 0, None, None, 0)
         INTERCEPT3 = Beta('(Intercept).3', 0, None, None, 0)
-        B_COST = Beta('log(cost)', 0, None, None, 0)
+        B_COST = Beta('log(cost)', 0, None, 0, 0)
     
         # Utility functions. Unavailable modes receive a very negative utility so their
         # probability is effectively zero while the share-weighted likelihood remains finite.

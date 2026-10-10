@@ -54,8 +54,9 @@
  * sets must jointly identify finite coefficients. See the estimator classes for validation,
  * statistical assumptions, uncertainty and cooperative cancellation contracts. Logit and probit
  * estimation defaults to a common cost coefficient (the Conditional checkbox); unchecking it
- * estimates one slope per mode. Fits start with negative slopes and fail if any converged slope is
- * zero or positive. Proportional choice fixes the common slope at -1.
+ * estimates one slope per mode. MNL cost slopes are bounded above by zero, so a fitted zero means
+ * no cost sensitivity for that mode. MNP fits still fail if a converged slope is zero or positive.
+ * Proportional choice fixes the common slope at -1.
  *
  * <p>{@link edu.uclouvain.core.nodus.compute.modalsplit.LogitCalibration} connects these numerical
  * APIs to a project: it reads observed modal matrices, builds scratch demand, routes once per
