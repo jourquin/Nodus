@@ -288,7 +288,9 @@ for the workflow mechanism.
   commit/rollback, and preservation of work preceding a savepoint after failed inserts.
 - `ServiceHandlerPersistenceTest`: the real service-saving workflow replaces names, stops and
   frequency, avoids duplicate rows on repeated saves, removes deleted services, and never
-  publishes partially loaded services after a read error. Failed replacement/retry tests run
+  publishes partially loaded services after a read error. It also checks service tables imported
+  after project loading and preserves pending edits when the editor rechecks those tables.
+  Failed replacement/retry tests run
   on H2 and HSQLDB with auto-commit both enabled and disabled; they assert that previously saved
   services and earlier pending work survive a failed save, and that connection mode is restored.
   Legacy path-index migration is checked on both engines. Error callbacks are captured; unexpected

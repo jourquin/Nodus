@@ -89,9 +89,10 @@ If Pandoc is outside Ant's search path, supply its location:
 ant -Dpandoc.executable=/path/to/pandoc ServicesWorkflowHtml
 ```
 
-The target checks the usual Homebrew locations and Ant's environment path. If Pandoc
+The targets check the usual Homebrew locations and Ant's environment path. If Pandoc
 is unavailable, generation is skipped with a warning. Conversion failures also produce
-a warning without aborting the build. `Installer` invokes this target automatically.
+a warning without aborting the build. `ant build` runs `MarkdownHelp`; `Installer`
+runs it through `Jar` and also runs `ServicesWorkflowHtml`.
 If Eclipse regenerates `build.xml`, retain `MarkdownHelp` in the dependencies of
 its `build` target, alongside `build-subprojects,build-project`, and retain the
 `build-user.xml` import. The conversion implementation belongs in `build-user.xml`.

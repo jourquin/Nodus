@@ -2586,6 +2586,20 @@ public class ServiceHandler {
     return services.containsStop(serviceId, nodeId);
   }
 
+  /** Loads service tables imported after the project opened, without replacing pending edits. */
+  void loadServicesForEditor() {
+    if (mustBeSaved
+        || !services.isEmpty()
+        || (serviceEditorDlg != null && serviceEditorDlg.isVisible())) {
+      return;
+    }
+    if (JDBCUtils.tableExists(servicesHeaderTableName)
+        && JDBCUtils.tableExists(servicesLinksTableName)
+        && JDBCUtils.tableExists(serviceStopsTableName)) {
+      loadService();
+    }
+  }
+
   /** Load the services from the database. */
   private void loadService() {
 
@@ -3166,6 +3180,7 @@ public class ServiceHandler {
 
   /** Displays the GUI. */
   public void showGUI() {
+    loadServicesForEditor();
     serviceEditorDlg.showAllServices();
   }
 
@@ -3175,6 +3190,7 @@ public class ServiceHandler {
    * @param linkId The link ID.
    */
   public void showGUIForLink(int linkId) {
+    loadServicesForEditor();
     serviceEditorDlg.showServicesForLink(linkId);
   }
 }

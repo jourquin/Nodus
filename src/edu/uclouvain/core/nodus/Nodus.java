@@ -61,6 +61,12 @@ import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
  * screenshot
  * 
  * TODO test on Windows and Linux before publishing the new version
+ * 
+ * TODO Biogeme script for normal logit
+ * 
+ * TODO Check only WAPE on first use 
+ * 
+ * TODO Load services after SQL import 
  */
 
 /**

@@ -24,6 +24,7 @@ package edu.uclouvain.core.nodus.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.bbn.openmap.dataAccess.shape.EsriPoint;
@@ -51,6 +52,58 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 @ResourceLock("JDBCUtils")
 class ServiceHandlerPersistenceTest {
   @TempDir Path directory;
+
+  @TestFactory
+  Stream<DynamicTest> importsServiceTablesAfterProjectOpened() {
+    return Stream.of(false, true)
+        .map(
+            hsql ->
+                DynamicTest.dynamicTest(
+                    hsql ? "HSQLDB late service import" : "H2 late service import",
+                    () -> {
+                      try (NetworkTestProject project = project(hsql)) {
+                        ServiceHandler handler = project.getServiceHandler();
+                        assertTrue(names(handler).isEmpty());
+                        handler.loadServicesForEditor();
+                        assertTrue(names(handler).isEmpty());
+
+                        handler.resetServicesTables();
+                        Connection connection = project.getMainJDBCConnection();
+                        execute(
+                            connection,
+                            "INSERT INTO "
+                                + handler.getServiceHeaderTableName()
+                                + " (id,name,mode,means,frequency)"
+                                + " VALUES (7,'Imported',3,1,365)");
+                        execute(
+                            connection,
+                            "INSERT INTO "
+                                + handler.getServiceLinkDetailTableName()
+                                + " (id,pathidx,link) VALUES (7,0,11)");
+                        execute(
+                            connection,
+                            "INSERT INTO "
+                                + handler.getServiceStopDetailTableName()
+                                + " (id,stop) VALUES (7,1),(7,2)");
+
+                        handler.loadServicesForEditor();
+                        TransportService imported = handler.getService("Imported");
+                        assertEquals(List.of("Imported"), names(handler));
+                        assertEquals(365, imported.getFrequency());
+                        assertEquals(1, imported.getLinks().size());
+                        assertEquals(List.of(1, 2), imported.getStopNodes());
+                        handler.loadServicesForEditor();
+                        assertSame(imported, handler.getService("Imported"));
+
+                        handler.removeService("Imported");
+                        handler.loadServicesForEditor();
+                        assertTrue(names(handler).isEmpty(), "Pending deletion must not be undone");
+                        handler.discardPendingChanges();
+                        assertEquals(List.of("Imported"), names(handler));
+                        assertTrue(project.serviceErrors.isEmpty());
+                      }
+                    }));
+  }
 
   @Test
   void changedNamesStopsAndFrequencyReplaceOldRowsWithoutDuplicates() throws Exception {
