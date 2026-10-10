@@ -13,13 +13,15 @@ link volumes, travel times, transport costs, or the feasibility of individual pa
    using the same matrix editor as modal-choice estimation. The IDs must match
    `ldmode` in the assignment results. At least one mapped mode is required.
 3. Select the assignment's **path-header table** from the dropdown.
-4. Check the indicators to display and click **Compute**.
+4. Check the indicators to display and click **Compute**. On the first opening,
+   only WAPE is checked.
 
 The computation runs in the background with a busy cursor. **Cancel** stops it;
 closing during computation requests cancellation and waits for reading to finish.
-The HTML results can be scrolled and the dialog resized. The last matrix mappings,
-path-header table, and checkbox choices are remembered independently of estimation
-preferences. The comparison does not modify matrices or assignment result tables.
+The HTML results can be scrolled and the dialog resized. When **Compute** starts,
+the matrix mappings, path-header table, and checkbox choices are saved for later
+openings, independently of estimation preferences. The comparison does not modify
+matrices or assignment result tables.
 
 ### Inputs and aggregation
 

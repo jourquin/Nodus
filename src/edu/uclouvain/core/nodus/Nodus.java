@@ -66,7 +66,6 @@ import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
  * 
  * TODO Check only WAPE on first use 
  * 
- * TODO Load services after SQL import 
  */
 
 /**

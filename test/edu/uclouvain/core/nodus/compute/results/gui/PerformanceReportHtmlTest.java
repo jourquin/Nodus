@@ -117,6 +117,7 @@ class PerformanceReportHtmlTest {
     assertEquals(
         EnumSet.of(Indicator.JENSEN_SHANNON), PerformanceDlg.savedIndicators("JENSEN_SHANNON"));
     assertEquals(EnumSet.of(Indicator.WAPE), PerformanceDlg.savedIndicators("WAPE,UNKNOWN"));
-    assertEquals(EnumSet.allOf(Indicator.class), PerformanceDlg.savedIndicators(""));
+    assertEquals(EnumSet.of(Indicator.WAPE), PerformanceDlg.savedIndicators(""));
+    assertEquals(EnumSet.of(Indicator.WAPE), PerformanceDlg.savedIndicators(null));
   }
 }

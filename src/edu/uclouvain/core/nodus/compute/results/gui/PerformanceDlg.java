@@ -228,10 +228,10 @@ public final class PerformanceDlg extends EscapeDialog {
     }
   }
 
-  /** Restores checkbox choices, migrating the former KL checkbox to Jensen–Shannon. */
+  /** Defaults to WAPE or restores saved choices, migrating the former KL checkbox. */
   static EnumSet<Indicator> savedIndicators(String encoded) {
     if (encoded == null || encoded.isBlank()) {
-      return EnumSet.allOf(Indicator.class);
+      return EnumSet.of(Indicator.WAPE);
     }
     EnumSet<Indicator> selected = EnumSet.noneOf(Indicator.class);
     for (String name : encoded.split(",")) {
