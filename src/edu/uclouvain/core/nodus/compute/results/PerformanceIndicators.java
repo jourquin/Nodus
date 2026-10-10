@@ -420,7 +420,7 @@ public final class PerformanceIndicators {
   }
 
   /**
-   * Aggregates all paths, classes and departure times by mode/group/OD, as ComputeWAPE.groovy does.
+   * Aggregates all paths, classes and departure times by mode/group/OD.
    * Null quantities are zero; negative/nonfinite quantities and null/nonintegral OD keys are
    * errors. Tables present on one side only are retained. RMSE uses the complete selected-mode grid
    * over the union of OD/group keys. Share scores require positive totals on both sides and are

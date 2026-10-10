@@ -106,10 +106,8 @@ many paths for one OD; their quantities are summed before
 comparison.</p>
 <p>Both sides are aggregated by <strong>commodity group, origin,
 destination, and mode</strong>. Duplicate matrix rows, paths, OD
-classes, and departure times are combined. This matches the aggregation
-used by <code>../demo/ComputeWAPE.groovy</code>. Consequently, this
-report does not measure accuracy separately by OD class or departure
-time.</p>
+classes, and departure times are combined. This report does not measure
+accuracy separately by OD class or departure time.</p>
 <p>An absent modal cell is treated as zero. Null quantities are also
 treated as zero; negative or nonfinite quantities and invalid OD/mode
 keys are rejected. Only the selected modes enter the comparison. Other
