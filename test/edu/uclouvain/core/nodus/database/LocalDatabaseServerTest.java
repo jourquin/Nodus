@@ -217,10 +217,15 @@ class LocalDatabaseServerTest {
     }
 
     private static String url(int engine, Path directory, int port, String host) {
+      return url(engine, directory, port, host, "project");
+    }
+
+    private static String url(
+        int engine, Path directory, int port, String host, String databaseName) {
       if (engine == JDBCUtils.DB_HSQLDB) {
-        return "jdbc:hsqldb:hsql://" + host + ":" + port + "/project";
+        return "jdbc:hsqldb:hsql://" + host + ":" + port + "/" + databaseName;
       }
-      return "jdbc:h2:tcp://" + host + ":" + port + "/" + directory.resolve("project");
+      return "jdbc:h2:tcp://" + host + ":" + port + "/" + directory.resolve(databaseName);
     }
 
     private static Connection connect(int engine, Path directory, int port, String host)
@@ -242,7 +247,7 @@ class LocalDatabaseServerTest {
             assertEquals(42, rows.getInt(1));
           }
           if (engine == JDBCUtils.DB_H2) {
-            String other = url(engine, directory, port, HOST).replace("/project", "/unrelated");
+            String other = url(engine, directory, port, HOST, "unrelated");
             assertThrows(
                 SQLException.class,
                 () -> {
