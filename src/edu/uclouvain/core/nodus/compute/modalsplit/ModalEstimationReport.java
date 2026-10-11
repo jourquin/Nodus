@@ -18,6 +18,8 @@ package edu.uclouvain.core.nodus.compute.modalsplit;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /** Standalone HTML presentation of behavioral estimates and workflow diagnostics. */
@@ -42,7 +44,7 @@ final class ModalEstimationReport {
         + "Changing the quantity unit changes likelihoods and uncertainty. T-statistics are "
         + "asymptotic estimate/SE ratios for a zero coefficient, not finite-sample Student tests.</p>"
         + groups + "<h2>Workflow diagnostics and saved parameters</h2><pre>"
-        + escape(diagnostics) + "</pre><p>Robust errors, coefficient correlations, bootstrap "
+        + escape(diagnostics) + "</pre><p>Robust errors, bootstrap "
         + "statistics and optimizer gradient diagnostics are not available in this report. "
         + "BIC is omitted because aggregate flow quantities do not define an unambiguous "
         + "independent sample size.</p></body></html>";
@@ -84,12 +86,84 @@ final class ModalEstimationReport {
       errors = estimate.getCostStandardErrors();
       for (int i = 0; i < (estimate.isConditional() ? 1 : modes.length); i++) {
         boolean boundary = values[i] == 0;
-        parameter(html, estimate.isConditional() ? "Common log-cost coefficient"
-            : "Log-cost coefficient, mode " + modes[i], values[i], errors[i],
+        parameter(html, estimate.isConditional() ? "Common log-cost coef."
+            : "Log-cost coef., mode " + modes[i], values[i], errors[i],
             boundary ? "At zero upper bound; curvature SE only" : "Estimated", !boundary);
       }
     }
-    return html.append("</table>").toString();
+    html.append("</table>");
+    appendCorrelations(html, modes, reference, estimate);
+    return html.toString();
+  }
+
+  /** Lists each distinct pair once; fixed reference and fixed cost parameters are omitted. */
+  private static void appendCorrelations(
+      StringBuilder html, int[] modes, int reference, LogCostChoiceEstimate estimate) {
+    boolean proportional = estimate instanceof ProportionalEstimator.Result;
+    double[][] covariance = proportional
+        ? ((ProportionalEstimator.Result) estimate).getCostFactorCovariance()
+        : estimate.getCoefficientCovariance();
+    html.append("<h3>Correlation of coefficients</h3><p>")
+        .append(proportional ? "Delta-method covariance of cost factors derived from conventional "
+            + "inverse information" : "Conventional inverse-information covariance")
+        .append(" with quantity frequency weights; not robust or clustered. "
+        + "Fixed parameters are omitted. Boundary entries describe curvature only.</p>");
+    if (covariance == null) {
+      html.append("<p>Full covariance is unavailable for this estimate.</p>");
+      return;
+    }
+    List<String> names = new ArrayList<>();
+    List<Integer> indexes = new ArrayList<>();
+    List<Double> errors = new ArrayList<>();
+    List<Boolean> boundaries = new ArrayList<>();
+    double[] interceptErrors = proportional
+        ? ((ProportionalEstimator.Result) estimate).getCostFactorStandardErrors()
+        : estimate.getInterceptStandardErrors();
+    for (int mode = 0; mode < modes.length; mode++) {
+      if (modes[mode] != reference) {
+        names.add((proportional ? "Cost factor, mode " : "Intercept, mode ") + modes[mode]);
+        indexes.add(mode);
+        errors.add(interceptErrors[mode]);
+        boundaries.add(false);
+      }
+    }
+    if (!proportional) {
+      double[] coefficients = estimate.getCostCoefficients();
+      double[] coefficientErrors = estimate.getCostStandardErrors();
+      for (int mode = 0; mode < (estimate.isConditional() ? 1 : modes.length); mode++) {
+        names.add(estimate.isConditional() ? "Common log-cost coef."
+            : "Log-cost coef., mode " + modes[mode]);
+        indexes.add(modes.length + mode);
+        errors.add(coefficientErrors[mode]);
+        boundaries.add(coefficients[mode] == 0);
+      }
+    }
+    if (names.size() < 2) {
+      html.append("<p>Fewer than two estimated coefficients; no coefficient pairs.</p>");
+      return;
+    }
+    html.append("<table><tr><th>Coefficient 1</th><th>Coefficient 2</th>"
+        + "<th>Covariance</th><th>Correlation</th><th>Status</th></tr>");
+    for (int first = 0; first < names.size(); first++) {
+      for (int second = first + 1; second < names.size(); second++) {
+        double value = covariance[indexes.get(first)][indexes.get(second)];
+        double correlation = errors.get(first) > 0 && errors.get(second) > 0
+            ? value / errors.get(first) / errors.get(second) : Double.NaN;
+        // Remove only tiny roundoff outside the mathematical [-1,1] range.
+        if (Double.isFinite(correlation) && Math.abs(correlation) <= 1 + 1e-12) {
+          correlation = Math.max(-1, Math.min(1, correlation));
+        } else {
+          correlation = Double.NaN;
+        }
+        html.append("<tr><td>").append(escape(names.get(first))).append("</td><td>")
+            .append(escape(names.get(second))).append("</td><td>").append(number(value))
+            .append("</td><td>").append(number(correlation)).append("</td><td>")
+            .append(boundaries.get(first) || boundaries.get(second)
+                ? "Includes coefficient at zero upper bound; curvature only" : "Estimated")
+            .append("</td></tr>");
+      }
+    }
+    html.append("</table>");
   }
 
   private static void metric(StringBuilder html, String label, double value) {

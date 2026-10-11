@@ -325,6 +325,15 @@ final class LogCostChoiceEstimator {
           parameters[modes - 1] /= costScales[0];
           errors[modes - 1] /= costScales[0];
         }
+        double[][] transforms = new double[modes + 1][size];
+        for (int mode = 0; mode < modes; mode++) {
+          if (mode != referenceMode) {
+            transforms[mode][mode < referenceMode ? mode : mode - 1] = 1;
+          }
+        }
+        if (!proportional) {
+          transforms[modes][modes - 1] = 1 / costScales[0];
+        }
         return new LogCostChoiceEstimate(
             parameters,
             errors,
@@ -334,7 +343,8 @@ final class LogCostChoiceEstimator {
             totalQuantity,
             observations.size(),
             iteration,
-            probit);
+            probit,
+            transformedCovariance(transforms, information, totalQuantity));
       }
       if (!Double.isFinite(improvement) || improvement <= 0) {
         throw new IllegalStateException(
@@ -423,11 +433,13 @@ final class LogCostChoiceEstimator {
     double[] interceptErrors = new double[modes];
     double[] coefficients = new double[modes];
     double[] coefficientErrors = new double[modes];
+    double[][] transforms = new double[2 * modes][parameters.length];
     for (int mode = 0; mode < modes; mode++) {
       coefficients[mode] = parameters[modes - 1 + mode] / scales[mode];
       double[] slope = new double[parameters.length];
       slope[modes - 1 + mode] = 1 / scales[mode];
       coefficientErrors[mode] = standardError(slope, information, quantity);
+      transforms[modes + mode] = slope;
       if (mode != reference) {
         int index = mode < reference ? mode : mode - 1;
         intercepts[mode] =
@@ -439,6 +451,7 @@ final class LogCostChoiceEstimator {
         transform[modes - 1 + mode] = -centers[mode] / scales[mode];
         transform[modes - 1 + reference] = centers[reference] / scales[reference];
         interceptErrors[mode] = standardError(transform, information, quantity);
+        transforms[mode] = transform;
       }
     }
     return new LogCostChoiceEstimate(
@@ -451,7 +464,26 @@ final class LogCostChoiceEstimator {
         quantity,
         observations,
         iterations,
-        probit);
+        probit,
+        transformedCovariance(transforms, information, quantity));
+  }
+
+  /** Applies reporting-scale Jacobians to the inverse normalized information matrix. */
+  private static double[][] transformedCovariance(
+      double[][] transforms, Cholesky information, double quantity) {
+    double[][] result = new double[transforms.length][transforms.length];
+    for (int column = 0; column < transforms.length; column++) {
+      double[] solved = information.solve(transforms[column]);
+      for (int row = 0; row <= column; row++) {
+        double value = 0;
+        for (int parameter = 0; parameter < solved.length; parameter++) {
+          value += transforms[row][parameter] * solved[parameter];
+        }
+        result[row][column] = value / quantity;
+        result[column][row] = result[row][column];
+      }
+    }
+    return result;
   }
 
   private static double standardError(double[] transform, Cholesky information, double quantity) {

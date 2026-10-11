@@ -68,6 +68,54 @@ class ModeSpecificChoiceEstimatorTest {
   }
 
   @Test
+  void covarianceMatchesIndependentInformationAndChangesWithCostUnits() {
+    double[][] costs = {{1, 1}, {2, 1}, {1, 2}, {4, 2}};
+    double[][] observed = {{2, 3}, {1, 3}, {8, 3}, {2, 3}};
+    LogCostChoiceEstimate result = fit(false, costs, observed, 0, false);
+    double[][] covariance = result.getCoefficientCovariance();
+    // Independent inverse binomial information for features [1, -ln(C0), ln(C1)].
+    double[][] expected = {
+      {0, 0, 0, 0},
+      {0, .55439330543933041, .15593984054239135, -.68915348884863292},
+      {0, .15593984054239135, .58493145003156199, .19013900733035899},
+      {0, -.68915348884863292, .19013900733035899, 1.7446342504663461}
+    };
+    for (int row = 0; row < expected.length; row++) {
+      assertArrayEquals(expected[row], covariance[row], 1e-8);
+    }
+    double[][] changedCosts = Arrays.stream(costs)
+        .map(row -> new double[] {row[0] * 10, row[1] * 20}).toArray(double[][]::new);
+    LogCostChoiceEstimate changed = fit(false, changedCosts, observed, 0, false);
+    // New intercept = old intercept + beta0*ln(10) - beta1*ln(20).
+    double[] transform = {0, 1, Math.log(10), -Math.log(20)};
+    double[][] changedCovariance = changed.getCoefficientCovariance();
+    double variance = 0;
+    for (int row = 0; row < 4; row++) {
+      for (int column = 0; column < 4; column++) {
+        variance += transform[row] * covariance[row][column] * transform[column];
+      }
+    }
+    assertEquals(variance, changedCovariance[1][1], 1e-7);
+    for (int slope = 2; slope < 4; slope++) {
+      double cross = 0;
+      for (int row = 0; row < 4; row++) {
+        cross += transform[row] * covariance[row][slope];
+      }
+      assertEquals(cross, changedCovariance[1][slope], 1e-8);
+    }
+    assertEquals(Math.pow(changed.getInterceptStandardErrors()[1], 2),
+        changedCovariance[1][1], 1e-10);
+    double[][] doubled = Arrays.stream(observed)
+        .map(row -> Arrays.stream(row).map(q -> 2 * q).toArray()).toArray(double[][]::new);
+    double[][] doubledCovariance = fit(false, costs, doubled, 0, false).getCoefficientCovariance();
+    for (int row = 0; row < 4; row++) {
+      for (int column = 0; column < 4; column++) {
+        assertEquals(covariance[row][column] / 2, doubledCovariance[row][column], 1e-9);
+      }
+    }
+  }
+
+  @Test
   void recoversModeSpecificCoefficientsAndReferenceChangesWithUnavailableModes() throws Exception {
     double[] alpha = {0, 0.4, -0.2};
     double[] beta = {-0.7, -1.3, -2};

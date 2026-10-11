@@ -127,6 +127,26 @@ public final class ProportionalEstimator {
     }
 
     /**
+     * Returns delta-method covariance of the reported factors k = exp(-intercept).
+     *
+     * @return a new matrix in input mode order; the fixed reference has zero covariance
+     */
+    public double[][] getCostFactorCovariance() {
+      double[][] interceptCovariance = getCoefficientCovariance();
+      if (interceptCovariance == null) {
+        return null;
+      }
+      double[][] covariance = new double[factors.length][factors.length];
+      for (int row = 0; row < factors.length; row++) {
+        for (int column = 0; column < factors.length; column++) {
+          covariance[row][column] =
+              interceptCovariance[row][column] * factors[row] * factors[column];
+        }
+      }
+      return covariance;
+    }
+
+    /**
      * Returns approximate factor uncertainty, transformed from intercept uncertainty.
      *
      * @return delta-method standard errors k * SE(ln(k)); the reference error is zero

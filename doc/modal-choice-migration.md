@@ -56,7 +56,11 @@ The cost file receives a single `@paramTable=<table>` property. The estimation r
 `<cost-file-stem>_params.html`, for example `NodusEstimated_params.html`. The standalone HTML report
 contains per-group likelihoods, OD row counts, total quantity, iteration counts, AIC,
 baseline rho-square measures, parameter estimates, standard errors and asymptotic
-t-statistics. These describe the behavioral model before optional pivot fitting.
+t-statistics. A correlation-of-coefficients table lists conventional covariance and
+correlation for each estimated pair, on the reported coefficient scale. Fixed
+parameters are omitted and pairs involving a cost coefficient at its zero bound
+are flagged as curvature diagnostics. Proportional factors use delta-method covariance.
+No pairwise equality tests are reported. These describe the behavioral model before optional pivot fitting.
 Standard errors use quantities as frequency weights, not robust or clustered errors;
 changing quantity units changes likelihoods and uncertainty. Fixed reference parameters
 and cost coefficients at the zero bound have no t-statistic. BIC, robust covariance

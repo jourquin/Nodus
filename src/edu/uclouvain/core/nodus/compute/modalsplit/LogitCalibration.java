@@ -268,7 +268,7 @@ public final class LogitCalibration implements AutoCloseable {
       report.append("# Probit errors: independent N(0,1); deterministic normal integration.\n");
     } else if ("Proportional".equals(method)) {
       report.append("# Modal shares proportional to 1/(k*C); reference factor k=1.\n");
-      report.append("# Positive modal cost factors only; log-cost coefficient fixed at -1.\n");
+      report.append("# Positive modal cost factors only; log-cost coef. fixed at -1.\n");
     }
     report.append("# Cost per mode: cheapest admissible route; no averaging across routes.\n");
     report.append("# SEs use original quantities as frequency weights; not robust/clustered.\n");
@@ -765,7 +765,7 @@ public final class LogitCalibration implements AutoCloseable {
       report.append("# Log-cost SE=").append(result.getCostStandardError()).append('\n');
     } else {
       report
-          .append("# Log-cost coefficients (modes ")
+          .append("# Log-cost coef. (modes ")
           .append(Arrays.toString(modes))
           .append("): ")
           .append(Arrays.toString(result.getCostCoefficients()))

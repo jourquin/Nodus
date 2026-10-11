@@ -45,6 +45,7 @@ public class LogCostChoiceEstimate {
   private final double[] costCoefficients;
   private final double[] costStandardErrors;
   private final boolean conditional;
+  private final double[][] coefficientCovariance;
   private final double logLikelihood;
   private final double nullLogLikelihood;
   private final double totalQuantity;
@@ -79,6 +80,21 @@ public class LogCostChoiceEstimate {
       int observations,
       int iterations,
       boolean probit) {
+    this(parameters, errors, referenceMode, logLikelihood, nullLogLikelihood, totalQuantity,
+        observations, iterations, probit, null);
+  }
+
+  LogCostChoiceEstimate(
+      double[] parameters,
+      double[] errors,
+      int referenceMode,
+      double logLikelihood,
+      double nullLogLikelihood,
+      double totalQuantity,
+      int observations,
+      int iterations,
+      boolean probit,
+      double[][] covariance) {
     intercepts = new double[parameters.length];
     interceptStandardErrors = new double[parameters.length];
     for (int mode = 0; mode < parameters.length; mode++) {
@@ -93,6 +109,7 @@ public class LogCostChoiceEstimate {
     java.util.Arrays.fill(costCoefficients, parameters[parameters.length - 1]);
     java.util.Arrays.fill(costStandardErrors, errors[errors.length - 1]);
     conditional = true;
+    coefficientCovariance = copyMatrix(covariance);
     this.logLikelihood = logLikelihood;
     this.nullLogLikelihood = nullLogLikelihood;
     this.totalQuantity = totalQuantity;
@@ -113,11 +130,28 @@ public class LogCostChoiceEstimate {
       int observations,
       int iterations,
       boolean probit) {
+    this(intercepts, interceptStandardErrors, costCoefficients, costStandardErrors, logLikelihood,
+        nullLogLikelihood, totalQuantity, observations, iterations, probit, null);
+  }
+
+  LogCostChoiceEstimate(
+      double[] intercepts,
+      double[] interceptStandardErrors,
+      double[] costCoefficients,
+      double[] costStandardErrors,
+      double logLikelihood,
+      double nullLogLikelihood,
+      double totalQuantity,
+      int observations,
+      int iterations,
+      boolean probit,
+      double[][] covariance) {
     this.intercepts = intercepts.clone();
     this.interceptStandardErrors = interceptStandardErrors.clone();
     this.costCoefficients = costCoefficients.clone();
     this.costStandardErrors = costStandardErrors.clone();
     conditional = false;
+    coefficientCovariance = copyMatrix(covariance);
     this.logLikelihood = logLikelihood;
     this.nullLogLikelihood = nullLogLikelihood;
     this.totalQuantity = totalQuantity;
@@ -137,12 +171,39 @@ public class LogCostChoiceEstimate {
     costCoefficients = source.costCoefficients.clone();
     costStandardErrors = source.costStandardErrors.clone();
     conditional = source.conditional;
+    coefficientCovariance = copyMatrix(source.coefficientCovariance);
     logLikelihood = source.logLikelihood;
     nullLogLikelihood = source.nullLogLikelihood;
     totalQuantity = source.totalQuantity;
     observations = source.observations;
     iterations = source.iterations;
     probit = source.probit;
+  }
+
+  /**
+   * Returns conventional inverse-information covariance on the original coefficient scale.
+   *
+   * <p>Rows and columns contain all mode intercepts (including the fixed reference), followed
+   * by one common cost coefficient or all mode-specific coefficients. Fixed parameters have
+   * zero rows and columns. Proportional estimates use internal -ln(k) intercepts and a fixed
+   * cost coefficient; use their factor covariance for reporting k. Returns null for snapshots
+   * constructed with marginal errors only. This matrix is not robust or clustered.
+   *
+   * @return a defensive matrix copy, or null when full covariance was not supplied
+   */
+  public double[][] getCoefficientCovariance() {
+    return copyMatrix(coefficientCovariance);
+  }
+
+  private static double[][] copyMatrix(double[][] matrix) {
+    if (matrix == null) {
+      return null;
+    }
+    double[][] copy = new double[matrix.length][];
+    for (int row = 0; row < matrix.length; row++) {
+      copy[row] = matrix[row].clone();
+    }
+    return copy;
   }
 
   /**

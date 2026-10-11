@@ -50,6 +50,20 @@ class ProportionalEstimatorTest {
   }
 
   @Test
+  void factorCovarianceUsesTheDeltaMethodAndExcludesTheFixedReference() {
+    ProportionalEstimator.Result result = ProportionalEstimator.estimate(
+        new double[][] {{10, 10, 10}}, new double[][] {{40, 20, 10}});
+    double[][] covariance = result.getCostFactorCovariance();
+    assertArrayEquals(new double[] {0, 0, 0}, covariance[0], 0);
+    assertEquals(.3, covariance[1][1], 1e-9);
+    assertEquals(.2, covariance[1][2], 1e-9);
+    assertEquals(2, covariance[2][2], 1e-9);
+    assertEquals(Math.pow(result.getCostFactorStandardErrors()[1], 2), covariance[1][1], 1e-12);
+    covariance[1][2] = 99;
+    assertEquals(.2, result.getCostFactorCovariance()[1][2], 1e-9);
+  }
+
+  @Test
   void constantCostRatiosIdentifyFactorsAndReferenceRescalesThem() {
     double[][] costs = {{10, 20}, {20, 40}};
     double[][] quantities = {{20, 20}, {40, 40}};

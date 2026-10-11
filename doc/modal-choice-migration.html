@@ -115,16 +115,21 @@ is saved beside it as <code>&lt;cost-file-stem&gt;_params.html</code>,
 for example <code>NodusEstimated_params.html</code>. The standalone HTML
 report contains per-group likelihoods, OD row counts, total quantity,
 iteration counts, AIC, baseline rho-square measures, parameter
-estimates, standard errors and asymptotic t-statistics. These describe
-the behavioral model before optional pivot fitting. Standard errors use
-quantities as frequency weights, not robust or clustered errors;
-changing quantity units changes likelihoods and uncertainty. Fixed
-reference parameters and cost coefficients at the zero bound have no
-t-statistic. BIC, robust covariance and bootstrap diagnostics are
-omitted. To assign with the fitted parameters, select the updated cost
-file in the assignment dialog. Its parameter table selects and locks the
-embedded modal method automatically; estimation does not change scenario
-settings.</p>
+estimates, standard errors and asymptotic t-statistics. A
+correlation-of-coefficients table lists conventional covariance and
+correlation for each estimated pair, on the reported coefficient scale.
+Fixed parameters are omitted and pairs involving a cost coefficient at
+its zero bound are flagged as curvature diagnostics. Proportional
+factors use delta-method covariance. No pairwise equality tests are
+reported. These describe the behavioral model before optional pivot
+fitting. Standard errors use quantities as frequency weights, not robust
+or clustered errors; changing quantity units changes likelihoods and
+uncertainty. Fixed reference parameters and cost coefficients at the
+zero bound have no t-statistic. BIC, robust covariance and bootstrap
+diagnostics are omitted. To assign with the fitted parameters, select
+the updated cost file in the assignment dialog. Its parameter table
+selects and locks the embedded modal method automatically; estimation
+does not change scenario settings.</p>
 <p>If the optional merged OD table already exists, choose
 <strong>Cancel</strong> to return to the estimation dialog,
 <strong>Overwrite</strong> to replace it, or <strong>Skip

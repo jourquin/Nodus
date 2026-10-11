@@ -62,6 +62,23 @@ class LogCostLogitEstimatorTest {
   }
 
   @Test
+  void retainsAnalyticalCovarianceForBinaryCommonSlope() {
+    LogCostChoiceEstimate result = LogCostLogitEstimator.estimate(
+        new double[][] {{1, 1}, {1, 2}}, new double[][] {{2, 3}, {8, 3}});
+    double[][] covariance = result.getCoefficientCovariance();
+    double logTwo = Math.log(2);
+    // Independent inverse of the two-row binomial information, in original cost units.
+    assertArrayEquals(new double[] {0, 0, 0}, covariance[0], 0);
+    assertEquals(5.0 / 6, covariance[1][1], 1e-9);
+    assertEquals(-5.0 / (6 * logTwo), covariance[1][2], 1e-9);
+    assertEquals(covariance[1][2], covariance[2][1], 0);
+    assertEquals(31.0 / (24 * logTwo * logTwo), covariance[2][2], 1e-9);
+    assertEquals(Math.pow(result.getCostStandardError(), 2), covariance[2][2], 1e-12);
+    covariance[1][2] = 100;
+    assertEquals(-5.0 / (6 * logTwo), result.getCoefficientCovariance()[1][2], 1e-9);
+  }
+
+  @Test
   void fitsAZeroBoundWhenCostDoesNotReduceDemand() {
     double[][] costs = {{1, 1}, {1, 2}};
     LogCostLogitEstimator.Result flat =

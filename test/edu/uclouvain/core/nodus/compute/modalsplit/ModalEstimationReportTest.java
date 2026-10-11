@@ -41,4 +41,31 @@ class ModalEstimationReportTest {
     String html = ModalEstimationReport.group(5, "MNL", new int[] {1, 2}, 1, result);
     assertTrue(html.contains("<td>—</td><td>At zero upper bound; curvature SE only"));
   }
+  @Test
+  void reportsEachEstimatedPairOnceWithConventionalCovariance() {
+    LogCostChoiceEstimate result = LogCostLogitEstimator.estimate(
+        new double[][] {{1, 1}, {1, 2}}, new double[][] {{2, 3}, {8, 3}});
+    String html = ModalEstimationReport.group(5, "MNL", new int[] {1, 2}, 1, result);
+    String correlations = html.substring(html.indexOf("<h3>Correlation of coefficients"));
+    assertTrue(correlations.contains("<th>Covariance</th><th>Correlation</th>"));
+    assertTrue(correlations.contains("<td>-1.2022459</td><td>-0.80321933</td>"));
+    assertFalse(correlations.contains("<td>Intercept, mode 1</td>"));
+    assertFalse(correlations.contains("t-test"));
+    assertFalse(ModalEstimationReport.document(html, "").contains("coefficient correlations, bootstrap"));
+  }
+
+  @Test
+  void flagsBoundaryPairsAndReportsProportionalFactors() {
+    LogCostChoiceEstimate boundary = LogCostLogitEstimator.estimate(
+        new double[][] {{1, 1}, {1, 2}}, new double[][] {{1, 1}, {1, 2}});
+    String html = ModalEstimationReport.group(1, "MNL", new int[] {1, 2}, 1, boundary);
+    assertTrue(html.contains("Includes coefficient at zero upper bound; curvature only"));
+    ProportionalEstimator.Result factors = ProportionalEstimator.estimate(
+        new double[][] {{10, 10, 10}}, new double[][] {{40, 20, 10}});
+    html = ModalEstimationReport.group(1, "Proportional", new int[] {1, 2, 3}, 1, factors);
+    String correlations = html.substring(html.indexOf("<h3>Correlation of coefficients"));
+    assertTrue(correlations.contains("<td>Cost factor, mode 2</td><td>Cost factor, mode 3</td>"));
+    assertTrue(correlations.contains("<td>0.20000000</td><td>0.25819889</td>"));
+    assertFalse(correlations.contains("Common log-cost coef."));
+  }
 }
