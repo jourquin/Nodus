@@ -276,12 +276,18 @@ public final class LogitCalibration implements AutoCloseable {
     try {
       Map<Integer, GroupFit> results = fitGroups(groups, fitted);
       StringBuilder htmlGroups = new StringBuilder();
+      StringBuilder htmlPivots = new StringBuilder();
       int pivotCount = 0;
       for (GroupFit result : results.values()) {
         report.append(result.report);
-        htmlGroups.append(result.html);
+        htmlGroups.append(result.behavioralHtml);
+        if (!result.pivotHtml.isEmpty()) {
+          htmlPivots.append("<h3>Commodity group ").append(result.group).append("</h3>")
+              .append(result.pivotHtml);
+        }
         pivotCount += result.pivots;
       }
+      String htmlLayers = ModalEstimationReport.layers(htmlGroups.toString(), htmlPivots.toString());
       checkCancelled("Saving " + method + " coefficients");
       report.append(skippedDetails);
       if (outputTable != null) {
@@ -341,7 +347,7 @@ public final class LogitCalibration implements AutoCloseable {
                               .getNodusMapPanel()
                               .updateProgress("Saving modal parameters"),
                   merge == null ? () -> {} : merge::write,
-                  htmlGroups.toString());
+                  htmlLayers);
           if (merge != null) {
             merge.complete();
           }
@@ -351,7 +357,7 @@ public final class LogitCalibration implements AutoCloseable {
       } else {
         java.nio.file.Path htmlFile = reportPath();
         byte[] previousHtml = Files.exists(htmlFile) ? Files.readAllBytes(htmlFile) : null;
-        String html = ModalEstimationReport.document(htmlGroups.toString(), report.toString());
+        String html = ModalEstimationReport.document(htmlLayers, report.toString());
         Properties saved;
         try {
           writeReport(htmlFile, html);
@@ -616,6 +622,7 @@ public final class LogitCalibration implements AutoCloseable {
         fitted.setProperty(key, groupCoefficients.getProperty(key));
       }
       int pivots = 0;
+      String pivotHtml = "";
       if (outputTable != null && estimatePivots) {
         List<ModalPivotEstimator.Row> pivotRows = new ArrayList<>(rows.size());
         for (Observation row : rows) {
@@ -623,8 +630,8 @@ public final class LogitCalibration implements AutoCloseable {
               new ModalPivotEstimator.Row(
                   row.group, row.origin, row.destination, row.costs, row.quantities));
         }
-        pivots =
-            ModalPivotEstimator.estimate(
+        ModalPivotEstimator.Result pivotResult =
+            ModalPivotEstimator.estimateWithDiagnostics(
                 pivotRows,
                 Map.of(group, behavioral),
                 modes,
@@ -633,9 +640,12 @@ public final class LogitCalibration implements AutoCloseable {
                 pivotMaxAbs,
                 fitted,
                 proceed);
+        pivots = pivotResult.saved;
+        pivotHtml = ModalEstimationReport.pivots(pivotResult.groups.get(group));
       }
       return new GroupFit(group, groupReport.toString(), pivots,
-          ModalEstimationReport.group(group, method, modes, settings.getReferenceMode(), behavioral));
+          ModalEstimationReport.group(group, method, modes, settings.getReferenceMode(), behavioral),
+          pivotHtml);
     } catch (CancellationException cancelled) {
       throw cancelled;
     } catch (NonNegativeCostCoefficientException failure) {
@@ -670,13 +680,15 @@ public final class LogitCalibration implements AutoCloseable {
     final int group;
     final String report;
     final int pivots;
-    final String html;
+    final String behavioralHtml;
+    final String pivotHtml;
 
-    GroupFit(int group, String report, int pivots, String html) {
+    GroupFit(int group, String report, int pivots, String behavioralHtml, String pivotHtml) {
       this.group = group;
       this.report = report;
       this.pivots = pivots;
-      this.html = html;
+      this.behavioralHtml = behavioralHtml;
+      this.pivotHtml = pivotHtml;
     }
   }
 
@@ -806,7 +818,9 @@ public final class LogitCalibration implements AutoCloseable {
   }
 
   private void writeReport(String contents) throws Exception {
-    writeReport(reportPath(), ModalEstimationReport.document("", contents));
+    // An empty calibration's outcome must remain visible even when workflow detail is hidden.
+    writeReport(reportPath(), ModalEstimationReport.document(
+        "<h2>No usable observations</h2><p>No coefficients were saved.</p>", contents));
   }
 
   private static void writeReport(java.nio.file.Path destination, String contents)

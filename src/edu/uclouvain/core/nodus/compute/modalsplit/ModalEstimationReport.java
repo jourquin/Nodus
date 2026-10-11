@@ -16,6 +16,7 @@
 
 package edu.uclouvain.core.nodus.compute.modalsplit;
 
+import edu.uclouvain.core.nodus.NodusC;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -27,6 +28,13 @@ final class ModalEstimationReport {
   private ModalEstimationReport() {}
 
   static String document(String groups, String diagnostics) {
+    return document(groups, diagnostics, NodusC.includeEstimationWorkflowDiagnostics);
+  }
+
+  static String document(String groups, String diagnostics, boolean includeWorkflowDiagnostics) {
+    String workflow = includeWorkflowDiagnostics
+        ? "<h2>Workflow diagnostics and saved parameters</h2><pre>" + escape(diagnostics) + "</pre>"
+        : "";
     String generatedAt = ZonedDateTime.now().format(
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss XXX '['VV']'", Locale.ROOT));
     return "<!doctype html><html lang=\"en\"><head><meta charset=\"UTF-8\">"
@@ -39,15 +47,24 @@ final class ModalEstimationReport {
         + "@media print{body{max-width:none;margin:0}tr{break-inside:avoid}}</style></head><body>"
         + "<h1>Nodus modal split estimation</h1>"
         + "<p>Generated at: " + escape(generatedAt) + "</p>"
-        + "<p>Behavioral estimates before optional OD/group pivot calibration. Standard errors "
-        + "use observed quantities as frequency weights; they are not robust or clustered. "
-        + "Changing the quantity unit changes likelihoods and uncertainty. T-statistics are "
-        + "asymptotic estimate/SE ratios for a zero coefficient, not finite-sample Student tests.</p>"
-        + groups + "<h2>Workflow diagnostics and saved parameters</h2><pre>"
-        + escape(diagnostics) + "</pre><p>Robust errors, bootstrap "
+        + groups + workflow + "<p>Robust errors, bootstrap "
         + "statistics and optimizer gradient diagnostics are not available in this report. "
         + "BIC is omitted because aggregate flow quantities do not define an unambiguous "
         + "independent sample size.</p></body></html>";
+  }
+
+  /** Keeps all behavioral group estimates ahead of the separate pivot-calibration layer. */
+  static String layers(String behavioralGroups, String pivotGroups) {
+    return "<section id='behavioral-layer'><h2>Behavioral layer</h2>"
+        + "<p>Model parameters estimated before optional OD/group pivot calibration. Standard "
+        + "errors use observed quantities as frequency weights; they are not robust or clustered. "
+        + "Changing the quantity unit changes likelihoods and uncertainty. T-statistics are "
+        + "asymptotic estimate/SE ratios for a zero coefficient, not finite-sample Student tests.</p>"
+        + behavioralGroups + "</section><section id='pivot-calibration'><h2>Pivot calibration</h2>"
+        + (pivotGroups.isEmpty() ? "<p>Pivot calibration was not requested.</p>"
+            : "<p>Bounded base-year utility corrections fitted after the behavioral model. "
+                + "These corrections are separate from the behavioral parameters.</p>" + pivotGroups)
+        + "</section>";
   }
 
   static String group(int group, String method, int[] modes, int reference,
@@ -56,8 +73,8 @@ final class ModalEstimationReport {
     int count = modes.length - 1 + (proportional ? 0 : estimate.isConditional() ? 1 : modes.length);
     double ll = estimate.getLogLikelihood();
     double baseline = estimate.getNullLogLikelihood();
-    StringBuilder html = new StringBuilder("<h2>Commodity group " + group + " — "
-        + escape(method) + "</h2><table><tr><th>Measurement</th><th>Value</th></tr>");
+    StringBuilder html = new StringBuilder("<h3>Commodity group " + group + " — "
+        + escape(method) + "</h3><table><tr><th>Measurement</th><th>Value</th></tr>");
     metric(html, "Estimated behavioral parameters", count);
     metric(html, "Included OD rows", estimate.getObservations());
     metric(html, "Total observed quantity (frequency weight)", estimate.getTotalQuantity());
@@ -96,6 +113,73 @@ final class ModalEstimationReport {
     return html.toString();
   }
 
+  /** Pivot diagnostics belong to the commodity group immediately preceding this section. */
+  static String pivots(ModalPivotEstimator.GroupDiagnostics diagnostics) {
+    StringBuilder html = new StringBuilder("<h4>Pivot-constant distribution</h4><p>");
+    html.append("Mode–OD–commodity-group cells; implicit zero corrections and unavailable "
+        + "alternatives are included in the unweighted distribution. Available cells and stored "
+        + "nonzero corrections are counted separately. The reference mode is excluded. "
+        + "Weighted values use observed quantities of each mode; N/A means no observed modal "
+        + "quantity. Weighted median is the first correction reaching 50% of cumulative weight.</p>");
+    String bound = Double.toString(diagnostics.maxAbs);
+    String distributionHeadings = "<th>Median</th><th>% at −" + bound
+        + "</th><th>% at +" + bound + "</th>";
+    html.append("<table><tr><th rowspan='2'>Mode</th><th rowspan='2'>OD/group cells</th>"
+        + "<th rowspan='2'>Available</th><th rowspan='2'>Stored nonzero</th>"
+        + "<th colspan='3'>Unweighted</th><th colspan='3'>Weighted by observed modal quantity</th>"
+        + "</tr><tr>" + distributionHeadings + distributionHeadings + "</tr>");
+    for (var entry : diagnostics.distributions.entrySet()) {
+      ModalPivotEstimator.Distribution distribution = entry.getValue();
+      html.append("<tr><td>").append(entry.getKey()).append("</td><td>")
+          .append(distribution.values.size()).append("</td><td>")
+          .append(distribution.available).append("</td><td>").append(distribution.stored)
+          .append("</td>");
+      for (boolean weighted : new boolean[] {false, true}) {
+        html.append("<td>").append(pivotNumber(distribution.median(weighted))).append("</td><td>")
+            .append(pivotPercentage(distribution.boundPercentage(false, weighted))).append("</td><td>")
+            .append(pivotPercentage(distribution.boundPercentage(true, weighted))).append("</td>");
+      }
+      html.append("</tr>");
+    }
+    html.append("</table><h4>Pivot numerical completion</h4><p>Counts refer to OD/group cells. "
+        + "A small update can result from clipping at a bound; it does not establish exact "
+        + "reproduction of observed quantities.</p><table><tr><th>Measurement</th><th>Value</th></tr>");
+    metric(html, "OD/group cells", diagnostics.cells);
+    metric(html, "Cells without an adjustable nonreference mode", diagnostics.noAdjustableModes);
+    metric(html, "Cells stopped on update tolerance", diagnostics.toleranceStops);
+    metric(html, "Cells stopped at iteration limit", diagnostics.iterationLimitStops);
+    metric(html, "Iteration limit", ModalPivotEstimator.MAX_ITERATIONS);
+    metric(html, "Update tolerance", ModalPivotEstimator.UPDATE_TOLERANCE);
+    if (!diagnostics.iterations.isEmpty()) {
+      List<Integer> sorted = new ArrayList<>(diagnostics.iterations);
+      sorted.sort(Integer::compare);
+      int middle = sorted.size() / 2;
+      double median = sorted.size() % 2 == 0
+          ? (sorted.get(middle - 1) + sorted.get(middle)) / 2.0 : sorted.get(middle);
+      metric(html, "Iterations per adjustable cell: minimum", sorted.get(0));
+      metric(html, "Iterations per adjustable cell: median", median);
+      metric(html, "Iterations per adjustable cell: maximum", sorted.get(sorted.size() - 1));
+    }
+    metric(html, "Maximum final applied update", diagnostics.maxFinalChange);
+    metric(html, "Maximum remaining absolute raw log-ratio update", diagnostics.maxRemainingLogRatio);
+    metric(html, "OD/group cells with an outward update blocked by a bound",
+        diagnostics.boundBlockedCells);
+    int boundBlocked = diagnostics.distributions.values().stream()
+        .mapToInt(distribution -> distribution.boundBlocked).sum();
+    metric(html, "Modal corrections with an outward update blocked by a bound", boundBlocked);
+    return html.append("</table><p>Remaining raw updates are recomputed with the final constants "
+        + "and the calibration epsilon. Bound-blocked counts require an outward raw log-ratio "
+        + "larger than the update tolerance in magnitude.</p>").toString();
+  }
+
+  private static String pivotPercentage(double value) {
+    return Double.isFinite(value) ? String.format(Locale.ROOT, "%.2f", value) : "N/A";
+  }
+
+  private static String pivotNumber(double value) {
+    return Double.isFinite(value) ? number(value) : "N/A";
+  }
+
   /** Lists each distinct pair once; fixed reference and fixed cost parameters are omitted. */
   private static void appendCorrelations(
       StringBuilder html, int[] modes, int reference, LogCostChoiceEstimate estimate) {
@@ -103,7 +187,7 @@ final class ModalEstimationReport {
     double[][] covariance = proportional
         ? ((ProportionalEstimator.Result) estimate).getCostFactorCovariance()
         : estimate.getCoefficientCovariance();
-    html.append("<h3>Correlation of coefficients</h3><p>")
+    html.append("<h4>Correlation of coefficients</h4><p>")
         .append(proportional ? "Delta-method covariance of cost factors derived from conventional "
             + "inverse information" : "Conventional inverse-information covariance")
         .append(" with quantity frequency weights; not robust or clustered. "
@@ -180,7 +264,13 @@ final class ModalEstimationReport {
   }
 
   private static String number(double value) {
-    return Double.isFinite(value) ? String.format(Locale.ROOT, "%.8g", value) : "Unavailable";
+    if (!Double.isFinite(value)) {
+      return "Unavailable";
+    }
+    if (value == Math.rint(value) && value >= Long.MIN_VALUE && value < Long.MAX_VALUE) {
+      return Long.toString((long) value);
+    }
+    return String.format(Locale.ROOT, "%.8g", value);
   }
 
   static String escape(String value) {

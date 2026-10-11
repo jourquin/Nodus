@@ -66,6 +66,12 @@ public class NodusC {
    */
   public static volatile boolean displayAssignmentInformationDialogs = true;
 
+  /**
+   * Include workflow diagnostics and saved parameter entries in modal-estimation HTML reports.
+   * May be set from nodus.groovy or a project's startup script; sampled when rendering the report.
+   */
+  public static volatile boolean includeEstimationWorkflowDiagnostics = false;
+
   /*
    * *********************************************************************************************
    * Performance tuning parameters (used at development time only)

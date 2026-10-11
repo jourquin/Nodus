@@ -66,6 +66,17 @@ changing quantity units changes likelihoods and uncertainty. Fixed reference par
 and cost coefficients at the zero bound have no t-statistic. BIC, robust covariance
 and bootstrap diagnostics are omitted. To assign with the fitted parameters, select the updated cost file in the assignment dialog. Its parameter table selects and locks the embedded modal method automatically; estimation does not change scenario settings.
 
+The **Workflow diagnostics and saved parameters** section is hidden by default.
+To include it, set the application-wide switch in `nodus.groovy` or the project's
+`ProjectName.groovy` startup script:
+
+```groovy
+edu.uclouvain.core.nodus.NodusC.includeEstimationWorkflowDiagnostics = true
+```
+
+Set it to `false` to hide the section again. This switch does not hide parameter,
+correlation, pivot-distribution or numerical-completion tables.
+
 If the optional merged OD table already exists, choose **Cancel** to return to the
 estimation dialog, **Overwrite** to replace it, or **Skip merging** to estimate and save
 the model without changing that table. Skipping applies to the current run; the entered
@@ -81,6 +92,26 @@ zero during assignment. For scenario assignments the stored constants stay fixed
 while route costs and behavioral utilities change. Re-estimating a table replaces its previous
 rows after confirmation. Existing projects without `@paramTable` can still read legacy coefficient
 keys from their cost files.
+
+The HTML report presents two separate sections: **Behavioral layer** contains all
+commodity groups' parameter estimates and correlations, followed by **Pivot calibration**
+with their pivot diagnostics. If pivots were not requested, the second section states this.
+When pivots are computed, each commodity group's pivot section includes their
+distribution by nonreference mode: unweighted and observed-modal-quantity-weighted
+medians, and percentages at the configured lower and upper bounds. Bound percentages
+use two decimal places, and column headings show the actual bounds. All retained
+mode–OD–group cells enter the unweighted distribution, including implicit zero
+corrections and unavailable alternatives. Available cells and stored nonzero
+corrections are counted separately. Weighted values are N/A when the mode has no
+observed quantity; the weighted median is the first correction reaching 50% of
+cumulative weight. OD classes are combined within each pivot cell.
+
+The numerical-completion table distinguishes update-tolerance stops, iteration-limit
+stops, and cells without an adjustable nonreference mode. It reports the iteration
+range and median, final applied updates, remaining raw log-ratio updates, and
+outward updates blocked by a bound. Remaining updates are recomputed using the
+final constants. A small applied update at a bound does not imply zero discrepancy.
+WAPE remains a post-assignment measure and is not calculated during modal estimation.
 
 For logit and probit, **Conditional** is checked by default: one coefficient of
 `ln(cost)` is estimated per commodity group, alongside modal constants. Uncheck it

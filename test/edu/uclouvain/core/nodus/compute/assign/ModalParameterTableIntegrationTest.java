@@ -169,7 +169,7 @@ class ModalParameterTableIntegrationTest {
       assertTrue(Files.readString(directory.resolve("model-test.costs"))
           .contains("@paramTable=model-test_params"));
       assertTrue(Files.readString(directory.resolve("model-test_params.html"))
-          .contains("# Model: MNL"));
+          .contains("Commodity group 0 — MNL"));
       project.run(new FastMFAssignment(parameters), 2);
       assertEquals(900, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 1e-3);
     }
@@ -253,7 +253,7 @@ class ModalParameterTableIntegrationTest {
       assertTrue(single.keySet().stream().anyMatch(key -> key.startsWith("pivot.")));
       assertEquals(single, tableValues(project, "parallel_params"));
       String report = Files.readString(directory.resolve("parallel_params.html"));
-      assertTrue(report.indexOf("# Group 0:") < report.indexOf("# Group 1:"));
+      assertTrue(report.indexOf("Commodity group 0 —") < report.indexOf("Commodity group 1 —"));
     }
   }
 
@@ -281,7 +281,16 @@ class ModalParameterTableIntegrationTest {
           assertTrue(costs.contains("@paramTable=" + table));
           assertTrue(costs.contains("# Transport cost expressions"));
           assertTrue(Files.readString(directory.resolve("model_params.html"))
-              .contains("Estimated bounded OD/group pivot constants"));
+              .contains("Pivot-constant distribution"));
+          String htmlReport = Files.readString(directory.resolve("model_params.html"));
+          assertTrue(htmlReport.contains("Pivot numerical completion"));
+          int pivotSection = htmlReport.indexOf("<h2>Pivot calibration</h2>");
+          assertTrue(htmlReport.indexOf("<h2>Behavioral layer</h2>") < pivotSection);
+          assertTrue(htmlReport.indexOf("Commodity group 1 —") < pivotSection);
+          assertTrue(htmlReport.indexOf("Pivot-constant distribution") > pivotSection);
+          assertTrue(htmlReport.indexOf("Pivot numerical completion") > pivotSection);
+          assertFalse(htmlReport.contains("Workflow diagnostics and saved parameters"));
+          assertFalse(htmlReport.contains("WAPE"));
           assertTrue(project.number("SELECT COUNT(*) FROM " + table
               + " WHERE param_type='calibration'") > 0);
           assertEquals(4, project.number("SELECT CAST(param_value AS DOUBLE) FROM " + table

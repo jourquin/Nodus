@@ -20,9 +20,6 @@
  */
 
 import com.bbn.openmap.proj.coords.LatLonPoint;
-import j4r.net.server.JavaGatewayServer;
-import j4r.net.server.ServerConfiguration;
-import py4j.GatewayServer;
 
 /**
  * Sample "autoexec" Groovy script. The "nodus.groovy" script, if exists, is run by Nodus at
@@ -41,8 +38,6 @@ import py4j.GatewayServer;
  * found in the directory that contains the [projetname].nodus file, it is executed when the 
  * project is loaded and closed. The "openProject", "closeProject" and "nodusMapPanel" variables
  * are then set by Nodus.
- * 
- * Example Groovy, Python and R scripts can be found in the script directory. 
  */
 
 if (startNodus) {
@@ -62,4 +57,7 @@ if (startNodus) {
 	// Set false to hide informational assignment completion dialogs.
 	// Errors and non-convergence warnings remain visible.
 	edu.uclouvain.core.nodus.NodusC.displayAssignmentInformationDialogs = true
+
+	// Set true to include workflow diagnostics and saved parameters in estimation reports.
+	edu.uclouvain.core.nodus.NodusC.includeEstimationWorkflowDiagnostics = false
 }
