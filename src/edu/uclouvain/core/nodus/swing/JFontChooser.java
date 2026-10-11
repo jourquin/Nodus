@@ -194,7 +194,7 @@ public class JFontChooser extends JDialog {
     fontPreview.setBackground(Color.WHITE);
     buttonPane.add(fontPreview, gbcFontPreview);
 
-    JButton okButton = new JButton("OK");
+    JButton okButton = new JButton(i18n.get(JFontChooser.class, "Ok", "OK"));
     GUIUtils.setToolTip(okButton, JFontChooser.class, "okButton", "Apply the selected font.");
     okButton.setActionCommand("OK");
     GridBagConstraints gbcOkButton = new GridBagConstraints();
@@ -213,7 +213,7 @@ public class JFontChooser extends JDialog {
           }
         });
 
-    JButton cancelButton = new JButton("Cancel");
+    JButton cancelButton = new JButton(i18n.get(JFontChooser.class, "Cancel", "Cancel"));
     GUIUtils.setToolTip(
         cancelButton,
         JFontChooser.class,

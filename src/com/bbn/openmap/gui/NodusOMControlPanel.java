@@ -110,15 +110,16 @@ public class NodusOMControlPanel extends OMControlPanel {
                     if (e.getClickCount() == 2) {
                       scaleField.setSelectionEnd(0);
 
-                      // Replace the "No" by "Reset" in the option pane
-                      String oldText = (String) UIManager.get("OptionPane.noButtonText");
-                      UIManager.put(
-                          "OptionPane.noButtonText",
-                          i18n.get(NodusOMControlPanel.class, "Reset", "Reset"));
+                      // Keep the Reset label local to this dialog; other confirmations use No.
+                      Object[] options = {
+                        UIManager.getString("OptionPane.yesButtonText"),
+                        i18n.get(NodusOMControlPanel.class, "Reset", "Reset"),
+                        UIManager.getString("OptionPane.cancelButtonText")
+                      };
 
                       // Ask the user if he wants to change the rendering scale threshold
                       int reply =
-                          JOptionPane.showConfirmDialog(
+                          JOptionPane.showOptionDialog(
                               null,
                               i18n.get(
                                   NodusOMControlPanel.class,
@@ -126,7 +127,11 @@ public class NodusOMControlPanel extends OMControlPanel {
                                   "Set the rendering threshold to the current scale ?"),
                               i18n.get(
                                   NodusOMControlPanel.class, "Rendering_scale", "Rendering scale"),
-                              JOptionPane.YES_NO_CANCEL_OPTION);
+                              JOptionPane.YES_NO_CANCEL_OPTION,
+                              JOptionPane.QUESTION_MESSAGE,
+                              null,
+                              options,
+                              options[0]);
 
                       if (reply == JOptionPane.YES_OPTION) {
                         nodusMapPanel.setRenderingScaleThreshold(
@@ -136,8 +141,6 @@ public class NodusOMControlPanel extends OMControlPanel {
                         nodusMapPanel.setRenderingScaleThreshold(-1);
                       }
 
-                      // Reset original text in the option pane
-                      UIManager.put("OptionPane.noButtonText", oldText);
                     }
                   }
                 });

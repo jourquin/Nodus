@@ -316,6 +316,8 @@ public class Nodus {
       ex.printStackTrace();
     }
 
+    LocaleUtils.applySwingLocale(Locale.getDefault());
+
     // Set icon for MacOs (and other systems which do support this method)
     try {
       Taskbar taskbar = Taskbar.getTaskbar();

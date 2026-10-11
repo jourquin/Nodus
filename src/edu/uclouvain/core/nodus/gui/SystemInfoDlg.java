@@ -104,7 +104,7 @@ public class SystemInfoDlg extends EscapeDialog {
   private JButton getCloseButton() {
     if (closeButton == null) {
       closeButton = new JButton();
-      closeButton.setText("Close");
+      closeButton.setText(i18n.get(SystemInfoDlg.class, "Close", "Close"));
       closeButton.addActionListener(
           new java.awt.event.ActionListener() {
             @Override

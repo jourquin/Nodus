@@ -302,7 +302,7 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     final JPanel buttonPane = new JPanel(new FlowLayout(FlowLayout.TRAILING, 8, 4));
     getContentPane().add(buttonPane, BorderLayout.SOUTH);
 
-    final JButton okButton = new JButton("OK");
+    final JButton okButton = new JButton(i18n.get(GlobalPreferencesDlg.class, "Ok", "OK"));
     GUIUtils.setToolTip(
         okButton,
         GlobalPreferencesDlg.class,
@@ -318,7 +318,7 @@ public class GlobalPreferencesDlg extends EscapeDialog {
           }
         });
 
-    final JButton cancelButton = new JButton("Cancel");
+    final JButton cancelButton = new JButton(i18n.get(GlobalPreferencesDlg.class, "Cancel", "Cancel"));
     GUIUtils.setToolTip(
         cancelButton,
         GlobalPreferencesDlg.class,

@@ -26,6 +26,8 @@ import com.bbn.openmap.util.I18n;
 import java.lang.reflect.Field;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import javax.swing.JComponent;
+import javax.swing.UIManager;
 
 /**
  * A simple helper for Locale.
@@ -81,7 +83,7 @@ public class LocaleUtils {
   }
 
   /**
-   * Applies the locale to both the JVM and OpenMap i18n mechanism.
+   * Applies the locale to the JVM, Swing dialogs and OpenMap i18n mechanism.
    *
    * <p>OpenMap's {@code BasicI18n} stores the locale that was current when the environment was
    * initialized. Updating the JVM default locale alone is therefore not enough for runtime language
@@ -97,6 +99,27 @@ public class LocaleUtils {
     Locale.setDefault(locale);
     ResourceBundle.clearCache();
     updateOpenMapI18nLocale(locale);
+    applySwingLocale(locale);
+  }
+
+  /**
+   * Updates standard dialog labels independently of the operating system's language.
+   * Call after changing the look and feel as well as when changing the application language.
+   * Developer defaults keep these labels in effect even if a look and feel has English defaults.
+   *
+   * @param locale the application locale
+   */
+  public static void applySwingLocale(Locale locale) {
+    if (locale == null) {
+      return;
+    }
+    JComponent.setDefaultLocale(locale);
+    UIManager.getDefaults().setDefaultLocale(locale);
+    ResourceBundle messages = ResourceBundle.getBundle(
+        LocaleUtils.class.getPackageName() + ".SwingMessages", locale);
+    for (String key : messages.keySet()) {
+      UIManager.put(key, messages.getString(key));
+    }
   }
 
   /**
