@@ -64,7 +64,7 @@
  * tables are removed on close; routing does not publish scenario result tables. Only after all
  * groups succeed are coefficients and optional OD/group pivots written to the named database table.
  * The source file supplies transport costs and receives the {@code @paramTable} pointer. The
- * estimation report is written as {@code <cost-file-stem>_params.txt} in the project directory.
+ * estimation report is written as {@code <cost-file-stem>_params.html} in the project directory.
  * Existing tables require confirmation before replacement. Older cost files with embedded
  * coefficients remain readable when they have no table pointer.
  *

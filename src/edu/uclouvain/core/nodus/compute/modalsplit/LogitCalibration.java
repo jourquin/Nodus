@@ -77,7 +77,7 @@ import java.util.function.BooleanSupplier;
  *
  * <p>Each commodity group is fitted separately, pooling its OD classes while retaining their
  * class-specific route costs. The dialog stores successful estimates in a database parameter table,
- * writes diagnostics to a sibling file named {@code <cost-file-stem>_params.txt}, and adds only
+ * writes an HTML report named {@code <cost-file-stem>_params.html}, and adds only
  * {@code @paramTable} to the selected cost file. The earlier cost-file overloads remain available
  * for existing scripted callers. Successful saving also refreshes the caller's in-memory cost
  * properties. The caller's assignment OD selection, scenario and routing controls remain unchanged.
@@ -275,9 +275,11 @@ public final class LogitCalibration implements AutoCloseable {
     parameters.getNodusProject().getNodusMapPanel().startProgress(0);
     try {
       Map<Integer, GroupFit> results = fitGroups(groups, fitted);
+      StringBuilder htmlGroups = new StringBuilder();
       int pivotCount = 0;
       for (GroupFit result : results.values()) {
         report.append(result.report);
+        htmlGroups.append(result.html);
         pivotCount += result.pivots;
       }
       checkCancelled("Saving " + method + " coefficients");
@@ -338,7 +340,8 @@ public final class LogitCalibration implements AutoCloseable {
                               .getNodusProject()
                               .getNodusMapPanel()
                               .updateProgress("Saving modal parameters"),
-                  merge == null ? () -> {} : merge::write);
+                  merge == null ? () -> {} : merge::write,
+                  htmlGroups.toString());
           if (merge != null) {
             merge.complete();
           }
@@ -346,7 +349,23 @@ public final class LogitCalibration implements AutoCloseable {
           parameters.getCostFunctions().putAll(saved);
         }
       } else {
-        Properties saved = LogitCostFile.save(target, original, fitted, report.toString(), method);
+        java.nio.file.Path htmlFile = reportPath();
+        byte[] previousHtml = Files.exists(htmlFile) ? Files.readAllBytes(htmlFile) : null;
+        String html = ModalEstimationReport.document(htmlGroups.toString(), report.toString());
+        Properties saved;
+        try {
+          writeReport(htmlFile, html);
+          saved = LogitCostFile.save(target, original, fitted, report.toString(), method);
+        } catch (Exception failure) {
+          try {
+            if (sameFileContents(htmlFile, html.getBytes(StandardCharsets.UTF_8))) {
+              restoreFile(htmlFile, previousHtml);
+            }
+          } catch (IOException recovery) {
+            failure.addSuppressed(recovery);
+          }
+          throw failure;
+        }
         parameters.getCostFunctions().clear();
         parameters.getCostFunctions().putAll(saved);
       }
@@ -615,7 +634,8 @@ public final class LogitCalibration implements AutoCloseable {
                 fitted,
                 proceed);
       }
-      return new GroupFit(group, groupReport.toString(), pivots);
+      return new GroupFit(group, groupReport.toString(), pivots,
+          ModalEstimationReport.group(group, method, modes, settings.getReferenceMode(), behavioral));
     } catch (CancellationException cancelled) {
       throw cancelled;
     } catch (NonNegativeCostCoefficientException failure) {
@@ -650,11 +670,13 @@ public final class LogitCalibration implements AutoCloseable {
     final int group;
     final String report;
     final int pivots;
+    final String html;
 
-    GroupFit(int group, String report, int pivots) {
+    GroupFit(int group, String report, int pivots, String html) {
       this.group = group;
       this.report = report;
       this.pivots = pivots;
+      this.html = html;
     }
   }
 
@@ -772,15 +794,19 @@ public final class LogitCalibration implements AutoCloseable {
   }
 
   private java.nio.file.Path reportPath() {
-    java.nio.file.Path costFile = parameters.getCostFunctionsPath().toAbsolutePath();
+    return reportPath(parameters.getCostFunctionsPath());
+  }
+
+  static java.nio.file.Path reportPath(java.nio.file.Path sourceCostFile) {
+    java.nio.file.Path costFile = sourceCostFile.toAbsolutePath();
     String name = costFile.getFileName().toString();
     String stem =
         name.endsWith(".costs") ? name.substring(0, name.length() - ".costs".length()) : name;
-    return costFile.resolveSibling(stem + "_params.txt");
+    return costFile.resolveSibling(stem + "_params.html");
   }
 
   private void writeReport(String contents) throws Exception {
-    writeReport(reportPath(), contents);
+    writeReport(reportPath(), ModalEstimationReport.document("", contents));
   }
 
   private static void writeReport(java.nio.file.Path destination, String contents)
@@ -849,10 +875,19 @@ public final class LogitCalibration implements AutoCloseable {
       BooleanSupplier proceed,
       ModalParameterTable.SaveAction saveMergedMatrix)
       throws Exception {
+    return saveTableOutputs(parameterConnection, table, values, target, reportFile, report,
+        proceed, saveMergedMatrix, "");
+  }
+
+  private static Properties saveTableOutputs(
+      Connection parameterConnection, String table, Properties values, LogitCostFile.Target target,
+      java.nio.file.Path reportFile, StringBuilder report, BooleanSupplier proceed,
+      ModalParameterTable.SaveAction saveMergedMatrix, String htmlGroups) throws Exception {
     target.checkUnchanged();
-    byte[] previousReport = Files.exists(reportFile) ? Files.readAllBytes(reportFile) : null;
+    java.nio.file.Path htmlFile = reportFile;
+    byte[] previousHtml = Files.exists(htmlFile) ? Files.readAllBytes(htmlFile) : null;
+    String[] installedHtml = {null};
     byte[][] installedCost = {null};
-    boolean[] reportAttempted = {false};
     Properties[] saved = {null};
     long saveStarted = System.nanoTime();
     ModalParameterTable.save(
@@ -863,8 +898,8 @@ public final class LogitCalibration implements AutoCloseable {
         () -> {
           saveMergedMatrix.run();
           target.checkUnchanged();
-          if (!sameFileContents(reportFile, previousReport)) {
-            throw new IOException("Estimation report changed during saving: " + reportFile);
+          if (!sameFileContents(htmlFile, previousHtml)) {
+            throw new IOException("HTML estimation report changed during saving: " + htmlFile);
           }
           report
               .append("# Saved ")
@@ -872,8 +907,8 @@ public final class LogitCalibration implements AutoCloseable {
               .append(" parameter rows in ")
               .append(String.format(Locale.ROOT, "%.3f", (System.nanoTime() - saveStarted) / 1e9))
               .append(" seconds.\n");
-          reportAttempted[0] = true;
-          writeReport(reportFile, report.toString());
+          installedHtml[0] = ModalEstimationReport.document(htmlGroups, report.toString());
+          writeReport(htmlFile, installedHtml[0]);
           saved[0] = LogitCostFile.saveParameterTable(target, table);
           installedCost[0] = Files.readAllBytes(target.file);
         },
@@ -888,12 +923,9 @@ public final class LogitCalibration implements AutoCloseable {
             recoveryFailure = failure;
           }
           try {
-            if (reportAttempted[0]
-                && Files.isRegularFile(reportFile)
-                && Arrays.equals(
-                    report.toString().getBytes(StandardCharsets.UTF_8),
-                    Files.readAllBytes(reportFile))) {
-              restoreFile(reportFile, previousReport);
+            if (installedHtml[0] != null && sameFileContents(htmlFile,
+                installedHtml[0].getBytes(StandardCharsets.UTF_8))) {
+              restoreFile(htmlFile, previousHtml);
             }
           } catch (IOException failure) {
             if (recoveryFailure == null) {

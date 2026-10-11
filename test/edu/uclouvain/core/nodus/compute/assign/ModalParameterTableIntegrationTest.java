@@ -141,7 +141,7 @@ class ModalParameterTableIntegrationTest {
       }
       byte[] original = Files.readAllBytes(file);
       assertTrue(java.util.Arrays.equals(original, Files.readAllBytes(file)));
-      assertTrue(Files.readString(directory.resolve("model_params.txt"))
+      assertTrue(Files.readString(directory.resolve("model_params.html"))
           .contains("No coefficients were saved"));
       assertFalse(Files.exists(directory.resolve("empty_params.params")));
       assertEquals(0, project.number("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES "
@@ -168,7 +168,7 @@ class ModalParameterTableIntegrationTest {
           "SELECT COUNT(*) FROM \"model-test_params\" WHERE param_type='calibration'"));
       assertTrue(Files.readString(directory.resolve("model-test.costs"))
           .contains("@paramTable=model-test_params"));
-      assertTrue(Files.readString(directory.resolve("model-test_params.txt"))
+      assertTrue(Files.readString(directory.resolve("model-test_params.html"))
           .contains("# Model: MNL"));
       project.run(new FastMFAssignment(parameters), 2);
       assertEquals(900, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 1e-3);
@@ -252,7 +252,7 @@ class ModalParameterTableIntegrationTest {
       Map<String, String> single = tableValues(project, "single_params");
       assertTrue(single.keySet().stream().anyMatch(key -> key.startsWith("pivot.")));
       assertEquals(single, tableValues(project, "parallel_params"));
-      String report = Files.readString(directory.resolve("parallel_params.txt"));
+      String report = Files.readString(directory.resolve("parallel_params.html"));
       assertTrue(report.indexOf("# Group 0:") < report.indexOf("# Group 1:"));
     }
   }
@@ -280,7 +280,7 @@ class ModalParameterTableIntegrationTest {
           String costs = Files.readString(costFile);
           assertTrue(costs.contains("@paramTable=" + table));
           assertTrue(costs.contains("# Transport cost expressions"));
-          assertTrue(Files.readString(directory.resolve("model_params.txt"))
+          assertTrue(Files.readString(directory.resolve("model_params.html"))
               .contains("Estimated bounded OD/group pivot constants"));
           assertTrue(project.number("SELECT COUNT(*) FROM " + table
               + " WHERE param_type='calibration'") > 0);

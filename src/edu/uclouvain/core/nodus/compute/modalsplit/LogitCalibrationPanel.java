@@ -54,7 +54,7 @@ import javax.swing.table.DefaultTableModel;
  *
  * <p>The estimator computes costs for the union of these observations. An unavailable mode with
  * zero observed flow is valid. Positive flow on an unavailable mode excludes the entire OD record
- * from estimation and is reported in the {@code _params.txt} report. No control in this panel
+ * from estimation and is reported in the {@code _params.html} report. No control in this panel
  * selects, filters or replaces assignment demand. Assignments remain separate operations.
  *
  * <p>The panel edits a draft: {@link #getSettings()} commits active cell/spinner edits and

@@ -384,7 +384,7 @@ class ModalParameterTableTest {
       old.setProperty(ModalParameterTable.METHOD, "MNL");
       ModalParameterTable.save(connection, "modal_params", old);
       Path costFile = directory.resolve("model.costs");
-      Path reportFile = directory.resolve("model_params.txt");
+      Path reportFile = directory.resolve("model_params.html");
       String originalCost = "mv.1,1=BASECOST\n@paramTable=modal_params\n";
       String originalReport = "previous estimation\n";
       Files.writeString(costFile, originalCost);

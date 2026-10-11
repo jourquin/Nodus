@@ -53,7 +53,14 @@ using the mapped observed modal OD tables. Each run saves one parameter table na
 selected cost file: `NodusEstimated.costs` gives `NodusEstimated_params`.
 The table has `param_key`, `param_value` and `param_type` columns. 
 The cost file receives a single `@paramTable=<table>` property. The estimation report is saved beside it as
-`<cost-file-stem>_params.txt`, for example `NodusEstimated_params.txt`. To assign with the fitted parameters, select the updated cost file in the assignment dialog. Its parameter table selects and locks the embedded modal method automatically; estimation does not change scenario settings.
+`<cost-file-stem>_params.html`, for example `NodusEstimated_params.html`. The standalone HTML report
+contains per-group likelihoods, OD row counts, total quantity, iteration counts, AIC,
+baseline rho-square measures, parameter estimates, standard errors and asymptotic
+t-statistics. These describe the behavioral model before optional pivot fitting.
+Standard errors use quantities as frequency weights, not robust or clustered errors;
+changing quantity units changes likelihoods and uncertainty. Fixed reference parameters
+and cost coefficients at the zero bound have no t-statistic. BIC, robust covariance
+and bootstrap diagnostics are omitted. To assign with the fitted parameters, select the updated cost file in the assignment dialog. Its parameter table selects and locks the embedded modal method automatically; estimation does not change scenario settings.
 
 If the optional merged OD table already exists, choose **Cancel** to return to the
 estimation dialog, **Overwrite** to replace it, or **Skip merging** to estimate and save

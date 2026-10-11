@@ -511,6 +511,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Remove SQLite support
 - Upgrade Groovy to 5.1.3
 - Secure Python and R bridges
+- Improve the loading of services workflow
+- Remove the "Save paths" checkbox in the assignment dialog, as it is now mandatory.
   
   
   

@@ -74,7 +74,15 @@ public class HelpBrowser {
         return;
       }
 
-      final URI targetUri = uri;
+      launchBrowser(uri);
+    } else {
+      desktopNotSupported();
+    }
+  }
+
+  /** Opens a help page or generated report using the system default browser. */
+  public void launchBrowser(URI targetUri) {
+    if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
       Thread t =
           new Thread() {
             @Override
@@ -90,12 +98,15 @@ public class HelpBrowser {
       t.setDaemon(true);
       t.start();
     } else {
-
-      System.err.println(
-          i18n.get(
-              HelpBrowser.class,
-              "Desktop_not_supported",
-              "Desktop not supported by this version of Java"));
+      desktopNotSupported();
     }
+  }
+
+  private void desktopNotSupported() {
+    System.err.println(
+        i18n.get(
+            HelpBrowser.class,
+            "Desktop_not_supported",
+            "Desktop not supported by this version of Java"));
   }
 }

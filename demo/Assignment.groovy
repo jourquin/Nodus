@@ -50,7 +50,7 @@ public class _Assignment {
     ap.setScenario((byte) 99);
     ap.setCostFunctions("MNL.costs");
     ap.setODMatrix("OD");
-    ap.setSavePaths(false);
+    // Path headers are always saved; full route details remain optional.
     ap.setDetailedPaths(false);
     ap.setWhereStmt("");
     ap.setModalSplitMethodName("MNL");

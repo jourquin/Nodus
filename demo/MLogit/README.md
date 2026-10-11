@@ -32,7 +32,7 @@ built-in estimator. Estimation and demand assignment are separate operations.
    success, Nodus stores one model's parameters in the database table named after the cost file:
    `uncalibrated.costs` produces `uncalibrated_params`. It adds
    `@paramTable=uncalibrated_params` to that cost file and writes the separate report
-   `uncalibrated_params.txt` in the project directory. The cost expressions remain in the file.
+   `uncalibrated_params.html` in the project directory. The cost expressions remain in the file.
 7. Later, open **Project → Assignment** and select the same cost file. Its linked parameter table
    selects and locks the matching modal-choice method automatically. Choose the OD matrix to assign:
    the optional merged table, another total-demand table, or a forecast. Set the assignment options
@@ -69,7 +69,7 @@ with positive observed demand for that mode, so records can appear under several
 not be added across modes. Quantities can be added across modes without double counting. A mode
 with no observed demand shows `n/a` percentages. The report uses all observed calibration demand,
 not a later forecast matrix or Assignment's filters. Successful estimation saves these diagnostics
-in `<cost-file-stem>_params.txt`. If no usable observations remain, Nodus writes a diagnostic report
+in `<cost-file-stem>_params.html`. If no usable observations remain, Nodus writes a diagnostic report
 without saving parameters.
 
 Exclusions affect only parameter estimation. For example, an observation with 80 road tonnes and

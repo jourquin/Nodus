@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.compute.modalsplit;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
+import edu.uclouvain.core.nodus.helpbrowser.HelpBrowser;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
@@ -63,7 +64,7 @@ import javax.swing.SwingWorker;
  * <p>Estimation uses the selected source cost file without numbered scenario overrides. A database
  * table named after the cost file receives behavioral parameters and optional bounded OD/group
  * pivots. A single {@code @paramTable} key is written to the selected cost file, and diagnostics
- * are saved as {@code <cost-file-stem>_params.txt} in the project directory. An existing table
+ * are saved as {@code <cost-file-stem>_params.html} in the project directory. An existing table
  * requires confirmation. An optional merged OD table sums the selected modal matrices by commodity
  * group, origin and destination for later selection in Assignment; replacing its contents also
  * offers cancel, overwrite or skip when the destination already exists. The isolated routing pass
@@ -106,6 +107,8 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
   private final JCheckBox estimatePivots = new JCheckBox();
   /** Common cost coefficient when checked; otherwise one coefficient per mode. */
   private final JCheckBox conditional = new JCheckBox();
+  /** Opens the saved HTML report after successful estimation. */
+  private final JCheckBox displayReport = new JCheckBox();
   /** Maximum absolute utility correction fitted for each nonreference mode. */
   private final JSpinner pivotMaxAbs;
   /** Maximum admissible route-length ratio; zero disables the detour limit. */
@@ -268,7 +271,13 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     estimate.addActionListener(event -> startEstimation());
     buttons.add(cancel);
     buttons.add(estimate);
-    bottom.add(buttons, BorderLayout.SOUTH);
+    displayReport.setText(text("DisplayReport", "Display estimation report"));
+    displayReport.setSelected(project.getLocalProperty(PREFIX + "displayReport", false));
+    tooltip(displayReport, "displayReport", "Open the HTML estimation report in the web browser after successful estimation.");
+    JPanel actions = new JPanel(new BorderLayout());
+    actions.add(displayReport, BorderLayout.WEST);
+    actions.add(buttons, BorderLayout.EAST);
+    bottom.add(actions, BorderLayout.SOUTH);
     content.add(bottom, BorderLayout.SOUTH);
     setContentPane(content);
     getRootPane().setDefaultButton(estimate);
@@ -345,6 +354,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     final boolean exact = routing.getSelectedIndex() == 1;
     final boolean pivots = estimatePivots.isSelected();
     final boolean conditionalFit = conditional.isSelected();
+    final boolean openReport = displayReport.isSelected();
     final String table;
     final String selectedCostFile;
     final double maxAbs;
@@ -436,6 +446,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     project.setLocalProperty(PREFIX + "threads", threads.getValue().toString());
     project.setLocalProperty(PREFIX + "estimatePivots", pivots);
     project.setLocalProperty(PREFIX + "conditional", conditionalFit);
+    project.setLocalProperty(PREFIX + "displayReport", openReport);
     project.setLocalProperty(PREFIX + "pivotMaxAbs", Double.toString(maxAbs));
     mapPanel.getAssignmentMenuItem().setEnabled(false);
     dispose();
@@ -456,6 +467,10 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
         try {
           if (get()) {
             mapPanel.getSoundPlayer().play(SoundPlayer.SOUND_OK);
+            if (openReport) {
+              new HelpBrowser().launchBrowser(
+                  LogitCalibration.reportPath(parameters.getCostFunctionsPath()).toUri());
+            }
           } else {
             mapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
           }

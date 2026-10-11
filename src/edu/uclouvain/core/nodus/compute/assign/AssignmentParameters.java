@@ -127,9 +127,6 @@ public class AssignmentParameters {
   /** Set to true if the post-assignent script must be executed. */
   private boolean runPostAssignmentScript;
 
-  /** Set to true of the detailed paths must be saved in the database. */
-  private boolean savePaths;
-
   /** Scenario to assign. */
   private int scenario = -1;
 
@@ -349,12 +346,12 @@ public class AssignmentParameters {
   }
 
   /**
-   * Returns true if the paths must be saved along with the virtual network table.
+   * Returns true for assignments; calibration cost searches do not save scenario paths.
    *
    * @return boolean.
    */
   public boolean isSavePaths() {
-    return savePaths;
+    return calibrationMethod == null;
   }
 
   /**
@@ -536,12 +533,14 @@ public class AssignmentParameters {
   }
 
   /**
-   * If true, the (detailed or not) paths will be saved along with the Virtual Network.
+   * Retained for compatibility with existing scripts. Path headers are always saved.
    *
-   * @param savePaths boolean.
+   * @param savePaths ignored
+   * @deprecated Path headers can no longer be disabled; use setDetailedPaths for route details.
    */
+  @Deprecated
   public void setSavePaths(boolean savePaths) {
-    this.savePaths = savePaths;
+    // Compatibility with existing scripts and extensions.
   }
 
   /**
@@ -605,7 +604,7 @@ public class AssignmentParameters {
     s += "- Cost mark-up : " + costMarkup + "\n";
     s += "- SQL filter : " + whereStmt + "\n";
     s += "- Highlighted area : " + limitedToHighlightedArea + "\n";
-    s += "- Save path : " + savePaths + "\n";
+    s += "- Save path headers : " + isSavePaths() + "\n";
     s += "\n";
 
     return s;

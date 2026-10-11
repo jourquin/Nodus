@@ -63,6 +63,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
+import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
@@ -153,7 +154,6 @@ public class AssignmentDlg extends EscapeDialog {
   private JSpinner costMarkupSpinner = new JSpinner();
 
   /** . */
-  private JLabel descriptionLabel = new JLabel();
 
   /** . */
   private JTextField descriptionTextField = new JTextField();
@@ -252,7 +252,6 @@ public class AssignmentDlg extends EscapeDialog {
   private JLabel odTablesLabel = new JLabel(i18n.get(AssignmentDlg.class, "OD_table", "OD table:"));
 
   /** . */
-  private JCheckBox pathsCheckBox = new JCheckBox();
 
   /** . */
   private JTextField postAssignmentScriptTextField = new JTextField();
@@ -428,7 +427,6 @@ public class AssignmentDlg extends EscapeDialog {
     ap.setNbIterations(Integer.parseInt(iterationSpinner.getValue().toString()));
     ap.setScenario(Integer.parseInt(scenarioSpinner.getValue().toString()));
     ap.setPrecision(Float.parseFloat(precisionSpinner.getValue().toString()));
-    ap.setSavePaths(pathsCheckBox.isSelected());
     ap.setDetailedPaths(detailedPathCheckBox.isSelected());
     ap.setCostMarkup(Float.parseFloat(costMarkupSpinner.getValue().toString()));
     ap.setMaxDetourRatio(Float.parseFloat(maxDetourSpinner.getValue().toString()));
@@ -1039,12 +1037,6 @@ public class AssignmentDlg extends EscapeDialog {
     modalSplitMethodLabel.setText(
         i18n.get(AssignmentDlg.class, "ModalSplitMethod", "Modal split method:"));
 
-    GridBagConstraints lostPathsCheckBoxConstraints = new GridBagConstraints();
-    lostPathsCheckBoxConstraints.gridx = 0;
-    lostPathsCheckBoxConstraints.anchor = GridBagConstraints.WEST;
-    lostPathsCheckBoxConstraints.insets = new Insets(10, 10, 5, 5);
-    lostPathsCheckBoxConstraints.gridy = 6;
-
     GridBagConstraints costMarkupSpinnerConstraints =
         new GridBagConstraints(
             1,
@@ -1082,58 +1074,6 @@ public class AssignmentDlg extends EscapeDialog {
     keepCheapestOnlyCheckBoxConstraints.anchor = GridBagConstraints.WEST;
     keepCheapestOnlyCheckBoxConstraints.gridy = 4;
 
-    GridBagConstraints highlightedAreaCheckBoxConstraints = new GridBagConstraints();
-    highlightedAreaCheckBoxConstraints.gridx = 2;
-    highlightedAreaCheckBoxConstraints.insets = new Insets(10, 10, 5, 10);
-    highlightedAreaCheckBoxConstraints.anchor = GridBagConstraints.WEST;
-    highlightedAreaCheckBoxConstraints.gridy = 6;
-
-    GridBagConstraints pathsCheckBoxConstraints =
-        new GridBagConstraints(
-            0,
-            6,
-            1,
-            1,
-            0.0,
-            0.0,
-            GridBagConstraints.NORTHWEST,
-            GridBagConstraints.NONE,
-            new Insets(5, 10, 0, 5),
-            0,
-            0);
-    pathsCheckBoxConstraints.insets = new Insets(0, 10, 5, 5);
-    pathsCheckBoxConstraints.gridy = 7;
-    pathsCheckBoxConstraints.anchor = GridBagConstraints.WEST;
-
-    GridBagConstraints detailedCheckBoxConstraints =
-        new GridBagConstraints(
-            2,
-            5,
-            1,
-            1,
-            0.0,
-            0.0,
-            GridBagConstraints.WEST,
-            GridBagConstraints.NONE,
-            new Insets(0, 10, 10, 10),
-            0,
-            0);
-    detailedCheckBoxConstraints.insets = new Insets(0, 10, 5, 10);
-    detailedCheckBoxConstraints.gridy = 7;
-
-    GridBagConstraints postAssignmentScriptTextFieldConstraints = new GridBagConstraints();
-    postAssignmentScriptTextFieldConstraints.gridwidth = 3;
-    postAssignmentScriptTextFieldConstraints.fill = GridBagConstraints.HORIZONTAL;
-    postAssignmentScriptTextFieldConstraints.gridy = 9;
-    postAssignmentScriptTextFieldConstraints.anchor = GridBagConstraints.NORTHWEST;
-    postAssignmentScriptTextFieldConstraints.insets = new Insets(0, 10, 5, 10);
-    postAssignmentScriptTextFieldConstraints.gridx = 0;
-
-    GridBagConstraints postAssignScriptChekboxConstraints = new GridBagConstraints();
-    postAssignScriptChekboxConstraints.gridx = 0;
-    postAssignScriptChekboxConstraints.anchor = GridBagConstraints.SOUTHWEST;
-    postAssignScriptChekboxConstraints.insets = new Insets(0, 10, 5, 5);
-    postAssignScriptChekboxConstraints.gridy = 8;
     GridBagConstraints fastMFRadioButtonBagConstraints =
         new GridBagConstraints(
             0,
@@ -1241,17 +1181,14 @@ public class AssignmentDlg extends EscapeDialog {
           }
         });
 
-    pathsCheckBox.setText(i18n.get(AssignmentDlg.class, "Save_paths", "Save paths"));
-    pathsCheckBox.setOpaque(false);
-    detailedPathCheckBox.setText(i18n.get(AssignmentDlg.class, "Detailed_paths", "Detailed paths"));
+    detailedPathCheckBox.setText(
+        i18n.get(AssignmentDlg.class, "Detailed_paths", "Save detailed paths"));
+    detailedPathCheckBox.setToolTipText(
+        i18n.get(
+            AssignmentDlg.class,
+            "Detailed_paths_tooltip",
+            "Save detailed paths for route inspection and mapping. Path headers are always saved."));
     detailedPathCheckBox.setOpaque(false);
-    pathsCheckBox.addChangeListener(
-        new ChangeListener() {
-          @Override
-          public void stateChanged(ChangeEvent evt) {
-            updateOptions();
-          }
-        });
 
     postAssignScriptChekbox.addChangeListener(
         new ChangeListener() {
@@ -1429,7 +1366,6 @@ public class AssignmentDlg extends EscapeDialog {
             0));
     setContentPane(mainPanel);
 
-    mainPanel.add(pathsCheckBox, pathsCheckBoxConstraints);
     scenarioPanel.add(
         scenarioLabel,
         new GridBagConstraints(
@@ -1564,41 +1500,58 @@ public class AssignmentDlg extends EscapeDialog {
 
     postAssignScriptChekbox.setOpaque(false);
     postAssignmentScriptTextField.setText("");
-    mainPanel.add(detailedPathCheckBox, detailedCheckBoxConstraints);
 
-    mainPanel.add(postAssignScriptChekbox, postAssignScriptChekboxConstraints);
+    JPanel scriptPanel = new JPanel(new GridBagLayout());
+    scriptPanel.setOpaque(false);
+    scriptPanel.setBorder(
+        BorderFactory.createTitledBorder(
+            i18n.get(AssignmentDlg.class, "Post_assignment_script", "Post-assignment")));
+    GridBagConstraints scriptControlConstraints = new GridBagConstraints();
+    scriptControlConstraints.gridx = 0;
+    scriptControlConstraints.gridy = 0;
+    scriptControlConstraints.weightx = 1.0;
+    scriptControlConstraints.fill = GridBagConstraints.HORIZONTAL;
+    scriptControlConstraints.insets = new Insets(0, 5, 2, 5);
+    scriptPanel.add(postAssignScriptChekbox, scriptControlConstraints);
+    scriptControlConstraints.gridy = 1;
+    scriptControlConstraints.insets = new Insets(0, 5, 5, 5);
+    scriptPanel.add(postAssignmentScriptTextField, scriptControlConstraints);
+    GridBagConstraints sectionConstraints = new GridBagConstraints();
+    sectionConstraints.gridx = 0;
+    sectionConstraints.gridy = 7;
+    sectionConstraints.gridwidth = 4;
+    sectionConstraints.weightx = 1.0;
+    sectionConstraints.fill = GridBagConstraints.HORIZONTAL;
+    sectionConstraints.insets = new Insets(0, 10, 5, 10);
+    mainPanel.add(scriptPanel, sectionConstraints);
     highlightedAreaCheckBox.setText(
         i18n.get(AssignmentDlg.class, "Limit_to_highlighted_area", "Limit to highlighted area"));
     highlightedAreaCheckBox.setOpaque(false);
 
-    GridBagConstraints descriptionLabelConstraints = new GridBagConstraints();
-    descriptionLabelConstraints.anchor = GridBagConstraints.SOUTHWEST;
-    descriptionLabelConstraints.insets = new Insets(10, 10, 5, 5);
-    descriptionLabelConstraints.gridx = 0;
-    descriptionLabelConstraints.gridy = 10;
-    descriptionLabel.setHorizontalAlignment(SwingConstants.LEFT);
-    descriptionLabel.setText(i18n.get(AssignmentDlg.class, "Description", "Description:"));
-    mainPanel.add(descriptionLabel, descriptionLabelConstraints);
-
-    GridBagConstraints descriptionTextAreaConstraints = new GridBagConstraints();
-    descriptionTextAreaConstraints.gridwidth = 4;
-    descriptionTextAreaConstraints.insets = new Insets(0, 10, 10, 10);
-    descriptionTextAreaConstraints.fill = GridBagConstraints.HORIZONTAL;
-    descriptionTextAreaConstraints.gridx = 0;
-    descriptionTextAreaConstraints.gridy = 11;
-    mainPanel.add(descriptionTextField, descriptionTextAreaConstraints);
+    JPanel descriptionPanel = new JPanel(new GridBagLayout());
+    descriptionPanel.setOpaque(false);
+    descriptionPanel.setBorder(
+        BorderFactory.createTitledBorder(
+            i18n.get(AssignmentDlg.class, "Description", "Assignment description")));
+    GridBagConstraints descriptionFieldConstraints = new GridBagConstraints();
+    descriptionFieldConstraints.weightx = 1.0;
+    descriptionFieldConstraints.fill = GridBagConstraints.HORIZONTAL;
+    descriptionFieldConstraints.insets = new Insets(0, 5, 5, 5);
+    descriptionPanel.add(descriptionTextField, descriptionFieldConstraints);
+    sectionConstraints.gridy = 8;
+    mainPanel.add(descriptionPanel, sectionConstraints);
 
     GridBagConstraints preferencesButtonConstraints = new GridBagConstraints();
     preferencesButtonConstraints.anchor = GridBagConstraints.SOUTHWEST;
     preferencesButtonConstraints.gridx = 0;
     preferencesButtonConstraints.insets = new Insets(5, 10, 10, 10);
-    preferencesButtonConstraints.gridy = 12;
+    preferencesButtonConstraints.gridy = 9;
     mainPanel.add(getPreferencesButton(), preferencesButtonConstraints);
 
     GridBagConstraints saveButtonConstraints = new GridBagConstraints();
     saveButtonConstraints.insets = new Insets(5, 5, 10, 5);
     saveButtonConstraints.gridx = 1;
-    saveButtonConstraints.gridy = 12;
+    saveButtonConstraints.gridy = 9;
     saveButton.setText(i18n.get(AssignmentDlg.class, "Save", "Save"));
     saveButton.addActionListener(
         new ActionListener() {
@@ -1629,7 +1582,7 @@ public class AssignmentDlg extends EscapeDialog {
     assignButtonConstraints.gridx = 2;
     assignButtonConstraints.anchor = GridBagConstraints.SOUTHEAST;
     assignButtonConstraints.insets = new Insets(5, 5, 10, 5);
-    assignButtonConstraints.gridy = 12;
+    assignButtonConstraints.gridy = 9;
     mainPanel.add(assignButton, assignButtonConstraints);
 
     assignButton.setText(i18n.get(AssignmentDlg.class, "Assign", "Assign"));
@@ -1641,9 +1594,28 @@ public class AssignmentDlg extends EscapeDialog {
           }
         });
 
-    mainPanel.add(postAssignmentScriptTextField, postAssignmentScriptTextFieldConstraints);
-    mainPanel.add(highlightedAreaCheckBox, highlightedAreaCheckBoxConstraints);
-    mainPanel.add(getLostPathsCheckBox(), lostPathsCheckBoxConstraints);
+    JPanel assignmentOptionsPanel = new JPanel(new GridBagLayout());
+    assignmentOptionsPanel.setOpaque(false);
+    JCheckBox[] assignmentOptions = {
+      getLostPathsCheckBox(), detailedPathCheckBox, highlightedAreaCheckBox
+    };
+    for (int optionIndex = 0; optionIndex < assignmentOptions.length; optionIndex++) {
+      GridBagConstraints optionConstraints = new GridBagConstraints();
+      optionConstraints.gridx = optionIndex;
+      optionConstraints.gridy = 0;
+      optionConstraints.anchor = GridBagConstraints.WEST;
+      optionConstraints.insets = new Insets(0, 0, 0, optionIndex < 2 ? 20 : 0);
+      optionConstraints.weightx = optionIndex == 2 ? 1.0 : 0.0;
+      assignmentOptionsPanel.add(assignmentOptions[optionIndex], optionConstraints);
+    }
+    GridBagConstraints assignmentOptionsConstraints = new GridBagConstraints();
+    assignmentOptionsConstraints.gridx = 0;
+    assignmentOptionsConstraints.gridy = 6;
+    assignmentOptionsConstraints.gridwidth = 4;
+    assignmentOptionsConstraints.fill = GridBagConstraints.HORIZONTAL;
+    assignmentOptionsConstraints.anchor = GridBagConstraints.WEST;
+    assignmentOptionsConstraints.insets = new Insets(10, 10, 10, 10);
+    mainPanel.add(assignmentOptionsPanel, assignmentOptionsConstraints);
     multiflowTab.add(fastMFRadioButton, fastMFRadioButtonBagConstraints);
     multiflowTab.add(exactMFRadioButton, exactMFRadioButtongridBagConstraints);
     multiflowTab.add(costMarkUpLabel, costMarkUpLabelgridBagConstraints);
@@ -1792,7 +1764,7 @@ public class AssignmentDlg extends EscapeDialog {
             0);
     closeButtonConstraints.anchor = GridBagConstraints.SOUTHEAST;
     closeButtonConstraints.insets = new Insets(0, 5, 10, 10);
-    closeButtonConstraints.gridy = 12;
+    closeButtonConstraints.gridy = 9;
     mainPanel.add(cancelButton, closeButtonConstraints);
   }
 
@@ -1942,21 +1914,6 @@ public class AssignmentDlg extends EscapeDialog {
 
     manualModalSplitMethod = getModalSplitPrettyName(stringValue);
     modalSplitMethodComboBox.setSelectedItem(manualModalSplitMethod);
-
-    // Save path
-    intValue =
-        nodusMapPanel
-            .getNodusProject()
-            .getLocalProperty(NodusC.PROP_ASSIGNMENT_SAVE_PATHS + scenarioSuffix, -1);
-    if (intValue == -1) {
-      intValue =
-          nodusMapPanel.getNodusProject().getLocalProperty(NodusC.PROP_ASSIGNMENT_SAVE_PATHS, 0);
-    }
-    if (intValue == 1) {
-      pathsCheckBox.setSelected(true);
-    } else {
-      pathsCheckBox.setSelected(false);
-    }
 
     // Save detailed paths
     intValue =
@@ -2210,15 +2167,6 @@ public class AssignmentDlg extends EscapeDialog {
               NodusC.PROP_ASSIGNMENT_MODAL_SPLIT_METHOD + scenarioSuffix, msmn.getName());
     }
     int i = 0;
-    if (pathsCheckBox.isSelected()) {
-      i = 1;
-    }
-    nodusMapPanel.getNodusProject().setLocalProperty(NodusC.PROP_ASSIGNMENT_SAVE_PATHS, i);
-    nodusMapPanel
-        .getNodusProject()
-        .setLocalProperty(NodusC.PROP_ASSIGNMENT_SAVE_PATHS + scenarioSuffix, i);
-
-    i = 0;
     if (detailedPathCheckBox.isSelected()) {
       i = 1;
     }
@@ -2421,12 +2369,6 @@ public class AssignmentDlg extends EscapeDialog {
     maxDetourLabel.setEnabled(enabled);
     maxDetourSpinner.setEnabled(enabled);
     keepCheapestOnlyCheckBox.setEnabled(enabled);
-
-    if (pathsCheckBox.isSelected()) {
-      detailedPathCheckBox.setEnabled(true);
-    } else {
-      detailedPathCheckBox.setEnabled(false);
-    }
 
     if (postAssignScriptChekbox.isSelected()) {
       postAssignmentScriptTextField.setEditable(true);

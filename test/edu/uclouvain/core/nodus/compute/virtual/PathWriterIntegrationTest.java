@@ -337,7 +337,9 @@ class PathWriterIntegrationTest {
     final AssignmentParameters parameters =
         new AssignmentParameters(new HeadlessProject(connection, batchSize));
     parameters.setScenario(7);
-    parameters.setSavePaths(true);
+    // Legacy scripts cannot suppress the headers needed by downstream modules.
+    parameters.setSavePaths(false);
+    assertTrue(parameters.isSavePaths());
     parameters.setDetailedPaths(true);
     parameters.setDurationFunctions(durationFunctions);
     writer = new RecordingPathWriter(parameters);

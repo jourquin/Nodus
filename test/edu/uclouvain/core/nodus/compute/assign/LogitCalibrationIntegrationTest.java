@@ -847,7 +847,13 @@ class LogitCalibrationIntegrationTest {
               1e-6);
         }
         assertTrue(
-            Files.readString(directory.resolve("model_params.txt")).contains("mode-specific"));
+            Files.readString(directory.resolve("model_params.html")).contains("mode-specific"));
+        assertFalse(Files.exists(directory.resolve("model_params.txt")));
+        String htmlReport = Files.readString(directory.resolve("model_params.html"));
+        assertTrue(htmlReport.contains("<h2>Commodity group"));
+        assertTrue(htmlReport.contains("Final log-likelihood"));
+        assertTrue(htmlReport.contains("T-statistic (zero null)"));
+        assertTrue(htmlReport.contains("not robust or clustered"));
         parameters.setCostFunctions("model.costs");
         selectObservedDemand(project, parameters);
         project.run(new FastMFAssignment(parameters), 2);
@@ -885,7 +891,7 @@ class LogitCalibrationIntegrationTest {
         }
         project.execute("CREATE TABLE previous_params (sentinel INT)");
         project.execute("INSERT INTO previous_params VALUES (71)");
-        Path report = directory.resolve("model_params.txt");
+        Path report = directory.resolve("model_params.html");
         Files.writeString(report, "previous report");
         byte[] before = Files.readAllBytes(parameters.getCostFunctionsPath());
         project.panel.prepareRun(2);
@@ -936,7 +942,7 @@ class LogitCalibrationIntegrationTest {
             1e-8);
       }
       assertTrue(
-          Files.readString(directory.resolve("model_params.txt"))
+          Files.readString(directory.resolve("model_params.html"))
               .contains("Cost coefficient at zero upper bound"));
       assertNoTemporaryTables(project);
     }
