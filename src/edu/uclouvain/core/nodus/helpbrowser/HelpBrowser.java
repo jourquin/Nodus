@@ -80,7 +80,11 @@ public class HelpBrowser {
     }
   }
 
-  /** Opens a help page or generated report using the system default browser. */
+  /**
+   * Opens a help page or generated report using the system default browser.
+   *
+   * @param targetUri URI of the help page or generated report to display
+   */
   public void launchBrowser(URI targetUri) {
     if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
       Thread t =
