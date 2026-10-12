@@ -23,12 +23,12 @@ package edu.uclouvain.core.nodus.compute.modalsplit;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
-import edu.uclouvain.core.nodus.helpbrowser.HelpBrowser;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
+import edu.uclouvain.core.nodus.helpbrowser.HelpBrowser;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import edu.uclouvain.core.nodus.utils.HardwareUtils;
 import edu.uclouvain.core.nodus.utils.SoundPlayer;
@@ -273,7 +273,10 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     buttons.add(estimate);
     displayReport.setText(text("DisplayReport", "Display estimation report"));
     displayReport.setSelected(project.getLocalProperty(PREFIX + "displayReport", false));
-    tooltip(displayReport, "displayReport", "Open the HTML estimation report in the web browser after successful estimation.");
+    tooltip(
+        displayReport,
+        "displayReport",
+        "Open the HTML estimation report in the web browser after successful estimation.");
     JPanel actions = new JPanel(new BorderLayout());
     actions.add(displayReport, BorderLayout.WEST);
     actions.add(buttons, BorderLayout.EAST);

@@ -154,8 +154,6 @@ public class AssignmentDlg extends EscapeDialog {
   private JSpinner costMarkupSpinner = new JSpinner();
 
   /** . */
-
-  /** . */
   private JTextField descriptionTextField = new JTextField();
 
   /** . */
@@ -250,8 +248,6 @@ public class AssignmentDlg extends EscapeDialog {
 
   /** . */
   private JLabel odTablesLabel = new JLabel(i18n.get(AssignmentDlg.class, "OD_table", "OD table:"));
-
-  /** . */
 
   /** . */
   private JTextField postAssignmentScriptTextField = new JTextField();
@@ -1187,7 +1183,8 @@ public class AssignmentDlg extends EscapeDialog {
         i18n.get(
             AssignmentDlg.class,
             "Detailed_paths_tooltip",
-            "Save detailed paths for route inspection and mapping. Path headers are always saved."));
+            "Save detailed paths for route inspection and mapping. "
+                + "Path headers are always saved."));
     detailedPathCheckBox.setOpaque(false);
 
     postAssignScriptChekbox.addChangeListener(

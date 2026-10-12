@@ -287,7 +287,8 @@ public final class LogitCalibration implements AutoCloseable {
         }
         pivotCount += result.pivots;
       }
-      String htmlLayers = ModalEstimationReport.layers(htmlGroups.toString(), htmlPivots.toString());
+      String htmlLayers =
+          ModalEstimationReport.layers(htmlGroups.toString(), htmlPivots.toString());
       checkCancelled("Saving " + method + " coefficients");
       report.append(skippedDetails);
       if (outputTable != null) {
@@ -643,8 +644,12 @@ public final class LogitCalibration implements AutoCloseable {
         pivots = pivotResult.saved;
         pivotHtml = ModalEstimationReport.pivots(pivotResult.groups.get(group));
       }
-      return new GroupFit(group, groupReport.toString(), pivots,
-          ModalEstimationReport.group(group, method, modes, settings.getReferenceMode(), behavioral),
+      return new GroupFit(
+          group,
+          groupReport.toString(),
+          pivots,
+          ModalEstimationReport.group(
+              group, method, modes, settings.getReferenceMode(), behavioral),
           pivotHtml);
     } catch (CancellationException cancelled) {
       throw cancelled;

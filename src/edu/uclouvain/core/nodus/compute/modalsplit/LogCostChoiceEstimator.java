@@ -136,7 +136,7 @@ final class LogCostChoiceEstimator {
     int modes = costs[0].length;
     int slopes = proportional ? 0 : conditional ? 1 : modes;
     int size = modes - 1 + slopes;
-    boolean boundedLogit = !proportional && !probit;
+    final boolean boundedLogit = !proportional && !probit;
     if (referenceMode < 0 || referenceMode >= modes) {
       throw new IllegalArgumentException("Reference mode must be a zero-based column index");
     }

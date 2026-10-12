@@ -59,11 +59,15 @@ final class ModalEstimationReport {
         + "<p>Model parameters estimated before optional OD/group pivot calibration. Standard "
         + "errors use observed quantities as frequency weights; they are not robust or clustered. "
         + "Changing the quantity unit changes likelihoods and uncertainty. T-statistics are "
-        + "asymptotic estimate/SE ratios for a zero coefficient, not finite-sample Student tests.</p>"
-        + behavioralGroups + "</section><section id='pivot-calibration'><h2>Pivot calibration</h2>"
-        + (pivotGroups.isEmpty() ? "<p>Pivot calibration was not requested.</p>"
+        + "asymptotic estimate/SE ratios for a zero coefficient, "
+        + "not finite-sample Student tests.</p>"
+        + behavioralGroups
+        + "</section><section id='pivot-calibration'><h2>Pivot calibration</h2>"
+        + (pivotGroups.isEmpty()
+            ? "<p>Pivot calibration was not requested.</p>"
             : "<p>Bounded base-year utility corrections fitted after the behavioral model. "
-                + "These corrections are separate from the behavioral parameters.</p>" + pivotGroups)
+                + "These corrections are separate from the behavioral parameters.</p>"
+                + pivotGroups)
         + "</section>";
   }
 
@@ -71,8 +75,8 @@ final class ModalEstimationReport {
       LogCostChoiceEstimate estimate) {
     boolean proportional = estimate instanceof ProportionalEstimator.Result;
     int count = modes.length - 1 + (proportional ? 0 : estimate.isConditional() ? 1 : modes.length);
-    double ll = estimate.getLogLikelihood();
-    double baseline = estimate.getNullLogLikelihood();
+    final double ll = estimate.getLogLikelihood();
+    final double baseline = estimate.getNullLogLikelihood();
     StringBuilder html = new StringBuilder("<h3>Commodity group " + group + " — "
         + escape(method) + "</h3><table><tr><th>Measurement</th><th>Value</th></tr>");
     metric(html, "Estimated behavioral parameters", count);
@@ -80,7 +84,10 @@ final class ModalEstimationReport {
     metric(html, "Total observed quantity (frequency weight)", estimate.getTotalQuantity());
     metric(html, "Iterations", estimate.getIterations());
     metric(html, "Final log-likelihood", ll);
-    metric(html, proportional ? "Unadjusted proportional log-likelihood" : "Zero-parameter log-likelihood", baseline);
+    metric(
+        html,
+        proportional ? "Unadjusted proportional log-likelihood" : "Zero-parameter log-likelihood",
+        baseline);
     metric(html, "Twice log-likelihood improvement (no p-value)", 2 * (ll - baseline));
     if (baseline != 0) {
       metric(html, "Rho-square against baseline", 1 - ll / baseline);
@@ -89,10 +96,14 @@ final class ModalEstimationReport {
     metric(html, "AIC (behavioral model, frequency-weight scale)", 2 * count - 2 * ll);
     html.append("</table><table><tr><th>Parameter</th><th>Estimate</th><th>Standard error</th>"
         + "<th>T-statistic (zero null)</th><th>Status</th></tr>");
-    double[] values = proportional ? ((ProportionalEstimator.Result) estimate).getCostFactors()
-        : estimate.getIntercepts();
-    double[] errors = proportional ? ((ProportionalEstimator.Result) estimate).getCostFactorStandardErrors()
-        : estimate.getInterceptStandardErrors();
+    double[] values =
+        proportional
+            ? ((ProportionalEstimator.Result) estimate).getCostFactors()
+            : estimate.getIntercepts();
+    double[] errors =
+        proportional
+            ? ((ProportionalEstimator.Result) estimate).getCostFactorStandardErrors()
+            : estimate.getInterceptStandardErrors();
     for (int i = 0; i < modes.length; i++) {
       parameter(html, (proportional ? "Cost factor, mode " : "Intercept, mode ") + modes[i],
           values[i], errors[i], modes[i] == reference ? "Fixed reference" : "Estimated",
@@ -120,7 +131,8 @@ final class ModalEstimationReport {
         + "alternatives are included in the unweighted distribution. Available cells and stored "
         + "nonzero corrections are counted separately. The reference mode is excluded. "
         + "Weighted values use observed quantities of each mode; N/A means no observed modal "
-        + "quantity. Weighted median is the first correction reaching 50% of cumulative weight.</p>");
+        + "quantity. Weighted median is the first correction reaching "
+        + "50% of cumulative weight.</p>");
     String bound = Double.toString(diagnostics.maxAbs);
     String distributionHeadings = "<th>Median</th><th>% at −" + bound
         + "</th><th>% at +" + bound + "</th>";
@@ -135,15 +147,20 @@ final class ModalEstimationReport {
           .append(distribution.available).append("</td><td>").append(distribution.stored)
           .append("</td>");
       for (boolean weighted : new boolean[] {false, true}) {
-        html.append("<td>").append(pivotNumber(distribution.median(weighted))).append("</td><td>")
-            .append(pivotPercentage(distribution.boundPercentage(false, weighted))).append("</td><td>")
-            .append(pivotPercentage(distribution.boundPercentage(true, weighted))).append("</td>");
+        html.append("<td>")
+            .append(pivotNumber(distribution.median(weighted)))
+            .append("</td><td>")
+            .append(pivotPercentage(distribution.boundPercentage(false, weighted)))
+            .append("</td><td>")
+            .append(pivotPercentage(distribution.boundPercentage(true, weighted)))
+            .append("</td>");
       }
       html.append("</tr>");
     }
     html.append("</table><h4>Pivot numerical completion</h4><p>Counts refer to OD/group cells. "
         + "A small update can result from clipping at a bound; it does not establish exact "
-        + "reproduction of observed quantities.</p><table><tr><th>Measurement</th><th>Value</th></tr>");
+        + "reproduction of observed quantities.</p>"
+        + "<table><tr><th>Measurement</th><th>Value</th></tr>");
     metric(html, "OD/group cells", diagnostics.cells);
     metric(html, "Cells without an adjustable nonreference mode", diagnostics.noAdjustableModes);
     metric(html, "Cells stopped on update tolerance", diagnostics.toleranceStops);
@@ -161,8 +178,11 @@ final class ModalEstimationReport {
       metric(html, "Iterations per adjustable cell: maximum", sorted.get(sorted.size() - 1));
     }
     metric(html, "Maximum final applied update", diagnostics.maxFinalChange);
-    metric(html, "Maximum remaining absolute raw log-ratio update", diagnostics.maxRemainingLogRatio);
-    metric(html, "OD/group cells with an outward update blocked by a bound",
+    metric(
+        html, "Maximum remaining absolute raw log-ratio update", diagnostics.maxRemainingLogRatio);
+    metric(
+        html,
+        "OD/group cells with an outward update blocked by a bound",
         diagnostics.boundBlockedCells);
     int boundBlocked = diagnostics.distributions.values().stream()
         .mapToInt(distribution -> distribution.boundBlocked).sum();
@@ -188,10 +208,14 @@ final class ModalEstimationReport {
         ? ((ProportionalEstimator.Result) estimate).getCostFactorCovariance()
         : estimate.getCoefficientCovariance();
     html.append("<h4>Correlation of coefficients</h4><p>")
-        .append(proportional ? "Delta-method covariance of cost factors derived from conventional "
-            + "inverse information" : "Conventional inverse-information covariance")
-        .append(" with quantity frequency weights; not robust or clustered. "
-        + "Fixed parameters are omitted. Boundary entries describe curvature only.</p>");
+        .append(
+            proportional
+                ? "Delta-method covariance of cost factors derived from conventional "
+                    + "inverse information"
+                : "Conventional inverse-information covariance")
+        .append(
+            " with quantity frequency weights; not robust or clustered. "
+                + "Fixed parameters are omitted. Boundary entries describe curvature only.</p>");
     if (covariance == null) {
       html.append("<p>Full covariance is unavailable for this estimate.</p>");
       return;

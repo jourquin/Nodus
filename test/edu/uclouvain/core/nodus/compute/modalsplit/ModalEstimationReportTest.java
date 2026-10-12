@@ -16,8 +16,9 @@
 
 package edu.uclouvain.core.nodus.compute.modalsplit;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import edu.uclouvain.core.nodus.NodusC;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -36,6 +37,7 @@ class ModalEstimationReportTest {
     assertTrue(html.contains("&lt;script&gt;&amp;&quot;"));
     assertFalse(html.contains("<script>"));
   }
+
   @Test
   void boundaryCoefficientDoesNotReceiveAnOrdinaryTStatistic() {
     LogCostChoiceEstimate result = new LogCostChoiceEstimate(
@@ -43,6 +45,7 @@ class ModalEstimationReportTest {
     String html = ModalEstimationReport.group(5, "MNL", new int[] {1, 2}, 1, result);
     assertTrue(html.contains("<td>—</td><td>At zero upper bound; curvature SE only"));
   }
+
   @Test
   void reportsEachEstimatedPairOnceWithConventionalCovariance() {
     LogCostChoiceEstimate result = LogCostLogitEstimator.estimate(
@@ -53,7 +56,8 @@ class ModalEstimationReportTest {
     assertTrue(correlations.contains("<td>-1.2022459</td><td>-0.80321933</td>"));
     assertFalse(correlations.contains("<td>Intercept, mode 1</td>"));
     assertFalse(correlations.contains("t-test"));
-    assertFalse(ModalEstimationReport.document(html, "").contains("coefficient correlations, bootstrap"));
+    assertFalse(
+        ModalEstimationReport.document(html, "").contains("coefficient correlations, bootstrap"));
   }
 
   @Test
@@ -70,6 +74,7 @@ class ModalEstimationReportTest {
     assertTrue(correlations.contains("<td>0.20000000</td><td>0.25819889</td>"));
     assertFalse(correlations.contains("Common log-cost coef."));
   }
+
   @Test
   @ResourceLock("NodusC.includeEstimationWorkflowDiagnostics")
   void workflowSectionIsDisabledByDefaultAndCanBeEnabled() {

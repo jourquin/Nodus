@@ -333,6 +333,7 @@ class PathWriterIntegrationTest {
                 + "WHERE d.pathidx=h.pathidx AND d.link=h.qty) <> 2"));
   }
 
+  @SuppressWarnings("deprecation") // Deliberately exercise the legacy script compatibility setter.
   private void createWriter(int batchSize, boolean durationFunctions) {
     final AssignmentParameters parameters =
         new AssignmentParameters(new HeadlessProject(connection, batchSize));

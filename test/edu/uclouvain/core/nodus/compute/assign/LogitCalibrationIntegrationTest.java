@@ -847,7 +847,8 @@ class LogitCalibrationIntegrationTest {
               1e-6);
         }
         assertTrue(
-            Files.readString(directory.resolve("model_params.html")).contains("Log-cost coef., mode "));
+            Files.readString(directory.resolve("model_params.html"))
+                .contains("Log-cost coef., mode "));
         assertFalse(Files.exists(directory.resolve("model_params.txt")));
         String htmlReport = Files.readString(directory.resolve("model_params.html"));
         assertTrue(htmlReport.contains("<h3>Commodity group"));

@@ -122,7 +122,6 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
     parameters.setODMatrix("mini_od");
     parameters.setWhereStmt("");
     parameters.setThreads(threads);
-    parameters.setSavePaths(true);
     parameters.setDetailedPaths(true);
     return parameters;
   }

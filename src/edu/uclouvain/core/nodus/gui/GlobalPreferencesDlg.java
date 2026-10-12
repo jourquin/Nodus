@@ -318,7 +318,8 @@ public class GlobalPreferencesDlg extends EscapeDialog {
           }
         });
 
-    final JButton cancelButton = new JButton(i18n.get(GlobalPreferencesDlg.class, "Cancel", "Cancel"));
+    final JButton cancelButton =
+        new JButton(i18n.get(GlobalPreferencesDlg.class, "Cancel", "Cancel"));
     GUIUtils.setToolTip(
         cancelButton,
         GlobalPreferencesDlg.class,

@@ -26,8 +26,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.Properties;
+import java.util.TreeMap;
 import java.util.function.BooleanSupplier;
 
 /** Fits bounded residual utilities over OD and commodity cells after behavioral estimation. */
@@ -89,9 +89,9 @@ final class ModalPivotEstimator {
       }
       Row first = cell.get(0);
       LogCostChoiceEstimate behavioral = fitted.get(first.group);
-      double[] intercepts = behavioral.getIntercepts();
-      double[] coefficients = behavioral.getCostCoefficients();
-      double[] correction = new double[modes.length];
+      final double[] intercepts = behavioral.getIntercepts();
+      final double[] coefficients = behavioral.getCostCoefficients();
+      final double[] correction = new double[modes.length];
       double[] observed = new double[modes.length];
       for (Row row : cell) {
         for (int m = 0; m < modes.length; m++) {
