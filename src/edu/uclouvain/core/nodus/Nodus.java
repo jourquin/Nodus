@@ -61,6 +61,8 @@ import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
  * screenshot
  * 
  * TODO test on Windows and Linux before publishing the new version
+ * 
+ * TODO Finalize doc/advanced-property-settings.md
  *  
  */
 
