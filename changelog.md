@@ -474,7 +474,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
   iteration and convergence controls in the assignment dialog.
 - Add tooltips on (almost) all GUI elements
 
-## v9.0 - BuildXXXXXXXX
+## v9.0 - Build20261013
 - Add a simple modal choice estimation module (logit, probit and proportional cost factors)
 - Add a series of modal choice performance measurements 
 - Keep the native Groovy console's Copy and Select All actions targeted at the selected

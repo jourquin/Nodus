@@ -56,15 +56,6 @@ import javax.swing.text.DefaultEditorKit;
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 
-/*
- * TODO Update Demo.odt to integrate performance measurement indicators and update modal split GUI
- * screenshot
- * 
- * TODO test on Windows and Linux before publishing the new version
- * 
- * TODO Finalize doc/advanced-property-settings.md
- *  
- */
 
 /**
  * Main class that creates a new NodusMapPanel, but also initializes the application with a

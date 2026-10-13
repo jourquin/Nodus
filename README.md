@@ -1,7 +1,5 @@
 # Nodus 9.0 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
 
-**(Work in progress. Latest release is Nodus 8.6)**
-
 Nodus is a transportation network modeling software especially designed for multimodal and
 intermodal freight transport. It is developed at the Center for Operations Research and
 Econometrics ([CORE](https://www.uclouvain.be/en/research-institutes/lidam/core)) of the Université catholique de Louvain
