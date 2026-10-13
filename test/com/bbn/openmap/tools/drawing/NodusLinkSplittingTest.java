@@ -234,6 +234,7 @@ class NodusLinkSplittingTest {
                             project.links.getEsriGraphicList().getOMGraphicAt(0);
                         final List<Object> attributes =
                             new ArrayList<>(project.links.getModel().getRecord(0));
+                        assertEquals("Route d'été", attributes.get(9));
                         tool(project).splitLink(new OMPoint(2.0, 5.0), original, 0);
                         project.nodes.save();
                         project.links.save();

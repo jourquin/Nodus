@@ -48,6 +48,8 @@
 				<!-- Use the project's matched JUnit versions, not those bundled with system Ant. -->
 				<fork dir="${basedir}" timeout="120000" includeJUnitPlatformLibraries="false">
 					<sysproperty key="java.awt.headless" value="true" />
+					<!-- Match Nodus startup: DBF output is UTF-8 and OpenMap reads the JVM default. -->
+					<sysproperty key="file.encoding" value="UTF-8" />
 				</fork>
 			</testclasses>
 		</junitlauncher>
