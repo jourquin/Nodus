@@ -1,5 +1,3 @@
-# Nodus 9.0
-
 Nodus 8.0, which first build was released on March 4, 2021, introduced a series of new features, among which:
 
 - The possibility of defining **transit time** functions in addition to cost functions;
@@ -14,11 +12,20 @@ Release history:
 - Nodus 8.3 (first build on November 26, 2025) updates the embedded Groovy runtime to version 5.x. This version change is justified by the fact that, although unlikely, some scripts written in this language may need to be slightly adapted.
 - Nodus 8.4 (first build on June 23, 2026) reintroduces the Frank-Wolfe based assignment algorithms, which were removed since 8.0 because they were buggy. It should primarily be seen as a stability and robustness update: several sensitive parts of the code were reviewed and strengthened, in particular the project open/close workflows, SQL console execution, time-dependent result display, and resource release. 
 - Nodus 8.5 (first build on September 17, 2026) reintroduces lines & services, which were disabled since Nodus 8.0, with a completely redesigned workflow based on Virtual Network Version 4.
-- Nodus 9.0 (first build on October 13, 2026) adds embedded modal-choice parameter estimation for univariate logit, probit and proportional methods and modal choice 
-performance measurement indicators. It is also a performance-focused release, highlighting faster assignments, more responsive map navigation and faster database operations.
-
-The CHANGELOG.MD file contains an exhaustive list of the improvements made to the software.
 
 Nodus 8.x is **compatible** with projects developed for Nodus 7.x. However, specific modal choice plugins need to be adapted to the new API.
 
+
+# Nodus 9.0 
+
+Nodus 9 (first build on October 13, 2026) 
+- Adds embedded modal-choice parameter estimation for univariate logit, probit and proportional methods. 
+- Adds modal choice performance measurement indicators.
+- Is a performance-focused release, highlighting faster assignments, more responsive map navigation and faster database operations.
+
 For Nodus 9.x, modal choice plugin source code needs updated imports, but Nodus offers to convert eligible Nodus 8.x modal-choice JARs without recompilation.
+
+
+The CHANGELOG.MD file contains an exhaustive list of the improvements made to the software.
+
+
