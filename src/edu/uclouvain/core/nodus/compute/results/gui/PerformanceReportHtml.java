@@ -20,14 +20,25 @@ import edu.uclouvain.core.nodus.compute.results.PerformanceIndicators.Choices;
 import edu.uclouvain.core.nodus.compute.results.PerformanceIndicators.Indicator;
 import edu.uclouvain.core.nodus.compute.results.PerformanceIndicators.Report;
 import edu.uclouvain.core.nodus.compute.results.PerformanceIndicators.Volumes;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.text.NumberFormat;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.function.BiFunction;
+import java.util.function.BooleanSupplier;
 
-/** Escaped, localized HTML for read-only modal performance results. */
+/** Escaped, localized HTML reports comparing saved assignments with reference matrices. */
 final class PerformanceReportHtml {
   private final BiFunction<String, String, String> labels;
   private final NumberFormat numbers = NumberFormat.getNumberInstance();
@@ -46,11 +57,23 @@ final class PerformanceReportHtml {
 
   private String render(Report report, Set<Indicator> selected) {
     html.append(
-        "<html><head><style>body{font-family:sans-serif;margin:12px;}"
+        "<!DOCTYPE html><html lang='"
+            + escape(Locale.getDefault().toLanguageTag())
+            + "'><head><meta charset='UTF-8'><title>"
+            + text("Title", "Model performance")
+            + "</title><style>body{font-family:sans-serif;margin:24px;}"
             + "table{border-collapse:collapse;margin-bottom:14px;}"
             + "th,td{border:1px solid #b0b0b0;padding:5px;}th{background:#ededed;}"
             + "td{text-align:right;}td:first-child{text-align:left;}</style></head><body>");
     html.append("<h2>").append(text("Title", "Model performance")).append("</h2>");
+    String generatedAt =
+        ZonedDateTime.now()
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss XXX '['VV']'", Locale.ROOT));
+    html.append("<p>")
+        .append(text("GeneratedAt", "Generated at:"))
+        .append(' ')
+        .append(escape(generatedAt))
+        .append("</p>");
     html.append("<p>")
         .append(text("PathHeader", "Assignment path-header table:"))
         .append(' ')
@@ -252,6 +275,51 @@ final class PerformanceReportHtml {
                     + " independent choices."))
         .append("</p></body></html>");
     return html.toString();
+  }
+
+  /**
+   * Saves a complete UTF-8 report, retaining the previous file on cancellation or write failure.
+   */
+  static Path save(
+      Path directory,
+      Report report,
+      Set<Indicator> selected,
+      BiFunction<String, String, String> labels,
+      BooleanSupplier proceed)
+      throws IOException {
+    checkCancelled(proceed);
+    String contents = render(report, selected, labels);
+    checkCancelled(proceed);
+    Path destination = reportPath(directory, report.pathTable);
+    Path temporary = Files.createTempFile(directory, ".nodus-performance-", ".html");
+    try {
+      Files.writeString(temporary, contents, StandardCharsets.UTF_8);
+      checkCancelled(proceed);
+      try {
+        Files.move(
+            temporary,
+            destination,
+            StandardCopyOption.ATOMIC_MOVE,
+            StandardCopyOption.REPLACE_EXISTING);
+      } catch (AtomicMoveNotSupportedException unsupported) {
+        Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING);
+      }
+      return destination;
+    } finally {
+      Files.deleteIfExists(temporary);
+    }
+  }
+
+  /** Derives a filename safe on Windows as well as Unix from the selected header table. */
+  static Path reportPath(Path directory, String pathTable) {
+    String name = pathTable.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_");
+    return directory.resolve(name + "_performance.html").toAbsolutePath();
+  }
+
+  private static void checkCancelled(BooleanSupplier proceed) {
+    if (!proceed.getAsBoolean()) {
+      throw new CancellationException();
+    }
   }
 
   private void volumeRow(String scope, Volumes volumes, Set<Indicator> selected) {

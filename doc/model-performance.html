@@ -86,16 +86,32 @@ estimation. The IDs must match <code>ldmode</code> in the assignment
 results. At least one mapped mode is required.</li>
 <li>Select the assignment's <strong>path-header table</strong> from the
 dropdown.</li>
-<li>Check the indicators to display and click <strong>Compute</strong>.
-On the first opening, only WAPE is checked.</li>
+<li>Check the indicators to include in the report. On the first opening,
+only WAPE is checked.</li>
+<li>Optionally check <strong>Display performance report in web
+browser</strong>, then click <strong>Compute</strong>.</li>
 </ol>
 <p>The computation runs in the background with a busy cursor.
 <strong>Cancel</strong> stops it; closing during computation requests
-cancellation and waits for reading to finish. The HTML results can be
-scrolled and the dialog resized. When <strong>Compute</strong> starts,
-the matrix mappings, path-header table, and checkbox choices are saved
-for later openings, independently of estimation preferences. The
-comparison does not modify matrices or assignment result tables.</p>
+cancellation and waits for reading to finish. Each successful
+computation saves a standalone UTF-8 HTML report in the project folder,
+named <code>&lt;path-header-table&gt;_performance.html</code> (for
+example, <code>demo_paths0_header_performance.html</code>). Characters
+unsuitable for filenames are replaced with underscores. The report
+includes the generation date and time, the comparison inputs and the
+selected indicators. Recomputing for the same table replaces its
+previous report; different scenario tables retain separate reports.
+Cancelled or failed computations do not publish an incomplete
+report.</p>
+<p>The dialog shows the saved filename. When <strong>Display performance
+report in web browser</strong> is checked, it opens the completed report
+using the same mechanism as Help and API Javadoc. The report is saved
+even when the checkbox is unchecked, and can be opened later from the
+project folder.</p>
+<p>When <strong>Compute</strong> starts, the matrix mappings,
+path-header table, indicator choices and browser checkbox are saved for
+later openings, independently of estimation preferences. The comparison
+does not modify matrices or assignment result tables.</p>
 <h3 id="inputs-and-aggregation">Inputs and aggregation</h3>
 <p>Reference matrices require <code>grp</code>, <code>org</code>,
 <code>dst</code>, and <code>qty</code>. Available path-header tables are

@@ -13,15 +13,29 @@ link volumes, travel times, transport costs, or the feasibility of individual pa
    using the same matrix editor as modal-choice estimation. The IDs must match
    `ldmode` in the assignment results. At least one mapped mode is required.
 3. Select the assignment's **path-header table** from the dropdown.
-4. Check the indicators to display and click **Compute**. On the first opening,
-   only WAPE is checked.
+4. Check the indicators to include in the report. On the first opening, only WAPE
+   is checked.
+5. Optionally check **Display performance report in web browser**, then click
+   **Compute**.
 
 The computation runs in the background with a busy cursor. **Cancel** stops it;
 closing during computation requests cancellation and waits for reading to finish.
-The HTML results can be scrolled and the dialog resized. When **Compute** starts,
-the matrix mappings, path-header table, and checkbox choices are saved for later
-openings, independently of estimation preferences. The comparison does not modify
-matrices or assignment result tables.
+Each successful computation saves a standalone UTF-8 HTML report in the project
+folder, named `<path-header-table>_performance.html` (for example,
+`demo_paths0_header_performance.html`). Characters unsuitable for filenames are
+replaced with underscores. The report includes the generation date and time, the
+comparison inputs and the selected indicators. Recomputing for the same table
+replaces its previous report; different scenario tables retain separate reports.
+Cancelled or failed computations do not publish an incomplete report.
+
+The dialog shows the saved filename. When **Display performance report in web
+browser** is checked, it opens the completed report using the same mechanism as
+Help and API Javadoc. The report is saved even when the checkbox is unchecked,
+and can be opened later from the project folder.
+
+When **Compute** starts, the matrix mappings, path-header table, indicator choices
+and browser checkbox are saved for later openings, independently of estimation
+preferences. The comparison does not modify matrices or assignment result tables.
 
 ### Inputs and aggregation
 

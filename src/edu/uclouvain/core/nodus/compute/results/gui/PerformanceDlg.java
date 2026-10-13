@@ -27,14 +27,15 @@ import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.results.PerformanceIndicators;
 import edu.uclouvain.core.nodus.compute.results.PerformanceIndicators.Indicator;
 import edu.uclouvain.core.nodus.compute.results.PerformanceIndicators.Report;
+import edu.uclouvain.core.nodus.helpbrowser.HelpBrowser;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Cursor;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.IdentityHashMap;
@@ -47,15 +48,13 @@ import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
-import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.SwingWorker;
 
 /**
- * Selects observed modal matrices and renders chosen performance indicators without writing data.
+ * Selects observed modal matrices and saves the chosen performance indicators as an HTML report.
  */
 public final class PerformanceDlg extends EscapeDialog {
   private static final long serialVersionUID = 1L;
@@ -72,8 +71,8 @@ public final class PerformanceDlg extends EscapeDialog {
   private final JComboBox<String> pathHeaders = new JComboBox<>();
   /** Checkboxes choosing the report sections to display. */
   private final Map<Indicator, JCheckBox> indicators = new EnumMap<>(Indicator.class);
-  /** Read-only HTML view of the computed report. */
-  private final JEditorPane output = new JEditorPane("text/html", "");
+  /** Opens the saved report in the system browser after successful computation. */
+  private final JCheckBox displayReport = new JCheckBox();
   /** Starts a background performance calculation. */
   private final JButton compute = new JButton();
   /** Closes the dialog or requests cancellation while a calculation is running. */
@@ -85,7 +84,7 @@ public final class PerformanceDlg extends EscapeDialog {
   /** Component cursors to restore after the busy state ends. */
   private final Map<Component, Cursor> originalCursors = new IdentityHashMap<>();
   /** Active calculation, or null when no background work is running. */
-  private SwingWorker<Report, Void> worker;
+  private SwingWorker<Path, Void> worker;
   /** Cooperative cancellation flag shared with the active worker. */
   private AtomicBoolean cancelled;
   /** Whether to dispose the dialog once the active calculation finishes cancelling. */
@@ -152,26 +151,20 @@ public final class PerformanceDlg extends EscapeDialog {
       selection.add(checkbox);
     }
     inputs.add(selection, BorderLayout.SOUTH);
-    output.setEditable(false);
-    output.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
-    output.setText(
-        "<html><body><p>"
-            + PerformanceReportHtml.escape(
-                pathHeaders.getItemCount() == 0
-                    ? text("NoHeader", "No assignment path-header table is available.")
-                    : text(
-                        "Instructions",
-                        "Select reference modal matrices, an assignment table and the"
-                            + " indicators to compute."))
-            + "</p></body></html>");
-    JScrollPane results = new JScrollPane(output);
-    results.setPreferredSize(new Dimension(1250, 580));
-    results.setBorder(BorderFactory.createTitledBorder(text("Results", "Results")));
+    displayReport.setText(text("DisplayReport", "Display performance report in web browser"));
+    displayReport.setSelected(project.getLocalProperty(PREFIX + "displayReport", false));
+    displayReport.setToolTipText(
+        text(
+            "tooltip.displayReport",
+            "Open the saved HTML performance report in the web browser after computation."));
+    if (pathHeaders.getItemCount() == 0) {
+      status.setText(text("NoHeader", "No assignment path-header table is available."));
+    }
     compute.setText(text("Compute", "Compute"));
     compute.setToolTipText(
         text(
             "tooltip.compute",
-            "Compare the selected matrices and display the selected indicators."));
+            "Compare the selected matrices and save the selected indicators in an HTML report."));
     compute.setEnabled(pathHeaders.getItemCount() > 0);
     compute.addActionListener(event -> compute());
     close.setText(text("Close", "Close"));
@@ -185,14 +178,16 @@ public final class PerformanceDlg extends EscapeDialog {
           }
         });
     JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-    actions.add(status);
     actions.add(compute);
     actions.add(close);
     JPanel content = new JPanel(new BorderLayout(0, 12));
     content.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
-    content.add(inputs, BorderLayout.NORTH);
-    content.add(results, BorderLayout.CENTER);
-    content.add(actions, BorderLayout.SOUTH);
+    JPanel footer = new JPanel(new BorderLayout(12, 8));
+    footer.add(status, BorderLayout.NORTH);
+    footer.add(displayReport, BorderLayout.WEST);
+    footer.add(actions, BorderLayout.EAST);
+    content.add(inputs, BorderLayout.CENTER);
+    content.add(footer, BorderLayout.SOUTH);
     setContentPane(content);
     getRootPane().setDefaultButton(compute);
     setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
@@ -252,6 +247,8 @@ public final class PerformanceDlg extends EscapeDialog {
   private void compute() {
     final Map<Integer, String> mapping;
     final String header;
+    final Path reportDirectory;
+    final boolean openReport = displayReport.isSelected();
     final EnumSet<Indicator> selected = EnumSet.noneOf(Indicator.class);
     try {
       mapping = observations.getTableMapping();
@@ -260,6 +257,7 @@ public final class PerformanceDlg extends EscapeDialog {
             text("NoHeader", "No assignment path-header table is available."));
       }
       header = pathHeaders.getSelectedItem().toString();
+      reportDirectory = Path.of(project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
       indicators.forEach(
           (indicator, checkbox) -> {
             if (checkbox.isSelected()) {
@@ -283,37 +281,47 @@ public final class PerformanceDlg extends EscapeDialog {
     project.setLocalProperty(PREFIX + "pathHeader", header);
     project.setLocalProperty(
         PREFIX + "indicators", selected.stream().map(Enum::name).collect(Collectors.joining(",")));
+    project.setLocalProperty(PREFIX + "displayReport", openReport);
     cancelled = new AtomicBoolean();
     closeRequested = false;
     mapPanel.getAssignmentMenuItem().setEnabled(false);
     enable(inputs, false);
+    displayReport.setEnabled(false);
     compute.setEnabled(false);
     close.setText(text("Cancel", "Cancel"));
     status.setText(text("Computing", "Computing..."));
+    status.setToolTipText(null);
     setBusyCursor(true);
     worker =
-        new SwingWorker<Report, Void>() {
+        new SwingWorker<Path, Void>() {
           @Override
-          protected Report doInBackground() throws Exception {
-            // The shared project connection includes pending reference-matrix edits. The modal
-            // dialog
-            // and assignment guard retain exclusive computation access until reading actually
-            // finishes.
-            return PerformanceIndicators.compute(
-                project.getMainJDBCConnection(),
-                mapping,
-                header,
-                selected.contains(Indicator.OD_SHARE_ERROR),
+          protected Path doInBackground() throws Exception {
+            // The shared connection includes pending reference-matrix edits. The dialog and
+            // assignment guard retain exclusive computation access until reading finishes.
+            Report report =
+                PerformanceIndicators.compute(
+                    project.getMainJDBCConnection(),
+                    mapping,
+                    header,
+                    selected.contains(Indicator.OD_SHARE_ERROR),
+                    () -> !cancelled.get());
+            return PerformanceReportHtml.save(
+                reportDirectory,
+                report,
+                selected,
+                PerformanceDlg.this::text,
                 () -> !cancelled.get());
           }
 
           @Override
           protected void done() {
             try {
-              output.setText(
-                  PerformanceReportHtml.render(get(), selected, PerformanceDlg.this::text));
-              output.setCaretPosition(0);
-              status.setText(text("Finished", "Finished"));
+              Path reportFile = get();
+              status.setText(text("ReportSaved", "Report saved:") + " " + reportFile.getFileName());
+              status.setToolTipText(reportFile.toAbsolutePath().toString());
+              if (openReport && !cancelled.get() && !closeRequested) {
+                new HelpBrowser().launchBrowser(reportFile.toUri());
+              }
             } catch (InterruptedException failure) {
               Thread.currentThread().interrupt();
               status.setText(text("Cancelled", "Computation cancelled"));
@@ -337,6 +345,7 @@ public final class PerformanceDlg extends EscapeDialog {
               setBusyCursor(false);
               worker = null;
               enable(inputs, true);
+              displayReport.setEnabled(true);
               compute.setEnabled(pathHeaders.getItemCount() > 0);
               close.setText(text("Close", "Close"));
               mapPanel.getAssignmentMenuItem().setEnabled(true);

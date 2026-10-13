@@ -18,17 +18,134 @@ package edu.uclouvain.core.nodus.compute.results.gui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.uclouvain.core.nodus.compute.results.PerformanceIndicators;
 import edu.uclouvain.core.nodus.compute.results.PerformanceIndicators.Indicator;
+import edu.uclouvain.core.nodus.compute.results.PerformanceIndicators.Report;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.DriverManager;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class PerformanceReportHtmlTest {
+  @TempDir Path directory;
+
+  @Test
+  void savesStandaloneUtf8ReportInProjectDirectoryAndReplacesItsPreviousVersion() throws Exception {
+    Path projectDirectory = Files.createDirectory(directory.resolve("Projet été"));
+    Path destination = projectDirectory.resolve("paths_header_performance.html");
+    Files.writeString(destination, "Old report");
+    Path saved =
+        PerformanceReportHtml.save(
+            projectDirectory,
+            report(),
+            EnumSet.of(Indicator.RMSE),
+            (key, fallback) -> "Title".equals(key) ? "Performances d'été" : fallback,
+            () -> true);
+    assertEquals(destination.toAbsolutePath(), saved);
+    String html = Files.readString(saved, StandardCharsets.UTF_8);
+    assertTrue(html.startsWith("<!DOCTYPE html>"));
+    assertTrue(html.contains("<meta charset='UTF-8'>"));
+    assertTrue(html.contains("<title>Performances d&#39;été</title>"));
+    assertTrue(html.contains("référence"));
+    assertTrue(html.matches("(?s).*Generated at: \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.*"));
+    assertTrue(html.contains("<th>RMSE (quantity units)</th>"));
+    assertFalse(html.contains("<th>WAPE (%)</th>"));
+    assertFalse(html.contains("Old report"));
+    assertTrue(html.endsWith("</body></html>"));
+    assertOnlyReport(projectDirectory, saved);
+  }
+
+  @Test
+  void cancellationBeforeOrAfterStagingRetainsPreviousReportAndCleansTemporaryFile()
+      throws Exception {
+    Path destination = directory.resolve("paths_header_performance.html");
+    Files.writeString(destination, "Keep this report");
+    Report report = report();
+    assertThrows(
+        CancellationException.class,
+        () ->
+            PerformanceReportHtml.save(
+                directory,
+                report,
+                EnumSet.of(Indicator.WAPE),
+                (key, fallback) -> fallback,
+                () -> false));
+    AtomicInteger checks = new AtomicInteger();
+    assertThrows(
+        CancellationException.class,
+        () ->
+            PerformanceReportHtml.save(
+                directory,
+                report,
+                EnumSet.of(Indicator.WAPE),
+                (key, fallback) -> fallback,
+                () -> checks.incrementAndGet() < 3));
+    assertEquals(3, checks.get());
+    assertEquals("Keep this report", Files.readString(destination));
+    assertOnlyReport(directory, destination);
+  }
+
+  @Test
+  void installationFailureKeepsExistingDestinationAndCleansTemporaryFile() throws Exception {
+    Path destination = Files.createDirectory(directory.resolve("paths_header_performance.html"));
+    Path marker = Files.writeString(destination.resolve("marker"), "Keep this directory");
+    Report report = report();
+    assertThrows(
+        IOException.class,
+        () ->
+            PerformanceReportHtml.save(
+                directory,
+                report,
+                EnumSet.of(Indicator.WAPE),
+                (key, fallback) -> fallback,
+                () -> true));
+    assertEquals("Keep this directory", Files.readString(marker));
+    assertOnlyReport(directory, destination);
+  }
+
+  @Test
+  void derivesSafeFilenamesFromHeaderTablesWithoutLeavingProjectDirectory() {
+    assertEquals(
+        directory.resolve("demo_paths0_header_performance.html").toAbsolutePath(),
+        PerformanceReportHtml.reportPath(directory, "demo_paths0_header"));
+    Path unsafe = PerformanceReportHtml.reportPath(directory, "../a\\b:c*?\"<>|\n_header");
+    assertEquals(directory.toAbsolutePath(), unsafe.getParent());
+    assertEquals(".._a_b_c________header_performance.html", unsafe.getFileName().toString());
+  }
+
+  private static Report report() throws Exception {
+    try (var connection =
+            DriverManager.getConnection("jdbc:h2:mem:" + UUID.randomUUID(), "sa", "");
+        var statement = connection.createStatement()) {
+      statement.executeUpdate("CREATE TABLE \"référence\" (grp INT,org INT,dst INT,qty DOUBLE)");
+      statement.executeUpdate(
+          "CREATE TABLE \"paths_header\" (grp INT,org INT,dst INT,ldmode INT,qty DOUBLE)");
+      statement.executeUpdate("INSERT INTO \"référence\" VALUES (0,1,2,5)");
+      statement.executeUpdate("INSERT INTO \"paths_header\" VALUES (0,1,2,1,4)");
+      return PerformanceIndicators.compute(
+          connection, Map.of(1, "référence"), "paths_header", false, () -> true);
+    }
+  }
+
+  private static void assertOnlyReport(Path parent, Path reportFile) throws IOException {
+    try (var files = Files.list(parent)) {
+      assertEquals(
+          java.util.List.of(reportFile.toAbsolutePath()),
+          files.map(Path::toAbsolutePath).collect(java.util.stream.Collectors.toList()));
+    }
+  }
+
   @Test
   void escapesNamesAndShowsOnlySelectedIndicators() throws Exception {
     try (var connection =
