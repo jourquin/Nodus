@@ -42,9 +42,8 @@ import org.json.simple.JSONValue;
  * calibration reads them. All currently supported methods require a mapped reference.
  *
  * <p>{@link #encode()} and {@link #decode(String)} persist the mapping under {@link #PROPERTY} as
- * JSON, including table names containing spaces or punctuation. Decoding accepts the observed-data
- * portion of legacy settings, ignoring their former assignment/estimation flags. Model selection,
- * cost file and routing controls belong to the enclosing dialog's preferences.
+ * JSON, including table names containing spaces or punctuation. Model selection, cost file and
+ * routing controls belong to the enclosing dialog's preferences.
  */
 public final class LogitCalibrationSettings {
   /** Project property containing only the observed-table mapping and reference selection. */
@@ -147,10 +146,9 @@ public final class LogitCalibrationSettings {
   }
 
   /**
-   * Restores project settings, including the observed-table mapping from the former workflow.
+   * Restores the observed-table mapping and reference mode from the current project settings.
    *
-   * <p>Legacy estimation and assignment-demand flags are deliberately ignored. Loading settings
-   * cannot request an assignment or change its demand source.
+   * <p>Loading settings cannot request an assignment or change its demand source.
    *
    * @param text encoded settings, or null for a new project
    * @return restored draft; blank input gives NONE and structural validation remains explicit

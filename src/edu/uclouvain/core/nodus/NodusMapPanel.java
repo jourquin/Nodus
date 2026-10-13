@@ -1418,6 +1418,18 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
   }
 
   /**
+   * Returns the global SQL batch size, falling back to 1000 for missing or invalid values.
+   *
+   * @return A positive number of statements per SQL batch.
+   */
+  public int getSqlBatchSize() {
+    int batchSize =
+        PropUtils.intFromProperties(
+            getNodusProperties(), NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
+    return batchSize > 0 ? batchSize : NodusC.MAXBATCHSIZE;
+  }
+
+  /**
    * Accessor for the projection stack.
    *
    * @return ProjectionStack

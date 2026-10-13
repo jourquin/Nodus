@@ -1077,8 +1077,7 @@ public class ServiceHandler {
       for (Map.Entry<String, TransportService> entry : services.entrySet()) {
         servicesToSave.put(entry.getKey(), entry.getValue());
       }
-      int maxBatchSize =
-          nodusProject.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
+      int maxBatchSize = nodusProject.getSqlBatchSize();
       ServiceDatabase database =
           new ServiceDatabase(
               jdbcConnection,

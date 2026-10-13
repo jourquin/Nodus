@@ -1069,6 +1069,21 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
+   * Returns the SQL batch size for database writers. A positive project override takes precedence
+   * over the global preference; missing or invalid values fall back to the next level, then 1000.
+   *
+   * @return A positive number of statements per SQL batch.
+   */
+  public int getSqlBatchSize() {
+    int batchSize = getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, 0);
+    if (batchSize > 0) {
+      return batchSize;
+    }
+    NodusMapPanel panel = getNodusMapPanel();
+    return panel == null ? NodusC.MAXBATCHSIZE : panel.getSqlBatchSize();
+  }
+
+  /**
    * Returns the value associated to a given key in the project's local properties.
    *
    * @param key The key of the property.

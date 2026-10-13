@@ -464,8 +464,7 @@ public class Scenarios {
     }
 
     /* Now create the result table and save the data into it */
-    int maxBatchSize =
-        nodusProject.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
+    int maxBatchSize = nodusProject.getSqlBatchSize();
 
     // Reduce max batch size as a vnet record is much larger that a path header / detail record
     if (maxBatchSize > NodusC.MAXBATCHSIZE) {

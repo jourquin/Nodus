@@ -582,7 +582,7 @@ public class NodusC {
   /** Pretty name used to identify a layer in the GUI. */
   public static final String PROP_PRETTY_NAME = ".prettyName";
 
-  /** Max batch size for SQL batches. */
+  /** Positive SQL batch size; project overrides the global preference, with a default of 1000. */
   public static final String PROP_MAX_SQL_BATCH_SIZE = "maxSqlBatchSize";
 
   /** Named color to use for a mode. */

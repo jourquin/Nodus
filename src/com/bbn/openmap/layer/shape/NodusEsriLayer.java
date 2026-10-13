@@ -1612,13 +1612,7 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
               + " WHERE "
               + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
               + " IN (";
-      int batchSize =
-          Math.min(
-              NodusC.MAXBATCHSIZE,
-              Math.max(
-                  1,
-                  nodusProject.getLocalProperty(
-                      NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE)));
+      int batchSize = Math.min(NodusC.MAXBATCHSIZE, nodusProject.getSqlBatchSize());
       List<Integer> numbers = new ArrayList<>(batchSize);
       for (int row = removed.nextSetBit(0); row >= 0; row = removed.nextSetBit(row + 1)) {
         numbers.add(JDBCUtils.getInt(model.getValueAt(row, NodusC.DBF_IDX_NUM)));

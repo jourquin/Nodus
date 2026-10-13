@@ -61,6 +61,11 @@ class ExtensionApiCompatibilityTest {
     assertTrue(
         current.remove(
             "public boolean edu.uclouvain.core.nodus.NodusProject.canSaveNetworkEdits()"));
+    // SQL writers share these additive accessors without changing any existing entry point.
+    assertTrue(
+        current.remove("public int edu.uclouvain.core.nodus.NodusMapPanel.getSqlBatchSize()"));
+    assertTrue(
+        current.remove("public int edu.uclouvain.core.nodus.NodusProject.getSqlBatchSize()"));
     assertEquals(Files.readAllLines(FIXTURES.resolve("api.txt")), current);
   }
 

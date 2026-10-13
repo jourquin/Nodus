@@ -184,8 +184,7 @@ public class ImportCSV {
 
     // long start = System.currentTimeMillis();
 
-    int maxBatchSize =
-        project.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
+    int maxBatchSize = project.getSqlBatchSize();
 
     // Table must exist in order to know which structure it has
     if (!JDBCUtils.tableExists(tableName)) {

@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
@@ -150,6 +151,26 @@ class PathWriterIntegrationTest {
       assertEquals(77, row.getInt(NodusC.DBF_PATH_INDEX));
       assertFalse(row.next());
     }
+  }
+
+  @Test
+  void globalPreferenceControlsFlushWhenProjectHasNoOverride() throws SQLException {
+    HeadlessPanel panel = new HeadlessPanel();
+    panel.getNodusProperties().setProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, "2");
+    AssignmentParameters parameters =
+        new AssignmentParameters(new HeadlessProject(connection, 0, panel));
+    parameters.setScenario(7);
+    parameters.setDetailedPaths(true);
+    writer = new RecordingPathWriter(parameters);
+    PathWriterBuffer buffer = writer.newBuffer();
+    assertTrue(saveHeader(buffer, 1, 10));
+    assertTrue(buffer.flush());
+    assertEquals(0, scalar("SELECT COUNT(*) FROM unit_paths7_header"));
+    assertTrue(saveHeader(buffer, 1, 20));
+    assertTrue(buffer.flush());
+    assertEquals(2, scalar("SELECT COUNT(*) FROM unit_paths7_header"));
+    assertTrue(writer.close());
+    assertNull(writer.failure);
   }
 
   @Test
@@ -385,7 +406,11 @@ class PathWriterIntegrationTest {
     private final int batchSize;
 
     HeadlessProject(Connection connection, int batchSize) {
-      super(null);
+      this(connection, batchSize, null);
+    }
+
+    HeadlessProject(Connection connection, int batchSize, NodusMapPanel panel) {
+      super(panel);
       this.connection = connection;
       this.batchSize = batchSize;
     }
@@ -411,6 +436,10 @@ class PathWriterIntegrationTest {
     public int getLocalProperty(String key, int defaultValue) {
       return NodusC.PROP_MAX_SQL_BATCH_SIZE.equals(key) ? batchSize : defaultValue;
     }
+  }
+
+  private static final class HeadlessPanel extends NodusMapPanel {
+    private static final long serialVersionUID = 1L;
   }
 
   /** Records failures instead of opening the production error dialog. */

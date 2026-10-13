@@ -202,7 +202,7 @@ public class ImportDBF {
 
     String path = project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
 
-    maxBatchSize = project.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
+    maxBatchSize = project.getSqlBatchSize();
 
     hasBatchSupport = JDBCUtils.hasBatchSupport();
     try (DBFReader reader = new DBFReader(path + tableName + NodusC.TYPE_DBF)) {

@@ -222,17 +222,4 @@ class LogitCostFileTest {
         () -> new LogitCalibrationSettings(2, Map.of(1, "a")).validate(false));
     assertThrows(IllegalArgumentException.class, () -> LogitCalibrationSettings.decode("broken"));
   }
-
-  @Test
-  void legacySettingsMigrateObservationsWithoutAssignmentFlags() {
-    LogitCalibrationSettings legacy =
-        LogitCalibrationSettings.decode(
-            "{\"estimate\":true,\"sumObserved\":true,\"excludeSkippedDemand\":true,"
-                + "\"referenceMode\":1,\"tables\":{\"1\":\"road\",\"2\":\"rail\"}}");
-    assertEquals(Map.of(1, "road", 2, "rail"), legacy.getTables());
-    assertEquals(1, legacy.getReferenceMode());
-    assertFalse(legacy.encode().contains("sumObserved"));
-    assertFalse(legacy.encode().contains("estimate"));
-    assertFalse(legacy.encode().contains("excludeSkippedDemand"));
-  }
 }

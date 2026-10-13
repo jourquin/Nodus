@@ -42,6 +42,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -90,6 +91,9 @@ public class GlobalPreferencesDlg extends EscapeDialog {
 
   /** . */
   private JTextField maxSqlRowsTextField;
+
+  /** Global default number of statements per SQL batch. */
+  private JTextField sqlBatchSizeTextField;
 
   /** . */
   private JCheckBox navMouseModeCheckBox;
@@ -171,6 +175,14 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     maxSqlRowsTextField.setHorizontalAlignment(SwingConstants.LEFT);
     maxSqlRowsTextField.setText("0");
 
+    sqlBatchSizeTextField = new JTextField(7);
+    sqlBatchSizeTextField.setHorizontalAlignment(SwingConstants.LEFT);
+    GUIUtils.setToolTip(
+        sqlBatchSizeTextField,
+        GlobalPreferencesDlg.class,
+        "sqlBatchSizeTextField",
+        "Number of statements per SQL batch. A project setting overrides this default.");
+
     reloadLastProjectCheckBox =
         new JCheckBox(
             i18n.get(GlobalPreferencesDlg.class, "Reopen_last_project", "Reopen last project"));
@@ -249,8 +261,7 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     updateButtonRow.add(checkForUpdateButton);
     addControl(startupPanel, updateButtonRow, 2, 28);
     addControl(startupPanel, confirmQuitCheckBox, 3, 8);
-    JPanel leftColumn = new JPanel(new GridBagLayout());
-    addSection(leftColumn, startupPanel, 0);
+    addSection(startupPanel, 0, 0, 1);
 
     dbPanel = createSection(i18n.get(GlobalPreferencesDlg.class, "Database", "Database"));
     addControl(
@@ -267,8 +278,12 @@ public class GlobalPreferencesDlg extends EscapeDialog {
         new JLabel(i18n.get(GlobalPreferencesDlg.class, "Max_SQL_rows", "Max SQL rows")),
         maxSqlRowsTextField,
         2);
-    JPanel rightColumn = new JPanel(new GridBagLayout());
-    addSection(rightColumn, dbPanel, 0);
+    addLabeledField(
+        dbPanel,
+        new JLabel(i18n.get(GlobalPreferencesDlg.class, "SQL_batch_size", "SQL batch size")),
+        sqlBatchSizeTextField,
+        3);
+    addSection(dbPanel, 1, 0, 1);
 
     JPanel windowsPanel =
         createSection(
@@ -277,27 +292,32 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     addControl(windowsPanel, stickyDrawingToolCheckBox, 1, 28);
     addControl(windowsPanel, displayFullPathCheckBox, 2, 8);
     addControl(windowsPanel, useNativeGroovyConsoleCheckBox, 3, 8);
-    addSection(leftColumn, windowsPanel, 1);
+    addSection(windowsPanel, 0, 1, 1);
 
     JPanel displayPanel =
         createSection(i18n.get(GlobalPreferencesDlg.class, "Map_and_display", "Map and display"));
     addControl(displayPanel, navMouseModeCheckBox, 0, 8);
     addControl(displayPanel, displayToolTipsCheckBox, 1, 8);
-    addSection(rightColumn, displayPanel, 1);
+    GridBagConstraints displaySpace = new GridBagConstraints();
+    displaySpace.gridx = 0;
+    displaySpace.gridy = 2;
+    displaySpace.weighty = 1;
+    displaySpace.fill = GridBagConstraints.VERTICAL;
+    displayPanel.add(Box.createVerticalGlue(), displaySpace);
+    addSection(displayPanel, 1, 1, 1);
 
-    JPanel performancePanel =
+    final JPanel performancePanel =
         createSection(i18n.get(GlobalPreferencesDlg.class, "Performance", "Performance"));
-    addControl(performancePanel, antialiasingCheckBox, 0, 8);
-    addLabeledField(
-        performancePanel,
+    JPanel performanceControls = new JPanel(new FlowLayout(FlowLayout.LEADING, 0, 0));
+    performanceControls.add(antialiasingCheckBox);
+    performanceControls.add(Box.createHorizontalStrut(12));
+    performanceControls.add(
         new JLabel(
-            i18n.get(GlobalPreferencesDlg.class, "GC_interval", "GC interval (seconds; 0 = off)")),
-        gcIntervalTextField,
-        1);
-    addSection(rightColumn, performancePanel, 2);
-
-    addColumn(leftColumn, 0);
-    addColumn(rightColumn, 1);
+            i18n.get(GlobalPreferencesDlg.class, "GC_interval", "GC interval (seconds; 0 = off)")));
+    performanceControls.add(Box.createHorizontalStrut(12));
+    performanceControls.add(gcIntervalTextField);
+    addControl(performancePanel, performanceControls, 0, 8);
+    addSection(performancePanel, 0, 2, 2);
 
     final JPanel buttonPane = new JPanel(new FlowLayout(FlowLayout.TRAILING, 8, 4));
     getContentPane().add(buttonPane, BorderLayout.SOUTH);
@@ -313,8 +333,9 @@ public class GlobalPreferencesDlg extends EscapeDialog {
         new ActionListener() {
           @Override
           public void actionPerformed(ActionEvent e) {
-            saveSettings();
-            setVisible(false);
+            if (saveSettings()) {
+              setVisible(false);
+            }
           }
         });
 
@@ -357,25 +378,17 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     return section;
   }
 
-  private void addColumn(JPanel column, int index) {
+  /** Adds a section to the shared grid so neighboring borders align on both edges. */
+  private void addSection(JPanel section, int column, int row, int width) {
     GridBagConstraints constraints = new GridBagConstraints();
-    constraints.gridx = index;
-    constraints.gridy = 0;
-    constraints.weightx = 1;
-    constraints.fill = GridBagConstraints.HORIZONTAL;
-    constraints.anchor = GridBagConstraints.NORTH;
-    contentPanel.add(column, constraints);
-  }
-
-  private static void addSection(JPanel container, JPanel section, int row) {
-    GridBagConstraints constraints = new GridBagConstraints();
-    constraints.gridx = 0;
+    constraints.gridx = column;
     constraints.gridy = row;
+    constraints.gridwidth = width;
     constraints.weightx = 1;
-    constraints.fill = GridBagConstraints.HORIZONTAL;
+    constraints.fill = GridBagConstraints.BOTH;
     constraints.anchor = GridBagConstraints.NORTH;
     constraints.insets = new Insets(4, 4, 4, 4);
-    container.add(section, constraints);
+    contentPanel.add(section, constraints);
   }
 
   private static void addControl(JPanel section, Component control, int row, int leftInset) {
@@ -442,8 +455,9 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     if (answer == JOptionPane.YES_OPTION) {
       setVisible(false);
     } else if (answer == JOptionPane.NO_OPTION) {
-      saveSettings();
-      setVisible(false);
+      if (saveSettings()) {
+        setVisible(false);
+      }
     }
   }
 
@@ -457,6 +471,8 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     return gcIntervalTextField.getText()
         + '\n'
         + maxSqlRowsTextField.getText()
+        + '\n'
+        + sqlBatchSizeTextField.getText()
         + '\n'
         + subframesAlwaysOnCheckBox.isSelected()
         + '\n'
@@ -497,6 +513,8 @@ public class GlobalPreferencesDlg extends EscapeDialog {
 
     value = nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_MAX_SQL_ROWS, "200");
     maxSqlRowsTextField.setText(value);
+
+    sqlBatchSizeTextField.setText(Integer.toString(nodusMapPanel.getSqlBatchSize()));
 
     value =
         nodusMapPanel.getNodusProperties().getProperty(NodusC.PROP_SUBFRAMES_ALWAYS_ON_TOP, FALSE);
@@ -561,8 +579,33 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     }
   }
 
-  /** Save the settings in the Nodus properties file. */
-  private void saveSettings() {
+  /**
+   * Saves valid settings in the Nodus properties file.
+   *
+   * @return True if the settings were saved.
+   */
+  private boolean saveSettings() {
+    final int batchSize;
+    try {
+      batchSize = Integer.parseInt(sqlBatchSizeTextField.getText().trim());
+      if (batchSize <= 0) {
+        throw new NumberFormatException();
+      }
+    } catch (NumberFormatException e) {
+      JOptionPane.showMessageDialog(
+          this,
+          i18n.get(
+              GlobalPreferencesDlg.class,
+              "Invalid_SQL_batch_size",
+              "SQL batch size must be a positive integer (1 to 2147483647)."),
+          getTitle(),
+          JOptionPane.ERROR_MESSAGE);
+      sqlBatchSizeTextField.requestFocusInWindow();
+      return false;
+    }
+    nodusMapPanel
+        .getNodusProperties()
+        .setProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, Integer.toString(batchSize));
 
     // GC interval
     String value = gcIntervalTextField.getText();
@@ -661,5 +704,6 @@ public class GlobalPreferencesDlg extends EscapeDialog {
     value = displayToolTipsCheckBox.isSelected() ? TRUE : FALSE;
     nodusMapPanel.getNodusProperties().setProperty(NodusC.PROP_DISPLAY_TOOLTIPS, value);
     GUIUtils.setToolTipsEnabled(displayToolTipsCheckBox.isSelected());
+    return true;
   }
 }

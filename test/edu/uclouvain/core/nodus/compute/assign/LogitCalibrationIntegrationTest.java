@@ -535,9 +535,9 @@ class LogitCalibrationIntegrationTest {
           1e-3);
       final byte[] saved = Files.readAllBytes(directory.resolve("model.costs"));
       project.properties.setProperty(
-          "logitCalibration",
-          "{\"estimate\":true,\"sumObserved\":true,\"referenceMode\":1,"
-              + "\"tables\":{\"1\":\"no_such_table\",\"2\":\"neither_this_one\"}}");
+          LogitCalibrationSettings.PROPERTY,
+          new LogitCalibrationSettings(1, Map.of(1, "no_such_table", 2, "neither_this_one"))
+              .encode());
       output.reset();
       parameters.setCostFunctions("model.costs");
       project.run(new ExactMFAssignment(parameters), 2);

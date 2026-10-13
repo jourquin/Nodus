@@ -191,10 +191,7 @@ public class ImportXLS {
     try (InputStream input = new FileInputStream(fileName);
         Workbook workbook = WorkbookFactory.create(input)) {
       String schema = getCreateTableStatement(workbook, tableName);
-      int batchSize =
-          Math.max(
-              1,
-              nodusProject.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE));
+      int batchSize = nodusProject.getSqlBatchSize();
       if (schema != null) {
         TableImport.replace(
             nodusProject,

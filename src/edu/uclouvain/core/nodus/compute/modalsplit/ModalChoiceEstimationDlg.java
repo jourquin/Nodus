@@ -193,9 +193,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     try {
       settings =
           LogitCalibrationSettings.decode(
-              project.getLocalProperty(
-                  LogitCalibrationSettings.PROPERTY,
-                  project.getLocalProperty("logitCalibration", "")));
+              project.getLocalProperty(LogitCalibrationSettings.PROPERTY, ""));
     } catch (IllegalArgumentException failure) {
       panel.showAssignmentMessage(failure.getMessage(), JOptionPane.WARNING_MESSAGE);
     }
@@ -271,7 +269,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     estimate.addActionListener(event -> startEstimation());
     buttons.add(cancel);
     buttons.add(estimate);
-    displayReport.setText(text("DisplayReport", "Display estimation report"));
+    displayReport.setText(text("DisplayReport", "Display estimation report in web browser"));
     displayReport.setSelected(project.getLocalProperty(PREFIX + "displayReport", false));
     tooltip(
         displayReport,

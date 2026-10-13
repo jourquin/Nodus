@@ -196,8 +196,7 @@ public class VirtualNetworkWriter {
     int timeSliceDuration = virtualNet.getTimeSliceDuration();
     int assignmentStarTime = virtualNet.getAssignmentStartTime();
 
-    int maxBatchSize =
-        nodusProject.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
+    int maxBatchSize = nodusProject.getSqlBatchSize();
 
     // Reduce max batch size as a vnet record is much larger that a path header / detail record
     if (maxBatchSize > NodusC.MAXBATCHSIZE) {

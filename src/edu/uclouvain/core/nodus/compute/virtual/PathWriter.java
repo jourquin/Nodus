@@ -121,8 +121,7 @@ public class PathWriter {
       saveDetailedPaths = false;
     }
 
-    maxBatchSize =
-        nodusProject.getLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, NodusC.MAXBATCHSIZE);
+    maxBatchSize = nodusProject.getSqlBatchSize();
 
     // Decimal format used in sql statements
     df = PathWriterBuffer.newFormat();
