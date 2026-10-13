@@ -253,6 +253,8 @@ class ModalParameterTableIntegrationTest {
       assertTrue(single.keySet().stream().anyMatch(key -> key.startsWith("pivot.")));
       assertEquals(single, tableValues(project, "parallel_params"));
       String report = Files.readString(directory.resolve("parallel_params.html"));
+      assertTrue(report.contains("Commodity group 0 —"));
+      assertTrue(report.contains("Commodity group 1 —"));
       assertTrue(report.indexOf("Commodity group 0 —") < report.indexOf("Commodity group 1 —"));
     }
   }
@@ -285,6 +287,7 @@ class ModalParameterTableIntegrationTest {
           String htmlReport = Files.readString(directory.resolve("model_params.html"));
           assertTrue(htmlReport.contains("Pivot numerical completion"));
           int pivotSection = htmlReport.indexOf("<h2>Pivot calibration</h2>");
+          assertTrue(htmlReport.contains("Commodity group 1 —"));
           assertTrue(htmlReport.indexOf("<h2>Behavioral layer</h2>") < pivotSection);
           assertTrue(htmlReport.indexOf("Commodity group 1 —") < pivotSection);
           assertTrue(htmlReport.indexOf("Pivot-constant distribution") > pivotSection);

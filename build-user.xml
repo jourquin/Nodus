@@ -20,7 +20,7 @@
 	<target name="BuildId" description="Compiles and run the Build ID generator">
 		<echo message="Generating a build ID" />
 		<mkdir dir="classes" />
-		<javac includeantruntime="false" srcdir="src" destdir="classes">
+		<javac includeantruntime="false" srcdir="src" destdir="classes" encoding="UTF-8">
 			<include name="edu/uclouvain/core/nodus/utils/BuildIdGenerator.java" />
 		</javac>
 		<java classname="edu.uclouvain.core.nodus.utils.BuildIdGenerator" classpath="${basedir}/classes" failonerror="true" fork="yes">
@@ -240,7 +240,7 @@
 		    	<exclude name="**/*.java"/>
 		    </fileset>
 		</copy>
-		<javac debug="true" debuglevel="${debuglevel}" destdir="classes" includeantruntime="false" release="${target}">
+		<javac debug="true" debuglevel="${debuglevel}" destdir="classes" includeantruntime="false" release="${target}" encoding="UTF-8">
 			<src path="src"/>
 		    <classpath refid="Nodus.classpath"/>
 		</javac>
