@@ -105,7 +105,7 @@
         <pathelement location="lib/slf4j-api-1.7.35.jar"/>
         <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
         <pathelement location="lib/hsqldb-2.7.4.jar"/>
-        <pathelement location="lib/javadbf4nodus-1.12.3.jar"/>
+        <pathelement location="lib/javadbf4nodus-1.12.4.jar"/>
         <pathelement location="lib/poi-5.5.1.jar"/>
         <pathelement location="lib/poi-ooxml-5.5.1.jar"/>
         <pathelement location="lib/poi-ooxml-full-5.5.1.jar"/>
@@ -203,7 +203,7 @@
         <pathelement location="lib/slf4j-api-1.7.35.jar"/>
         <pathelement location="lib/slf4j-nop-1.7.35.jar"/>
         <pathelement location="lib/hsqldb-2.7.4.jar"/>
-        <pathelement location="lib/javadbf4nodus-1.12.3.jar"/>
+        <pathelement location="lib/javadbf4nodus-1.12.4.jar"/>
         <pathelement location="lib/poi-5.5.1.jar"/>
         <pathelement location="lib/poi-ooxml-5.5.1.jar"/>
         <pathelement location="lib/poi-ooxml-full-5.5.1.jar"/>

@@ -27,7 +27,10 @@ import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.database.LayerFileSave;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -40,6 +43,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Exports a database table in a .dbf table.
@@ -57,9 +61,12 @@ public class ExportDBF implements ShapeConstants {
    *
    * @param nodusProject The Nodus project.
    * @param tableName The name of the table to export.
+   * @param file staged destination DBF
+   * @param charset output charset
    * @return A DBFWriter, or {@code null} on error.
    */
-  private static DBFWriter createTable(NodusProject nodusProject, String tableName) {
+  private static DBFWriter createTable(
+      NodusProject nodusProject, String tableName, Path file, Charset charset) {
     DBFField[] field;
     int fieldNum = 0;
 
@@ -117,8 +124,7 @@ public class ExportDBF implements ShapeConstants {
         field[i] = new DBFField(names.get(i), columnType, width, decimalDigit);
       }
 
-      String path = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
-      return new DBFWriter(path + tableName + NodusC.TYPE_DBF, field);
+      return new DBFWriter(file.toString(), field, charset);
 
     } catch (Exception e) {
       System.out.println("Field " + fieldNum + ": " + e.toString());
@@ -129,12 +135,12 @@ public class ExportDBF implements ShapeConstants {
   /**
    * Creates the .dbf file from a DbfTableModel and saves it in the directory given as parameter.
    *
-   * @param path The path to the directory in which the file must be saved.
-   * @param tableName The name of the table to export.
+   * @param file staged destination DBF
    * @param model The DbfTableModel that contains the data to export.
+   * @param charset output charset
    * @return A DBFWriter, or {@code null} on error.
    */
-  private static DBFWriter createTable(String path, String tableName, DbfTableModel model) {
+  private static DBFWriter createTable(Path file, DbfTableModel model, Charset charset) {
     DBFField[] field = new DBFField[model.getColumnCount()];
 
     try {
@@ -153,7 +159,7 @@ public class ExportDBF implements ShapeConstants {
                 model.getColumnName(i), charType, model.getLength(i), model.getDecimalCount(i));
       }
 
-      return new DBFWriter(path + tableName, field);
+      return new DBFWriter(file.toString(), field, charset);
     } catch (Exception e) {
       System.out.println(e.toString());
       return null;
@@ -198,7 +204,7 @@ public class ExportDBF implements ShapeConstants {
       sqlStmt = "INSERT INTO " + quotedTmpTable + " VALUES(?, ?)";
 
       try (PreparedStatement ps = jdbcConnection.prepareStatement(sqlStmt);
-          DBFReader dbfReader = new DBFReader(path + tableName + NodusC.TYPE_DBF)) {
+          DBFReader dbfReader = DbfFiles.reader(Path.of(path, tableName + NodusC.TYPE_DBF), null)) {
         int n = 0;
 
         while (dbfReader.hasNextRecord()) {
@@ -233,15 +239,8 @@ public class ExportDBF implements ShapeConstants {
   private static boolean exportDbf(NodusProject nodusProject, String tableName) {
     // System.out.println("exportDbf...");
 
-    DBFWriter dbf = createTable(nodusProject, tableName);
-
-    if (dbf == null) {
-      return false;
-    }
-
     String sqlStmt = "SELECT * FROM " + JDBCUtils.getQuotedCompliantIdentifier(tableName);
-
-    return fillTable(nodusProject, dbf, sqlStmt);
+    return exportQuery(nodusProject, tableName, sqlStmt);
   }
 
   /**
@@ -300,12 +299,6 @@ public class ExportDBF implements ShapeConstants {
     }
 
     try {
-      DBFWriter dbf = createTable(nodusProject, tableName);
-
-      if (dbf == null) {
-        return false;
-      }
-
       String num = JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM);
       String recno = JDBCUtils.getQuotedCompliantIdentifier("recno");
       String sqlStmt =
@@ -320,7 +313,7 @@ public class ExportDBF implements ShapeConstants {
               + " ORDER BY tmp."
               + recno;
 
-      return fillTable(nodusProject, dbf, sqlStmt);
+      return exportQuery(nodusProject, tableName, sqlStmt);
 
     } finally {
       JDBCUtils.dropTable("tmp");
@@ -359,7 +352,14 @@ public class ExportDBF implements ShapeConstants {
   public static boolean exportTable(
       NodusProject nodusProject, String tableName, DbfTableModel model) {
     String path = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
-    return exportFile(java.nio.file.Path.of(path, tableName), model);
+    Path file = Path.of(path, tableName);
+    try {
+      Charset charset = DbfFiles.charset(file, DbfFiles.override(nodusProject, file));
+      return stageOutput(file, charset, staged -> exportFile(staged, model, charset));
+    } catch (Exception failure) {
+      System.err.println(failure.toString());
+      return false;
+    }
   }
 
   /**
@@ -370,13 +370,65 @@ public class ExportDBF implements ShapeConstants {
    * @return true if the table was created and all records were written
    */
   public static boolean exportFile(java.nio.file.Path file, DbfTableModel model) {
-    DBFWriter dbf = createTable("", file.toString(), model);
+    try {
+      Charset charset = DbfFiles.charset(file, null);
+      return stageOutput(file, charset, staged -> exportFile(staged, model, charset));
+    } catch (Exception failure) {
+      System.err.println(failure.toString());
+      return false;
+    }
+  }
+
+  /**
+   * Writes one staged DBF using an explicit charset; the caller stages its CPG metadata too.
+   *
+   * @param file staged DBF destination
+   * @param model attributes to write
+   * @param charset encoding retained for this file
+   * @return true if every record was written successfully
+   */
+  public static boolean exportFile(Path file, DbfTableModel model, Charset charset) {
+    DBFWriter dbf = createTable(file, model, charset);
 
     if (dbf == null) {
       return false;
     }
 
     return fillTable(dbf, model);
+  }
+
+  /** Replaces DBF and CPG together, retaining the previous file set on any failure. */
+  private static boolean stageOutput(Path file, Charset charset, Function<Path, Boolean> write)
+      throws Exception {
+    Path destination = file.toAbsolutePath();
+    String name = destination.getFileName().toString();
+    String stem = name.substring(0, name.length() - 4);
+    try (LayerFileSave save = new LayerFileSave(destination.getParent(), stem)) {
+      if (!write.apply(save.stage(name))) {
+        return false;
+      }
+      DbfFiles.writeCpg(save.stage(DbfFiles.cpg(destination).getFileName().toString()), charset);
+      save.commit();
+      return true;
+    }
+  }
+
+  private static boolean exportQuery(NodusProject project, String tableName, String sql) {
+    Path file =
+        Path.of(project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH), tableName + NodusC.TYPE_DBF);
+    try {
+      Charset charset = DbfFiles.charset(file, DbfFiles.override(project, file));
+      return stageOutput(
+          file,
+          charset,
+          staged -> {
+            DBFWriter writer = createTable(project, tableName, staged, charset);
+            return writer != null && fillTable(project, writer, sql);
+          });
+    } catch (Exception failure) {
+      System.err.println(failure.toString());
+      return false;
+    }
   }
 
   /**

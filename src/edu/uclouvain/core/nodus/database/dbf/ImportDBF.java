@@ -26,6 +26,7 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.TableImport;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
@@ -205,7 +206,7 @@ public class ImportDBF {
     maxBatchSize = project.getSqlBatchSize();
 
     hasBatchSupport = JDBCUtils.hasBatchSupport();
-    try (DBFReader reader = new DBFReader(path + tableName + NodusC.TYPE_DBF)) {
+    try (DBFReader reader = DbfFiles.reader(project, Path.of(path, tableName + NodusC.TYPE_DBF))) {
       if (!reader.isOpen()) {
         return false;
       }

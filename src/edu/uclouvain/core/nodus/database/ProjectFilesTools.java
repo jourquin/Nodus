@@ -36,6 +36,7 @@ import edu.uclouvain.core.nodus.database.dbf.DBFException;
 import edu.uclouvain.core.nodus.database.dbf.DBFField;
 import edu.uclouvain.core.nodus.database.dbf.DBFReader;
 import edu.uclouvain.core.nodus.database.dbf.DBFWriter;
+import edu.uclouvain.core.nodus.database.dbf.DbfFiles;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -43,6 +44,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -74,7 +77,8 @@ public class ProjectFilesTools implements ShapeConstants {
    * @param layerName Shapefile name (without suffix)
    * @return True on success
    */
-  private static boolean addEnabledField(final String path, final String layerName) {
+  private static boolean addEnabledField(
+      final String path, final String layerName, String override) {
 
     new NodusConsole();
 
@@ -85,7 +89,8 @@ public class ProjectFilesTools implements ShapeConstants {
     List<Object[]> data = new LinkedList<Object[]>();
 
     DBFField[] fields = null;
-    try (DBFReader dbfReader = new DBFReader(path + layerName + NodusC.TYPE_DBF)) {
+    try (DBFReader dbfReader =
+        DbfFiles.reader(Path.of(path, layerName + NodusC.TYPE_DBF), override)) {
 
       // Retain structure
       fields = new DBFField[dbfReader.getFieldCount() + 1];
@@ -118,7 +123,7 @@ public class ProjectFilesTools implements ShapeConstants {
         }
         data.add(newRecord);
       }
-    } catch (DBFException e) {
+    } catch (DBFException | IOException e) {
       e.printStackTrace();
       result = false;
     }
@@ -128,12 +133,17 @@ public class ProjectFilesTools implements ShapeConstants {
     }
 
     // Write the upgraded DBF file
-    try (DBFWriter dbfWriter = new DBFWriter(path + layerName + NodusC.TYPE_DBF, fields)) {
-      ListIterator<Object[]> it = data.listIterator();
-      while (it.hasNext()) {
-        dbfWriter.addRecord(it.next());
+    try {
+      Path file = Path.of(path, layerName + NodusC.TYPE_DBF);
+      Charset charset = DbfFiles.charset(file, override);
+      try (DBFWriter dbfWriter = new DBFWriter(file.toString(), fields, charset)) {
+        ListIterator<Object[]> it = data.listIterator();
+        while (it.hasNext()) {
+          dbfWriter.addRecord(it.next());
+        }
       }
-    } catch (DBFException e) {
+      DbfFiles.writeCpg(DbfFiles.cpg(file), charset);
+    } catch (DBFException | IOException e) {
       e.printStackTrace();
       result = false;
     }
@@ -185,10 +195,13 @@ public class ProjectFilesTools implements ShapeConstants {
                 mandatoryDecimalCounts[i]);
       }
 
-      try (DBFWriter dbf = new DBFWriter(path + layerName + NodusC.TYPE_DBF, field)) {
+      Path file = Path.of(path, layerName + NodusC.TYPE_DBF);
+      Charset charset = DbfFiles.charset(file, null);
+      try (DBFWriter dbf = new DBFWriter(file.toString(), field, charset)) {
         // Empty DBF file: closing the writer writes the header/footer.
       }
-    } catch (DBFException ex) {
+      DbfFiles.writeCpg(DbfFiles.cpg(file), charset);
+    } catch (DBFException | IOException ex) {
       System.out.println(ex.toString());
       return false;
     }
@@ -218,7 +231,7 @@ public class ProjectFilesTools implements ShapeConstants {
     }
 
     // Create the .dbf file
-    try (DBFReader dbfReader = new DBFReader(path + modelTable + NodusC.TYPE_DBF)) {
+    try (DBFReader dbfReader = DbfFiles.reader(Path.of(path, modelTable + NodusC.TYPE_DBF), null)) {
       // Get the structure of the table model
       if (dbfReader.isOpen()) {
         int nbFields = dbfReader.getFieldCount();
@@ -229,11 +242,14 @@ public class ProjectFilesTools implements ShapeConstants {
         }
 
         // Create an empty dbf file with the given structure
-        try (DBFWriter dbf = new DBFWriter(path + layerName + NodusC.TYPE_DBF, field)) {
+        Path file = Path.of(path, layerName + NodusC.TYPE_DBF);
+        Charset charset = DbfFiles.charset(file, null);
+        try (DBFWriter dbf = new DBFWriter(file.toString(), field, charset)) {
           // Empty DBF file: closing the writer writes the header/footer.
         }
+        DbfFiles.writeCpg(DbfFiles.cpg(file), charset);
       }
-    } catch (DBFException ex) {
+    } catch (DBFException | IOException ex) {
       errorMessage = ex.toString();
       return false;
     }
@@ -455,6 +471,11 @@ public class ProjectFilesTools implements ShapeConstants {
    * @return True if valid.
    */
   public static boolean isValidLayer(String path, String layerName, int layerType) {
+    return isValidLayer(path, layerName, layerType, null);
+  }
+
+  private static boolean isValidLayer(
+      String path, String layerName, int layerType, String charset) {
 
     // Test the shape file
     try {
@@ -488,7 +509,8 @@ public class ProjectFilesTools implements ShapeConstants {
     DBFField[] field = null;
     boolean dbfIsOpen = false;
 
-    try (DBFReader dbfReader = new DBFReader(path + layerName + NodusC.TYPE_DBF)) {
+    try (DBFReader dbfReader =
+        DbfFiles.reader(Path.of(path, layerName + NodusC.TYPE_DBF), charset)) {
       if (dbfReader.isOpen()) {
         dbfIsOpen = true;
         int nbFields = dbfReader.getFieldCount();
@@ -498,7 +520,7 @@ public class ProjectFilesTools implements ShapeConstants {
           field[i] = dbfReader.getField(i);
         }
       }
-    } catch (DBFException ex) {
+    } catch (DBFException | IOException ex) {
       errorMessage = ex.toString();
       return false;
     }
@@ -530,7 +552,12 @@ public class ProjectFilesTools implements ShapeConstants {
     while (st.hasMoreTokens()) {
       String currentName = st.nextToken();
 
-      if (!isValidLayer(path, currentName, SHAPE_TYPE_POINT)) {
+      if (!isValidLayer(
+          path,
+          currentName,
+          SHAPE_TYPE_POINT,
+          nodusProjectProperties.getProperty(
+              currentName + ".dbfCharset", nodusProjectProperties.getProperty("dbfCharset", "")))) {
         JOptionPane.showMessageDialog(
             null, errorMessage, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
 
@@ -545,9 +572,19 @@ public class ProjectFilesTools implements ShapeConstants {
     while (st.hasMoreTokens()) {
       String currentName = st.nextToken();
 
-      if (!isValidLayer(path, currentName, SHAPE_TYPE_POLYLINE)) {
+      if (!isValidLayer(
+          path,
+          currentName,
+          SHAPE_TYPE_POLYLINE,
+          nodusProjectProperties.getProperty(
+              currentName + ".dbfCharset", nodusProjectProperties.getProperty("dbfCharset", "")))) {
         if (enabledFieldMustBeAdded) {
-          if (!addEnabledField(path, currentName)) {
+          if (!addEnabledField(
+              path,
+              currentName,
+              nodusProjectProperties.getProperty(
+                  currentName + ".dbfCharset",
+                  nodusProjectProperties.getProperty("dbfCharset", "")))) {
             enabledFieldMustBeAdded = false;
             JOptionPane.showMessageDialog(
                 null, errorMessage, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);

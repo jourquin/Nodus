@@ -30,6 +30,9 @@ import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
 import edu.uclouvain.core.nodus.database.dbf.DBFException;
 import edu.uclouvain.core.nodus.database.dbf.DBFReader;
+import edu.uclouvain.core.nodus.database.dbf.DbfFiles;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 
 /** Tracks IDs in unloaded network layers when allocating new node and link IDs. */
@@ -151,8 +154,11 @@ public final class ProjectLayerIds implements ShapeConstants {
   private void loadObjectIDs(String layerName, HashMap<Integer, Integer> map) {
 
     try (DBFReader dbfReader =
-        new DBFReader(
-            project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + layerName + NodusC.TYPE_DBF)) {
+        DbfFiles.reader(
+            project,
+            Path.of(
+                project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH),
+                layerName + NodusC.TYPE_DBF))) {
       Object[] o;
       if (dbfReader.isOpen()) {
         while (dbfReader.hasNextRecord()) {
@@ -161,7 +167,7 @@ public final class ProjectLayerIds implements ShapeConstants {
           map.put(num, num);
         }
       }
-    } catch (DBFException ex) {
+    } catch (DBFException | IOException ex) {
       ex.printStackTrace();
     }
   }

@@ -514,7 +514,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Improve the loading of services workflow
 - Remove the "Save paths" checkbox in the assignment dialog, as it is now mandatory.
   
-  
+## v9.0 - BuildXXXXXXXX
+- Allow a per table specific encoding for DBF file.  
   
   
  

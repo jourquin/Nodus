@@ -1,25 +1,19 @@
-# Configuration property audit
+# Advanced property configurations
 
-The audit covers property reads from `.nodus9.properties` and `ProjectName.nodus`,
-including the merged project-local view. The block of 95 `@hidden` property constants
-in `NodusC.java` is excluded, as requested. The SQL batch size now has a Global
-Preferences control, added following the audit.
-
-“No built-in writer” means that no Nodus source path was found that generates or
-changes the named property value. Loading, copying or saving an existing user-supplied
-value is not considered a setter. Arbitrary user scripts and external plugins can
-still set properties through the public API.
+This note covers property reads from `.nodus9.properties` or `ProjectName.nodus` that are not
+controlled by the GUI.
 
 ## Configuration-only properties
 
 | Key or key family | File / lookup | Value or default | Purpose |
 | --- | --- | --- | --- |
+| `dbfCharset`, `<table>.dbfCharset` | Project/local | Java charset name; absent means CPG → DBF code page → UTF-8 | Explicit DBF encoding overrides shared by imports, network layers and exports. See [DBF encoding](dbf-encoding.md). |
 | `import.tables` | Project file | Space-separated table names; absent means no extra tables | Extra DBF tables imported when opening the project. The reader accepts legacy `importTables` when this key is absent. |
 | `openmap.layers` | Project file | Companion `.openmap` filename stem; absent means no additional map file | For example, `openmap.layers=demo` loads `demo.openmap` from the project directory. In the project file this is not a list of layer markers. |
 | `color.mode.<id>` | Project file | Named color or color string; default is the built-in palette | Override mode colors in statistics pie charts. The reader loops through IDs 0–99. Invalid colors fall back to the existing color. |
 | `<layer-table>.variableName` | Project/local | Cost-function variable identifier; default is the layer table name | Rename the layer-membership variable exposed to cost expressions; its value is zero or one depending on membership in the layer. |
 
-These four key families have Javadoc descriptions and are configuration inputs without a discovered built-in property writer. Examples of syntax are:
+These five key families have Javadoc descriptions and are configuration inputs without a  built-in property writer. Examples of syntax are:
 
 ```properties
 import.tables=od_road od_rail

@@ -54,6 +54,7 @@ import edu.uclouvain.core.nodus.compute.real.RealNode;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.LayerFileSave;
 import edu.uclouvain.core.nodus.database.TableImport;
+import edu.uclouvain.core.nodus.database.dbf.DbfFiles;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
 import edu.uclouvain.core.nodus.services.ServiceHandler;
@@ -74,6 +75,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -190,6 +193,9 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
   /** All what we need to connect to the relevant dbf file. */
   private String tableName;
+
+  /** Encoding selected at load time and preserved by attribute saves. */
+  private Charset dbfCharset = StandardCharsets.UTF_8;
 
   /** All what we need to connect to the relevant dbf file. */
   private String tablePath;
@@ -1712,8 +1718,17 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
           }
         }
         if (dirtyDbf
-            && !ExportDBF.exportFile(save.stage(tableName + NodusC.TYPE_DBF), getModel())) {
+            && !ExportDBF.exportFile(
+                save.stage(tableName + NodusC.TYPE_DBF), getModel(), dbfCharset)) {
           throw new IOException("Could not write attributes for layer " + tableName);
+        }
+        if (dirtyDbf) {
+          DbfFiles.writeCpg(
+              save.stage(
+                  DbfFiles.cpg(directory.resolve(tableName + NodusC.TYPE_DBF))
+                      .getFileName()
+                      .toString()),
+              dbfCharset);
         }
         save.commit();
       }
@@ -1976,6 +1991,24 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     /* Attach a RealLink or a RealNode object to the graphic... */
     EsriGraphicList list = getEsriGraphicList();
+    // OpenMap's legacy loader uses the JVM default charset. Replace its attribute model with
+    // the same per-file decoder used by database imports, before exposing the loaded layer.
+    Path dbfPath = Path.of(dbfFile);
+    try {
+      DbfFiles.Table attributes =
+          DbfFiles.readModel(dbfPath, DbfFiles.override(nodusProject, dbfPath));
+      if (attributes.model.getRowCount() != list.size()) {
+        throw new IOException("Different SHP and DBF record counts for " + tableName);
+      }
+      dbfCharset = attributes.charset;
+      setModel(attributes.model);
+      for (int row = 0; row < list.size(); row++) {
+        list.getOMGraphicAt(row)
+            .putAttribute(SHAPE_DBF_INFO_ATTRIBUTE, attributes.model.getRecord(row));
+      }
+    } catch (IOException failure) {
+      throw new IllegalStateException("Cannot read DBF attributes for " + tableName, failure);
+    }
     Iterator<OMGraphic> lit = list.iterator();
     while (lit.hasNext()) {
       OMGraphic omGraphic = lit.next();
