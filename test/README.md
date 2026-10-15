@@ -256,6 +256,12 @@ for the workflow mechanism.
   home directory and never reads or writes the user's actual preferences.
 - `ProjectCleanupRegistryTest`: exactly-once, reverse-order project resource shutdown;
   isolation of a failing action; and rejection of duplicate or late registrations.
+- `ProjectLockerTest`: rejected duplicate acquisitions retain the actual OS lock, another
+  project cannot replace its owner, and simultaneous acquisitions have exactly one owner.
+  Also checks repeated release, reacquisition, failed-opening retry, contention with another
+  JVM, and recovery after normal release or forced process termination despite a remaining
+  lock file. Child JVMs probe real lock ownership using only temporary project directories;
+  readiness and release signals have bounded waits and every child is reaped.
 - `BridgeCredentialsTest`: generation, persistence and reuse of the Python and R bridge
   credentials, private POSIX permissions, replacement of invalid values, and failure
   without publishing credentials that were not saved. Two independent JVMs starting with

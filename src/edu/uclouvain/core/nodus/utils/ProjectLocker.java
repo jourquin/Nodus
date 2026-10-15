@@ -49,12 +49,18 @@ public class ProjectLocker {
   public ProjectLocker() {}
 
   /**
-   * Creates a lock in the project'directory if possible.
+   * Creates a lock in the project's directory if possible.
    *
    * @param project A Nodus project.
-   * @return False on error.
+   * @return False if this JVM already owns a project lock, the file is locked, or an error occurs.
    */
-  public static boolean createLock(NodusProject project) {
+  public static synchronized boolean createLock(NodusProject project) {
+
+    // This class owns a single project lock. Do not replace it or open a second channel:
+    // closing that channel can release this JVM's existing OS lock on the same file.
+    if (lock != null) {
+      return false;
+    }
 
     lockerFileName =
         project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
@@ -134,7 +140,7 @@ public class ProjectLocker {
   }
 
   /** Releases the lock for the current user. */
-  public static void releaseLock() {
+  public static synchronized void releaseLock() {
     try {
       if (lock != null) {
         lock.release();

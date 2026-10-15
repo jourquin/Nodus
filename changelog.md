@@ -517,6 +517,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 ## v9.0 - BuildXXXXXXXX
 - Allow a per table specific encoding for DBF file.
 - Fix (potential) bugs in Cost parser, semi-dynamic assignments and exclusion rules at node   
+- Improved project locker
+
   
   
  
