@@ -369,6 +369,15 @@ for the workflow mechanism.
   conversion functions against independent values, and rejects invalid divisions, non-finite or
   negative results, missing variables and malformed formulas. Uses explicit in-memory layer records
   without a database or GUI.
+- `CostParserWorkerTest`: complete inclusion and exclusion sets at loading/unloading and
+  transhipment nodes, multiple permitted movements and insertion order, wildcard patterns,
+  loading/unloading direction, transit exceptions, node isolation, and scenario/group precedence
+  and isolation when a worker is reused. Seeds only the worker's network input; matching, rule
+  selection and enforcement use production code without a parser, database or GUI.
+- `CostParserRulesIntegrationTest`: real cost jobs and generated three-mode networks verify that
+  permitted links retain their costs and durations, excluded links skip formula evaluation and
+  cannot form a shortest route, and repeated scenario/group jobs recompute availability. Uses
+  the temporary H2 assignment fixture and checks both linked and compact shortest-path graphs.
 - `ModalSplitTest`: proportional and multinomial-logit shares, normalization across modes
   and paths, large costs, invalid costs, legacy negative-cost defaults, and isolation between
   fitted/default groups and worker clones.
@@ -427,7 +436,8 @@ for the workflow mechanism.
   or transit nodes, removal, and preservation of stored demand when a returned list changes.
   Includes regressions for static and timed demands incorrectly merged across OD classes.
 - `NodeRuleTest`: exact and wildcard matching, direction, transit exceptions, and precedence
-  of selected-scenario and commodity-group rules over generic rules.
+  of selected-scenario and commodity-group rules over generic rules. Multiple scenario lookups
+  must keep their own rules and restore the generic fallback for an unspecified scenario.
 - `VehiclesParserTest`: capacity and passenger-car-unit property precedence, isolation
   between scenarios, groups and mode/means, default values, fractional values, and repeated
   initialization.

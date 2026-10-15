@@ -56,6 +56,11 @@ import javax.swing.text.DefaultEditorKit;
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 
+/*
+ * TODO Test cost parser
+ * TODO Test semi-dynamic assignments and display
+ * TODO Test exclusions 
+ */
 
 /**
  * Main class that creates a new NodusMapPanel, but also initializes the application with a

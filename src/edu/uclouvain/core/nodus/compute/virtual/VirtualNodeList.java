@@ -68,8 +68,8 @@ public class VirtualNodeList {
   /** Virtual node number that represent the loading node. */
   private Vector<Demands> demands = null;
 
-  /** List of prohibited movements at the associated real node. */
-  private LinkedList<GroupExclusions>[] scenarioExclusions = null;
+  /** Movement rules grouped by scenario, with -1 holding the scenario-independent defaults. */
+  private HashMap<Integer, LinkedList<GroupExclusions>> scenarioExclusions = null;
 
   /** OMGraphic that represents this node. */
   private OMPoint graphic;
@@ -228,32 +228,16 @@ public class VirtualNodeList {
    *
    * @param exclusion The NodeRule to store.
    */
-  @SuppressWarnings("unchecked")
   public void addExclusion(NodeRule exclusion) {
-
-    // Generic exclusions are stored ate index 0, scenario specific exclusions at index 1
-
     if (scenarioExclusions == null) {
-      scenarioExclusions = new LinkedList[2];
+      scenarioExclusions = new HashMap<>();
     }
 
-    int scenario = exclusion.getScenario();
-
-    if (scenario == -1 && scenarioExclusions[0] == null) {
-      scenarioExclusions[0] = new LinkedList<GroupExclusions>();
-    }
-
-    if (scenario != -1 && scenarioExclusions[1] == null) {
-      scenarioExclusions[1] = new LinkedList<GroupExclusions>();
-    }
-
-    int scenarioIndex = 0;
-    if (scenario != -1) {
-      scenarioIndex = 1;
-    }
+    // Keep scenario IDs distinct; -1 stores the scenario-independent defaults.
+    LinkedList<GroupExclusions> groupExclusions =
+        scenarioExclusions.computeIfAbsent(exclusion.getScenario(), key -> new LinkedList<>());
 
     // Is there already a list of exclusions for this group in the scenario ?
-    LinkedList<GroupExclusions> groupExclusions = scenarioExclusions[scenarioIndex];
     Iterator<GroupExclusions> it = groupExclusions.iterator();
     boolean found = false;
     int group = exclusion.getGroup();
@@ -272,9 +256,9 @@ public class VirtualNodeList {
       ge.exclusions.add(exclusion);
       // The generic group (-1) must be first in the list
       if (group == -1) {
-        scenarioExclusions[scenarioIndex].addFirst(ge);
+        groupExclusions.addFirst(ge);
       } else {
-        scenarioExclusions[scenarioIndex].add(ge);
+        groupExclusions.add(ge);
       }
     }
   }
@@ -355,10 +339,10 @@ public class VirtualNodeList {
     }
 
     // Test scenario specific exclusions
-    LinkedList<GroupExclusions> groupExclusions = scenarioExclusions[1];
+    LinkedList<GroupExclusions> groupExclusions = scenarioExclusions.get(scenario);
     if (groupExclusions == null) {
       // Look for generic exclusions
-      groupExclusions = scenarioExclusions[0];
+      groupExclusions = scenarioExclusions.get(-1);
     }
 
     if (groupExclusions == null) {

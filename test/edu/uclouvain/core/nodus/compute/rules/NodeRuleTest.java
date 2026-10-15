@@ -109,4 +109,24 @@ class NodeRuleTest {
     // The selected scenario defines its own rule set, with no rule for group 4.
     assertNull(node.getExclusions(7, 4));
   }
+
+  @Test
+  void scenarioLookupsKeepSeparateRulesAndRestoreGenericFallback() {
+    for (boolean reversed : new boolean[] {false, true}) {
+      VirtualNodeList node = new VirtualNodeList(10, NodusC.HANDLING_ALL, null);
+      NodeRule generic = new NodeRule(-10, -1, -1, 1, 1, 2, 1);
+      NodeRule first = new NodeRule(10, 7, 3, 1, 2, 2, 2);
+      NodeRule second = new NodeRule(-10, 8, 3, 3, 1, 4, 1);
+      node.addExclusion(reversed ? second : generic);
+      node.addExclusion(first);
+      node.addExclusion(reversed ? generic : second);
+      assertEquals(List.of(first), node.getExclusions(7, 3));
+      assertEquals(List.of(second), node.getExclusions(8, 3));
+      assertNull(node.getExclusions(7, 4));
+      assertEquals(List.of(generic), node.getExclusions(9, 3));
+      assertEquals(List.of(generic), node.getExclusions(9, 4));
+      assertEquals(List.of(generic), node.getExclusions(-1, 3));
+      assertEquals(List.of(first), node.getExclusions(7, 3));
+    }
+  }
 }
