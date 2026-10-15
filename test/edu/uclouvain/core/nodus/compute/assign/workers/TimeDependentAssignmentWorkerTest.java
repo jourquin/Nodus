@@ -106,7 +106,7 @@ class TimeDependentAssignmentWorkerTest {
               prefix + "dynamic boundary arrival continues once in the next slice",
               () -> {
                 try (Fixture fixture = new Fixture(new float[][] {{1, 60}, {1, 120}}, 3, 1)) {
-                  ODCell demand = fixture.demand(1, 100, 0, (byte) 0);
+                  final ODCell demand = fixture.demand(1, 100, 0, (byte) 0);
                   fixture.runDynamic(compact, 0, (byte) 0, (byte) 0);
                   fixture.assertFlows(11, 100, 0, 0);
                   fixture.assertFlows(12, 0, 0, 0);
@@ -196,7 +196,7 @@ class TimeDependentAssignmentWorkerTest {
               prefix + "future departures and other groups/classes stay separate",
               () -> {
                 try (Fixture fixture = new Fixture(new float[][] {{0.5f, 60}}, 3, 1)) {
-                  ODCell future = fixture.demand(1, 100, 1, (byte) 0);
+                  final ODCell future = fixture.demand(1, 100, 1, (byte) 0);
                   fixture.demand(1, 23, 0, (byte) 1);
                   fixture.demand(2, 47, 0, (byte) 0);
                   fixture.runDynamic(compact, 0, (byte) 0, (byte) 0);
@@ -260,7 +260,7 @@ class TimeDependentAssignmentWorkerTest {
               prefix + "dynamic worker accepts slice indices beyond byte range",
               () -> {
                 try (Fixture fixture = new Fixture(new float[][] {{0.5f, 60}}, 202, 1)) {
-                  ODCell demand = fixture.demand(1, 100, 200, (byte) 0);
+                  final ODCell demand = fixture.demand(1, 100, 200, (byte) 0);
                   fixture.runDynamic(compact, 199, (byte) 0, (byte) 0);
                   fixture.runDynamic(compact, 200, (byte) 0, (byte) 0);
                   fixture.runDynamic(compact, 201, (byte) 0, (byte) 0);

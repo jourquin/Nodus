@@ -747,7 +747,7 @@ public class CostParser {
     // Set shp/dbf related variables in parser
 
     // Try to minimize the number of variables to update in the parser
-    boolean reloadVariables =
+    final boolean reloadVariables =
         currentType != type
             || currentLayer != vl.getLayerIndex()
             || currentRow != vl.getIndexInLayer();
