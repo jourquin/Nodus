@@ -363,6 +363,12 @@ for the workflow mechanism.
   simplified by the parser, changed constants, different scopes/formulas, and syntax errors.
 - `CostParameterTest`: precedence and isolation of numeric parameters by scenario, commodity
   group and OD class, zero/negative overrides, inherited defaults, and NaN fallbacks.
+- `CostParserTest`: production cost/duration evaluation across consecutive node records, layer
+  changes and movement/handling transitions; directional and updated traffic volumes; operation
+  selection and time-specific formulas beyond byte-indexed slices. Checks BPR, conical and time
+  conversion functions against independent values, and rejects invalid divisions, non-finite or
+  negative results, missing variables and malformed formulas. Uses explicit in-memory layer records
+  without a database or GUI.
 - `ModalSplitTest`: proportional and multinomial-logit shares, normalization across modes
   and paths, large costs, invalid costs, legacy negative-cost defaults, and isolation between
   fitted/default groups and worker clones.
@@ -394,6 +400,15 @@ for the workflow mechanism.
   Uses real assignment-worker threads with latches and bounded waits, without loading a project.
   Verifies that normal cancellation is quiet and captures/asserts the expected error from
   deliberately malformed work, so a passing run does not print misleading stack traces.
+- `TimeDependentAssignmentWorkerTest`: direct static and dynamic worker execution with linked
+  and compact graphs, real virtual-network generation and temporary H2 path output. Checks exact
+  slice boundaries, fractional travel times retained across relocation, links longer than a slice,
+  departures within a slice or in future slices, group/class isolation, unfinished and unreachable
+  demand, the assignment horizon and slice indices beyond the byte range. Asserts per-slice and
+  reverse-direction flows, demand conservation, once-only loading/unloading and saved path links.
+  Static flows use half-open arrival buckets; dynamic traversal may finish at a slice's end before
+  continuing in the next slice. These tests call the workers directly, without worker threads or
+  the full timed-assignment coordinator.
 - `PathWeightsTest`: all seven cost and duration components contribute to totals.
 - `VirtualLinkFlowTest`: exact and fast multi-flow demand distribution, rejected paths,
   demand consumed only once, independent commodity groups and dynamic time slices,

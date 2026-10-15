@@ -36,7 +36,7 @@ public class ODCell {
   /** Intermediate origin and time this OD pair (for dynamic assignments. */
   private int relocatedOriginNodeId;
 
-  private int relocatedStartingTime;
+  private double relocatedStartingTime;
 
   /** Class to which this OD pair belongs to. */
   private byte odClass = 0;
@@ -100,7 +100,8 @@ public class ODCell {
   public ODCell(
       int group, int originNodeId, int destinationNodeId, double quantity, int startingTime) {
     this(group, originNodeId, destinationNodeId, quantity);
-    this.startingTime = this.relocatedStartingTime = startingTime * 60;
+    this.startingTime = startingTime * 60;
+    this.relocatedStartingTime = this.startingTime;
   }
 
   /**
@@ -123,7 +124,8 @@ public class ODCell {
       int startingTime,
       byte odClass) {
     this(group, originNodeId, destinationNodeId, quantity);
-    this.startingTime = this.relocatedStartingTime = startingTime * 60;
+    this.startingTime = startingTime * 60;
+    this.relocatedStartingTime = this.startingTime;
     this.odClass = odClass;
   }
 
@@ -167,9 +169,18 @@ public class ODCell {
   /**
    * Returns the starting time for a relocated demand during a time dependent assignment.
    *
-   * @return The starting time for the relocated demand, expressed in seconds after midnight.
+   * @return The starting time for the relocated demand, truncated to whole seconds after midnight.
    */
   public int getRelocatedStartingTime() {
+    return (int) relocatedStartingTime;
+  }
+
+  /**
+   * Returns the relocated departure time without losing fractional seconds between time slices.
+   *
+   * @return The starting time for the relocated demand, in seconds after midnight.
+   */
+  public double getPreciseRelocatedStartingTime() {
     return relocatedStartingTime;
   }
 
@@ -236,6 +247,15 @@ public class ODCell {
    *     after midnight.
    */
   public void setRelocatedStartingTime(int relocatedStartingTime) {
+    setRelocatedStartingTime((double) relocatedStartingTime);
+  }
+
+  /**
+   * Sets the relocated departure time, retaining fractional seconds for subsequent slices.
+   *
+   * @param relocatedStartingTime The departure time in seconds after midnight.
+   */
+  public void setRelocatedStartingTime(double relocatedStartingTime) {
     this.relocatedStartingTime = relocatedStartingTime;
   }
 

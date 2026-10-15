@@ -259,9 +259,9 @@ public class CostParser {
   /** Cost functions files. Normally a property file which extension is ".cost" */
   private Properties costFunctions;
 
-  private int currentLink = -1;
+  private int currentLayer = -1;
 
-  private int currentNode = -1;
+  private int currentRow = -1;
 
   private int currentType = VirtualLink.TYPE_MOVE;
 
@@ -370,7 +370,6 @@ public class CostParser {
     // Get the nodes and link layers
     nodesEsriLayer = project.getNodeLayers();
     linksEsriLayer = project.getLinkLayers();
-    previousLayerVariableName = nodesEsriLayer[0].getLayerVariableName();
 
     // Get the table models for nodes and links
     nodesDbf = new DbfTableModel[nodesEsriLayer.length];
@@ -631,7 +630,9 @@ public class CostParser {
     }
 
     if (!layerVariableName.equals(previousLayerVariableName)) {
-      setVariable(previousLayerVariableName, 0.0);
+      if (previousLayerVariableName != null) {
+        setVariable(previousLayerVariableName, 0.0);
+      }
       setVariable(layerVariableName, 1.0);
       previousLayerVariableName = layerVariableName;
     }
@@ -746,29 +747,17 @@ public class CostParser {
     // Set shp/dbf related variables in parser
 
     // Try to minimize the number of variables to update in the parser
-    boolean reloadVariables = false;
+    boolean reloadVariables =
+        currentType != type
+            || currentLayer != vl.getLayerIndex()
+            || currentRow != vl.getIndexInLayer();
 
     // Up or Downstream ?
     setVariable(NodusC.VARNAME_UPSTREAM, vl.getUpStream());
 
-    if (currentType != type) {
-      reloadVariables = true;
-      currentLink = vl.getBeginVirtualNode().getRealLinkId();
-      currentNode = vl.getBeginVirtualNode().getRealNodeId(false);
-      currentType = type;
-    } else {
-      if (type == VirtualLink.TYPE_MOVE) {
-        if (vl.getBeginVirtualNode().getRealLinkId() != currentLink) {
-          reloadVariables = true;
-          currentLink = vl.getBeginVirtualNode().getRealLinkId();
-        } else {
-          if (vl.getBeginVirtualNode().getRealNodeId(false) != currentNode) {
-            reloadVariables = true;
-            currentNode = vl.getBeginVirtualNode().getRealNodeId(false);
-          }
-        }
-      }
-    }
+    currentType = type;
+    currentLayer = vl.getLayerIndex();
+    currentRow = vl.getIndexInLayer();
     if (vl.getBeginVirtualNode().getService() != vl.getEndVirtualNode().getService()) {
       setVariable(
           NodusC.VARNAME_FREQUENCY,
@@ -800,13 +789,6 @@ public class CostParser {
         }
 
         hasMoveVariables = true;
-
-        /*
-         * Get (oriented) volume for the real link associated to this virtual link.
-         * The volume is a number of passenger car units (PCU's)
-         */
-        setVariable(NodusC.VARNAME_VOLUME, rl.getCurrentPassengerCarUnits(vl));
-
       } else {
         fieldName = nodeFieldName[layerIndex];
         values = nodesDbf[layerIndex].getRecord(indexInLayer);
@@ -832,6 +814,14 @@ public class CostParser {
         }
       }
     } // if reloadVariables
+
+    // Traffic can change without changing the DBF record, including during a line search.
+    // The same record also supplies both directions, whose PCU totals are independent.
+    if (type == VirtualLink.TYPE_MOVE) {
+      RealLink rl =
+          (RealLink) links[vl.getLayerIndex()].getOMGraphicAt(vl.getIndexInLayer()).getAttribute(0);
+      setVariable(NodusC.VARNAME_VOLUME, rl.getCurrentPassengerCarUnits(vl));
+    }
 
     /* Cost functions can exist for a given scenario, group and class.
      * Test the different possibilities

@@ -159,7 +159,7 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
 
       // Get starting time of route in seconds
       int odStartingTime = demand.getStartingTime();
-      int currentTime = odStartingTime;
+      double currentTime = odStartingTime;
 
       while (currentNode != beginNode) {
         // Predecessor
@@ -212,7 +212,7 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
 
         // Compute the arrival time at the end of this link
         if (vl.getType() == VirtualLink.TYPE_MOVE) {
-          currentTime += (int) (vl.getLength() * 3600) / vl.getSpeed();
+          currentTime += vl.getLength() * 3600.0 / vl.getSpeed();
         }
 
         if (currentTime >= assignmentStartTime && currentTime < assignmentEndTime) {

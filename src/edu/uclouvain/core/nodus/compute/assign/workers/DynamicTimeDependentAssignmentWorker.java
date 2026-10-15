@@ -188,7 +188,7 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
       ODCell demand = it.next();
 
       // Not yet started ?
-      if (demand.getStartingTime() > assignmentStartTime) {
+      if (demand.getStartingTime() >= assignmentEndTime) {
         continue;
       }
 
@@ -227,8 +227,7 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
       byte unloadingMeans = 0;
 
       // Get starting time of route in seconds
-      int odStartingTime = demand.getRelocatedStartingTime();
-      int currentTime = odStartingTime;
+      double currentTime = demand.getPreciseRelocatedStartingTime();
 
       while (currentNode != beginNode) {
         // Predecessor
@@ -283,7 +282,7 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
 
         if (vl.getType() == VirtualLink.TYPE_MOVE) {
 
-          currentTime += (int) (vl.getLength() * 3600) / vl.getSpeed();
+          currentTime += vl.getLength() * 3600.0 / vl.getSpeed();
 
           // Stop if current time is out of time slice
           if (currentTime > assignmentEndTime) {
