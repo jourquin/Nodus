@@ -57,6 +57,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import javax.swing.JOptionPane;
 
 /** Shared in-memory network and database fixture; callers must lock JDBCUtils. */
@@ -174,6 +175,11 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
   /** Changes a node's handling permissions without replacing its real geometry. */
   public void setNodeHandling(int node, int handling) {
     nodes.getModel().setValueAt((double) handling, node - 1, NodusC.DBF_IDX_TRANSHIP);
+  }
+
+  /** Supplies deterministic progress cancellation or failure for worker/coordinator tests. */
+  public void setProgressHandler(Predicate<String> handler) {
+    panel.progressHandler = handler;
   }
 
   /** Reads the original reference case outputs in a reproducible order. */
@@ -374,6 +380,7 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
   static final class HeadlessPanel extends NodusMapPanel {
     private static final long serialVersionUID = 1L;
     private final AssignmentTestProject project;
+    private volatile Predicate<String> progressHandler;
     final Set<Thread> workers = ConcurrentHashMap.newKeySet();
     private CountDownLatch started;
     private int completionSound;
@@ -453,6 +460,10 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
 
     @Override
     public boolean updateProgress(String text, int interval) {
+      final Predicate<String> handler = progressHandler;
+      if (handler != null && !handler.test(text)) {
+        return false;
+      }
       if (text != null && text.startsWith("Estimating ")) {
         fittingProgressLengths.add(progressLength);
       }

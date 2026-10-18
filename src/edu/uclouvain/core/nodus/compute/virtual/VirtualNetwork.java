@@ -467,6 +467,15 @@ public class VirtualNetwork {
     return computeCosts(iteration, scenario, odClass, -1, nbThreads);
   }
 
+  /**
+   * Presents a cost-computation failure after the worker pool has stopped.
+   *
+   * @param message diagnostic returned by the parser or worker
+   */
+  protected void reportCostError(String message) {
+    JOptionPane.showMessageDialog(null, message, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+  }
+
   /** Computes one cost pass, including parser initialization and completion of all workers. */
   private boolean computeCostsForClass(
       int iteration, int scenario, byte odClass, int timeSlice, int nbThreads) {
@@ -492,8 +501,7 @@ public class VirtualNetwork {
               costFunctions, nodusProject, scenario, groups[groupIndex], odClass, timeSlice);
       if (!costParser.isInitialized()) {
         // Display the error message
-        JOptionPane.showMessageDialog(
-            null, costParser.getErrorMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+        reportCostError(costParser.getErrorMessage());
         return false;
       }
 
@@ -527,15 +535,21 @@ public class VirtualNetwork {
     for (int i = 0; i < nbThreads; i++) {
       if (worker[i].isCancelled()) {
         if (worker[i].getErrorMessage() != null) {
-          JOptionPane.showMessageDialog(
-              null, worker[i].getErrorMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+          reportCostError(worker[i].getErrorMessage());
         }
         return false;
       }
     }
 
-    // long end = System.currentTimeMillis();
-    // System.out.println("Duration : " + ((end - start) / 1000));
+    if (timeSlice >= 0) {
+      for (VirtualNodeList list : vnl) {
+        for (VirtualNode node : list.getVirtualNodeList()) {
+          for (VirtualLink link : node.getVirtualLinkList()) {
+            link.snapshotCosts(timeSlice);
+          }
+        }
+      }
+    }
 
     return true;
   }
@@ -1505,8 +1519,7 @@ public class VirtualNetwork {
         if (!costParser.isInitialized()) {
           nodusMapPanel.stopProgress();
           // Display the error message
-          JOptionPane.showMessageDialog(
-              null, costParser.getErrorMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+          reportCostError(costParser.getErrorMessage());
           return Double.NaN;
         }
 
@@ -1536,8 +1549,7 @@ public class VirtualNetwork {
       for (int i = 0; i < threads; i++) {
         if (worker[i].isCancelled()) {
           if (worker[i].getErrorMessage() != null) {
-            JOptionPane.showMessageDialog(
-                null, worker[i].getErrorMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+            reportCostError(worker[i].getErrorMessage());
           }
           nodusMapPanel.stopProgress();
           return Double.NaN;

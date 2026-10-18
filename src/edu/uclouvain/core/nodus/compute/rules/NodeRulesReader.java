@@ -254,7 +254,7 @@ public class NodeRulesReader {
           }
 
           // add the exclusion to the relevant list
-          int originIndex = virtualNet.getNodeIndexInVirtualNodeList(Math.abs(num), true);
+          int originIndex = virtualNet.getNodeIndexInVirtualNodeList(Math.abs(num), false);
 
           if (originIndex != -1) {
             NodeRule exc = new NodeRule(num, scenario, group, mode1, means1, mode2, means2);

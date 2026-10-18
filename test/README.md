@@ -384,6 +384,9 @@ for the workflow mechanism.
   permitted links retain their costs and durations, excluded links skip formula evaluation and
   cannot form a shortest route, and repeated scenario/group jobs recompute availability. Uses
   the temporary H2 assignment fixture and checks both linked and compact shortest-path graphs.
+- `CostParserWorkerFailureTest`: real worker threads and the cost coordinator handle invalid
+  formulas, unchecked exceptions and progress cancellation. Checks prompt peer termination,
+  retained diagnostics, quiet user cancellation and successful retries after failures.
 - `ModalSplitTest`: proportional and multinomial-logit shares, normalization across modes
   and paths, large costs, invalid costs, legacy negative-cost defaults, and isolation between
   fitted/default groups and worker clones.
@@ -393,6 +396,10 @@ for the workflow mechanism.
   on normal close, or JDBC connection closure, project-lock release and busy-state reset
   after failed project opening. Registered project resources also stop after failed opening
   and when the project closes before opening completes.
+- `NodusProjectCloseWorkflowTest`: real asynchronous close hooks, registered resource cleanup,
+  JDBC closure and lock release must finish before the next project opens. Latches check the
+  ordering, once-only EDT callbacks, and retained ownership on cancellation or failed saving;
+  discarded open callbacks must not run on a later successful close.
 - `NodusMapPanelStartupStateTest`: quitting after manually closing a project clears its saved
   startup name while preserving the chooser directory and reload preference. Quitting with a
   project open preserves its name. Intercepts the exit callback and reloads temporary preferences.
@@ -427,6 +434,11 @@ for the workflow mechanism.
   Static flows use half-open arrival buckets; dynamic traversal may finish at a slice's end before
   continuing in the next slice. These tests call the workers directly, without worker threads or
   the full timed-assignment coordinator.
+- `TimeDependentAssignmentIntegrationTest`: complete static and dynamic timed assignments on
+  H2 and HSQLDB with SQL departure times and a route whose cost changes between periods.
+  Checks rerouting after relocation, handling charged once, historical unit costs, per-period
+  flows and vehicles, saved paths, demand conservation and worker termination. Serial,
+  parallel and repeated runs must produce identical normalized outputs.
 - `PathWeightsTest`: all seven cost and duration components contribute to totals.
 - `VirtualLinkFlowTest`: exact and fast multi-flow demand distribution, rejected paths,
   demand consumed only once, independent commodity groups and dynamic time slices,
@@ -447,6 +459,9 @@ for the workflow mechanism.
 - `NodeRuleTest`: exact and wildcard matching, direction, transit exceptions, and precedence
   of selected-scenario and commodity-group rules over generic rules. Multiple scenario lookups
   must keep their own rules and restore the generic fallback for an unspecified scenario.
+- `NodeRulesReaderIntegrationTest`: actual exclusion-table rows on H2 and HSQLDB reach
+  transhipment-only nodes and affect computed costs. Checks symmetry, direction, scenario/group
+  isolation, selected-scenario precedence, generic defaults, missing tables and unknown nodes.
 - `VehiclesParserTest`: capacity and passenger-car-unit property precedence, isolation
   between scenarios, groups and mode/means, default values, fractional values, and repeated
   initialization.
@@ -476,10 +491,10 @@ self-loop removal and failed-deletion retry, but not the timer's polling interva
 rollback covers row replacement in existing tables; first-time schema creation and legacy schema
 changes can commit on some database engines and are not covered by that transaction guarantee.
 
-Concurrency coverage includes complete assignments with two commodity jobs, path output and
-worker cancellation. Equilibrium coverage uses small parallel-route reference cases; large
-networks, nonlinear congestion functions and complete dynamic assignments remain outside this
-coverage.
+Concurrency coverage includes complete assignments with two commodity jobs, path output,
+worker cancellation and complete static/dynamic timed assignments. Equilibrium coverage uses
+small parallel-route reference cases; large networks and nonlinear congestion functions remain
+outside this coverage.
 
 The OpenMap tests mirror their production packages under `test/com/bbn/openmap/` and run
 automatically with the existing Ant target and GitHub workflow. To run just the layer tests:

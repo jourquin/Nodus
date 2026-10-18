@@ -44,7 +44,7 @@ public class CostParserWorker extends Thread {
   private static I18n i18n = Environment.getI18n();
 
   // Will obtain true if job is canceled
-  private boolean canceled = false;
+  private volatile boolean canceled = false;
 
   // Cost parser (already initialized)
   private CostParser costParser;
@@ -53,7 +53,7 @@ public class CostParserWorker extends Thread {
   private CostParserWorker[] costWorker;
 
   // Error message returned by the parser
-  private String errorMessage = null;
+  private volatile String errorMessage = null;
 
   // Queue of groups to compute
   private WorkQueue workQueue;
@@ -82,8 +82,23 @@ public class CostParserWorker extends Thread {
    * @param errorMessage error message to display.
    */
   public void cancel(String errorMessage) {
-    this.errorMessage = errorMessage;
+    if (errorMessage != null) {
+      this.errorMessage = errorMessage;
+    }
     canceled = true;
+    interrupt();
+  }
+
+  /** Stops the whole pool, including peers waiting for another job. */
+  private void cancelWorkers(String message) {
+    cancel(message);
+    if (costWorker != null) {
+      for (CostParserWorker worker : costWorker) {
+        if (worker != null) {
+          worker.cancel(message);
+        }
+      }
+    }
   }
 
   /**
@@ -269,7 +284,7 @@ public class CostParserWorker extends Thread {
   @Override
   public void run() {
     try {
-      while (true) {
+      while (!canceled) {
         // Retrieve some work; block if the queue is empty
         Object x = workQueue.getWork();
 
@@ -283,16 +298,14 @@ public class CostParserWorker extends Thread {
 
         // Start the real work
         if (!computeCosts(cwp) && !isCancelled()) {
-          errorMessage = costParser.getErrorMessage();
-          // Cancel all workers
-          for (CostParserWorker element : costWorker) {
-            element.cancel(errorMessage);
-          }
+          cancelWorkers(costParser.getErrorMessage());
         }
       }
     } catch (InterruptedException e) {
-      canceled = true;
+      cancelWorkers(null);
       Thread.currentThread().interrupt();
+    } catch (RuntimeException failure) {
+      cancelWorkers(failure.toString());
     }
   }
 }

@@ -28,6 +28,7 @@ import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
+import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.text.MessageFormat;
 import java.util.Iterator;
@@ -272,43 +273,41 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
         }
       }
 
-      // Now, rebuild the path in the correct order
-      Iterator<VirtualLink> pathIterator = orderedLinkList.iterator();
-      while (pathIterator.hasNext()) {
-
-        VirtualLink vl = pathIterator.next();
-
-        // Compute the arrival time at the end of this link
-
-        if (vl.getType() == VirtualLink.TYPE_MOVE) {
-
-          currentTime += vl.getLength() * 3600.0 / vl.getSpeed();
-
-          // Stop if current time is out of time slice
-          if (currentTime > assignmentEndTime) {
-
-            // Relocate the demand to the new origin in the virtual network structure
-            // for the next time slice
-            int newNodeIndex =
-                virtualNet.getNodeIndexInVirtualNodeList(
-                    vl.getBeginVirtualNode().getRealNodeId(false), false);
-            if (newNodeIndex != -1) {
-              DemandToRelocate dtm =
-                  new DemandToRelocate(
-                      demandListIndex,
-                      nodeIndex,
-                      newNodeIndex,
-                      vl.getBeginVirtualNode().getId(),
-                      demand);
-              demandsToRelocate.add(dtm);
-            } else {
-              System.err.println("This should never happen !");
-            }
+      // Commit only the prefix ending at a completed movement (or initial loading).
+      // Transit/transhipment before a blocked movement must remain available to the next search.
+      int linksToAssign = orderedLinkList.size();
+      int safePrefixLength = 0;
+      int position = 0;
+      double arrivalTime = currentTime;
+      VirtualNode continuation =
+          orderedLinkList.isEmpty() ? null : orderedLinkList.getFirst().getBeginVirtualNode();
+      for (VirtualLink link : orderedLinkList) {
+        if (link.getType() == VirtualLink.TYPE_MOVE) {
+          arrivalTime += link.getLength() * 3600.0 / link.getSpeed();
+          if (arrivalTime > assignmentEndTime) {
+            linksToAssign = safePrefixLength;
+            final int newNodeIndex =
+                virtualNet.getNodeIndexInVirtualNodeList(continuation.getRealNodeId(false), false);
+            demandsToRelocate.add(
+                new DemandToRelocate(
+                    demandListIndex, nodeIndex, newNodeIndex, continuation.getId(), demand));
             pathWasTruncated = true;
             break;
           }
+        }
+        position++;
+        if (link.getType() == VirtualLink.TYPE_MOVE || link.getType() == VirtualLink.TYPE_LOAD) {
+          safePrefixLength = position;
+          continuation = link.getEndVirtualNode();
+        }
+      }
 
-          // Update the OD cell : this OD pair has at least reached this node
+      // Rebuild the accepted prefix in travel order, retaining fractional seconds.
+      final Iterator<VirtualLink> pathIterator = orderedLinkList.iterator();
+      for (int assigned = 0; assigned < linksToAssign; assigned++) {
+        final VirtualLink vl = pathIterator.next();
+        if (vl.getType() == VirtualLink.TYPE_MOVE) {
+          currentTime += vl.getLength() * 3600.0 / vl.getSpeed();
           demand.setRelocatedOriginNodeId(vl.getEndVirtualNode().getRealNodeId(false));
           demand.setRelocatedStartingTime(currentTime);
         }

@@ -106,6 +106,9 @@ public class VirtualLink {
   /* This variable will contain the cost computed for this particular virtual link */
   private double[] cost = null;
 
+  /** Costs retained for completed timed cost passes; allocated only for timed coordinators. */
+  private double[][] timeCosts;
+
   /* This variable will contain the transit time computed for this particular virtual link */
   private double[] duration = null;
 
@@ -453,6 +456,37 @@ public class VirtualLink {
   }
 
   /**
+   * Returns the recorded cost of a time slice, or the current cost for untimed cost passes.
+   *
+   * @param groupIndex commodity group index
+   * @param timeSlice time slice index
+   * @return unit cost evaluated for the specified slice
+   */
+  public double getCost(byte groupIndex, int timeSlice) {
+    if (timeCosts != null && !Double.isNaN(timeCosts[groupIndex][timeSlice])) {
+      return timeCosts[groupIndex][timeSlice];
+    }
+    return cost[groupIndex];
+  }
+
+  /**
+   * Retains the current costs before a later time slice overwrites them.
+   *
+   * @param timeSlice index of the completed cost pass
+   */
+  public void snapshotCosts(int timeSlice) {
+    if (timeCosts == null) {
+      timeCosts = new double[cost.length][currentVolume[0].length];
+      for (double[] values : timeCosts) {
+        java.util.Arrays.fill(values, Double.NaN);
+      }
+    }
+    for (int group = 0; group < cost.length; group++) {
+      timeCosts[group][timeSlice] = cost[group];
+    }
+  }
+
+  /**
    * Returns the default transit time for a moving virtual link. It corresponds to the time needed
    * to travel along the link at nominal speed, expressed in seconds.
    *
@@ -568,6 +602,7 @@ public class VirtualLink {
   @SuppressWarnings("unchecked")
   public void setNbGroups(int nbGroups, int nbTimeSlices) {
     cost = new double[nbGroups];
+    timeCosts = null;
     duration = new double[nbGroups];
     currentVolume = new double[nbGroups][nbTimeSlices];
     auxiliaryVolume = new double[nbGroups];
