@@ -393,6 +393,9 @@ for the workflow mechanism.
   on normal close, or JDBC connection closure, project-lock release and busy-state reset
   after failed project opening. Registered project resources also stop after failed opening
   and when the project closes before opening completes.
+- `NodusMapPanelStartupStateTest`: quitting after manually closing a project clears its saved
+  startup name while preserving the chooser directory and reload preference. Quitting with a
+  project open preserves its name. Intercepts the exit callback and reloads temporary preferences.
 - `NodusProjectConnectionLossTest`: a lost JDBC session stops registered project resources
   once, warns once, and prevents further network edits or DBF saves.
 - `MultinomialProbitTest`, `ProbitProbabilitiesTest`, `LogCostProbitEstimatorTest`: joint normal

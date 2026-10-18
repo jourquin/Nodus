@@ -518,6 +518,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Allow a per table specific encoding for DBF file.
 - Fix (potential) bugs in Cost parser, semi-dynamic assignments and exclusion rules at node   
 - Improved project locker
+- Improved close/open workflow
+
 
   
   

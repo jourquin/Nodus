@@ -537,6 +537,10 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
   /** Closes the main frame after having save its state in the Nodus properties file. */
   public void closeAndSaveState() {
+    // Check before shutdown closes the project: only reopen a project still open at quit.
+    if (nodusProject == null || !nodusProject.isOpen()) {
+      nodusProperties.remove(NodusC.PROP_LAST_PROJECT);
+    }
     if (nodusProject != null) {
       nodusProject.close(this::finishCloseAndSaveState);
       return;
