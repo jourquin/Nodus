@@ -22,7 +22,7 @@
 package com.bbn.openmap.layer.image;
 
 import com.bbn.openmap.Environment;
-import com.bbn.openmap.layer.image.capabilities.CapabilitiesInnerTreeNode;
+import com.bbn.openmap.layer.image.capabilities.ICapabilitiesNodeInterface;
 import com.bbn.openmap.layer.image.capabilities.WmsCapabilitiesXmlParser;
 import com.bbn.openmap.layer.image.capabilities.WmsLayerInfo;
 import com.bbn.openmap.layer.image.gui.WmsLayersChooserDlg;
@@ -47,9 +47,6 @@ import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
-import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 /**
@@ -208,18 +205,16 @@ public class NodusWMSLayer extends WMSLayer {
       }
 
       // Try to parse the stream
-      WmsCapabilitiesXmlParser cparser = new WmsCapabilitiesXmlParser();
-
-      SAXParserFactory spf = SAXParserFactory.newInstance();
-      spf.setNamespaceAware(true);
-      spf.setValidating(true);
+      final WmsCapabilitiesXmlParser cparser;
       try (InputStream inputStream = urlc.getInputStream()) {
-        SAXParser parser = spf.newSAXParser();
-        parser.parse(new InputSource(inputStream), cparser);
-      } catch (ParserConfigurationException e) {
-        e.printStackTrace();
-      } catch (SAXException e) {
-        e.printStackTrace();
+        cparser = WmsCapabilitiesXmlParser.parse(inputStream);
+      } catch (ParserConfigurationException | SAXException e) {
+        reportCapabilitiesError(
+            i18n.get(
+                NodusWMSLayer.class,
+                "Could_not_parse_capabilities",
+                "Could not parse capabilities"));
+        return false;
       }
 
       // Retrieve the parsed data
@@ -281,11 +276,20 @@ public class NodusWMSLayer extends WMSLayer {
     }
 
     // Find the name of the server in treeData
-    CapabilitiesInnerTreeNode ctsn = (CapabilitiesInnerTreeNode) treeData.elementAt(0);
+    ICapabilitiesNodeInterface ctsn = (ICapabilitiesNodeInterface) treeData.elementAt(0);
     WmsLayerInfo wli = ctsn.getLayerInformation();
     super.wmsServer = wli.getServerInformation().getGetMapUrl();
 
     return true;
+  }
+
+  /**
+   * Presents a capabilities parsing error without blocking the requesting thread.
+   *
+   * @param message error message to display
+   */
+  protected void reportCapabilitiesError(String message) {
+    new ThreadedDialog(message).start();
   }
 
   /**

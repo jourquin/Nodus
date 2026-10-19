@@ -21,14 +21,25 @@
 
 package com.bbn.openmap.layer.image.capabilities;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Vector;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
-import org.xml.sax.helpers.DefaultHandler;
+import org.xml.sax.XMLReader;
+import org.xml.sax.ext.DefaultHandler2;
 
 /**
  * Sax parser used to retrieve the information gathered after a getCapabilities request.
+ *
+ * <p>Use {@link #parse(InputStream)} for untrusted XML. It configures the XML reader as well as the
+ * callbacks; creating a handler alone does not secure a caller's SAX reader.
  *
  * <p>The parser doesn't work with WMS 1.3 specs (which doesn't use latlonboundingbox anymore), so
  * that "&version=1.1" must for instance be added to the capabilities request.
@@ -38,7 +49,7 @@ import org.xml.sax.helpers.DefaultHandler;
  *
  * @author Bart Jourquin
  */
-public class WmsCapabilitiesXmlParser extends DefaultHandler {
+public class WmsCapabilitiesXmlParser extends DefaultHandler2 {
   private String charBuff;
 
   @SuppressWarnings("rawtypes")
@@ -53,6 +64,82 @@ public class WmsCapabilitiesXmlParser extends DefaultHandler {
   private WmsServerInfo server;
 
   private boolean serviceIsParent;
+
+  /**
+   * Parses capabilities using the same restricted XML configuration as the WMS layer.
+   *
+   * <p>WMS 1.1 DOCTYPE declarations are accepted without fetching or validating their external
+   * DTDs. Custom entities are rejected before expansion. No external DTD, entity, schema or
+   * XInclude resource may be read. Unsupported security settings cause parsing to fail.
+   *
+   * @param input capabilities XML stream
+   * @return the handler containing the completely parsed capabilities tree
+   * @throws IOException if reading the capabilities fails
+   * @throws SAXException if XML is malformed, unsafe or security settings are unsupported
+   * @throws ParserConfigurationException if a secure parser cannot be created
+   */
+  public static WmsCapabilitiesXmlParser parse(InputStream input)
+      throws IOException, SAXException, ParserConfigurationException {
+    final SAXParserFactory factory = SAXParserFactory.newDefaultInstance();
+    factory.setNamespaceAware(true);
+    factory.setValidating(false);
+    factory.setXIncludeAware(false);
+    factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+    factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+    factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+    factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+    final SAXParser parser = factory.newSAXParser();
+    parser.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+    parser.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+    final XMLReader reader = parser.getXMLReader();
+    final WmsCapabilitiesXmlParser handler = new WmsCapabilitiesXmlParser();
+    reader.setContentHandler(handler);
+    reader.setErrorHandler(handler);
+    reader.setProperty("http://xml.org/sax/properties/declaration-handler", handler);
+    reader.setEntityResolver(
+        (publicId, systemId) -> {
+          throw new SAXException("External XML resources are not allowed in WMS capabilities.");
+        });
+    reader.parse(new InputSource(input));
+    return handler;
+  }
+
+  /**
+   * Rejects custom internal entities, including recursive and exponential expansion declarations.
+   *
+   * @param name entity name
+   * @param value entity value
+   * @throws SAXException always, before the entity can be expanded
+   */
+  @Override
+  public void internalEntityDecl(String name, String value) throws SAXException {
+    throw new SAXException("Custom XML entities are not allowed in WMS capabilities.");
+  }
+
+  /**
+   * Rejects external general and parameter entity declarations without resolving them.
+   *
+   * @param name entity name
+   * @param publicId public identifier
+   * @param systemId external identifier
+   * @throws SAXException always, before the external resource can be read
+   */
+  @Override
+  public void externalEntityDecl(String name, String publicId, String systemId)
+      throws SAXException {
+    throw new SAXException("External XML entities are not allowed in WMS capabilities.");
+  }
+
+  /**
+   * Rejects unresolved references rather than silently accepting incomplete metadata.
+   *
+   * @param name skipped entity name
+   * @throws SAXException always
+   */
+  @Override
+  public void skippedEntity(String name) throws SAXException {
+    throw new SAXException("Unresolved XML entity in WMS capabilities: " + name);
+  }
 
   /**
    * Receive notification of character data inside an element.

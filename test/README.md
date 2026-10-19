@@ -157,6 +157,15 @@ for the workflow mechanism.
 
 ## Coverage
 
+- `NodusWMSLayerTest`: the production SAX configuration rejects external general/parameter and
+  custom/recursive entity declarations. Private sentinel files and a loopback HTTP canary check
+  resource isolation; external DTD/schema and XInclude references must never trigger canary requests.
+  WMS 1.1 SYSTEM/PUBLIC DOCTYPE references remain usable without downloading their DTDs. The normal
+  [capabilities fixture](fixtures/wms/capabilities-1.1.1.xml) covers service/format/URL metadata,
+  nested layers, inherited bounds, styles and split character callbacks. Actual layer requests check
+  successful caching, single-layer roots and rejection/retry after unsafe or late malformed XML.
+  Security settings follow the
+  [JAXP security guidance](https://docs.oracle.com/en/java/javase/11/security/java-api-xml-processing-jaxp-security-guide.html).
 - `ExtensionApiCompatibilityTest`: the frozen public/protected API of the four extension
   entry classes, a plugin and subclass compiled before their refactoring, plugin menu dispatch
   and project/global disposal, and Groovy bean properties, overloads and shared collections.

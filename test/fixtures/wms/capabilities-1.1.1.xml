@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WMT_MS_Capabilities version="1.1.1" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <Service>
+    <Name>OGC:WMS</Name>
+    <Title>Coastal &amp; river &#233; maps</Title>
+  </Service>
+  <Capability>
+    <Request>
+      <GetMap>
+        <Format>image/png</Format>
+        <Format>image/jpeg</Format>
+        <DCPType><HTTP><Get>
+          <OnlineResource xlink:type="simple" xlink:href="https://maps.example.test/wms?token=a&amp;mode=b"/>
+        </Get></HTTP></DCPType>
+      </GetMap>
+    </Request>
+    <Layer queryable="1">
+      <Title>All layers</Title>
+      <SRS>EPSG:4326</SRS>
+      <LatLonBoundingBox minx="-180" miny="-90" maxx="180" maxy="90"/>
+      <Layer queryable="0">
+        <Name>roads</Name>
+        <Title>Roads <![CDATA[& bridges]]></Title>
+        <Abstract>Transport links</Abstract>
+        <Style><Name>default</Name><Title>Road styling</Title></Style>
+      </Layer>
+      <Layer>
+        <Title>Regional layers</Title>
+        <LatLonBoundingBox minx="2" miny="49" maxx="6" maxy="52"/>
+        <Layer>
+          <Name>ports</Name>
+          <Title>Ports</Title>
+          <SRS>EPSG:3857</SRS>
+        </Layer>
+      </Layer>
+      <Layer><Name>water</Name><Title>Water</Title></Layer>
+    </Layer>
+  </Capability>
+</WMT_MS_Capabilities>
