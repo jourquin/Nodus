@@ -22,11 +22,17 @@
 package edu.uclouvain.core.nodus.compute.costs;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 import edu.uclouvain.core.nodus.NodusC;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
 
 /** Protects capacity and PCU selection before volumes are converted into vehicle counts. */
 class VehiclesParserTest {
@@ -96,6 +102,95 @@ class VehiclesParserTest {
     assertEquals(0.75, parser.getPassengerCarUnits(3, 1, 2), 1e-12);
     assertEquals(99, parser.getAverageLoad(4, 1, 2), 1e-12);
     assertEquals(9, parser.getPassengerCarUnits(4, 1, 2), 1e-12);
+  }
+
+  @TestFactory
+  List<DynamicTest> invalidCharacteristicsAreRejectedAtEveryPrecedenceAndCanBeRetried() {
+    final List<DynamicTest> tests = new ArrayList<>();
+    for (String prefix : new String[] {"", "7."}) {
+      for (String suffix : new String[] {"", ".3"}) {
+        for (boolean capacity : new boolean[] {false, true}) {
+          final String characteristic = capacity ? NodusC.VARNAME_AVERAGELOAD : NodusC.VARNAME_PCU;
+          final String[] invalid =
+              capacity
+                  ? new String[] {
+                    "0", "-0.0", "-1", "NaN", "Infinity", "-Infinity", "1e309", "1e-999", "bad", ""
+                  }
+                  : new String[] {"-1", "NaN", "Infinity", "-Infinity", "1e309", "bad", ""};
+          for (String value : invalid) {
+            final String key = prefix + characteristic + ".1,2" + suffix;
+            tests.add(
+                dynamicTest(
+                    key + "=" + value,
+                    () -> {
+                      final List<List<String>> errors = new ArrayList<>();
+                      final VehiclesParser parser =
+                          new VehiclesParser(
+                              7, (name, rejected) -> errors.add(List.of(name, rejected)));
+                      final Properties properties = new Properties();
+                      addValues(properties, "", ".4", "12", "2");
+                      assertTrue(parser.loadVehicleCharacteristics(properties, (byte) 4));
+                      properties.setProperty(key, value);
+                      assertFalse(parser.loadVehicleCharacteristics(properties, (byte) 3));
+                      assertEquals(List.of(List.of(key, value)), errors);
+
+                      // A retry must reload even values processed before the rejected property.
+                      properties.setProperty(key, capacity ? "2.5" : "0.75");
+                      properties.setProperty(NodusC.VARNAME_AVERAGELOAD + ".0,0", "6.5");
+                      properties.setProperty(NodusC.VARNAME_PCU + ".0,0", "0.25");
+                      assertTrue(parser.loadVehicleCharacteristics(properties, (byte) 3));
+                      assertEquals(capacity ? 2.5 : 1, parser.getAverageLoad(3, 1, 2));
+                      assertEquals(capacity ? 1 : 0.75, parser.getPassengerCarUnits(3, 1, 2));
+                      assertEquals(6.5, parser.getAverageLoad(3, 0, 0));
+                      assertEquals(0.25, parser.getPassengerCarUnits(3, 0, 0));
+                      assertEquals(1, parser.getAverageLoad(3, 2, 1));
+                      assertEquals(1, parser.getPassengerCarUnits(3, 2, 1));
+                      assertEquals(12, parser.getAverageLoad(4, 1, 2));
+                      assertEquals(2, parser.getPassengerCarUnits(4, 1, 2));
+                      assertEquals(1, errors.size());
+                    }));
+          }
+        }
+      }
+    }
+    return tests;
+  }
+
+  @Test
+  void zeroPcuAndFinitePositiveCapacitiesAreAllowed() {
+    final VehiclesParser parser =
+        new VehiclesParser(
+            7,
+            (name, value) -> {
+              throw new AssertionError(name + "=" + value);
+            });
+    final Properties properties = new Properties();
+    addValues(properties, "", "", "2.5", "0");
+    properties.setProperty(NodusC.VARNAME_AVERAGELOAD + ".2,1", Double.toString(Double.MIN_VALUE));
+    properties.setProperty(NodusC.VARNAME_AVERAGELOAD + ".3,1", Double.toString(Double.MAX_VALUE));
+    assertTrue(parser.loadVehicleCharacteristics(properties, (byte) 3));
+    assertEquals(2.5, parser.getAverageLoad(3, 1, 2));
+    assertEquals(0, parser.getPassengerCarUnits(3, 1, 2));
+    assertEquals(Double.MIN_VALUE, parser.getAverageLoad(3, 2, 1));
+    assertEquals(Double.MAX_VALUE, parser.getAverageLoad(3, 3, 1));
+  }
+
+  @Test
+  void overriddenInvalidDefaultsDoNotRejectValidSelectedCharacteristics() {
+    final VehiclesParser parser =
+        new VehiclesParser(
+            7,
+            (name, value) -> {
+              throw new AssertionError(name + "=" + value);
+            });
+    final Properties properties = new Properties();
+    addValues(properties, "", "", "0", "NaN");
+    addValues(properties, "", ".3", "-1", "bad");
+    addValues(properties, "7.", "", "Infinity", "-1");
+    addValues(properties, "7.", ".3", "2.5", "0.75");
+    assertTrue(parser.loadVehicleCharacteristics(properties, (byte) 3));
+    assertEquals(2.5, parser.getAverageLoad(3, 1, 2));
+    assertEquals(0.75, parser.getPassengerCarUnits(3, 1, 2));
   }
 
   private static void addValues(

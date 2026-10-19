@@ -24,10 +24,10 @@ package edu.uclouvain.core.nodus.compute.costs;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
-import edu.uclouvain.core.nodus.utils.StringUtils;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Properties;
+import java.util.function.BiConsumer;
 import javax.swing.JOptionPane;
 
 /**
@@ -35,7 +35,9 @@ import javax.swing.JOptionPane;
  *
  * <p>Each loaded commodity group has dense mode/means tables. Conversion can therefore look up
  * capacities and PCU factors without allocating string keys or accessing boxed values for every
- * link. Missing characteristics retain the default value of one.
+ * link. Missing characteristics retain the default value of one. Average loads must be finite and
+ * strictly positive. PCU factors must be finite and nonnegative; zero excludes the vehicle from
+ * equivalent road traffic while preserving its vehicle count.
  *
  * @author Bart Jourquin
  */
@@ -51,15 +53,23 @@ public class VehiclesParser {
 
   private int scenario;
 
+  private final BiConsumer<String, String> errorReporter;
+
   /**
    * Initialize the data structure that will hold the vehicle characteristics for a scenario.
    *
    * @param scenario The scenario for which the vehicle characteristics must be loaded.
    */
   public VehiclesParser(int scenario) {
+    this(scenario, VehiclesParser::displayError);
+  }
+
+  /** Creates a parser with a caller-supplied error reporter. */
+  VehiclesParser(int scenario, BiConsumer<String, String> errorReporter) {
     averageLoad = new double[NodusC.MAXGROUPS][];
     passengerCarUnits = new double[NodusC.MAXGROUPS][];
     this.scenario = scenario;
+    this.errorReporter = errorReporter;
   }
 
   /**
@@ -97,7 +107,8 @@ public class VehiclesParser {
   /**
    * Loads the capacities and PCU's for all the vehicles for a given group of commodities. If a
    * capacity for a mode-means combination is not defined, it is supposed to be equal to 1. The same
-   * is true for its PCU.
+   * is true for its PCU. Invalid values leave the group uninitialized so a corrected load can be
+   * retried. Only the selected value is validated, following scenario/group precedence.
    *
    * @param costFunctions The properties that contain the cost functions.
    * @param group The group of commodities for which this information must be loaded from the cost
@@ -111,147 +122,65 @@ public class VehiclesParser {
       return true;
     }
 
-    averageLoad[group] = new double[NodusC.MAXMM * NodusC.MAXMM];
-    passengerCarUnits[group] = new double[NodusC.MAXMM * NodusC.MAXMM];
-    Arrays.fill(averageLoad[group], 1.0);
-    Arrays.fill(passengerCarUnits[group], 1.0);
-
-    // Load capacities
-    for (int mode = 0; mode < NodusC.MAXMM; mode++) {
-      for (int means = 0; means < NodusC.MAXMM; means++) {
-        String core = NodusC.VARNAME_AVERAGELOAD + "." + mode + "," + means;
-
-        // Is there a specific value for this scenario and group?
-        String varName = scenario + "." + core + "." + group;
-        String s = costFunctions.getProperty(varName, null);
-        if (s != null) {
-          if (!StringUtils.isNumeric(s)) {
-            displayError(varName, s);
-            return false;
-          }
-          double value = Double.parseDouble(s);
-
-          averageLoad[group][mode * NodusC.MAXMM + means] = value;
-          continue;
-        }
-
-        // Is there a specific value for this scenario?
-        varName = scenario + "." + core;
-        s = costFunctions.getProperty(varName, null);
-        if (s != null) {
-          if (!StringUtils.isNumeric(s)) {
-            displayError(varName, s);
-            return false;
-          }
-          double value = Double.parseDouble(s);
-
-          averageLoad[group][mode * NodusC.MAXMM + means] = value;
-          continue;
-        }
-
-        // Is there a specific value for this group?
-        varName = core + "." + group;
-        s = costFunctions.getProperty(varName, null);
-        if (s != null) {
-          if (!StringUtils.isNumeric(s)) {
-            displayError(varName, s);
-            return false;
-          }
-          double value = Double.parseDouble(s);
-
-          averageLoad[group][mode * NodusC.MAXMM + means] = value;
-          continue;
-        }
-
-        // Is there a generic value ?
-        varName = core;
-        s = costFunctions.getProperty(varName, null);
-        if (s != null) {
-          if (!StringUtils.isNumeric(s)) {
-            displayError(varName, s);
-            return false;
-          }
-          double value = Double.parseDouble(s);
-
-          averageLoad[group][mode * NodusC.MAXMM + means] = value;
-          continue;
-        }
-      }
+    final double[] loads = new double[NodusC.MAXMM * NodusC.MAXMM];
+    final double[] pcu = new double[NodusC.MAXMM * NodusC.MAXMM];
+    Arrays.fill(loads, 1.0);
+    Arrays.fill(pcu, 1.0);
+    if (!loadValues(costFunctions, group, NodusC.VARNAME_AVERAGELOAD, loads, true)
+        || !loadValues(costFunctions, group, NodusC.VARNAME_PCU, pcu, false)) {
+      return false;
     }
 
-    // Load equivalent standard vehicles ratios
+    // Publish both complete rows together; a failed load must remain retryable.
+    averageLoad[group] = loads;
+    passengerCarUnits[group] = pcu;
+    return true;
+  }
+
+  private boolean loadValues(
+      Properties costFunctions,
+      byte group,
+      String characteristic,
+      double[] values,
+      boolean capacity) {
     for (int mode = 0; mode < NodusC.MAXMM; mode++) {
       for (int means = 0; means < NodusC.MAXMM; means++) {
-
-        String core = NodusC.VARNAME_PCU + "." + mode + "," + means;
-
-        // Is there a specific value for this scenario and group?
-        String varName = scenario + "." + core + "." + group;
-        String s = costFunctions.getProperty(varName, null);
-        if (s != null) {
-          if (!StringUtils.isNumeric(s)) {
-            displayError(varName, s);
+        final String core = characteristic + "." + mode + "," + means;
+        final String[] keys = {
+          scenario + "." + core + "." + group, scenario + "." + core, core + "." + group, core
+        };
+        for (String key : keys) {
+          final String text = costFunctions.getProperty(key);
+          if (text == null) {
+            continue;
+          }
+          final double value;
+          try {
+            value = Double.parseDouble(text);
+          } catch (NumberFormatException failure) {
+            errorReporter.accept(key, text);
             return false;
           }
-          double value = Double.parseDouble(s);
-
-          passengerCarUnits[group][mode * NodusC.MAXMM + means] = value;
-          continue;
-        }
-
-        // Is there a specific value for this scenario?
-        varName = scenario + "." + core;
-        s = costFunctions.getProperty(varName, null);
-        if (s != null) {
-          if (!StringUtils.isNumeric(s)) {
-            displayError(varName, s);
+          if (!Double.isFinite(value) || (capacity ? value <= 0 : value < 0)) {
+            errorReporter.accept(key, text);
             return false;
           }
-          double value = Double.parseDouble(s);
-
-          passengerCarUnits[group][mode * NodusC.MAXMM + means] = value;
-          continue;
-        }
-
-        // Is there a specific value for this group?
-        varName = core + "." + group;
-        s = costFunctions.getProperty(varName, null);
-        if (s != null) {
-          if (!StringUtils.isNumeric(s)) {
-            displayError(varName, s);
-            return false;
-          }
-          double value = Double.parseDouble(s);
-
-          passengerCarUnits[group][mode * NodusC.MAXMM + means] = value;
-          continue;
-        }
-
-        // Is there a generic value ?
-        varName = core;
-        s = costFunctions.getProperty(varName, null);
-        if (s != null) {
-          if (!StringUtils.isNumeric(s)) {
-            displayError(varName, s);
-            return false;
-          }
-          double value = Double.parseDouble(s);
-
-          passengerCarUnits[group][mode * NodusC.MAXMM + means] = value;
-          continue;
+          values[mode * NodusC.MAXMM + means] = value;
+          break;
         }
       }
     }
     return true;
   }
 
-  private void displayError(String varName, String value) {
+  private static void displayError(String varName, String value) {
     String errorMessage =
         MessageFormat.format(
             i18n.get(
                 VehiclesParser.class,
-                "is_not_a_valid_number",
-                "''{0} = {1}'' is not a valid number"),
+                "Invalid_vehicle_characteristic",
+                "''{0} = {1}'' is invalid. Average load must be finite and greater than zero; "
+                    + "PCU must be finite and nonnegative."),
             varName,
             value);
     JOptionPane.showMessageDialog(null, errorMessage, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);

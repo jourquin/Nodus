@@ -457,7 +457,10 @@ for the workflow mechanism.
 - `VirtualLinkFlowTest`: exact and fast multi-flow demand distribution, rejected paths,
   demand consumed only once, independent commodity groups and dynamic time slices,
   equilibrium blending, vehicle rounding, directional passenger-car units, and projections
-  that leave stored flows unchanged.
+  that leave stored flows unchanged. Invalid characteristics, non-finite/negative volumes and
+  oversized vehicle counts, PCU contributions or directional totals must fail before this link's
+  counts/traffic change. Covers fractional capacity, PCU zero, the integer upper boundary and
+  positive demand whose division underflows, for ordinary and projected conversions.
 - `MultiFlowEdgeUpdatesTest`: shared-edge penalties, loading restrictions on intermediate
   nodes, separate lifetimes of path marks and pending demand, and restoration between
   searches. Each case runs against linked and compact storage and checks resulting routes
@@ -478,7 +481,10 @@ for the workflow mechanism.
   isolation, selected-scenario precedence, generic defaults, missing tables and unknown nodes.
 - `VehiclesParserTest`: capacity and passenger-car-unit property precedence, isolation
   between scenarios, groups and mode/means, default values, fractional values, and repeated
-  initialization.
+  initialization. Rejects malformed, non-finite, zero/negative capacities and negative PCU factors
+  at all four precedence levels; checks complete retries after a failed load, preservation of other
+  groups and valid overrides of invalid defaults. PCU zero remains valid. Error reporting is captured
+  directly so rejection tests never open a dialog.
 - `TransportServiceTest`: ordered stops and route links, duplicate/null handling, live edits
   through lists and iterators, bulk replacements/removals, and independent cloned stop indexes.
 - `ServiceRegistryTest`: service replacement and renaming, duplicate IDs, removal through

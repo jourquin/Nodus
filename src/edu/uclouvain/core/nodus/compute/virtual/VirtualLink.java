@@ -562,21 +562,29 @@ public class VirtualLink {
    * @param averageLoad The average load for a vehicle using this virtual link.
    * @param passengerCarUnits The number of equivalent standard vehicles a vehicle using this
    *     virtual link represents.
+   * @throws IllegalArgumentException if characteristics are invalid, volumes are
+   *     negative/non-finite or a vehicle/PCU count or directional total exceeds {@link
+   *     Integer#MAX_VALUE}; this link's counts and its real-link traffic remain unchanged on
+   *     rejection
    */
   public void volumesToVehicles(
       byte groupIndex, int timeSlice, double averageLoad, double passengerCarUnits) {
 
-    int nbVehicles = (int) Math.ceil(currentVolume[groupIndex][timeSlice] / averageLoad);
-    currentVehicles[groupIndex][timeSlice] = nbVehicles;
-
-    int nbAuxiliaryVehicles = (int) Math.ceil(auxiliaryVolume[groupIndex] / averageLoad);
-    auxiliaryVehicles[groupIndex] = nbAuxiliaryVehicles;
+    validateVehicleCharacteristics(averageLoad, passengerCarUnits);
+    final int nbVehicles = vehiclesForVolume(currentVolume[groupIndex][timeSlice], averageLoad);
+    final int nbAuxiliaryVehicles = vehiclesForVolume(auxiliaryVolume[groupIndex], averageLoad);
 
     if (virtualLinkType == TYPE_MOVE) {
-      realLink.addPassengerCarUnits(this, (int) Math.ceil(nbVehicles * passengerCarUnits));
-      realLink.addAuxiliaryPassengerCarUnits(
-          this, (int) Math.ceil(nbAuxiliaryVehicles * passengerCarUnits));
+      final int currentPcu = checkedCount(nbVehicles * passengerCarUnits);
+      final int auxiliaryPcu = checkedCount(nbAuxiliaryVehicles * passengerCarUnits);
+      // Check both sums before updating either counter or publishing vehicle counts.
+      checkedCount(realLink.getCurrentPassengerCarUnits(this) + currentPcu);
+      checkedCount(realLink.getAuxiliaryPassengerCarUnits(this) + auxiliaryPcu);
+      realLink.addPassengerCarUnits(this, currentPcu);
+      realLink.addAuxiliaryPassengerCarUnits(this, auxiliaryPcu);
     }
+    currentVehicles[groupIndex][timeSlice] = nbVehicles;
+    auxiliaryVehicles[groupIndex] = nbAuxiliaryVehicles;
   }
 
   /**
@@ -735,32 +743,33 @@ public class VirtualLink {
   /**
    * Temporarily converts the projected Frank-Wolfe volume (1-lambda) * current + lambda * auxiliary
    * into PCUs.
-   * 
-   *  <p>This does not modify currentVolume or auxiliaryVolume.
-   *  
+   *
+   * <p>This does not modify currentVolume or auxiliaryVolume.
+   *
    * @param groupIndex The group index.
    * @param timeSlice The time slice.
    * @param averageLoad The average load of the vehicle.
    * @param passengerCarUnits The PCU for this vehicle.
    * @param lambda The lambda value
+   * @throws IllegalArgumentException if vehicle characteristics or the projected count/PCU total
+   *     are invalid or outside the supported integer range; real-link traffic remains unchanged
    */
   public void projectedVolumesToVehicles(
-      byte groupIndex,
-      int timeSlice,
-      double averageLoad,
-      double passengerCarUnits,
-      double lambda) {
+      byte groupIndex, int timeSlice, double averageLoad, double passengerCarUnits, double lambda) {
 
     if (virtualLinkType != TYPE_MOVE) {
       return;
     }
 
-    double projectedVolume =
+    validateVehicleCharacteristics(averageLoad, passengerCarUnits);
+    final double projectedVolume =
         (1.0 - lambda) * currentVolume[groupIndex][timeSlice]
             + lambda * auxiliaryVolume[groupIndex];
 
-    int nbVehicles = (int) Math.ceil(projectedVolume / averageLoad);
-    realLink.addPassengerCarUnits(this, (int) Math.ceil(nbVehicles * passengerCarUnits));
+    final int nbVehicles = vehiclesForVolume(projectedVolume, averageLoad);
+    final int currentPcu = checkedCount(nbVehicles * passengerCarUnits);
+    checkedCount(realLink.getCurrentPassengerCarUnits(this) + currentPcu);
+    realLink.addPassengerCarUnits(this, currentPcu);
   }
 
   /**
@@ -778,7 +787,34 @@ public class VirtualLink {
       double averageLoad,
       double passengerCarUnits,
       double lambda) {
-    projectedVolumesToVehicles(
-        groupIndex, (int) timeSlice, averageLoad, passengerCarUnits, lambda);
+    projectedVolumesToVehicles(groupIndex, (int) timeSlice, averageLoad, passengerCarUnits, lambda);
+  }
+
+  private static void validateVehicleCharacteristics(double averageLoad, double passengerCarUnits) {
+    if (!Double.isFinite(averageLoad) || averageLoad <= 0) {
+      throw new IllegalArgumentException(
+          "Average vehicle load must be finite and greater than zero.");
+    }
+    if (!Double.isFinite(passengerCarUnits) || passengerCarUnits < 0) {
+      throw new IllegalArgumentException("Vehicle PCU factor must be finite and nonnegative.");
+    }
+  }
+
+  private static int vehiclesForVolume(double volume, double averageLoad) {
+    if (!Double.isFinite(volume) || volume < 0) {
+      throw new IllegalArgumentException("Vehicle volume must be finite and nonnegative.");
+    }
+    final int count = checkedCount(volume / averageLoad);
+    // A positive demand still needs a vehicle if floating-point division underflows to zero.
+    return volume > 0 ? Math.max(1, count) : 0;
+  }
+
+  private static int checkedCount(double value) {
+    final double count = Math.ceil(value);
+    if (!Double.isFinite(count) || count < 0 || count > Integer.MAX_VALUE) {
+      throw new IllegalArgumentException(
+          "Vehicle or PCU count is outside the supported range 0 to " + Integer.MAX_VALUE + ".");
+    }
+    return (int) count;
   }
 }
