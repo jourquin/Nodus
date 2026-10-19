@@ -159,6 +159,13 @@ for the workflow mechanism.
 
 ## Coverage
 
+- `ScenariosTest`: comparison and summation on H2/HSQLDB with matching/disjoint links,
+  unequal/reordered commodity columns, every operation type, directions, services, time periods,
+  large identifiers/vehicle counts, filters and empty inputs. Covers current and legacy schemas,
+  signed quantities, unit/aggregate cost semantics, source/result ID collisions and malformed
+  sources. Injects later batch/row failures, failed-row statuses, statement-close errors, commits
+  before/after execution and publication renames; verifies preserved source and destination
+  outputs, successful retries, non-batch drivers and staging/statement cleanup.
 - `VirtualNetworkWriterTest`: H2/HSQLDB cancellation after an executed batch, later batch errors,
   explicit failed-row statuses, commit failure before and after the commit reaches the database,
   and publication-commit failure. Checks transactional and auto-commit writes, non-batch drivers,
@@ -655,6 +662,28 @@ Tests that temporarily set the global `JDBCUtils` connection must use
 in `@AfterEach` or a try-with-resources fixture. Concurrency tests must join their workers
 and shut down executors, using bounded waits rather than sleeps. Integration tests use
 `@Tag("integration")` for selection in JUnit-aware tools; they remain part of the default Ant suite.
+
+## Scenario arithmetic
+
+Comparison subtracts scenario 2 from scenario 1. A link's identity includes both endpoint
+descriptors (node, link, mode, means and service), time period and operation type. Commodity
+columns are matched by name; the output contains their sorted union, with missing groups/links
+treated as zero. Matching links retain scenario 1's length; scenario-2-only links retain its length.
+Legacy tables without `vtype` infer the operation, consulting current service stops when needed.
+
+For each commodity, comparison subtracts unit costs, quantities and vehicles independently.
+Its aggregate unit cost is the difference between the two sources' quantity-weighted unit costs,
+even when the resulting quantity is zero. Summation adds quantities and vehicles and uses
+`(cost1 * quantity1 + cost2 * quantity2) / (quantity1 + quantity2)` for each unit cost. Its aggregate
+cost uses the same formula over all source commodity amounts, before storage rounding. A weighted
+cost with a zero denominator is defined as zero; signed nonzero quantities remain valid weights.
+Aggregate quantities/vehicles are always recomputed from the commodity values. Stored cost and
+quantity precision remains three decimal places.
+
+Both source IDs and the result ID must be distinct. Invalid source data and SQL failures propagate
+to the caller. Arithmetic stages its result using the output replacement mechanism below. A
+successful result replacement removes obsolete destination path tables; a failed attempt preserves
+the complete previous result and both sources' output tables.
 
 ## Assignment output replacement
 

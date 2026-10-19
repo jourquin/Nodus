@@ -70,25 +70,55 @@ public final class AssignmentOutputTables implements AutoCloseable {
    * @param withPaths whether this attempt also owns the scenario path tables
    */
   public AssignmentOutputTables(AssignmentParameters parameters, boolean withPaths) {
-    NodusProject project = parameters.getNodusProject();
+    this(
+        parameters.getNodusProject(),
+        parameters.getScenario(),
+        withPaths,
+        parameters.isSavePaths(),
+        parameters.isDetailedPaths());
+  }
+
+  /**
+   * Stages an arithmetic scenario result and removes obsolete path output only on publication.
+   *
+   * @param project project containing the scenario
+   * @param scenario result scenario ID
+   */
+  public AssignmentOutputTables(NodusProject project, int scenario) {
+    this(project, scenario, true, false, false);
+  }
+
+  private AssignmentOutputTables(
+      NodusProject project,
+      int scenario,
+      boolean withPaths,
+      boolean headersRequired,
+      boolean detailsRequired) {
     connection = project.getMainJDBCConnection();
-    int scenario = parameters.getScenario();
     tables.add(
         new Table(VirtualNetworkWriter.destinationName(project, scenario), suffix, "v", true));
     if (withPaths) {
       String prefix =
           project.getLocalProperty(
               NodusC.PROP_PATH_TABLE_PREFIX, project.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME));
-      tables.add(
-          new Table(
-              prefix + scenario + NodusC.SUFFIX_HEADER, suffix, "h", parameters.isSavePaths()));
+      tables.add(new Table(prefix + scenario + NodusC.SUFFIX_HEADER, suffix, "h", headersRequired));
       tables.add(
           new Table(
               prefix + scenario + NodusC.SUFFIX_DETAIL,
               suffix,
               "d",
-              parameters.isSavePaths() && parameters.isDetailedPaths()));
+              headersRequired && detailsRequired));
     }
+  }
+
+  /**
+   * Creates the staged virtual-network schema without replacing the public scenario table.
+   *
+   * @param groups commodity groups in output-column order
+   * @return true when table creation succeeds
+   */
+  public boolean initializeVirtualNetwork(byte[] groups) {
+    return VirtualNetworkWriter.initTable(virtualNetwork(), groups);
   }
 
   /**

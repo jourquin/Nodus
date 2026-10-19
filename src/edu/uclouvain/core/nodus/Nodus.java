@@ -59,7 +59,8 @@ import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 /*
  * TODO Test cost parser
  * TODO Test semi-dynamic assignments and display
- * TODO Test exclusions 
+ * TODO Test exclusions
+ * TODO Test scenario comparison 
  */
 
 /**

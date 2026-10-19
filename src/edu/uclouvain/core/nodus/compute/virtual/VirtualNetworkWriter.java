@@ -96,7 +96,7 @@ public class VirtualNetworkWriter {
     return initTable(vNetTableName, groups);
   }
 
-  private static boolean initTable(String tableName, byte[] groups) {
+  static boolean initTable(String tableName, byte[] groups) {
 
     JDBCField[] field = null;
 
