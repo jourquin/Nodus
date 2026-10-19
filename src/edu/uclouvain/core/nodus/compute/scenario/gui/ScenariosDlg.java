@@ -214,7 +214,12 @@ public class ScenariosDlg extends EscapeDialog {
               JOptionPane.YES_NO_OPTION);
 
       if (answer == JOptionPane.YES_OPTION) {
-        scenarios.remove(scenario1);
+        try {
+          scenarios.remove(scenario1);
+        } catch (IllegalStateException failure) {
+          showScenarioFailure(failure);
+          return;
+        }
         JOptionPane.showMessageDialog(
             this,
             i18n.get(ScenariosDlg.class, "Scenario_deleted", "Scenario deleted"),
@@ -252,26 +257,12 @@ public class ScenariosDlg extends EscapeDialog {
               JOptionPane.YES_NO_OPTION);
 
       if (answer == JOptionPane.YES_OPTION) {
-        // Overwrite ?
-        if (scenarioExists(result)) {
-          answer =
-              JOptionPane.showConfirmDialog(
-                  this,
-                  MessageFormat.format(
-                      i18n.get(
-                          ScenariosDlg.class,
-                          "Result_exists",
-                          "Scenario {0} already exists. Overwrite ?"),
-                      result),
-                  NodusC.APPNAME,
-                  JOptionPane.YES_NO_OPTION);
-          if (answer == JOptionPane.NO_OPTION) {
-            return;
-          }
+        try {
+          scenarios.rename(scenario1, result);
+        } catch (IllegalStateException failure) {
+          showScenarioFailure(failure);
+          return;
         }
-
-        // Rename
-        scenarios.rename(scenario1, result);
         JOptionPane.showMessageDialog(
             this,
             i18n.get(ScenariosDlg.class, "Scenario_renamed", "Scenario renamed"),
@@ -481,6 +472,13 @@ public class ScenariosDlg extends EscapeDialog {
             });
       }
     }
+  }
+
+  /** Reports schema failures without displaying the operation's success message. */
+  private void showScenarioFailure(IllegalStateException failure) {
+    failure.printStackTrace();
+    JOptionPane.showMessageDialog(
+        this, failure.getMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
   }
 
   /** Runs a scenario operation in the background and completes the UI update on the EDT. */

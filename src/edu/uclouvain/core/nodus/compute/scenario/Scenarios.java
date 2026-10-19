@@ -581,6 +581,7 @@ public class Scenarios {
    *
    * @param currentId Current ID of the scenario.
    * @param newId New ID of the scenario.
+   * @throws IllegalStateException if the destination is occupied or a database operation fails
    */
   public void rename(int currentId, int newId) {
     nodusProject.renameScenario(currentId, newId);

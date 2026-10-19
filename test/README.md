@@ -164,6 +164,12 @@ for the workflow mechanism.
   [fixtures/extension-api/README.md](fixtures/extension-api/README.md).
 - `ProjectScenariosTest`: renaming and deleting scenario tables and properties together,
   retaining data and unrelated scenarios, and preserving overridden property/UI callbacks.
+- `ProjectScenariosSafetyTest`: H2/HSQLDB scenario changes with missing optional settings,
+  identical IDs, occupied destination tables/settings, default/custom quoted prefixes and exact
+  metadata names. Injects failure at each rename/drop, checks reverse-rename recovery in both
+  transaction modes, retained settings after failed deletion, successful retries and diagnostics
+  when recovery itself fails. Rename refuses occupied IDs; DDL rollback alone is not assumed to
+  restore schema changes. Earlier successful drops can persist when a later deletion fails.
 - `ConsoleStreamsTest`: separate output/error routing, restoration of previous streams without
   closing them, and respecting a later stream owner when the console closes.
 - `NodusEsriLayerDatabaseTest`: actual layer initialization from temporary shapefiles and H2

@@ -73,6 +73,15 @@ public class JDBCUtils {
   private static String schema = null;
 
   /**
+   * Returns the shared project connection used by metadata and schema operations.
+   *
+   * @return the active connection, or null when none is configured; callers must not close it
+   */
+  public static Connection getConnection() {
+    return jdbcConnection;
+  }
+
+  /**
    * Create an index on a table.
    *
    * @param index A JDBCIndex object.

@@ -2304,13 +2304,20 @@ public class NodusProject implements ShapeConstants {
   /**
    * Renames a property in the project's properties.
    *
+   * <p>An absent property or identical old/new keys leave the properties unchanged.
+   *
    * @param oldKey The key string to rename.
    * @param newKey The new name of the key.
    */
   public void renameLocalProperty(String oldKey, String newKey) {
-    String v = localProperties.getProperty(oldKey);
-    localProperties.setProperty(newKey, v);
-    removeLocalProperty(oldKey);
+    if (oldKey.equals(newKey)) {
+      return;
+    }
+    final String value = localProperties.getProperty(oldKey);
+    if (value != null) {
+      localProperties.setProperty(newKey, value);
+      removeLocalProperty(oldKey);
+    }
   }
 
   /**
@@ -2318,6 +2325,7 @@ public class NodusProject implements ShapeConstants {
    *
    * @param oldNum ID of the scenario to rename.
    * @param newNum New ID of the scenario.
+   * @throws IllegalStateException if the destination is occupied or a database operation fails
    */
   public void renameScenario(int oldNum, int newNum) {
     scenarios.renameScenario(oldNum, newNum);

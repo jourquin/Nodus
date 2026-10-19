@@ -25,9 +25,45 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /** Maintains scenario tables and their associated project properties. */
 public final class ProjectScenarios {
+  private static final String[] PROPERTY_PREFIXES = {
+    NodusC.PROP_COST_FUNCTIONS,
+    NodusC.PROP_OD_TABLE,
+    NodusC.PROP_ASSIGNMENT_TAB,
+    NodusC.PROP_ASSIGNMENT_METHOD,
+    NodusC.PROP_ASSIGNMENT_NB_ITERATIONS,
+    NodusC.PROP_ASSIGNMENT_PRECISION,
+    NodusC.PROP_COST_MARKUP,
+    NodusC.PROP_MAX_DETOUR,
+    NodusC.PROP_THREADS,
+    NodusC.PROP_ASSIGNMENT_MODAL_SPLIT_METHOD,
+    NodusC.PROP_ASSIGNMENT_SAVE_PATHS,
+    NodusC.PROP_ASSIGNMENT_SAVE_DETAILED_PATHS,
+    NodusC.PROP_KEEP_CHEAPEST_INTERMODAL_PATH_ONLY,
+    NodusC.PROP_ASSIGNMENT_LOG_LOST_PATHS,
+    NodusC.PROP_ASSIGNMENT_RUN_POST_ASSIGNMENT_SCRIPT,
+    NodusC.PROP_ASSIGNMENT_POST_ASSIGNMENT_SCRIPT,
+    NodusC.PROP_ASSIGNMENT_LIMIT_TO_HIGHLIGHTED_AREA,
+    NodusC.PROP_ASSIGNMENT_QUERY,
+    NodusC.PROP_ASSIGNMENT_DESCRIPTION,
+    NodusC.PROP_NODES_QUANTITIES_QUERY,
+    NodusC.PROP_LINKS_QUANTITIES_QUERY,
+    NodusC.PROP_LINKS_VEHICLES_QUERY,
+    NodusC.PROP_DYNAMIC_QUANTITIES_QUERY,
+    NodusC.PROP_DYNAMIC_VEHICLES_QUERY,
+    NodusC.PROP_PATH_QUERY
+  };
+
   private final NodusProject project;
   private final NodusMapPanel panel;
 
@@ -43,135 +79,162 @@ public final class ProjectScenarios {
   }
 
   /**
-   * Removes all the output tables (vnet and path_xxx) for a given scenario.
+   * Removes scenario outputs, then their saved settings after every drop succeeds.
    *
-   * @param scenario ID of the scenario to delete from database.
+   * <p>DDL may commit independently. If a later drop fails, settings and remaining tables are kept
+   * so deletion can be retried; previously dropped tables cannot be recovered by rollback.
+   *
+   * @param scenario ID of the scenario to delete from database
+   * @throws IllegalStateException if table discovery or a deletion fails
    */
   public void removeScenario(int scenario) {
-    String tableName;
-
-    // Virtual network
-    tableName = project.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
-    tableName = project.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName) + scenario;
-    if (JDBCUtils.tableExists(tableName)) {
-      JDBCUtils.dropTable(tableName);
+    try {
+      final Connection connection = connection();
+      final Set<String> existing = existingTables();
+      try (Statement statement = connection.createStatement()) {
+        for (String table : tableNames(scenario)) {
+          if (existing.contains(table)) {
+            statement.execute("DROP TABLE " + JDBCUtils.getQuotedCompliantIdentifier(table));
+          }
+        }
+      }
+    } catch (SQLException failure) {
+      throw new IllegalStateException(
+          "Could not finish deleting scenario "
+              + scenario
+              + ". Settings and remaining tables were kept; deletion can be retried. "
+              + failure.getMessage(),
+          failure);
     }
-
-    // Paths
-    tableName = project.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME);
-    tableName = project.getLocalProperty(NodusC.PROP_PATH_TABLE_PREFIX, tableName);
-
-    if (JDBCUtils.tableExists(tableName + scenario + NodusC.SUFFIX_HEADER)) {
-      JDBCUtils.dropTable(tableName + scenario + NodusC.SUFFIX_HEADER);
+    for (String prefix : PROPERTY_PREFIXES) {
+      project.removeLocalProperty(prefix + scenario);
     }
-
-    if (JDBCUtils.tableExists(tableName + scenario + NodusC.SUFFIX_DETAIL)) {
-      JDBCUtils.dropTable(tableName + scenario + NodusC.SUFFIX_DETAIL);
-    }
-
-    project.removeLocalProperty(NodusC.PROP_COST_FUNCTIONS + scenario);
-    project.removeLocalProperty(NodusC.PROP_OD_TABLE + scenario);
-    project.removeLocalProperty(NodusC.PROP_ASSIGNMENT_TAB + scenario);
-    project.removeLocalProperty(NodusC.PROP_ASSIGNMENT_METHOD + scenario);
-    project.removeLocalProperty(NodusC.PROP_ASSIGNMENT_NB_ITERATIONS + scenario);
-    project.removeLocalProperty(NodusC.PROP_ASSIGNMENT_PRECISION + scenario);
-    project.removeLocalProperty(NodusC.PROP_COST_MARKUP + scenario);
-    project.removeLocalProperty(NodusC.PROP_MAX_DETOUR + scenario);
-    project.removeLocalProperty(NodusC.PROP_THREADS + scenario);
-    project.removeLocalProperty(NodusC.PROP_ASSIGNMENT_MODAL_SPLIT_METHOD + scenario);
-    project.removeLocalProperty(NodusC.PROP_ASSIGNMENT_SAVE_PATHS + scenario);
-    project.removeLocalProperty(NodusC.PROP_ASSIGNMENT_SAVE_DETAILED_PATHS + scenario);
-    project.removeLocalProperty(NodusC.PROP_KEEP_CHEAPEST_INTERMODAL_PATH_ONLY + scenario);
-    project.removeLocalProperty(NodusC.PROP_ASSIGNMENT_LOG_LOST_PATHS + scenario);
-    project.removeLocalProperty(NodusC.PROP_ASSIGNMENT_RUN_POST_ASSIGNMENT_SCRIPT + scenario);
-    project.removeLocalProperty(NodusC.PROP_ASSIGNMENT_POST_ASSIGNMENT_SCRIPT + scenario);
-    project.removeLocalProperty(NodusC.PROP_ASSIGNMENT_LIMIT_TO_HIGHLIGHTED_AREA + scenario);
-    project.removeLocalProperty(NodusC.PROP_ASSIGNMENT_QUERY + scenario);
-    project.removeLocalProperty(NodusC.PROP_ASSIGNMENT_DESCRIPTION + scenario);
-
     panel.updateScenarioComboBox(false);
   }
 
   /**
-   * Renames all the output tables (vnet and path_xxx) for a given scenario.
+   * Renames scenario outputs and settings to an unused scenario ID.
    *
-   * @param oldNum ID of the scenario to rename.
-   * @param newNum New ID of the scenario.
+   * <p>All destination tables and settings are checked before changing anything. If a DDL statement
+   * fails, completed renames are reversed before reporting the failure; transaction rollback alone
+   * cannot restore schema changes on every supported database.
+   *
+   * @param oldNum ID of the scenario to rename
+   * @param newNum new ID of the scenario
+   * @throws IllegalStateException if the destination is occupied or a database operation fails
    */
   public void renameScenario(int oldNum, int newNum) {
-    String tableName;
-
-    // Virtual network
-    tableName = project.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
-    tableName = project.getLocalProperty(NodusC.PROP_VNET_TABLE, tableName);
-    if (JDBCUtils.tableExists(tableName + oldNum)) {
-      if (!JDBCUtils.tableExists(tableName + newNum)) {
-        JDBCUtils.renameTable(tableName + oldNum, tableName + newNum);
-      }
+    if (oldNum == newNum) {
+      return;
     }
-
-    // Paths
-    tableName = project.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME);
-    tableName = project.getLocalProperty(NodusC.PROP_PATH_TABLE_PREFIX, tableName);
-
-    if (JDBCUtils.tableExists(tableName + oldNum + NodusC.SUFFIX_HEADER)) {
-      if (!JDBCUtils.tableExists(tableName + newNum + NodusC.SUFFIX_HEADER)) {
-        JDBCUtils.renameTable(
-            tableName + oldNum + NodusC.SUFFIX_HEADER, tableName + newNum + NodusC.SUFFIX_HEADER);
+    final String[] source = tableNames(oldNum);
+    final String[] target = tableNames(newNum);
+    try {
+      final Connection connection = connection();
+      final Set<String> existing = existingTables();
+      for (String table : target) {
+        if (existing.contains(table)) {
+          throw new IllegalStateException(
+              "Scenario "
+                  + newNum
+                  + " already has output table "
+                  + table
+                  + ". Choose an unused scenario ID.");
+        }
       }
-    }
-    if (JDBCUtils.tableExists(tableName + oldNum + NodusC.SUFFIX_DETAIL)) {
-      if (!JDBCUtils.tableExists(tableName + newNum + NodusC.SUFFIX_DETAIL)) {
-        JDBCUtils.renameTable(
-            tableName + oldNum + NodusC.SUFFIX_DETAIL, tableName + newNum + NodusC.SUFFIX_DETAIL);
+      for (String prefix : PROPERTY_PREFIXES) {
+        if (project.getLocalProperty(prefix + newNum) != null) {
+          throw new IllegalStateException(
+              "Scenario " + newNum + " already has saved settings. Choose an unused scenario ID.");
+        }
       }
+      renameTables(connection, existing, source, target);
+    } catch (SQLException failure) {
+      throw new IllegalStateException(
+          "Could not rename scenario "
+              + oldNum
+              + " to "
+              + newNum
+              + ". Saved settings were not changed. "
+              + failure.getMessage(),
+          failure);
     }
-    project.renameLocalProperty(
-        NodusC.PROP_COST_FUNCTIONS + oldNum, NodusC.PROP_COST_FUNCTIONS + newNum);
-    project.renameLocalProperty(NodusC.PROP_OD_TABLE + oldNum, NodusC.PROP_OD_TABLE + newNum);
-    project.renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_TAB + oldNum, NodusC.PROP_ASSIGNMENT_TAB + newNum);
-    project.renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_METHOD + oldNum, NodusC.PROP_ASSIGNMENT_METHOD + newNum);
-    project.renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_NB_ITERATIONS + oldNum,
-        NodusC.PROP_ASSIGNMENT_NB_ITERATIONS + newNum);
-    project.renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_PRECISION + oldNum, NodusC.PROP_ASSIGNMENT_PRECISION + newNum);
-    project.renameLocalProperty(NodusC.PROP_COST_MARKUP + oldNum, NodusC.PROP_COST_MARKUP + newNum);
-    project.renameLocalProperty(NodusC.PROP_MAX_DETOUR + oldNum, NodusC.PROP_MAX_DETOUR + newNum);
-    project.renameLocalProperty(NodusC.PROP_THREADS + oldNum, NodusC.PROP_THREADS + newNum);
-    project.renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_MODAL_SPLIT_METHOD + oldNum,
-        NodusC.PROP_ASSIGNMENT_MODAL_SPLIT_METHOD + newNum);
-    project.renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_SAVE_PATHS + oldNum, NodusC.PROP_ASSIGNMENT_SAVE_PATHS + newNum);
-    project.renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_SAVE_DETAILED_PATHS + oldNum,
-        NodusC.PROP_ASSIGNMENT_SAVE_DETAILED_PATHS + newNum);
-    project.renameLocalProperty(
-        NodusC.PROP_KEEP_CHEAPEST_INTERMODAL_PATH_ONLY + oldNum,
-        NodusC.PROP_KEEP_CHEAPEST_INTERMODAL_PATH_ONLY + newNum);
-    project.renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_LOG_LOST_PATHS + oldNum,
-        NodusC.PROP_ASSIGNMENT_LOG_LOST_PATHS + newNum);
-    project.renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_RUN_POST_ASSIGNMENT_SCRIPT + oldNum,
-        NodusC.PROP_ASSIGNMENT_RUN_POST_ASSIGNMENT_SCRIPT + newNum);
-    project.renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_POST_ASSIGNMENT_SCRIPT + oldNum,
-        NodusC.PROP_ASSIGNMENT_POST_ASSIGNMENT_SCRIPT + newNum);
-    project.renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_LIMIT_TO_HIGHLIGHTED_AREA + oldNum,
-        NodusC.PROP_ASSIGNMENT_LIMIT_TO_HIGHLIGHTED_AREA + newNum);
-    project.renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_QUERY + oldNum, NodusC.PROP_ASSIGNMENT_QUERY + newNum);
-    project.renameLocalProperty(
-        NodusC.PROP_ASSIGNMENT_DESCRIPTION + oldNum, NodusC.PROP_ASSIGNMENT_DESCRIPTION + newNum);
-
-    // Change current scenario to new one
+    for (String prefix : PROPERTY_PREFIXES) {
+      project.renameLocalProperty(prefix + oldNum, prefix + newNum);
+    }
     project.setLocalProperty(NodusC.PROP_SCENARIO, newNum);
+    panel.updateScenarioComboBox(false);
+  }
 
-    project.getNodusMapPanel().updateScenarioComboBox(false);
+  /** Uses exact metadata names, not JDBC table-name patterns where underscores are wildcards. */
+  private Set<String> existingTables() throws SQLException {
+    final Set<String> names = new HashSet<>();
+    try (ResultSet result = JDBCUtils.getTables()) {
+      while (result.next()) {
+        names.add(result.getString("TABLE_NAME"));
+      }
+    }
+    return names;
+  }
+
+  /** Borrows the same connection used by JDBCUtils metadata and identifier formatting. */
+  private Connection connection() throws SQLException {
+    final Connection connection = JDBCUtils.getConnection();
+    if (connection == null || connection.isClosed()) {
+      throw new SQLException("No active project database connection");
+    }
+    return connection;
+  }
+
+  private String[] tableNames(int scenario) {
+    final String name = project.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME);
+    final String network =
+        project.getLocalProperty(NodusC.PROP_VNET_TABLE, name + NodusC.SUFFIX_VNET);
+    final String paths = project.getLocalProperty(NodusC.PROP_PATH_TABLE_PREFIX, name);
+    return new String[] {
+      JDBCUtils.getCompliantIdentifier(network + scenario),
+      JDBCUtils.getCompliantIdentifier(paths + scenario + NodusC.SUFFIX_HEADER),
+      JDBCUtils.getCompliantIdentifier(paths + scenario + NodusC.SUFFIX_DETAIL)
+    };
+  }
+
+  private void renameTables(
+      Connection connection, Set<String> existing, String[] source, String[] target)
+      throws SQLException {
+    final List<Integer> renamed = new ArrayList<>();
+    try (Statement statement = connection.createStatement()) {
+      for (int i = 0; i < source.length; i++) {
+        if (existing.contains(source[i])) {
+          statement.execute(renameSql(source[i], target[i]));
+          renamed.add(i);
+        }
+      }
+    } catch (SQLException failure) {
+      final StringBuilder unresolved = new StringBuilder();
+      for (int i = renamed.size() - 1; i >= 0; i--) {
+        final int index = renamed.get(i);
+        try (Statement statement = connection.createStatement()) {
+          statement.execute(renameSql(target[index], source[index]));
+        } catch (SQLException recoveryFailure) {
+          failure.addSuppressed(recoveryFailure);
+          unresolved.append(" ").append(target[index]).append(" -> ").append(source[index]);
+        }
+      }
+      if (unresolved.length() > 0) {
+        throw new IllegalStateException(
+            "Scenario renaming failed and some tables could not be "
+                + "restored. Saved settings were kept. Restore these names before retrying:"
+                + unresolved,
+            failure);
+      }
+      throw failure;
+    }
+  }
+
+  private String renameSql(String source, String target) {
+    return "ALTER TABLE "
+        + JDBCUtils.getQuotedCompliantIdentifier(source)
+        + " RENAME TO "
+        + JDBCUtils.getQuotedCompliantIdentifier(target);
   }
 }
