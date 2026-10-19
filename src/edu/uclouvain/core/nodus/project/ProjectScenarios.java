@@ -26,15 +26,17 @@ import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Maintains scenario tables and their associated project properties. */
+/** Maintains scenario outputs, node rules and associated project properties. */
 public final class ProjectScenarios {
   private static final String[] PROPERTY_PREFIXES = {
     NodusC.PROP_COST_FUNCTIONS,
@@ -79,18 +81,20 @@ public final class ProjectScenarios {
   }
 
   /**
-   * Removes scenario outputs, then their saved settings after every drop succeeds.
+   * Removes scenario outputs, node rules and saved settings, preserving generic node rules.
    *
-   * <p>DDL may commit independently. If a later drop fails, settings and remaining tables are kept
-   * so deletion can be retried; previously dropped tables cannot be recovered by rollback.
+   * <p>DDL may commit independently. If a later drop fails, rules, settings and remaining tables
+   * are kept so deletion can be retried; previously dropped tables cannot be recovered by rollback.
    *
    * @param scenario ID of the scenario to delete from database
    * @throws IllegalStateException if table discovery or a deletion fails
    */
   public void removeScenario(int scenario) {
+    requireScenarioId(scenario);
     try {
       final Connection connection = connection();
       final Set<String> existing = existingTables();
+      final String rules = nodeRulesTable(connection, existing);
       try (Statement statement = connection.createStatement()) {
         for (String table : tableNames(scenario)) {
           if (existing.contains(table)) {
@@ -98,6 +102,7 @@ public final class ProjectScenarios {
           }
         }
       }
+      changeNodeRules(connection, rules, scenario, null);
     } catch (SQLException failure) {
       throw new IllegalStateException(
           "Could not finish deleting scenario "
@@ -113,17 +118,19 @@ public final class ProjectScenarios {
   }
 
   /**
-   * Renames scenario outputs and settings to an unused scenario ID.
+   * Renames scenario outputs, node rules and settings to an unused scenario ID.
    *
-   * <p>All destination tables and settings are checked before changing anything. If a DDL statement
-   * fails, completed renames are reversed before reporting the failure; transaction rollback alone
-   * cannot restore schema changes on every supported database.
+   * <p>All destination tables, rules and settings are checked before changing anything. If a table
+   * rename or rule update fails, completed renames are reversed before reporting the failure;
+   * transaction rollback alone cannot restore schema changes on every supported database.
    *
    * @param oldNum ID of the scenario to rename
    * @param newNum new ID of the scenario
    * @throws IllegalStateException if the destination is occupied or a database operation fails
    */
   public void renameScenario(int oldNum, int newNum) {
+    requireScenarioId(oldNum);
+    requireScenarioId(newNum);
     if (oldNum == newNum) {
       return;
     }
@@ -132,6 +139,7 @@ public final class ProjectScenarios {
     try {
       final Connection connection = connection();
       final Set<String> existing = existingTables();
+      final String rules = nodeRulesTable(connection, existing);
       for (String table : target) {
         if (existing.contains(table)) {
           throw new IllegalStateException(
@@ -148,7 +156,11 @@ public final class ProjectScenarios {
               "Scenario " + newNum + " already has saved settings. Choose an unused scenario ID.");
         }
       }
-      renameTables(connection, existing, source, target);
+      if (hasNodeRules(connection, rules, newNum)) {
+        throw new IllegalStateException(
+            "Scenario " + newNum + " already has node rules. Choose an unused scenario ID.");
+      }
+      renameTables(connection, existing, source, target, rules, oldNum, newNum);
     } catch (SQLException failure) {
       throw new IllegalStateException(
           "Could not rename scenario "
@@ -199,16 +211,25 @@ public final class ProjectScenarios {
   }
 
   private void renameTables(
-      Connection connection, Set<String> existing, String[] source, String[] target)
+      Connection connection,
+      Set<String> existing,
+      String[] source,
+      String[] target,
+      String rules,
+      int oldScenario,
+      int newScenario)
       throws SQLException {
     final List<Integer> renamed = new ArrayList<>();
-    try (Statement statement = connection.createStatement()) {
-      for (int i = 0; i < source.length; i++) {
-        if (existing.contains(source[i])) {
-          statement.execute(renameSql(source[i], target[i]));
-          renamed.add(i);
+    try {
+      try (Statement statement = connection.createStatement()) {
+        for (int i = 0; i < source.length; i++) {
+          if (existing.contains(source[i])) {
+            statement.execute(renameSql(source[i], target[i]));
+            renamed.add(i);
+          }
         }
       }
+      changeNodeRules(connection, rules, oldScenario, newScenario);
     } catch (SQLException failure) {
       final StringBuilder unresolved = new StringBuilder();
       for (int i = renamed.size() - 1; i >= 0; i--) {
@@ -236,5 +257,113 @@ public final class ProjectScenarios {
         + JDBCUtils.getQuotedCompliantIdentifier(source)
         + " RENAME TO "
         + JDBCUtils.getQuotedCompliantIdentifier(target);
+  }
+
+  /** The negative scenario ID in the rules table denotes generic rules, not a scenario to edit. */
+  private void requireScenarioId(int scenario) {
+    if (scenario < 0) {
+      throw new IllegalStateException(
+          "Scenario IDs must be nonnegative; generic node rules are shared.");
+    }
+  }
+
+  /** Returns the configured rules table, leaving old tables without a scenario column untouched. */
+  private String nodeRulesTable(Connection connection, Set<String> existing) throws SQLException {
+    final String table =
+        JDBCUtils.getCompliantIdentifier(
+            project.getLocalProperty(
+                NodusC.PROP_EXC_TABLE,
+                project.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_EXC));
+    if (!existing.contains(table)) {
+      return null;
+    }
+    try (Statement statement = connection.createStatement();
+        ResultSet result =
+            statement.executeQuery(
+                "SELECT * FROM " + JDBCUtils.getQuotedCompliantIdentifier(table) + " WHERE 1=0")) {
+      for (int column = 1; column <= result.getMetaData().getColumnCount(); column++) {
+        if (NodusC.DBF_SCENARIO.equalsIgnoreCase(result.getMetaData().getColumnName(column))) {
+          return table;
+        }
+      }
+    }
+    return null;
+  }
+
+  private boolean hasNodeRules(Connection connection, String table, int scenario)
+      throws SQLException {
+    if (table == null) {
+      return false;
+    }
+    try (PreparedStatement statement =
+        connection.prepareStatement(
+            "SELECT 1 FROM "
+                + JDBCUtils.getQuotedCompliantIdentifier(table)
+                + " WHERE "
+                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
+                + "=?")) {
+      statement.setInt(1, scenario);
+      try (ResultSet result = statement.executeQuery()) {
+        return result.next();
+      }
+    }
+  }
+
+  /**
+   * Changes only this scenario's rules after all output DDL, then persists the completed change.
+   */
+  private void changeNodeRules(
+      Connection connection, String table, int scenario, Integer newScenario) throws SQLException {
+    if (table == null || !hasNodeRules(connection, table, scenario)) {
+      return;
+    }
+    final boolean autoCommit = connection.getAutoCommit();
+    final Savepoint savepoint;
+    if (autoCommit) {
+      connection.setAutoCommit(false);
+      savepoint = null;
+    } else {
+      // DDL above can commit and invalidate earlier savepoints on H2/HSQLDB.
+      savepoint = connection.setSavepoint();
+    }
+    try {
+      final String target = JDBCUtils.getQuotedCompliantIdentifier(table);
+      final String column = JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO);
+      final String sql =
+          newScenario == null
+              ? "DELETE FROM " + target + " WHERE " + column + "=?"
+              : "UPDATE " + target + " SET " + column + "=? WHERE " + column + "=?";
+      try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        int parameter = 1;
+        if (newScenario != null) {
+          statement.setInt(parameter++, newScenario);
+        }
+        statement.setInt(parameter, scenario);
+        statement.executeUpdate();
+      }
+      connection.commit();
+    } catch (SQLException failure) {
+      try {
+        if (autoCommit) {
+          connection.rollback();
+        } else {
+          connection.rollback(savepoint);
+        }
+      } catch (SQLException recoveryFailure) {
+        failure.addSuppressed(recoveryFailure);
+        throw new SQLException(
+            "Could not restore node rules in "
+                + table
+                + ". Verify scenario "
+                + scenario
+                + " before retrying.",
+            failure);
+      }
+      throw failure;
+    } finally {
+      if (autoCommit) {
+        connection.setAutoCommit(true);
+      }
+    }
   }
 }

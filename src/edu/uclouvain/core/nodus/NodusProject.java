@@ -2293,7 +2293,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Removes all the output tables (vnet and path_xxx) for a given scenario.
+   * Removes the output tables, node rules and saved settings for a given scenario.
    *
    * @param scenario ID of the scenario to delete from database.
    */
@@ -2321,7 +2321,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Renames all the output tables (vnet and path_xxx) for a given scenario.
+   * Renames the output tables, node rules and saved settings for a given scenario.
    *
    * @param oldNum ID of the scenario to rename.
    * @param newNum New ID of the scenario.

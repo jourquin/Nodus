@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
+import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.database.DatabaseFixture;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.lang.reflect.Field;
@@ -37,6 +38,8 @@ import java.lang.reflect.Proxy;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -45,6 +48,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Tag;
@@ -207,6 +211,199 @@ class ProjectScenariosSafetyTest {
     return tests;
   }
 
+  @TestFactory
+  List<DynamicTest> scenarioRulesFollowScenarioChanges() {
+    final List<DynamicTest> tests = new ArrayList<>();
+    for (boolean hsql : new boolean[] {false, true}) {
+      for (boolean custom : new boolean[] {false, true}) {
+        for (boolean autoCommit : new boolean[] {false, true}) {
+          tests.add(
+              dynamicTest(
+                  hsql + "/rules/" + custom + "/autocommit=" + autoCommit,
+                  () -> {
+                    try (Fixture f = new Fixture(hsql, custom)) {
+                      f.createScenario(1);
+                      f.createRules();
+                      f.database.connection.setAutoCommit(autoCommit);
+                      f.project.renameScenario(1, 2);
+                      assertEquals(f.expectedRules(2), f.rulesRows());
+                      assertEquals(autoCommit, f.database.connection.getAutoCommit());
+                      f.assertCommittedRules(2, 2);
+                      f.project.removeScenario(2);
+                      assertEquals(List.of(f.genericRule(), f.unrelatedRule()), f.rulesRows());
+                      f.assertCommittedRules(2, 0);
+                      assertEquals(autoCommit, f.database.connection.getAutoCommit());
+                      assertNull(f.project.getLocalProperty(NodusC.PROP_COST_FUNCTIONS + "2"));
+                    }
+                  }));
+        }
+        tests.add(
+            dynamicTest(
+                hsql + "/destination occupied only by rules/" + custom,
+                () -> {
+                  try (Fixture f = new Fixture(hsql, custom)) {
+                    f.createScenario(1);
+                    f.createRules();
+                    f.database.execute(
+                        "UPDATE " + f.quotedRules() + " SET scenario=2 WHERE scenario=9");
+                    final Properties settings = f.settings();
+                    final Map<String, Integer> outputs = f.rows();
+                    final List<List<Integer>> rules = f.rulesRows();
+                    assertThrows(IllegalStateException.class, () -> f.project.renameScenario(1, 2));
+                    f.assertUnchanged(settings, outputs);
+                    assertEquals(rules, f.rulesRows());
+                  }
+                }));
+      }
+      tests.add(
+          dynamicTest(
+              hsql + "/rules without output tables",
+              () -> {
+                try (Fixture f = new Fixture(hsql, false)) {
+                  f.createRules();
+                  f.database.connection.setAutoCommit(false);
+                  f.project.renameScenario(1, 2);
+                  assertEquals(f.expectedRules(2), f.rulesRows());
+                  f.assertCommittedRules(2, 2);
+                  assertTrue(f.rows().isEmpty());
+                  f.project.removeScenario(2);
+                  assertEquals(List.of(f.genericRule(), f.unrelatedRule()), f.rulesRows());
+                  f.assertCommittedRules(2, 0);
+                  assertFalse(f.database.connection.getAutoCommit());
+                }
+              }));
+      tests.add(
+          dynamicTest(
+              hsql + "/legacy rules without a scenario column",
+              () -> {
+                try (Fixture f = new Fixture(hsql, false)) {
+                  f.createScenario(1);
+                  f.database.execute(
+                      "CREATE TABLE "
+                          + f.quotedRules()
+                          + " (num INTEGER, grp INTEGER, mode1 INTEGER, means1 INTEGER,"
+                          + " mode2 INTEGER, means2 INTEGER)");
+                  f.database.execute("INSERT INTO " + f.quotedRules() + " VALUES (-10,-1,1,1,2,1)");
+                  f.project.renameScenario(1, 2);
+                  f.project.removeScenario(2);
+                  try (Statement statement = f.database.connection.createStatement();
+                      ResultSet result =
+                          statement.executeQuery("SELECT * FROM " + f.quotedRules())) {
+                    assertTrue(result.next());
+                    assertEquals(-10, result.getInt(1));
+                    assertEquals(-1, result.getInt(2));
+                    assertEquals(1, result.getInt(3));
+                    assertEquals(1, result.getInt(4));
+                    assertEquals(2, result.getInt(5));
+                    assertEquals(1, result.getInt(6));
+                    assertFalse(result.next());
+                  }
+                }
+              }));
+      for (boolean autoCommit : new boolean[] {false, true}) {
+        for (boolean afterWrite : new boolean[] {false, true}) {
+          for (boolean deleting : new boolean[] {false, true}) {
+            tests.add(
+                dynamicTest(
+                    hsql
+                        + "/rule failure/"
+                        + deleting
+                        + "/after="
+                        + afterWrite
+                        + "/autocommit="
+                        + autoCommit,
+                    () -> {
+                      try (Fixture f = new Fixture(hsql, true)) {
+                        f.createScenario(1);
+                        f.createRules();
+                        f.database.connection.setAutoCommit(autoCommit);
+                        final Properties settings = f.settings();
+                        final Map<String, Integer> outputs = f.rows();
+                        final List<List<Integer>> rules = f.rulesRows();
+                        f.failRuleWrite(deleting, afterWrite, false);
+                        assertThrows(
+                            IllegalStateException.class,
+                            () -> {
+                              if (deleting) {
+                                f.project.removeScenario(1);
+                              } else {
+                                f.project.renameScenario(1, 2);
+                              }
+                            });
+                        assertTrue(f.injected.get() > 0);
+                        f.restoreConnection();
+                        assertEquals(settings, f.settings());
+                        assertEquals(rules, f.rulesRows());
+                        assertEquals(0, f.refreshed.get());
+                        assertEquals(0, f.propertyChanges.get());
+                        assertEquals(autoCommit, f.database.connection.getAutoCommit());
+                        if (deleting) {
+                          f.project.removeScenario(1);
+                          assertEquals(List.of(f.genericRule(), f.unrelatedRule()), f.rulesRows());
+                        } else {
+                          assertEquals(outputs, f.rows(), "Output renames must also be reversed");
+                          f.project.renameScenario(1, 2);
+                          assertEquals(f.expectedRules(2), f.rulesRows());
+                        }
+                      }
+                    }));
+          }
+        }
+      }
+      tests.add(
+          dynamicTest(
+              hsql + "/rule commit failure reverses output renames",
+              () -> {
+                try (Fixture f = new Fixture(hsql, false)) {
+                  f.createScenario(1);
+                  f.createRules();
+                  f.database.connection.setAutoCommit(false);
+                  final Properties settings = f.settings();
+                  final Map<String, Integer> outputs = f.rows();
+                  final List<List<Integer>> rules = f.rulesRows();
+                  f.failRuleWrite(false, false, true);
+                  assertThrows(IllegalStateException.class, () -> f.project.renameScenario(1, 2));
+                  assertTrue(f.injected.get() > 0);
+                  f.restoreConnection();
+                  f.assertUnchanged(settings, outputs);
+                  assertEquals(rules, f.rulesRows());
+                }
+              }));
+      tests.add(
+          dynamicTest(
+              hsql + "/failed output deletion retains all rules",
+              () -> {
+                try (Fixture f = new Fixture(hsql, false)) {
+                  f.createScenario(1);
+                  f.createRules();
+                  f.failSql("DROP TABLE", 2, false);
+                  assertThrows(IllegalStateException.class, () -> f.project.removeScenario(1));
+                  f.restoreConnection();
+                  assertEquals(f.expectedRules(1), f.rulesRows());
+                  assertEquals(
+                      "one.costs", f.project.getLocalProperty(NodusC.PROP_COST_FUNCTIONS + "1"));
+                }
+              }));
+      tests.add(
+          dynamicTest(
+              hsql + "/generic rules cannot become a scenario",
+              () -> {
+                try (Fixture f = new Fixture(hsql, false)) {
+                  f.createRules();
+                  final Properties settings = f.settings();
+                  final List<List<Integer>> rules = f.rulesRows();
+                  assertThrows(IllegalStateException.class, () -> f.project.renameScenario(-1, 2));
+                  assertThrows(IllegalStateException.class, () -> f.project.renameScenario(1, -1));
+                  assertThrows(IllegalStateException.class, () -> f.project.removeScenario(-1));
+                  assertEquals(settings, f.settings());
+                  assertEquals(rules, f.rulesRows());
+                  assertEquals(0, f.refreshed.get());
+                }
+              }));
+    }
+    return tests;
+  }
+
   private void checkSparseRename(boolean hsql, boolean custom) throws Exception {
     try (Fixture f = new Fixture(hsql, custom)) {
       f.createScenario(1);
@@ -314,6 +511,7 @@ class ProjectScenariosSafetyTest {
     final AtomicInteger injected = new AtomicInteger();
     final String network;
     final String paths;
+    final String rules;
     final NodusMapPanel panel;
     final NodusProject project;
     Connection activeConnection;
@@ -323,6 +521,7 @@ class ProjectScenariosSafetyTest {
       activeConnection = database.connection;
       network = custom ? "net works_" : "mini" + NodusC.SUFFIX_VNET;
       paths = custom ? "path data_" : "mini";
+      rules = custom ? "custom_node_rules" : "mini" + NodusC.SUFFIX_EXC;
       properties.setProperty(NodusC.PROP_PROJECT_DOTNAME, "mini");
       properties.setProperty(NodusC.PROP_SCENARIO, "1");
       properties.setProperty(NodusC.PROP_COST_FUNCTIONS + "1", "one.costs");
@@ -330,6 +529,7 @@ class ProjectScenariosSafetyTest {
       if (custom) {
         properties.setProperty(NodusC.PROP_VNET_TABLE, network);
         properties.setProperty(NodusC.PROP_PATH_TABLE_PREFIX, paths);
+        properties.setProperty(NodusC.PROP_EXC_TABLE, rules);
       }
       panel =
           new NodusMapPanel() {
@@ -405,7 +605,10 @@ class ProjectScenariosSafetyTest {
       final List<String> names = new ArrayList<>();
       try (ResultSet result = JDBCUtils.getTables()) {
         while (result.next()) {
-          names.add(result.getString("TABLE_NAME"));
+          final String name = result.getString("TABLE_NAME");
+          if (!name.equals(JDBCUtils.getCompliantIdentifier(rules))) {
+            names.add(name);
+          }
         }
       }
       final Map<String, Integer> result = new LinkedHashMap<>();
@@ -488,6 +691,127 @@ class ProjectScenariosSafetyTest {
                             }
                             try {
                               return m.invoke(result, a);
+                            } catch (InvocationTargetException failure) {
+                              throw failure.getCause();
+                            }
+                          });
+                    } catch (InvocationTargetException failure) {
+                      throw failure.getCause();
+                    }
+                  });
+      assertTrue(JDBCUtils.setConnection(activeConnection));
+    }
+
+    String quotedRules() {
+      return JDBCUtils.getQuotedCompliantIdentifier(rules);
+    }
+
+    void createRules() throws SQLException {
+      assertTrue(NodeRulesReader.createExclusionsTable(rules));
+      database.execute(
+          "INSERT INTO "
+              + quotedRules()
+              + " VALUES "
+              + "(-10,-1,-1,1,1,2,1,1),(20,1,3,1,1,2,1,0),"
+              + "(-20,1,4,2,1,1,1,1),(-30,9,-1,1,1,1,2,0)");
+      if (!database.connection.getAutoCommit()) {
+        database.connection.commit();
+      }
+    }
+
+    List<Integer> genericRule() {
+      return List.of(-10, -1, -1, 1, 1, 2, 1, 1);
+    }
+
+    List<Integer> unrelatedRule() {
+      return List.of(-30, 9, -1, 1, 1, 1, 2, 0);
+    }
+
+    List<List<Integer>> expectedRules(int scenario) {
+      return List.of(
+          genericRule(),
+          unrelatedRule(),
+          List.of(-20, scenario, 4, 2, 1, 1, 1, 1),
+          List.of(20, scenario, 3, 1, 1, 2, 1, 0));
+    }
+
+    List<List<Integer>> rulesRows() throws SQLException {
+      final List<List<Integer>> rows = new ArrayList<>();
+      try (Statement statement = database.connection.createStatement();
+          ResultSet result =
+              statement.executeQuery(
+                  "SELECT * FROM "
+                      + quotedRules()
+                      + " ORDER BY "
+                      + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM))) {
+        while (result.next()) {
+          final List<Integer> row = new ArrayList<>();
+          for (int column = 1; column <= 8; column++) {
+            row.add(result.getInt(column));
+          }
+          rows.add(row);
+        }
+      }
+      // Keep the independent reference order stable: generic, unrelated, scenario rules.
+      rows.sort((a, b) -> Integer.compare(ruleOrder(a.get(0)), ruleOrder(b.get(0))));
+      return rows;
+    }
+
+    int ruleOrder(int num) {
+      return num == -10 ? 0 : num == -30 ? 1 : num == -20 ? 2 : 3;
+    }
+
+    void assertCommittedRules(int scenario, int count) throws SQLException {
+      try (Connection observer =
+              DriverManager.getConnection(database.connection.getMetaData().getURL(), "sa", "");
+          Statement statement = observer.createStatement()) {
+        statement.setQueryTimeout(2);
+        try (ResultSet result =
+            statement.executeQuery(
+                "SELECT COUNT(*) FROM " + quotedRules() + " WHERE scenario=" + scenario)) {
+          assertTrue(result.next());
+          assertEquals(count, result.getInt(1));
+        }
+      }
+    }
+
+    void failRuleWrite(boolean deleting, boolean afterWrite, boolean failCommit) {
+      final AtomicBoolean failed = new AtomicBoolean();
+      final String verb = deleting ? "DELETE FROM" : "UPDATE";
+      activeConnection =
+          (Connection)
+              Proxy.newProxyInstance(
+                  Connection.class.getClassLoader(),
+                  new Class<?>[] {Connection.class},
+                  (proxy, method, args) -> {
+                    try {
+                      if (failCommit
+                          && method.getName().equals("commit")
+                          && failed.compareAndSet(false, true)) {
+                        injected.incrementAndGet();
+                        throw new SQLException("Injected rule commit failure");
+                      }
+                      final Object value = method.invoke(database.connection, args);
+                      if (!method.getName().equals("prepareStatement")
+                          || failCommit
+                          || !((String) args[0]).startsWith(verb)) {
+                        return value;
+                      }
+                      final PreparedStatement delegate = (PreparedStatement) value;
+                      return Proxy.newProxyInstance(
+                          PreparedStatement.class.getClassLoader(),
+                          new Class<?>[] {PreparedStatement.class},
+                          (p, m, a) -> {
+                            try {
+                              if (m.getName().equals("executeUpdate")
+                                  && failed.compareAndSet(false, true)) {
+                                if (afterWrite) {
+                                  m.invoke(delegate, a);
+                                }
+                                injected.incrementAndGet();
+                                throw new SQLException("Injected node-rule write failure");
+                              }
+                              return m.invoke(delegate, a);
                             } catch (InvocationTargetException failure) {
                               throw failure.getCause();
                             }
