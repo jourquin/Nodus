@@ -159,6 +159,17 @@ for the workflow mechanism.
 
 ## Coverage
 
+- `VirtualNetworkWriterTest`: H2/HSQLDB cancellation after an executed batch, later batch errors,
+  explicit failed-row statuses, commit failure before and after the commit reaches the database,
+  and publication-commit failure. Checks transactional and auto-commit writes, non-batch drivers,
+  consolidated quantities/costs/vehicles, preservation of previous output, closed statements,
+  progress cleanup and error-reporting failures that must not prevent rollback.
+- `AssignmentOutputFailureTest`: real routing and output with failures in network writing,
+  final path batches, path commits, statement closure, publication renames and publication commits.
+  Checks complete previous-result preservation, first-attempt failure, successful retries,
+  canceled/stopped workers, menu/progress restoration, cleared completion state and suppression
+  of success notifications and post-assignment scripts after output failure. Successful output
+  replacement is also tested without batch support and with path details disabled.
 - `ProjectFilesToolsTest`: mandatory node/link DBF names, types, widths and precision;
   truncated schemas, missing/corrupt sidecars, wrong shape types and supported historical ID widths.
   Legacy link migration inserts `ENABLED` once, preserves row order, custom attributes and UTF-8/
@@ -644,3 +655,22 @@ Tests that temporarily set the global `JDBCUtils` connection must use
 in `@AfterEach` or a try-with-resources fixture. Concurrency tests must join their workers
 and shut down executors, using bounded waits rather than sleeps. Integration tests use
 `@Tag("integration")` for selection in JUnit-aware tools; they remain part of the default Ant suite.
+
+## Assignment output replacement
+
+Assignments write the virtual network, path headers and optional path details to private staging
+names. The scenario's existing result tables remain available until every writer has saved,
+committed and closed successfully. Publication then replaces the whole output set, using backup
+names to restore previous tables if a rename or publication commit fails. A canceled or failed
+first attempt leaves no scenario output; a failed replacement retains the previous complete result.
+A successful header-only assignment removes the previous detail table. Temporary names do not use
+the scenario's public table prefixes.
+
+Post-assignment scripts and success notifications run after publication. If the script itself
+fails, the completed network and path outputs remain together; the assignment reports failure.
+If the database prevents restoration after a publication failure, the backup table is retained
+rather than deleting the last complete data.
+
+Output DDL and commits still use the shared project connection. They can commit earlier unrelated
+SQL work, as demonstrated on H2 and HSQLDB. Savepoints cover inserts made after staging-table
+creation; they do not restore DDL or undo work already committed by the database.

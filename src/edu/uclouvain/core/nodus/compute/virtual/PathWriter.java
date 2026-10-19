@@ -142,6 +142,11 @@ public class PathWriter {
 
     pathHeaderTableName = JDBCUtils.getCompliantIdentifier(name + scenario + NodusC.SUFFIX_HEADER);
     pathDetailTableName = JDBCUtils.getCompliantIdentifier(name + scenario + NodusC.SUFFIX_DETAIL);
+    AssignmentOutputTables outputs = assignmentParameters.getOutputTables();
+    if (outputs != null) {
+      pathHeaderTableName = outputs.pathHeaders();
+      pathDetailTableName = outputs.pathDetails();
+    }
 
     // Create new tables if needed
     if (isSavePaths()) {
@@ -174,6 +179,7 @@ public class PathWriter {
       try {
         prepStmtHeaders.close();
       } catch (SQLException ex) {
+        canceled = true;
         ex.printStackTrace();
       } finally {
         prepStmtHeaders = null;
@@ -184,6 +190,7 @@ public class PathWriter {
       try {
         prepStmtDetails.close();
       } catch (SQLException ex) {
+        canceled = true;
         ex.printStackTrace();
       } finally {
         prepStmtDetails = null;
@@ -220,11 +227,18 @@ public class PathWriter {
     }
 
     long started = computingTimes.start();
+    boolean complete;
     try (OutsideScope timing = computingTimes.outside(OutsidePhase.PATH_FINALIZATION)) {
-      return finishPaths();
+      try {
+        complete = finishPaths();
+      } finally {
+        closePreparedStatements();
+        closed = true;
+      }
     } finally {
       computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
     }
+    return complete && !canceled;
   }
 
   /** Finalizes output under close()'s writer lock, with separately timed database operations. */
@@ -279,16 +293,18 @@ public class PathWriter {
         }
       }
       return !canceled;
-    } finally {
-      closePreparedStatements();
-      closed = true;
+    } catch (RuntimeException error) {
+      fail(error);
+      return false;
     }
   }
 
   /** Measures index creation without including batch flushing or committing. */
   private void createPathIndex(JDBCIndex index) {
     try (OutsideScope timing = computingTimes.outside(OutsidePhase.PATH_INDEXES)) {
-      JDBCUtils.createIndex(index);
+      if (!JDBCUtils.createIndex(index)) {
+        throw new IllegalStateException("Cannot create path output index");
+      }
     }
   }
 
@@ -299,6 +315,7 @@ public class PathWriter {
    * drops the path tables created for this assignment scenario.
    */
   public synchronized void discard() {
+    canceled = true;
 
     if (closed) {
       deletePathsTables();
@@ -744,8 +761,9 @@ public class PathWriter {
   /** Reports a failed row or batch; kept separate from persistence for headless checks. */
   void showWriteError(Exception error) {
     nodusProject.getNodusMapPanel().stopProgress();
-    SingleInstanceMessagePane.display(
-        nodusProject.getNodusMapPanel(), error.getMessage(), JOptionPane.ERROR_MESSAGE);
+    nodusProject
+        .getNodusMapPanel()
+        .showAssignmentMessage(error.getMessage(), JOptionPane.ERROR_MESSAGE);
   }
 
   /**

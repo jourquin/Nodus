@@ -37,6 +37,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Savepoint;
+import java.sql.Statement;
 import java.util.Iterator;
 import javax.swing.JOptionPane;
 
@@ -75,6 +76,12 @@ public class VirtualNetworkWriter {
     }
   }
 
+  static String destinationName(NodusProject project, int scenario) {
+    String prefix = project.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
+    return JDBCUtils.getCompliantIdentifier(
+        project.getLocalProperty(NodusC.PROP_VNET_TABLE, prefix) + scenario);
+  }
+
   /**
    * Initializes the database table used to store the virtual network that contains an assignment.
    *
@@ -85,12 +92,11 @@ public class VirtualNetworkWriter {
    */
   public static boolean initTable(NodusProject nodusProject, int scenario, byte[] groups) {
 
-    vNetTableName = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
-    vNetTableName = nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, vNetTableName) + scenario;
-    vNetTableName = JDBCUtils.getCompliantIdentifier(vNetTableName);
+    vNetTableName = destinationName(nodusProject, scenario);
+    return initTable(vNetTableName, groups);
+  }
 
-    // Virtual network table
-    JDBCUtils.dropTable(vNetTableName);
+  private static boolean initTable(String tableName, byte[] groups) {
 
     JDBCField[] field = null;
 
@@ -124,7 +130,7 @@ public class VirtualNetworkWriter {
     field[idx++] = new JDBCField(NodusC.DBF_QUANTITY, "NUMERIC(13,3)");
     field[idx++] = new JDBCField(NodusC.DBF_VEHICLES, "NUMERIC(10)");
 
-    if (!JDBCUtils.createTable(vNetTableName, field)) {
+    if (!JDBCUtils.createTable(tableName, field)) {
       return false;
     }
 
@@ -142,7 +148,7 @@ public class VirtualNetworkWriter {
       return true;
     }
 
-    boolean result = initTable(nodusProject, scenario, virtualNet.getGroups());
+    boolean result = initTable(outputTableName, virtualNet.getGroups());
 
     if (result) {
       tablesAreReady = true;
@@ -151,6 +157,8 @@ public class VirtualNetworkWriter {
   }
 
   private NodusProject nodusProject;
+  private final AssignmentParameters parameters;
+  private String outputTableName;
 
   private int scenario;
 
@@ -168,6 +176,7 @@ public class VirtualNetworkWriter {
    * @param vnet VirtualNetwork
    */
   public VirtualNetworkWriter(AssignmentParameters ap, VirtualNetwork vnet) {
+    parameters = ap;
     computingTimes = ap.getComputingTimes();
     virtualNet = vnet;
     nodusProject = ap.getNodusProject();
@@ -184,7 +193,29 @@ public class VirtualNetworkWriter {
   public boolean save() {
     long started = computingTimes.start();
     try (OutsideScope timing = computingTimes.outside(OutsidePhase.NETWORK_OUTPUT)) {
-      return saveNetwork();
+      AssignmentOutputTables shared = parameters.getOutputTables();
+      boolean standalone = shared == null;
+      AssignmentOutputTables outputs =
+          standalone ? new AssignmentOutputTables(parameters, false) : shared;
+      outputTableName = outputs.virtualNetwork();
+      vNetTableName = destinationName(nodusProject, scenario);
+      tablesAreReady = false;
+      try {
+        if (!saveNetwork()) {
+          return false;
+        }
+        if (standalone) {
+          outputs.publish();
+        }
+        return true;
+      } catch (SQLException failure) {
+        reportWriteError(failure);
+        return false;
+      } finally {
+        if (standalone) {
+          outputs.close();
+        }
+      }
     } finally {
       computingTimes.add(AssignmentComputingTimes.Phase.DATABASE, started);
     }
@@ -233,7 +264,7 @@ public class VirtualNetworkWriter {
       /* Prepared statement */
       String sqlStmt =
           "INSERT INTO "
-              + JDBCUtils.getQuotedCompliantIdentifier(vNetTableName)
+              + JDBCUtils.getQuotedCompliantIdentifier(outputTableName)
               + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,";
 
       byte[] groups = virtualNet.getGroups();
@@ -320,7 +351,8 @@ public class VirtualNetworkWriter {
                     batchSize++;
                     prepStmt.addBatch();
                     if (batchSize >= maxBatchSize) {
-                      prepStmt.executeBatch();
+                      checkBatchResult(prepStmt.executeBatch());
+                      prepStmt.clearBatch();
                       batchSize = 0;
                     }
                   } else {
@@ -333,7 +365,8 @@ public class VirtualNetworkWriter {
         }
         // Flush remaining records in batch
         if (hasBatchSupport && batchSize > 0) {
-          prepStmt.executeBatch();
+          checkBatchResult(prepStmt.executeBatch());
+          prepStmt.clearBatch();
         }
 
         if (!jdbcConnection.getAutoCommit()) {
@@ -343,15 +376,8 @@ public class VirtualNetworkWriter {
         }
       }
     } catch (Exception e) {
-      SingleInstanceMessagePane.display(
-          nodusProject.getNodusMapPanel(),
-          i18n.get(
-              VirtualNetworkWriter.class,
-              "Invalid_value",
-              "Invalid value in VNET fields. See Stack Trace."),
-          JOptionPane.ERROR_MESSAGE);
       rollbackToSavepoint(savepoint);
-      e.printStackTrace();
+      reportWriteError(e);
       return false;
     } finally {
       if (progressStarted) {
@@ -363,6 +389,24 @@ public class VirtualNetworkWriter {
     // System.out.println("Duration : " + (end - start) / 1000);
 
     return true;
+  }
+
+  private static void checkBatchResult(int[] counts) throws SQLException {
+    for (int count : counts) {
+      if (count == Statement.EXECUTE_FAILED) {
+        throw new SQLException("A virtual-network batch row could not be saved");
+      }
+    }
+  }
+
+  private void reportWriteError(Exception error) {
+    error.printStackTrace();
+    nodusMapPanel.showAssignmentMessage(
+        i18n.get(
+            VirtualNetworkWriter.class,
+            "Invalid_value",
+            "Invalid value in VNET fields. See Stack Trace."),
+        JOptionPane.ERROR_MESSAGE);
   }
 
   /**

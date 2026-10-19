@@ -24,6 +24,7 @@ package edu.uclouvain.core.nodus.compute.assign;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
+import edu.uclouvain.core.nodus.compute.virtual.AssignmentOutputTables;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -46,6 +47,21 @@ public class AssignmentParameters {
    */
   public AssignmentComputingTimes getComputingTimes() {
     return computingTimes;
+  }
+
+  private AssignmentOutputTables outputTables;
+
+  /**
+   * Returns the output attempt shared by the coordinator and its writers.
+   *
+   * @return staged output tables, or null for standalone writers and calibration
+   */
+  public AssignmentOutputTables getOutputTables() {
+    return outputTables;
+  }
+
+  void setOutputTables(AssignmentOutputTables tables) {
+    outputTables = tables;
   }
 
   /* If true, ask before deleting old assignments. */

@@ -34,6 +34,7 @@ import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.modalsplit.MultinomialLogit;
 import edu.uclouvain.core.nodus.compute.modalsplit.MultinomialProbit;
 import edu.uclouvain.core.nodus.compute.modalsplit.Proportional;
+import edu.uclouvain.core.nodus.compute.virtual.AssignmentOutputTables;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
@@ -408,9 +409,12 @@ public abstract class Assignment implements Runnable {
 
     boolean success = false;
     boolean outOfMemory = false;
+    AssignmentOutputTables outputs = null;
     AssignmentComputingTimes computingTimes = assignmentParameters.getComputingTimes();
     computingTimes.startAssignment();
     try {
+      outputs = new AssignmentOutputTables(assignmentParameters, true);
+      assignmentParameters.setOutputTables(outputs);
       virtualNet = null;
 
       boolean computationCompleted = false;
@@ -425,6 +429,10 @@ public abstract class Assignment implements Runnable {
           success = assign();
         } finally {
           computingTimes.beginFinalization();
+          if (!success) {
+            cancelAssignmentWorkers();
+            waitForAssignmentWorkers();
+          }
           if (virtualNet != null) {
             virtualNet.dispose();
           }
@@ -432,6 +440,9 @@ public abstract class Assignment implements Runnable {
 
         if (success) {
           success = closePathWriter();
+        }
+        if (success) {
+          outputs.publish();
         }
         computationCompleted = success;
       } finally {
@@ -460,11 +471,14 @@ public abstract class Assignment implements Runnable {
         discardPathWriter();
       }
     } catch (java.util.concurrent.CancellationException e) {
+      success = false;
       nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
     } catch (Exception e) {
+      success = false;
       nodusMapPanel.showAssignmentMessage(e.getMessage(), JOptionPane.ERROR_MESSAGE);
       nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
     } catch (OutOfMemoryError e) {
+      success = false;
       outOfMemory = true;
 
       // Free memory and force garbage collection
@@ -483,16 +497,27 @@ public abstract class Assignment implements Runnable {
       // System.exit(0);
     } finally {
       stopGarbageCollectionRunner();
+      if (!success) {
+        cancelAssignmentWorkers();
+        waitForAssignmentWorkers();
+        completion = null;
+      }
       assignmentWorkers = null;
       if (!success) {
         discardPathWriter();
       }
+      if (outputs != null) {
+        outputs.close();
+      }
+      assignmentParameters.setOutputTables(null);
       pathWriter = null;
+      nodusMapPanel.stopProgress();
       nodusMapPanel.resetText();
 
       if (!outOfMemory) {
         nodusMapPanel.getAssignmentMenuItem().setEnabled(true);
       }
+      nodusMapPanel.updateScenarioComboBox(true);
     }
   }
 

@@ -524,3 +524,4 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Fix a potential bug in in the length calculation of polylines
 - More robust vehicle parser   
 - More robust validation of mandatory layer fields at loading time
+- More robust assignment output writing
