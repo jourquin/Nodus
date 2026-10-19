@@ -21,8 +21,6 @@
 
 package edu.uclouvain.core.nodus.compute.real;
 
-import com.bbn.openmap.dataAccess.shape.EsriPolyline;
-import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.omGraphics.OMPoint;
 import com.bbn.openmap.omGraphics.OMPoly;
@@ -88,32 +86,33 @@ public final class RealLinkInitializer {
     return realLink;
   }
 
-  /** 
-   * Computes the length of a link graphic in kilometers. 
-   * 
+  /**
+   * Computes the length of a link graphic in kilometers.
+   *
    * @param linkGraphic The link graphic.
-   * 
    * @return The length of the link graphic in kilometers.
-   **/
+   */
   public static float computeLength(OMGraphic linkGraphic) {
     return computeLength(linkGraphic, null, null);
   }
 
-  /** 
+  /**
    * Computes the length of a link graphic in kilometers, with optional endpoint fallback.
-   * 
+   *
+   * <p>Polyline arrays are read in radians using OpenMap's accessor contract; endpoint OMPoint
+   * coordinates are in decimal degrees. Missing or zero-length geographic geometry falls back to
+   * the endpoint locations, or zero if either endpoint has no geographic location.
+   *
    * @param linkGraphic The link graphic.
    * @param node1Graphic First endpoint node graphic, or null.
    * @param node2Graphic Second endpoint node graphic, or null.
-   * 
    * @return The length of the link graphic in kilometers.
-   **/
+   */
   public static float computeLength(
       OMGraphic linkGraphic, OMGraphic node1Graphic, OMGraphic node2Graphic) {
     float length = 0;
-    if (linkGraphic instanceof EsriPolyline) {
-      length = NodusEsriLayer.getLength((EsriPolyline) linkGraphic, Length.KM);
-    } else if (linkGraphic instanceof OMPoly) {
+    // EsriPolyline extends OMPoly and exposes the same radians-based coordinate array.
+    if (linkGraphic instanceof OMPoly) {
       length = computePolyLength((OMPoly) linkGraphic);
     }
 
@@ -125,43 +124,49 @@ public final class RealLinkInitializer {
 
   /** Computes a polyline length in kilometers from its coordinate array. */
   private static float computePolyLength(OMPoly polyline) {
-    float length = 0;
-    double[] coordinates = polyline.getLatLonArray();
-    int nbPairs = coordinates.length / 2;
+    if (polyline.getRenderType() != OMGraphic.RENDERTYPE_LATLON) {
+      return 0;
+    }
+    // getLatLonArray converts declared degree coordinates to radians when necessary.
+    final double[] coordinates = polyline.getLatLonArray();
+    if (coordinates == null) {
+      return 0;
+    }
+    final int nbPairs = coordinates.length / 2;
+    double length = 0;
 
     for (int index = 0; index < nbPairs - 1; index++) {
       length +=
           GreatCircle.sphericalDistance(
-              normalizeRadians(coordinates[index * 2]),
-              normalizeRadians(coordinates[index * 2 + 1]),
-              normalizeRadians(coordinates[index * 2 + 2]),
-              normalizeRadians(coordinates[index * 2 + 3]));
+              coordinates[index * 2],
+              coordinates[index * 2 + 1],
+              coordinates[index * 2 + 2],
+              coordinates[index * 2 + 3]);
     }
-    return Length.KM.fromRadians(length);
+    return (float) Length.KM.fromRadians(length);
   }
 
   /** Computes a straight-line endpoint length in kilometers. */
   private static float computeEndpointLength(OMGraphic node1Graphic, OMGraphic node2Graphic) {
-    if (!(node1Graphic instanceof OMPoint) || !(node2Graphic instanceof OMPoint)) {
+    if (!isGeographicPoint(node1Graphic) || !isGeographicPoint(node2Graphic)) {
       return 0;
     }
 
-    OMPoint point1 = (OMPoint) node1Graphic;
-    OMPoint point2 = (OMPoint) node2Graphic;
+    final OMPoint point1 = (OMPoint) node1Graphic;
+    final OMPoint point2 = (OMPoint) node2Graphic;
     return (float)
         Length.KM.fromRadians(
             GreatCircle.sphericalDistance(
-                normalizeRadians(point1.getLat()),
-                normalizeRadians(point1.getLon()),
-                normalizeRadians(point2.getLat()),
-                normalizeRadians(point2.getLon())));
+                Math.toRadians(point1.getLat()),
+                Math.toRadians(point1.getLon()),
+                Math.toRadians(point2.getLat()),
+                Math.toRadians(point2.getLon())));
   }
 
-  /** Converts degree coordinates to radians while leaving existing radians unchanged. */
-  private static double normalizeRadians(double coordinate) {
-    if (Math.abs(coordinate) > Math.PI) {
-      return Math.toRadians(coordinate);
-    }
-    return coordinate;
+  /** Screen-only points have no latitude/longitude; offset points retain a geographic anchor. */
+  private static boolean isGeographicPoint(OMGraphic graphic) {
+    return graphic instanceof OMPoint
+        && (graphic.getRenderType() == OMGraphic.RENDERTYPE_LATLON
+            || graphic.getRenderType() == OMGraphic.RENDERTYPE_OFFSET);
   }
 }

@@ -374,6 +374,11 @@ for the workflow mechanism.
   Seeded small networks are also checked against an independent Floyd-Warshall reference,
   including the cost of reconstructed predecessor paths. The random cases use zero
   coordinates (a zero heuristic); the geometric case exercises a nonzero A* heuristic.
+- `RealLinkInitializerTest`: EsriPolyline and OMPoly lengths from declared degree/radian inputs,
+  endpoint fallback near the equator/prime meridian and across the date line, reversed paths and
+  intermediate vertices. Uses an independent haversine reference. Checks missing/degenerate and
+  screen geometry, geographic offset points, and repeated initialization that preserves or resets
+  current/auxiliary passenger-car units in both directions.
 - `CostExpressionCacheTest`: changing values, recreated or missing variables, expressions
   simplified by the parser, changed constants, different scopes/formulas, and syntax errors.
 - `CostParameterTest`: precedence and isolation of numeric parameters by scenario, commodity
