@@ -26,7 +26,7 @@ removed Abraham references and missing dependencies. Conversion itself does not 
 Fixtures and confirmation callbacks keep these checks independent of real project JARs and Swing
 dialogs, including when run directly from Eclipse's JUnit runner.
 No project data, remote database, Internet access, or graphical desktop is needed. Database tests
-create private in-memory databases and close them afterwards. Most use H2; service
+create private temporary databases and close them afterwards. Most use H2; service
 persistence failure/retry and legacy-schema checks also run against HSQLDB. Import
 failure tests cover H2 and HSQLDB staging, malformed DBF/XLS/XLSX input, replacement
 failures, and preservation of earlier uncommitted work. Layer-save tests inject failures at each
@@ -123,8 +123,10 @@ The JUnit execution and reports still use the dedicated `build-tests.xml` approa
 [The Tests workflow](../.github/workflows/tests.yml) runs the complete suite on
 pushes and pull requests, with separate jobs for Temurin JDK 11, 25 and 27 on Ubuntu.
 All jobs compile for Java 11 and execute the tests on their selected runtime.
-The workflow downloads the full Apache Ant 1.10.17 distribution, verifies its
-SHA-512 checksum, and checks that `ant-junitlauncher.jar` is present. It runs:
+The workflow downloads the full Apache Ant 1.10.18 distribution from Apache's CDN,
+falls back to the release archive, verifies its pinned SHA-512 checksum, and checks
+that `ant-junitlauncher.jar` is present. Failed or corrupt downloads are discarded.
+It runs:
 
 ```sh
 ant -noinput -f build-tests.xml clean Test
@@ -157,6 +159,15 @@ for the workflow mechanism.
 
 ## Coverage
 
+- `ProjectFilesToolsTest`: mandatory node/link DBF names, types, widths and precision;
+  truncated schemas, missing/corrupt sidecars, wrong shape types and supported historical ID widths.
+  Legacy link migration inserts `ENABLED` once, preserves row order, custom attributes and UTF-8/
+  Windows-1252 text, rejects malformed schemas without rewriting them, and preserves the original
+  DBF when installation fails. Consecutive validations cannot share an upgrade decision.
+- `NodusProjectOpenWorkflowTest`: real temporary project files and embedded H2/HSQLDB connections,
+  `.nodus`/`.local` precedence, actual layer loading, modified-DBF reimport, Groovy open-hook completion,
+  close/reopen, background and late-opening failure cleanup, and ID allocation across loaded and
+  unloaded layers. Rescans remove stale IDs and reject an unavailable project directory.
 - `NodusWMSLayerTest`: the production SAX configuration rejects external general/parameter and
   custom/recursive entity declarations. Private sentinel files and a loopback HTTP canary check
   resource isolation; external DTD/schema and XInclude references must never trigger canary requests.

@@ -21,14 +21,12 @@
 
 package edu.uclouvain.core.nodus.database;
 
-import com.bbn.openmap.dataAccess.shape.EsriGraphicFactory;
 import com.bbn.openmap.dataAccess.shape.EsriGraphicFactory.Header;
 import com.bbn.openmap.dataAccess.shape.EsriGraphicList;
 import com.bbn.openmap.dataAccess.shape.EsriPointList;
 import com.bbn.openmap.dataAccess.shape.EsriPolylineList;
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.dataAccess.shape.input.LittleEndianInputStream;
-import com.bbn.openmap.dataAccess.shape.input.ShpInputStream;
 import com.bbn.openmap.dataAccess.shape.output.ShpOutputStream;
 import com.bbn.openmap.dataAccess.shape.output.ShxOutputStream;
 import edu.uclouvain.core.nodus.NodusC;
@@ -37,7 +35,6 @@ import edu.uclouvain.core.nodus.database.dbf.DBFField;
 import edu.uclouvain.core.nodus.database.dbf.DBFReader;
 import edu.uclouvain.core.nodus.database.dbf.DBFWriter;
 import edu.uclouvain.core.nodus.database.dbf.DbfFiles;
-import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -48,9 +45,9 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.function.Consumer;
 import javax.swing.JOptionPane;
 
 /**
@@ -59,96 +56,50 @@ import javax.swing.JOptionPane;
  * @author Bart Jourquin
  */
 public class ProjectFilesTools implements ShapeConstants {
-  private static String errorMessage;
-
-  // Add the "enabled" field if needed in the link layers
-  private static boolean enabledFieldMustBeAdded = false;
-
-  private static boolean result;
-
   /** Default constructor. */
   public ProjectFilesTools() {}
 
   /**
-   * Add the "enabled" field to the dbf file of a link layer. This is a convenient method added in
-   * order to upgrade the DBF files transparently (no end user action requested).
-   *
-   * @param path Path to the directory where the shape file is stored.
-   * @param layerName Shapefile name (without suffix)
-   * @return True on success
+   * Upgrades a fully validated legacy link DBF, preserving all original attributes and encoding.
    */
-  private static boolean addEnabledField(
-      final String path, final String layerName, String override) {
-
-    new NodusConsole();
-
-    result = true;
-
-    System.out.println("Upgrading " + path + layerName + NodusC.TYPE_DBF);
-
-    List<Object[]> data = new LinkedList<Object[]>();
-
-    DBFField[] fields = null;
-    try (DBFReader dbfReader =
-        DbfFiles.reader(Path.of(path, layerName + NodusC.TYPE_DBF), override)) {
-
-      // Retain structure
-      fields = new DBFField[dbfReader.getFieldCount() + 1];
-
-      int j = 0;
+  private static void addEnabledField(String path, String layerName, String override)
+      throws IOException {
+    final Path file = Path.of(path, layerName + NodusC.TYPE_DBF);
+    final Charset charset = DbfFiles.charset(file, override);
+    final List<Object[]> data = new LinkedList<>();
+    final DBFField[] fields;
+    try (DBFReader reader = DbfFiles.reader(file, override)) {
+      fields = new DBFField[reader.getFieldCount() + 1];
       for (int i = 0; i < fields.length; i++) {
-        // Insert the "enabled" field at the right place
-        if (i == NodusC.DBF_IDX_ENABLED) {
-          fields[i] = new DBFField(NodusC.DBF_ENABLED, 'N', 1, 0);
-        } else {
-          fields[i] = dbfReader.getField(j);
-          j++;
+        fields[i] =
+            i == NodusC.DBF_IDX_ENABLED
+                ? new DBFField(NodusC.DBF_ENABLED, 'N', 1, 0)
+                : reader.getField(i < NodusC.DBF_IDX_ENABLED ? i : i - 1);
+      }
+      while (reader.hasNextRecord()) {
+        Object[] record = reader.nextRecord();
+        Object[] upgraded = new Object[record.length + 1];
+        System.arraycopy(record, 0, upgraded, 0, NodusC.DBF_IDX_ENABLED);
+        upgraded[NodusC.DBF_IDX_ENABLED] = Integer.valueOf(1);
+        System.arraycopy(
+            record,
+            NodusC.DBF_IDX_ENABLED,
+            upgraded,
+            NodusC.DBF_IDX_ENABLED + 1,
+            record.length - NodusC.DBF_IDX_ENABLED);
+        data.add(upgraded);
+      }
+    }
+    try (LayerFileSave save = new LayerFileSave(Path.of(path), layerName)) {
+      Path staged = save.stage(layerName + NodusC.TYPE_DBF);
+      try (DBFWriter writer = new DBFWriter(staged.toString(), fields, charset)) {
+        for (Object[] record : data) {
+          writer.addRecord(record);
         }
       }
-
-      // Read the dbf file
-      while (dbfReader.hasNextRecord()) {
-        Object[] record = dbfReader.nextRecord().clone();
-
-        // Insert default "enabled" value = 1
-        Object[] newRecord = new Object[record.length + 1];
-        j = 0;
-        for (int i = 0; i < newRecord.length; i++) {
-          if (i == NodusC.DBF_IDX_ENABLED) {
-            newRecord[i] = Integer.valueOf(1);
-          } else {
-            newRecord[i] = record[j];
-            j++;
-          }
-        }
-        data.add(newRecord);
-      }
-    } catch (DBFException | IOException e) {
-      e.printStackTrace();
-      result = false;
+      DbfFiles.writeCpg(save.stage(layerName + ".cpg"), charset);
+      save.commit();
     }
-
-    if (!result) {
-      return false;
-    }
-
-    // Write the upgraded DBF file
-    try {
-      Path file = Path.of(path, layerName + NodusC.TYPE_DBF);
-      Charset charset = DbfFiles.charset(file, override);
-      try (DBFWriter dbfWriter = new DBFWriter(file.toString(), fields, charset)) {
-        ListIterator<Object[]> it = data.listIterator();
-        while (it.hasNext()) {
-          dbfWriter.addRecord(it.next());
-        }
-      }
-      DbfFiles.writeCpg(DbfFiles.cpg(file), charset);
-    } catch (DBFException | IOException e) {
-      e.printStackTrace();
-      result = false;
-    }
-
-    return result;
   }
 
   /**
@@ -250,7 +201,7 @@ public class ProjectFilesTools implements ShapeConstants {
         DbfFiles.writeCpg(DbfFiles.cpg(file), charset);
       }
     } catch (DBFException | IOException ex) {
-      errorMessage = ex.toString();
+      System.err.println(ex.toString());
       return false;
     }
 
@@ -361,288 +312,176 @@ public class ProjectFilesTools implements ShapeConstants {
     return availableLayers.toArray(new String[availableLayers.size()]);
   }
 
-  /**
-   * Tests if the fields given as parameter contain the mandatory fields for a type of shapefile.
-   *
-   * @param fileName The name of the shapefile.
-   * @param field An array of fields.
-   * @param layerType The type of layer. Can be SHAPE_TYPE_POINT or SHAPE_TYPE_POLYLINE.
-   * @return True if valid.
-   */
-  private static boolean isValidDbfFile(String fileName, DBFField[] field, int layerType) {
+  /** Per-file validation state; an upgrade decision must never leak to the next layer. */
+  private static final class Validation {
+    final String error;
+    final boolean legacy;
 
-    String[] mandatoryNames = null;
-    char[] mandatoryTypes = null;
-    int[] mandatoryLengths = null;
-    int[] mandatoryDecimalCounts = null;
-
-    if (layerType == SHAPE_TYPE_POINT) {
-      mandatoryNames = NodusC.NODES_MANDATORY_NAMES;
-      mandatoryTypes = NodusC.NODES_MANDATORY_TYPES;
-      mandatoryLengths = NodusC.NODES_MANDATORY_LENGTHS;
-      mandatoryDecimalCounts = NodusC.NODES_MANDATORY_DECIMAL_COUNTS;
-
-    } else {
-
-      mandatoryNames = NodusC.LINKS_MANDATORY_NAMES;
-      mandatoryTypes = NodusC.LINKS_MANDATORY_TYPES;
-      mandatoryLengths = NodusC.LINKS_MANDATORY_LENGTHS;
-      mandatoryDecimalCounts = NodusC.LINKS_MANDATORY_DECIMAL_COUNTS;
+    Validation(String error, boolean legacy) {
+      this.error = error;
+      this.legacy = legacy;
     }
+  }
 
-    if (field.length < mandatoryNames.length) {
-      // Could be an older file, without the "enabled" field
-      boolean wrongStructure = true;
-      if (field.length == mandatoryNames.length - 1) {
-        if (!field[NodusC.DBF_IDX_ENABLED].getName().equalsIgnoreCase(NodusC.DBF_ENABLED)) {
-          wrongStructure = false;
+  /** Checks the mandatory prefix, allowing only the documented older numeric ID widths. */
+  private static Validation validateDbf(String name, DBFField[] fields, int type) {
+    final boolean point = type == SHAPE_TYPE_POINT;
+    final String[] names = point ? NodusC.NODES_MANDATORY_NAMES : NodusC.LINKS_MANDATORY_NAMES;
+    final char[] types = point ? NodusC.NODES_MANDATORY_TYPES : NodusC.LINKS_MANDATORY_TYPES;
+    final int[] lengths = point ? NodusC.NODES_MANDATORY_LENGTHS : NodusC.LINKS_MANDATORY_LENGTHS;
+    final int[] decimals =
+        point ? NodusC.NODES_MANDATORY_DECIMAL_COUNTS : NodusC.LINKS_MANDATORY_DECIMAL_COUNTS;
+    final boolean legacy =
+        !point
+            && fields.length > NodusC.DBF_IDX_ENABLED
+            && fields[NodusC.DBF_IDX_ENABLED].getName().equalsIgnoreCase(NodusC.DBF_NODE1);
+    if (fields.length < names.length - (legacy ? 1 : 0)) {
+      return new Validation(name + ": incomplete mandatory DBF fields", false);
+    }
+    if (legacy) {
+      for (DBFField field : fields) {
+        if (field.getName().equalsIgnoreCase(NodusC.DBF_ENABLED)) {
+          return new Validation(name + ": misplaced ENABLED field", false);
         }
       }
-
-      if (wrongStructure) {
-        errorMessage = fileName + " is an invalid .dbf file";
-        return false;
-      }
     }
-
-    for (int i = 0; i < mandatoryNames.length; i++) {
-      if (field[i].getName().compareToIgnoreCase(mandatoryNames[i]) != 0
-          || field[i].getType() != mandatoryTypes[i]
-          || field[i].getLength() != mandatoryLengths[i]
-          || field[i].getDecimalCount() != mandatoryDecimalCounts[i]) {
-        String validField =
-            mandatoryNames[i]
+    for (int i = 0; i < names.length; i++) {
+      if (legacy && i == NodusC.DBF_IDX_ENABLED) {
+        continue;
+      }
+      DBFField field = fields[legacy && i > NodusC.DBF_IDX_ENABLED ? i - 1 : i];
+      boolean id =
+          i == NodusC.DBF_IDX_NUM
+              || (!point && (i == NodusC.DBF_IDX_NODE1 || i == NodusC.DBF_IDX_NODE2));
+      boolean oldWidth = id && (field.getLength() == 5 || field.getLength() == 6);
+      if (!field.getName().equalsIgnoreCase(names[i])
+          || field.getType() != types[i]
+          || (field.getLength() != lengths[i] && !oldWidth)
+          || field.getDecimalCount() != decimals[i]) {
+        return new Validation(
+            name
+                + ": field "
+                + i
+                + ": "
+                + names[i]
                 + " "
-                + mandatoryTypes[i]
+                + types[i]
                 + "("
-                + mandatoryLengths[i]
+                + lengths[i]
                 + ","
-                + mandatoryDecimalCounts[i]
-                + ")";
-        errorMessage =
-            fileName + NodusC.TYPE_DBF + " : Field " + i + ":" + validField + " expected";
-
-        // The field name must be the same
-        if (field[i].getName().compareToIgnoreCase(mandatoryNames[i]) != 0) {
-          // The "enabled" field was added in Nodus 7.0
-          if (mandatoryNames[i].equals(NodusC.DBF_ENABLED)) {
-            enabledFieldMustBeAdded = true;
-          } else {
-            return false;
-          }
-        }
-
-        // Maybe the database was in the old format?
-        if (!wasValidDbfField(layerType, i, field[i])) {
-          return false;
-        }
+                + decimals[i]
+                + ") expected",
+            false);
       }
     }
-
-    return true;
+    return new Validation(null, legacy);
   }
 
   /**
-   * Tests if the file located at the given path is a valid Nodus layer. This method tests both
-   * types of layers.
+   * Tests both supported Nodus layer types.
    *
-   * @param path The directory in which the shapefile must be created.
-   * @param layerName The name of the layer (and thus the name of the shapefile).
-   * @return True if valid.
+   * @param path directory containing the shapefile
+   * @param layerName shapefile basename
+   * @return true for a valid current node or link layer
    */
   public static boolean isValidLayer(String path, String layerName) {
-    if (isValidLayer(path, layerName, SHAPE_TYPE_POINT)) {
-      return true;
-    }
-
-    if (isValidLayer(path, layerName, SHAPE_TYPE_POLYLINE)) {
-      return true;
-    }
-
-    return false;
+    return isValidLayer(path, layerName, SHAPE_TYPE_POINT)
+        || isValidLayer(path, layerName, SHAPE_TYPE_POLYLINE);
   }
 
   /**
-   * Tests if the file located at the given path is a valid Nodus layer.
+   * Tests the geometry headers, sidecars and mandatory DBF structure of a Nodus layer.
    *
-   * @param path The directory in which the shapefile must be created.
-   * @param layerName The name of the layer (and thus the name of the shapefile).
-   * @param layerType The type of layer. Can be SHAPE_TYPE_POINT or SHAPE_TYPE_POLYLINE.
-   * @return True if valid.
+   * @param path directory containing the shapefile
+   * @param layerName shapefile basename
+   * @param layerType SHAPE_TYPE_POINT or SHAPE_TYPE_POLYLINE
+   * @return true for a valid current layer
    */
   public static boolean isValidLayer(String path, String layerName, int layerType) {
-    return isValidLayer(path, layerName, layerType, null);
+    Validation validation = validateLayer(path, layerName, layerType, null);
+    return validation.error == null && !validation.legacy;
   }
 
-  private static boolean isValidLayer(
+  private static Validation validateLayer(
       String path, String layerName, int layerType, String charset) {
-
-    // Test the shape file
+    if (layerType != SHAPE_TYPE_POINT && layerType != SHAPE_TYPE_POLYLINE) {
+      return new Validation("Unsupported Nodus layer type: " + layerType, false);
+    }
     try {
-      try (BufferedInputStream bis =
-          new BufferedInputStream(new FileInputStream(path + layerName + NodusC.TYPE_SHP))) {
-        Header header = new EsriGraphicFactory.Header(new LittleEndianInputStream(bis));
-
-        if (layerType == SHAPE_TYPE_POINT && header.shapeType != SHAPE_TYPE_POINT) {
-          errorMessage = layerName + NodusC.TYPE_SHP + " is not a valid POINT shapefile";
-          return false;
-        }
-
-        if (layerType == SHAPE_TYPE_POLYLINE && header.shapeType != SHAPE_TYPE_POLYLINE) {
-          errorMessage = layerName + NodusC.TYPE_SHP + "is not a valid POLYLINE shapefile";
-
-          return false;
+      for (String extension : new String[] {NodusC.TYPE_SHP, NodusC.TYPE_SHX}) {
+        try (BufferedInputStream input =
+            new BufferedInputStream(
+                new FileInputStream(Path.of(path, layerName + extension).toFile()))) {
+          Header header = new Header(new LittleEndianInputStream(input));
+          if (header.fileCode != 9994
+              || header.version != 1000
+              || header.fileLength < 50
+              || header.shapeType != layerType) {
+            return new Validation(layerName + extension + ": invalid shapefile header", false);
+          }
         }
       }
-
-      // Try index file
-      try (FileInputStream shxInputStream =
-          new FileInputStream(path + layerName + NodusC.TYPE_SHX)) {
-        new ShpInputStream(shxInputStream);
-      }
-    } catch (IOException ex) {
-      errorMessage = ex.toString();
-      return false;
-    }
-
-    // Test dbf files
-    DBFField[] field = null;
-    boolean dbfIsOpen = false;
-
-    try (DBFReader dbfReader =
-        DbfFiles.reader(Path.of(path, layerName + NodusC.TYPE_DBF), charset)) {
-      if (dbfReader.isOpen()) {
-        dbfIsOpen = true;
-        int nbFields = dbfReader.getFieldCount();
-        field = new DBFField[nbFields];
-
-        for (int i = 0; i < nbFields; i++) {
-          field[i] = dbfReader.getField(i);
+      try (DBFReader reader =
+          DbfFiles.reader(Path.of(path, layerName + NodusC.TYPE_DBF), charset)) {
+        if (!reader.isOpen()) {
+          return new Validation(layerName + ": invalid DBF file", false);
         }
+        DBFField[] fields = new DBFField[reader.getFieldCount()];
+        for (int i = 0; i < fields.length; i++) {
+          fields[i] = reader.getField(i);
+        }
+        return validateDbf(layerName, fields, layerType);
       }
-    } catch (DBFException | IOException ex) {
-      errorMessage = ex.toString();
-      return false;
+    } catch (IOException | DBFException error) {
+      return new Validation(error.toString(), false);
     }
-
-    if (!dbfIsOpen) {
-      errorMessage = "Invalid or inexistant " + layerName + NodusC.TYPE_DBF + "  file";
-      return false;
-    }
-
-    return isValidDbfFile(layerName, field, layerType);
   }
 
   /**
-   * Verifies if the different shape files listed in a project property file (nodes and links)
-   * correspond to what is expected by Nodus: <br>
-   * - The shape files must contain points or polylines; <br>
-   * - The .dbf files must have some mandatory fields. <br>
+   * Validates project network layers and upgrades the supported pre-ENABLED link schema.
    *
-   * @param nodusProjectProperties The Nodus project properties.
-   * @return True on success.
+   * @param nodusProjectProperties project properties
+   * @return true when every layer is valid
    */
   public static boolean isValidProject(Properties nodusProjectProperties) {
-    String path = nodusProjectProperties.getProperty(NodusC.PROP_PROJECT_DOTPATH);
-
-    // Nodes
-    String tokens = nodusProjectProperties.getProperty(NodusC.PROP_NETWORK_NODES);
-    StringTokenizer st = new StringTokenizer(tokens);
-
-    while (st.hasMoreTokens()) {
-      String currentName = st.nextToken();
-
-      if (!isValidLayer(
-          path,
-          currentName,
-          SHAPE_TYPE_POINT,
-          nodusProjectProperties.getProperty(
-              currentName + ".dbfCharset", nodusProjectProperties.getProperty("dbfCharset", "")))) {
-        JOptionPane.showMessageDialog(
-            null, errorMessage, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-
-        return false;
-      }
-    }
-
-    // Links
-    tokens = nodusProjectProperties.getProperty(NodusC.PROP_NETWORK_LINKS);
-    st = new StringTokenizer(tokens);
-
-    while (st.hasMoreTokens()) {
-      String currentName = st.nextToken();
-
-      if (!isValidLayer(
-          path,
-          currentName,
-          SHAPE_TYPE_POLYLINE,
-          nodusProjectProperties.getProperty(
-              currentName + ".dbfCharset", nodusProjectProperties.getProperty("dbfCharset", "")))) {
-        if (enabledFieldMustBeAdded) {
-          if (!addEnabledField(
-              path,
-              currentName,
-              nodusProjectProperties.getProperty(
-                  currentName + ".dbfCharset",
-                  nodusProjectProperties.getProperty("dbfCharset", "")))) {
-            enabledFieldMustBeAdded = false;
+    return isValidProject(
+        nodusProjectProperties,
+        message ->
             JOptionPane.showMessageDialog(
-                null, errorMessage, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-            return false;
-          }
-          enabledFieldMustBeAdded = false;
-        } else {
-          JOptionPane.showMessageDialog(
-              null, errorMessage, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+                null, message, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE));
+  }
 
+  /** Validates a project with a caller-supplied diagnostic destination. */
+  static boolean isValidProject(Properties properties, Consumer<String> reportError) {
+    final String path = properties.getProperty(NodusC.PROP_PROJECT_DOTPATH);
+    if (path == null) {
+      reportError.accept("Missing project directory");
+      return false;
+    }
+    for (int type : new int[] {SHAPE_TYPE_POINT, SHAPE_TYPE_POLYLINE}) {
+      String property =
+          type == SHAPE_TYPE_POINT ? NodusC.PROP_NETWORK_NODES : NodusC.PROP_NETWORK_LINKS;
+      StringTokenizer names = new StringTokenizer(properties.getProperty(property, ""));
+      while (names.hasMoreTokens()) {
+        String name = names.nextToken();
+        String charset =
+            properties.getProperty(name + ".dbfCharset", properties.getProperty("dbfCharset", ""));
+        Validation validation = validateLayer(path, name, type, charset);
+        if (validation.error == null && validation.legacy) {
+          try {
+            addEnabledField(path, name, charset);
+            validation = validateLayer(path, name, type, charset);
+          } catch (IOException | DBFException error) {
+            validation = new Validation(error.toString(), false);
+          }
+        }
+        if (validation.error != null || validation.legacy) {
+          reportError.accept(
+              validation.error == null ? "Cannot upgrade " + name : validation.error);
           return false;
         }
       }
     }
-
     return true;
-  }
-
-  /**
-   * The Nodus table structure was changed in order to allow node numbers up to 999999 instead of
-   * 99999, and even 99999999 in Nodus 7+. Just accept the old style.
-   *
-   * @param type Type of database (SHAPE_TYPE_ARC or SHAPE_TYPE_POINT)
-   * @param n Index of the field
-   * @param field Dbase field structure
-   * @return True if the node or link ID number is a N,5,0 (which was the old format)
-   */
-  private static boolean wasValidDbfField(int type, int n, DBFField field) {
-    boolean mustBeTested = false;
-
-    // First field must be tested
-    if (n == NodusC.DBF_IDX_NUM) {
-      mustBeTested = true;
-    }
-
-    if (type == SHAPE_TYPE_ARC) {
-      if (n == NodusC.DBF_IDX_NODE1 || n == NodusC.DBF_IDX_NODE2) {
-        mustBeTested = true;
-      }
-    }
-
-    boolean isOk = true;
-    if (mustBeTested) {
-      // Test the old 5 digits
-      if (field.getType() != 'N' || field.getLength() != 5 || field.getDecimalCount() != 0) {
-        isOk = false;
-      }
-
-      if (!isOk) {
-        /* Test the 6 digits format (prior to Nodus 7 and Etis networks
-         *  compatibility with 10 digits) */
-        isOk = true;
-        if (field.getType() != 'N' || field.getLength() != 6 || field.getDecimalCount() != 0) {
-          isOk = false;
-        }
-      }
-    }
-
-    return isOk;
   }
 }

@@ -34,16 +34,28 @@ jobs:
           distribution: temurin
           java-version: ${{ matrix.java }}
 
-      - name: Install Apache Ant 1.10.17
+      - name: Install Apache Ant 1.10.18
         shell: bash
         env:
-          ANT_VERSION: '1.10.17'
-          ANT_SHA512: a96ca6455ec9af5e702df7d1ed5a2ec1cfb381eac3e9a767ecb6be1706e826941045e8fd7ca663ba101bc47bfa18351f540dd27e9e7af57908ac78e65268eee7
+          ANT_VERSION: '1.10.18'
+          ANT_SHA512: c510d744876d8da48dabc9495b023b6ec5284a0f18b40ee50d98ce099e791ca5c73e3cd4c80d3c90d3efc03f9620be43aad0a373ed47198284f7e3373e0db2c3
         run: |
-          curl --fail --silent --show-error --location --retry 3 --max-time 120 \
-            "https://archive.apache.org/dist/ant/binaries/apache-ant-${ANT_VERSION}-bin.tar.gz" \
-            --output "$RUNNER_TEMP/ant.tar.gz"
-          printf '%s  %s\n' "$ANT_SHA512" "$RUNNER_TEMP/ant.tar.gz" | sha512sum --check
+          for ant_source in \
+            "https://dlcdn.apache.org/ant/binaries" \
+            "https://archive.apache.org/dist/ant/binaries"; do
+            if curl --fail --silent --show-error --location --retry 1 \
+              --connect-timeout 15 --max-time 90 \
+              "$ant_source/apache-ant-${ANT_VERSION}-bin.tar.gz" \
+              --output "$RUNNER_TEMP/ant.tar.gz" \
+              && printf '%s  %s\n' "$ANT_SHA512" "$RUNNER_TEMP/ant.tar.gz" | sha512sum --check; then
+              break
+            fi
+            rm -f "$RUNNER_TEMP/ant.tar.gz"
+          done
+          if [ ! -f "$RUNNER_TEMP/ant.tar.gz" ]; then
+            echo "::error::Could not download a verified Apache Ant ${ANT_VERSION} archive"
+            exit 1
+          fi
           tar -xzf "$RUNNER_TEMP/ant.tar.gz" -C "$RUNNER_TEMP"
           test -f "$RUNNER_TEMP/apache-ant-${ANT_VERSION}/lib/ant-junitlauncher.jar"
           echo "ANT_HOME=$RUNNER_TEMP/apache-ant-${ANT_VERSION}" >> "$GITHUB_ENV"

@@ -519,8 +519,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Fix (potential) bugs in Cost parser, semi-dynamic assignments and exclusion rules at node   
 - Improved project locker
 - Improved close/open workflow
-
-
-  
-  
- 
+- Rename/Delete scenario now also updates the node rules accordingly
+- Improved WMS client and add alternative server in demo.openmap
+- Fix a potential bug in in the length calculation of polylines
+- More robust vehicle parser   
+- More robust validation of mandatory layer fields at loading time

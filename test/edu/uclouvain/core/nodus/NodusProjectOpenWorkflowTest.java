@@ -1,0 +1,527 @@
+/*
+ * Copyright (c) 1991-2026 Université catholique de Louvain
+ *
+ * <p>Center for Operations Research and Econometrics (CORE)
+ *
+ * <p>http://www.uclouvain.be
+ *
+ * <p>This file is part of Nodus.
+ *
+ * <p>Nodus is free software: you can redistribute it and/or modify it under the terms of the GNU
+ * General Public License as published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * <p>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * <p>You should have received a copy of the GNU General Public License along with this program. If
+ * not, see http://www.gnu.org/licenses/.
+ */
+
+package edu.uclouvain.core.nodus;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.bbn.openmap.LayerHandler;
+import com.bbn.openmap.MapBean;
+import com.bbn.openmap.gui.NodusLayersPanel;
+import com.bbn.openmap.gui.ToolPanel;
+import com.bbn.openmap.layer.shape.NodusEsriLayer;
+import com.bbn.openmap.proj.Mercator;
+import com.bbn.openmap.proj.ProjectionStack;
+import com.bbn.openmap.proj.coords.LatLonPoint;
+import com.bbn.openmap.tools.drawing.NodusOMDrawingTool;
+import com.bbn.openmap.tools.drawing.NodusOMDrawingToolLauncher;
+import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.project.ProjectLayerIds;
+import edu.uclouvain.core.nodus.services.ServiceHandler;
+import edu.uclouvain.core.nodus.testing.ProjectFilesFixture;
+import edu.uclouvain.core.nodus.utils.ProjectLocker;
+import java.io.OutputStream;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.FileTime;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+import java.util.stream.Stream;
+import javax.swing.SwingUtilities;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
+
+/** Exercises persisted project opening; only window/menu presentation is substituted. */
+@ResourceLock("ProjectLocker")
+@ResourceLock("JDBCUtils")
+@ResourceLock("ModalSplitMethodsLoader")
+@Timeout(40)
+public class NodusProjectOpenWorkflowTest {
+  @TempDir Path directory;
+
+  @TestFactory
+  Stream<DynamicTest> realProjectOpensClosesAndReimportsOnlyModifiedDbfs() {
+    return Stream.of(false, true)
+        .map(hsql -> DynamicTest.dynamicTest(hsql ? "HSQLDB" : "H2", () -> checkReopen(hsql)));
+  }
+
+  private void checkReopen(boolean hsql) throws Exception {
+    try (Fixture fixture = new Fixture(hsql)) {
+      fixture.open();
+      assertTrue(fixture.project.isOpen());
+      assertFalse(fixture.panel.busy);
+      assertFalse(fixture.panel.fileMenuBusy);
+      assertEquals("project value", fixture.project.getLocalProperty("precedence"));
+      assertEquals("local value", fixture.project.getLocalProperty("onlyLocal"));
+      assertEquals(fixture.url, fixture.project.getLocalProperty(NodusC.PROP_JDBC_URL));
+      assertEquals("Nodes", fixture.project.getNodeLayers()[0].getName());
+      assertEquals(2, fixture.project.getNodeLayers()[0].getModel().getRowCount());
+      assertEquals(1, fixture.project.getLinkLayers()[0].getModel().getRowCount());
+      assertEquals(
+          "Route d'été 1", fixture.project.getLinkLayers()[0].getModel().getRecord(0).get(9));
+      assertTrue(fixture.project.getNodeLayers()[0].numExists(1));
+      assertTrue(fixture.project.getNodeLayers()[0].numExists(2));
+      assertTrue(fixture.project.getLinkLayers()[0].numExists(1));
+      assertTrue(fixture.project.isOtherObjectsLoaded());
+      assertEquals(5, fixture.project.getNewNodeId());
+      assertEquals(3, fixture.project.getNewLinkId());
+      assertEquals(2, fixture.project.getOtherNodeNumbers().size());
+      assertEquals(1, fixture.project.getOtherLinkNumbers().size());
+      // An unchanged DBF must retain database-only edits when the project is reopened.
+      try (Statement statement = fixture.project.getMainJDBCConnection().createStatement()) {
+        statement.executeUpdate("UPDATE nodes SET label='database edit' WHERE num=1");
+        statement.executeUpdate("UPDATE links SET speed=12 WHERE num=1");
+      }
+      fixture.project.getMainJDBCConnection().commit();
+      final Connection firstConnection = fixture.project.getMainJDBCConnection();
+      final NodusEsriLayer firstLayer = fixture.project.getNodeLayers()[0];
+      fixture.closeProject();
+      assertTrue(firstConnection.isClosed());
+      assertFalse(firstLayer.isReady());
+      assertFalse(fixture.project.isOpen());
+      assertFalse(fixture.project.isOtherObjectsLoaded());
+      assertEquals(0, fixture.panel.layers.getLayers().length);
+      assertLockReleased();
+      final Path linksDbf = directory.resolve("links.dbf");
+      final long previousTimestamp = Files.getLastModifiedTime(linksDbf).toMillis();
+      Object[] changed = ProjectFilesFixture.row(false, false, 1, "Modified Liège 東京");
+      changed[8] = 87.5;
+      ProjectFilesFixture.writeDbf(
+          directory,
+          "links",
+          ProjectFilesFixture.fields(false, false),
+          java.nio.charset.StandardCharsets.UTF_8,
+          List.<Object[]>of(changed));
+      Files.setLastModifiedTime(linksDbf, FileTime.fromMillis(previousTimestamp + 10000));
+      fixture.open();
+      assertNotSame(firstLayer, fixture.project.getNodeLayers()[0]);
+      assertNotSame(firstConnection, fixture.project.getMainJDBCConnection());
+      try (Statement statement = fixture.project.getMainJDBCConnection().createStatement();
+          ResultSet rows = statement.executeQuery("SELECT label FROM nodes WHERE num=1")) {
+        assertTrue(rows.next());
+        assertEquals("database edit", rows.getString(1));
+      }
+      try (Statement statement = fixture.project.getMainJDBCConnection().createStatement();
+          ResultSet rows = statement.executeQuery("SELECT speed,label FROM links WHERE num=1")) {
+        assertTrue(rows.next());
+        assertEquals(87.5, rows.getDouble(1));
+        assertEquals("Modified Liège 東京", rows.getString(2));
+      }
+      assertEquals(
+          "Modified Liège 東京", fixture.project.getLinkLayers()[0].getModel().getRecord(0).get(9));
+      assertEquals(5, fixture.project.getNewNodeId());
+      assertEquals(3, fixture.project.getNewLinkId());
+    }
+  }
+
+  @Test
+  void projectIsReadyOnlyAfterItsRealOpenHookCompletes() throws Exception {
+    try (Fixture fixture = new Fixture(false)) {
+      Files.writeString(
+          directory.resolve("project.groovy"),
+          "if (openProject) { nodusMapPanel.awaitOpenHook() }\n");
+      fixture.startOpen();
+      assertTrue(fixture.panel.hookEntered.await(10, TimeUnit.SECONDS));
+      assertFalse(fixture.project.isOpen());
+      assertTrue(fixture.panel.busy);
+      assertTrue(fixture.panel.fileMenuBusy);
+      assertEquals(1, fixture.project.getNodeLayers().length);
+      fixture.panel.hookRelease.countDown();
+      fixture.awaitOpen();
+      assertTrue(fixture.project.isOpen());
+      assertFalse(fixture.panel.busy);
+      assertTrue(fixture.panel.completionOnEdt);
+    }
+  }
+
+  @Test
+  void lateOpenFailureDisposesLoadedLayersClosesJdbcReleasesLockAndAllowsRetry() throws Exception {
+    try (Fixture fixture = new Fixture(false)) {
+      fixture.panel.failPluginLoad = true;
+      fixture.startOpen();
+      assertTrue(fixture.panel.finished.await(10, TimeUnit.SECONDS));
+      assertEquals(1, fixture.project.errors.size());
+      assertEquals("Injected late opening failure", fixture.project.errors.get(0).getMessage());
+      assertFalse(fixture.project.isOpen());
+      assertFalse(fixture.panel.busy);
+      assertFalse(fixture.panel.fileMenuBusy);
+      assertEquals(0, fixture.panel.layers.getLayers().length);
+      assertTrue(fixture.panel.failedConnection.isClosed());
+      for (NodusEsriLayer layer : fixture.panel.failedLayers) {
+        assertFalse(layer.isReady());
+        assertNull(layer.getTableName());
+        assertFalse(layer.numExists(1));
+      }
+      assertNull(fixture.project.getNodeLayers());
+      assertNull(fixture.project.getLinkLayers());
+      assertFalse(fixture.project.isOtherObjectsLoaded());
+      assertLockReleased();
+      fixture.panel.failPluginLoad = false;
+      fixture.project.errors.clear();
+      fixture.open();
+      assertTrue(fixture.project.isOpen());
+      assertEquals(5, fixture.project.getNewNodeId());
+    }
+  }
+
+  @Test
+  void failedBackgroundLayerLoadAlsoClosesThePartiallyOpenedProject() throws Exception {
+    try (Fixture fixture = new Fixture(false)) {
+      ProjectFilesFixture.writeDbf(
+          directory,
+          "nodes",
+          ProjectFilesFixture.fields(true, false),
+          java.nio.charset.StandardCharsets.UTF_8,
+          List.<Object[]>of(ProjectFilesFixture.row(true, false, 1, "only one attribute row")));
+      fixture.startOpen();
+      assertTrue(fixture.panel.finished.await(10, TimeUnit.SECONDS));
+      assertEquals(1, fixture.project.errors.size());
+      assertTrue(fixture.project.errors.get(0).getMessage().contains("Cannot read DBF attributes"));
+      assertTrue(fixture.project.failedConnection.isClosed());
+      assertFalse(fixture.project.isOpen());
+      assertFalse(fixture.panel.busy);
+      assertNull(fixture.project.getNodeLayers());
+      assertEquals(0, fixture.panel.layers.getLayers().length);
+      assertLockReleased();
+    }
+  }
+
+  @Test
+  void rescanningUnloadedLayersDropsStaleIdsAndIgnoresNonNodusLayers() throws Exception {
+    try (Fixture fixture = new Fixture(false)) {
+      fixture.open();
+      final ProjectLayerIds ids = new ProjectLayerIds(fixture.project);
+      ids.loadOtherLayersObjectNumbers(
+          fixture.project.getNodeLayers(), fixture.project.getLinkLayers());
+      assertEquals(java.util.Set.of(3, 4), ids.getOtherNodeNumbers().keySet());
+      assertEquals(java.util.Set.of(2), ids.getOtherLinkNumbers().keySet());
+      ProjectFilesFixture.writeLayer(directory, "outsideNodes", true, 6);
+      for (String extension : List.of(".shp", ".shx", ".dbf", ".cpg")) {
+        Files.delete(directory.resolve("outsideLinks" + extension));
+      }
+      ProjectFilesFixture.writeLayer(directory, "malformed", true, 3);
+      Files.delete(directory.resolve("malformed.shx"));
+      ids.loadOtherLayersObjectNumbers(
+          fixture.project.getNodeLayers(), fixture.project.getLinkLayers());
+      assertEquals(java.util.Set.of(6), ids.getOtherNodeNumbers().keySet());
+      assertTrue(ids.getOtherLinkNumbers().isEmpty());
+      // Point/link IDs have independent namespaces; loaded-layer IDs must not be cached here.
+      assertFalse(ids.getOtherNodeNumbers().containsKey(1));
+      assertTrue(ids.isOtherObjectsLoaded());
+      ids.clear();
+      assertFalse(ids.isOtherObjectsLoaded());
+      assertTrue(ids.getOtherNodeNumbers().isEmpty());
+      String projectPath = fixture.project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH);
+      try {
+        fixture.project.setLocalProperty(
+            NodusC.PROP_PROJECT_DOTPATH, directory.resolve("missing").toString());
+        assertThrows(
+            IllegalStateException.class,
+            () ->
+                ids.loadOtherLayersObjectNumbers(
+                    fixture.project.getNodeLayers(), fixture.project.getLinkLayers()));
+        assertFalse(ids.isOtherObjectsLoaded());
+      } finally {
+        fixture.project.setLocalProperty(NodusC.PROP_PROJECT_DOTPATH, projectPath);
+      }
+    }
+  }
+
+  private void assertLockReleased() throws Exception {
+    try (FileChannel channel =
+            FileChannel.open(
+                directory.resolve("project" + NodusC.TYPE_LOCK), StandardOpenOption.WRITE);
+        FileLock lock = channel.tryLock()) {
+      assertNotNull(lock);
+    }
+  }
+
+  private final class Fixture implements AutoCloseable {
+    final Logger previousLogger = Nodus.nodusLogger;
+    final Panel panel = new Panel();
+    final OpeningProject project = new OpeningProject(panel);
+    final String url;
+
+    Fixture(boolean hsql) throws Exception {
+      Nodus.nodusLogger = Logger.getAnonymousLogger();
+      panel.project = project;
+      final Path db = directory.resolve(hsql ? "hsqldb" : "h2db");
+      url = hsql ? "jdbc:hsqldb:file:" + db + ";shutdown=true" : "jdbc:h2:" + db;
+      ProjectFilesFixture.writeLayer(directory, "nodes", true, 1, 2);
+      ProjectFilesFixture.writeLayer(directory, "links", false, 1);
+      ProjectFilesFixture.writeLayer(directory, "outsideNodes", true, 3, 4);
+      ProjectFilesFixture.writeLayer(directory, "outsideLinks", false, 2);
+      Properties properties = new Properties();
+      properties.setProperty(NodusC.PROP_NETWORK_NODES, "nodes");
+      properties.setProperty(NodusC.PROP_NETWORK_LINKS, "links");
+      properties.setProperty(NodusC.PROP_JDBC_URL, url);
+      properties.setProperty(
+          NodusC.PROP_JDBC_DRIVER, hsql ? "org.hsqldb.jdbcDriver" : "org.h2.Driver");
+      properties.setProperty(NodusC.PROP_JDBC_USERNAME, "sa");
+      properties.setProperty(NodusC.PROP_JDBC_PASSWORD, "");
+      properties.setProperty(
+          NodusC.PROP_EMBEDDED_DB, "" + (hsql ? JDBCUtils.DB_HSQLDB : JDBCUtils.DB_H2));
+      properties.setProperty("nodes.prettyName", "Nodes");
+      properties.setProperty("precedence", "project value");
+      store(directory.resolve("project.nodus"), properties);
+      Properties local = new Properties();
+      local.setProperty("precedence", "old local value");
+      local.setProperty("onlyLocal", "local value");
+      local.setProperty(NodusC.PROP_JDBC_URL, "jdbc:invalid:must-not-be-used");
+      store(directory.resolve("project.nodus.local"), local);
+    }
+
+    void startOpen() throws Exception {
+      panel.finished = new CountDownLatch(1);
+      SwingUtilities.invokeAndWait(
+          () -> project.openProject(directory.resolve("project.nodus").toString()));
+    }
+
+    void awaitOpen() throws Exception {
+      assertTrue(panel.finished.await(10, TimeUnit.SECONDS), "Opening must finish");
+      if (!project.errors.isEmpty()) {
+        throw new AssertionError("Project opening failed", project.errors.get(0));
+      }
+      assertTrue(project.isOpen());
+    }
+
+    void open() throws Exception {
+      startOpen();
+      awaitOpen();
+    }
+
+    void closeProject() throws Exception {
+      CountDownLatch closed = new CountDownLatch(1);
+      SwingUtilities.invokeAndWait(() -> project.close(closed::countDown));
+      assertTrue(closed.await(10, TimeUnit.SECONDS), "Closing must finish");
+    }
+
+    @Override
+    public void close() throws Exception {
+      panel.hookRelease.countDown();
+      try {
+        if (project.isOpen()) {
+          closeProject();
+        } else if (panel.busy) {
+          assertTrue(panel.finished.await(10, TimeUnit.SECONDS));
+          if (project.isOpen()) {
+            closeProject();
+          }
+        }
+      } finally {
+        ProjectLocker.releaseLock();
+        JDBCUtils.setConnection(null);
+        Nodus.nodusLogger = previousLogger;
+        SwingUtilities.invokeAndWait(panel.map::dispose);
+      }
+    }
+  }
+
+  private static void store(Path file, Properties properties) throws Exception {
+    try (OutputStream output = Files.newOutputStream(file)) {
+      properties.store(output, null);
+    }
+  }
+
+  private static final class OpeningProject extends NodusProject {
+    final List<Throwable> errors = new ArrayList<>();
+    Connection failedConnection;
+
+    OpeningProject(Panel panel) {
+      super(panel);
+    }
+
+    @Override
+    ServiceHandler createServiceHandler() {
+      return new ServiceHandler(this, false);
+    }
+
+    @Override
+    void reportProjectOpenError(Throwable error) {
+      errors.add(error);
+      failedConnection = getMainJDBCConnection();
+    }
+  }
+
+  /** Headless presentation with real map, layer handler, drawing tool and projection stack. */
+  public static final class Panel extends NodusMapPanel {
+    private static final long serialVersionUID = 1L;
+    final MapBean map = new MapBean(false);
+    final LayerHandler layers = new LayerHandler();
+    final NodusLayersPanel controls = new NodusLayersPanel(this);
+    final NodusOMDrawingToolLauncher launcher = new NodusOMDrawingToolLauncher(this);
+    final NodusOMDrawingTool drawing = new NodusOMDrawingTool(this, launcher);
+    final ProjectionStack stack = new ProjectionStack();
+    final ToolPanel tools = new ToolPanel();
+    final CountDownLatch hookEntered = new CountDownLatch(1);
+    final CountDownLatch hookRelease = new CountDownLatch(1);
+    volatile CountDownLatch finished = new CountDownLatch(1);
+    volatile boolean busy;
+    volatile boolean fileMenuBusy;
+    volatile boolean completionOnEdt;
+    boolean failPluginLoad;
+    OpeningProject project;
+    Connection failedConnection;
+    NodusEsriLayer[] failedLayers;
+
+    Panel() {
+      map.setProjection(new Mercator(new LatLonPoint.Double(50, 4), 1000000, 800, 600));
+    }
+
+    /** Called from the real Groovy open hook. */
+    public void awaitOpenHook() throws InterruptedException {
+      hookEntered.countDown();
+      if (!hookRelease.await(10, TimeUnit.SECONDS)) {
+        throw new IllegalStateException("Hook was not released");
+      }
+    }
+
+    @Override
+    public NodusProject getNodusProject() {
+      return project;
+    }
+
+    @Override
+    public MapBean getMapBean() {
+      return map;
+    }
+
+    @Override
+    public LayerHandler getLayerHandler() {
+      return layers;
+    }
+
+    @Override
+    public NodusLayersPanel getNodusLayersPanel() {
+      return controls;
+    }
+
+    @Override
+    public NodusOMDrawingTool getNodusDrawingTool() {
+      return drawing;
+    }
+
+    @Override
+    public NodusOMDrawingToolLauncher getNodusDrawingToolLauncher() {
+      return launcher;
+    }
+
+    @Override
+    public ProjectionStack getProjectionStack() {
+      return stack;
+    }
+
+    @Override
+    public ToolPanel getToolPanel() {
+      return tools;
+    }
+
+    @Override
+    public java.awt.Frame getMainFrame() {
+      return null;
+    }
+
+    @Override
+    public String getActiveMouseMode() {
+      return "Gestures";
+    }
+
+    @Override
+    public void displayHighlightedAreaLayer(boolean added, boolean visible) {}
+
+    @Override
+    public void displayPoliticalBoundaries(boolean added, boolean visible) {}
+
+    @Override
+    public void resetMap() {}
+
+    @Override
+    public void resetTitle() {}
+
+    @Override
+    public void resetText() {}
+
+    @Override
+    public void setText(String text) {}
+
+    @Override
+    public void removeProjectPlugins() {}
+
+    @Override
+    public void enableMenus(boolean enabled) {}
+
+    @Override
+    public void restoreMainFrameFocus() {}
+
+    @Override
+    public void setActiveMouseMode(String mode) {}
+
+    @Override
+    public void updateScenarioComboBox(boolean reset) {}
+
+    @Override
+    public void setRenderingScaleThreshold(float scale) {}
+
+    @Override
+    public void setFileMenuBusy(boolean value) {
+      fileMenuBusy = value;
+    }
+
+    @Override
+    public void setBusy(boolean value) {
+      busy = value;
+      if (!value) {
+        completionOnEdt = SwingUtilities.isEventDispatchThread();
+        finished.countDown();
+      }
+    }
+
+    @Override
+    public void loadPlugins(String path, boolean projectScoped) {
+      if (failPluginLoad) {
+        failedConnection = project.getMainJDBCConnection();
+        failedLayers =
+            new NodusEsriLayer[] {project.getNodeLayers()[0], project.getLinkLayers()[0]};
+        throw new IllegalStateException("Injected late opening failure");
+      }
+    }
+  }
+}

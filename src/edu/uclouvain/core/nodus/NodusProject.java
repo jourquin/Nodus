@@ -881,6 +881,8 @@ public class NodusProject implements ShapeConstants {
 
   /** Releases project state after registered resources have stopped. */
   private void finishFailedProjectOpenCleanup() {
+    stopJdbcKeepAlive();
+    stopShapeIntegrityTester();
     closeServiceHandler();
 
     /*
@@ -897,7 +899,24 @@ public class NodusProject implements ShapeConstants {
     closeJdbcConnectionAfterFailedOpen();
     shutdownLocalDatabaseServer();
 
-    styles.clear();
+    LayerHandler handler = nodusMapPanel.getLayerHandler();
+    if (handler != null) {
+      Layer[] layers = handler.getLayers();
+      disposeAdditionalProjectLayers(layers);
+      for (Layer layer : layers) {
+        if (!isApplicationManagedLayer(layer)) {
+          layer.setRemovable(true);
+        }
+      }
+      handler.removeAll();
+      handler.setLayers(new Layer[0]);
+    }
+    disposeProjectObjectGraph();
+    if (nodusMapPanel.getNodusDrawingTool() != null) {
+      nodusMapPanel.getNodusDrawingTool().setNodusLayers(null, null);
+    }
+    layerIds.clear();
+    isOpen = false;
 
     ProjectLocker.releaseLock();
     projectCleanup = new ProjectCleanupRegistry();
@@ -1477,20 +1496,29 @@ public class NodusProject implements ShapeConstants {
             } catch (InterruptedException e) {
               Thread.currentThread().interrupt();
               cleanupFailedProjectOpen();
-            } catch (ExecutionException e) {
-              Throwable cause = e.getCause() == null ? e : e.getCause();
-              cause.printStackTrace();
-              JOptionPane.showMessageDialog(
-                  nodusMapPanel,
-                  cause.getMessage() == null ? cause.toString() : cause.getMessage(),
-                  NodusC.APPNAME,
-                  JOptionPane.ERROR_MESSAGE);
-              cleanupFailedProjectOpen();
+            } catch (ExecutionException | RuntimeException e) {
+              Throwable cause =
+                  e instanceof ExecutionException && e.getCause() != null ? e.getCause() : e;
+              try {
+                reportProjectOpenError(cause);
+              } finally {
+                cleanupFailedProjectOpen();
+              }
             }
           }
         };
 
     worker.execute();
+  }
+
+  /** Displays a loading failure; package visibility permits headless workflow tests. */
+  void reportProjectOpenError(Throwable cause) {
+    cause.printStackTrace();
+    JOptionPane.showMessageDialog(
+        nodusMapPanel,
+        cause.getMessage() == null ? cause.toString() : cause.getMessage(),
+        NodusC.APPNAME,
+        JOptionPane.ERROR_MESSAGE);
   }
 
   /** Imports additional DBF tables one by one without blocking the EDT. */
@@ -1691,11 +1719,16 @@ public class NodusProject implements ShapeConstants {
     nodusMapPanel.setRenderingScaleThreshold(
         getLocalProperty(NodusC.PROP_RENDERING_SCALE_THRESHOLD, (float) -1));
     NodeRulesReader.fixExclusionTableIfNeeded(this);
-    serviceHandler = new ServiceHandler(this);
+    serviceHandler = createServiceHandler();
     new ModalSplitMethodsLoader(this);
     // Modal JAR migration must finish before a general plugin loader can cache the old classes.
     nodusMapPanel.loadPlugins(getLocalProperty(NodusC.PROP_PROJECT_DOTPATH), true);
     runProjectLifecycleScriptAsync(true, false, this::completeProjectOpenUi);
+  }
+
+  /** Creates the service data handler and its desktop editor. */
+  ServiceHandler createServiceHandler() {
+    return new ServiceHandler(this);
   }
 
   /** Finalizes the project-open UI state once the optional Groovy hook has completed. */

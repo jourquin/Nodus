@@ -168,7 +168,7 @@ public final class ProjectLayerIds implements ShapeConstants {
         }
       }
     } catch (DBFException | IOException ex) {
-      ex.printStackTrace();
+      throw new IllegalStateException("Cannot load IDs from " + layerName, ex);
     }
   }
 
@@ -180,11 +180,14 @@ public final class ProjectLayerIds implements ShapeConstants {
    */
   public void loadOtherLayersObjectNumbers(
       NodusEsriLayer[] nodeLayers, NodusEsriLayer[] linkLayers) {
-    otherObjectsLoaded = false;
+    clear();
     // Scan all node layers
     String[] layerName =
         ProjectFilesTools.getAvailableLayers(
             project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH), SHAPE_TYPE_POINT);
+    if (layerName == null) {
+      throw new IllegalStateException("Cannot scan project directory for node IDs");
+    }
     for (String element : layerName) {
       if (isOtherNodusLayer(element, SHAPE_TYPE_POINT, nodeLayers, linkLayers)) {
         loadObjectIDs(element, otherNodeNumbers);
@@ -195,6 +198,9 @@ public final class ProjectLayerIds implements ShapeConstants {
     layerName =
         ProjectFilesTools.getAvailableLayers(
             project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH), SHAPE_TYPE_POLYLINE);
+    if (layerName == null) {
+      throw new IllegalStateException("Cannot scan project directory for link IDs");
+    }
     for (String element : layerName) {
       if (isOtherNodusLayer(element, SHAPE_TYPE_POLYLINE, nodeLayers, linkLayers)) {
         loadObjectIDs(element, otherLinkNumbers);
