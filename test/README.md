@@ -551,6 +551,20 @@ for the workflow mechanism.
   oversized vehicle counts, PCU contributions or directional totals must fail before this link's
   counts/traffic change. Covers fractional capacity, PCU zero, the integer upper boundary and
   positive demand whose division underflows, for ordinary and projected conversions.
+- `ReachabilityDijkstraTest`: compares all predecessor/distance arrays and graph state with
+  ordinary Dijkstra for linked and compact storage. Checks exact search/work counters and
+  controlled-clock estimates for mixed, unreachable, duplicate, empty and source destinations;
+  new sources/restriction sequences, increased/unsafe/overflowing costs, unexpected improvements,
+  failed calls and disabled auditing. Reuse estimates and retrospective preprocessing estimates
+  are checked separately; the observer must leave each search running normally.
+- `AssignmentComputingTimesTest`: deterministic clocks verify overlapping worker intervals,
+  per-thread database subtraction, nested exclusive coordinator phases, nested path-output calls,
+  partial failed stages, disabled audits, once-only merging/reporting and reset between runs.
+  Counters from a worker belonging to an earlier assignment cannot enter a later report.
+- `ComputingTimesAssignmentIntegrationTest`: fast and exact coordinators produce identical saved
+  paths, costs and network flows with auditing disabled, enabled and disabled again, using both
+  graph representations and serial/concurrent workers. Disconnected loading-mode alternatives
+  exercise the real reachability-observer wiring and its per-mode resets.
 - `MultiFlowEdgeUpdatesTest`: shared-edge penalties, loading restrictions on intermediate
   nodes, separate lifetimes of path marks and pending demand, and restoration between
   searches. Each case runs against linked and compact storage and checks resulting routes

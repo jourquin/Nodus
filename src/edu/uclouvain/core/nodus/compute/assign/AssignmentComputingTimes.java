@@ -428,6 +428,7 @@ public final class AssignmentComputingTimes {
    */
   public final class WorkerTimes implements AutoCloseable {
     private final boolean recording = enabled;
+    private final long run = runSequence;
     private final long[] durations = new long[WorkerPhase.values().length];
     private final long[] searchMeasurements =
         recording ? new long[ReachabilityMetric.values().length] : null;
@@ -540,7 +541,7 @@ public final class AssignmentComputingTimes {
       endPhase();
       closed = true;
       synchronized (AssignmentComputingTimes.this) {
-        if (enabled) {
+        if (enabled && run == runSequence) {
           for (int i = 0; i < durations.length; i++) {
             workerElapsed[i] += durations[i];
             workerPhases[i] |= phases[i];
