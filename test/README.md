@@ -426,6 +426,13 @@ for the workflow mechanism.
   boarding/alighting only at stops, through travel, transfer permissions, and waiting/transfer
   costs using the destination service's frequency. Edits to stops and frequencies must
   affect the next assignment without retaining previous outputs.
+- `ODTableDiscoveryTest`: actual H2/HSQLDB metadata distinguishes OD schemas from missing
+  columns, path headers, views, reserved result/service/rule tables and loaded layers. Checks
+  custom prefixes under different locales, exact quoted identifiers and case-distinct names,
+  active-schema scope (including wildcard characters), independent project/shared connections,
+  missing connections and fresh discovery after schema changes. SQL/metadata/close failures close
+  cursors and statements without hiding other candidates or changing caller-owned transactions,
+  savepoints, connection settings or shared JDBC state; schema probes never read demand rows.
 - `ODReaderIntegrationTest`: real SQL demand loading, duplicate aggregation, separate
   groups/destinations/classes/departure times, reordered columns, static versus timed loading,
   SQL selection, excluded invalid trips, empty selections, and changed demand on a fresh

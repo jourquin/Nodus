@@ -36,11 +36,13 @@ import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNodeList;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.MessageFormat;
+import java.util.Locale;
 import java.util.Vector;
 import javax.swing.JOptionPane;
 
@@ -55,7 +57,10 @@ public class ODReader {
   private static I18n i18n = Environment.getI18n();
 
   /**
-   * Returns a list containing all the valid OD tables found in the database.
+   * Returns OD candidate tables in the project connection's current catalog and schema.
+   *
+   * <p>Only column names are inspected; demand rows are not read. Metadata identifiers retain their
+   * exact spelling. Discovery leaves the connection, its transaction and shared JDBC state intact.
    *
    * @param nodusProject The Nodus project.
    * @return A Vector containing table names corresponding to valid OD tables.
@@ -65,54 +70,74 @@ public class ODReader {
     String vnetTablePrefix =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_VNET;
     vnetTablePrefix =
-        nodusProject.getLocalProperty(NodusC.PROP_VNET_TABLE, vnetTablePrefix).toLowerCase();
+        nodusProject
+            .getLocalProperty(NodusC.PROP_VNET_TABLE, vnetTablePrefix)
+            .toLowerCase(Locale.ROOT);
 
     String pathTablePrefix =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_PATH;
     pathTablePrefix =
-        nodusProject.getLocalProperty(NodusC.PROP_PATH_TABLE_PREFIX, pathTablePrefix).toLowerCase();
+        nodusProject
+            .getLocalProperty(NodusC.PROP_PATH_TABLE_PREFIX, pathTablePrefix)
+            .toLowerCase(Locale.ROOT);
 
     String excTablePrefix =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_EXC;
     excTablePrefix =
-        nodusProject.getLocalProperty(NodusC.PROP_EXC_TABLE, excTablePrefix).toLowerCase();
+        nodusProject
+            .getLocalProperty(NodusC.PROP_EXC_TABLE, excTablePrefix)
+            .toLowerCase(Locale.ROOT);
 
     String serviceTablePrefix =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_SERVICES;
     serviceTablePrefix =
         nodusProject
             .getLocalProperty(NodusC.PROP_SERVICES_TABLE_PREFIX, serviceTablePrefix)
-            .toLowerCase();
+            .toLowerCase(Locale.ROOT);
 
     Connection jdbcConnection = nodusProject.getMainJDBCConnection();
     Vector<String> tables = new Vector<>();
+    if (jdbcConnection == null) {
+      return tables;
+    }
 
-    try (ResultSet result = JDBCUtils.getTables()) {
-      while (result.next()) {
-        // if (result.getString(3).indexOf("$") == -1) {
-        // Keep only valid OD tables
-        String tableName = result.getString(3);
-        String s = tableName.toLowerCase();
-        if (s.startsWith(vnetTablePrefix)) {
-          continue;
+    try {
+      DatabaseMetaData metadata = jdbcConnection.getMetaData();
+      String schema = jdbcConnection.getSchema();
+      String quotes = metadata.getIdentifierQuoteString();
+      if (quotes == null || quotes.isBlank()) {
+        throw new SQLException("This database cannot quote OD table identifiers.");
+      }
+      try (ResultSet result =
+          metadata.getTables(jdbcConnection.getCatalog(), schema, "%", new String[] {"TABLE"})) {
+        while (result.next()) {
+          // Schema arguments are JDBC patterns: underscores and percent signs can match others.
+          if (schema != null && !schema.equals(result.getString("TABLE_SCHEM"))) {
+            continue;
+          }
+          // Keep only valid OD tables
+          String tableName = result.getString("TABLE_NAME");
+          String s = tableName.toLowerCase(Locale.ROOT);
+          if (s.startsWith(vnetTablePrefix)) {
+            continue;
+          }
+          if (s.startsWith(pathTablePrefix)) {
+            continue;
+          }
+          if (s.startsWith(excTablePrefix)) {
+            continue;
+          }
+          if (s.startsWith(serviceTablePrefix)) {
+            continue;
+          }
+          if (nodusProject.getLayer(tableName) != null) {
+            continue;
+          }
+          if (!ODReader.isValidBasicODTable(jdbcConnection, tableName, quotes)) {
+            continue;
+          }
+          tables.addElement(tableName);
         }
-        if (s.startsWith(pathTablePrefix)) {
-          continue;
-        }
-        if (s.startsWith(excTablePrefix)) {
-          continue;
-        }
-        if (s.startsWith(serviceTablePrefix)) {
-          continue;
-        }
-        if (nodusProject.getLayer(tableName) != null) {
-          continue;
-        }
-        if (!ODReader.isValidBasicODTable(jdbcConnection, tableName)) {
-          continue;
-        }
-        tables.addElement(tableName);
-        // }
       }
 
     } catch (SQLException e) {
@@ -128,16 +153,20 @@ public class ODReader {
    *
    * @param jdbcConnection A JDBC connection.
    * @param odTableName A Table name.
+   * @param quotes Identifier quotes supplied by this connection's metadata.
    * @return True if the table is a valid OD table.
    */
-  private static boolean isValidBasicODTable(Connection jdbcConnection, String odTableName) {
+  private static boolean isValidBasicODTable(
+      Connection jdbcConnection, String odTableName, String quotes) {
 
     // Test the structure of the table
     try (Statement stmt = jdbcConnection.createStatement();
         ResultSet rs =
             stmt.executeQuery(
                 "SELECT * FROM "
-                    + JDBCUtils.getQuotedCompliantIdentifier(odTableName)
+                    + quotes
+                    + odTableName.replace(quotes, quotes + quotes)
+                    + quotes
                     + " WHERE 1 = 0")) {
 
       // Get result set meta data
