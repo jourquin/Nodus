@@ -120,16 +120,16 @@ public class TableSorter extends AbstractTableModel {
 
   /** . */
   private Row[] viewToModel;
-  
+
   /** . */
   private int[] modelToView;
-  
+
   /** . */
   private JTableHeader tableHeader;
-  
+
   /** . */
   private MouseListener mouseListener;
-  
+
   /** . */
   private TableModelListener tableModelListener;
 
@@ -174,7 +174,7 @@ public class TableSorter extends AbstractTableModel {
   }
 
   /**
-   * Set table model.
+   * Replaces the table model and clears sorting directives from the previous structure.
    *
    * @param tableModel Table model.
    */
@@ -190,6 +190,7 @@ public class TableSorter extends AbstractTableModel {
       this.tableModel.addTableModelListener(tableModelListener);
     }
 
+    sortingColumns.clear();
     clearSortingState();
     fireTableStructureChanged();
   }
@@ -289,7 +290,7 @@ public class TableSorter extends AbstractTableModel {
   }
 
   /**
-   * Set column comparator.
+   * Sets or removes a column-type comparator and refreshes any active sorting.
    *
    * @param type The mapping key
    * @param comparator A Comparator
@@ -301,6 +302,10 @@ public class TableSorter extends AbstractTableModel {
       columnComparators.remove(type);
     } else {
       columnComparators.put(type, comparator);
+    }
+
+    if (isSorting()) {
+      sortingStatusChanged();
     }
   }
 
@@ -431,7 +436,7 @@ public class TableSorter extends AbstractTableModel {
         }
 
         if (comparison != 0) {
-          return directive.direction == DESCENDING ? -comparison : comparison;
+          return directive.direction == DESCENDING ? -Integer.signum(comparison) : comparison;
         }
       }
 
@@ -461,18 +466,18 @@ public class TableSorter extends AbstractTableModel {
         return;
       }
 
-      // We can map a cell event through to the view without widening
+      // We can map a cell update through to the view without widening
       // when the following conditions apply:
       //
       // a) all the changes are on one row (e.getFirstRow() == e.getLastRow()) and,
       // b) all the changes are in one column (column != TableModelEvent.ALL_COLUMNS) and,
       // c) we are not sorting on that column (getSortingStatus(column) == NOT_SORTED) and,
-      // upperBoundCosts) a reverse lookup will not trigger a sort (modelToView != null)
+      // d) a reverse lookup will not trigger a sort (viewToModel != null)
       //
-      // Note: INSERT and DELETE events fail this test as they have column == ALL_COLUMNS.
+      // INSERT and DELETE events always invalidate the row mapping.
       //
-      // The last check, for (modelToView != null) is to see if modelToView
-      // is already allocated. If we don't do this check; sorting can become
+      // The last check ensures that the forward mapping is already available, so building
+      // the reverse lookup cannot trigger sorting. Without this check, sorting can become
       // a performance bottleneck for applications where cells
       // change rapidly in different parts of the table. If cells
       // change alternately in the sorting column and then outside of
@@ -482,9 +487,10 @@ public class TableSorter extends AbstractTableModel {
       int column = e.getColumn();
 
       if (e.getFirstRow() == e.getLastRow()
+          && e.getType() == TableModelEvent.UPDATE
           && column != TableModelEvent.ALL_COLUMNS
           && getSortingStatus(column) == NOT_SORTED
-          && modelToView != null) {
+          && viewToModel != null) {
         int viewIndex = getModelToView()[e.getFirstRow()];
 
         fireTableChanged(
@@ -508,6 +514,9 @@ public class TableSorter extends AbstractTableModel {
       JTableHeader h = (JTableHeader) e.getSource();
       TableColumnModel columnModel = h.getColumnModel();
       int viewColumn = columnModel.getColumnIndexAtX(e.getX());
+      if (viewColumn == -1) {
+        return;
+      }
       int column = columnModel.getColumn(viewColumn).getModelIndex();
 
       if (column != -1) {

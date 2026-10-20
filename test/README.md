@@ -451,6 +451,11 @@ for the workflow mechanism.
   its overwrite callback on the EDT, and Groovy property access and batch scripts with comments,
   overlapping variable names and `STOP`. The frozen fixtures are documented in
   [sql-console-api/README.md](fixtures/sql-console-api/README.md).
+- `TableSorterTest`: headless EDT checks for sorted reads, edits and editability, stable
+  single/compound ordering and null values with comparable and lexical fallback types. Covers
+  comparator replacement/removal and extreme comparator results, precise model-to-view cell events,
+  lazy re-sorting, row insertion/deletion and data/structure/model replacement. Real JTable headers
+  exercise reordered columns, modifier keys, clicks outside columns, and listener/renderer cleanup.
 - `SQLConsoleComponentsTest`: JDBC result labels, NULLs, text headers and result-set closure;
   database metadata tables, columns and indexes; and history wrapping, deduplication,
   persistence and dispatch to the original listener.
