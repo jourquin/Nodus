@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.compute.assign;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -165,6 +166,23 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
       assertFalse(worker.isAlive(), "Worker still running after assignment completion");
     }
     assertTrue(panel.getAssignmentMenuItem().isEnabled());
+  }
+
+  /** Runs a canceled coordinator and checks its presentation and resource cleanup. */
+  void runCancelled(Assignment assignment, int concurrentJobs) {
+    panel.prepareRun(Math.min(assignment.getAssignmentParameters().getThreads(), concurrentJobs));
+    assignment.run();
+    assertEquals(SoundPlayer.SOUND_FAILURE, panel.completionSound);
+    assertTrue(panel.assignmentMessageTypes.isEmpty());
+    assertNull(assignment.getCompletion());
+    assertNull(assignment.getPathWriter());
+    assertNull(assignment.getAssignmentWorkers());
+    assertNull(assignment.getAssignmentParameters().getOutputTables());
+    assertEquals(-1, panel.progressLength);
+    assertTrue(panel.getAssignmentMenuItem().isEnabled());
+    for (Thread worker : panel.workers) {
+      assertFalse(worker.isAlive(), "Worker still running after cancellation");
+    }
   }
 
   /** Loads service definitions through the real database reader. */

@@ -355,6 +355,14 @@ for the workflow mechanism.
   choices as congestion changes, conservation, serial/concurrent agreement, repeated runs,
   and equivalence to all-or-nothing assignment when using one increment. Also checks runtime
   Groovy toggling of informational completion dialogs without changing assignment results.
+- `IncFrankWolfeAssignmentIntegrationTest`: four triangular warm-up increments followed by
+  real Frank-Wolfe routing and line search on analytical parallel routes. Checks conservation
+  and nonnegative flows before and after blending, equilibrium within vehicle/path rounding
+  tolerances, separate warm-up/FW completion counts, zero/one-iteration limits, and lambda
+  endpoints. Serial, concurrent and repeated results agree with route details enabled or disabled;
+  toggling details preserves mandatory headers and removes stale detail tables. Cancellation
+  during warm-up, FW routing or FW line search stops workers, preserves previous results,
+  removes temporary outputs and permits retry.
 - `ServiceDatabaseTest`: actual SQL rows and reloads for ordered/repeated links, empty services,
   authoritative renamed keys, Unicode/quoted names, missing graphics, orphan details, duplicate
   legacy headers/stops and legacy tables without path indexes. Checks individual writes and
