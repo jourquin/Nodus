@@ -119,14 +119,7 @@ public final class PerformanceDlg extends EscapeDialog {
       JOptionPane.showMessageDialog(
           this, failure.getMessage(), getTitle(), JOptionPane.ERROR_MESSAGE);
     }
-    String defaultHeader =
-        project.getLocalProperty(
-                NodusC.PROP_PATH_TABLE_PREFIX,
-                project.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_PATH)
-            + project.getLocalProperty(NodusC.PROP_SCENARIO, 0)
-            + NodusC.SUFFIX_HEADER;
-    selectHeader(defaultHeader);
-    selectHeader(project.getLocalProperty(PREFIX + "pathHeader", defaultHeader));
+    selectCurrentScenarioHeader(project, pathHeaders);
     pathHeaders.setToolTipText(
         text(
             "tooltip.pathHeaders",
@@ -159,13 +152,18 @@ public final class PerformanceDlg extends EscapeDialog {
             "Open the saved HTML performance report in the web browser after computation."));
     if (pathHeaders.getItemCount() == 0) {
       status.setText(text("NoHeader", "No assignment path-header table is available."));
+    } else if (pathHeaders.getSelectedItem() == null) {
+      status.setText(
+          text("NoScenarioHeader", "No path-header table is available for the current scenario."));
     }
     compute.setText(text("Compute", "Compute"));
     compute.setToolTipText(
         text(
             "tooltip.compute",
             "Compare the selected matrices and save the selected indicators in an HTML report."));
-    compute.setEnabled(pathHeaders.getItemCount() > 0);
+    compute.setEnabled(pathHeaders.getSelectedItem() != null);
+    pathHeaders.addActionListener(
+        event -> compute.setEnabled(worker == null && pathHeaders.getSelectedItem() != null));
     compute.addActionListener(event -> compute());
     close.setText(text("Close", "Close"));
     close.addActionListener(
@@ -214,10 +212,18 @@ public final class PerformanceDlg extends EscapeDialog {
         Math.max(screen.y, Math.min(getY(), screen.y + screen.height - getHeight())));
   }
 
-  private void selectHeader(String name) {
-    for (int index = 0; index < pathHeaders.getItemCount(); index++) {
-      if (pathHeaders.getItemAt(index).equalsIgnoreCase(name)) {
-        pathHeaders.setSelectedIndex(index);
+  /** Selects only the current scenario on opening, independent of earlier manual selections. */
+  static void selectCurrentScenarioHeader(NodusProject project, JComboBox<String> headers) {
+    String name =
+        project.getLocalProperty(
+                NodusC.PROP_PATH_TABLE_PREFIX,
+                project.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_PATH)
+            + project.getCurrentScenario()
+            + NodusC.SUFFIX_HEADER;
+    headers.setSelectedIndex(-1);
+    for (int index = 0; index < headers.getItemCount(); index++) {
+      if (headers.getItemAt(index).equalsIgnoreCase(name)) {
+        headers.setSelectedIndex(index);
         return;
       }
     }
@@ -278,7 +284,6 @@ public final class PerformanceDlg extends EscapeDialog {
     }
     project.setLocalProperty(
         PREFIX + "matrices", new LogitCalibrationSettings(1, mapping).encode());
-    project.setLocalProperty(PREFIX + "pathHeader", header);
     project.setLocalProperty(
         PREFIX + "indicators", selected.stream().map(Enum::name).collect(Collectors.joining(",")));
     project.setLocalProperty(PREFIX + "displayReport", openReport);
@@ -346,7 +351,7 @@ public final class PerformanceDlg extends EscapeDialog {
               worker = null;
               enable(inputs, true);
               displayReport.setEnabled(true);
-              compute.setEnabled(pathHeaders.getItemCount() > 0);
+              compute.setEnabled(pathHeaders.getSelectedItem() != null);
               close.setText(text("Close", "Close"));
               mapPanel.getAssignmentMenuItem().setEnabled(true);
               if (closeRequested) {
