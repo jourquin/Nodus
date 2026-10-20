@@ -520,7 +520,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Improved project locker
 - Improved close/open workflow
 - Rename/Delete scenario now also updates the node rules accordingly
-- Improved WMS client and add alternative server in demo.openmap
+- Improved WMS/tiles clients and add alternative server in demo.openmap
 - Fix a potential bug in in the length calculation of polylines
 - More robust vehicle parser   
 - More robust validation of mandatory layer fields at loading time
@@ -530,5 +530,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - More robust scenario comparison and summation
 - More robust plugin load workflow
 - More robust OD reader
-- Fix potential bug in TableSorter 
+- Fix potential bug in TableSorter
+- Set the default table in the performance dialog to current scenario 
 

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WMS_Capabilities version="1.3.0" xmlns="http://www.opengis.net/wms"
+                  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <Service><Name>WMS</Name><Title>Belgian maps</Title></Service>
+  <Capability>
+    <Request>
+      <GetMap>
+        <Format>image/png</Format><Format>image/jpeg</Format>
+        <DCPType><HTTP>
+          <Get><OnlineResource xlink:href="https://maps.example.test/get?token=a&amp;mode=b"/></Get>
+          <Post><OnlineResource xlink:href="https://maps.example.test/post"/></Post>
+        </HTTP></DCPType>
+      </GetMap>
+    </Request>
+    <Layer>
+      <Title>Belgium</Title><CRS>EPSG:4326</CRS>
+      <EX_GeographicBoundingBox>
+        <westBoundLongitude>2</westBoundLongitude><eastBoundLongitude>7</eastBoundLongitude>
+        <southBoundLatitude>49</southBoundLatitude><northBoundLatitude>52</northBoundLatitude>
+      </EX_GeographicBoundingBox>
+      <Layer><Name>roads</Name><Title>Roads &amp; bridges</Title><Abstract>Transport links</Abstract></Layer>
+      <Layer><Name>ports</Name><Title>Ports</Title>
+        <EX_GeographicBoundingBox>
+          <westBoundLongitude>3</westBoundLongitude><eastBoundLongitude>5</eastBoundLongitude>
+          <southBoundLatitude>50</southBoundLatitude><northBoundLatitude>51</northBoundLatitude>
+        </EX_GeographicBoundingBox>
+      </Layer>
+    </Layer>
+  </Capability>
+</WMS_Capabilities>

@@ -210,8 +210,19 @@ for the workflow mechanism.
   [capabilities fixture](fixtures/wms/capabilities-1.1.1.xml) covers service/format/URL metadata,
   nested layers, inherited bounds, styles and split character callbacks. Actual layer requests check
   successful caching, single-layer roots and rejection/retry after unsafe or late malformed XML.
+  They also check capabilities query separators, service/version parameters, UTF-8 vendor values,
+  missing GET bindings, invalid numeric bounds, server reconfiguration and map requests using the
+  advertised GET endpoint with its existing query parameters.
   Security settings follow the
   [JAXP security guidance](https://docs.oracle.com/en/java/javase/11/security/java-api-xml-processing-jaxp-security-guide.html).
+- `WmsCapabilitiesParsingTest`: offline WMS 1.1, legacy Map and
+  [WMS 1.3](fixtures/wms/capabilities-1.3.0.xml) metadata; default and explicit namespaces, arbitrary
+  XLink prefixes, nested bounds and overrides, CRS, GET versus POST/other operations, scoped
+  attribution/style/vendor metadata and checked failures for missing or nonfinite coordinates.
+- `NodusMapTileLayerTest`: headless EDT control actions apply and persist transparency for server
+  and local tile factories, restore saved opacity and clear memory/disk caches while preserving a
+  second layer's files. Missing-server preparation never calls the tile factory. No public map
+  servers, rendered-pixel comparisons or dialog construction are involved.
 - `ExtensionApiCompatibilityTest`: the frozen public/protected API of the four extension
   entry classes, a plugin and subclass compiled before their refactoring, plugin menu dispatch
   and project/global disposal, and Groovy bean properties, overloads and shared collections.

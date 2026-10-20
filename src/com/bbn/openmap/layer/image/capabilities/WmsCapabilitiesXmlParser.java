@@ -23,6 +23,10 @@ package com.bbn.openmap.layer.image.capabilities;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.Locale;
 import java.util.Vector;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.ParserConfigurationException;
@@ -41,8 +45,8 @@ import org.xml.sax.ext.DefaultHandler2;
  * <p>Use {@link #parse(InputStream)} for untrusted XML. It configures the XML reader as well as the
  * callbacks; creating a handler alone does not secure a caller's SAX reader.
  *
- * <p>The parser doesn't work with WMS 1.3 specs (which doesn't use latlonboundingbox anymore), so
- * that "&version=1.1" must for instance be added to the capabilities request.
+ * <p>Supports legacy Map and WMS 1.1/1.3 GetMap descriptions, including namespaced layer metadata
+ * and inherited geographic bounds. Only HTTP GET bindings are used by this client.
  *
  * <p>The code of this parser is inspired from wmsClient 1.2, see
  * http://www.mancke-software.de/wmsClient/ for details." <br>
@@ -50,20 +54,23 @@ import org.xml.sax.ext.DefaultHandler2;
  * @author Bart Jourquin
  */
 public class WmsCapabilitiesXmlParser extends DefaultHandler2 {
-  private String charBuff;
+  private final Deque<Element> elements = new ArrayDeque<>();
 
-  @SuppressWarnings("rawtypes")
-  private Vector<Vector> currPath;
-
-  private boolean getMapIsParent;
-
-  private boolean layerIsParent;
-
-  private boolean mapIsParent;
+  private Vector<Vector<Object>> currPath;
 
   private WmsServerInfo server;
 
-  private boolean serviceIsParent;
+  /** Keeps text scoped to its element, including split SAX character callbacks. */
+  private static final class Element {
+    final String name;
+    final StringBuilder text = new StringBuilder();
+    final String[] bounds;
+
+    Element(String name) {
+      this.name = name;
+      bounds = name.equals("ex_geographicboundingbox") ? new String[4] : null;
+    }
+  }
 
   /**
    * Parses capabilities using the same restricted XML configuration as the WMS layer.
@@ -150,10 +157,8 @@ public class WmsCapabilitiesXmlParser extends DefaultHandler2 {
    */
   @Override
   public void characters(char[] ch, int start, int length) {
-    if (charBuff == null) {
-      charBuff = new String(ch, start, length);
-    } else {
-      charBuff += new String(ch, start, length);
+    if (!elements.isEmpty()) {
+      elements.getLast().text.append(ch, start, length);
     }
   }
 
@@ -162,8 +167,7 @@ public class WmsCapabilitiesXmlParser extends DefaultHandler2 {
    *
    * @param node Vector
    */
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  protected void eliminateInnerNodes(Vector node) {
+  protected void eliminateInnerNodes(Vector<Object> node) {
     for (int i = 0; i < node.size(); i++) {
       CapabilitiesInnerTreeNode currChild = (CapabilitiesInnerTreeNode) node.elementAt(i);
 
@@ -190,40 +194,87 @@ public class WmsCapabilitiesXmlParser extends DefaultHandler2 {
    * @param localName String
    * @param name String
    */
-  @SuppressWarnings("unchecked")
   @Override
-  public void endElement(String uri, String localName, String name) {
-    if (name.toLowerCase().equals("layer")) {
-      Object child = currPath.remove(currPath.size() - 1);
+  public void endElement(String uri, String localName, String name) throws SAXException {
+    final Element element = elements.removeLast();
+    final String field = element.name;
+    final String text = element.text.toString().trim();
+    if (field.equals("layer")) {
+      final Object child = currPath.remove(currPath.size() - 1);
       currPath.lastElement().add(child);
-    } else if (layerIsParent
-        && currPath.size() > 1
-        && (name.toLowerCase().equals("srs")
-            || name.toLowerCase().equals("title")
-            || name.toLowerCase().equals("name")
-            || name.toLowerCase().equals("abstract"))) {
-      ((CapabilitiesInnerTreeNode) currPath.lastElement())
-          .getLayerInformation()
-          .setField(name.toLowerCase(), charBuff);
-    } else if (name.toLowerCase().equals("getmap")) {
-      getMapIsParent = false;
-    } else if (name.toLowerCase().equals("service")) {
-      serviceIsParent = false;
-    } else if (name.toLowerCase().equals("map")) {
-      mapIsParent = false;
+    } else if (pathEndsWith("layer") && currPath.size() > 1) {
+      final WmsLayerInfo layer = currentLayer();
+      switch (field) {
+        case "srs":
+        case "crs":
+          layer.setField("srs", text);
+          break;
+        case "title":
+        case "name":
+        case "abstract":
+          layer.setField(field, text.isEmpty() ? null : text);
+          break;
+        case "ex_geographicboundingbox":
+          setBounds(layer, element.bounds);
+          break;
+        default:
+          break;
+      }
+    } else if (!elements.isEmpty() && elements.getLast().bounds != null) {
+      final String[] bounds = elements.getLast().bounds;
+      switch (field) {
+        case "westboundlongitude":
+          bounds[0] = text;
+          break;
+        case "southboundlatitude":
+          bounds[1] = text;
+          break;
+        case "eastboundlongitude":
+          bounds[2] = text;
+          break;
+        case "northboundlatitude":
+          bounds[3] = text;
+          break;
+        default:
+          break;
+      }
+    } else if (field.equals("format") && pathEndsWith("getmap") && !text.isEmpty()) {
+      server.addGetMapFormat(text);
+    } else if (field.equals("title") && pathEndsWith("service")) {
+      server.setServerName(text);
     }
+  }
 
-    if (name.toLowerCase().equals("style")) {
-      layerIsParent = true;
-    }
+  private WmsLayerInfo currentLayer() {
+    return ((CapabilitiesInnerTreeNode) currPath.lastElement()).getLayerInformation();
+  }
 
-    if (getMapIsParent && name.toLowerCase().equals("format")) {
-      server.addGetMapFormat(charBuff);
+  private boolean pathEndsWith(String... names) {
+    final Iterator<Element> path = elements.descendingIterator();
+    for (int i = names.length - 1; i >= 0; i--) {
+      if (!path.hasNext() || !path.next().name.equals(names[i])) {
+        return false;
+      }
     }
+    return true;
+  }
 
-    if (serviceIsParent && name.toLowerCase().equals("title")) {
-      server.setServerName(charBuff);
+  private static void setBounds(WmsLayerInfo layer, String[] bounds) throws SAXException {
+    final float[] values = new float[4];
+    for (int i = 0; i < values.length; i++) {
+      try {
+        if (bounds[i] == null) {
+          throw new NumberFormatException("Missing coordinate");
+        }
+        values[i] = Float.parseFloat(bounds[i]);
+        if (!Float.isFinite(values[i])) {
+          throw new NumberFormatException("Nonfinite coordinate");
+        }
+      } catch (NumberFormatException e) {
+        throw new SAXException("Invalid WMS geographic bounding box", e);
+      }
     }
+    layer.setLatLonBoundingBox(values[0], values[1], values[2], values[3]);
   }
 
   /**
@@ -253,7 +304,7 @@ public class WmsCapabilitiesXmlParser extends DefaultHandler2 {
 
     currPath = new Vector<>();
     currPath.add(server);
-    charBuff = null;
+    elements.clear();
   }
 
   /**
@@ -265,66 +316,65 @@ public class WmsCapabilitiesXmlParser extends DefaultHandler2 {
    * @param attributes Attributes
    */
   @Override
-  public void startElement(String uri, String localName, String name, Attributes attributes) {
-    charBuff = null;
+  public void startElement(String uri, String localName, String name, Attributes attributes)
+      throws SAXException {
+    String field = localName.isEmpty() ? name : localName;
+    field = field.toLowerCase(Locale.ROOT);
+    if (!uri.isEmpty() && !uri.equals("http://www.opengis.net/wms")) {
+      field = "";
+    }
 
-    if (name.toLowerCase().equals("layer")) {
-      WmsLayerInfo layerInfo = new WmsLayerInfo(server);
-
-      if (attributes.getValue("queryable") == null) {
-        layerInfo.setField("queryable", "0");
+    if (field.equals("layer")) {
+      if (elements.isEmpty() || pathEndsWith("layer") || pathEndsWith("capability")) {
+        final WmsLayerInfo layer = new WmsLayerInfo(server);
+        layer.setField(
+            "queryable",
+            attributes.getValue("queryable") == null ? "0" : attributes.getValue("queryable"));
+        if (currPath.size() > 1) {
+          layer.setParentLayer(currentLayer());
+        }
+        currPath.add(new CapabilitiesInnerTreeNode(layer));
       } else {
-        layerInfo.setField("queryable", attributes.getValue("queryable"));
+        field = "";
       }
-
-      if (currPath.size() > 1) {
-        layerInfo.setParentLayer(
-            ((CapabilitiesInnerTreeNode) currPath.lastElement()).getLayerInformation());
+    } else if (field.equals("latlonboundingbox") && pathEndsWith("layer")) {
+      setBounds(
+          currentLayer(),
+          new String[] {
+            attributes.getValue("minx"),
+            attributes.getValue("miny"),
+            attributes.getValue("maxx"),
+            attributes.getValue("maxy")
+          });
+    } else if (field.equals("onlineresource") && pathEndsWith("getmap", "dcptype", "http", "get")) {
+      String url = attributes.getValue("http://www.w3.org/1999/xlink", "href");
+      if (url == null) {
+        url = attributes.getValue("xlink:href");
       }
-
-      currPath.add(new CapabilitiesInnerTreeNode(layerInfo));
-      layerIsParent = true;
-    } else if (name.toLowerCase().equals("srs")
-        || name.toLowerCase().equals("title")
-        || name.toLowerCase().equals("name")
-        || name.toLowerCase().equals("abstract")) {
-      // Not implemented here. Is it useful?
-    } else if (layerIsParent && name.toLowerCase().equals("latlonboundingbox")) {
-      ((CapabilitiesInnerTreeNode) currPath.lastElement())
-          .getLayerInformation()
-          .setLatLonBoundingBox(
-              Float.parseFloat(attributes.getValue("minx")),
-                  Float.parseFloat(attributes.getValue("miny")),
-              Float.parseFloat(attributes.getValue("maxx")),
-                  Float.parseFloat(attributes.getValue("maxy")));
-    } else {
-      if (name.toLowerCase().equals("style")) {
-        layerIsParent = false;
-      }
-
-      if (name.toLowerCase().equals("getmap")) {
-        getMapIsParent = true;
-      } else if (name.toLowerCase().equals("service")) {
-        serviceIsParent = true;
-      } else if (name.toLowerCase().equals("map")) {
-        mapIsParent = true;
+      setGetMapUrl(url);
+    } else if (field.equals("get") && pathEndsWith("map", "dcptype", "http")) {
+      setGetMapUrl(attributes.getValue("onlineResource"));
+    } else if (pathEndsWith("map", "format")) {
+      switch (field) {
+        case "jpeg":
+          server.addGetMapFormat("image/jpeg");
+          break;
+        case "png":
+          server.addGetMapFormat("image/png");
+          break;
+        case "gif":
+          server.addGetMapFormat("image/gif");
+          break;
+        default:
+          break;
       }
     }
+    elements.addLast(new Element(field));
+  }
 
-    if (getMapIsParent && name.toLowerCase().equals("onlineresource")) {
-      server.setGetMapUrl(attributes.getValue("xlink:href"));
-    }
-
-    if (mapIsParent && name.toLowerCase().equals("get")) {
-      server.setGetMapUrl(attributes.getValue("onlineResource"));
-    }
-
-    if (mapIsParent && name.toLowerCase().equals("jpeg")) {
-      server.addGetMapFormat("image/jpeg");
-    } else if (mapIsParent && name.toLowerCase().equals("png")) {
-      server.addGetMapFormat("image/png");
-    } else if (mapIsParent && name.toLowerCase().equals("gif")) {
-      server.addGetMapFormat("image/gif");
+  private void setGetMapUrl(String url) {
+    if (server.getGetMapUrl() == null && url != null && !url.isBlank()) {
+      server.setGetMapUrl(url.trim());
     }
   }
 }

@@ -40,6 +40,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
+import javax.swing.SwingConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -63,10 +64,7 @@ public class NodusMapTileLayer extends MapTileLayer {
   /** . */
   private JPanel clearCachePanel = null;
 
-  
-  /**
-   * Tracks the state of the server.
-   */
+  /** Tracks the state of the server. */
   protected boolean isServerReachable;
 
   /** . */
@@ -77,7 +75,7 @@ public class NodusMapTileLayer extends MapTileLayer {
 
   /** . */
   private JPanel transparencyPanel = null;
-  
+
   /** Default constructor. */
   public NodusMapTileLayer() {
     super();
@@ -168,15 +166,11 @@ public class NodusMapTileLayer extends MapTileLayer {
   private JPanel getTransparencyPanel() {
 
     if (transparencyPanel == null) {
-      JPanel gui = (JPanel) super.getGUI();
-
-      // The transparency panel is the first panel in the gui
-      for (int i = 0; i < gui.getComponentCount(); i++) {
-        if (gui.getComponent(i).getClass() == JPanel.class) {
-          transparencyPanel = (JPanel) gui.getComponent(i);
-          break;
-        }
-      }
+      transparencyPanel =
+          getTransparencyAdjustmentPanel(
+              i18n.get(NodusMapTileLayer.class, "layerTransparency", "Layer Transparency"),
+              SwingConstants.HORIZONTAL,
+              getTransparency());
 
       int n = transparencyPanel.getComponentCount();
       for (int i = 0; i < n; i++) {
@@ -193,11 +187,14 @@ public class NodusMapTileLayer extends MapTileLayer {
                 @Override
                 public void stateChanged(ChangeEvent e) {
                   JSlider s = (JSlider) e.getSource();
+                  // Apply keyboard changes as well as mouse drags.
                   // Compute the transparency value
                   float value = (float) s.getValue() / (float) (s.getMaximum() - s.getMinimum());
                   String key =
                       PropUtils.getScopedPropertyPrefix(prefix)
                           + OMGraphicHandlerLayer.TransparencyProperty;
+                  setTransparency(value);
+                  repaint();
                   props.setProperty(key, Float.toString(value));
                 }
               });

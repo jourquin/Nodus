@@ -24,7 +24,6 @@ package com.bbn.openmap.layer.image;
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.layer.image.capabilities.ICapabilitiesNodeInterface;
 import com.bbn.openmap.layer.image.capabilities.WmsCapabilitiesXmlParser;
-import com.bbn.openmap.layer.image.capabilities.WmsLayerInfo;
 import com.bbn.openmap.layer.image.gui.WmsLayersChooserDlg;
 import com.bbn.openmap.proj.Gnomonic;
 import com.bbn.openmap.proj.Projection;
@@ -115,6 +114,11 @@ public class NodusWMSLayer extends WMSLayer {
     }
 
     String s = super.createQueryString(p);
+    // OpenMap always appends '?', even when the advertised endpoint has a query already.
+    if (s != null && queryHeader.indexOf('?') >= 0) {
+      final String separator = queryHeader.endsWith("?") || queryHeader.endsWith("&") ? "" : "&";
+      s = queryHeader + separator + s.substring(queryHeader.length() + 1);
+    }
 
     if (p instanceof Gnomonic) {
       JOptionPane.showMessageDialog(
@@ -162,7 +166,7 @@ public class NodusWMSLayer extends WMSLayer {
       buf.append('&');
     }
 
-    buf.append("REQUEST=GetCapabilities").append("&version=").append(wmsVersion);
+    buf.append("SERVICE=WMS&REQUEST=GetCapabilities").append("&version=").append(wmsVersion);
 
     if (vendorSpecificNames != null) {
       if (vendorSpecificValues != null) {
@@ -217,39 +221,32 @@ public class NodusWMSLayer extends WMSLayer {
         return false;
       }
 
-      // Retrieve the parsed data
-      Vector<?> constructedDataTree = null;
-
-      try {
-        constructedDataTree = cparser.getDataTree();
-      } catch (Exception ex1) {
-        // Create and start the thread
-        Thread thread =
-            new ThreadedDialog(
-                i18n.get(
-                    NodusWMSLayer.class,
-                    "Could_not_parse_capabilities",
-                    "Could not parse capabilities"));
-        thread.start();
-
+      final Vector<?> constructedDataTree = cparser.getDataTree();
+      if (constructedDataTree == null || constructedDataTree.isEmpty()) {
+        reportCapabilitiesError(
+            i18n.get(
+                NodusWMSLayer.class,
+                "Error_on_parsing_the_server_description",
+                "Error on parsing the server description"));
+        return false;
+      }
+      final ICapabilitiesNodeInterface root =
+          (ICapabilitiesNodeInterface) constructedDataTree.firstElement();
+      final String mapUrl = root.getLayerInformation().getServerInformation().getGetMapUrl();
+      if (mapUrl == null || mapUrl.isBlank()) {
+        reportCapabilitiesError(
+            i18n.get(
+                NodusWMSLayer.class,
+                "Could_not_parse_capabilities",
+                "Could not parse capabilities"));
         return false;
       }
 
-      if (constructedDataTree == null || constructedDataTree.size() == 0) {
-        // Create and start the thread
-        Thread thread =
-            new ThreadedDialog(
-                i18n.get(
-                    NodusWMSLayer.class,
-                    "Error_on_parsing_the_server_description",
-                    "Error on parsing the server description"));
-        thread.start();
-
-        return false;
-      }
-
+      // Publish only a complete tree with a usable GET binding.
       treeData = new Vector<>();
-      treeData.add(constructedDataTree.elementAt(0));
+      treeData.add(constructedDataTree.firstElement());
+      super.wmsServer = mapUrl;
+      queryHeader = mapUrl;
       capabilitiesAlreadyFetched = true;
     } catch (java.net.MalformedURLException murle) {
       Thread thread =
@@ -274,11 +271,6 @@ public class NodusWMSLayer extends WMSLayer {
         urlc.disconnect();
       }
     }
-
-    // Find the name of the server in treeData
-    ICapabilitiesNodeInterface ctsn = (ICapabilitiesNodeInterface) treeData.elementAt(0);
-    WmsLayerInfo wli = ctsn.getLayerInformation();
-    super.wmsServer = wli.getServerInformation().getGetMapUrl();
 
     return true;
   }
@@ -381,9 +373,11 @@ public class NodusWMSLayer extends WMSLayer {
   public void setProperties(String prefix, Properties p) {
     properties = p;
     this.prefix = PropUtils.getScopedPropertyPrefix(prefix);
+    capabilitiesAlreadyFetched = false;
+    treeData = null;
 
     // Just to avoid ugly java message during reprojections
-    p.setProperty(prefix + "interruptable", "false");
+    p.setProperty(this.prefix + "interruptable", "false");
 
     // Test if server is reachable
     String key =

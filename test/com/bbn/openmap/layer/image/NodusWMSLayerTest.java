@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -42,11 +43,15 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -314,6 +319,137 @@ class NodusWMSLayerTest {
     }
   }
 
+  @TestFactory
+  List<DynamicTest> capabilitiesRequestsRetainEndpointParametersAndEncodeVendorValues() {
+    final List<DynamicTest> tests = new ArrayList<>();
+    for (String suffix : List.of("", "?", "?token=abc", "?token=abc&")) {
+      tests.add(
+          dynamicTest(
+              "suffix=" + suffix,
+              () -> {
+                try (CanaryServer server = new CanaryServer()) {
+                  final TestLayer layer = new TestLayer(server.capabilitiesUrl() + suffix);
+                  layer.setWmsVersion("1.3.0");
+                  layer.setVendorSpecificNames(" api key, label");
+                  layer.setVendorSpecificValues(" a&b=+?, é space");
+                  assertTrue(layer.getCapabilities());
+                  final Map<String, String> query = decodeQuery(server.query.get());
+                  assertEquals("WMS", query.get("SERVICE"));
+                  assertEquals("GetCapabilities", query.get("REQUEST"));
+                  assertEquals("1.3.0", query.get("version"));
+                  assertEquals("a&b=+?", query.get("api key"));
+                  assertEquals("é space", query.get("label"));
+                  assertEquals(suffix.contains("token") ? "abc" : null, query.get("token"));
+                }
+              }));
+    }
+    return tests;
+  }
+
+  @TestFactory
+  List<DynamicTest> missingGetEndpointsAreRejectedWithoutCachingAndCanBeRetried() {
+    final List<DynamicTest> tests = new ArrayList<>();
+    for (boolean postOnly : new boolean[] {false, true}) {
+      tests.add(
+          dynamicTest(
+              "postOnly=" + postOnly,
+              () -> {
+                try (CanaryServer server = new CanaryServer()) {
+                  final String xml = document();
+                  server.capabilities.set(
+                      postOnly
+                          ? xml.replace("<Get>", "<Post>").replace("</Get>", "</Post>")
+                          : xml.replace("xlink:href=", "unused="));
+                  final TestLayer layer = new TestLayer(server.capabilitiesUrl());
+                  assertFalse(layer.getCapabilities());
+                  assertNull(layer.getTreeData());
+                  assertEquals(1, layer.errors.size());
+                  server.capabilities.set(xml);
+                  assertTrue(layer.getCapabilities());
+                  assertCapabilities(layer.getTreeData());
+                  assertEquals(2, server.capabilitiesRequests.get());
+                }
+              }));
+    }
+    return tests;
+  }
+
+  @TestFactory
+  List<DynamicTest> reconfiguringALayerInvalidatesItsCapabilitiesAndScopesItsSettings() {
+    final List<DynamicTest> tests = new ArrayList<>();
+    for (String prefix : List.of("maps", "maps.")) {
+      tests.add(
+          dynamicTest(
+              prefix,
+              () -> {
+                try (CanaryServer server = new CanaryServer()) {
+                  final TestLayer layer = new TestLayer(server.capabilitiesUrl());
+                  assertTrue(layer.getCapabilities());
+                  final Vector<Object> original = layer.getTreeData();
+                  final Properties props = new Properties();
+                  props.setProperty("maps.wmsserver", server.capabilitiesUrl() + "?token=new");
+                  props.setProperty("maps.layers", "water");
+                  server.capabilities.set(
+                      document().replace("<Title>All layers</Title>", "<Title>New server</Title>"));
+                  layer.setProperties(prefix, props);
+                  assertEquals("false", props.getProperty("maps.interruptable"));
+                  assertFalse(props.containsKey("mapsinterruptable"));
+                  assertTrue(layer.getCapabilities());
+                  assertNotSame(original, layer.getTreeData());
+                  assertEquals(2, server.capabilitiesRequests.get());
+                  assertEquals(
+                      "New server",
+                      ((ICapabilitiesNodeInterface) layer.getTreeData().get(0))
+                          .getLayerInformation()
+                          .getField("title"));
+                  assertEquals("new", decodeQuery(server.query.get()).get("token"));
+                }
+              }));
+    }
+    return tests;
+  }
+
+  @Test
+  void mapQueriesUseAdvertisedGetEndpointAndItsExistingParameters() throws Exception {
+    try (CanaryServer server = new CanaryServer()) {
+      final TestLayer layer = new TestLayer(server.capabilitiesUrl());
+      layer.setLayers("roads");
+      final String query = layer.createQueryString(null);
+      assertTrue(query.startsWith(MAP_URL + "&VERSION="), query);
+      assertEquals(1, server.capabilitiesRequests.get());
+      assertEquals("a", decodeQuery(query.substring(query.indexOf('?') + 1)).get("token"));
+      assertEquals("b", decodeQuery(query.substring(query.indexOf('?') + 1)).get("mode"));
+    }
+  }
+
+  @Test
+  void malformedNumericBoundsAreRejectedWithoutPublishingPartialLayers() throws Exception {
+    try (CanaryServer server = new CanaryServer()) {
+      server.capabilities.set(document().replace("minx=\"2\"", "minx=\"bad\""));
+      final TestLayer layer = new TestLayer(server.capabilitiesUrl());
+      assertFalse(layer.getCapabilities());
+      assertNull(layer.getTreeData());
+      assertEquals(1, layer.errors.size());
+      server.capabilities.set(document());
+      assertTrue(layer.getCapabilities());
+      assertCapabilities(layer.getTreeData());
+      assertEquals(2, server.capabilitiesRequests.get());
+    }
+  }
+
+  private static Map<String, String> decodeQuery(String query) {
+    final Map<String, String> result = new LinkedHashMap<>();
+    for (String entry : query.split("&")) {
+      final String[] pair = entry.split("=", 2);
+      if (pair.length == 2) {
+        result.put(
+            URLDecoder.decode(pair[0], StandardCharsets.UTF_8),
+            URLDecoder.decode(pair[1], StandardCharsets.UTF_8));
+      }
+    }
+    return result;
+  }
+
   private static String document() throws IOException {
     return Files.readString(Path.of("test/fixtures/wms/capabilities-1.1.1.xml"));
   }
@@ -392,6 +528,7 @@ class NodusWMSLayerTest {
   }
 
   private static final class CanaryServer implements AutoCloseable {
+    final AtomicReference<String> query = new AtomicReference<>();
     final AtomicReference<String> capabilities = new AtomicReference<>();
     final AtomicReference<String> resource =
         new AtomicReference<>("<!ELEMENT WMT_MS_Capabilities ANY>");
@@ -403,7 +540,11 @@ class NodusWMSLayerTest {
       capabilities.set(document());
       server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
       server.createContext(
-          "/capabilities", exchange -> respond(exchange, capabilities, capabilitiesRequests));
+          "/capabilities",
+          exchange -> {
+            query.set(exchange.getRequestURI().getRawQuery());
+            respond(exchange, capabilities, capabilitiesRequests);
+          });
       server.createContext("/resource", exchange -> respond(exchange, resource, resourceRequests));
       server.start();
     }
