@@ -32,13 +32,26 @@ import com.bbn.openmap.dataAccess.shape.EsriPolyline;
 import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.omGraphics.OMPoly;
 import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.testing.NetworkTestProject;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.nio.file.Path;
 import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Tag;
@@ -246,6 +259,428 @@ class ServiceHandlerPersistenceTest {
   }
 
   @TestFactory
+  Stream<DynamicTest> failedFirstSavesAndSchemaMigrationsDoNotCommitEarlierWork() {
+    return Stream.of(false, true)
+        .flatMap(
+            hsql ->
+                Stream.of("missing", "partial", "legacy")
+                    .flatMap(
+                        schema ->
+                            Stream.of(false, true)
+                                .map(
+                                    autoCommit ->
+                                        DynamicTest.dynamicTest(
+                                            hsql + "/" + schema + "/" + autoCommit,
+                                            () ->
+                                                checkSchemaSaveFailure(
+                                                    hsql, schema, autoCommit)))));
+  }
+
+  private void checkSchemaSaveFailure(boolean hsql, String schema, boolean autoCommit)
+      throws Exception {
+    try (NetworkTestProject project = project(hsql)) {
+      final ServiceHandler handler = project.getServiceHandler();
+      prepareSchema(project, schema);
+      final Connection connection = project.getMainJDBCConnection();
+      final List<List<String>> before = existingServiceRows(project);
+      execute(connection, "CREATE TABLE unrelated(marker INTEGER)");
+      connection.setAutoCommit(autoCommit);
+      final Savepoint earlier = autoCommit ? null : connection.setSavepoint();
+      execute(connection, "INSERT INTO unrelated VALUES(42)");
+      final String tooLong = "Z".repeat(40);
+      final TransportService invalid = new TransportService(2, tooLong, (byte) 3, (byte) 1, 365);
+      invalid.addChunk(project.links.getEsriGraphicList().getOMGraphicAt(0));
+      invalid.addStop(1);
+      handler.saveService(invalid);
+      handler.mustBeSaved();
+      project.setLocalProperty(NodusC.PROP_MAX_SQL_BATCH_SIZE, "1");
+      project.captureServiceErrors = true;
+      assertFalse(handler.savePendingChanges());
+      assertEquals(1, project.serviceErrors.size());
+      assertEquals(autoCommit, connection.getAutoCommit());
+      assertSame(connection, JDBCUtils.getConnection());
+      assertFalse(connection.isClosed());
+      assertEquals(before, existingServiceRows(project), "Previously saved rows must survive");
+      assertEquals(List.of(List.of("42")), rows(connection, "SELECT * FROM unrelated"));
+      if (!autoCommit) {
+        connection.rollback(earlier);
+        assertTrue(
+            rows(connection, "SELECT * FROM unrelated").isEmpty(),
+            "Failed schema saves must preserve earlier work and savepoints");
+      }
+      handler.removeService(tooLong);
+      assertTrue(handler.savePendingChanges());
+      try (ManagerClose reloaded = new ManagerClose(project.newServiceHandler())) {
+        assertEquals(List.of("Saved"), names(reloaded.handler));
+        assertEquals(365, reloaded.handler.getService("Saved").getFrequency());
+      }
+      assertEquals(1, project.serviceErrors.size());
+    }
+  }
+
+  @TestFactory
+  Stream<DynamicTest> successfulFirstSavesAndSchemaMigrationsKeepEarlierWorkPending() {
+    return Stream.of(false, true)
+        .flatMap(
+            hsql ->
+                Stream.of("missing", "partial", "legacy")
+                    .map(
+                        schema ->
+                            DynamicTest.dynamicTest(
+                                hsql + "/" + schema,
+                                () -> {
+                                  try (NetworkTestProject project = project(hsql)) {
+                                    prepareSchema(project, schema);
+                                    final Connection connection = project.getMainJDBCConnection();
+                                    execute(connection, "CREATE TABLE unrelated(marker INTEGER)");
+                                    connection.setAutoCommit(false);
+                                    final Savepoint earlier = connection.setSavepoint();
+                                    execute(connection, "INSERT INTO unrelated VALUES(42)");
+                                    final ServiceHandler handler = project.getServiceHandler();
+                                    handler.getService("Saved").setFrequency(730);
+                                    handler.mustBeSaved();
+                                    assertTrue(handler.savePendingChanges());
+                                    assertFalse(connection.getAutoCommit());
+                                    connection.rollback(earlier);
+                                    assertTrue(
+                                        rows(connection, "SELECT * FROM unrelated").isEmpty());
+                                    try (ManagerClose reloaded =
+                                        new ManagerClose(project.newServiceHandler())) {
+                                      assertEquals(
+                                          730, reloaded.handler.getService("Saved").getFrequency());
+                                      assertEquals(
+                                          1,
+                                          reloaded.handler.getService("Saved").getLinks().size());
+                                      assertEquals(
+                                          List.of(1, 2),
+                                          reloaded.handler.getService("Saved").getStopNodes());
+                                    }
+                                    assertTrue(project.serviceErrors.isEmpty());
+                                  }
+                                })));
+  }
+
+  @TestFactory
+  Stream<DynamicTest> automaticLegacyMigrationDoesNotCommitEarlierWork() {
+    return Stream.of(false, true)
+        .map(
+            hsql ->
+                DynamicTest.dynamicTest(
+                    hsql ? "HSQLDB" : "H2",
+                    () -> {
+                      try (NetworkTestProject project = project(hsql)) {
+                        prepareSchema(project, "legacy");
+                        final Connection connection = project.getMainJDBCConnection();
+                        execute(connection, "CREATE TABLE unrelated(marker INTEGER)");
+                        connection.setAutoCommit(false);
+                        final Savepoint earlier = connection.setSavepoint();
+                        execute(connection, "INSERT INTO unrelated VALUES(42)");
+                        try (ManagerClose migrated =
+                            new ManagerClose(project.newServiceHandler())) {
+                          assertEquals(List.of("Saved"), names(migrated.handler));
+                          assertEquals(
+                              List.of(List.of("0")),
+                              rows(
+                                  connection,
+                                  "SELECT pathidx FROM "
+                                      + migrated.handler.getServiceLinkDetailTableName()));
+                        }
+                        connection.rollback(earlier);
+                        assertTrue(rows(connection, "SELECT * FROM unrelated").isEmpty());
+                        assertFalse(connection.getAutoCommit());
+                        assertTrue(project.serviceErrors.isEmpty());
+                      }
+                    }));
+  }
+
+  @TestFactory
+  Stream<DynamicTest> isolatedSaveFailuresCloseOwnedConnectionsAndAllowRetry() {
+    return Stream.of(false, true)
+        .flatMap(
+            hsql ->
+                Stream.of("missing", "legacy")
+                    .flatMap(
+                        schema ->
+                            Stream.of("connect", "setSchema", "schema", "insert", "commit")
+                                .map(
+                                    phase ->
+                                        DynamicTest.dynamicTest(
+                                            hsql + "/" + schema + "/" + phase,
+                                            () -> checkIsolatedFailure(hsql, schema, phase)))));
+  }
+
+  private void checkIsolatedFailure(boolean hsql, String schema, String phase) throws Exception {
+    try (NetworkTestProject project = project(hsql)) {
+      prepareSchema(project, schema);
+      final ServiceHandler handler = project.getServiceHandler();
+      final Connection connection = project.getMainJDBCConnection();
+      final List<List<String>> before = existingServiceRows(project);
+      execute(connection, "CREATE TABLE unrelated(marker INTEGER)");
+      connection.setAutoCommit(false);
+      final Savepoint earlier = connection.setSavepoint();
+      execute(connection, "INSERT INTO unrelated VALUES(42)");
+      handler.getService("Saved").setFrequency(730);
+      handler.mustBeSaved();
+      project.captureServiceErrors = true;
+      try (SchemaDriver driver = new SchemaDriver(project, phase)) {
+        assertFalse(handler.savePendingChanges());
+        assertEquals(1, project.serviceErrors.size());
+        assertEquals("Injected " + phase, project.serviceErrors.get(0).getMessage());
+        assertEquals(driver.opened, driver.closed, "Only owned connections must close");
+        assertSame(connection, JDBCUtils.getConnection());
+        assertFalse(connection.isClosed());
+        assertFalse(connection.getAutoCommit());
+        assertEquals(before, existingServiceRows(project));
+        assertEquals(730, handler.getService("Saved").getFrequency());
+        assertEquals(List.of(List.of("42")), rows(connection, "SELECT * FROM unrelated"));
+        connection.rollback(earlier);
+        assertTrue(rows(connection, "SELECT * FROM unrelated").isEmpty());
+        driver.phase = null;
+        assertTrue(handler.savePendingChanges());
+        assertEquals(driver.opened, driver.closed);
+        assertEquals(
+            List.of(List.of("730")),
+            rows(connection, "SELECT frequency FROM " + handler.getServiceHeaderTableName()));
+        assertEquals(1, project.serviceErrors.size());
+      }
+    }
+  }
+
+  @TestFactory
+  Stream<DynamicTest> failedAutomaticMigrationRetainsPendingRouteOrderForRetry() {
+    return Stream.of(false, true)
+        .map(
+            hsql ->
+                DynamicTest.dynamicTest(
+                    "HSQLDB=" + hsql,
+                    () -> {
+                      try (NetworkTestProject project = project(hsql)) {
+                        prepareSchema(project, "legacy");
+                        final Connection connection = project.getMainJDBCConnection();
+                        execute(connection, "CREATE TABLE unrelated(marker INTEGER)");
+                        connection.setAutoCommit(false);
+                        final Savepoint earlier = connection.setSavepoint();
+                        execute(connection, "INSERT INTO unrelated VALUES(42)");
+                        project.captureServiceErrors = true;
+                        try (SchemaDriver driver = new SchemaDriver(project, "commit");
+                            ManagerClose loaded = new ManagerClose(project.newServiceHandler())) {
+                          assertEquals(1, project.serviceErrors.size());
+                          assertEquals(List.of("Saved"), names(loaded.handler));
+                          assertEquals(driver.opened, driver.closed);
+                          connection.rollback(earlier);
+                          assertTrue(rows(connection, "SELECT * FROM unrelated").isEmpty());
+                          driver.phase = null;
+                          assertTrue(loaded.handler.savePendingChanges());
+                          assertEquals(
+                              List.of(List.of("0")),
+                              rows(
+                                  connection,
+                                  "SELECT pathidx FROM "
+                                      + loaded.handler.getServiceLinkDetailTableName()));
+                          assertEquals(1, project.serviceErrors.size());
+                        }
+                      }
+                    }));
+  }
+
+  @TestFactory
+  Stream<DynamicTest> schemaConnectionUsesTheProjectsCurrentSchema() {
+    return Stream.of(false, true)
+        .map(
+            hsql ->
+                DynamicTest.dynamicTest(
+                    "HSQLDB=" + hsql,
+                    () -> {
+                      try (NetworkTestProject project = project(hsql)) {
+                        final Connection connection = project.getMainJDBCConnection();
+                        final ServiceHandler handler = project.getServiceHandler();
+                        // Same-name tables in PUBLIC must not hide missing tables in the selected
+                        // schema.
+                        handler.resetServicesTables();
+                        execute(connection, "CREATE SCHEMA \"Service Space\"");
+                        connection.setSchema("Service Space");
+                        execute(connection, "CREATE TABLE unrelated(marker INTEGER)");
+                        connection.setAutoCommit(false);
+                        final Savepoint earlier = connection.setSavepoint();
+                        execute(connection, "INSERT INTO unrelated VALUES(42)");
+                        try (SchemaDriver driver = new SchemaDriver(project, null)) {
+                          handler.createOrReplaceServiceFromLinkIds(
+                              1, "Saved", 3, 1, 365, List.of(11), List.of(1, 2), false, true);
+                          assertEquals(1, driver.opened);
+                          assertEquals(driver.opened, driver.closed);
+                          connection.rollback(earlier);
+                          assertTrue(rows(connection, "SELECT * FROM unrelated").isEmpty());
+                          assertEquals(
+                              List.of(List.of("Saved")),
+                              rows(
+                                  connection,
+                                  "SELECT name FROM " + handler.getServiceHeaderTableName()));
+                          assertTrue(
+                              rows(
+                                      connection,
+                                      "SELECT * FROM PUBLIC." + handler.getServiceHeaderTableName())
+                                  .isEmpty());
+                          assertEquals("Service Space", connection.getSchema());
+                          assertSame(connection, JDBCUtils.getConnection());
+                        }
+                      }
+                    }));
+  }
+
+  @TestFactory
+  Stream<DynamicTest> ordinarySavesReuseTheBorrowedProjectConnection() {
+    return Stream.of(false, true)
+        .map(
+            hsql ->
+                DynamicTest.dynamicTest(
+                    "HSQLDB=" + hsql,
+                    () -> {
+                      try (NetworkTestProject project = project(hsql)) {
+                        prepareSchema(project, "complete");
+                        final ServiceHandler handler = project.getServiceHandler();
+                        handler.getService("Saved").setFrequency(730);
+                        handler.mustBeSaved();
+                        try (SchemaDriver driver = new SchemaDriver(project, "connect")) {
+                          assertTrue(handler.savePendingChanges());
+                          assertEquals(0, driver.opened);
+                          assertEquals(
+                              List.of(List.of("730")),
+                              rows(
+                                  project.getMainJDBCConnection(),
+                                  "SELECT frequency FROM " + handler.getServiceHeaderTableName()));
+                          assertTrue(project.serviceErrors.isEmpty());
+                        }
+                      }
+                    }));
+  }
+
+  @TestFactory
+  Stream<DynamicTest> explicitTableResetDoesNotCommitEarlierWork() {
+    return Stream.of(false, true)
+        .map(
+            hsql ->
+                DynamicTest.dynamicTest(
+                    "HSQLDB=" + hsql,
+                    () -> {
+                      try (NetworkTestProject project = project(hsql)) {
+                        prepareSchema(project, "complete");
+                        final Connection connection = project.getMainJDBCConnection();
+                        execute(connection, "CREATE TABLE unrelated(marker INTEGER)");
+                        connection.setAutoCommit(false);
+                        final Savepoint earlier = connection.setSavepoint();
+                        execute(connection, "INSERT INTO unrelated VALUES(42)");
+                        try (SchemaDriver driver = new SchemaDriver(project, null)) {
+                          project.getServiceHandler().resetServicesTables();
+                          assertEquals(1, driver.opened);
+                          assertEquals(driver.opened, driver.closed);
+                          connection.rollback(earlier);
+                          assertTrue(rows(connection, "SELECT * FROM unrelated").isEmpty());
+                          assertTrue(snapshot(project).isEmpty());
+                          assertFalse(connection.getAutoCommit());
+                          assertTrue(project.serviceErrors.isEmpty());
+                        }
+                      }
+                    }));
+  }
+
+  @TestFactory
+  Stream<DynamicTest> deletingInvalidLegacyServicesDoesNotSaveTwiceOrLoseFailedEdits() {
+    return Stream.of(false, true)
+        .flatMap(
+            hsql ->
+                Stream.of(false, true)
+                    .map(
+                        fail ->
+                            DynamicTest.dynamicTest(
+                                hsql + "/fail=" + fail,
+                                () -> {
+                                  try (NetworkTestProject project = project(hsql)) {
+                                    prepareSchema(project, "legacy");
+                                    final Connection connection = project.getMainJDBCConnection();
+                                    execute(
+                                        connection,
+                                        "UPDATE "
+                                            + project
+                                                .getServiceHandler()
+                                                .getServiceHeaderTableName()
+                                            + " SET mode=4");
+                                    execute(connection, "CREATE TABLE unrelated(marker INTEGER)");
+                                    connection.setAutoCommit(false);
+                                    final Savepoint earlier = connection.setSavepoint();
+                                    execute(connection, "INSERT INTO unrelated VALUES(42)");
+                                    final AtomicInteger confirmations = new AtomicInteger();
+                                    try (SchemaDriver driver =
+                                            new SchemaDriver(project, fail ? "commit" : null);
+                                        ManagerClose loaded =
+                                            new ManagerClose(
+                                                new ServiceHandler(project, false) {
+                                                  @Override
+                                                  protected void reportDatabaseError(
+                                                      Exception failure) {
+                                                    project.serviceErrors.add(failure);
+                                                  }
+
+                                                  @Override
+                                                  protected boolean confirmInvalidServicesDeletion(
+                                                      String details) {
+                                                    confirmations.incrementAndGet();
+                                                    return true;
+                                                  }
+                                                })) {
+                                      assertEquals(1, confirmations.get());
+                                      assertEquals(fail ? 1 : 0, project.serviceErrors.size());
+                                      assertEquals(driver.opened, driver.closed);
+                                      connection.rollback(earlier);
+                                      assertTrue(
+                                          rows(connection, "SELECT * FROM unrelated").isEmpty());
+                                      if (fail) {
+                                        assertFalse(existingServiceRows(project).isEmpty());
+                                        driver.phase = null;
+                                        assertTrue(loaded.handler.savePendingChanges());
+                                      }
+                                      assertTrue(existingServiceRows(project).isEmpty());
+                                      assertTrue(names(loaded.handler).isEmpty());
+                                    }
+                                  }
+                                })));
+  }
+
+  private static void prepareSchema(NetworkTestProject project, String schema) throws Exception {
+    final ServiceHandler handler = project.getServiceHandler();
+    handler.createOrReplaceServiceFromLinkIds(
+        1, "Saved", 3, 1, 365, List.of(11), List.of(1, 2), false, !schema.equals("missing"));
+    if (schema.equals("partial")) {
+      execute(
+          project.getMainJDBCConnection(), "DROP TABLE " + handler.getServiceStopDetailTableName());
+    } else if (schema.equals("legacy")) {
+      execute(
+          project.getMainJDBCConnection(),
+          "ALTER TABLE " + handler.getServiceLinkDetailTableName() + " DROP COLUMN pathidx");
+    }
+  }
+
+  private static List<List<String>> existingServiceRows(NetworkTestProject project)
+      throws Exception {
+    final ServiceHandler handler = project.getServiceHandler();
+    final List<List<String>> result = new ArrayList<>();
+    final String[] tables = {
+      handler.getServiceHeaderTableName(),
+      handler.getServiceLinkDetailTableName(),
+      handler.getServiceStopDetailTableName()
+    };
+    final String[] fields = {"id,name,mode,means,frequency", "id,link", "id,stop"};
+    for (int i = 0; i < tables.length; i++) {
+      if (JDBCUtils.tableExists(tables[i])) {
+        result.addAll(
+            rows(
+                project.getMainJDBCConnection(),
+                "SELECT " + fields[i] + " FROM " + tables[i] + " ORDER BY 1,2"));
+      }
+    }
+    return result;
+  }
+
+  @TestFactory
   Stream<DynamicTest> legacyRouteTablesAreMigratedAndRemainWritable() {
     return Stream.of(false, true)
         .map(
@@ -342,6 +777,118 @@ class ServiceHandlerPersistenceTest {
       }
     }
     return rows;
+  }
+
+  /** Delegates to the real engine, injecting failures only on newly opened schema connections. */
+  private static final class SchemaDriver implements Driver, AutoCloseable {
+    final String url = "jdbc:nodus-service-test:" + UUID.randomUUID();
+    final String target;
+    String phase;
+    int opened;
+    int closed;
+    int batches;
+
+    SchemaDriver(NetworkTestProject project, String phase) throws SQLException {
+      this.phase = phase;
+      target = project.getMainJDBCConnection().getMetaData().getURL();
+      DriverManager.registerDriver(this);
+      project.setLocalProperty(NodusC.PROP_JDBC_URL, url);
+    }
+
+    @Override
+    public Connection connect(String requested, Properties properties) throws SQLException {
+      if (!acceptsURL(requested)) {
+        return null;
+      }
+      if ("connect".equals(phase)) {
+        throw new SQLException("Injected connect");
+      }
+      final Connection delegate = DriverManager.getConnection(target, properties);
+      opened++;
+      return (Connection)
+          Proxy.newProxyInstance(
+              Connection.class.getClassLoader(),
+              new Class<?>[] {Connection.class},
+              (proxy, method, arguments) -> {
+                final String operation = method.getName();
+                if (operation.equals(phase)) {
+                  throw new SQLException("Injected " + phase);
+                }
+                try {
+                  final Object result = method.invoke(delegate, arguments);
+                  if (operation.equals("close")) {
+                    closed++;
+                  } else if (operation.equals("createStatement")) {
+                    return statement(Statement.class, (Statement) result);
+                  } else if (operation.equals("prepareStatement")) {
+                    return statement(PreparedStatement.class, (PreparedStatement) result);
+                  }
+                  return result;
+                } catch (InvocationTargetException failure) {
+                  throw failure.getCause();
+                }
+              });
+    }
+
+    private <T extends Statement> T statement(Class<T> type, T delegate) {
+      return type.cast(
+          Proxy.newProxyInstance(
+              type.getClassLoader(),
+              new Class<?>[] {type},
+              (proxy, method, arguments) -> {
+                try {
+                  final Object result = method.invoke(delegate, arguments);
+                  if (method.getName().equals("executeUpdate") && "schema".equals(phase)) {
+                    final String sql = (String) arguments[0];
+                    if (sql.startsWith("CREATE TABLE ") || sql.startsWith("ALTER TABLE ")) {
+                      throw new SQLException("Injected schema");
+                    }
+                  } else if (method.getName().equals("executeBatch")
+                      && ++batches == 2
+                      && "insert".equals(phase)) {
+                    throw new SQLException("Injected insert");
+                  }
+                  return result;
+                } catch (InvocationTargetException failure) {
+                  throw failure.getCause();
+                }
+              }));
+    }
+
+    @Override
+    public boolean acceptsURL(String requested) {
+      return url.equals(requested);
+    }
+
+    @Override
+    public DriverPropertyInfo[] getPropertyInfo(String requested, Properties properties) {
+      return new DriverPropertyInfo[0];
+    }
+
+    @Override
+    public int getMajorVersion() {
+      return 1;
+    }
+
+    @Override
+    public int getMinorVersion() {
+      return 0;
+    }
+
+    @Override
+    public boolean jdbcCompliant() {
+      return false;
+    }
+
+    @Override
+    public Logger getParentLogger() {
+      return Logger.getAnonymousLogger();
+    }
+
+    @Override
+    public void close() throws SQLException {
+      DriverManager.deregisterDriver(this);
+    }
   }
 
   private static final class ManagerClose implements AutoCloseable {

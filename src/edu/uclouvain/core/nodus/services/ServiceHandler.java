@@ -39,7 +39,6 @@ import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.compute.real.RealLinkInitializer;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
-import edu.uclouvain.core.nodus.database.JDBCField;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.services.gui.ServicesDlg;
 import java.awt.BasicStroke;
@@ -49,6 +48,7 @@ import java.awt.Paint;
 import java.awt.Stroke;
 import java.awt.event.MouseEvent;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
@@ -1050,23 +1050,54 @@ public class ServiceHandler {
 
   /** Saves the services in the database without discarding the last saved rows on failure. */
   private boolean saveServices() {
-    Savepoint savepoint = null;
-    boolean restoreAutoCommit = false;
-    Exception failure = null;
     try {
       jdbcConnection = nodusProject.getMainJDBCConnection();
       if (jdbcConnection == null) {
         return false;
       }
+      final boolean isolated =
+          serviceDatabase(jdbcConnection).needsPreparation() && hasCommittingSchemaChanges();
+      if (isolated) {
+        // DDL can commit even with auto-commit disabled. Keep both schema preparation and the
+        // replacement transaction off the caller's connection, including automatic migration.
+        try (Connection connection = openSchemaConnection()) {
+          final String schema = jdbcConnection.getSchema();
+          if (schema != null) {
+            connection.setSchema(schema);
+          }
+          saveServices(connection, true);
+        }
+      } else {
+        saveServices(jdbcConnection, false);
+      }
+      return true;
+    } catch (Exception failure) {
+      reportDatabaseError(failure);
+      return false;
+    }
+  }
 
-      // Schema creation/migration can commit on some engines; ordinary saves perform only DML.
-      prepareServicesTables(false);
-      if (jdbcConnection.getAutoCommit()) {
-        jdbcConnection.setAutoCommit(false);
+  /** Replaces service rows, rolling back only this operation if it fails. */
+  private void saveServices(Connection connection, boolean isolated) throws Exception {
+    Savepoint savepoint = null;
+    boolean restoreAutoCommit = false;
+    Exception failure = null;
+    try {
+      final ServiceDatabase database = serviceDatabase(connection);
+      if (isolated) {
+        // On engines with committing DDL, finish it before creating the data savepoint.
+        database.prepare(false);
+      }
+      if (connection.getAutoCommit()) {
+        connection.setAutoCommit(false);
         restoreAutoCommit = true;
       }
-      savepoint = jdbcConnection.setSavepoint();
-      try (Statement statement = jdbcConnection.createStatement()) {
+      savepoint = connection.setSavepoint();
+      if (!isolated) {
+        // Transactional DDL belongs inside the savepoint. An ordinary save performs no DDL.
+        database.prepare(false);
+      }
+      try (Statement statement = connection.createStatement()) {
         for (String table : new String[] {
             servicesLinksTableName, serviceStopsTableName, servicesHeaderTableName}) {
           statement.executeUpdate("DELETE FROM " + JDBCUtils.getQuotedCompliantIdentifier(table));
@@ -1078,23 +1109,17 @@ public class ServiceHandler {
         servicesToSave.put(entry.getKey(), entry.getValue());
       }
       int maxBatchSize = nodusProject.getSqlBatchSize();
-      ServiceDatabase database =
-          new ServiceDatabase(
-              jdbcConnection,
-              servicesHeaderTableName,
-              servicesLinksTableName,
-              serviceStopsTableName);
       database.insert(
           servicesToSave,
           graphic -> getOMGraphicID(graphic, TYPE_LINK),
           JDBCUtils.hasBatchSupport(),
           maxBatchSize);
-      jdbcConnection.commit();
+      connection.commit();
     } catch (Exception ex) {
       failure = ex;
-      if (jdbcConnection != null && savepoint != null) {
+      if (savepoint != null) {
         try {
-          jdbcConnection.rollback(savepoint);
+          connection.rollback(savepoint);
         } catch (SQLException rollbackEx) {
           // Restoring auto-commit here could commit a partially replaced service set.
           restoreAutoCommit = false;
@@ -1104,7 +1129,7 @@ public class ServiceHandler {
     } finally {
       if (restoreAutoCommit) {
         try {
-          jdbcConnection.setAutoCommit(true);
+          connection.setAutoCommit(true);
         } catch (SQLException restoreEx) {
           if (failure == null) {
             failure = restoreEx;
@@ -1115,10 +1140,29 @@ public class ServiceHandler {
       }
     }
     if (failure != null) {
-      reportDatabaseError(failure);
-      return false;
+      throw failure;
     }
-    return true;
+  }
+
+  private ServiceDatabase serviceDatabase(Connection connection) {
+    return new ServiceDatabase(
+        connection, servicesHeaderTableName, servicesLinksTableName, serviceStopsTableName);
+  }
+
+  private boolean hasCommittingSchemaChanges() throws SQLException {
+    return !jdbcConnection.getMetaData().supportsDataDefinitionAndDataManipulationTransactions()
+        || jdbcConnection.getMetaData().dataDefinitionCausesTransactionCommit();
+  }
+
+  /** Opens an owned connection without changing the shared JDBCUtils connection. */
+  private Connection openSchemaConnection() throws SQLException {
+    final String url =
+        nodusProject.getLocalProperty(NodusC.PROP_JDBC_URL, jdbcConnection.getMetaData().getURL());
+    final String user =
+        nodusProject.getLocalProperty(NodusC.PROP_JDBC_USERNAME,
+            jdbcConnection.getMetaData().getUserName());
+    final String password = nodusProject.getLocalProperty(NodusC.PROP_JDBC_PASSWORD, "");
+    return DriverManager.getConnection(url, user, password);
   }
 
   /**
@@ -2626,9 +2670,10 @@ public class ServiceHandler {
         services.put(service.getName(), service);
       }
 
-      validateLoadedServices();
-      if (!linksHavePathIndex) {
-        saveServices();
+      final boolean saveAttempted = validateLoadedServices();
+      if (!linksHavePathIndex && !saveAttempted && !saveServices()) {
+        // Keep the loaded route order available for retry if its migration could not be saved.
+        mustBeSaved = true;
       }
 
     } catch (Exception ex) {
@@ -2666,10 +2711,10 @@ public class ServiceHandler {
             JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION;
   }
 
-  /** Warns the user about invalid services loaded from the database. */
-  private void validateLoadedServices() {
+  /** Warns about invalid services and returns whether their deletion required a save attempt. */
+  private boolean validateLoadedServices() {
     if (services.isEmpty()) {
-      return;
+      return false;
     }
 
     ArrayList<String> invalidServiceNames = new ArrayList<>();
@@ -2695,7 +2740,7 @@ public class ServiceHandler {
     }
 
     if (invalidServiceNames.isEmpty()) {
-      return;
+      return false;
     }
 
     if (confirmInvalidServicesDeletion(invalidServices.toString())) {
@@ -2703,9 +2748,10 @@ public class ServiceHandler {
       while (invalidServiceNameIterator.hasNext()) {
         services.remove(invalidServiceNameIterator.next());
       }
-      saveServices();
-      mustBeSaved = false;
+      mustBeSaved = !saveServices();
+      return true;
     }
+    return false;
   }
 
   /**
@@ -3081,53 +3127,23 @@ public class ServiceHandler {
   /** Prepares empty header/detail database tables to store the services. */
   public void resetServicesTables() {
     try {
-      prepareServicesTables(true);
+      jdbcConnection = nodusProject.getMainJDBCConnection();
+      if (jdbcConnection == null) {
+        throw new SQLException("No project database connection");
+      }
+      if (hasCommittingSchemaChanges()) {
+        try (Connection connection = openSchemaConnection()) {
+          final String schema = jdbcConnection.getSchema();
+          if (schema != null) {
+            connection.setSchema(schema);
+          }
+          serviceDatabase(connection).prepare(true);
+        }
+      } else {
+        serviceDatabase(jdbcConnection).prepare(true);
+      }
     } catch (SQLException ex) {
       reportDatabaseError(ex);
-    }
-  }
-
-  /** Creates missing tables, preserving existing rows until the replacement transaction starts. */
-  private void prepareServicesTables(boolean reset) throws SQLException {
-    // Create header tables
-    JDBCField[] fields = new JDBCField[5];
-    fields[0] = new JDBCField(NodusC.DBF_ID, "NUMERIC(4,0)");
-    fields[1] = new JDBCField(NodusC.DBF_SERVICE_NAME, "VARCHAR(30)");
-    fields[2] = new JDBCField(NodusC.DBF_MODE, "NUMERIC(2,0)");
-    fields[3] = new JDBCField(NodusC.DBF_MEANS, "NUMERIC(2,0)");
-    fields[4] = new JDBCField(NodusC.DBF_FREQUENCY, "NUMERIC(5,0)");
-    // fields[5] = new JDBCField(NodusC.DBF_DESCRIPTION, "VARCHAR(30)");
-    prepareServiceTable(servicesHeaderTableName, fields, reset);
-
-    // Create details table
-    fields = new JDBCField[3];
-    fields[0] = new JDBCField(NodusC.DBF_ID, "NUMERIC(4,0)");
-    fields[1] = new JDBCField(NodusC.DBF_PATH_INDEX, "NUMERIC(8,0)");
-    fields[2] = new JDBCField(NodusC.DBF_LINK, "NUMERIC(10,0)");
-    prepareServiceTable(servicesLinksTableName, fields, reset);
-
-    // Create details table
-    fields = new JDBCField[2];
-    fields[0] = new JDBCField(NodusC.DBF_ID, "NUMERIC(4,0)");
-    fields[1] = new JDBCField(NodusC.DBF_STOP, "NUMERIC(10,0)");
-    prepareServiceTable(serviceStopsTableName, fields, reset);
-
-    // Legacy services had no route-position column. Add it without dropping their saved links.
-    if (!JDBCUtils.hasField(servicesLinksTableName, NodusC.DBF_PATH_INDEX)) {
-      try (Statement statement = nodusProject.getMainJDBCConnection().createStatement()) {
-        statement.executeUpdate(
-            "ALTER TABLE " + JDBCUtils.getQuotedCompliantIdentifier(servicesLinksTableName)
-                + " ADD " + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_PATH_INDEX)
-                + " NUMERIC(8,0)");
-      }
-    }
-  }
-
-  /** Creates a service table only when missing, or when explicitly asked to reset it. */
-  private void prepareServiceTable(String name, JDBCField[] fields, boolean reset)
-      throws SQLException {
-    if ((reset || !JDBCUtils.tableExists(name)) && !JDBCUtils.createTable(name, fields)) {
-      throw new SQLException("Could not create service table " + name);
     }
   }
 

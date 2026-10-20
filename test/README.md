@@ -416,6 +416,10 @@ for the workflow mechanism.
   frequency, avoids duplicate rows on repeated saves, removes deleted services, and never
   publishes partially loaded services after a read error. It also checks service tables imported
   after project loading and preserves pending edits when the editor rechecks those tables.
+  First saves, missing detail tables, explicit resets and automatic legacy migration on H2/HSQLDB
+  preserve unrelated transactions and savepoints. Covers schema/connection/setup/insert/commit
+  failures, retained rows and pending edits, retry, owned-connection cleanup, the selected schema,
+  ordinary saves reusing the main connection, and deletion of invalid legacy services during loading.
   Failed replacement/retry tests run
   on H2 and HSQLDB with auto-commit both enabled and disabled; they assert that previously saved
   services and earlier pending work survive a failed save, and that connection mode is restored.

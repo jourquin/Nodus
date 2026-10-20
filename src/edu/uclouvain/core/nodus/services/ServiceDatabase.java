@@ -45,9 +45,10 @@ import java.util.function.ToIntFunction;
  * when supported by the driver.
  *
  * <p>This helper owns only its statements and result sets. The caller supplies the connection,
- * prepares the tables, and handles commits and rollbacks. Failures propagate to the caller after
- * JDBC resources are closed; this class does not close the connection or change auto-commit mode.
- * Graphic lookups are supplied by the caller so persistence does not depend on map-layer access.
+ * requests schema preparation when needed, and handles commits and rollbacks. Failures propagate to
+ * the caller after JDBC resources are closed; this class does not close the connection or change
+ * auto-commit mode. Graphic lookups are supplied by the caller so persistence does not depend on
+ * map-layer access.
  */
 final class ServiceDatabase {
   private final Connection connection;
@@ -69,6 +70,92 @@ final class ServiceDatabase {
     this.headerTable = quote(headerTable);
     this.linksTable = quote(linksTable);
     this.stopsTable = quote(stopsTable);
+  }
+
+  /** Checks on this connection whether creation or legacy route migration will require DDL. */
+  boolean needsPreparation() throws SQLException {
+    return !tableExists(headerTable)
+        || !tableExists(linksTable)
+        || !tableExists(stopsTable)
+        || !hasPathIndex();
+  }
+
+  /** Creates or migrates the schema on this connection; only an explicit reset drops saved rows. */
+  void prepare(boolean reset) throws SQLException {
+    prepareTable(
+        headerTable,
+        reset,
+        quote(NodusC.DBF_ID)
+            + " NUMERIC(4,0),"
+            + quote(NodusC.DBF_SERVICE_NAME)
+            + " VARCHAR(30),"
+            + quote(NodusC.DBF_MODE)
+            + " NUMERIC(2,0),"
+            + quote(NodusC.DBF_MEANS)
+            + " NUMERIC(2,0),"
+            + quote(NodusC.DBF_FREQUENCY)
+            + " NUMERIC(5,0)");
+    prepareTable(
+        linksTable,
+        reset,
+        quote(NodusC.DBF_ID)
+            + " NUMERIC(4,0),"
+            + quote(NodusC.DBF_PATH_INDEX)
+            + " NUMERIC(8,0),"
+            + quote(NodusC.DBF_LINK)
+            + " NUMERIC(10,0)");
+    prepareTable(
+        stopsTable,
+        reset,
+        quote(NodusC.DBF_ID) + " NUMERIC(4,0)," + quote(NodusC.DBF_STOP) + " NUMERIC(10,0)");
+    if (!hasPathIndex()) {
+      executeSchemaUpdate(
+          "ALTER TABLE " + linksTable + " ADD " + quote(NodusC.DBF_PATH_INDEX) + " NUMERIC(8,0)");
+    }
+  }
+
+  private void prepareTable(String table, boolean reset, String fields) throws SQLException {
+    final boolean exists = tableExists(table);
+    if (reset && exists) {
+      executeSchemaUpdate("DROP TABLE " + table);
+    }
+    if (reset || !exists) {
+      executeSchemaUpdate("CREATE TABLE " + table + " (" + fields + ")");
+    }
+  }
+
+  private boolean tableExists(String table) throws SQLException {
+    try (ResultSet tables =
+        connection
+            .getMetaData()
+            .getTables(
+                connection.getCatalog(), connection.getSchema(), null, new String[] {"TABLE"})) {
+      while (tables.next()) {
+        if (table.equals(quote(tables.getString("TABLE_NAME")))) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean hasPathIndex() throws SQLException {
+    try (Statement statement = connection.createStatement();
+        ResultSet rows = statement.executeQuery("SELECT * FROM " + linksTable + " WHERE 1=0")) {
+      for (int i = 1; i <= rows.getMetaData().getColumnCount(); i++) {
+        if (NodusC.DBF_PATH_INDEX.equalsIgnoreCase(rows.getMetaData().getColumnName(i))) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private void executeSchemaUpdate(String sql) throws SQLException {
+    try (Statement statement = connection.createStatement()) {
+      statement.setQueryTimeout(10);
+      statement.executeUpdate(sql);
+    }
   }
 
   /**
