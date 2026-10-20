@@ -84,6 +84,8 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
   /** Array that wall contain the weights of the paths at the successive iterations. */
   private Path[][] paths;
 
+  private final MultiFlowPathIdentity pathIdentity = new MultiFlowPathIdentity();
+
   /**
    * Initializes an Assignment Worker.
    *
@@ -159,6 +161,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
        * Handle only the demand nodes
        */
       if (demandList != null) {
+        pathIdentity.clear();
         /*
          * Compute all the shortest paths (number of mode/means combinations * nb iterations)
          * in the virtual network starting from here
@@ -338,6 +341,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     float cheapestPathLength = Float.MAX_VALUE;
     double cheapestIntermodalPathWeight = Double.MAX_VALUE;
     double cheapestPathWeight = Double.MAX_VALUE;
+    double cheapestReferencePathWeight = Double.MAX_VALUE;
 
     // Clean unwanted paths
     for (int index = 0;
@@ -352,8 +356,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
          */
         if (index > 0) {
           for (int j = 0; j < index; j++) {
-            if (paths[index][currentPath].detailedPathKey
-                == paths[j][currentPath].detailedPathKey) {
+            if (pathIdentity.sameRoute(paths[index][currentPath], paths[j][currentPath])) {
               // Mark cell
               paths[index][currentPath].isValid = false;
             }
@@ -370,11 +373,13 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
         // Keep info about shortest and cheapest paths
         Path path = paths[index][currentPath];
-        boolean matchesReferenceMode = maxDetourReferenceMode == -1
+        cheapestPathWeight = Math.min(cheapestPathWeight, path.weights.getCost());
+        boolean matchesReferenceMode =
+            maxDetourReferenceMode == -1
                 || (path.loadingMode == maxDetourReferenceMode && !path.intermodal);
 
-        if (matchesReferenceMode && path.weights.getCost() < cheapestPathWeight) {
-          cheapestPathWeight = path.weights.getCost();
+        if (matchesReferenceMode && path.weights.getCost() < cheapestReferencePathWeight) {
+          cheapestReferencePathWeight = path.weights.getCost();
           cheapestPathLength = path.weights.getLength();
         }
       }
@@ -532,6 +537,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
       int intermodalModeKey = 1;
       PathODCell pathODCell = new PathODCell(iteration, indexInODRow, demand.getQuantity());
+      List<Integer> linkIds = new ArrayList<>();
       while (currentNode != beginNode) {
         // Predecessor
         int predecessor = pi[currentNode];
@@ -545,6 +551,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
           }
           // weight = Double.MAX_VALUE;
 
+          paths[indexInODRow].isValid = false;
           isPathFound = false;
 
           break;
@@ -617,6 +624,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
           // Build the key that represents this path
           paths[indexInODRow].detailedPathKey += vl.getId();
+          linkIds.add(vl.getId());
 
           currentNode = predecessor;
         }
@@ -645,6 +653,10 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
       // paths[indexInODRow].length = length;
       // Associate the key with the length to maximize chances to have a unique key
       paths[indexInODRow].detailedPathKey *= pathCosts.getLength();
+
+      if (isPathFound) {
+        pathIdentity.record(paths[indexInODRow], linkIds);
+      }
 
       indexInODRow++;
 

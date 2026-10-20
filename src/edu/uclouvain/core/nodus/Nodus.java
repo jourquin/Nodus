@@ -57,6 +57,7 @@ import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 
 /*
+ * TODO Test MF !!
  * TODO Test cost parser
  * TODO Test semi-dynamic assignments and display
  * TODO Test exclusions

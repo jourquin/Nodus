@@ -85,6 +85,8 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
   /** Array that will contain the weights of the paths for the successive iterations. */
   private Path[] paths;
 
+  private final MultiFlowPathIdentity pathIdentity = new MultiFlowPathIdentity();
+
   /**
    * Initializes an Assignment Worker.
    *
@@ -155,6 +157,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
         Iterator<ODCell> it = demandList.iterator();
         while (it.hasNext()) {
+          pathIdentity.clear();
           int currentPathPropertiesIndex = 0;
 
           // Get demand and num of unloading virtual node
@@ -315,6 +318,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     float cheapestPathLength = Float.MAX_VALUE;
     double cheapestIntermodalPathWeight = Double.MAX_VALUE;
     double cheapestPathWeight = Double.MAX_VALUE;
+    double cheapestReferencePathWeight = Double.MAX_VALUE;
 
     // Clean unwanted paths
     for (int index = 0;
@@ -329,7 +333,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
          */
         if (index > 0) {
           for (int j = 0; j < index; j++) {
-            if (paths[index].detailedPathKey == paths[j].detailedPathKey) {
+            if (pathIdentity.sameRoute(paths[index], paths[j])) {
               // Mark cell
               paths[index].isValid = false;
             }
@@ -347,11 +351,13 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
         // Keep info about shortest and cheapest paths
         Path path = paths[index];
-        boolean matchesReferenceMode =  maxDetourReferenceMode == -1
+        cheapestPathWeight = Math.min(cheapestPathWeight, path.weights.getCost());
+        boolean matchesReferenceMode =
+            maxDetourReferenceMode == -1
                 || (path.loadingMode == maxDetourReferenceMode && !path.intermodal);
 
-        if (matchesReferenceMode && path.weights.getCost() < cheapestPathWeight) {
-          cheapestPathWeight = path.weights.getCost();
+        if (matchesReferenceMode && path.weights.getCost() < cheapestReferencePathWeight) {
+          cheapestReferencePathWeight = path.weights.getCost();
           cheapestPathLength = path.weights.getLength();
         }
       }
@@ -496,6 +502,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     int beginNode = virtualNodeList[nodeIndex].getLoadingVirtualNodeId();
     Path path = new Path();
     int[] pi = shortestPath.getPredecessors();
+    List<Integer> linkIds = new ArrayList<>();
     while (currentNode != beginNode) {
       // Predecessor
       int predecessor = pi[currentNode];
@@ -579,6 +586,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
         // Build the key that represents this path
         path.detailedPathKey += vl.getId();
+        linkIds.add(vl.getId());
 
         currentNode = predecessor;
       }
@@ -606,6 +614,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
     // Save the header of this detailed path if needed
     if (isPathFound) {
+      pathIdentity.record(path, linkIds);
       // Keep track of found path for logging
       if (assignmentParameters.isLogLostPaths()) {
         if (foundPaths.get(key) == null) {

@@ -360,6 +360,17 @@ for the workflow mechanism.
   assignments on parallel routes with an independently calculated equilibrium. Checks
   convergence metadata, iteration limits, uncongested convergence, flow conservation,
   saved paths, and agreement between serial and concurrent Frank-Wolfe runs.
+- `MultiFlowPathAdmissionIntegrationTest`: complete fast and exact multi-flow assignments
+  with explicit `MAX_DETOUR` boundaries (just below, exactly at and just above the limit),
+  a disabled limit and mode-specific length references. Repeated searches retain each route
+  once and preserve serial/concurrent results and demand allocation. Distinct routes survive
+  a deliberate collision in the former numeric checksum; unreachable modes cannot supply
+  the detour benchmark. Cheapest-intermodal filtering rejects costlier solutions, retains
+  ties and stays independent of the detour reference mode. Checks saved headers and details,
+  commodity conservation, handling flows and agreement with the saved virtual network.
+- `MultiFlowPathIdentityTest`: full ordered virtual-link identities distinguish different
+  operations, ordering and direction, survive hash collisions and caller mutation, and reset
+  between choice sets.
 - `IncrementalAssignmentIntegrationTest`: independently calculated increments and route
   choices as congestion changes, conservation, serial/concurrent agreement, repeated runs,
   and equivalence to all-or-nothing assignment when using one increment. Also checks runtime

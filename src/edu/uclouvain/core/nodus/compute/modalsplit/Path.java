@@ -38,8 +38,8 @@ public class Path {
   public boolean intermodal = false;
 
   /**
-   * Hash key associated to the list of virtual links that are encountered along this path. This is
-   * used to detect identical paths.
+   * Legacy checksum of the virtual-link IDs and path length. Multi-flow workers compare complete
+   * ordered link sequences to detect identical paths, since this checksum can collide.
    */
   public double detailedPathKey = 0.0;
 
@@ -63,7 +63,7 @@ public class Path {
    * detailed costs are asked for the assignment.
    */
   public PathWeights weights;
-  
+
   /** Default constructor. */
   public Path() {}
 }
