@@ -43,11 +43,13 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import javax.swing.JOptionPane;
 
 /**
@@ -59,46 +61,19 @@ public class ProjectFilesTools implements ShapeConstants {
   /** Default constructor. */
   public ProjectFilesTools() {}
 
-  /**
-   * Upgrades a fully validated legacy link DBF, preserving all original attributes and encoding.
-   */
+  /** Upgrades a validated legacy schema, keeping a permanent copy of the original DBF. */
   private static void addEnabledField(String path, String layerName, String override)
       throws IOException {
     final Path file = Path.of(path, layerName + NodusC.TYPE_DBF);
-    final Charset charset = DbfFiles.charset(file, override);
-    final List<Object[]> data = new LinkedList<>();
     final DBFField[] fields;
     try (DBFReader reader = DbfFiles.reader(file, override)) {
-      fields = new DBFField[reader.getFieldCount() + 1];
+      fields = new DBFField[reader.getFieldCount()];
       for (int i = 0; i < fields.length; i++) {
-        fields[i] =
-            i == NodusC.DBF_IDX_ENABLED
-                ? new DBFField(NodusC.DBF_ENABLED, 'N', 1, 0)
-                : reader.getField(i < NodusC.DBF_IDX_ENABLED ? i : i - 1);
-      }
-      while (reader.hasNextRecord()) {
-        Object[] record = reader.nextRecord();
-        Object[] upgraded = new Object[record.length + 1];
-        System.arraycopy(record, 0, upgraded, 0, NodusC.DBF_IDX_ENABLED);
-        upgraded[NodusC.DBF_IDX_ENABLED] = Integer.valueOf(1);
-        System.arraycopy(
-            record,
-            NodusC.DBF_IDX_ENABLED,
-            upgraded,
-            NodusC.DBF_IDX_ENABLED + 1,
-            record.length - NodusC.DBF_IDX_ENABLED);
-        data.add(upgraded);
+        fields[i] = reader.getField(i);
       }
     }
-    try (LayerFileSave save = new LayerFileSave(Path.of(path), layerName)) {
-      Path staged = save.stage(layerName + NodusC.TYPE_DBF);
-      try (DBFWriter writer = new DBFWriter(staged.toString(), fields, charset)) {
-        for (Object[] record : data) {
-          writer.addRecord(record);
-        }
-      }
-      DbfFiles.writeCpg(save.stage(layerName + ".cpg"), charset);
-      save.commit();
+    try (DbfSchemaConversion conversion = DbfSchemaConversion.prepare(file, fields, fields, true)) {
+      conversion.commit();
     }
   }
 
@@ -312,18 +287,33 @@ public class ProjectFilesTools implements ShapeConstants {
     return availableLayers.toArray(new String[availableLayers.size()]);
   }
 
-  /** Per-file validation state; an upgrade decision must never leak to the next layer. */
+  /** Per-file validation state; a repair decision must never leak to the next layer. */
   private static final class Validation {
     final String error;
     final boolean legacy;
+    final DBFField[] fields;
+    final DBFField[] repaired;
+    final List<String> changes;
 
     Validation(String error, boolean legacy) {
+      this(error, legacy, null, null, List.of());
+    }
+
+    Validation(
+        String error,
+        boolean legacy,
+        DBFField[] fields,
+        DBFField[] repaired,
+        List<String> changes) {
       this.error = error;
       this.legacy = legacy;
+      this.fields = fields;
+      this.repaired = repaired;
+      this.changes = changes;
     }
   }
 
-  /** Checks the mandatory prefix, allowing only the documented older numeric ID widths. */
+  /** Checks the mandatory prefix and identifies numeric-format repairs for value-level checking. */
   private static Validation validateDbf(String name, DBFField[] fields, int type) {
     final boolean point = type == SHAPE_TYPE_POINT;
     final String[] names = point ? NodusC.NODES_MANDATORY_NAMES : NodusC.LINKS_MANDATORY_NAMES;
@@ -345,36 +335,52 @@ public class ProjectFilesTools implements ShapeConstants {
         }
       }
     }
+    final DBFField[] repaired = fields.clone();
+    final List<String> changes = new ArrayList<>();
+    boolean convertible = true;
     for (int i = 0; i < names.length; i++) {
       if (legacy && i == NodusC.DBF_IDX_ENABLED) {
         continue;
       }
-      DBFField field = fields[legacy && i > NodusC.DBF_IDX_ENABLED ? i - 1 : i];
+      final int index = legacy && i > NodusC.DBF_IDX_ENABLED ? i - 1 : i;
+      DBFField field = fields[index];
+      if (!field.getName().equalsIgnoreCase(names[i])) {
+        return new Validation(name + ": field " + i + ": " + names[i] + " expected", false);
+      }
       boolean id =
           i == NodusC.DBF_IDX_NUM
               || (!point && (i == NodusC.DBF_IDX_NODE1 || i == NodusC.DBF_IDX_NODE2));
       boolean oldWidth = id && (field.getLength() == 5 || field.getLength() == 6);
-      if (!field.getName().equalsIgnoreCase(names[i])
-          || field.getType() != types[i]
+      if (field.getType() != types[i]
           || (field.getLength() != lengths[i] && !oldWidth)
           || field.getDecimalCount() != decimals[i]) {
-        return new Validation(
-            name
-                + ": field "
-                + i
+        String expected = types[i] + "(" + lengths[i] + "," + decimals[i] + ")";
+        changes.add(
+            names[i]
                 + ": "
-                + names[i]
-                + " "
-                + types[i]
+                + field.getType()
                 + "("
-                + lengths[i]
+                + field.getLength()
                 + ","
-                + decimals[i]
-                + ") expected",
-            false);
+                + field.getDecimalCount()
+                + ") → "
+                + expected);
+        convertible &=
+            (field.getType() == 'N' || field.getType() == 'F' || field.getType() == 'C')
+                && !field.isBinary()
+                && !field.isNullable();
+        repaired[index] = new DBFField(field.getName(), types[i], lengths[i], decimals[i]);
       }
     }
-    return new Validation(null, legacy);
+    if (changes.isEmpty()) {
+      return new Validation(null, legacy);
+    }
+    return new Validation(
+        name + ": incompatible DBF fields\n" + String.join("\n", changes),
+        legacy,
+        fields,
+        convertible ? repaired : null,
+        changes);
   }
 
   /**
@@ -447,12 +453,25 @@ public class ProjectFilesTools implements ShapeConstants {
     return isValidProject(
         nodusProjectProperties,
         message ->
-            JOptionPane.showMessageDialog(
-                null, message, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE));
+            JOptionPane.showMessageDialog(null, message, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE),
+        message ->
+            JOptionPane.showConfirmDialog(
+                    null,
+                    message,
+                    "Convert layer DBF",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE)
+                == JOptionPane.YES_OPTION);
   }
 
   /** Validates a project with a caller-supplied diagnostic destination. */
   static boolean isValidProject(Properties properties, Consumer<String> reportError) {
+    return isValidProject(properties, reportError, message -> false);
+  }
+
+  /** Checks every value before asking once per affected layer to install a lossless repair. */
+  static boolean isValidProject(
+      Properties properties, Consumer<String> reportError, Predicate<String> confirmConversion) {
     final String path = properties.getProperty(NodusC.PROP_PROJECT_DOTPATH);
     if (path == null) {
       reportError.accept("Missing project directory");
@@ -467,7 +486,31 @@ public class ProjectFilesTools implements ShapeConstants {
         String charset =
             properties.getProperty(name + ".dbfCharset", properties.getProperty("dbfCharset", ""));
         Validation validation = validateLayer(path, name, type, charset);
-        if (validation.error == null && validation.legacy) {
+        if (validation.error != null && validation.repaired != null) {
+          final Path file = Path.of(path, name + NodusC.TYPE_DBF);
+          try (DbfSchemaConversion conversion =
+              DbfSchemaConversion.prepare(
+                  file, validation.fields, validation.repaired, validation.legacy)) {
+            String message =
+                "Layer '"
+                    + name
+                    + "' has DBF fields that can be converted without "
+                    + "rounding or truncating values:\n\n"
+                    + String.join("\n", validation.changes)
+                    + (validation.legacy ? "\nThe missing ENABLED field will also be added." : "")
+                    + "\n\nConvert this layer now?\nThe original will be kept as "
+                    + conversion.backup.getFileName()
+                    + ".";
+            if (!confirmConversion.test(message)) {
+              return false;
+            }
+            conversion.commit();
+            validation = validateLayer(path, name, type, charset);
+          } catch (IOException | DBFException error) {
+            reportError.accept(name + ": cannot convert DBF: " + error.getMessage());
+            return false;
+          }
+        } else if (validation.error == null && validation.legacy) {
           try {
             addEnabledField(path, name, charset);
             validation = validateLayer(path, name, type, charset);

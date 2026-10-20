@@ -159,6 +159,15 @@ for the workflow mechanism.
 
 ## Coverage
 
+- `ResultCalculationTest`: H2/HSQLDB quantities, vehicles and repeated path links reach the correct
+  objects across multiple layers. Checks unknown IDs, empty/repeated queries, zero/equal/signed
+  values, relative stroke widths and node radii, SQL/layer/view visibility, recovery from zero
+  results, query errors and actual DBF exports with two decimal places and retained layer row order.
+- `ResultPlaybackTest`: real period queries with controlled EDT timer delivery, fixed scaling,
+  exclusive end boundaries and complete slices, scenario-specific time settings, Enter/Escape,
+  canceled prompts, missing/invalid settings, SQL failures and once-only completion. Verifies restored
+  labels/listeners, stopped and stale timers, replacement playback, absent labels, large time values,
+  quoted/nested/OR query predicates and project cleanup before JDBC closure and reuse of the map.
 - `ScenariosTest`: comparison and summation on H2/HSQLDB with matching/disjoint links,
   unequal/reordered commodity columns, every operation type, directions, services, time periods,
   large identifiers/vehicle counts, filters and empty inputs. Covers current and legacy schemas,
@@ -182,10 +191,18 @@ for the workflow mechanism.
   Legacy link migration inserts `ENABLED` once, preserves row order, custom attributes and UTF-8/
   Windows-1252 text, rejects malformed schemas without rewriting them, and preserves the original
   DBF when installation fails. Consecutive validations cannot share an upgrade decision.
+- `DbfSchemaConversionTest`: lossless numeric widening/narrowing and numeric-text conversion,
+  including `speed N(4,0)` to `N(7,2)`. Checks one confirmation per affected layer, multiple fields
+  in one prompt, declined repairs, deleted rows, legacy `ENABLED` insertion, UTF-8/Windows-1252
+  attributes, unchanged geometry/CPG files and byte-for-byte original backups. Rejects rounding,
+  overflow, ambiguous/non-numeric text, extreme exponents and truncated records before prompting.
+  Existing backups, concurrent source/backup changes, failed installation and retries are covered.
 - `NodusProjectOpenWorkflowTest`: real temporary project files and embedded H2/HSQLDB connections,
   `.nodus`/`.local` precedence, actual layer loading, modified-DBF reimport, Groovy open-hook completion,
   close/reopen, background and late-opening failure cleanup, and ID allocation across loaded and
-  unloaded layers. Rescans remove stale IDs and reject an unavailable project directory.
+  unloaded layers. Rejected or declined layer formats, later opening failures and normal closure
+  restore one visible World layer and the initial map view, hide scenario controls and allow retry.
+  Rescans remove stale IDs and reject an unavailable project directory.
 - `NodusWMSLayerTest`: the production SAX configuration rejects external general/parameter and
   custom/recursive entity declarations. Private sentinel files and a loopback HTTP canary check
   resource isolation; external DTD/schema and XInclude references must never trigger canary requests.

@@ -33,9 +33,7 @@ import com.bbn.openmap.layer.location.NodusLocationLayer;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.omGraphics.NodusOMGraphic;
 import com.bbn.openmap.omGraphics.OMGraphic;
-import com.bbn.openmap.proj.Mercator;
 import com.bbn.openmap.proj.Projection;
-import com.bbn.openmap.proj.ProjectionFactory;
 import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
@@ -701,10 +699,6 @@ public class NodusProject implements ShapeConstants {
    * Finishes the non-database part of project closing and returns true once the project is closed.
    */
   private boolean finalizeProjectClose(Layer[] layer) {
-    // Now remove all the layers, but leave political boundaries visible
-    getNodusMapPanel().displayHighlightedAreaLayer(false, false);
-    getNodusMapPanel().displayPoliticalBoundaries(true, true);
-
     labelsLayer.setRemovable(true);
 
     if (nodeLayers != null) {
@@ -729,20 +723,6 @@ public class NodusProject implements ShapeConstants {
     nodusMapPanel.getLayerHandler().removeAll();
     nodusMapPanel.getLayerHandler().setLayers(new Layer[0]);
 
-    // Reset projection to default values
-    nodusMapPanel.resetMap();
-    Projection projection = nodusMapPanel.getMapBean().getProjection();
-    Point2D ctr = projection.getCenter();
-    Projection newProj =
-        new ProjectionFactory()
-            .makeProjection(
-                Mercator.class.getName(),
-                ctr,
-                projection.getScale(),
-                projection.getWidth(),
-                projection.getHeight());
-    nodusMapPanel.getMapBean().setProjection(newProj);
-
     // Enable some menu items and dispose/remove project plugins menus and instances
     nodusMapPanel.removeProjectPlugins();
     nodusMapPanel.clearStoredObjects();
@@ -754,19 +734,10 @@ public class NodusProject implements ShapeConstants {
     stopJdbcKeepAlive();
     isOpen = false;
 
-    // Reset rendering scale threshold
-    nodusMapPanel.setRenderingScaleThreshold(-1);
-
     // Close the log file for this project
     closeLoggerHandler();
 
-    nodusMapPanel.resetTitle();
-    nodusMapPanel.resetText();
-    nodusMapPanel.getNodusLayersPanel().enableButtons(false);
-
-    // Reset view to initial values
-    getNodusMapPanel().getMapBean().setScale(initialScale);
-    getNodusMapPanel().getMapBean().setCenter(initialCenterPoint);
+    nodusMapPanel.restoreClosedProjectMap(initialScale, initialCenterPoint);
 
     projectProperties.clear();
     projectProperties = null;
@@ -920,6 +891,7 @@ public class NodusProject implements ShapeConstants {
 
     ProjectLocker.releaseLock();
     projectCleanup = new ProjectCleanupRegistry();
+    nodusMapPanel.restoreClosedProjectMap(initialScale, initialCenterPoint);
     nodusMapPanel.setFileMenuBusy(false);
     nodusMapPanel.setBusy(false);
   }
@@ -1545,6 +1517,11 @@ public class NodusProject implements ShapeConstants {
         () -> importDBFTablesAsync(tableNames, index + 1, onDone));
   }
 
+  /** Validates layer files before allocating the project database and layer objects. */
+  boolean validateProjectFiles(Properties properties) {
+    return ProjectFilesTools.isValidProject(properties);
+  }
+
   /** Loads node layers one by one without relying on a nested event loop. */
   private void loadNodeLayersAsync(
       List<String> nodeLayerNames, List<String> linkLayerNames, int index, int layerPosition) {
@@ -2068,7 +2045,7 @@ public class NodusProject implements ShapeConstants {
     }
 
     // Test the validity of the dbf files in the project
-    if (!ProjectFilesTools.isValidProject(localProperties)) {
+    if (!validateProjectFiles(localProperties)) {
       cleanupFailedProjectOpen();
       return;
     }

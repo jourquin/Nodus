@@ -31,5 +31,17 @@
  * export workflows. Selection of the desired result is handled by {@link
  * edu.uclouvain.core.nodus.compute.results.gui.ResultsDlg}; assignment and database result writing
  * occur in other computation packages.
+ *
+ * <p>Each successful query replaces the previous numeric values; repeated IDs accumulate and
+ * unknown IDs are ignored. Values retain their precision for labels and export (DBF output has
+ * two decimal places). Display sizes are bounded and proportional to magnitude, with their sign
+ * selecting the existing alternative colors. SQL filters, layer visibility and the optional map
+ * extent determine the scaling reference. Zero results remain hidden and can reappear on a later
+ * query. A failed SQL read leaves the previous values intact.
+ *
+ * <p>Playback uses the selected scenario's cost file, a constant scale across complete assignment
+ * periods and an exclusive end boundary. Timers, keyboard listeners and temporary label text are
+ * released on completion, cancellation, query failure and project cleanup. Timer delivery and
+ * completion callbacks run on the EDT; project cleanup waits for that UI cleanup before continuing.
  */
 package edu.uclouvain.core.nodus.compute.results;

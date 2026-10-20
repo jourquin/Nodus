@@ -23,114 +23,72 @@ package edu.uclouvain.core.nodus.compute.results;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.Layer;
-import com.bbn.openmap.dataAccess.shape.DbfTableModel;
-import com.bbn.openmap.dataAccess.shape.EsriGraphicList;
 import com.bbn.openmap.dataAccess.shape.ShapeConstants;
 import com.bbn.openmap.layer.LabelLayer;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
-import com.bbn.openmap.omGraphics.OMGraphic;
-import com.bbn.openmap.omGraphics.OMPoly;
-import com.bbn.openmap.proj.ProjMath;
-import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
-import edu.uclouvain.core.nodus.compute.real.RealLink;
 import edu.uclouvain.core.nodus.compute.real.RealNetworkObject;
 import edu.uclouvain.core.nodus.compute.results.gui.ResultsDlg;
-import edu.uclouvain.core.nodus.database.JDBCUtils;
-import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.text.DecimalFormat;
-import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
-/**
- * Performs the necessary queries and work to display the results of assignments.
- *
- * @author Bart Jourquin
- */
+/** Queries assignment results for map rendering and project-owned period playback. */
 public class LinkResults implements ShapeConstants {
-
   static I18n i18n = Environment.getI18n();
-
-  /**
-   * Returns the RealLink stored in one of the link layers, or null if it doesn't exists.
-   *
-   * @param layers NodusEsriLayer[]
-   * @param linkNum int
-   * @return RealLink
-   */
-  private static RealLink getRealLink(NodusEsriLayer[] layers, int linkNum) {
-    for (NodusEsriLayer element : layers) {
-      if (element.numExists(linkNum)) {
-        OMGraphic omg = element.getEsriGraphicList().getOMGraphicAt(element.getNumIndex(linkNum));
-
-        return (RealLink) omg.getAttribute(0);
-      }
-    }
-
-    return null;
-  }
-
-  private boolean autoSliceDisplay = false;
-
-  private float brLat;
-
-  private float brLon;
-
-  private boolean cancelDisplay = false;
-
-  private boolean displayNextTimeSlice = false;
-
-  private boolean export;
-
-  private boolean isTimeDependent = false;
-
-  private NodusMapPanel nodusMapPanel;
-
-  private NodusProject nodusProject;
-
-  private boolean relativeToView;
-
-  private int sliceDisplayInterval;
-
-  private float ulLat;
-
-  private float ulLon;
-
+  private final NodusMapPanel nodusMapPanel;
+  private final NodusProject nodusProject;
+  private final ResultDisplay display;
+  private final boolean export;
   private int currentScenario = -1;
-
-  private String currentCostFunctionsFileName = null;
-
-  private VehiclesParser currentVehiclesParser = null;
-
-  double maxResult = Double.MIN_VALUE;
-  double minResult = Double.MAX_VALUE;
-
-  /** Resolves the cost-functions file path for the current scenario. */
-  private String getCostFunctionsFileName(int scenario) {
-    String costFunctionsFileName = nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS);
-    costFunctionsFileName =
-        nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS + scenario, costFunctionsFileName);
-    return nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + costFunctionsFileName;
-  }
+  private String currentCostFunctionsFileName;
+  private VehiclesParser currentVehiclesParser;
+  private Playback playback;
+  private Connection playbackConnection;
+  private boolean cleanupRegistered;
+  private volatile boolean closed;
 
   /**
-   * Returns a vehicle parser for the current project/scenario, reloading it when the scenario or
-   * the underlying cost-functions file changes.
+   * Creates a result display for the current project and map extent.
+   *
+   * @param mapPanel map receiving the results
+   * @param relativeToView scale using only results in the current view
+   * @param export export the numeric values to DBF, retaining two decimal places
    */
+  public LinkResults(NodusMapPanel mapPanel, boolean relativeToView, boolean export) {
+    nodusMapPanel = mapPanel;
+    nodusProject = mapPanel.getNodusProject();
+    display = new ResultDisplay(mapPanel, relativeToView);
+    this.export = export;
+  }
+
+  private String getCostFunctionsFileName(int scenario) {
+    String fallback =
+        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.TYPE_COSTS;
+    String name = nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS, fallback);
+    name = nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS + scenario, name);
+    return nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + name;
+  }
+
   private VehiclesParser getVehiclesParser(int scenario) {
     String costFunctionsFileName = getCostFunctionsFileName(scenario);
 
@@ -160,40 +118,7 @@ public class LinkResults implements ShapeConstants {
     return currentVehiclesParser;
   }
 
-  /**
-   * Initializes the class.
-   *
-   * @param mapPanel The NodusMapPanel.
-   * @param relativeToView If true, the max width of the links will be computed taking only into
-   *     account the visible links.
-   * @param export If true, the results are exported in a shapefile.
-   */
-  public LinkResults(NodusMapPanel mapPanel, boolean relativeToView, boolean export) {
-    nodusMapPanel = mapPanel;
-    nodusProject = nodusMapPanel.getNodusProject();
-    this.relativeToView = relativeToView;
-    this.export = export;
-
-    /*
-     * Get latitude/longitude of upper-left and bottom-right corners of the current view
-     */
-    LatLonPoint.Double llp = mapPanel.getMapBean().getProjection().inverse(0, 0);
-    ulLat = llp.getLatitude();
-    ulLon = llp.getLongitude();
-    int width = nodusMapPanel.getMapBean().getWidth();
-    int height = nodusMapPanel.getMapBean().getHeight();
-    llp = nodusMapPanel.getMapBean().getProjection().inverse(width, height);
-    brLat = llp.getLatitude();
-    brLon = llp.getLongitude();
-  }
-
-  /**
-   * Ask the user which interval to use between two time slices (dynamic assignments only).
-   *
-   * @return The interval in seconds or 0 if the "enter" key must be used to display the next time
-   *     slide.
-   */
-  private Integer askForDisplayInterval() {
+  Integer askForDisplayInterval() {
     String[] intervals = {
       i18n.get(LinkResults.class, "Press_enter", "Press 'Enter'"),
       i18n.get(LinkResults.class, "half_second", "0.5 second"),
@@ -246,7 +171,7 @@ public class LinkResults implements ShapeConstants {
    *
    * @return 0 for quantities, 1 for vehicles.
    */
-  private Integer askForDisplayUnits() {
+  Integer askForDisplayUnits() {
     String[] units = {
       i18n.get(LinkResults.class, "Quantities", "Quantities"),
       i18n.get(LinkResults.class, "Vehicles", "Vehicles"),
@@ -281,711 +206,375 @@ public class LinkResults implements ShapeConstants {
   }
 
   /**
-   * Read volumes in the database by means of the passed SQL statement, and updates the links
-   * attributes in order to display the volumes on the map.
+   * Reads link quantities or vehicle counts from the first two SQL result columns.
    *
-   * @param sqlStmt The SQL query used to display this result.
-   * @return boolean True on success.
+   * @param sqlStmt query returning link ID and value
+   * @return true on successful display and optional export
    */
   public boolean displayVolumes(String sqlStmt) {
+    if (playback != null) {
+      playback.finish(false, true);
+    }
     return displayVolumes(sqlStmt, -1);
   }
 
-  /**
-   * Read volumes in the database by means of the passed SQL statement and the starting time (in
-   * seconds, starting from midnight), and updates the links attributes in order to display the
-   * volumes on the map.
-   *
-   * @param sqlStmt The SQL query used to display this result.
-   * @param time The starting time if the time slice to display, or -1 for non dynamic assignments.
-   * @return boolean True on success.
-   */
   boolean displayVolumes(String sqlStmt, int time) {
-
     nodusMapPanel.setBusy(true);
-
-    Connection jdbcConnection = nodusProject.getMainJDBCConnection();
-    final NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
-
-    // Build time dependent query
-    if (time != -1) {
-      String tmp1 = sqlStmt.toLowerCase();
-      int whereIndex = tmp1.indexOf("where");
-      if (whereIndex == -1) {
-        nodusMapPanel.setBusy(false);
-        JOptionPane.showMessageDialog(
-            null,
-            "Time-dependent result queries must contain a WHERE clause.",
-            "SQL error",
-            JOptionPane.ERROR_MESSAGE);
-        return false;
-      }
-      int index = whereIndex + 5;
-      sqlStmt =
-          sqlStmt.substring(0, index)
-              + " time = "
-              + time
-              + " AND "
-              + sqlStmt.substring(index + 1, sqlStmt.length());
-    }
-
-    try (Statement stmt = jdbcConnection.createStatement();
-        ResultSet rs = stmt.executeQuery(sqlStmt)) {
-
-      // Retrieve result of query
-      while (rs.next()) {
-        int n = JDBCUtils.getInt(rs.getObject(1));
-        RealLink rl = getRealLink(linkLayers, n);
-
-        if (rl != null) {
-          rl.setResult(JDBCUtils.getDouble(rs.getObject(2)));
+    try {
+      NodusEsriLayer[] layers = nodusProject.getLinkLayers();
+      Map<Integer, RealNetworkObject> objects = ResultDisplay.objects(layers);
+      Map<RealNetworkObject, Double> values = new LinkedHashMap<>();
+      String sql = time < 0 ? sqlStmt : ResultQueries.forTime(sqlStmt, time);
+      Connection connection =
+          playback == null ? nodusProject.getMainJDBCConnection() : playback.connection;
+      try (Statement statement = connection.createStatement();
+          ResultSet rows = statement.executeQuery(sql)) {
+        while (rows.next()) {
+          RealNetworkObject object = objects.get(rows.getInt(1));
+          if (object != null) {
+            ResultDisplay.add(values, object, ResultDisplay.value(rows, 2));
+          }
         }
       }
-
-    } catch (Exception ex) {
-      nodusMapPanel.setBusy(false);
-      ex.printStackTrace();
-      JOptionPane.showMessageDialog(null, ex.getMessage(), "SQL error", JOptionPane.ERROR_MESSAGE);
-
+      return display.apply(
+          layers,
+          values,
+          true,
+          export && playback == null,
+          playback == null ? -1 : playback.magnitude);
+    } catch (Exception failure) {
+      showError(failure.getMessage());
       return false;
+    } finally {
+      nodusMapPanel.setBusy(false);
     }
-
-    if (isTimeDependent) {
-      export = false;
-    }
-
-    if (!isTimeDependent) {
-      for (NodusEsriLayer element : linkLayers) {
-
-        // Only look into displayed layers
-        if (element.isVisible()) {
-          EsriGraphicList egl = element.getEsriGraphicList();
-          Iterator<?> it = egl.iterator();
-
-          while (it.hasNext()) {
-            OMPoly omg = (OMPoly) it.next();
-
-            // Is this link in the current view ?
-            if (!relativeToView || isLinkInView(omg)) {
-              RealLink rl = (RealLink) omg.getAttribute(0);
-              double result = rl.getResult();
-
-              if (maxResult < result) {
-                maxResult = result;
-              }
-
-              if (minResult > result) {
-                minResult = result;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Round results
-    roundResults();
-
-    /* Set the width of the strokes and update map. */
-    int maxWidth =
-        Math.max(1, nodusProject.getLocalProperty(NodusC.PROP_MAX_WIDTH, NodusC.MAX_WIDTH));
-    DbfTableModel resultModel = null;
-
-    for (NodusEsriLayer linkLayer : linkLayers) {
-      if (linkLayer.isVisible()) {
-        EsriGraphicList egl = linkLayer.getEsriGraphicList();
-        DbfTableModel tableModel = linkLayer.getModel();
-
-        if (export) {
-          // Create dbfTable with NUM and RESULTS field only
-          resultModel = new DbfTableModel(2);
-          resultModel.setColumnName(0, NodusC.DBF_NUM);
-          resultModel.setType(0, DBF_TYPE_NUMERIC);
-          resultModel.setLength(0, 10);
-          resultModel.setDecimalCount(0, (byte) 0);
-          resultModel.setColumnName(1, NodusC.DBF_RESULT);
-          resultModel.setType(1, DBF_TYPE_NUMERIC);
-          resultModel.setLength(1, 12);
-          resultModel.setDecimalCount(1, (byte) 2);
-
-          // Copy the NUM values
-          for (int j = 0; j < tableModel.getRowCount(); j++) {
-            resultModel.addBlankRecord();
-            resultModel.setValueAt(tableModel.getValueAt(j, 0), j, 0);
-          }
-        }
-
-        int index = 0;
-        Iterator<OMGraphic> it = egl.iterator();
-        while (it.hasNext()) {
-          OMGraphic omg = it.next();
-
-          RealLink rl = (RealLink) omg.getAttribute(0);
-          if (export) {
-            // Set Result in second column of the result table model
-            resultModel.setValueAt(rl.getResult(), index, 1);
-          }
-
-          if (rl.getResult() != 0) {
-            double size;
-            if (maxResult > minResult) {
-              size = rl.getResult() / ((maxResult - minResult) / (double) maxWidth);
-            } else {
-              size = maxWidth;
-            }
-
-            if (size > 0) {
-              size++;
-            } else {
-              size--;
-            }
-
-            rl.setSize(java.lang.Math.round(size));
-
-          } else {
-            rl.setSize(0);
-          }
-
-          index++;
-        }
-
-        if (export) {
-          ExportDBF.exportTable(
-              nodusProject,
-              linkLayer.getTableName() + NodusC.SUFFIX_RESULTS + NodusC.TYPE_DBF,
-              resultModel);
-        }
-
-        linkLayer.setDisplayResults(true);
-        linkLayer.getLocationHandler().setDisplayResults(true);
-        linkLayer.attachStyles();
-        linkLayer.doPrepare();
-      }
-    }
-
-    nodusProject.getLocationLayer().reloadData();
-    nodusProject.getLocationLayer().doPrepare();
-    nodusMapPanel.setBusy(false);
-
-    return true;
   }
 
   /**
-   * Read path in the database by means of the passed SQL statement, and updates the links
-   * attributes in order to display the used route(weights) on the map.
+   * Accumulates each occurrence of a link in the selected paths.
    *
-   * @param sqlStmt The SQL query used to display this result.
-   * @return boolean True on success.
+   * @param sqlStmt query returning link, quantity, commodity group, mode and means
+   * @return true on successful display and optional export
    */
   public boolean displayPath(String sqlStmt) {
-
-    // Ask the use which units he wants to display
-    Integer unit = askForDisplayUnits();
-    if (unit == null) {
+    if (playback != null) {
+      playback.finish(false, true);
+    }
+    Integer units = askForDisplayUnits();
+    if (units == null) {
       return false;
     }
-
-    boolean displayVehicles = false;
-    if (unit == 1) {
-      displayVehicles = true;
-    }
-
     nodusMapPanel.setBusy(true);
-
-    int scenario = nodusProject.getLocalProperty(NodusC.PROP_SCENARIO, 0);
-    VehiclesParser vehiclesParser = null;
-
-    // Load the average loads of each type of vehicle from the cost functions file
-    if (displayVehicles) {
-      vehiclesParser = getVehiclesParser(scenario);
-      if (vehiclesParser == null) {
-        nodusMapPanel.setBusy(false);
+    try {
+      VehiclesParser vehicles =
+          units == 1
+              ? getVehiclesParser(nodusProject.getLocalProperty(NodusC.PROP_SCENARIO, 0))
+              : null;
+      if (units == 1 && vehicles == null) {
         return false;
       }
-    }
-
-    Connection jdbcConnection = nodusProject.getMainJDBCConnection();
-    NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
-
-    try (Statement stmt = jdbcConnection.createStatement();
-        ResultSet rs = stmt.executeQuery(sqlStmt)) {
-
-      // Retrieve result of query
-      double maxResult = Double.MIN_VALUE;
-      double minResult = Double.MAX_VALUE;
-
-      while (rs.next()) {
-        RealLink rl = getRealLink(linkLayers, JDBCUtils.getInt(rs.getObject(1)));
-
-        if (rl != null) {
-          double qty = JDBCUtils.getDouble(rs.getObject(2));
-          int group = JDBCUtils.getInt(rs.getObject(3));
-          int mode = JDBCUtils.getInt(rs.getObject(4));
-          int means = JDBCUtils.getInt(rs.getObject(5));
-
-          double d = rl.getResult();
-          if (displayVehicles) {
-            // Compute the number of vehicles needed
-            double nbVehicles = Math.ceil(qty / vehiclesParser.getAverageLoad(group, mode, means));
-            d += nbVehicles;
-          } else {
-            // Add volume to current volume
-            d += qty;
-          }
-
-          rl.setResult(d);
-
-          if (d > maxResult) {
-            maxResult = d;
-          }
-
-          if (d < minResult) {
-            minResult = d;
+      NodusEsriLayer[] layers = nodusProject.getLinkLayers();
+      Map<Integer, RealNetworkObject> objects = ResultDisplay.objects(layers);
+      Map<RealNetworkObject, Double> values = new LinkedHashMap<>();
+      try (Statement statement = nodusProject.getMainJDBCConnection().createStatement();
+          ResultSet rows = statement.executeQuery(sqlStmt)) {
+        while (rows.next()) {
+          RealNetworkObject object = objects.get(rows.getInt(1));
+          if (object != null) {
+            double value = ResultDisplay.value(rows, 2);
+            if (units == 1) {
+              double load = vehicles.getAverageLoad(rows.getInt(3), rows.getInt(4), rows.getInt(5));
+              value = Math.copySign(Math.ceil(Math.abs(value) / load), value);
+            }
+            ResultDisplay.add(values, object, value);
           }
         }
       }
-
-    } catch (Exception ex) {
-      nodusMapPanel.setBusy(false);
-      JOptionPane.showMessageDialog(null, ex.getMessage(), "SQL error", JOptionPane.ERROR_MESSAGE);
-
+      return display.apply(layers, values, true, export, -1);
+    } catch (Exception failure) {
+      showError(failure.getMessage());
       return false;
+    } finally {
+      nodusMapPanel.setBusy(false);
     }
-
-    // Round the volumes on the links
-    roundResults();
-
-    // Update the map to display result
-    NodusEsriLayer[] layers = nodusProject.getLinkLayers();
-    DbfTableModel resultModel = null;
-
-    int maxWidth =
-        Math.max(1, nodusProject.getLocalProperty(NodusC.PROP_MAX_WIDTH, NodusC.MAX_WIDTH));
-    for (int i = 0; i < layers.length; i++) {
-
-      if (layers[i].isVisible()) {
-        EsriGraphicList egl = layers[i].getEsriGraphicList();
-        DbfTableModel tableModel = layers[i].getModel();
-
-        if (export) {
-          // Create dbfTable with NUM and RESULTS field only
-          resultModel = new DbfTableModel(2);
-          resultModel.setColumnName(0, NodusC.DBF_NUM);
-          resultModel.setType(0, DBF_TYPE_NUMERIC);
-          resultModel.setLength(0, 10);
-          resultModel.setDecimalCount(0, (byte) 0);
-          resultModel.setColumnName(1, NodusC.DBF_RESULT);
-          resultModel.setType(1, DBF_TYPE_NUMERIC);
-          resultModel.setLength(1, 12);
-          resultModel.setDecimalCount(1, (byte) 2);
-
-          // Copy the NUM values
-          for (int j = 0; j < tableModel.getRowCount(); j++) {
-            resultModel.addBlankRecord();
-            resultModel.setValueAt(tableModel.getValueAt(j, 0), j, 0);
-          }
-        }
-
-        Iterator<?> it = egl.iterator();
-        int index = 0;
-
-        while (it.hasNext()) {
-          OMGraphic omg = (OMGraphic) it.next();
-          RealLink rl = (RealLink) omg.getAttribute(0);
-
-          if (export) {
-            // Set Result in last column
-            resultModel.setValueAt(rl.getResult(), index, 1);
-          }
-
-          if (rl.getResult() != 0) {
-            // Get the original width of the link
-            // BasicStroke bs = (BasicStroke) layers[i].getStyle(omg, index).getStroke();
-            // rl.setSize(bs.getLineWidth());
-
-            // Compute stroke width
-            double width;
-            if (maxResult > minResult) {
-              width = rl.getResult() / ((maxResult - minResult) / (double) maxWidth);
-            } else {
-              width = maxWidth;
-            }
-
-            if (width > 0) {
-              width++;
-            } else {
-              width--;
-            }
-
-            rl.setSize(java.lang.Math.round(width));
-
-          } else {
-            rl.setSize(0);
-          }
-
-          index++;
-        }
-
-        if (export) {
-          ExportDBF.exportTable(
-              nodusProject,
-              layers[i].getTableName() + NodusC.SUFFIX_RESULTS + NodusC.TYPE_DBF,
-              resultModel);
-        }
-
-        linkLayers[i].setDisplayResults(true);
-        linkLayers[i].getLocationHandler().setDisplayResults(true);
-        linkLayers[i].attachStyles();
-        linkLayers[i].doPrepare();
-      }
-    }
-
-    nodusProject.getLocationLayer().reloadData();
-    nodusProject.getLocationLayer().doPrepare();
-    nodusMapPanel.setBusy(false);
-
-    return true;
   }
 
   /**
-   * Displays the results of a time dependent assignment. This displays a map for each time slice.
-   * The user is asked for the interval he wants between the display of two successive time slices.
+   * Starts time-dependent result playback on the EDT.
    *
-   * @param sqlStmt The SQL query used to display this result.
-   * @return True on success.
+   * @param sqlStmt query returning link and value, grouped by link and time
+   * @return true when playback starts or the interval prompt is canceled
    */
   public boolean displayTimeDependentFlows(String sqlStmt) {
     return displayTimeDependentFlows(sqlStmt, null);
   }
 
   /**
-   * Displays the results of a time dependent assignment. This displays a map for each time slice.
+   * Starts playback for complete assignment periods, excluding the end boundary.
    *
-   * @param sqlStmt The SQL query used to display this result.
-   * @param onDone A callback that will be called when the playback is finished or canceled, with a
-   *     boolean indicating success.
-   * @return True on success.
+   * @param sqlStmt query returning link and value, grouped by link and time
+   * @param onDone called once on completion, cancellation or failure, on the EDT
+   * @return true when playback starts or the interval prompt is canceled
    */
   public boolean displayTimeDependentFlows(String sqlStmt, Consumer<Boolean> onDone) {
-
-    // double maxResult = Double.MIN_VALUE;
-    // double minResult = Double.MAX_VALUE;
-
-    // Automatic or manual display ?
-    Integer answer = askForDisplayInterval();
-
-    // Return without error
-    if (answer == null) {
+    if (!SwingUtilities.isEventDispatchThread()) {
+      final boolean[] result = new boolean[1];
+      try {
+        SwingUtilities.invokeAndWait(() -> result[0] = displayTimeDependentFlows(sqlStmt, onDone));
+        return result[0];
+      } catch (InterruptedException failure) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(failure);
+      } catch (InvocationTargetException failure) {
+        throw new IllegalStateException(failure.getCause());
+      }
+    }
+    if (playback != null) {
+      playback.finish(false, true);
+    }
+    Integer interval = askForDisplayInterval();
+    if (interval == null) {
       if (onDone != null) {
-        onDone.accept(Boolean.TRUE);
+        onDone.accept(true);
       }
       return true;
     }
-
-    if (answer == 0) {
-      autoSliceDisplay = false;
-    } else {
-      autoSliceDisplay = true;
-      sliceDisplayInterval = answer;
-    }
-
-    isTimeDependent = true;
-
-    boolean displayVehicles = false;
-    if (sqlStmt.toLowerCase().contains(NodusC.DBF_VEHICLES)) {
-      displayVehicles = true;
-    }
-
-    // Is a label layer present?
-    LabelLayer labelLayer = null;
-    String oldText = null;
-    Layer[] l = nodusMapPanel.getLayerHandler().getLayers();
-    for (Layer element : l) {
-      if (element instanceof LabelLayer) {
-        labelLayer = (LabelLayer) element;
-        oldText = labelLayer.getLabelText();
-        break;
+    final Playback session;
+    try {
+      if (closed || !nodusProject.isOpen() || nodusMapPanel.getNodusProject() != nodusProject) {
+        throw new IllegalStateException("The playback project is closed");
       }
-    }
-
-    // Get the information about the time windows in the cost function
-    Properties costFunctions;
-    NodusProject nodusProject = nodusMapPanel.getNodusProject();
-    String s = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.TYPE_COSTS;
-    s = nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS, s);
-    String costFunctionsFileName = nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + s;
-
-    costFunctions = new Properties();
-    try (FileInputStream inputStream = new FileInputStream(costFunctionsFileName.trim())) {
-      costFunctions.load(inputStream);
-    } catch (IOException ex) {
-      isTimeDependent = false;
-      JOptionPane.showMessageDialog(
-          null, "Cost functions not found", NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-      return false;
-    }
-
-    int assignmentStartTime =
-        Integer.parseInt(costFunctions.getProperty(NodusC.VARNAME_STARTTIME, "-1"));
-    int assignmentEndTime =
-        Integer.parseInt(costFunctions.getProperty(NodusC.VARNAME_ENDTIME, "-1"));
-    int timeSliceDuration =
-        Integer.parseInt(costFunctions.getProperty(NodusC.VARNAME_TIMESLICE, "-1"));
-
-    if (assignmentEndTime == -1 || assignmentStartTime == -1 || timeSliceDuration == -1) {
-      isTimeDependent = false;
-      JOptionPane.showMessageDialog(
-          null,
-          "Time related variables not found in cost functions",
-          NodusC.APPNAME,
-          JOptionPane.ERROR_MESSAGE);
-      return false;
-    }
-
-    // Compute min and max values
-    Connection jdbcConnection = nodusProject.getMainJDBCConnection();
-    try (Statement stmt = jdbcConnection.createStatement();
-        ResultSet rs = stmt.executeQuery(sqlStmt)) {
-
-      // Retrieve min and max values
-      while (rs.next()) {
-        double result = JDBCUtils.getDouble(rs.getObject(2));
-        if (maxResult < result) {
-          maxResult = result;
-        }
-
-        if (minResult > result) {
-          minResult = result;
+      Properties costs = new Properties();
+      try (FileInputStream input =
+          new FileInputStream(
+              getCostFunctionsFileName(nodusProject.getLocalProperty(NodusC.PROP_SCENARIO, 0))
+                  .trim())) {
+        costs.load(input);
+      }
+      int start = Integer.parseInt(costs.getProperty(NodusC.VARNAME_STARTTIME, "-1").trim());
+      int end = Integer.parseInt(costs.getProperty(NodusC.VARNAME_ENDTIME, "-1").trim());
+      int step = Integer.parseInt(costs.getProperty(NodusC.VARNAME_TIMESLICE, "-1").trim());
+      if (start < 0 || end <= start || step <= 0 || end - start < step || interval < 0) {
+        throw new IllegalArgumentException("Invalid assignment time settings");
+      }
+      ResultQueries.forTime(sqlStmt, start);
+      final int boundary = start + (end - start) / step * step;
+      double magnitude = 0;
+      Map<Integer, RealNetworkObject> objects = ResultDisplay.objects(nodusProject.getLinkLayers());
+      Set<RealNetworkObject> scaled = display.scalingObjects(nodusProject.getLinkLayers());
+      final Connection connection = nodusProject.getMainJDBCConnection();
+      playbackConnection = connection;
+      try (Statement statement = connection.createStatement();
+          ResultSet rows =
+              statement.executeQuery(ResultQueries.forRange(sqlStmt, start, boundary))) {
+        while (rows.next()) {
+          if (scaled.contains(objects.get(rows.getInt(1)))) {
+            magnitude = Math.max(magnitude, Math.abs(ResultDisplay.value(rows, 2)));
+          }
         }
       }
-
-    } catch (Exception ex) {
-      isTimeDependent = false;
-      nodusMapPanel.setBusy(false);
-      JOptionPane.showMessageDialog(null, ex.getMessage(), "SQL error", JOptionPane.ERROR_MESSAGE);
-
+      if (!cleanupRegistered) {
+        nodusProject.registerProjectCleanup(
+            "result-playback-" + UUID.randomUUID(), this::closePlayback);
+        cleanupRegistered = true;
+      }
+      session =
+          new Playback(sqlStmt, start, boundary, step, interval, magnitude, connection, onDone);
+      playback = session;
+    } catch (Exception failure) {
+      showError(failure.getMessage());
+      if (onDone != null) {
+        onDone.accept(false);
+      }
       return false;
     }
+    return session.advance();
+  }
 
-    cancelDisplay = false;
-
-    // Intercept ESC and Enter keys
-    KeyAdapter ka =
-        new KeyAdapter() {
-          @Override
-          public void keyPressed(KeyEvent evt) {
-            // Escape key to interrupt long tasks
-            if (evt.getKeyCode() == KeyEvent.VK_ESCAPE) {
-              cancelDisplay = true;
-              displayNextTimeSlice = true;
-            }
-
-            // Enter key display next time slice
-            if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
-              displayNextTimeSlice = true;
-            }
+  private void closePlayback() {
+    closed = true;
+    Runnable stop =
+        () -> {
+          if (playback != null) {
+            playback.finish(false, true);
           }
         };
-    nodusMapPanel.getMapBean().addKeyListener(ka);
-    nodusMapPanel.getMapBean().requestFocus();
-
-    final LabelLayer lbl = labelLayer;
-    displayNextTimeSliceAsync(
-        sqlStmt,
-        assignmentStartTime,
-        assignmentEndTime,
-        timeSliceDuration,
-        displayVehicles,
-        lbl,
-        oldText,
-        ka,
-        onDone);
-
-    return true;
+    if (SwingUtilities.isEventDispatchThread()) {
+      stop.run();
+    } else {
+      try {
+        SwingUtilities.invokeAndWait(stop);
+      } catch (InterruptedException failure) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(failure);
+      } catch (InvocationTargetException failure) {
+        throw new IllegalStateException(failure.getCause());
+      }
+    }
   }
 
-  private boolean isInScreen(double lat, double lon) {
-    if (lat > ulLat || lat < brLat) {
+  /**
+   * Checks whether a completion callback may still refresh this playback's project layers.
+   *
+   * @return false after project cleanup, connection closure or a change of project
+   */
+  public boolean isPlaybackProjectOpen() {
+    try {
+      return !closed
+          && nodusProject.isOpen()
+          && nodusMapPanel.getNodusProject() == nodusProject
+          && (playbackConnection == null || !playbackConnection.isClosed());
+    } catch (java.sql.SQLException failure) {
       return false;
     }
-    if (lon < ulLon || lon > brLon) {
-      return false;
-    }
-    return true;
   }
 
-  private boolean isLinkInView(OMPoly omPoly) {
-    // Get the coordinates of the end points of the current link
-    double[] pts = omPoly.getLatLonArray();
+  Timer createPlaybackTimer(int interval, Runnable step) {
+    Timer timer = new Timer(interval, event -> step.run());
+    timer.setRepeats(false);
+    return timer;
+  }
 
-    // Transform from radians to degrees!
-    double orgLat = ProjMath.radToDeg(pts[0]);
-    double orgLon = ProjMath.radToDeg(pts[1]);
-    double dstLat = ProjMath.radToDeg(pts[pts.length - 2]);
-    double dstLon = ProjMath.radToDeg(pts[pts.length - 1]);
+  void showError(String message) {
+    JOptionPane.showMessageDialog(nodusMapPanel, message, "SQL error", JOptionPane.ERROR_MESSAGE);
+  }
 
-    // Keep this link if ate least one of its end-nodes is in view
-    if (isInScreen(orgLat, orgLon) || isInScreen(dstLat, dstLon)) {
+  void showPlaybackComplete() {
+    JOptionPane.showMessageDialog(
+        nodusMapPanel,
+        i18n.get(LinkResults.class, "All_periods_displayed", "All the periods were displayed"),
+        i18n.get(ResultsDlg.class, "Display_results", "Display results"),
+        JOptionPane.INFORMATION_MESSAGE);
+  }
+
+  private final class Playback {
+    final String query;
+    final int end;
+    final int duration;
+    final int interval;
+    final double magnitude;
+    final Consumer<Boolean> onDone;
+    final Connection connection;
+    final LabelLayer label;
+    final String oldText;
+    final KeyAdapter keys;
+    long nextTime;
+    Timer timer;
+    boolean finished;
+    long generation;
+
+    Playback(
+        String query,
+        int start,
+        int end,
+        int duration,
+        int interval,
+        double magnitude,
+        Connection connection,
+        Consumer<Boolean> onDone) {
+      this.query = query;
+      this.nextTime = start;
+      this.end = end;
+      this.duration = duration;
+      this.interval = interval;
+      this.magnitude = magnitude;
+      this.onDone = onDone;
+      this.connection = connection;
+      LabelLayer found = null;
+      for (Layer layer : nodusMapPanel.getLayerHandler().getLayers()) {
+        if (layer instanceof LabelLayer) {
+          found = (LabelLayer) layer;
+          break;
+        }
+      }
+      label = found;
+      oldText = label == null ? null : label.getLabelText();
+      keys =
+          new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent event) {
+              if (event.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                finish(false, true);
+              } else if (event.getKeyCode() == KeyEvent.VK_ENTER) {
+                advance();
+              }
+            }
+          };
+      nodusMapPanel.getMapBean().addKeyListener(keys);
+      nodusMapPanel.getMapBean().requestFocus();
+    }
+
+    boolean advance() {
+      if (finished) {
+        return true;
+      }
+      if (timer != null) {
+        timer.stop();
+      }
+      generation++;
+      if (!isPlaybackProjectOpen()) {
+        finish(false, true);
+        return false;
+      }
+      if (nextTime >= end) {
+        finish(true, true);
+        return true;
+      }
+      int time = (int) nextTime;
+      nextTime += duration;
+      if (label != null) {
+        String units =
+            query.toLowerCase(Locale.ROOT).contains(NodusC.DBF_VEHICLES)
+                ? i18n.get(LinkResults.class, "Vehicles_at", "Vehicles at")
+                : i18n.get(LinkResults.class, "Volume_at", "Volume at");
+        label.setLabelText(
+            units + String.format(Locale.ROOT, " %02d:%02d", time / 60 % 24, time % 60));
+        label.doPrepare();
+      }
+      if (!displayVolumes(query, time)) {
+        finish(false, false);
+        return false;
+      }
+      if (interval > 0) {
+        final long expectedGeneration = generation;
+        timer =
+            createPlaybackTimer(
+                interval,
+                () -> {
+                  if (!finished && generation == expectedGeneration) {
+                    advance();
+                  }
+                });
+        timer.start();
+      }
       return true;
     }
 
-    return false;
-  }
-
-  /** Resets the link layers in order to reset the result field of each graphic. */
-  void resetResults() {
-    NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
-    for (NodusEsriLayer element : linkLayers) {
-      EsriGraphicList egl = element.getEsriGraphicList();
-      Iterator<?> it = egl.iterator();
-      while (it.hasNext()) {
-        OMGraphic omg = (OMGraphic) it.next();
-        RealNetworkObject rno = (RealNetworkObject) omg.getAttribute(0);
-        rno.setResult(0.0);
+    void finish(boolean completed, boolean success) {
+      if (finished) {
+        return;
       }
-    }
-  }
-
-  /** Displays one time slice and schedules the next one without blocking the EDT. */
-  private void displayNextTimeSliceAsync(
-      String sqlStmt,
-      int currentTime,
-      int assignmentEndTime,
-      int timeSliceDuration,
-      boolean displayVehicles,
-      LabelLayer labelLayer,
-      String oldText,
-      KeyAdapter keyAdapter,
-      Consumer<Boolean> onDone) {
-    if (cancelDisplay) {
-      finishTimeDependentDisplay(keyAdapter, labelLayer, oldText, false, true, onDone);
-      return;
-    }
-
-    if (currentTime > assignmentEndTime) {
-      finishTimeDependentDisplay(keyAdapter, labelLayer, oldText, true, true, onDone);
-      return;
-    }
-
-    displayNextTimeSlice = false;
-
-    if (labelLayer != null) {
-      String labelUnit;
-      if (displayVehicles) {
-        labelUnit = i18n.get(LinkResults.class, "Vehicles_at", "Vehicles at");
-      } else {
-        labelUnit = i18n.get(LinkResults.class, "Volume_at", "Volume at");
+      finished = true;
+      if (timer != null) {
+        timer.stop();
       }
-
-      int hour = currentTime / 60 % 24;
-      int min = currentTime % 60;
-      DecimalFormat hourFormatter = new DecimalFormat("00");
-      labelLayer.setLabelText(
-          labelUnit + " " + hourFormatter.format(hour) + ":" + hourFormatter.format(min));
-      labelLayer.doPrepare();
-    }
-
-    resetResults();
-    if (!displayVolumes(sqlStmt, currentTime)) {
-      finishTimeDependentDisplay(keyAdapter, labelLayer, oldText, false, false, onDone);
-      return;
-    }
-
-    scheduleNextTimeSliceAsync(
-        sqlStmt,
-        currentTime + timeSliceDuration,
-        assignmentEndTime,
-        timeSliceDuration,
-        displayVehicles,
-        labelLayer,
-        oldText,
-        keyAdapter,
-        onDone);
-  }
-
-  /** Waits for the next playback step without entering a nested event loop. */
-  private void scheduleNextTimeSliceAsync(
-      String sqlStmt,
-      int nextTime,
-      int assignmentEndTime,
-      int timeSliceDuration,
-      boolean displayVehicles,
-      LabelLayer labelLayer,
-      String oldText,
-      KeyAdapter keyAdapter,
-      Consumer<Boolean> onDone) {
-    Timer timer =
-        new Timer(
-            autoSliceDisplay ? sliceDisplayInterval : 10,
-            e -> {
-              if (!autoSliceDisplay && !displayNextTimeSlice && !cancelDisplay) {
-                return;
-              }
-
-              ((Timer) e.getSource()).stop();
-              displayNextTimeSliceAsync(
-                  sqlStmt,
-                  nextTime,
-                  assignmentEndTime,
-                  timeSliceDuration,
-                  displayVehicles,
-                  labelLayer,
-                  oldText,
-                  keyAdapter,
-                  onDone);
-            });
-    timer.setRepeats(!autoSliceDisplay);
-    timer.start();
-  }
-
-  /** Restores the map state after the time-dependent playback finishes or is canceled. */
-  private void finishTimeDependentDisplay(
-      KeyAdapter keyAdapter,
-      LabelLayer labelLayer,
-      String oldText,
-      boolean completed,
-      boolean success,
-      Consumer<Boolean> onDone) {
-    nodusMapPanel.getMapBean().removeKeyListener(keyAdapter);
-
-    if (labelLayer != null) {
-      labelLayer.setLabelText(oldText == null ? "" : oldText);
-      labelLayer.doPrepare();
-    }
-
-    nodusMapPanel.resetText();
-    nodusMapPanel.getMainFrame().requestFocus();
-    isTimeDependent = false;
-
-    if (completed) {
-      JOptionPane.showMessageDialog(
-          nodusMapPanel,
-          i18n.get(LinkResults.class, "All_periods_displayed", "All the periods were displayed"),
-          i18n.get(ResultsDlg.class, "Display_results", "Display results"),
-          JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    if (onDone != null) {
-      onDone.accept(Boolean.valueOf(success));
-    }
-  }
-
-  /** Rounds the results obtained on the different links. */
-  private void roundResults() {
-    NodusEsriLayer[] linkLayers = nodusProject.getLinkLayers();
-
-    for (NodusEsriLayer element : linkLayers) {
-      EsriGraphicList egl = element.getEsriGraphicList();
-      Iterator<?> it = egl.iterator();
-
-      while (it.hasNext()) {
-        OMGraphic omg = (OMGraphic) it.next();
-
-        RealLink rl = (RealLink) omg.getAttribute(0);
-
-        if (rl != null) {
-          rl.setResult(java.lang.Math.round(rl.getResult()));
+      nodusMapPanel.getMapBean().removeKeyListener(keys);
+      playback = null;
+      if (nodusMapPanel.getNodusProject() == nodusProject) {
+        if (label != null) {
+          label.setLabelText(oldText == null ? "" : oldText);
+          label.doPrepare();
         }
+        nodusMapPanel.resetText();
+        if (nodusMapPanel.getMainFrame() != null) {
+          nodusMapPanel.getMainFrame().requestFocus();
+        }
+      }
+      if (completed) {
+        showPlaybackComplete();
+      }
+      if (onDone != null) {
+        onDone.accept(success);
       }
     }
   }

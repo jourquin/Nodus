@@ -34,17 +34,21 @@ import com.bbn.openmap.MapBean;
 import com.bbn.openmap.gui.NodusLayersPanel;
 import com.bbn.openmap.gui.ToolPanel;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
+import com.bbn.openmap.layer.shape.PoliticalBoundariesLayer;
 import com.bbn.openmap.proj.Mercator;
 import com.bbn.openmap.proj.ProjectionStack;
 import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.tools.drawing.NodusOMDrawingTool;
 import com.bbn.openmap.tools.drawing.NodusOMDrawingToolLauncher;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.database.ProjectFilesTools;
+import edu.uclouvain.core.nodus.database.dbf.DBFField;
 import edu.uclouvain.core.nodus.project.ProjectLayerIds;
 import edu.uclouvain.core.nodus.services.ServiceHandler;
 import edu.uclouvain.core.nodus.testing.ProjectFilesFixture;
 import edu.uclouvain.core.nodus.utils.ProjectLocker;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.file.Files;
@@ -118,7 +122,7 @@ public class NodusProjectOpenWorkflowTest {
       assertFalse(firstLayer.isReady());
       assertFalse(fixture.project.isOpen());
       assertFalse(fixture.project.isOtherObjectsLoaded());
-      assertEquals(0, fixture.panel.layers.getLayers().length);
+      assertDefaultMap(fixture.panel);
       assertLockReleased();
       final Path linksDbf = directory.resolve("links.dbf");
       final long previousTimestamp = Files.getLastModifiedTime(linksDbf).toMillis();
@@ -183,7 +187,7 @@ public class NodusProjectOpenWorkflowTest {
       assertFalse(fixture.project.isOpen());
       assertFalse(fixture.panel.busy);
       assertFalse(fixture.panel.fileMenuBusy);
-      assertEquals(0, fixture.panel.layers.getLayers().length);
+      assertDefaultMap(fixture.panel);
       assertTrue(fixture.panel.failedConnection.isClosed());
       for (NodusEsriLayer layer : fixture.panel.failedLayers) {
         assertFalse(layer.isReady());
@@ -219,7 +223,7 @@ public class NodusProjectOpenWorkflowTest {
       assertFalse(fixture.project.isOpen());
       assertFalse(fixture.panel.busy);
       assertNull(fixture.project.getNodeLayers());
-      assertEquals(0, fixture.panel.layers.getLayers().length);
+      assertDefaultMap(fixture.panel);
       assertLockReleased();
     }
   }
@@ -265,6 +269,73 @@ public class NodusProjectOpenWorkflowTest {
     }
   }
 
+  @TestFactory
+  Stream<DynamicTest> rejectedLayerFormatsRestoreTheDefaultMapAndAllowRetry() {
+    return Stream.of(false, true)
+        .map(
+            repairable ->
+                DynamicTest.dynamicTest(
+                    repairable ? "declined format repair" : "incompatible field data",
+                    () -> {
+                      try (Fixture fixture = new Fixture(false)) {
+                        final DBFField[] fields = ProjectFilesFixture.fields(false, false);
+                        fields[8] = new DBFField("speed", repairable ? 'N' : 'C', 4, 0);
+                        final Object[] row = ProjectFilesFixture.row(false, false, 1, "bad format");
+                        row[8] = repairable ? Integer.valueOf(65) : "fast";
+                        ProjectFilesFixture.writeDbf(
+                            directory,
+                            "links",
+                            fields,
+                            java.nio.charset.StandardCharsets.UTF_8,
+                            List.<Object[]>of(row));
+                        assertFalse(
+                            ProjectFilesTools.isValidLayer(
+                                directory.toString(),
+                                "links",
+                                com.bbn
+                                    .openmap
+                                    .dataAccess
+                                    .shape
+                                    .ShapeConstants
+                                    .SHAPE_TYPE_POLYLINE));
+                        fixture.project.headlessFileValidation = true;
+                        fixture.panel.scenarios.setVisible(true);
+                        fixture.panel.scenarioCaption.setVisible(true);
+                        final byte[] original = Files.readAllBytes(directory.resolve("links.dbf"));
+                        fixture.startOpen();
+                        assertTrue(fixture.panel.finished.await(10, TimeUnit.SECONDS));
+                        assertFalse(fixture.project.isOpen());
+                        assertNull(fixture.project.getNodeLayers());
+                        assertNull(fixture.project.getLinkLayers());
+                        assertFalse(fixture.panel.busy);
+                        assertFalse(fixture.panel.fileMenuBusy);
+                        assertDefaultMap(fixture.panel);
+                        assertLockReleased();
+                        org.junit.jupiter.api.Assertions.assertArrayEquals(
+                            original, Files.readAllBytes(directory.resolve("links.dbf")));
+                        ProjectFilesFixture.writeLayer(directory, "links", false, 1);
+                        fixture.open();
+                        assertTrue(fixture.project.isOpen());
+                        fixture.closeProject();
+                        assertDefaultMap(fixture.panel);
+                      }
+                    }));
+  }
+
+  private static void assertDefaultMap(Panel panel) {
+    final com.bbn.openmap.Layer[] layers = panel.layers.getLayers();
+    assertEquals(1, layers.length);
+    assertTrue(layers[0] instanceof PoliticalBoundariesLayer);
+    assertTrue(layers[0].isVisible());
+    assertTrue(panel.map.getProjection() instanceof Mercator);
+    assertEquals(1000000, panel.map.getScale());
+    assertEquals(50, panel.map.getCenter().getY(), 1e-6);
+    assertEquals(4, panel.map.getCenter().getX(), 1e-6);
+    assertFalse(panel.scenarios.isVisible());
+    assertFalse(panel.scenarioCaption.isVisible());
+    assertTrue(panel.completionOnEdt);
+  }
+
   private void assertLockReleased() throws Exception {
     try (FileChannel channel =
             FileChannel.open(
@@ -283,6 +354,7 @@ public class NodusProjectOpenWorkflowTest {
     Fixture(boolean hsql) throws Exception {
       Nodus.nodusLogger = Logger.getAnonymousLogger();
       panel.project = project;
+      panel.displayPoliticalBoundaries(true, true);
       final Path db = directory.resolve(hsql ? "hsqldb" : "h2db");
       url = hsql ? "jdbc:hsqldb:file:" + db + ";shutdown=true" : "jdbc:h2:" + db;
       ProjectFilesFixture.writeLayer(directory, "nodes", true, 1, 2);
@@ -364,9 +436,23 @@ public class NodusProjectOpenWorkflowTest {
   private static final class OpeningProject extends NodusProject {
     final List<Throwable> errors = new ArrayList<>();
     Connection failedConnection;
+    boolean headlessFileValidation;
 
     OpeningProject(Panel panel) {
       super(panel);
+    }
+
+    @Override
+    boolean validateProjectFiles(Properties properties) {
+      if (!headlessFileValidation) {
+        return super.validateProjectFiles(properties);
+      }
+      // Exercise actual DBF validation while simulating rejection without a modal dialog.
+      final String path = properties.getProperty(NodusC.PROP_PROJECT_DOTPATH);
+      return ProjectFilesTools.isValidLayer(
+              path, "nodes", com.bbn.openmap.dataAccess.shape.ShapeConstants.SHAPE_TYPE_POINT)
+          && ProjectFilesTools.isValidLayer(
+              path, "links", com.bbn.openmap.dataAccess.shape.ShapeConstants.SHAPE_TYPE_POLYLINE);
     }
 
     @Override
@@ -391,6 +477,8 @@ public class NodusProjectOpenWorkflowTest {
     final NodusOMDrawingTool drawing = new NodusOMDrawingTool(this, launcher);
     final ProjectionStack stack = new ProjectionStack();
     final ToolPanel tools = new ToolPanel();
+    final javax.swing.JComboBox<String> scenarios = new javax.swing.JComboBox<>();
+    final javax.swing.JLabel scenarioCaption = new javax.swing.JLabel("Scenario");
     final CountDownLatch hookEntered = new CountDownLatch(1);
     final CountDownLatch hookRelease = new CountDownLatch(1);
     volatile CountDownLatch finished = new CountDownLatch(1);
@@ -402,8 +490,19 @@ public class NodusProjectOpenWorkflowTest {
     Connection failedConnection;
     NodusEsriLayer[] failedLayers;
 
-    Panel() {
+    Panel() throws Exception {
       map.setProjection(new Mercator(new LatLonPoint.Double(50, 4), 1000000, 800, 600));
+      setPanelField("mapBean", map);
+      setPanelField("layerHandler", layers);
+      setPanelField("nodusLayersPanel", controls);
+      setPanelField("scenarioComboBox", scenarios);
+      setPanelField("scenarioLabel", scenarioCaption);
+    }
+
+    private void setPanelField(String name, Object value) throws Exception {
+      Field field = NodusMapPanel.class.getDeclaredField(name);
+      field.setAccessible(true);
+      field.set(this, value);
     }
 
     /** Called from the real Groovy open hook. */
@@ -466,9 +565,6 @@ public class NodusProjectOpenWorkflowTest {
 
     @Override
     public void displayHighlightedAreaLayer(boolean added, boolean visible) {}
-
-    @Override
-    public void displayPoliticalBoundaries(boolean added, boolean visible) {}
 
     @Override
     public void resetMap() {}

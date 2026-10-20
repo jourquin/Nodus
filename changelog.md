@@ -526,4 +526,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - More robust validation of mandatory layer fields at loading time
 - More robust assignment output writing
 - Improved Scenario comparison and summation
+- Strict check of the format of the mandatory layer fields and possibility to convert eligible "wrong" fields
+- More robust scenario comparison and summation
+
+ 
 

@@ -883,7 +883,12 @@ public class ResultsDlg extends EscapeDialog {
                 dynamicQuantitiesQueryString);
             success =
                 lr.displayTimeDependentFlows(
-                    sqlTextPane.getText(), this::handleTimeDependentDisplayFinished);
+                    sqlTextPane.getText(),
+                    successResult -> {
+                      if (lr.isPlaybackProjectOpen()) {
+                        handleTimeDependentDisplayFinished(successResult);
+                      }
+                    });
             break;
 
           case 4: // Display time dependent assigned vehicles
@@ -893,7 +898,12 @@ public class ResultsDlg extends EscapeDialog {
                 NodusC.PROP_DYNAMIC_VEHICLES_QUERY + currentScenario, dynamicVehiclesQueryString);
             success =
                 lr.displayTimeDependentFlows(
-                    sqlTextPane.getText(), this::handleTimeDependentDisplayFinished);
+                    sqlTextPane.getText(),
+                    successResult -> {
+                      if (lr.isPlaybackProjectOpen()) {
+                        handleTimeDependentDisplayFinished(successResult);
+                      }
+                    });
             break;
 
           default:

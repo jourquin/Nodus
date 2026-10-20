@@ -68,6 +68,7 @@ import com.bbn.openmap.proj.Projection;
 import com.bbn.openmap.proj.ProjectionFactory;
 import com.bbn.openmap.proj.ProjectionLoader;
 import com.bbn.openmap.proj.ProjectionStack;
+import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.tools.drawing.NodusOMDrawingTool;
 import com.bbn.openmap.tools.drawing.NodusOMDrawingToolLauncher;
 import com.bbn.openmap.tools.drawing.NodusOMPointLoader;
@@ -1904,11 +1905,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   private void menuItemFileCloseActionPerformed(ActionEvent e) {
     if (nodusProject != null) {
-      nodusProject.close(
-          () -> {
-            displayScenarioCombo(false);
-            displayPoliticalBoundaries(true, true);
-          });
+      nodusProject.close();
     }
   }
 
@@ -2268,6 +2265,37 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
     mapBean.setCenter(NodusC.MAPBEAN_CENTER_X, NodusC.MAPBEAN_CENTER_Y);
     mapBean.setBackground(getDefaultBackgroundColor());
     getProjectionStack().clearStacks(true, true);
+  }
+
+  /** Restores the application map after normal closure or a failed project opening. */
+  void restoreClosedProjectMap(float initialScale, LatLonPoint initialCenter) {
+    if (getMapBean() == null || getNodusLayersPanel() == null) {
+      return;
+    }
+    if (scenarioComboBox != null) {
+      displayScenarioCombo(false);
+    }
+    displayHighlightedAreaLayer(false, false);
+    resetMap();
+    Projection projection = getMapBean().getProjection();
+    Projection mercator =
+        new ProjectionFactory()
+            .makeProjection(
+                Mercator.class.getName(),
+                projection.getCenter(),
+                projection.getScale(),
+                projection.getWidth(),
+                projection.getHeight());
+    getMapBean().setProjection(mercator);
+    if (initialCenter != null) {
+      getMapBean().setScale(initialScale);
+      getMapBean().setCenter(initialCenter);
+    }
+    displayPoliticalBoundaries(true, true);
+    setRenderingScaleThreshold(-1);
+    resetTitle();
+    resetText();
+    enableMenus(false);
   }
 
   /** Resets the text in the info delegator (see OpenMap API for more information). */
