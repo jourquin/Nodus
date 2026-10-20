@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -43,14 +44,20 @@ import com.bbn.openmap.tools.drawing.NodusOMDrawingToolLauncher;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
 import edu.uclouvain.core.nodus.database.dbf.DBFField;
+import edu.uclouvain.core.nodus.mappanel.MapMenus;
+import edu.uclouvain.core.nodus.mappanel.MapPluginManager;
 import edu.uclouvain.core.nodus.project.ProjectLayerIds;
 import edu.uclouvain.core.nodus.services.ServiceHandler;
+import edu.uclouvain.core.nodus.testing.PluginTestJars;
 import edu.uclouvain.core.nodus.testing.ProjectFilesFixture;
 import edu.uclouvain.core.nodus.utils.ProjectLocker;
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -65,6 +72,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
@@ -72,6 +81,7 @@ import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 
 /** Exercises persisted project opening; only window/menu presentation is substituted. */
 @ResourceLock("ProjectLocker")
@@ -80,6 +90,63 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 @Timeout(40)
 public class NodusProjectOpenWorkflowTest {
   @TempDir Path directory;
+
+  @TestFactory
+  @ResourceLock(Resources.SYSTEM_ERR)
+  Stream<DynamicTest> faultyPluginsDoNotPreventOpeningAndReopeningWithUpdatedResources() {
+    return Stream.of(false, true)
+        .map(hsql -> DynamicTest.dynamicTest("HSQLDB=" + hsql, () -> checkPluginReopen(hsql)));
+  }
+
+  private void checkPluginReopen(boolean hsql) throws Exception {
+    final PluginTestJars jars = new PluginTestJars(directory.resolve("compiled-plugins-" + hsql));
+    final Path pluginJar = directory.resolve("plugins.jar");
+    jars.write(pluginJar, "version-one", "HealthyLazy", "PropertiesFailure");
+    final ByteArrayOutputStream diagnostics = new ByteArrayOutputStream();
+    final PrintStream previousError = System.err;
+    try (PrintStream errors = new PrintStream(diagnostics, true, StandardCharsets.UTF_8)) {
+      System.setErr(errors);
+      try (Fixture fixture = new Fixture(hsql)) {
+        fixture.panel.useRealPlugins();
+        fixture.open();
+        final NodusPlugin first =
+            (NodusPlugin) fixture.panel.retrieveObject("instance.HealthyLazy");
+        assertNotNull(first);
+        assertNull(fixture.panel.retrieveObject("resource"));
+        SwingUtilities.invokeAndWait(() -> fixture.panel.pluginItem().doClick(0));
+        assertEquals("helper:version-one", fixture.panel.retrieveObject("resource"));
+        final JMenuItem oldItem = fixture.panel.pluginItem();
+        fixture.closeProject();
+        assertNull(first.getNodusMapPanel());
+        assertEquals(1, first.getClass().getField("disposals").getInt(first));
+        assertEquals(0, oldItem.getActionListeners().length);
+        assertEquals(0, fixture.panel.pluginMenus.getMenuCount());
+        // Closing must release the JAR before an updated project plugin can replace it.
+        Files.move(pluginJar, directory.resolve("previous-plugin-" + hsql + ".bak"));
+        jars.write(pluginJar, "version-two", "HealthyLazy", "PropertiesFailure");
+        fixture.panel.removeStoredObject("resource");
+        fixture.open();
+        final NodusPlugin second =
+            (NodusPlugin) fixture.panel.retrieveObject("instance.HealthyLazy");
+        assertNotSame(first.getClass().getClassLoader(), second.getClass().getClassLoader());
+        assertSame(fixture.panel, second.getNodusMapPanel());
+        assertNull(fixture.panel.retrieveObject("resource"));
+        SwingUtilities.invokeAndWait(() -> fixture.panel.pluginItem().doClick(0));
+        assertEquals("helper:version-two", fixture.panel.retrieveObject("resource"));
+        final NodusPlugin rejected =
+            (NodusPlugin) fixture.panel.retrieveObject("instance.PropertiesFailure");
+        assertNull(rejected.getNodusMapPanel());
+        assertEquals(1, rejected.getClass().getField("disposals").getInt(rejected));
+        fixture.closeProject();
+        assertNull(second.getNodusMapPanel());
+        assertEquals(1, second.getClass().getField("disposals").getInt(second));
+        assertTrue(fixture.project.errors.isEmpty());
+      } finally {
+        System.setErr(previousError);
+      }
+    }
+    assertTrue(diagnostics.toString(StandardCharsets.UTF_8).contains("PropertiesFailure"));
+  }
 
   @TestFactory
   Stream<DynamicTest> realProjectOpensClosesAndReimportsOnlyModifiedDbfs() {
@@ -489,6 +556,8 @@ public class NodusProjectOpenWorkflowTest {
     OpeningProject project;
     Connection failedConnection;
     NodusEsriLayer[] failedLayers;
+    MapPluginManager realPlugins;
+    JMenuBar pluginMenus;
 
     Panel() throws Exception {
       map.setProjection(new Mercator(new LatLonPoint.Double(50, 4), 1000000, 800, 600));
@@ -503,6 +572,21 @@ public class NodusProjectOpenWorkflowTest {
       Field field = NodusMapPanel.class.getDeclaredField(name);
       field.setAccessible(true);
       field.set(this, value);
+    }
+
+    void useRealPlugins() throws Exception {
+      Field manager = NodusMapPanel.class.getDeclaredField("pluginManager");
+      manager.setAccessible(true);
+      realPlugins = (MapPluginManager) manager.get(this);
+      Field menus = NodusMapPanel.class.getDeclaredField("menus");
+      menus.setAccessible(true);
+      pluginMenus = ((MapMenus) menus.get(this)).nodusMenuBar;
+    }
+
+    JMenuItem pluginItem() {
+      assertEquals(1, pluginMenus.getMenuCount());
+      assertEquals(1, pluginMenus.getMenu(0).getItemCount());
+      return pluginMenus.getMenu(0).getItem(0);
     }
 
     /** Called from the real Groovy open hook. */
@@ -579,10 +663,18 @@ public class NodusProjectOpenWorkflowTest {
     public void setText(String text) {}
 
     @Override
-    public void removeProjectPlugins() {}
+    public void removeProjectPlugins() {
+      if (realPlugins != null) {
+        super.removeProjectPlugins();
+      }
+    }
 
     @Override
-    public void enableMenus(boolean enabled) {}
+    public void enableMenus(boolean enabled) {
+      if (realPlugins != null) {
+        realPlugins.enableMenus(enabled);
+      }
+    }
 
     @Override
     public void restoreMainFrameFocus() {}
@@ -617,6 +709,9 @@ public class NodusProjectOpenWorkflowTest {
         failedLayers =
             new NodusEsriLayer[] {project.getNodeLayers()[0], project.getLinkLayers()[0]};
         throw new IllegalStateException("Injected late opening failure");
+      }
+      if (realPlugins != null) {
+        super.loadPlugins(path, projectScoped);
       }
     }
   }

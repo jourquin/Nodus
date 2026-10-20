@@ -217,6 +217,15 @@ for the workflow mechanism.
   and project/global disposal, and Groovy bean properties, overloads and shared collections.
   The original bytecode and API baseline are documented in
   [fixtures/extension-api/README.md](fixtures/extension-api/README.md).
+- `PluginDiscoveryTest`: temporary external JARs with broken constructors, initialization,
+  panel binding, metadata and cleanup callbacks; malformed menu IDs; missing superclass,
+  constructor-signature and execution dependencies; corrupt archives/classes; and duplicate
+  plugins, including checked callback exceptions from dynamic JVM languages. Rejected plugins
+  cannot hide healthy menu commands, leave empty menus or reset global
+  command offsets. Discovery does not initialize classes, dependencies can live in sibling JARs,
+  and plugin resources remain available for lazy execution. `NodusProjectOpenWorkflowTest` also
+  opens and reopens real H2/HSQLDB projects with a failing plugin, replacing a closed plugin JAR
+  and checking fresh class loaders and updated resources on reopening.
 - `ProjectScenariosTest`: renaming and deleting scenario tables and properties together,
   retaining data and unrelated scenarios, and preserving overridden property/UI callbacks.
 - `ProjectScenariosSafetyTest`: H2/HSQLDB scenario changes with missing optional settings,

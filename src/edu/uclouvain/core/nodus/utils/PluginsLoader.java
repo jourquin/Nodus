@@ -24,6 +24,7 @@ package edu.uclouvain.core.nodus.utils;
 import edu.uclouvain.core.nodus.NodusPlugin;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Modifier;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.jar.JarEntry;
@@ -51,7 +52,7 @@ public class PluginsLoader implements AutoCloseable {
     return availablePlugins;
   }
 
-  //private File directory;
+  // private File directory;
 
   /**
    * Loads all the available plugins.
@@ -117,33 +118,30 @@ public class PluginsLoader implements AutoCloseable {
         String className = je.getName().substring(0, je.getName().length() - 6);
         className = className.replace('/', '.');
 
-        Class<?> loadedClass = null;
-
         try {
-          loadedClass = pluginClassPath.loadClass(className);
-        } catch (Error e1) {
-          System.err.println(className);
-        } catch (Exception e1) {
-          System.err.println(className);
-        }
-
-        if (loadedClass != null && NodusPlugin.class.isAssignableFrom(loadedClass)) {
-          try {
+          Class<?> loadedClass = pluginClassPath.loadClass(className);
+          if (NodusPlugin.class.isAssignableFrom(loadedClass)
+              && loadedClass != NodusPlugin.class
+              && Modifier.isPublic(loadedClass.getModifiers())
+              && !Modifier.isAbstract(loadedClass.getModifiers())) {
             /*
              * Make sure the plugin can be instantiated later by NodusMapPanel,
              * but do not create an instance here.
              */
             loadedClass.getConstructor();
-            availablePlugins.add((Class<NodusPlugin>) loadedClass);
-          } catch (NoSuchMethodException ex) {
-            /*
-             * A valid plugin must expose a public no-argument constructor.
-             * The jar may contain other classes that do not; ignore them.
-             */
+            if (!availablePlugins.contains(loadedClass)) {
+              availablePlugins.add((Class<NodusPlugin>) loadedClass);
+            }
           }
+        } catch (NoSuchMethodException ex) {
+          // Helper classes and plugins without a public no-argument constructor are ignored.
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
+          System.err.println("Could not inspect plugin class " + className + " in " + pathToJar);
+          error.printStackTrace();
         }
       }
     } catch (IOException e) {
+      System.err.println("Could not inspect plugin jar " + pathToJar);
       e.printStackTrace();
     }
   }

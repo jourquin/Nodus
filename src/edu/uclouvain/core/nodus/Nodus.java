@@ -62,6 +62,7 @@ import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
  * TODO Test exclusions
  * TODO Test scenario comparison 
  * TODO test incremental + FW assignment
+ * TODO Test plugins
  */
 
 /**
