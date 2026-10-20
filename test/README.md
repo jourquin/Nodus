@@ -159,6 +159,11 @@ for the workflow mechanism.
 
 ## Coverage
 
+- `CommentedPropertiesTest`, `PropertiesFileSaveTest`, `NodusProjectPropertiesTest`: standard Java
+  property syntax, comments and entry order, new/removed settings, escaped keys, Unicode and multiline
+  values. Injected write/flush/close/replacement failures preserve existing project and local settings
+  files, remove staged output, retain edits and allow retries. Checks unreadable/malformed project
+  settings, symlinks, supported access permissions and files created during serialization.
 - `ResultCalculationTest`: H2/HSQLDB quantities, vehicles and repeated path links reach the correct
   objects across multiple layers. Checks unknown IDs, empty/repeated queries, zero/equal/signed
   values, relative stroke widths and node radii, SQL/layer/view visibility, recovery from zero

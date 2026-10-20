@@ -533,4 +533,5 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Fix potential bug in TableSorter
 - Set the default table in the performance dialog to current scenario 
 - Line search and convergence now track OD-class flows separately
+- Fix project settings: failed writes and file preservation
 

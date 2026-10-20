@@ -54,6 +54,7 @@ import edu.uclouvain.core.nodus.utils.CommentedProperties;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import edu.uclouvain.core.nodus.utils.NodusFileFilter;
 import edu.uclouvain.core.nodus.utils.ProjectLocker;
+import edu.uclouvain.core.nodus.utils.PropertiesFileSave;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import java.awt.Color;
 import java.awt.Container;
@@ -63,8 +64,9 @@ import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -645,10 +647,8 @@ public class NodusProject implements ShapeConstants {
           NodusC.PROP_ADD_POLITICAL_BOUNDARIES,
           Boolean.toString(nodusMapPanel.isPoliticalBoundariesAdded()));
 
-      try (FileOutputStream outputStream =
-          new FileOutputStream(projectResourceFileNameAndPath + NodusC.TYPE_LOCAL)) {
-        localProperties.store(outputStream, null);
-      }
+      new PropertiesFileSave().save(
+          Path.of(projectResourceFileNameAndPath + NodusC.TYPE_LOCAL), localProperties);
 
       localProperties.clear();
       localProperties = null;
@@ -1957,9 +1957,16 @@ public class NodusProject implements ShapeConstants {
           return;
         }
       }
+      if (!Files.notExists(Path.of(projectResourceFileNameAndPath))) {
+        projectProperties = null;
+        reportProjectOpenError(e);
+        return;
+      }
       projectProperties = null;
-    } catch (IOException e) {
+    } catch (IOException | IllegalArgumentException e) {
       projectProperties = null;
+      reportProjectOpenError(e);
+      return;
     }
 
     if (projectProperties == null) { // File doesn't exist
@@ -1982,13 +1989,11 @@ public class NodusProject implements ShapeConstants {
           projectProperties.setProperty(NodusC.PROP_NETWORK_NODES, "");
           projectProperties.setProperty(NodusC.PROP_NETWORK_LINKS, "");
 
-          try (FileOutputStream outputStream =
-              new FileOutputStream(projectResourceFileNameAndPath)) {
-            projectProperties.store(outputStream, null);
-          }
+          new PropertiesFileSave().save(Path.of(projectResourceFileNameAndPath), projectProperties);
         } catch (IOException e) {
-          System.err.println("Caught IOException creating " + projectResourceFileNameAndPath);
-          e.printStackTrace();
+          projectProperties = null;
+          reportProjectOpenError(e);
+          return;
         }
       } else {
         return;
@@ -2373,14 +2378,17 @@ public class NodusProject implements ShapeConstants {
     return layerOperations.saveEsriLayersSafely();
   }
 
-  /** Saves the project's properties on disk. */
+  /**
+   * Saves the project's properties without truncating the previous file on failure.
+   * Saving errors propagate as UncheckedIOException so callers cannot treat a failed save as
+   * success.
+   */
   public void saveProperties() {
 
-    try (FileOutputStream outputStream = new FileOutputStream(projectResourceFileNameAndPath)) {
-      projectProperties.store(outputStream, null);
+    try {
+      new PropertiesFileSave().save(Path.of(projectResourceFileNameAndPath), projectProperties);
     } catch (IOException e) {
-      System.err.println("Caught IOException saving resources: " + projectResourceFileNameAndPath);
-      e.printStackTrace();
+      throw new UncheckedIOException("Could not save " + projectResourceFileNameAndPath, e);
     }
   }
 

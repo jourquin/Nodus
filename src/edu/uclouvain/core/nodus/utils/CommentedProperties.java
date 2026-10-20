@@ -22,290 +22,231 @@
 package edu.uclouvain.core.nodus.utils;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FilterInputStream;
 import java.io.FilterOutputStream;
+import java.io.FilterReader;
+import java.io.FilterWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.Vector;
 
 /**
- * The CommentedProperties class is an extension of java.util.Properties that conserves comment
- * lines in the properties file.
+ * Properties with the standard Java syntax, retaining comment and blank-line order on saving.
  *
  * @author
  *     https://www.dreamincode.net/forums/topic/53734-java-code-to-modify-properties-file-and-preserve-comments/
  */
-public class CommentedProperties extends java.util.Properties {
-
+public class CommentedProperties extends Properties {
   private static final long serialVersionUID = 4132817967592863730L;
 
-  /** Use a Vector to keep a copy of lines that are a comment or 'blank'. */
-  public Vector<String> lineData = new Vector<String>(0, 1);
+  /** Comment/blank lines, or an empty placeholder for a property ("=" for an empty key). */
+  public Vector<String> lineData = new Vector<>(0, 1);
 
-  /** Use a Vector to keep a copy of lines containing a key, i.e. they are a property. */
-  public Vector<String> keyData = new Vector<String>(0, 1);
+  /** Keys parallel to lineData; an empty string also marks comment and blank lines. */
+  public Vector<String> keyData = new Vector<>(0, 1);
 
   /** Default constructor. */
   public CommentedProperties() {}
 
-  /** InputStream wrapper used to close local readers without closing the caller-owned stream. */
   private static final class NonClosingInputStream extends FilterInputStream {
-    private NonClosingInputStream(InputStream in) {
-      super(in);
+    NonClosingInputStream(InputStream input) {
+      super(input);
     }
 
     @Override
-    public void close() throws IOException {
-      // The wrapped stream is owned by the caller.
+    public void close() {
+      /* The caller owns the stream. */
     }
   }
 
-  /** OutputStream wrapper used to close local writers without closing the caller-owned stream. */
   private static final class NonClosingOutputStream extends FilterOutputStream {
-    private NonClosingOutputStream(OutputStream out) {
-      super(out);
+    NonClosingOutputStream(OutputStream output) {
+      super(output);
+    }
+
+    @Override
+    public void write(byte[] bytes, int offset, int length) throws IOException {
+      out.write(bytes, offset, length);
     }
 
     @Override
     public void close() throws IOException {
-      // Keep the caller-owned stream open, but ensure buffered bytes are written.
+      flush();
+    }
+  }
+
+  private static final class NonClosingReader extends FilterReader {
+    NonClosingReader(Reader input) {
+      super(input);
+    }
+
+    @Override
+    public void close() {
+      /* The caller owns the reader. */
+    }
+  }
+
+  private static final class NonClosingWriter extends FilterWriter {
+    NonClosingWriter(Writer output) {
+      super(output);
+    }
+
+    @Override
+    public void close() throws IOException {
       flush();
     }
   }
 
   /**
-   * Load properties from the specified InputStream. Overload the load method in Properties so we
-   * can keep comment and blank lines.
+   * Loads ISO-8859-1 properties without closing the caller's stream.
    *
-   * <p>The supplied stream is owned by the caller and is deliberately left open, which matches the
-   * behavior of {@link java.util.Properties#load(InputStream)}.
-   *
-   * @param inStream The InputStream to read.
+   * @param input property file stream
+   * @throws IOException on a read failure
+   * @throws IllegalArgumentException on a malformed Unicode escape
    */
-  public void load(InputStream inStream) throws IOException {
-    // The spec says that the file must be encoded using ISO-8859-1.
-    try (BufferedReader reader =
-        new BufferedReader(
-            new InputStreamReader(
-                new NonClosingInputStream(inStream), StandardCharsets.ISO_8859_1))) {
-      String line;
+  @Override
+  public synchronized void load(InputStream input) throws IOException {
+    try (Reader reader =
+        new InputStreamReader(new NonClosingInputStream(input), StandardCharsets.ISO_8859_1)) {
+      load(reader);
+    }
+  }
 
+  /**
+   * Loads Java property records, delegating decoding and validation to the standard parser.
+   *
+   * @param input caller-owned reader
+   * @throws IOException on a read failure
+   * @throws IllegalArgumentException on a malformed Unicode escape
+   */
+  @Override
+  public synchronized void load(Reader input) throws IOException {
+    try (BufferedReader reader = new BufferedReader(new NonClosingReader(input))) {
+      String line;
       while ((line = reader.readLine()) != null) {
-        char c = 0;
-        int pos = 0;
-        // Leading whitespaces must be deleted first.
-        while (pos < line.length() && Character.isWhitespace(c = line.charAt(pos))) {
-          pos++;
+        int start = 0;
+        while (start < line.length()
+            && (line.charAt(start) == ' '
+                || line.charAt(start) == '\t'
+                || line.charAt(start) == '\f')) {
+          start++;
         }
-
-        // If empty line or begins with a comment character, save this line
-        // in lineData and save a "" in keyData.
-        if ((line.length() - pos) == 0 || line.charAt(pos) == '#' || line.charAt(pos) == '!') {
-          lineData.add(line);
-          keyData.add("");
+        if (start == line.length() || line.charAt(start) == '#' || line.charAt(start) == '!') {
+          addLine(line);
           continue;
         }
-
-        // The characters up to the next Whitespace, ':', or '='
-        // describe the key.  But look for escape sequences.
-        // Try to short-circuit when there is no escape char.
-        int start = pos;
-        boolean needsEscape = line.indexOf('\\', pos) != -1;
-        StringBuffer key = needsEscape ? new StringBuffer() : null;
-
-        while (pos < line.length()
-            && !Character.isWhitespace(c = line.charAt(pos++))
-            && c != '='
-            && c != ':') {
-          if (needsEscape && c == '\\') {
-            if (pos == line.length()) {
-              // The line continues on the next line.  If there
-              // is no next line, just treat it as a key with an
-              // empty value.
-              line = reader.readLine();
-              if (line == null) {
-                line = "";
-              }
-              pos = 0;
-              while (pos < line.length() && Character.isWhitespace(c = line.charAt(pos))) {
-                pos++;
-              }
-            } else {
-              c = line.charAt(pos++);
-              switch (c) {
-                case 'n':
-                  key.append('\n');
-                  break;
-                case 't':
-                  key.append('\t');
-                  break;
-                case 'r':
-                  key.append('\r');
-                  break;
-                case 'u':
-                  if (pos + 4 <= line.length()) {
-                    char uni = (char) Integer.parseInt(line.substring(pos, pos + 4), 16);
-                    key.append(uni);
-                    pos += 4;
-                  } // else throw exception?
-                  break;
-                default:
-                  key.append(c);
-                  break;
-              }
-            }
-          } else {
-            if (needsEscape) {
-              key.append(c);
-            }
+        final StringBuilder record = new StringBuilder(line);
+        while (continues(line)) {
+          line = reader.readLine();
+          if (line == null) {
+            break;
           }
+          record.append('\n').append(line);
         }
-
-        boolean isDelim = (c == ':' || c == '=');
-
-        String keyString;
-        if (needsEscape) {
-          keyString = key.toString();
-        } else {
-          if (isDelim || Character.isWhitespace(c)) {
-            keyString = line.substring(start, pos - 1);
-          } else {
-            keyString = line.substring(start, pos);
-          }
+        final Properties entry = new Properties();
+        entry.load(new StringReader(record.toString()));
+        if (!entry.isEmpty()) {
+          final String key = entry.stringPropertyNames().iterator().next();
+          add(key, entry.getProperty(key));
         }
-
-        while (pos < line.length() && Character.isWhitespace(c = line.charAt(pos))) {
-          pos++;
-        }
-
-        if (!isDelim && (c == ':' || c == '=')) {
-          pos++;
-          while (pos < line.length() && Character.isWhitespace(c = line.charAt(pos))) {
-            pos++;
-          }
-        }
-
-        // Short-circuit if no escape chars found.
-        if (!needsEscape) {
-          put(keyString, line.substring(pos));
-          // Save a "" in lineData and save this
-          // keyString in keyData.
-          lineData.add("");
-          keyData.add(keyString);
-          continue;
-        }
-
-        // Escape char found so iterate through the rest of the line.
-        StringBuffer element = new StringBuffer(line.length() - pos);
-        while (pos < line.length()) {
-          c = line.charAt(pos++);
-          if (c == '\\') {
-            if (pos == line.length()) {
-              // The line continues on the next line.
-              line = reader.readLine();
-
-              // We might have seen a backslash at the end of
-              // the file.  The JDK ignores the backslash in
-              // this case, so we follow for compatibility.
-              if (line == null) {
-                break;
-              }
-
-              pos = 0;
-              while (pos < line.length() && Character.isWhitespace(c = line.charAt(pos))) {
-                pos++;
-              }
-              element.ensureCapacity(line.length() - pos + element.length());
-            } else {
-              c = line.charAt(pos++);
-              switch (c) {
-                case 'n':
-                  element.append('\n');
-                  break;
-                case 't':
-                  element.append('\t');
-                  break;
-                case 'r':
-                  element.append('\r');
-                  break;
-                case 'u':
-                  if (pos + 4 <= line.length()) {
-                    char uni = (char) Integer.parseInt(line.substring(pos, pos + 4), 16);
-                    element.append(uni);
-                    pos += 4;
-                  } // else throw exception?
-                  break;
-                default:
-                  element.append(c);
-                  break;
-              }
-            }
-          } else {
-            element.append(c);
-          }
-        }
-        put(keyString, element.toString());
-        // Save a "" in lineData and save this
-        // keyString in keyData.
-        lineData.add("");
-        keyData.add(keyString);
       }
     }
   }
 
+  private static boolean continues(String line) {
+    int slashes = 0;
+    for (int i = line.length() - 1; i >= 0 && line.charAt(i) == '\\'; i--) {
+      slashes++;
+    }
+    return slashes % 2 == 1;
+  }
+
   /**
-   * Write the properties to the specified OutputStream.
+   * Stores comments and current entries, propagating failures and keeping the stream open.
    *
-   * <p>Overloads the store method in Properties so we can put back comment and blank lines.
-   *
-   * @param out The OutputStream to write to.
-   * @param header Ignored, here for compatability w/ Properties.
-   * @exception IOException On error
+   * @param output caller-owned ISO-8859-1 output stream
+   * @param header ignored, since stored comments already supply the header
+   * @throws IOException on a write or flush failure
    */
-  public void store(OutputStream out, String header) throws IOException {
-    // The spec says that the file must be encoded using ISO-8859-1.
-    // The supplied stream is owned by the caller and must remain open after this method returns.
-    try (PrintWriter writer =
-        new PrintWriter(
-            new OutputStreamWriter(new NonClosingOutputStream(out), StandardCharsets.ISO_8859_1))) {
+  @Override
+  public synchronized void store(OutputStream output, String header) throws IOException {
+    try (Writer writer =
+        new OutputStreamWriter(new NonClosingOutputStream(output), StandardCharsets.ISO_8859_1)) {
+      writeContent(writer, true);
+    }
+  }
 
-      // We ignore the header, because if we prepend a commented header
-      // then read it back in it is now a comment, which will be saved
-      // and then when we write again we would prepend Another header...
+  /**
+   * Stores existing entries in their recorded order and appends newly added keys deterministically.
+   * Removed keys are omitted; comments and blank lines remain in place.
+   *
+   * @param output caller-owned writer
+   * @param header ignored, since stored comments already supply the header
+   * @throws IOException on a write or flush failure
+   */
+  @Override
+  public synchronized void store(Writer output, String header) throws IOException {
+    writeContent(output, false);
+  }
 
-      String line;
-      String key;
-      StringBuffer s = new StringBuffer();
-
+  private void writeContent(Writer output, boolean escapeComments) throws IOException {
+    try (BufferedWriter writer = new BufferedWriter(new NonClosingWriter(output))) {
+      final Set<String> written = new HashSet<>();
       for (int i = 0; i < lineData.size(); i++) {
-        line = (String) lineData.get(i);
-        key = (String) keyData.get(i);
-        if (key.length() > 0) { // This is a 'property' line, so rebuild it
-          formatForOutput(key, s, true);
-          s.append('=');
-          formatForOutput((String) get(key), s, false);
-          writer.println(s);
-        } else { // was a blank or comment line, so just restore it
-          writer.println(line);
+        final String key = keyData.get(i);
+        if (!key.isEmpty() || "=".equals(lineData.get(i))) {
+          if (containsKey(key)) {
+            writeEntry(writer, key);
+            written.add(key);
+          }
+        } else {
+          final String line = lineData.get(i);
+          for (int j = 0; j < line.length(); j++) {
+            final char character = line.charAt(j);
+            if (escapeComments && character > 0xff) {
+              final String hex = Integer.toHexString(character);
+              writer.write("\\u0000".substring(0, 6 - hex.length()));
+              writer.write(hex);
+            } else {
+              writer.write(character);
+            }
+          }
+          writer.newLine();
         }
       }
-      writer.flush();
+      final Set<String> remaining = new TreeSet<>();
+      for (Object key : keySet()) {
+        if (!written.contains(key)) {
+          remaining.add((String) key);
+        }
+      }
+      for (String key : remaining) {
+        writeEntry(writer, key);
+      }
     }
   }
 
-  /**
-   * Need this method from Properties because original code has StringBuilder, which is an element
-   * of Java 1.5, used StringBuffer instead (because this code was written for Java 1.4).
-   *
-   * @param str - the string to format
-   * @param buffer - buffer to hold the string
-   * @param key - true if str the key is formatted, false if the value is formatted
-   */
+  private void writeEntry(BufferedWriter writer, String key) throws IOException {
+    final StringBuffer line = new StringBuffer();
+    formatForOutput(key, line, true);
+    line.append('=');
+    formatForOutput((String) get(key), line, false);
+    writer.write(line.toString());
+    writer.newLine();
+  }
+
   private void formatForOutput(String str, StringBuffer buffer, boolean key) {
     if (key) {
       buffer.setLength(0);
@@ -353,24 +294,32 @@ public class CommentedProperties extends java.util.Properties {
   }
 
   /**
-   * Add a Property to the end of the CommentedProperties.
+   * Adds an entry at an explicit position in the saved order.
    *
-   * @param keyString The Property key.
-   * @param value The value of this Property.
+   * @param keyString property key
+   * @param value property value
    */
-  public void add(String keyString, String value) {
+  public synchronized void add(String keyString, String value) {
     put(keyString, value);
-    lineData.add("");
+    lineData.add(keyString.isEmpty() ? "=" : "");
     keyData.add(keyString);
   }
 
   /**
-   * Add a comment or blank line or comment to the end of the CommentedProperties.
+   * Adds a comment or a blank line at the end of the recorded order.
    *
-   * @param line The string to add to the end, make sure this is a comment or a 'whitespace' line.
+   * @param line comment or blank line
    */
-  public void addLine(String line) {
+  public synchronized void addLine(String line) {
     lineData.add(line);
     keyData.add("");
+  }
+
+  /** Clears both the values and the saved comment/entry order. */
+  @Override
+  public synchronized void clear() {
+    super.clear();
+    lineData.clear();
+    keyData.clear();
   }
 }

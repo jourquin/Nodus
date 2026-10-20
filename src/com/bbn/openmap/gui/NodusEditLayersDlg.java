@@ -39,6 +39,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.UncheckedIOException;
 import java.text.MessageFormat;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -748,7 +749,13 @@ public class NodusEditLayersDlg extends EscapeDialog implements ShapeConstants {
       s = s.trim();
       nodusProject.setProperty(NodusC.PROP_NETWORK_LINKS, s);
 
-      nodusProject.saveProperties();
+      try {
+        nodusProject.saveProperties();
+      } catch (UncheckedIOException failure) {
+        JOptionPane.showMessageDialog(
+            this, failure.getMessage(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+        return;
+      }
 
       // Close the dialog and reload project
       setVisible(false);
@@ -757,7 +764,7 @@ public class NodusEditLayersDlg extends EscapeDialog implements ShapeConstants {
               NodusEditLayersDlg.class,
               "Project_must_be_reloaded",
               "Project must be reloaded to take new layer structure into account.");
-      
+
       JOptionPane.showMessageDialog(null, msg, NodusC.APPNAME, JOptionPane.WARNING_MESSAGE);
 
       nodusProject.reload();
