@@ -377,6 +377,13 @@ for the workflow mechanism.
   services and earlier pending work survive a failed save, and that connection mode is restored.
   Legacy path-index migration is checked on both engines. Error callbacks are captured; unexpected
   persistence errors or invalid-service dialogs fail the fixture immediately.
+- `ServiceShortestPathTest`: physical shortest routes with independently known lengths, disabled
+  links, mode/means restrictions and `ALL_MEANS`, parallel links, sparse node IDs, reverse travel,
+  ordered waypoints and disconnected segments. Geometry and speed edits must affect the next
+  graph correctly. Generated services round-trip through H2/HSQLDB with ordered and repeated
+  links and wildcard means preserved. Failed construction leaves existing services intact;
+  explicit replacement, deferred saving, SQL failure, retained pending edits and retry are
+  checked separately, including both auto-commit modes.
 - `NetworkSimplifierTest`: compiles the shipped Groovy script and exercises its service guard
   on H2 and HSQLDB. Checks cancellation, dry runs, unsaved services, custom table prefixes,
   incomplete table sets and failed deletion. Accepted deletion clears loaded services without
