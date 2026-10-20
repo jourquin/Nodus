@@ -92,6 +92,7 @@ public class FrankWolfeAssignment extends Assignment {
     if (!odr.loadDemand(virtualNet)) {
       return false;
     }
+    virtualNet.initializeEquilibriumClasses();
 
     // Initialize the vehicles parser and load the vehicle characteristics for all groups.
     vehiclesParser = new VehiclesParser(assignmentParameters.getScenario());
@@ -230,6 +231,10 @@ public class FrankWolfeAssignment extends Assignment {
         converged = true;
         break;
       }
+    }
+
+    if (!virtualNet.computeEquilibriumOutputCosts(iterationsPerformed, threads)) {
+      return false;
     }
 
     // Save the volumes

@@ -188,8 +188,9 @@ public class IncrementalAssignmentWorker extends AssignmentWorker {
             an = an.nextNode;
           }
 
-          an.virtualLink.addVolume(groupIndex, demand.getQuantity() * loadFactor);
-        
+          an.virtualLink.addEquilibriumVolume(
+              groupIndex, odClass, demand.getQuantity() * loadFactor);
+
           VirtualLink vl = an.virtualLink;
 
           switch (vl.getType()) {

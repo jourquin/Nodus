@@ -54,6 +54,7 @@ import edu.uclouvain.core.nodus.utils.WorkQueue;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -1487,9 +1488,14 @@ public class VirtualNetwork {
   /** Includes every Frank-Wolfe line-search cost pass in the parser audit. */
   private double computeObjectiveFunctionFirstDerivative(
       int iteration, double approachedLambda, int threads) {
+    int activeClasses = 0;
+    for (boolean hasDemand : odClassHasDemand) {
+      if (hasDemand) {
+        activeClasses++;
+      }
+    }
+    nodusMapPanel.startProgress(vnl.length * getNbGroups() * activeClasses);
     double firstDerivative = 0.0;
-
-    nodusMapPanel.startProgress(vnl.length * getNbGroups() * nbODClasses);
 
     System.out.println(
         MessageFormat.format(
@@ -1501,6 +1507,9 @@ public class VirtualNetwork {
             formatter.format(approachedLambda)));
 
     for (byte odClass = 0; odClass < nbODClasses; odClass++) {
+      if (!odClassHasDemand(odClass)) {
+        continue;
+      }
 
       // Create the work queue
       WorkQueue queue = new WorkQueue();
@@ -1678,6 +1687,57 @@ public class VirtualNetwork {
   }
 
   
+  /** Enables class-specific equilibrium flow accounting after OD demand has been loaded. */
+  public void initializeEquilibriumClasses() {
+    for (VirtualNodeList nodeList : vnl) {
+      for (VirtualNode node : nodeList.getVirtualNodeList()) {
+        for (VirtualLink link : node.getVirtualLinkList()) {
+          link.initializeEquilibriumClasses(nbODClasses);
+        }
+      }
+    }
+  }
+
+  /**
+   * Recomputes multiclass output costs at the committed flows and averages them within each group.
+   * The network table has no class dimension; using the last class's cost would misstate totals.
+   *
+   * @param iteration final iteration
+   * @param threads number of cost workers
+   * @return true if every final class cost pass succeeded
+   */
+  public boolean computeEquilibriumOutputCosts(int iteration, int threads) {
+    if (nbODClasses <= 1) {
+      return true;
+    }
+    final List<VirtualLink> links = new ArrayList<>();
+    for (VirtualNodeList nodeList : vnl) {
+      for (VirtualNode node : nodeList.getVirtualNodeList()) {
+        links.addAll(node.getVirtualLinkList());
+      }
+    }
+    for (VirtualLink link : links) {
+      link.resetEquilibriumCostAverage();
+    }
+    for (byte odClass = 0; odClass < nbODClasses; odClass++) {
+      if (!odClassHasDemand(odClass)) {
+        continue;
+      }
+      if (!computeCosts(iteration, scenario, odClass, threads)) {
+        return false;
+      }
+      for (VirtualLink link : links) {
+        for (byte group = 0; group < getNbGroups(); group++) {
+          link.accumulateEquilibriumCost(group, odClass);
+        }
+      }
+    }
+    for (VirtualLink link : links) {
+      link.applyEquilibriumCostAverage();
+    }
+    return true;
+  }
+
   /**
    * Computes temporary real-link PCUs for the Frank-Wolfe line search. The virtual-link volumes
    * themselves are not modified.

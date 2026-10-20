@@ -93,6 +93,7 @@ public class MSAAssignment extends Assignment {
     if (!odr.loadDemand(virtualNet)) {
       return false;
     }
+    virtualNet.initializeEquilibriumClasses();
 
     // Initialize the vehicles parser and load the vehicle characteristics for all groups.
     vehiclesParser = new VehiclesParser(assignmentParameters.getScenario());
@@ -216,6 +217,11 @@ public class MSAAssignment extends Assignment {
         converged = true;
         break;
       }
+    }
+
+    if (!virtualNet.computeEquilibriumOutputCosts(
+        iterationsPerformed, assignmentParameters.getThreads())) {
+      return false;
     }
 
     // Save the volumes

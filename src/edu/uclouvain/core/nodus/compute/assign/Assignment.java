@@ -604,8 +604,7 @@ public abstract class Assignment implements Runnable {
           for (byte groupIndex = 0;
               groupIndex < (byte) virtualNet.getGroups().length;
               groupIndex++) {
-            numerator +=
-                Math.abs(link.getCurrentVolume(groupIndex) - link.getPreviousVolume(groupIndex));
+            numerator += link.getEquilibriumVolumeChange(groupIndex);
             denominator += link.getCurrentVolume(groupIndex);
           }
         }

@@ -180,8 +180,7 @@ public class CostParserWorker extends Thread {
 
             if (withFirstDerivative) {
               firstDerivative +=
-                  (vl.getAuxiliaryVolume(groupIndex) - vl.getCurrentVolume(groupIndex))
-                      * vl.getCost(groupIndex);
+                  vl.getEquilibriumDirection(groupIndex, cwp.getODClass()) * vl.getCost(groupIndex);
             }
           }
         }

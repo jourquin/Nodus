@@ -56,6 +56,34 @@ public class VirtualLink {
   /** Auxiliary volumes on the virtual link, per group. */
   private double[] auxiliaryVolume;
 
+  /** Allocated only for multiclass equilibrium assignments, with lazy rows per demand group. */
+  private ClassVolumes[] equilibriumVolumes;
+
+  private int equilibriumClasses;
+
+  /** A group's class flows are written by its worker, then read after the coordinator joins it. */
+  private static final class ClassVolumes {
+    final double[] current;
+    final double[] auxiliary;
+    double change;
+    double weightedCost;
+
+    ClassVolumes(int classes) {
+      current = new double[classes];
+      auxiliary = new double[classes];
+    }
+
+    void combine(double lambda) {
+      change = 0;
+      for (int i = 0; i < current.length; i++) {
+        final double previous = current[i];
+        current[i] = (1 - lambda) * previous + lambda * auxiliary[i];
+        change += Math.abs(current[i] - previous);
+        auxiliary[i] = 0;
+      }
+    }
+  }
+
   /** Auxiliary vehicles on the virtual link, per group. */
   private int[] auxiliaryVehicles;
 
@@ -189,6 +217,41 @@ public class VirtualLink {
   }
 
   /**
+   * Adds a trial assignment to both the group total and its OD class.
+   *
+   * @param groupIndex commodity group index
+   * @param odClass OD class
+   * @param volume quantity to add
+   */
+  public void addAuxiliaryVolume(byte groupIndex, byte odClass, double volume) {
+    addAuxiliaryVolume(groupIndex, volume);
+    if (equilibriumVolumes != null && volume != 0) {
+      classVolumes(groupIndex).auxiliary[odClass] += volume;
+    }
+  }
+
+  /**
+   * Adds an incremental warm-up flow while retaining its OD class for later equilibrium steps.
+   *
+   * @param groupIndex commodity group index
+   * @param odClass OD class
+   * @param volume quantity to add
+   */
+  public void addEquilibriumVolume(byte groupIndex, byte odClass, double volume) {
+    addVolume(groupIndex, volume);
+    if (equilibriumVolumes != null && volume != 0 && !Double.isNaN(volume)) {
+      classVolumes(groupIndex).current[odClass] += volume;
+    }
+  }
+
+  private ClassVolumes classVolumes(byte groupIndex) {
+    if (equilibriumVolumes[groupIndex] == null) {
+      equilibriumVolumes[groupIndex] = new ClassVolumes(equilibriumClasses);
+    }
+    return equilibriumVolumes[groupIndex];
+  }
+
+  /**
    * Adds a pathODCell to this virtual link.
    *
    * @param groupIndex Index of the group of commodities.
@@ -255,6 +318,10 @@ public class VirtualLink {
 
     auxiliaryVolume[groupIndex] = 0;
 
+    if (equilibriumVolumes != null && equilibriumVolumes[groupIndex] != null) {
+      equilibriumVolumes[groupIndex].combine(lambda);
+    }
+
     if (virtualLinkType == TYPE_MOVE) {
       auxiliaryVehicles[groupIndex] = 0;
     }
@@ -268,6 +335,86 @@ public class VirtualLink {
    */
   public double getAuxiliaryVolume(byte groupIndex) {
     return auxiliaryVolume[groupIndex];
+  }
+
+  /**
+   * Returns a class's assigned flow, with the original aggregate storage used for class zero in
+   * single-class assignments.
+   *
+   * @param groupIndex commodity group index
+   * @param odClass OD class
+   * @return current class flow
+   */
+  public double getEquilibriumVolume(byte groupIndex, byte odClass) {
+    if (equilibriumVolumes == null) {
+      return odClass == 0 ? getCurrentVolume(groupIndex) : 0;
+    }
+    final ClassVolumes volumes = equilibriumVolumes[groupIndex];
+    return volumes == null ? 0 : volumes.current[odClass];
+  }
+
+  /**
+   * Returns the class-specific direction used with this class's costs during line search.
+   *
+   * @param groupIndex commodity group index
+   * @param odClass OD class
+   * @return auxiliary minus current class flow
+   */
+  public double getEquilibriumDirection(byte groupIndex, byte odClass) {
+    if (equilibriumVolumes == null) {
+      return odClass == 0 ? getAuxiliaryVolume(groupIndex) - getCurrentVolume(groupIndex) : 0;
+    }
+    final ClassVolumes volumes = equilibriumVolumes[groupIndex];
+    return volumes == null ? 0 : volumes.auxiliary[odClass] - volumes.current[odClass];
+  }
+
+  /**
+   * Sums absolute changes before classes are aggregated, so opposite class shifts cannot cancel.
+   *
+   * @param groupIndex commodity group index
+   * @return absolute flow change over the last equilibrium step
+   */
+  public double getEquilibriumVolumeChange(byte groupIndex) {
+    if (equilibriumVolumes == null) {
+      return Math.abs(getCurrentVolume(groupIndex) - getPreviousVolume(groupIndex));
+    }
+    final ClassVolumes volumes = equilibriumVolumes[groupIndex];
+    return volumes == null ? 0 : volumes.change;
+  }
+
+  /**
+   * Enables class flow accounting before the first equilibrium or incremental warm-up assignment.
+   * Single-class assignments retain the original storage without additional arrays.
+   *
+   * @param classes number of OD class slots
+   */
+  public void initializeEquilibriumClasses(int classes) {
+    equilibriumClasses = classes;
+    equilibriumVolumes = classes > 1 ? new ClassVolumes[nbGroups] : null;
+  }
+
+  void resetEquilibriumCostAverage() {
+    for (ClassVolumes volumes : equilibriumVolumes) {
+      if (volumes != null) {
+        volumes.weightedCost = 0;
+      }
+    }
+  }
+
+  void accumulateEquilibriumCost(byte groupIndex, byte odClass) {
+    final ClassVolumes volumes = equilibriumVolumes[groupIndex];
+    if (volumes != null && volumes.current[odClass] > 0) {
+      volumes.weightedCost += volumes.current[odClass] * cost[groupIndex];
+    }
+  }
+
+  void applyEquilibriumCostAverage() {
+    for (byte group = 0; group < nbGroups; group++) {
+      final ClassVolumes volumes = equilibriumVolumes[group];
+      if (volumes != null && getCurrentVolume(group) > 0) {
+        cost[group] = volumes.weightedCost / getCurrentVolume(group);
+      }
+    }
   }
 
   /**
@@ -609,6 +756,8 @@ public class VirtualLink {
    */
   @SuppressWarnings("unchecked")
   public void setNbGroups(int nbGroups, int nbTimeSlices) {
+    equilibriumVolumes = null;
+    equilibriumClasses = 0;
     cost = new double[nbGroups];
     timeCosts = null;
     duration = new double[nbGroups];

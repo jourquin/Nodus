@@ -188,7 +188,7 @@ public class MSAAssignmentWorker extends AssignmentWorker {
             an = an.nextNode;
           }
 
-          an.virtualLink.addAuxiliaryVolume(groupIndex, demand.getQuantity());
+          an.virtualLink.addAuxiliaryVolume(groupIndex, odClass, demand.getQuantity());
 
           VirtualLink vl = an.virtualLink;
 

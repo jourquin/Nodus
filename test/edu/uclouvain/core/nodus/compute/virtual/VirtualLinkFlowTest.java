@@ -113,6 +113,58 @@ class VirtualLinkFlowTest {
     assertEquals(100, link.getPreviousVolume((byte) 0), 1e-12);
   }
 
+  @TestFactory
+  List<DynamicTest> equilibriumStepsKeepClassFlowsAndDirectionsSeparate() {
+    final List<DynamicTest> tests = new ArrayList<>();
+    for (double lambda : new double[] {0, 0.25, 1}) {
+      tests.add(
+          dynamicTest(
+              "lambda=" + lambda,
+              () -> {
+                final VirtualLink link = movingLink(new RealLink(), 1, 2);
+                link.setNbGroups(2, 1);
+                link.initializeEquilibriumClasses(8);
+                link.addEquilibriumVolume((byte) 0, (byte) 2, 80);
+                link.addEquilibriumVolume((byte) 0, (byte) 7, 20);
+                link.addEquilibriumVolume((byte) 1, (byte) 7, 40);
+                link.addAuxiliaryVolume((byte) 0, (byte) 2, 20);
+                link.addAuxiliaryVolume((byte) 0, (byte) 7, 80);
+                assertEquals(-60, link.getEquilibriumDirection((byte) 0, (byte) 2));
+                assertEquals(60, link.getEquilibriumDirection((byte) 0, (byte) 7));
+                assertEquals(0, link.getEquilibriumDirection((byte) 0, (byte) 4));
+                link.combineVolumes((byte) 0, lambda);
+                assertEquals(80 - 60 * lambda, link.getEquilibriumVolume((byte) 0, (byte) 2));
+                assertEquals(20 + 60 * lambda, link.getEquilibriumVolume((byte) 0, (byte) 7));
+                assertEquals(100, link.getCurrentVolume((byte) 0));
+                assertEquals(120 * lambda, link.getEquilibriumVolumeChange((byte) 0));
+                assertEquals(0, link.getAuxiliaryVolume((byte) 0));
+                assertEquals(-(80 - 60 * lambda), link.getEquilibriumDirection((byte) 0, (byte) 2));
+                assertEquals(40, link.getEquilibriumVolume((byte) 1, (byte) 7));
+                assertEquals(0, link.getEquilibriumVolume((byte) 1, (byte) 2));
+              }));
+    }
+    return tests;
+  }
+
+  @Test
+  void resettingGroupsDiscardsClassHistoryAndRestoresSingleClassAccounting() {
+    final VirtualLink link = movingLink(new RealLink(), 1, 2);
+    link.setNbGroups(2, 1);
+    link.initializeEquilibriumClasses(8);
+    link.addEquilibriumVolume((byte) 1, (byte) 7, 40);
+    link.addAuxiliaryVolume((byte) 1, (byte) 7, 80);
+    link.setNbGroups(1, 1);
+    link.initializeEquilibriumClasses(1);
+    link.addEquilibriumVolume((byte) 0, (byte) 0, 10);
+    link.addAuxiliaryVolume((byte) 0, (byte) 0, 30);
+    assertEquals(20, link.getEquilibriumDirection((byte) 0, (byte) 0));
+    link.combineVolumes((byte) 0, 0.5);
+    assertEquals(20, link.getEquilibriumVolume((byte) 0, (byte) 0));
+    assertEquals(10, link.getEquilibriumVolumeChange((byte) 0));
+    assertEquals(0, link.getEquilibriumVolume((byte) 0, (byte) 7));
+    assertEquals(0, link.getEquilibriumDirection((byte) 0, (byte) 7));
+  }
+
   @Test
   void dynamicVolumesStayInTheirGroupAndTimeSliceBeyondByteRange() {
     VirtualLink link = movingLink(new RealLink(), 1, 2);

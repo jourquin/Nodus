@@ -386,6 +386,14 @@ for the workflow mechanism.
   choices as congestion changes, conservation, serial/concurrent agreement, repeated runs,
   and equivalence to all-or-nothing assignment when using one increment. Also checks runtime
   Groovy toggling of informational completion dialogs without changing assignment results.
+- `MultiClassEquilibriumAssignmentTest`: independent two-class equilibrium with opposing route
+  preferences, two commodity groups, consecutive/sparse class IDs, both shortest-path graphs and
+  H2/HSQLDB. Frank-Wolfe and its incremental hybrid reach the known 600/400 route totals with
+  class conservation and optimality; serial, concurrent and repeated runs agree. Covers detailed
+  and header-only path output, flow-weighted final class costs, successive averages, false
+  convergence from cancelling class shifts, and cancellation/retry during final cost evaluation.
+  `VirtualLinkFlowTest` also checks class-specific directions, lambda endpoints, blending,
+  group isolation and resetting class history without changing single-class behavior.
 - `IncFrankWolfeAssignmentIntegrationTest`: four triangular warm-up increments followed by
   real Frank-Wolfe routing and line search on analytical parallel routes. Checks conservation
   and nonnegative flows before and after blending, equilibrium within vehicle/path rounding

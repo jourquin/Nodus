@@ -532,4 +532,5 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - More robust OD reader
 - Fix potential bug in TableSorter
 - Set the default table in the performance dialog to current scenario 
+- Line search and convergence now track OD-class flows separately
 
