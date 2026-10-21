@@ -171,7 +171,7 @@ class ShortestPathTest {
       add(
           tests,
           kind,
-          "finds the optimum with meaningful admissible coordinates",
+          "finds the optimum with nonzero coordinates",
           () -> {
             Graph graph = new Graph(4);
             graph.nodes[2] = node(2, 1, 1);
@@ -189,8 +189,109 @@ class ShortestPathTest {
       add(
           tests,
           kind,
+          "finds the cheaper detour when coordinates overestimate transport costs",
+          () -> {
+            Graph graph = detourGraph();
+            BinaryHeapDijkstra search = kind.create(graph);
+            search.compute(1, 3);
+            assertPath(search, 0.2, 1, 2, 3);
+          });
+      add(
+          tests,
+          kind,
+          "handles zero-cost movement and cycles between different coordinates",
+          () -> {
+            Graph graph = new Graph(4);
+            graph.nodes[2] = node(2, -10, 5);
+            graph.nodes[3] = node(3, 20, -5);
+            graph.nodes[4] = node(4, 1, 0);
+            graph.resetHeads();
+            graph.edge(1, 4, 0.5);
+            graph.edge(1, 2, 0);
+            graph.edge(2, 3, 0);
+            graph.edge(3, 2, 0);
+            graph.edge(3, 4, 0);
+            BinaryHeapDijkstra search = kind.create(graph);
+            search.compute(1, 4);
+            assertPath(search, 0, 1, 2, 3, 4);
+          });
+      add(
+          tests,
+          kind,
+          "reuses a search after cost decreases, restoration and goal changes",
+          () -> {
+            Graph graph = detourGraph();
+            final AdjacencyNode first = graph.heads[1].nextNode;
+            first.edgeWeight = 1;
+            BinaryHeapDijkstra search = kind.create(graph);
+            search.compute(1, 3);
+            assertPath(search, 0.5, 1, 3);
+            first.edgeWeight = 0.1;
+            if (search.compactGraph != null) {
+              search.compactGraph.copyWeight(first);
+            }
+            search.compute(1, 3);
+            assertPath(search, 0.2, 1, 2, 3);
+            search.compute(1, 2);
+            assertPath(search, 0.1, 1, 2);
+            search.compute(2, 3);
+            assertPath(search, 0.1, 2, 3);
+            first.edgeWeight = 1;
+            if (search.compactGraph != null) {
+              search.compactGraph.copyWeight(first);
+            }
+            search.compute(1, 3);
+            assertPath(search, 0.5, 1, 3);
+          });
+      add(
+          tests,
+          kind,
+          "keeps route choice independent of the chosen cost unit",
+          () -> {
+            for (double scale : new double[] {1e-200, 1e-9, 1, 1e9, 1e200}) {
+              Graph graph = detourGraph();
+              for (int from = 1; from < graph.heads.length; from++) {
+                for (AdjacencyNode edge = graph.heads[from];
+                    edge.nextNode != null;
+                    edge = edge.nextNode) {
+                  edge.edgeWeight *= scale;
+                }
+              }
+              BinaryHeapDijkstra search = kind.create(graph);
+              search.compute(1, 3);
+              final double expected = 0.2 * scale;
+              assertEquals(expected, search.getWeights()[3], Math.ulp(expected) * 4);
+              assertEquals(2, search.getPredecessors()[3]);
+              assertEquals(1, search.getPredecessors()[2]);
+            }
+          });
+      add(
+          tests,
+          kind,
+          "invalid or extreme coordinates cannot poison valid route costs",
+          () -> {
+            for (double coordinate : new double[] {Double.NaN, Double.POSITIVE_INFINITY, 1e308}) {
+              Graph graph = detourGraph();
+              graph.nodes[2] = node(2, coordinate, coordinate);
+              graph.resetHeads();
+              graph.edge(1, 3, 0.5);
+              graph.edge(1, 2, 0.1);
+              graph.edge(2, 3, 0.1);
+              BinaryHeapDijkstra search = kind.create(graph);
+              search.compute(1, 3);
+              assertPath(search, 0.2, 1, 2, 3);
+            }
+          });
+      add(
+          tests,
+          kind,
           "matches an independent all-pairs reference on seeded networks",
-          () -> checkAgainstReference(kind));
+          () -> checkAgainstReference(kind, false));
+      add(
+          tests,
+          kind,
+          "matches the reference with nonzero coordinates and different cost units",
+          () -> checkAgainstReference(kind, true));
     }
     return tests;
   }
@@ -218,23 +319,31 @@ class ShortestPathTest {
   }
 
   /** Floyd-Warshall is deliberately independent of both production search/heap implementations. */
-  private static void checkAgainstReference(SearchKind kind) {
+  private static void checkAgainstReference(SearchKind kind, boolean geographic) {
     Random random = new Random(20260924L);
     for (int sample = 0; sample < 8; sample++) {
       int count = 7;
       Graph graph = new Graph(count);
+      if (geographic) {
+        for (int node = 1; node <= count; node++) {
+          graph.nodes[node] =
+              node(node, random.nextDouble() * 360 - 180, random.nextDouble() * 180 - 90);
+        }
+        graph.resetHeads();
+      }
+      final double scale = geographic ? Math.pow(10, sample - 4) : 1;
       double[][] distances = new double[count + 1][count + 1];
       for (int from = 1; from <= count; from++) {
         Arrays.fill(distances[from], Double.POSITIVE_INFINITY);
         distances[from][from] = 0;
         // A directed ring guarantees reachability while extra edges add ties and cycles.
         int next = from % count + 1;
-        double cost = random.nextInt(6);
+        double cost = random.nextInt(6) * scale;
         graph.edge(from, next, cost);
         distances[from][next] = cost;
         for (int to = 1; to <= count; to++) {
           if (from != to && random.nextBoolean()) {
-            cost = random.nextInt(10);
+            cost = random.nextInt(10) * scale;
             graph.edge(from, to, cost);
             distances[from][to] = Math.min(distances[from][to], cost);
           }
@@ -257,7 +366,8 @@ class ShortestPathTest {
         for (int to = 1; to <= count; to++) {
           String context = kind + " sample " + sample + ", " + from + " -> " + to;
           search.compute(from, to);
-          assertEquals(distances[from][to], search.getWeights()[to], 1e-12, context);
+          final double tolerance = Math.ulp(distances[from][to]) * 16;
+          assertEquals(distances[from][to], search.getWeights()[to], tolerance, context);
           int current = to;
           int steps = 0;
           double pathCost = 0;
@@ -268,10 +378,21 @@ class ShortestPathTest {
             pathCost += edgeCosts[previous][current];
             current = previous;
           }
-          assertEquals(distances[from][to], pathCost, 1e-12, context + ": reconstructed cost");
+          assertEquals(distances[from][to], pathCost, tolerance, context + ": reconstructed cost");
         }
       }
     }
+  }
+
+  private static Graph detourGraph() {
+    Graph graph = new Graph(3);
+    graph.nodes[2] = node(2, -1, 0);
+    graph.nodes[3] = node(3, 1, 0);
+    graph.resetHeads();
+    graph.edge(1, 3, 0.5);
+    graph.edge(1, 2, 0.1);
+    graph.edge(2, 3, 0.1);
+    return graph;
   }
 
   private enum SearchKind {

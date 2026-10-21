@@ -535,4 +535,5 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Line search and convergence now track OD-class flows separately
 - Fix project settings: failed writes and file preservation
 - Fix first service save and schema migration: transaction preservation
+- A* now uses a zero heuristic (Dijkstra ordering), ensuring correct routes with arbitrary cost scales
 

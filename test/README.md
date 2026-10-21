@@ -500,10 +500,16 @@ for the workflow mechanism.
   decimal precision in Excel's numeric cells.
 - `ShortestPathTest`: Dijkstra and A*, each with linked and compact storage. Covers known
   routes, equal-cost choices, parallel edges, zero-cost cycles, disconnected nodes, changing
-  sources/goals, updated costs, non-finite costs, and admissible geometric heuristics.
-  Seeded small networks are also checked against an independent Floyd-Warshall reference,
-  including the cost of reconstructed predecessor paths. The random cases use zero
-  coordinates (a zero heuristic); the geometric case exercises a nonzero A* heuristic.
+  sources/goals, decreased/restored costs, non-finite costs and invalid/extreme coordinates.
+  Small/large cost units and zero-cost movement between distinct points cannot change the cheapest
+  route. Seeded networks with zero and nonzero coordinates are checked against an independent
+  Floyd-Warshall reference, including reconstructed predecessor-path costs. A* uses a zero heuristic:
+  geographic distance is not a guaranteed lower bound for user-defined transport costs.
+- `ExactMultiFlowCostScaleTest`: H2/HSQLDB assignments with linked/compact storage, serial/concurrent
+  group workers and one/two alternatives. Checks a cheaper route travelling away from its goal,
+  zero-cost movement, changed costs on reruns, proportional route shares, stored path costs,
+  per-link/group flows and preserved demand. Exact MF retains separate searches and cost penalties
+  per OD pair. These checks do not benchmark large-network search times.
 - `RealLinkInitializerTest`: EsriPolyline and OMPoly lengths from declared degree/radian inputs,
   endpoint fallback near the equator/prime meridian and across the date line, reversed paths and
   intermediate vertices. Uses an independent haversine reference. Checks missing/degenerate and

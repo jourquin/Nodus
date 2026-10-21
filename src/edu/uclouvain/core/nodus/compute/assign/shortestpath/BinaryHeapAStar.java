@@ -22,193 +22,63 @@
 package edu.uclouvain.core.nodus.compute.assign.shortestpath;
 
 /**
- * An implementation of the AStar shortest path algorithm using a binary heap.
+ * Single-goal A* search with a zero heuristic for arbitrary nonnegative transport costs.
+ *
+ * <p>Geographic distance has no guaranteed relationship to a user-defined cost function. Using it
+ * as a remaining-cost estimate can overestimate a cheap route, including one with zero-cost
+ * movement, and stop at a more expensive goal. A zero estimate is always admissible and consistent;
+ * heap ordering therefore follows Dijkstra's algorithm, independent of coordinates and cost units.
+ *
+ * <p>The search reuses the linked or compact heap without scanning all edges before each OD pair.
+ * Exact multi-flow still searches and penalizes alternatives separately for each OD pair.
  *
  * @author Bart Jourquin
  */
 public class BinaryHeapAStar extends BinaryHeapDijkstra {
-
-  /** Fixed coordinates for compact searches, absent with the original object representation. */
-  private final double[] latitudes;
-
-  private final double[] longitudes;
-
   /**
-   * Initializes the data structures.
+   * Initializes a single-goal search using the original adjacency-list storage.
    *
-   * @param graph AdjacencyNode[]
+   * @param graph worker-owned graph with nonnegative edge costs
    */
   public BinaryHeapAStar(AdjacencyNode[] graph) {
     this(graph, null);
   }
 
   /**
-   * Selects compact graph/heap storage while preserving the original A* heuristic and tie order.
+   * Selects the optional compact graph and heap while retaining the same route ordering.
    *
-   * @param graph Worker adjacency list with consistent node coordinates in all adjacency entries.
-   * @param compactGraph Synchronized compact copy, or null for the original implementation.
+   * @param graph worker-owned graph with nonnegative edge costs
+   * @param compactGraph synchronized compact copy, or null for the original implementation
    */
   public BinaryHeapAStar(AdjacencyNode[] graph, CompactShortestPathGraph compactGraph) {
-    super(graph, null, compactGraph, true);
-    latitudes = compactGraph == null ? null : new double[graph.length];
-    longitudes = compactGraph == null ? null : new double[graph.length];
-    if (compactGraph != null) {
-      for (int node = 1; node < graph.length; node++) {
-        latitudes[node] = graph[node].latitude;
-        longitudes[node] = graph[node].longitude;
-      }
-    }
+    super(graph, null, compactGraph);
   }
 
-  /**
-   * Runs the AStar algorithm to completion.
-   *
-   * @param source Loading virtual node num
-   * @param goal Unloading virtual node num
-   */
+  /** {@inheritDoc} */
+  @Override
   public void compute(int source, int goal) {
-    this.initializeSingleSource(graph, source);
-
-    int min = extractMin();
-
-    while (min != goal) {
-      if (min == -1 || minWeight == Double.MAX_VALUE) {
-        System.err.println("Goal not reachable from source.");
-        return;
-      }
-
-      weights[min] = minWeight;
-
-      if (compactGraph != null) {
-        relaxCompactEdges(min, goal);
-      } else {
-        for (AdjacencyNode curNode = graph[min];
-            curNode.nextNode != null;
-            curNode = curNode.nextNode) {
-          int nextNodeNum = curNode.nextNode.virtualNodeNum;
-          int position = getNodePosition(nextNodeNum);
-          if (position != -1 && getHeapNode(position).goalEstWeight == 0) {
-            getHeapNode(position).updateGoalEstWeight(curNode.nextNode.goalEst(graph[goal]));
-          }
-
-          relax(graph[min].virtualNodeNum, nextNodeNum, curNode.edgeWeight);
-        }
-      }
-
-      min = extractMin();
-    }
-
-    if (min != -1) {
-      weights[min] = minWeight;
-    }
+    super.compute(source, goal);
   }
 
-  /**
-   * This method lowers the value of a node in the binary heap and restores the heap property. The
-   * node is found in the heap using the nodePos array.
-   *
-   * @param nodeNum the number of the node to have its key decreased
-   * @param newVal the new key value
-   */
+  /** {@inheritDoc} */
   @Override
   public void decreaseKey(int nodeNum, double newVal) {
-    if (compactHeap != null) {
-      super.decreaseKey(nodeNum, newVal);
-      return;
-    }
-    int position = getNodePosition(nodeNum);
-    BinaryHeapNode node = getHeapNode(position);
-    node.updateWeight(newVal);
-    int parent = position >> 1;
-    while (parent != 0) {
-      BinaryHeapNode parentNode = getHeapNode(parent);
-      if (!(node.keyWeight < parentNode.keyWeight)) {
-        break;
-      }
-      upperBoundCosts[position] = parentNode;
-      nodePos[parentNode.id] = position;
-      position = parent;
-      parent = position >> 1;
-    }
-    upperBoundCosts[position] = node;
-    nodePos[nodeNum] = position;
-    // Preserve A*'s additional repair after updating the estimated total cost.
-    heapify(position);
+    super.decreaseKey(nodeNum, newVal);
   }
 
-  /**
-   * Heapify is a process that causes an input node to be swapped with the smaller of its children
-   * continually until either it reaches the bottom of the tree or is less than or equal to its
-   * children. Once the node "runs down" the tree, the heap property is restored for that node with
-   * respect to the node original position and its new children, if any.
-   *
-   * @param i the index in the binary heap array of the node to perform heapify on
-   */
+  /** {@inheritDoc} */
   @Override
   public void heapify(int i) {
-    if (compactHeap != null) {
-      super.heapify(i);
-      return;
-    }
-    if (i > heapSize) {
-      return;
-    }
-    BinaryHeapNode node = getHeapNode(i);
-    while ((i << 1) <= heapSize) {
-      int left = i << 1;
-      int child = i;
-      BinaryHeapNode childNode = node;
-      BinaryHeapNode leftNode = getHeapNode(left);
-      // Keep the original strict comparisons, including ties and non-finite A* estimates.
-      if (leftNode.keyWeight < childNode.keyWeight) {
-        child = left;
-        childNode = leftNode;
-      }
-      if (left + 1 <= heapSize) {
-        BinaryHeapNode rightNode = getHeapNode(left + 1);
-        if (rightNode.keyWeight < childNode.keyWeight) {
-          child = left + 1;
-          childNode = rightNode;
-        }
-      }
-      if (child == i) {
-        break;
-      }
-      upperBoundCosts[i] = childNode;
-      nodePos[childNode.id] = i;
-      i = child;
-    }
-    upperBoundCosts[i] = node;
-    nodePos[node.id] = i;
+    super.heapify(i);
   }
 
   /**
-   * Initialize the shortest-path estimates and predecessor function. The predecessor function is
-   * left at the default of all zeros. Because there is no zero node in the graph, zero denotes a
-   * null value for a predecessor. The source node upperBoundCosts value is initially set to cost
-   * zero and all other nodes are set to have cost equal to the maximum double floating point
-   * precision value to represent infinity.
+   * Retains the original initialization overload for callers of the A* entry point.
    *
-   * @param graph the input graph in adjacency-list form
-   * @param source the number identifier of the source node
+   * @param graph original adjacency list, already bound at construction
+   * @param source source vertex number
    */
   public void initializeSingleSource(AdjacencyNode[] graph, int source) {
     super.initializeSingleSource(source);
-  }
-
-  /** Uses primitive coordinates and exactly the same arithmetic as AdjacencyNode.goalEst. */
-  private void relaxCompactEdges(int node, int goal) {
-    int end = compactGraph.offsets[node + 1];
-    for (int edge = compactGraph.offsets[node]; edge < end; edge++) {
-      int next = compactGraph.destinations[edge];
-      if (compactHeap.needsEstimate(next)) {
-        double estimate =
-            Math.sqrt(
-                Math.pow(Math.abs(longitudes[goal] - longitudes[next]), 2)
-                    + Math.pow(Math.abs(latitudes[goal] - latitudes[next]), 2));
-        compactHeap.setEstimate(next, estimate);
-      }
-      relax(node, next, compactGraph.costs[edge]);
-    }
   }
 }
