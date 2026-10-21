@@ -27,6 +27,7 @@ import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerPh
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapAStar;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.CompactShortestPathGraph;
+import edu.uclouvain.core.nodus.compute.assign.shortestpath.LegacyBinaryHeapAStar;
 import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.modalsplit.PathsForMode;
@@ -115,7 +116,9 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     CompactShortestPathGraph compactGraph = createCompactGraph();
     edgeUpdates = new MultiFlowEdgeUpdates(graph, compactGraph);
 
-    shortestPath = new BinaryHeapAStar(graph, compactGraph);
+    shortestPath = NodusC.useLegacyAStar
+        ? new LegacyBinaryHeapAStar(graph, compactGraph)
+        : new BinaryHeapAStar(graph, compactGraph);
     availableModeMeans = virtualNet.getAvailableModeMeans(groupIndex);
     paths = new Path[assignmentParameters.getNbIterations() * availableModeMeans.length];
 

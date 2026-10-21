@@ -536,4 +536,5 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Fix project settings: failed writes and file preservation
 - Fix first service save and schema migration: transaction preservation
 - A* now uses a zero heuristic (Dijkstra ordering), ensuring correct routes with arbitrary cost scales
+- Add `NodusC.useLegacyAStar` to compare the previous geographic heuristic with the safe default
 

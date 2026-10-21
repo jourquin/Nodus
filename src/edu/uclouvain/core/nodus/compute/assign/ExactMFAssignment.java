@@ -39,7 +39,8 @@ import edu.uclouvain.core.nodus.utils.WorkQueue;
 /**
  * The exact multi-flow assignment computes one or several alternative routes for each mode/means
  * combination independently for each OD pair. Its single-goal A* search uses a zero heuristic for
- * arbitrary transport costs, giving Dijkstra ordering. Separate searches and cost penalties per OD
+ * arbitrary transport costs, giving Dijkstra ordering. NodusC.useLegacyAStar selects the previous
+ * geographic heuristic for performance comparisons. Separate searches and cost penalties per OD
  * pair prevent the shared-tree side effects described in <i> Jourquin B., A multi-flow multi-modal
  * assignment procedure on large freight transportation networks, Studies in Regional Science, Vol
  * 35, n°4, pp. 929- 946, 2005.</i>.

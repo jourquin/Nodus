@@ -304,6 +304,43 @@ class ShortestPathTest {
     assertThrows(
         IllegalArgumentException.class, () -> new BinaryHeapDijkstra(second.heads, null, compact));
     assertThrows(IllegalArgumentException.class, () -> new BinaryHeapAStar(second.heads, compact));
+    assertThrows(
+        IllegalArgumentException.class, () -> new LegacyBinaryHeapAStar(second.heads, compact));
+  }
+
+  @TestFactory
+  List<DynamicTest> legacySearchRetainsThePreviousGeographicHeuristicAndHeapBehavior() {
+    final List<DynamicTest> tests = new ArrayList<>();
+    for (boolean compact : new boolean[] {false, true}) {
+      tests.add(
+          dynamicTest(
+              "compact=" + compact,
+              () -> {
+                final Graph graph = detourGraph();
+                final CompactShortestPathGraph copy =
+                    compact ? new CompactShortestPathGraph(graph.heads) : null;
+                final BinaryHeapAStar search = new LegacyBinaryHeapAStar(graph.heads, copy);
+                // This deliberately preserves the old overestimate, for honest timing comparisons.
+                search.compute(1, 3);
+                assertPath(search, 0.5, 1, 3);
+                final AdjacencyNode direct = graph.heads[1];
+                direct.edgeWeight = Double.POSITIVE_INFINITY;
+                if (copy != null) {
+                  copy.copyWeight(direct);
+                }
+                search.compute(1, 3);
+                assertPath(search, 0.2, 1, 2, 3);
+                search.compute(1, 2);
+                assertPath(search, 0.1, 1, 2);
+                direct.edgeWeight = 0.5;
+                if (copy != null) {
+                  copy.copyWeight(direct);
+                }
+                search.compute(1, 3);
+                assertPath(search, 0.5, 1, 3);
+              }));
+    }
+    return tests;
   }
 
   private static void add(List<DynamicTest> tests, SearchKind kind, String name, Executable check) {

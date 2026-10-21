@@ -98,6 +98,14 @@ public class NodusC {
    */
   public static boolean useCompactShortestPaths = true;
 
+  /**
+   * Use the previous geographic A* heuristic in Exact Multi-flow for performance comparisons.
+   * False uses the safe zero heuristic. The legacy heuristic can select a nonoptimal route when
+   * distance overestimates user-defined costs. Set before starting an assignment; each worker job
+   * samples it when creating its search. Independent of useCompactShortestPaths.
+   */
+  public static volatile boolean useLegacyAStar = false;
+
   /*
    * *********************************************************************************************
    * Default values for various aspects of Nodus

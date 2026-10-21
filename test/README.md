@@ -157,6 +157,29 @@ for the workflow mechanism.
 
 [ant-ci]: https://docs.github.com/en/actions/tutorials/build-and-test-code/java-with-ant
 
+## Comparing Exact Multi-flow search times
+
+Before running an Exact Multi-flow assignment, set these switches in the Groovy console or a
+startup script:
+
+```groovy
+import edu.uclouvain.core.nodus.NodusC
+NodusC.displayComputingTimes = true
+NodusC.useLegacyAStar = false // Safe zero heuristic; default
+```
+
+Repeat with `NodusC.useLegacyAStar = true` to select the previous geographic heuristic. Each worker
+job selects its search at construction, so change the switch before starting the assignment.
+Keep the assignment settings and `NodusC.useCompactShortestPaths` identical between comparisons.
+Both choices support compact arrays and the original linked graph/heap storage. The legacy
+heuristic can select nonoptimal routes when geographic distance overestimates transport costs.
+
+Both implementations use the same `A*:` measurement around each complete `compute()` call,
+including its per-search initialization. This row sums elapsed time across worker jobs and may
+exceed wall time with parallel workers. Graph/heap construction remains worker setup, outside the
+`A*:` row. Use `Total elapsed:` to compare complete assignments. Repeat runs to account for JVM
+warm-up and ordinary timing variation; auditing is sampled at assignment start.
+
 ## Coverage
 
 - `CommentedPropertiesTest`, `PropertiesFileSaveTest`, `NodusProjectPropertiesTest`: standard Java
@@ -505,11 +528,15 @@ for the workflow mechanism.
   route. Seeded networks with zero and nonzero coordinates are checked against an independent
   Floyd-Warshall reference, including reconstructed predecessor-path costs. A* uses a zero heuristic:
   geographic distance is not a guaranteed lower bound for user-defined transport costs.
+  Separate legacy checks retain the previous heuristic, heap behavior and known overestimate for
+  performance comparisons with either graph representation.
 - `ExactMultiFlowCostScaleTest`: H2/HSQLDB assignments with linked/compact storage, serial/concurrent
   group workers and one/two alternatives. Checks a cheaper route travelling away from its goal,
   zero-cost movement, changed costs on reruns, proportional route shares, stored path costs,
   per-link/group flows and preserved demand. Exact MF retains separate searches and cost penalties
   per OD pair. These checks do not benchmark large-network search times.
+  The comparison switch is exercised on successive runs with both engines, graph representations
+  and worker counts, checking the actual route and flow differences of the legacy search.
 - `RealLinkInitializerTest`: EsriPolyline and OMPoly lengths from declared degree/radian inputs,
   endpoint fallback near the equator/prime meridian and across the date line, reversed paths and
   intermediate vertices. Uses an independent haversine reference. Checks missing/degenerate and
@@ -610,7 +637,9 @@ for the workflow mechanism.
 - `ComputingTimesAssignmentIntegrationTest`: fast and exact coordinators produce identical saved
   paths, costs and network flows with auditing disabled, enabled and disabled again, using both
   graph representations and serial/concurrent workers. Disconnected loading-mode alternatives
-  exercise the real reachability-observer wiring and its per-mode resets.
+  exercise the real reachability-observer wiring and its per-mode resets. Exact MF covers both
+  legacy and zero-heuristic searches. A controlled clock verifies a positive `A*:` measurement for
+  both choices and no timing-clock reads when auditing is disabled.
 - `MultiFlowEdgeUpdatesTest`: shared-edge penalties, loading restrictions on intermediate
   nodes, separate lifetimes of path marks and pending demand, and restoration between
   searches. Each case runs against linked and compact storage and checks resulting routes

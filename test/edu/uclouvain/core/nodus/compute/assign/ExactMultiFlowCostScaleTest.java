@@ -43,6 +43,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 @Tag("integration")
 @ResourceLock("JDBCUtils")
 @ResourceLock("NodusC.useCompactShortestPaths")
+@ResourceLock("NodusC.useLegacyAStar")
 @Timeout(30)
 class ExactMultiFlowCostScaleTest {
   @TempDir Path directory;
@@ -75,6 +76,7 @@ class ExactMultiFlowCostScaleTest {
   private void checkAssignment(boolean hsql, boolean compact, int threads, int alternatives)
       throws Exception {
     final boolean previous = NodusC.useCompactShortestPaths;
+    final boolean previousLegacy = NodusC.useLegacyAStar;
     try (AssignmentTestProject project =
         new AssignmentTestProject(
             directory,
@@ -82,16 +84,10 @@ class ExactMultiFlowCostScaleTest {
             new double[][] {{11, 1, 3, 0.5, 0}, {12, 1, 2, 0.1, 0}, {13, 2, 3, 0.1, 0}},
             hsql)) {
       NodusC.useCompactShortestPaths = compact;
+      NodusC.useLegacyAStar = false;
       // The cheapest route initially travels away from the goal. Geographic distance has
       // no prescribed relationship to these user-defined costs.
-      final double[] longitudes = {0, -10, 10};
-      for (int node = 0; node < 3; node++) {
-        ((OMPoint) project.nodes.getEsriGraphicList().getOMGraphicAt(node))
-            .set(0, longitudes[node]);
-      }
-      geometry(project, 0, longitudes[0], longitudes[2]);
-      geometry(project, 1, longitudes[0], longitudes[1]);
-      geometry(project, 2, longitudes[1], longitudes[2]);
+      detourCoordinates(project);
       project.execute("INSERT INTO mini_od VALUES(1,1,3,210),(2,1,3,420)");
       final AssignmentParameters parameters = project.parameters(threads);
       parameters.setNbIterations(alternatives);
@@ -115,7 +111,67 @@ class ExactMultiFlowCostScaleTest {
       assertEquals(630, project.number("SELECT SUM(qty) FROM mini_od"));
     } finally {
       NodusC.useCompactShortestPaths = previous;
+      NodusC.useLegacyAStar = previousLegacy;
     }
+  }
+
+  @TestFactory
+  List<DynamicTest> switchingTheFlagSelectsTheHistoricalOrSafeSearchOnTheNextRun() {
+    final List<DynamicTest> tests = new ArrayList<>();
+    for (boolean hsql : new boolean[] {false, true}) {
+      for (boolean compact : new boolean[] {false, true}) {
+        for (int threads : new int[] {1, 4}) {
+          tests.add(
+              dynamicTest(
+                  "HSQLDB=" + hsql + "/compact=" + compact + "/threads=" + threads,
+                  () -> checkSwitch(hsql, compact, threads)));
+        }
+      }
+    }
+    return tests;
+  }
+
+  private void checkSwitch(boolean hsql, boolean compact, int threads) throws Exception {
+    final boolean previousGraph = NodusC.useCompactShortestPaths;
+    final boolean previousLegacy = NodusC.useLegacyAStar;
+    try (AssignmentTestProject project =
+        new AssignmentTestProject(
+            directory,
+            3,
+            new double[][] {{11, 1, 3, 0.5, 0}, {12, 1, 2, 0.1, 0}, {13, 2, 3, 0.1, 0}},
+            hsql)) {
+      NodusC.useCompactShortestPaths = compact;
+      detourCoordinates(project);
+      project.execute("INSERT INTO mini_od VALUES(1,1,3,210),(2,1,3,420)");
+      final AssignmentParameters parameters = project.parameters(threads);
+      parameters.setNbIterations(1);
+      parameters.setModalSplitMethodName("Proportional");
+      for (boolean legacy : new boolean[] {false, true, false}) {
+        NodusC.useLegacyAStar = legacy;
+        project.run(new ExactMFAssignment(parameters), 2);
+        assertEquals(2, project.number("SELECT COUNT(*) FROM mini_paths1_header"));
+        for (int group : new int[] {1, 2}) {
+          final double quantity = group * 210;
+          assertRoute(project, group, 11, legacy ? quantity : 0, 0.5);
+          assertRoute(project, group, 12, legacy ? 0 : quantity, 0.2);
+          assertRoute(project, group, 13, legacy ? 0 : quantity, 0.2);
+        }
+        assertEquals(630, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 0.001);
+      }
+    } finally {
+      NodusC.useCompactShortestPaths = previousGraph;
+      NodusC.useLegacyAStar = previousLegacy;
+    }
+  }
+
+  private static void detourCoordinates(AssignmentTestProject project) {
+    final double[] longitudes = {0, -10, 10};
+    for (int node = 0; node < 3; node++) {
+      ((OMPoint) project.nodes.getEsriGraphicList().getOMGraphicAt(node)).set(0, longitudes[node]);
+    }
+    geometry(project, 0, longitudes[0], longitudes[2]);
+    geometry(project, 1, longitudes[0], longitudes[1]);
+    geometry(project, 2, longitudes[1], longitudes[2]);
   }
 
   private static void geometry(AssignmentTestProject project, int row, double from, double to) {

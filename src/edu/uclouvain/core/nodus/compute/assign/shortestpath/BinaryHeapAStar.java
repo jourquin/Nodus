@@ -51,7 +51,19 @@ public class BinaryHeapAStar extends BinaryHeapDijkstra {
    * @param compactGraph synchronized compact copy, or null for the original implementation
    */
   public BinaryHeapAStar(AdjacencyNode[] graph, CompactShortestPathGraph compactGraph) {
-    super(graph, null, compactGraph);
+    this(graph, compactGraph, false);
+  }
+
+  /**
+   * Allows the legacy implementation to retain its separate compact heuristic labels.
+   *
+   * @param graph worker-owned adjacency list
+   * @param compactGraph synchronized compact copy, or null for linked storage
+   * @param useHeuristic whether compact heap keys include a remaining-cost estimate
+   */
+  protected BinaryHeapAStar(
+      AdjacencyNode[] graph, CompactShortestPathGraph compactGraph, boolean useHeuristic) {
+    super(graph, null, compactGraph, useHeuristic);
   }
 
   /** {@inheritDoc} */

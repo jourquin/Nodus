@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.compute.assign;
 
 import static edu.uclouvain.core.nodus.compute.assign.ComputingTimesTestSupport.capture;
 import static edu.uclouvain.core.nodus.compute.assign.ComputingTimesTestSupport.count;
+import static edu.uclouvain.core.nodus.compute.assign.ComputingTimesTestSupport.seconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -46,6 +47,7 @@ import org.junit.jupiter.api.parallel.Resources;
 @ResourceLock("JDBCUtils")
 @ResourceLock("NodusC.displayComputingTimes")
 @ResourceLock("NodusC.useCompactShortestPaths")
+@ResourceLock("NodusC.useLegacyAStar")
 @ResourceLock(Resources.SYSTEM_OUT)
 @Timeout(30)
 class ComputingTimesAssignmentIntegrationTest {
@@ -60,21 +62,31 @@ class ComputingTimesAssignmentIntegrationTest {
                     .flatMap(
                         exact ->
                             Stream.of(1, 4)
-                                .map(
+                                .flatMap(
                                     threads ->
-                                        dynamicTest(
-                                            "compact="
-                                                + compact
-                                                + ", exact="
-                                                + exact
-                                                + ", threads="
-                                                + threads,
-                                            () -> checkAssignment(compact, exact, threads)))));
+                                        (exact ? Stream.of(false, true) : Stream.of(false))
+                                            .map(
+                                                legacy ->
+                                                    dynamicTest(
+                                                        "compact="
+                                                            + compact
+                                                            + ", exact="
+                                                            + exact
+                                                            + ", threads="
+                                                            + threads
+                                                            + ", legacy="
+                                                            + legacy,
+                                                        () ->
+                                                            checkAssignment(
+                                                                compact, exact, threads,
+                                                                legacy))))));
   }
 
-  private void checkAssignment(boolean compact, boolean exact, int threads) throws Exception {
+  private void checkAssignment(boolean compact, boolean exact, int threads, boolean legacy)
+      throws Exception {
     boolean previousAudit = NodusC.displayComputingTimes;
     boolean previousGraph = NodusC.useCompactShortestPaths;
+    boolean previousLegacy = NodusC.useLegacyAStar;
     try (AssignmentTestProject project =
         new AssignmentTestProject(
             directory,
@@ -84,6 +96,7 @@ class ComputingTimesAssignmentIntegrationTest {
               {14, 3, 4, 4, 0}, {15, 1, 5, 1, 0}, {16, 6, 4, 1, 0}
             })) {
       NodusC.useCompactShortestPaths = compact;
+      NodusC.useLegacyAStar = legacy;
       // Mode 2 can be loaded at the first origin but cannot reach its requested destination.
       for (int row : new int[] {4, 5}) {
         project.links.getModel().setValueAt(2.0, row, NodusC.DBF_IDX_MODE);
@@ -92,7 +105,9 @@ class ComputingTimesAssignmentIntegrationTest {
       List<List<String>> expected = null;
       for (boolean enabled : new boolean[] {false, true, false}) {
         NodusC.displayComputingTimes = enabled;
-        final AssignmentParameters parameters = project.parameters(threads);
+        final ComputingTimesTestSupport.Clock clock = new ComputingTimesTestSupport.Clock();
+        clock.stepEachRead();
+        final AssignmentParameters parameters = parameters(project, threads, clock);
         for (String operation : new String[] {"ld", "ul", "tr"}) {
           parameters.getCostFunctions().setProperty(operation + ".2,1", "0");
         }
@@ -108,6 +123,7 @@ class ComputingTimesAssignmentIntegrationTest {
         if (enabled) {
           assertTrue(report.contains("completed"), report);
           assertTrue(report.contains(exact ? "A*:" : "Dijkstra:"), report);
+          assertTrue(seconds(report, exact ? "A*" : "Dijkstra") > 0, report);
           assertTrue(report.contains("Outside-phase breakdown"), report);
           if (!exact) {
             assertEquals(12, count(report, "Completed Dijkstra searches"));
@@ -115,6 +131,7 @@ class ComputingTimesAssignmentIntegrationTest {
             assertEquals(3, count(report, "Potentially entirely skippable searches"));
           }
         }
+        assertEquals(enabled, clock.reads() > 0);
         assertFalse(report.contains("NaN"), report);
         assertEquals(140, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 0.005);
         final List<List<String>> actual = snapshot(project);
@@ -126,7 +143,27 @@ class ComputingTimesAssignmentIntegrationTest {
     } finally {
       NodusC.displayComputingTimes = previousAudit;
       NodusC.useCompactShortestPaths = previousGraph;
+      NodusC.useLegacyAStar = previousLegacy;
     }
+  }
+
+  private static AssignmentParameters parameters(
+      AssignmentTestProject project, int threads, ComputingTimesTestSupport.Clock clock) {
+    final AssignmentComputingTimes audit = new AssignmentComputingTimes(clock);
+    final AssignmentParameters parameters =
+        new AssignmentParameters(project) {
+          @Override
+          public AssignmentComputingTimes getComputingTimes() {
+            return audit;
+          }
+        };
+    parameters.setCostFunctions(project.parameters(threads).getCostFunctions());
+    parameters.setScenario(1);
+    parameters.setODMatrix("mini_od");
+    parameters.setWhereStmt("");
+    parameters.setThreads(threads);
+    parameters.setDetailedPaths(true);
+    return parameters;
   }
 
   private static List<List<String>> snapshot(AssignmentTestProject project) throws Exception {
