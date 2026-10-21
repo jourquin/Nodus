@@ -502,6 +502,14 @@ warm-up and ordinary timing variation; auditing is sampled at assignment start.
   its overwrite callback on the EDT, and Groovy property access and batch scripts with comments,
   overlapping variable names and `STOP`. The frozen fixtures are documented in
   [sql-console-api/README.md](fixtures/sql-console-api/README.md).
+- `SQLConsoleScriptTest`, `SQLConsoleScriptIntegrationTest`: quote-aware semicolon splitting,
+  doubled quotes, quoted identifiers, backticks and dollar strings, nested block/inline comments,
+  legacy full-line hash comments, literal line endings and Unicode. Checks same-line commands,
+  final commands without terminators, empty statements, textual variables and `STOP`; separators
+  supplied by `runBatch()` must follow trailing line comments. Real H2/HSQLDB consoles exercise
+  direct commands, loaded files and arrays, including the demo OD-merging script. Unclosed quotes
+  or block comments must execute no SQL, preserve pending transactions, close statements and permit
+  retries. Existing import/export overwrite prompts and extension API fixtures remain covered.
 - `TableSorterTest`: headless EDT checks for sorted reads, edits and editability, stable
   single/compound ordering and null values with comparable and lexical fallback types. Covers
   comparator replacement/removal and extreme comparator results, precise model-to-view cell events,

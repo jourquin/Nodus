@@ -21,12 +21,12 @@
 
 package edu.uclouvain.core.nodus.database.gui;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -83,16 +83,8 @@ final class SQLConsoleScript {
    * @return String
    */
   static String readFile(String file) {
-    try (BufferedReader read = new BufferedReader(new FileReader(file))) {
-      StringBuilder b = new StringBuilder();
-      String s;
-
-      while ((s = read.readLine()) != null) {
-        b.append(s);
-        b.append(NL);
-      }
-
-      return b.toString();
+    try {
+      return Files.readString(Path.of(file), Charset.defaultCharset());
     } catch (IOException e) {
       return e.getMessage();
     }
@@ -113,116 +105,204 @@ final class SQLConsoleScript {
   }
 
   /**
-   * Decompose the batch file into commands. A regular batch command must end with a ";" but can be
-   * written on multiple lines. A comment starts with a "--" or "#". A command block is delimited as
-   * in C or Java. Variable definitions start with @@
+   * Splits commands at unquoted semicolons, strips comments outside quotes and retains the final
+   * command with or without a delimiter. SQL doubled quotes and PostgreSQL/H2 dollar strings are
+   * preserved verbatim. Nodus's existing textual variable substitutions are applied afterwards.
+   *
+   * @throws IllegalArgumentException if a quote or block comment is not closed
    */
   static ParsedSQLCommands parseSQLCommands(String sqlCommand) {
-
-    // Comparator used to sort strings in reverse order
-    class LengthComparator implements Comparator<String> {
-      public int compare(String o1, String o2) {
-        return -o1.compareTo(o2);
-      }
+    final CommandScanner scanner = new CommandScanner(sqlCommand);
+    scanner.scan();
+    if (!scanner.delimited) {
+      return new ParsedSQLCommands(scanner.commands, false, false);
     }
-
-    boolean isBatchFile = false;
-
-    // Remove block comments
-    boolean hasBlockComment = true;
-    while (hasBlockComment) {
-      hasBlockComment = false;
-      int beginIdx = sqlCommand.indexOf("/*");
-      int endIdx = sqlCommand.indexOf("*/");
-      if (beginIdx != -1 && endIdx != -1 && beginIdx < endIdx) {
-        String p1 = sqlCommand.substring(0, beginIdx);
-        String p2 = sqlCommand.substring(endIdx + 2, sqlCommand.length());
-        sqlCommand = p1 + " " + p2;
-        hasBlockComment = true;
-      }
-    }
-
-    // Split per line
-    String[] line = sqlCommand.split("\\R");
-
-    // Concatenate multi-line commands
-    Vector<String> commandsToParse = new Vector<>();
-    String currentCommand = "";
-    for (int i = 0; i < line.length; i++) {
-      line[i] = line[i].trim();
-
-      // Ignore comments
-      if (line[i].startsWith("#") || line[i].startsWith("--")) {
-        continue;
-      }
-
-      currentCommand += line[i];
-      if (line[i].endsWith(";")) {
-        // Remove trailing semi-column and store command
-        commandsToParse.add(currentCommand.substring(0, currentCommand.length() - 1).trim());
-        currentCommand = "";
-        isBatchFile = true;
-      } else {
-        currentCommand += " ";
-      }
-    }
-
-    // Parse the commands
-    Vector<String> parsedCommands = new Vector<>();
-
-    // Single command
-    if (!isBatchFile) {
-      parsedCommands.add(currentCommand);
-      return new ParsedSQLCommands(parsedCommands, false, false);
-    }
-
-    // The names of the variables are stored and sorted by length from longest to shortest.
-    // This is needed for this simple parser
-    Map<String, String> variables = new TreeMap<String, String>(new LengthComparator());
-
-    for (int i = 0; i < commandsToParse.size(); i++) {
-
-      currentCommand = commandsToParse.get(i).trim();
-
-      // Handle variable definitions
+    final Vector<String> parsedCommands = new Vector<>();
+    final Map<String, String> variables = new TreeMap<>();
+    for (String command : scanner.commands) {
+      String currentCommand = command;
+      // Keep textual @@ substitutions compatible with existing scripts, including their spacing.
       if (currentCommand.startsWith("@@")) {
-        int idx = currentCommand.indexOf(":=");
+        final int idx = currentCommand.indexOf(":=");
         if (idx != -1) {
-          String varName = currentCommand.substring(0, idx).trim();
-          String varValue = currentCommand.substring(idx + 2, currentCommand.length());
-          if (varValue.endsWith(";")) {
-            varValue = varValue.substring(0, varValue.length() - 1).trim();
-          }
-
-          variables.put(varName, varValue);
+          variables.put(currentCommand.substring(0, idx).trim(), currentCommand.substring(idx + 2));
           continue;
         }
       }
-
-      // Replace all the user defined variables by their value.
-      // Longer variable names must be replaced first to avoid partial replacements.
-      List<String> varNames = new ArrayList<>(variables.keySet());
-
+      final List<String> varNames = new ArrayList<>(variables.keySet());
       varNames.sort(
-          (varName1, varName2) -> {
-            int lengthComparison = Integer.compare(varName2.length(), varName1.length());
-
-            if (lengthComparison != 0) {
-              return lengthComparison;
-            }
-
-            return varName1.compareTo(varName2);
+          (first, second) -> {
+            final int byLength = Integer.compare(second.length(), first.length());
+            return byLength == 0 ? first.compareTo(second) : byLength;
           });
-
       for (String varName : varNames) {
-        String varValue = variables.get(varName) + " ";
-        currentCommand = currentCommand.replace(varName, varValue);
+        currentCommand = currentCommand.replace(varName, variables.get(varName) + " ");
       }
-
-      // Store the parsed command command
       parsedCommands.add(currentCommand);
     }
+    return new ParsedSQLCommands(parsedCommands, scanner.commands.size() > 1, scanner.delimited);
+  }
 
-    return new ParsedSQLCommands(parsedCommands, commandsToParse.size() > 1, isBatchFile);
+  /** Places array-element separators on their own lines, beyond any trailing line comment. */
+  static String joinCommands(String[] commands) {
+    final StringBuilder text = new StringBuilder();
+    for (String command : commands) {
+      text.append(command.trim()).append(NL).append(';').append(NL);
+    }
+    return text.toString();
+  }
+
+  /** A lexical scanner; statement syntax and execution remain the database's responsibility. */
+  private static final class CommandScanner {
+    private final String text;
+    private final Vector<String> commands = new Vector<>();
+    private final StringBuilder current = new StringBuilder();
+    private boolean delimited;
+
+    CommandScanner(String text) {
+      this.text = text;
+    }
+
+    void scan() {
+      char quote = 0;
+      int quoteStart = 0;
+      String dollarQuote = null;
+      int blockDepth = 0;
+      int blockStart = 0;
+      boolean lineComment = false;
+      boolean lineStart = true;
+      for (int index = 0; index < text.length(); index++) {
+        final char value = text.charAt(index);
+        final char next = index + 1 < text.length() ? text.charAt(index + 1) : 0;
+        // Keep legacy full-line # comments without stripping PostgreSQL's inline # operators.
+        final boolean hashComment = value == '#' && lineStart;
+        if (lineBreak(value)) {
+          lineStart = true;
+        } else if (!Character.isWhitespace(value)
+            && !lineComment
+            && blockDepth == 0
+            && !(quote == 0 && dollarQuote == null && value == '/' && next == '*')) {
+          lineStart = false;
+        }
+        if (lineComment) {
+          if (lineBreak(value)) {
+            lineComment = false;
+            separate();
+          }
+        } else if (blockDepth > 0) {
+          if (value == '/' && next == '*') {
+            blockDepth++;
+            index++;
+          } else if (value == '*' && next == '/') {
+            blockDepth--;
+            index++;
+          }
+        } else if (dollarQuote != null) {
+          if (text.startsWith(dollarQuote, index)) {
+            current.append(dollarQuote);
+            index += dollarQuote.length() - 1;
+            dollarQuote = null;
+          } else {
+            current.append(value);
+          }
+        } else if (quote != 0) {
+          current.append(value);
+          if (value == quote) {
+            if (next == quote) {
+              current.append(next);
+              index++;
+            } else {
+              quote = 0;
+            }
+          }
+        } else if (value == '\'' || value == '"' || value == '`') {
+          quote = value;
+          quoteStart = index;
+          current.append(value);
+        } else if (value == '/' && next == '*') {
+          blockDepth = 1;
+          blockStart = index;
+          separate();
+          index++;
+        } else if (value == '-' && next == '-' || hashComment) {
+          lineComment = true;
+          separate();
+          if (value == '-') {
+            index++;
+          }
+        } else if (Character.isWhitespace(value) || value == '\u0085') { // Unicode newline
+          separate();
+        } else if (value == ';') {
+          addCommand();
+          delimited = true;
+        } else {
+          final String delimiter = dollarDelimiter(index);
+          if (delimiter != null) {
+            dollarQuote = delimiter;
+            quoteStart = index;
+            current.append(delimiter);
+            index += delimiter.length() - 1;
+          } else {
+            current.append(value);
+          }
+        }
+      }
+      if (quote != 0 || dollarQuote != null) {
+        throw new IllegalArgumentException(
+            "Unterminated SQL quote at character " + (quoteStart + 1));
+      }
+      if (blockDepth != 0) {
+        throw new IllegalArgumentException(
+            "Unterminated SQL block comment at character " + (blockStart + 1));
+      }
+      addCommand();
+    }
+
+    private void separate() {
+      if (current.length() > 0 && current.charAt(current.length() - 1) != ' ') {
+        current.append(' ');
+      }
+    }
+
+    private static boolean lineBreak(char value) {
+      return value == '\r'
+          || value == '\n'
+          || value == '\u000B'
+          || value == '\f'
+          || value == '\u0085'
+          || value == '\u2028'
+          || value == '\u2029'; // Unicode newlines
+    }
+
+    private void addCommand() {
+      final String command = current.toString().trim();
+      if (!command.isEmpty()) {
+        commands.add(command);
+      }
+      current.setLength(0);
+    }
+
+    /** Dollar quoting starts at a token boundary; dollar signs inside identifiers are ordinary. */
+    private String dollarDelimiter(int index) {
+      if (text.charAt(index) != '$' || index > 0 && identifierPart(text.charAt(index - 1))) {
+        return null;
+      }
+      for (int end = index + 1; end < text.length(); end++) {
+        final char value = text.charAt(end);
+        if (value == '$') {
+          return text.substring(index, end + 1);
+        }
+        if (value != '_'
+            && !Character.isLetter(value)
+            && (end == index + 1 || !Character.isDigit(value))) {
+          return null;
+        }
+      }
+      return null;
+    }
+
+    private static boolean identifierPart(char value) {
+      return Character.isLetterOrDigit(value) || value == '_' || value == '$';
+    }
   }
 }

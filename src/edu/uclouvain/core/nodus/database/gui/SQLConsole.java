@@ -136,6 +136,12 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  * <br>
  * - STOP : Convenient command that stops a script. Useful for debugging. <br>
  *
+ * <p>Script separators and comments are recognized outside quoted strings and identifiers. SQL
+ * doubled quotes preserve embedded quote characters. Line comments use -- or a leading #, and
+ * C-style block comments are supported. The final command may omit its semicolon. Unclosed quotes
+ * or block comments reject the complete batch before execution. Textual @@ substitutions remain
+ * supported.
+ *
  * <p>Direct import commands ask before replacing existing tables; direct export commands and
  * EXTRACTSHP ask before overwriting files. Loaded scripts, multi-command batches, and runBatch
  * calls overwrite without prompting.
@@ -485,14 +491,26 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   boolean execute(boolean batch) {
     setBusy(true);
 
+    // Validate the complete batch before executing even its first command.
+    final String sqlCommandsText = getSqlCommandsText();
+    final SQLConsoleScript.ParsedSQLCommands parsed;
+    try {
+      parsed = SQLConsoleScript.parseSQLCommands(sqlCommandsText);
+    } catch (IllegalArgumentException failure) {
+      if (withGUI) {
+        showSingleValueResult("SQL Error", failure.getMessage());
+      } else {
+        System.err.println(failure.getMessage());
+      }
+      closeStatement();
+      setBusy(false);
+      return false;
+    }
     if (!openStatement()) {
       setBusy(false);
       return false;
     }
 
-    // Decompose all the statements
-    String sqlCommandsText = getSqlCommandsText();
-    SQLConsoleScript.ParsedSQLCommands parsed = SQLConsoleScript.parseSQLCommands(sqlCommandsText);
     if (parsed.batchFile) {
       menuResultInText_actionPerformed(null);
     }
@@ -1482,19 +1500,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   public boolean runBatch(String[] sqlCommands) {
     try {
       sqlCommandsArea = new RSyntaxTextArea();
-      StringBuffer b = new StringBuffer();
-      for (int i = 0; i < sqlCommands.length; i++) {
-
-        // Be sure a semicolon is present
-        String s = sqlCommands[i].trim();
-        if (!s.endsWith(";")) {
-          s += ";";
-        }
-
-        b.append(s);
-        b.append(NL);
-      }
-      sqlCommandsArea.setText(b.toString());
+      sqlCommandsArea.setText(SQLConsoleScript.joinCommands(sqlCommands));
       return execute(true);
     } finally {
       closeStatement();
