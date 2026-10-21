@@ -658,6 +658,13 @@ warm-up and ordinary timing variation; auditing is sampled at assignment start.
 - `NodeRulesReaderIntegrationTest`: actual exclusion-table rows on H2 and HSQLDB reach
   transhipment-only nodes and affect computed costs. Checks symmetry, direction, scenario/group
   isolation, selected-scenario precedence, generic defaults, missing tables and unknown nodes.
+- `NodeRulesComparisonTest`, `NodeRulesPersistenceTest`: headless node-rule editor checks for
+  exact dirty-state comparisons and duplicate detection, including concatenation/hash collisions,
+  numeric equivalents, symmetric directions, signed inclusion/exclusion and scenario/group scope.
+  Real H2/HSQLDB saves preserve earlier caller transactions and other rules; injected failures
+  during deletion, insertion, statement closure and transaction completion preserve saved rows
+  and pending edits for retry. Covers empty replacements, complete reads, malformed rows,
+  first saves without implicit commits, connection cleanup, custom schemas and reordered columns.
 - `VehiclesParserTest`: capacity and passenger-car-unit property precedence, isolation
   between scenarios, groups and mode/means, default values, fractional values, and repeated
   initialization. Rejects malformed, non-finite, zero/negative capacities and negative PCU factors

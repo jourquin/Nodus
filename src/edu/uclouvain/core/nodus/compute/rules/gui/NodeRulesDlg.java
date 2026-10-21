@@ -26,8 +26,6 @@ import com.bbn.openmap.layer.shape.NodusEsriLayer;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
-import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
-import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
 import java.awt.Color;
 import java.awt.Component;
@@ -40,13 +38,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.DecimalFormat;
 import java.text.MessageFormat;
-import java.util.HashMap;
+import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -85,8 +79,8 @@ public class NodeRulesDlg extends EscapeDialog {
 
   private static final long serialVersionUID = 2034841416338333759L;
 
-  private static String doubleArrow = "\u2194"; // bidirectional arrow
-  private static String singleArrow = "\u2192"; // Simple arrow
+  private static String doubleArrow = NodeRulesPersistence.DOUBLE_ARROW; // bidirectional arrow
+  private static String singleArrow = NodeRulesPersistence.SINGLE_ARROW; // Simple arrow
 
   private static Color errorColor = Color.LIGHT_GRAY;
   private static Color excludeColor = new Color(220, 10, 10);
@@ -146,7 +140,10 @@ public class NodeRulesDlg extends EscapeDialog {
   private final JRadioButton includeRadioButton = new JRadioButton();
 
   /** . */
-  private int initialRulesHashCode;
+  private List<List<Object>> initialRules = List.of();
+
+  /** Whether all persisted rows have been read successfully. */
+  private boolean rulesLoaded;
 
   /** . */
   private JPanel mainPanel = new JPanel();
@@ -216,9 +213,6 @@ public class NodeRulesDlg extends EscapeDialog {
 
   /** . */
   private final JLabel toLabel = new JLabel();
-
-  /** . */
-  private HashMap<Integer, Integer> existingRules = new HashMap<>();
 
   /**
    * Initializes the dialog box that will give the possibility to edit the exclusions related to
@@ -323,23 +317,12 @@ public class NodeRulesDlg extends EscapeDialog {
   }
 
   /**
-   * Computes a hash for the set of rules.
+   * Copies the current rule cells for exact change detection.
    *
-   * @return The hash code
+   * @return An exact copy of the current rule cells
    */
-  private int getRulesHashCode() {
-
-    // Compute the hash of the current rules
-    String rules = "";
-    int nbRows = rulesTable.getRowCount();
-    int nbColumns = rulesTable.getColumnCount();
-    for (int row = 0; row < nbRows; row++) {
-      for (int col = 0; col < nbColumns; col++) {
-        rules += exclusionsTableModel.getValueAt(row, col).toString();
-      }
-    }
-
-    return rules.hashCode();
+  private List<List<Object>> getRulesSnapshot() {
+    return NodeRulesPersistence.snapshot(exclusionsTableModel);
   }
 
   /**
@@ -1104,7 +1087,7 @@ public class NodeRulesDlg extends EscapeDialog {
       rulesTable.getColumnModel().getColumn(idxNum).setMaxWidth(0);
 
       currentRow = -1;
-      initialRulesHashCode = getRulesHashCode();
+      initialRules = getRulesSnapshot();
 
       // Reset all controls
       enableRuleControls(false);
@@ -1117,49 +1100,8 @@ public class NodeRulesDlg extends EscapeDialog {
       mode2Spinner.setValue(-1);
       means2Spinner.setValue(-1);
     }
+    setButtonsState();
     pack();
-  }
-
-  /**
-   * Test if the rule stored in the given row has already been stored.
-   *
-   * @param row The row index in the exclusion table
-   * @return True if the rule already exists.
-   */
-  private boolean isDuplicate(int row) {
-
-    boolean symmetric = false;
-    if (rulesTable.getValueAt(row, idxSymmetry).equals(doubleArrow)) {
-      symmetric = true;
-    }
-
-    String nodeId = (String) rulesTable.getModel().getValueAt(row, idxNum);
-    String scenario = (String) rulesTable.getModel().getValueAt(row, idxScenario);
-    String group = (String) rulesTable.getModel().getValueAt(row, idxGroup);
-    String mode1 = (String) rulesTable.getModel().getValueAt(row, idxMode1);
-    String means1 = (String) rulesTable.getModel().getValueAt(row, idxMeans1);
-    String mode2 = (String) rulesTable.getModel().getValueAt(row, idxMode2);
-    String means2 = (String) rulesTable.getModel().getValueAt(row, idxMeans2);
-
-    String rule = nodeId + scenario + group + mode1 + means1 + mode2 + means2;
-    int hashKey = rule.hashCode();
-
-    // Test if rule exists
-    if (existingRules.get(hashKey) != null) {
-      return true;
-    }
-
-    // Store new rule
-    existingRules.put(hashKey, hashKey);
-
-    // Also store reverse rule if needed
-    if (symmetric) {
-      rule = nodeId + scenario + group + mode2 + means2 + mode1 + means1;
-      hashKey = rule.hashCode();
-      existingRules.put(hashKey, hashKey);
-    }
-
-    return false;
   }
 
   /**
@@ -1169,51 +1111,7 @@ public class NodeRulesDlg extends EscapeDialog {
    * @return True if valid rule.
    */
   private boolean isValidRule(int row) {
-
-    if (row == -1) {
-      return true;
-    }
-
-    int mode1 = Integer.parseInt((String) rulesTable.getModel().getValueAt(row, idxMode1));
-    int means1 = Integer.parseInt((String) rulesTable.getModel().getValueAt(row, idxMeans1));
-    int mode2 = Integer.parseInt((String) rulesTable.getModel().getValueAt(row, idxMode2));
-    int means2 = Integer.parseInt((String) rulesTable.getModel().getValueAt(row, idxMeans2));
-
-    // Loading : both mode and means must be = 0
-    if (mode1 == 0 && means1 != 0) {
-      return false;
-    }
-
-    if (mode1 != 0 && means1 == 0) {
-      return false;
-    }
-
-    // Same for unloading
-    if (mode2 == 0 && means2 != 0) {
-      return false;
-    }
-    if (mode2 != 0 && means2 == 0) {
-      return false;
-    }
-
-    if (mode1 == 0 && mode2 == 0) {
-      return false;
-    }
-
-    if (mode1 == -1 && means1 != -1) {
-      return false;
-    }
-
-    if (mode2 == -1 && means2 != -1) {
-      return false;
-    }
-
-    // Transit
-    if (mode1 == mode2 && means1 == means2) {
-      return false;
-    }
-
-    return true;
+    return NodeRulesPersistence.isValid(exclusionsTableModel, row);
   }
 
   /**
@@ -1223,98 +1121,26 @@ public class NodeRulesDlg extends EscapeDialog {
    * @return True on success.
    */
   private boolean loadExclusionsInTable() {
-
-    // Create SQL statement
-    String defValue =
+    rulesLoaded = false;
+    final String defValue =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_EXC;
     tableName = nodusProject.getLocalProperty(NodusC.PROP_EXC_TABLE, defValue);
-
-    // Exclusions may not exist: create an empty table
-    if (!JDBCUtils.tableExists(tableName)) {
-      NodeRulesReader.createExclusionsTable(tableName);
-    }
-
-    String sql =
-        "SELECT "
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
-            + ","
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
-            + ","
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
-            + ","
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
-            + ","
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
-            + ","
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2)
-            + ","
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SYMMETRY)
-            + ","
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
-            + " FROM "
-            + tableName
-            + " WHERE ABS("
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
-            + ") = "
-            + nodeNum
-            + " AND ("
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
-            + " = -1 OR "
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
-            + " = "
-            + currentScenario
-            + ")"
-            + " ORDER BY "
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
-            + ", "
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_GROUP)
-            + ", "
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE1)
-            + ", "
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS1)
-            + ", "
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MODE2)
-            + ", "
-            + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_MEANS2);
-
-    // Connect to database and execute query
     try {
-      Connection con = nodusProject.getMainJDBCConnection();
-      try (Statement stmt = con.createStatement();
-          ResultSet rs = stmt.executeQuery(sql)) {
-
-        // model.setColumnIdentifiers(h);
-        while (rs.next()) {
-          // nbRecords++;
-          String[] columns = new String[8];
-
-          for (int i = 0; i < columns.length; i++) {
-            String value = rs.getObject(i + 1).toString();
-            if (i == idxSymmetry) {
-              if (value.equals("0")) {
-                value = singleArrow;
-              } else {
-                value = doubleArrow;
-              }
-            }
-            columns[i] = value;
-          }
-
-          // Remove this rule if not valid
-          exclusionsTableModel.addRow(columns);
-          int n = rulesTable.getRowCount() - 1;
-          rulesTable.setRowSelectionInterval(n, n);
-          if (!isValidRule(n)) {
-            exclusionsTableModel.removeRow(n);
-          }
+      for (String[] columns :
+          NodeRulesPersistence.load(nodusProject, tableName, nodeNum, currentScenario)) {
+        exclusionsTableModel.addRow(columns);
+        final int row = rulesTable.getRowCount() - 1;
+        rulesTable.setRowSelectionInterval(row, row);
+        if (!isValidRule(row)) {
+          exclusionsTableModel.removeRow(row);
         }
       }
-    } catch (Exception e) {
-      JOptionPane.showMessageDialog(null, e.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-
+    } catch (Exception failure) {
+      JOptionPane.showMessageDialog(
+          this, failure.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
       return false;
     }
-
+    rulesLoaded = true;
     rulesTable.clearSelection();
     return true;
   }
@@ -1357,82 +1183,20 @@ public class NodeRulesDlg extends EscapeDialog {
    * @param e ActionEvent
    */
   void saveButton_actionPerformed(ActionEvent e) {
-
-    boolean hasDuplicates = false;
-
-    // Execute batch
-    try {
-      Connection con = nodusProject.getMainJDBCConnection();
-      try (Statement stmt = con.createStatement()) {
-
-        // Delete rules in the table
-        String sqlStmt =
-            "DELETE FROM "
-                + tableName
-                + " WHERE ABS("
-                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_NUM)
-                + ") = "
-                + nodeNum
-                + " AND ("
-                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
-                + " = -1 OR "
-                + JDBCUtils.getQuotedCompliantIdentifier(NodusC.DBF_SCENARIO)
-                + " = "
-                + currentScenario
-                + ")";
-        stmt.executeUpdate(sqlStmt);
-
-        // Save new rules, but avoid duplicates. herefore, a 2 pass procedure is
-        // used, starting with the symectric rules
-        existingRules.clear();
-        for (int pass = 0; pass < 2; pass++) {
-          for (int row = 0; row < rulesTable.getRowCount(); row++) {
-            String symmetry = "0";
-            if (rulesTable.getValueAt(row, idxSymmetry).equals(doubleArrow)) {
-              symmetry = "1";
-            }
-
-            if (pass == 0 && symmetry.equals("0")) {
-              continue;
-            }
-
-            if (pass == 1 && symmetry.equals("1")) {
-              continue;
-            }
-
-            if (!isDuplicate(row)) {
-              sqlStmt =
-                  "INSERT INTO "
-                      + tableName
-                      + " VALUES( "
-                      + rulesTable.getValueAt(row, idxNum)
-                      + ", "
-                      + rulesTable.getValueAt(row, idxScenario)
-                      + ", "
-                      + rulesTable.getValueAt(row, idxGroup)
-                      + ", "
-                      + rulesTable.getValueAt(row, idxMode1)
-                      + ", "
-                      + rulesTable.getValueAt(row, idxMeans1)
-                      + ", "
-                      + rulesTable.getValueAt(row, idxMode2)
-                      + ", "
-                      + rulesTable.getValueAt(row, idxMeans2)
-                      + ", "
-                      + symmetry
-                      + ")";
-              stmt.executeUpdate(sqlStmt);
-            } else {
-              hasDuplicates = true;
-            }
-          }
-        }
-      }
-    } catch (SQLException ex) {
-      JOptionPane.showMessageDialog(
-          this, ex.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+    if (!rulesLoaded) {
       return;
     }
+    final boolean hasDuplicates;
+    try {
+      hasDuplicates =
+          NodeRulesPersistence.save(
+              nodusProject, tableName, nodeNum, currentScenario, exclusionsTableModel);
+    } catch (Exception failure) {
+      JOptionPane.showMessageDialog(
+          this, failure.toString(), NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+    initialRules = getRulesSnapshot();
 
     // Save this rule as default for later use
     if (excludeRadioButton.isSelected()) {
@@ -1496,7 +1260,7 @@ public class NodeRulesDlg extends EscapeDialog {
 
   /** Returns true when the rules differ from the initially loaded rules. */
   private boolean hasPendingChanges() {
-    return getRulesHashCode() != initialRulesHashCode;
+    return rulesLoaded && !getRulesSnapshot().equals(initialRules);
   }
 
   /**
@@ -1505,6 +1269,12 @@ public class NodeRulesDlg extends EscapeDialog {
    * "Remove" button is enabled if a rule is selected, eben if it is wrong.
    */
   private void setButtonsState() {
+    if (!rulesLoaded) {
+      addButton.setEnabled(false);
+      removeButton.setEnabled(false);
+      saveButton.setEnabled(false);
+      return;
+    }
 
     boolean allRulesAreValid = true;
     int nbRows = rulesTable.getRowCount();
@@ -1528,7 +1298,7 @@ public class NodeRulesDlg extends EscapeDialog {
     } else {
       addButton.setEnabled(true);
 
-      if (getRulesHashCode() == initialRulesHashCode) {
+      if (!hasPendingChanges()) {
         saveButton.setEnabled(false);
       } else {
         saveButton.setEnabled(true);
