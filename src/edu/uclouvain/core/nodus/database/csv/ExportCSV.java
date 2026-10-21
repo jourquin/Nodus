@@ -24,8 +24,11 @@ package edu.uclouvain.core.nodus.database.csv;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.database.TableExport;
 import java.io.BufferedWriter;
-import java.io.FileWriter;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -62,50 +65,65 @@ public class ExportCSV {
    * Exports the table which name is given as parameter in the directory of the project. Returns
    * true if the table is successfully exported.
    *
+   * <p>Writes a sibling temporary file and publishes it only after the writer and JDBC resources
+   * close successfully. Existing exports require atomic replacement and remain intact on failure.
+   *
    * @param project The Nodus project.
    * @param tableName The name of the file to export.
    * @param withHeader If true, the first line will contain the field names.
    * @return boolean True on success.
    */
   public static boolean exportTable(NodusProject project, String tableName, boolean withHeader) {
-    // Create output file
+    return exportTable(project, tableName, withHeader, new TableExport());
+  }
+
+  /** Uses the production staging workflow with injectable file operations for failure tests. */
+  static boolean exportTable(
+      NodusProject project, String tableName, boolean withHeader, TableExport files) {
     String fileName =
         project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_CSV;
 
-    Connection con = project.getMainJDBCConnection();
-    try (Statement stmt = con.createStatement();
-        ResultSet rs =
-            stmt.executeQuery(
-                "SELECT * FROM " + JDBCUtils.getQuotedCompliantIdentifier(tableName))) {
+    try {
+      files.write(
+          Path.of(fileName),
+          output -> {
+            Connection con = project.getMainJDBCConnection();
+            try (Statement stmt = con.createStatement();
+                ResultSet rs =
+                    stmt.executeQuery(
+                        "SELECT * FROM " + JDBCUtils.getQuotedCompliantIdentifier(tableName))) {
 
-      ResultSetMetaData rsmd = rs.getMetaData();
-      int nbColumns = rsmd.getColumnCount();
+              ResultSetMetaData rsmd = rs.getMetaData();
+              int nbColumns = rsmd.getColumnCount();
 
-      try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName))) {
-        // Save header if needed
-        if (withHeader) {
-          for (int i = 0; i < nbColumns; i++) {
-            bw.write(escapeCsvValue(rsmd.getColumnName(i + 1)));
-            if (i < nbColumns - 1) {
-              bw.write(',');
+              try (BufferedWriter bw =
+                  new BufferedWriter(new OutputStreamWriter(output, Charset.defaultCharset()))) {
+                // Save header if needed
+                if (withHeader) {
+                  for (int i = 0; i < nbColumns; i++) {
+                    bw.write(escapeCsvValue(rsmd.getColumnName(i + 1)));
+                    if (i < nbColumns - 1) {
+                      bw.write(',');
+                    }
+                  }
+                  bw.newLine();
+                }
+
+                // Retrieve result of query
+                while (rs.next()) {
+                  for (int i = 0; i < nbColumns; i++) {
+                    bw.write(escapeCsvValue(rs.getObject(i + 1)));
+
+                    if (i < nbColumns - 1) {
+                      bw.write(',');
+                    }
+                  }
+
+                  bw.newLine();
+                }
+              }
             }
-          }
-          bw.newLine();
-        }
-
-        // Retrieve result of query
-        while (rs.next()) {
-          for (int i = 0; i < nbColumns; i++) {
-            bw.write(escapeCsvValue(rs.getObject(i + 1)));
-
-            if (i < nbColumns - 1) {
-              bw.write(',');
-            }
-          }
-
-          bw.newLine();
-        }
-      }
+          });
     } catch (Exception ex) {
       System.out.println(ex.toString());
 

@@ -539,4 +539,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Add `NodusC.useLegacyAStar` to compare the previous geographic heuristic with the safe default
 - Preserve saved node rules and pending edits after failed saves
 - Compare complete rules when detecting changes and duplicates, and defer missing-table creation until saving
+- Preserve existing CSV/XLS/XLSX exports on late read, write or resource-close failures by staging
+  complete files before replacement
 

@@ -510,6 +510,14 @@ warm-up and ordinary timing variation; auditing is sampled at assignment start.
 - `SQLConsoleComponentsTest`: JDBC result labels, NULLs, text headers and result-set closure;
   database metadata tables, columns and indexes; and history wrapping, deduplication,
   persistence and dispatch to the original listener.
+- `TableExportTest`, `TableExportIntegrationTest`, `CsvExportPreservationTest`,
+  `ExcelExportPreservationTest`: preserve previous CSV/CSVH/XLS/XLSX exports byte for byte after
+  partial writes, flush/close errors, completed workbook serialization/closure failures and failed
+  publication. H2/HSQLDB tests inject late row/cell reads and JDBC resource-close errors, check
+  unchanged caller transactions and source rows, and retry to verify every exported row. Covers
+  first exports, staging/spill-file cleanup, Unicode/null fields, existing permissions, symlinks,
+  concurrent new destinations and unsupported atomic replacement. Publication requires atomic
+  replacement for existing files; an unsupported filesystem returns failure without removing them.
 - `CsvImportExportIntegrationTest`: quoted headers and fields, commas, quotes, Unicode,
   embedded line breaks, empty fields, exact decimal values, header/no-header round trips,
   empty files, batching, missing files, and malformed records. Failed imports must restore

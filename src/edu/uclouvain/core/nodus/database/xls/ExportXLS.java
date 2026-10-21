@@ -24,14 +24,16 @@ package edu.uclouvain.core.nodus.database.xls;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.database.TableExport;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 import java.awt.GraphicsEnvironment;
-import java.io.FileOutputStream;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.Vector;
+import java.util.function.Supplier;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.SpreadsheetVersion;
 import org.apache.poi.ss.usermodel.Cell;
@@ -61,6 +63,9 @@ public class ExportXLS {
    * or failure. Legacy XLS retains its workbook in memory. Both formats reject rows or columns
    * beyond their sheet limits; the schema consumes one row of that limit.
    *
+   * <p>Publishes the staged file only after serialization, workbook closure and output closure
+   * succeed. Existing exports require atomic replacement and remain intact on failure.
+   *
    * @param nodusProject The Nodus project.
    * @param tableName The name of the table to export.
    * @param isXLSX If true, the table will be exported in XLSX format instead of the XLS format.
@@ -68,100 +73,116 @@ public class ExportXLS {
    */
   public static boolean exportTable(NodusProject nodusProject, String tableName, boolean isXLSX) {
 
-    try (Workbook wbs =
-        isXLSX ? new SXSSFWorkbook(null, ROW_WINDOW, true, false) : new HSSFWorkbook()) {
-      SpreadsheetVersion version =
-          isXLSX ? SpreadsheetVersion.EXCEL2007 : SpreadsheetVersion.EXCEL97;
-      String sheetName = WorkbookUtil.createSafeSheetName(tableName);
-      if (sheetName.length() > 31) {
-        sheetName = sheetName.substring(0, 31);
-      }
-      Sheet sheet = wbs.createSheet(sheetName);
+    return exportTable(
+        nodusProject,
+        tableName,
+        isXLSX,
+        new TableExport(),
+        () -> isXLSX ? new SXSSFWorkbook(null, ROW_WINDOW, true, false) : new HSSFWorkbook());
+  }
 
-      // Browse table. Do not close the project-owned JDBC connection here.
-      Connection con = nodusProject.getMainJDBCConnection();
-
-      // Insert table structure in first row
-      int nbColumns = 0;
-      Vector<Boolean> numerical = new Vector<>();
-      Row row = sheet.createRow(0);
-      try (ResultSet col = JDBCUtils.getColumns(tableName)) {
-        while (col.next()) {
-          if (nbColumns >= version.getMaxColumns()) {
-            throw new IllegalArgumentException(
-                "Excel export supports at most " + version.getMaxColumns() + " columns.");
-          }
-
-          String s = col.getString(4) + ",";
-          // JDBC type codes also cover vendor names such as H2's CHARACTER VARYING.
-          int type = col.getInt("DATA_TYPE");
-          if (type == Types.CHAR
-              || type == Types.VARCHAR
-              || type == Types.LONGVARCHAR
-              || type == Types.NCHAR
-              || type == Types.NVARCHAR
-              || type == Types.LONGNVARCHAR) {
-            s += "C," + col.getString(7);
-            numerical.add(Boolean.FALSE);
-          } else if (type == Types.DATE
-              || type == Types.TIME
-              || type == Types.TIMESTAMP
-              || type == Types.TIME_WITH_TIMEZONE
-              || type == Types.TIMESTAMP_WITH_TIMEZONE) {
-            s += "C," + col.getString(7);
-            numerical.add(Boolean.FALSE);
-          } else {
-            s += "N," + col.getString(7) + "," + col.getString(9);
-            numerical.add(Boolean.TRUE);
-          }
-          Cell cell = row.createCell(nbColumns);
-          cell.setCellValue(s);
-          nbColumns++;
-        }
-      }
-
-      // Loop over the rows to export data from table
-      String sqlStmt = "select * from " + JDBCUtils.getQuotedCompliantIdentifier(tableName);
-
-      try (Statement stmt = con.createStatement();
-          ResultSet rs = stmt.executeQuery(sqlStmt)) {
-        int currentRow = 1;
-        while (rs.next()) {
-          if (currentRow >= version.getMaxRows()) {
-            throw new IllegalArgumentException(
-                "Excel export supports at most "
-                    + (version.getMaxRows() - 1)
-                    + " data rows because the first row contains the schema.");
-          }
-          row = sheet.createRow(currentRow);
-
-          for (int column = 0; column < nbColumns; column++) {
-            Cell cell = row.createCell(column);
-            if (Boolean.TRUE.equals(numerical.elementAt(column))) {
-              Object value = rs.getObject(column + 1);
-              if (value instanceof Number) {
-                cell.setCellValue(((Number) value).doubleValue());
+  /**
+   * Keeps real serialization/closure inside staging, with injectable resources for failure tests.
+   */
+  static boolean exportTable(
+      NodusProject nodusProject,
+      String tableName,
+      boolean isXLSX,
+      TableExport files,
+      Supplier<Workbook> workbooks) {
+    try {
+      final Path target =
+          Path.of(
+              nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
+                  + tableName
+                  + (isXLSX ? NodusC.TYPE_XLSX : NodusC.TYPE_XLS));
+      files.write(
+          target,
+          output -> {
+            try (Workbook wbs = workbooks.get()) {
+              SpreadsheetVersion version =
+                  isXLSX ? SpreadsheetVersion.EXCEL2007 : SpreadsheetVersion.EXCEL97;
+              String sheetName = WorkbookUtil.createSafeSheetName(tableName);
+              if (sheetName.length() > 31) {
+                sheetName = sheetName.substring(0, 31);
               }
-            } else {
-              cell.setCellValue(rs.getString(column + 1));
-            }
-          }
-          currentRow++;
-        }
-      }
+              Sheet sheet = wbs.createSheet(sheetName);
 
-      // Write file
-      String fileName =
-          nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_XLS;
-      if (isXLSX) {
-        fileName =
-            nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
-                + tableName
-                + NodusC.TYPE_XLSX;
-      }
-      try (FileOutputStream out = new FileOutputStream(fileName)) {
-        wbs.write(out);
-      }
+              // Browse table. Do not close the project-owned JDBC connection here.
+              Connection con = nodusProject.getMainJDBCConnection();
+
+              // Insert table structure in first row
+              int nbColumns = 0;
+              Vector<Boolean> numerical = new Vector<>();
+              Row row = sheet.createRow(0);
+              try (ResultSet col = JDBCUtils.getColumns(tableName)) {
+                while (col.next()) {
+                  if (nbColumns >= version.getMaxColumns()) {
+                    throw new IllegalArgumentException(
+                        "Excel export supports at most " + version.getMaxColumns() + " columns.");
+                  }
+
+                  String s = col.getString(4) + ",";
+                  // JDBC type codes also cover vendor names such as H2's CHARACTER VARYING.
+                  int type = col.getInt("DATA_TYPE");
+                  if (type == Types.CHAR
+                      || type == Types.VARCHAR
+                      || type == Types.LONGVARCHAR
+                      || type == Types.NCHAR
+                      || type == Types.NVARCHAR
+                      || type == Types.LONGNVARCHAR) {
+                    s += "C," + col.getString(7);
+                    numerical.add(Boolean.FALSE);
+                  } else if (type == Types.DATE
+                      || type == Types.TIME
+                      || type == Types.TIMESTAMP
+                      || type == Types.TIME_WITH_TIMEZONE
+                      || type == Types.TIMESTAMP_WITH_TIMEZONE) {
+                    s += "C," + col.getString(7);
+                    numerical.add(Boolean.FALSE);
+                  } else {
+                    s += "N," + col.getString(7) + "," + col.getString(9);
+                    numerical.add(Boolean.TRUE);
+                  }
+                  Cell cell = row.createCell(nbColumns);
+                  cell.setCellValue(s);
+                  nbColumns++;
+                }
+              }
+
+              // Loop over the rows to export data from table
+              String sqlStmt = "select * from " + JDBCUtils.getQuotedCompliantIdentifier(tableName);
+
+              try (Statement stmt = con.createStatement();
+                  ResultSet rs = stmt.executeQuery(sqlStmt)) {
+                int currentRow = 1;
+                while (rs.next()) {
+                  if (currentRow >= version.getMaxRows()) {
+                    throw new IllegalArgumentException(
+                        "Excel export supports at most "
+                            + (version.getMaxRows() - 1)
+                            + " data rows because the first row contains the schema.");
+                  }
+                  row = sheet.createRow(currentRow);
+
+                  for (int column = 0; column < nbColumns; column++) {
+                    Cell cell = row.createCell(column);
+                    if (Boolean.TRUE.equals(numerical.elementAt(column))) {
+                      Object value = rs.getObject(column + 1);
+                      if (value instanceof Number) {
+                        cell.setCellValue(((Number) value).doubleValue());
+                      }
+                    } else {
+                      cell.setCellValue(rs.getString(column + 1));
+                    }
+                  }
+                  currentRow++;
+                }
+              }
+
+              wbs.write(output);
+            }
+          });
     } catch (Exception e) {
       if (!GraphicsEnvironment.isHeadless()) {
         new NodusConsole();
