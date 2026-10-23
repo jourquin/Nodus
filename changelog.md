@@ -542,4 +542,5 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Preserve existing CSV/XLS/XLSX exports on late read, write or resource-close failures by staging
   complete files before replacement
 - Fix SQL batch splitting and comment handling around quoted text
+- Fix potential bug in modal-choice plugin loader
 

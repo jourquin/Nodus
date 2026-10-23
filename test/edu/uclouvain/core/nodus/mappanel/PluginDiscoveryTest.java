@@ -223,6 +223,25 @@ class PluginDiscoveryTest {
   }
 
   @Test
+  void excludedArchivesCannotSupplyPluginsOrDependencies() throws Exception {
+    jars.write(directory.resolve("a-plugins.jar"), "resource", "MissingSignature", "HealthyA");
+    Path excluded = directory.resolve("z-excluded.jar");
+    jars.write(excluded, "resource", "Missing", "HealthyB");
+    try (PluginsLoader loader =
+        new PluginsLoader(directory.toString(), List.of(excluded.toFile().getCanonicalFile()))) {
+      assertEquals(
+          List.of("HealthyA"),
+          loader.getAvailablePlugins()
+              .stream()
+              .map(Class::getSimpleName)
+              .collect(Collectors.toList()));
+    }
+    String output = diagnostics.toString(StandardCharsets.UTF_8);
+    assertTrue(output.contains("MissingSignature"), output);
+    assertFalse(output.contains("z-excluded.jar"), output);
+  }
+
+  @Test
   void dependenciesCanLiveInAnotherJarAndResourcesRemainLazyUntilExecution() throws Exception {
     jars.write(
         directory.resolve("a-plugin.jar"), "resource", "PropertiesLinkageFailure", "HealthyLazy");

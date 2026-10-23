@@ -132,6 +132,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
@@ -139,6 +140,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
@@ -1833,6 +1835,21 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   public void loadPlugins(String dir, boolean projectPlugin) {
     pluginManager.loadPlugins(dir, projectPlugin);
+  }
+
+  /**
+   * Loads plugins while excluding archives skipped during modal-plugin preparation.
+   *
+   * @param dir plugin directory
+   * @param projectPlugin whether plugins belong to the project
+   * @param excludedJars canonical archives rejected during this project open
+   */
+  void loadPlugins(String dir, boolean projectPlugin, Collection<File> excludedJars) {
+    if (excludedJars.isEmpty()) {
+      loadPlugins(dir, projectPlugin);
+    } else {
+      pluginManager.loadPlugins(dir, projectPlugin, excludedJars);
+    }
   }
 
   /** "About Nodus" splash screen and info. */

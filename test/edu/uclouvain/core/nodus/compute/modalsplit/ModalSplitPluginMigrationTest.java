@@ -25,29 +25,40 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.NodusPlugin;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.PathWeights;
+import edu.uclouvain.core.nodus.mappanel.MapPluginManager;
+import edu.uclouvain.core.nodus.testing.PluginTestJars;
 import edu.uclouvain.core.nodus.utils.ModalSplitMethodsLoader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.SwingUtilities;
 import javax.tools.ToolProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 
 /**
  * Exercises plugin discovery and routing data across the Nodus 9.0 package change.
@@ -137,6 +148,7 @@ class ModalSplitPluginMigrationTest {
   }
 
   @Test
+  @ResourceLock(Resources.SYSTEM_ERR)
   void decliningUpgradeLeavesTheJarAloneAndLoadsCurrentPlugins() throws Exception {
     createLegacyPlugin();
     java.nio.file.Path jar = directory.resolve("a-legacy.jar");
@@ -148,23 +160,88 @@ class ModalSplitPluginMigrationTest {
         List.of(repositoryRoot().resolve("demo/MLogit/MLogit.java")));
     List<String> warnings = new ArrayList<>();
     List<File> prompts = new ArrayList<>();
-    try {
-      new ModalSplitMethodsLoader(
-          project(),
-          warnings::add,
-          (plugin, backup) -> {
-            prompts.add(plugin);
-            return false;
-          });
-      assertEquals(1, prompts.size());
-      assertTrue(warnings.isEmpty(), warnings.toString());
-      assertArrayEquals(original, Files.readAllBytes(jar));
-      assertFalse(Files.exists(directory.resolve("a-legacy.jar.nodus8")));
-      assertEquals(4, ModalSplitMethodsLoader.getAvailableModalSplitMethods().size());
-      checkShares("MLogit");
-    } finally {
-      ModalSplitMethodsLoader.disposeAvailableModalSplitMethods();
+    PluginTestJars plugins = new PluginTestJars(directory.resolve("compiled-plugins"));
+    plugins.write(directory.resolve("general.jar"), "resource", "HealthyA");
+    ByteArrayOutputStream diagnostics = new ByteArrayOutputStream();
+    PrintStream originalError = System.err;
+    try (PrintStream errors = new PrintStream(diagnostics, true, StandardCharsets.UTF_8)) {
+      System.setErr(errors);
+      try {
+        ModalSplitMethodsLoader modalMethods =
+            new ModalSplitMethodsLoader(
+                project(),
+                warnings::add,
+                (plugin, backup) -> {
+                  prompts.add(plugin);
+                  return false;
+                });
+        assertEquals(1, prompts.size());
+        assertEquals(
+            Set.of(jar.toFile().getCanonicalFile()), modalMethods.getSkippedPluginJars());
+        assertTrue(warnings.isEmpty(), warnings.toString());
+        assertArrayEquals(original, Files.readAllBytes(jar));
+        assertFalse(Files.exists(directory.resolve("a-legacy.jar.nodus8")));
+        assertEquals(4, ModalSplitMethodsLoader.getAvailableModalSplitMethods().size());
+        checkShares("MLogit");
+        // Project opening also scans the same directory for general plugins after the modal prompt.
+        NodusPlugin first =
+            checkGeneralPluginDiscovery(directory, modalMethods.getSkippedPluginJars());
+        assertEquals("", diagnostics.toString(StandardCharsets.UTF_8));
+        ModalSplitMethodsLoader.disposeAvailableModalSplitMethods();
+
+        // Opening a current project next must not inherit the previous project's skipped archives.
+        java.nio.file.Path nextProject = Files.createDirectory(directory.resolve("next-project"));
+        Files.move(directory.resolve("z-current.jar"), nextProject.resolve("MLogit.jar"));
+        plugins.write(nextProject.resolve("general.jar"), "next-resource", "HealthyA");
+        ModalSplitMethodsLoader nextMethods =
+            new ModalSplitMethodsLoader(
+                project(nextProject),
+                warnings::add,
+                (plugin, backup) -> {
+                  throw new AssertionError("A current project must not prompt for migration");
+                });
+        assertTrue(nextMethods.getSkippedPluginJars().isEmpty());
+        assertNotNull(ModalSplitMethodsLoader.getModalSplitMethod("MLogit"));
+        NodusPlugin next =
+            checkGeneralPluginDiscovery(nextProject, nextMethods.getSkippedPluginJars());
+        assertNotSame(first.getClass().getClassLoader(), next.getClass().getClassLoader());
+        assertTrue(warnings.isEmpty(), warnings.toString());
+        assertEquals("", diagnostics.toString(StandardCharsets.UTF_8));
+      } finally {
+        ModalSplitMethodsLoader.disposeAvailableModalSplitMethods();
+        System.setErr(originalError);
+      }
     }
+  }
+
+  private NodusPlugin checkGeneralPluginDiscovery(java.nio.file.Path project, Set<File> skipped)
+      throws Exception {
+    NodusPlugin[] plugin = new NodusPlugin[1];
+    SwingUtilities.invokeAndWait(
+        () -> {
+          NodusMapPanel panel =
+              new NodusMapPanel() {
+                private static final long serialVersionUID = 1L;
+              };
+          MapPluginManager manager =
+              new MapPluginManager(
+                  panel,
+                  new JMenuBar(),
+                  new JMenu("File"),
+                  new JMenu("Project"),
+                  new JMenu("Control"),
+                  new JMenu("Tools"),
+                  new JMenu("Help"));
+          try {
+            manager.loadPlugins(project.toString(), true, skipped);
+            plugin[0] = (NodusPlugin) panel.retrieveObject("instance.HealthyA");
+            assertNotNull(plugin[0]);
+          } finally {
+            manager.disposeAllPlugins();
+            panel.dispose();
+          }
+        });
+    return plugin[0];
   }
 
   @Test
@@ -321,10 +398,14 @@ class ModalSplitPluginMigrationTest {
   }
 
   private NodusProject project() {
+    return project(directory);
+  }
+
+  private NodusProject project(java.nio.file.Path projectDirectory) {
     return new NodusProject(null) {
       @Override
       public String getLocalProperty(String key) {
-        return NodusC.PROP_PROJECT_DOTPATH.equals(key) ? directory.toString() : null;
+        return NodusC.PROP_PROJECT_DOTPATH.equals(key) ? projectDirectory.toString() : null;
       }
     };
   }

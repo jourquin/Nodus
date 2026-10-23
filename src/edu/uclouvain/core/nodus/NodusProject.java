@@ -1697,9 +1697,10 @@ public class NodusProject implements ShapeConstants {
         getLocalProperty(NodusC.PROP_RENDERING_SCALE_THRESHOLD, (float) -1));
     NodeRulesReader.fixExclusionTableIfNeeded(this);
     serviceHandler = createServiceHandler();
-    new ModalSplitMethodsLoader(this);
+    ModalSplitMethodsLoader modalMethods = new ModalSplitMethodsLoader(this);
     // Modal JAR migration must finish before a general plugin loader can cache the old classes.
-    nodusMapPanel.loadPlugins(getLocalProperty(NodusC.PROP_PROJECT_DOTPATH), true);
+    nodusMapPanel.loadPlugins(
+        getLocalProperty(NodusC.PROP_PROJECT_DOTPATH), true, modalMethods.getSkippedPluginJars());
     runProjectLifecycleScriptAsync(true, false, this::completeProjectOpenUi);
   }
 

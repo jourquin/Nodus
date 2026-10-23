@@ -80,6 +80,18 @@ public class ModalSplitMethodsLoader {
   /** Confirmation callback receiving the original JAR and the proposed Nodus 8 backup. */
   private final BiPredicate<File, File> upgradeConfirmation;
 
+  /** Archives rejected during this load, also excluded from general plugin discovery. */
+  private final Set<File> skippedPluginJars = new HashSet<>();
+
+  /**
+   * Returns the canonical archives skipped during this project open.
+   *
+   * @return immutable snapshot of declined or failed migrations
+   */
+  public Set<File> getSkippedPluginJars() {
+    return Set.copyOf(skippedPluginJars);
+  }
+
   private Class<?>[] paramTypes = {NodusProject.class};
 
   /**
@@ -183,11 +195,14 @@ public class ModalSplitMethodsLoader {
       int nbMethodsBefore = availableModalSplitMethods.size();
 
       // Finish approved conversions before this loader can cache any classes or open any JARs.
-      Set<File> skipped = upgradeLegacyPlugins(classPath);
+      skippedPluginJars.addAll(upgradeLegacyPlugins(classPath));
+      // Rebuild after migration so rejected JARs cannot supply dependencies either.
+      classPath.close();
+      classPath =
+          new PluginClassPath(
+              directory, ModalSplitMethodsLoader.class.getClassLoader(), skippedPluginJars);
       for (File jarFile : classPath.getJarFiles()) {
-        if (!skipped.contains(jarFile)) {
-          loadUserDefinedModalSplitMethods(jarFile, classPath);
-        }
+        loadUserDefinedModalSplitMethods(jarFile, classPath);
       }
 
       /*

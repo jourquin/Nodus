@@ -52,6 +52,7 @@ import edu.uclouvain.core.nodus.testing.PluginTestJars;
 import edu.uclouvain.core.nodus.testing.ProjectFilesFixture;
 import edu.uclouvain.core.nodus.utils.ProjectLocker;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
@@ -66,6 +67,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
@@ -703,7 +705,7 @@ public class NodusProjectOpenWorkflowTest {
     }
 
     @Override
-    public void loadPlugins(String path, boolean projectScoped) {
+    public void loadPlugins(String path, boolean projectScoped, Collection<File> excludedJars) {
       if (failPluginLoad) {
         failedConnection = project.getMainJDBCConnection();
         failedLayers =
@@ -711,7 +713,7 @@ public class NodusProjectOpenWorkflowTest {
         throw new IllegalStateException("Injected late opening failure");
       }
       if (realPlugins != null) {
-        super.loadPlugins(path, projectScoped);
+        super.loadPlugins(path, projectScoped, excludedJars);
       }
     }
   }

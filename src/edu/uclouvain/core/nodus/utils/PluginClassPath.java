@@ -28,6 +28,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -64,7 +65,21 @@ public final class PluginClassPath implements AutoCloseable {
    * @throws IOException if an I/O error occurs while collecting jar files
    */
   public PluginClassPath(File directory, ClassLoader parent) throws IOException {
+    this(directory, parent, Collections.emptySet());
+  }
+
+  /**
+   * Creates a class path excluding archives rejected during this project open.
+   *
+   * @param directory directory containing plugin JARs
+   * @param parent parent class loader
+   * @param excludedJars canonical files to exclude from discovery and dependency resolution
+   * @throws IOException if collecting the archives fails
+   */
+  public PluginClassPath(File directory, ClassLoader parent, Collection<File> excludedJars)
+      throws IOException {
     jarFiles = collectJarFiles(directory);
+    jarFiles.removeAll(excludedJars);
 
     URL[] urls = new URL[jarFiles.size()];
     for (int i = 0; i < jarFiles.size(); i++) {

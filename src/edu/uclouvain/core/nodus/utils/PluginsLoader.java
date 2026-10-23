@@ -25,6 +25,8 @@ import edu.uclouvain.core.nodus.NodusPlugin;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.jar.JarEntry;
@@ -60,6 +62,16 @@ public class PluginsLoader implements AutoCloseable {
    * @param pluginDir The path to the directory that contains the Nodus project.
    */
   public PluginsLoader(String pluginDir) {
+    this(pluginDir, Collections.emptySet());
+  }
+
+  /**
+   * Loads plugins without inspecting or resolving classes from rejected archives.
+   *
+   * @param pluginDir directory containing plugin JARs
+   * @param excludedJars canonical files skipped during modal-plugin preparation
+   */
+  public PluginsLoader(String pluginDir, Collection<File> excludedJars) {
     PluginClassPath classPath = null;
 
     File directory = new File(pluginDir);
@@ -75,7 +87,7 @@ public class PluginsLoader implements AutoCloseable {
     }
 
     try {
-      classPath = new PluginClassPath(directory, PluginsLoader.class.getClassLoader());
+      classPath = new PluginClassPath(directory, PluginsLoader.class.getClassLoader(), excludedJars);
     } catch (IOException ex) {
       ex.printStackTrace();
     }

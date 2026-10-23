@@ -27,6 +27,9 @@ import edu.uclouvain.core.nodus.utils.PluginsLoader;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Properties;
@@ -246,9 +249,20 @@ public final class MapPluginManager {
    * @param projectPlugin True if plugin a project specific. False for global plugins.
    */
   public void loadPlugins(String dir, boolean projectPlugin) {
+    loadPlugins(dir, projectPlugin, Collections.emptySet());
+  }
+
+  /**
+   * Loads plugins after modal migration, respecting archives skipped for this project open.
+   *
+   * @param dir plugin directory
+   * @param projectPlugin whether plugins belong to the project
+   * @param excludedJars canonical archives rejected by modal-plugin preparation
+   */
+  public void loadPlugins(String dir, boolean projectPlugin, Collection<File> excludedJars) {
 
     // Load all the plugins.
-    PluginsLoader nodusPluginLoader = new PluginsLoader(dir);
+    PluginsLoader nodusPluginLoader = new PluginsLoader(dir, excludedJars);
     boolean keepLoader = false;
 
     try {
