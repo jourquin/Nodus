@@ -120,6 +120,12 @@ final class CompactShortestPathHeap {
     return true;
   }
 
+  /** Reinserts a settled node before lowering its label in an inconsistent landmark search. */
+  void reopen(int node) {
+    heap[++size] = node;
+    positions[node] = size;
+  }
+
   /** Implements the search object's public decrease-key operation. */
   void decreaseKey(int node, double cost) {
     int position = positionOf(node);

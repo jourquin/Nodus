@@ -28,6 +28,7 @@ import com.bbn.openmap.omGraphics.OMGraphic;
 import com.bbn.openmap.omGraphics.OMPoint;
 import com.bbn.openmap.omGraphics.OMPoly;
 import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.NodusC.ExactMFAlgorithm;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 @Tag("integration")
 @ResourceLock("JDBCUtils")
 @ResourceLock("NodusC.useCompactShortestPaths")
-@ResourceLock("NodusC.useLegacyAStar")
+@ResourceLock("NodusC.exactMFAlgorithm")
 @Timeout(30)
 class ExactMultiFlowCostScaleTest {
   @TempDir Path directory;
@@ -55,17 +56,22 @@ class ExactMultiFlowCostScaleTest {
       for (boolean compact : new boolean[] {false, true}) {
         for (int threads : new int[] {1, 4}) {
           for (int alternatives : new int[] {1, 2}) {
-            tests.add(
-                dynamicTest(
-                    "HSQLDB="
-                        + hsql
-                        + "/compact="
-                        + compact
-                        + "/threads="
-                        + threads
-                        + "/alternatives="
-                        + alternatives,
-                    () -> checkAssignment(hsql, compact, threads, alternatives)));
+            for (ExactMFAlgorithm algorithm :
+                new ExactMFAlgorithm[] {ExactMFAlgorithm.IMPROVED_ASTAR, ExactMFAlgorithm.ALT}) {
+              tests.add(
+                  dynamicTest(
+                      "HSQLDB="
+                          + hsql
+                          + "/compact="
+                          + compact
+                          + "/threads="
+                          + threads
+                          + "/alternatives="
+                          + alternatives
+                          + "/algorithm="
+                          + algorithm,
+                      () -> checkAssignment(hsql, compact, threads, alternatives, algorithm)));
+            }
           }
         }
       }
@@ -73,10 +79,11 @@ class ExactMultiFlowCostScaleTest {
     return tests;
   }
 
-  private void checkAssignment(boolean hsql, boolean compact, int threads, int alternatives)
+  private void checkAssignment(
+      boolean hsql, boolean compact, int threads, int alternatives, ExactMFAlgorithm algorithm)
       throws Exception {
     final boolean previous = NodusC.useCompactShortestPaths;
-    final boolean previousLegacy = NodusC.useLegacyAStar;
+    final ExactMFAlgorithm previousAlgorithm = NodusC.exactMFAlgorithm;
     try (AssignmentTestProject project =
         new AssignmentTestProject(
             directory,
@@ -84,7 +91,7 @@ class ExactMultiFlowCostScaleTest {
             new double[][] {{11, 1, 3, 0.5, 0}, {12, 1, 2, 0.1, 0}, {13, 2, 3, 0.1, 0}},
             hsql)) {
       NodusC.useCompactShortestPaths = compact;
-      NodusC.useLegacyAStar = false;
+      NodusC.exactMFAlgorithm = algorithm;
       // The cheapest route initially travels away from the goal. Geographic distance has
       // no prescribed relationship to these user-defined costs.
       detourCoordinates(project);
@@ -111,12 +118,12 @@ class ExactMultiFlowCostScaleTest {
       assertEquals(630, project.number("SELECT SUM(qty) FROM mini_od"));
     } finally {
       NodusC.useCompactShortestPaths = previous;
-      NodusC.useLegacyAStar = previousLegacy;
+      NodusC.exactMFAlgorithm = previousAlgorithm;
     }
   }
 
   @TestFactory
-  List<DynamicTest> switchingTheFlagSelectsTheHistoricalOrSafeSearchOnTheNextRun() {
+  List<DynamicTest> switchingTheSelectorChoosesEachSearchOnTheNextRun() {
     final List<DynamicTest> tests = new ArrayList<>();
     for (boolean hsql : new boolean[] {false, true}) {
       for (boolean compact : new boolean[] {false, true}) {
@@ -133,7 +140,7 @@ class ExactMultiFlowCostScaleTest {
 
   private void checkSwitch(boolean hsql, boolean compact, int threads) throws Exception {
     final boolean previousGraph = NodusC.useCompactShortestPaths;
-    final boolean previousLegacy = NodusC.useLegacyAStar;
+    final ExactMFAlgorithm previousAlgorithm = NodusC.exactMFAlgorithm;
     try (AssignmentTestProject project =
         new AssignmentTestProject(
             directory,
@@ -146,8 +153,13 @@ class ExactMultiFlowCostScaleTest {
       final AssignmentParameters parameters = project.parameters(threads);
       parameters.setNbIterations(1);
       parameters.setModalSplitMethodName("Proportional");
-      for (boolean legacy : new boolean[] {false, true, false}) {
-        NodusC.useLegacyAStar = legacy;
+      for (ExactMFAlgorithm algorithm :
+          new ExactMFAlgorithm[] {
+            ExactMFAlgorithm.IMPROVED_ASTAR, ExactMFAlgorithm.LEGACY_ASTAR,
+            ExactMFAlgorithm.ALT, ExactMFAlgorithm.IMPROVED_ASTAR
+          }) {
+        NodusC.exactMFAlgorithm = algorithm;
+        boolean legacy = algorithm == ExactMFAlgorithm.LEGACY_ASTAR;
         project.run(new ExactMFAssignment(parameters), 2);
         assertEquals(2, project.number("SELECT COUNT(*) FROM mini_paths1_header"));
         for (int group : new int[] {1, 2}) {
@@ -160,7 +172,7 @@ class ExactMultiFlowCostScaleTest {
       }
     } finally {
       NodusC.useCompactShortestPaths = previousGraph;
-      NodusC.useLegacyAStar = previousLegacy;
+      NodusC.exactMFAlgorithm = previousAlgorithm;
     }
   }
 

@@ -27,7 +27,16 @@ package edu.uclouvain.core.nodus.compute.assign.shortestpath;
  * <p>The algorithm, coordinate estimate and heap tie order match the implementation preceding the
  * zero-heuristic correction. With arbitrary user-defined transport costs, its geographic estimate
  * can overestimate remaining costs and produce a nonoptimal route. Exact Multi-flow selects it when
- * NodusC.useLegacyAStar is true; both implementations share the same worker timing block.
+ * NodusC.exactMFAlgorithm is LEGACY_ASTAR; its searches use the optional worker timing log.
+ *
+ * <p>Algorithm reference (the geographic estimate above is specific to this implementation):
+ *
+ * <ul>
+ *   <li>P. E. Hart, N. J. Nilsson and B. Raphael (1968).
+ *       <a href="https://doi.org/10.1109/TSSC.1968.300136">A Formal Basis for the Heuristic
+ *       Determination of Minimum Cost Paths</a>. <i>IEEE Transactions on Systems Science and
+ *       Cybernetics</i>, 4(2), pp. 100-107.
+ * </ul>
  *
  * @author Bart Jourquin
  */
@@ -106,85 +115,6 @@ public class LegacyBinaryHeapAStar extends BinaryHeapAStar {
     if (min != -1) {
       weights[min] = minWeight;
     }
-  }
-
-  /**
-   * This method lowers the value of a node in the binary heap and restores the heap property. The
-   * node is found in the heap using the nodePos array.
-   *
-   * @param nodeNum the number of the node to have its key decreased
-   * @param newVal the new key value
-   */
-  @Override
-  public void decreaseKey(int nodeNum, double newVal) {
-    if (compactHeap != null) {
-      super.decreaseKey(nodeNum, newVal);
-      return;
-    }
-    int position = getNodePosition(nodeNum);
-    BinaryHeapNode node = getHeapNode(position);
-    node.updateWeight(newVal);
-    int parent = position >> 1;
-    while (parent != 0) {
-      BinaryHeapNode parentNode = getHeapNode(parent);
-      if (!(node.keyWeight < parentNode.keyWeight)) {
-        break;
-      }
-      upperBoundCosts[position] = parentNode;
-      nodePos[parentNode.id] = position;
-      position = parent;
-      parent = position >> 1;
-    }
-    upperBoundCosts[position] = node;
-    nodePos[nodeNum] = position;
-    // Preserve A*'s additional repair after updating the estimated total cost.
-    heapify(position);
-  }
-
-  /**
-   * Heapify is a process that causes an input node to be swapped with the smaller of its children
-   * continually until either it reaches the bottom of the tree or is less than or equal to its
-   * children. Once the node "runs down" the tree, the heap property is restored for that node with
-   * respect to the node original position and its new children, if any.
-   *
-   * @param i the index in the binary heap array of the node to perform heapify on
-   */
-  @Override
-  public void heapify(int i) {
-    if (compactHeap != null) {
-      super.heapify(i);
-      return;
-    }
-    if (i > heapSize) {
-      return;
-    }
-    BinaryHeapNode node = getHeapNode(i);
-    while ((i << 1) <= heapSize) {
-      int left = i << 1;
-      int child = i;
-      BinaryHeapNode childNode = node;
-      BinaryHeapNode leftNode = getHeapNode(left);
-      // Keep the original strict comparisons, including ties and non-finite A* estimates.
-      if (leftNode.keyWeight < childNode.keyWeight) {
-        child = left;
-        childNode = leftNode;
-      }
-      if (left + 1 <= heapSize) {
-        BinaryHeapNode rightNode = getHeapNode(left + 1);
-        if (rightNode.keyWeight < childNode.keyWeight) {
-          child = left + 1;
-          childNode = rightNode;
-        }
-      }
-      if (child == i) {
-        break;
-      }
-      upperBoundCosts[i] = childNode;
-      nodePos[childNode.id] = i;
-      i = child;
-    }
-    upperBoundCosts[i] = node;
-    nodePos[node.id] = i;
   }
 
   /**

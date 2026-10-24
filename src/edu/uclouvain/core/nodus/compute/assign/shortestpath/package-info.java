@@ -22,8 +22,9 @@
 /**
  * Shortest-path searches and worker-local graph structures for assignment.
  *
- * <p>{@link edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra} and {@link
- * edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapAStar} compute path weights and
+ * <p>{@link edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra}, {@link
+ * edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapAStar} and {@link
+ * edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapALT} compute path weights and
  * predecessor information on the virtual-network adjacency structure. {@link
  * edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode} retains the connection to
  * virtual links for path reconstruction and volume updates.

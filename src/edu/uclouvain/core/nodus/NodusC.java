@@ -98,13 +98,22 @@ public class NodusC {
    */
   public static boolean useCompactShortestPaths = true;
 
+  /** Shortest-path implementations available to Exact Multi-flow. */
+  public enum ExactMFAlgorithm {
+    /** Historical geographic heuristic; can select nonoptimal routes with arbitrary costs. */
+    LEGACY_ASTAR,
+    /** Safe zero heuristic, giving Dijkstra ordering for arbitrary nonnegative costs. */
+    IMPROVED_ASTAR,
+    /** A* with cost-based landmark lower bounds, reused across OD pairs and cost markups. */
+    ALT
+  }
+
   /**
-   * Use the previous geographic A* heuristic in Exact Multi-flow for performance comparisons.
-   * False uses the safe zero heuristic. The legacy heuristic can select a nonoptimal route when
-   * distance overestimates user-defined costs. Set before starting an assignment; each worker job
-   * samples it when creating its search. Independent of useCompactShortestPaths.
+   * Exact Multi-flow search algorithm. Set before starting an assignment; each worker job samples
+   * this selector when creating its search. Independent of useCompactShortestPaths. The improved
+   * zero-heuristic search remains the default for compatibility.
    */
-  public static volatile boolean useLegacyAStar = false;
+  public static volatile ExactMFAlgorithm exactMFAlgorithm = ExactMFAlgorithm.IMPROVED_ASTAR;
 
   /*
    * *********************************************************************************************

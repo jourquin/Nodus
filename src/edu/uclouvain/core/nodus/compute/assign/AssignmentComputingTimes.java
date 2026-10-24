@@ -101,8 +101,14 @@ public final class AssignmentComputingTimes {
   public enum WorkerPhase {
     /** The complete shortest-path search, including its initialization. */
     DIJKSTRA("Dijkstra"),
-    /** Exact multi-flow shortest-path search, including its initialization. */
-    ASTAR("A*"),
+    /** Historical Exact multi-flow search, including per-search initialization. */
+    LEGACY_ASTAR("Legacy A*"),
+    /** Zero-heuristic Exact multi-flow search, including per-search initialization. */
+    ASTAR("Improved A*"),
+    /** Building the Exact multi-flow landmark tables once per worker job. */
+    ALT_PREPROCESSING("ALT preprocessing"),
+    /** Landmark-guided Exact multi-flow search, including per-search initialization. */
+    ALT("ALT"),
     /** Reconstructing and loading routes in workers that perform both in one traversal. */
     RECONSTRUCTION_LOADING("Path reconstruction and volume loading"),
     /** Moving dynamic demands to their starting nodes for the next time slice. */
@@ -605,7 +611,7 @@ public final class AssignmentComputingTimes {
           report, "  Path output (includes DB calls and writer waits)", workerPathOutputTime);
       report.append("  Computation stages exclude path-output calls.\n");
       report.append(
-          "  Worker setup and cost-markup updates are not itemized in the worker breakdown.\n");
+          "  Other worker setup and cost markups are not itemized in the breakdown.\n");
     }
     if (hasReachabilityDetails) {
       appendReachability(report);

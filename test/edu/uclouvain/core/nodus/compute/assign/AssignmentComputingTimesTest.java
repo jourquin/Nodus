@@ -244,7 +244,7 @@ class AssignmentComputingTimesTest {
       assertEquals(4, seconds(report, "Path reconstruction"));
       assertEquals(4, seconds(report, "Modal splitting and path filtering"));
       assertEquals(5, seconds(report, "Path output (includes DB calls and writer waits)"));
-      assertEquals(0, seconds(report, "A*"));
+      assertEquals(0, seconds(report, "Improved A*"));
       assertFalse(report.contains("Dijkstra:"));
     }
   }
@@ -327,7 +327,7 @@ class AssignmentComputingTimesTest {
       assertEquals(2, seconds(report, "Cost parsing and evaluation"));
       assertEquals(0, seconds(report, "Database writing (writer calls)"));
       assertFalse(report.contains("Dijkstra:"), report);
-      assertEquals(1, seconds(report, "A*"));
+      assertEquals(1, seconds(report, "Improved A*"));
       assertEquals(2, count(report, "Completed Dijkstra searches"));
       assertFalse(report.contains("Network initialization and generation:"), report);
     }

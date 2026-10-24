@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.NodusC.ExactMFAlgorithm;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +48,7 @@ import org.junit.jupiter.api.parallel.Resources;
 @ResourceLock("JDBCUtils")
 @ResourceLock("NodusC.displayComputingTimes")
 @ResourceLock("NodusC.useCompactShortestPaths")
-@ResourceLock("NodusC.useLegacyAStar")
+@ResourceLock("NodusC.exactMFAlgorithm")
 @ResourceLock(Resources.SYSTEM_OUT)
 @Timeout(30)
 class ComputingTimesAssignmentIntegrationTest {
@@ -64,9 +65,11 @@ class ComputingTimesAssignmentIntegrationTest {
                             Stream.of(1, 4)
                                 .flatMap(
                                     threads ->
-                                        (exact ? Stream.of(false, true) : Stream.of(false))
+                                        (exact
+                                                ? Stream.of(ExactMFAlgorithm.values())
+                                                : Stream.of(ExactMFAlgorithm.IMPROVED_ASTAR))
                                             .map(
-                                                legacy ->
+                                                algorithm ->
                                                     dynamicTest(
                                                         "compact="
                                                             + compact
@@ -74,19 +77,19 @@ class ComputingTimesAssignmentIntegrationTest {
                                                             + exact
                                                             + ", threads="
                                                             + threads
-                                                            + ", legacy="
-                                                            + legacy,
+                                                            + ", algorithm="
+                                                            + algorithm,
                                                         () ->
                                                             checkAssignment(
                                                                 compact, exact, threads,
-                                                                legacy))))));
+                                                                algorithm))))));
   }
 
-  private void checkAssignment(boolean compact, boolean exact, int threads, boolean legacy)
-      throws Exception {
+  private void checkAssignment(
+      boolean compact, boolean exact, int threads, ExactMFAlgorithm algorithm) throws Exception {
     boolean previousAudit = NodusC.displayComputingTimes;
     boolean previousGraph = NodusC.useCompactShortestPaths;
-    boolean previousLegacy = NodusC.useLegacyAStar;
+    ExactMFAlgorithm previousAlgorithm = NodusC.exactMFAlgorithm;
     try (AssignmentTestProject project =
         new AssignmentTestProject(
             directory,
@@ -96,7 +99,7 @@ class ComputingTimesAssignmentIntegrationTest {
               {14, 3, 4, 4, 0}, {15, 1, 5, 1, 0}, {16, 6, 4, 1, 0}
             })) {
       NodusC.useCompactShortestPaths = compact;
-      NodusC.useLegacyAStar = legacy;
+      NodusC.exactMFAlgorithm = algorithm;
       // Mode 2 can be loaded at the first origin but cannot reach its requested destination.
       for (int row : new int[] {4, 5}) {
         project.links.getModel().setValueAt(2.0, row, NodusC.DBF_IDX_MODE);
@@ -122,8 +125,19 @@ class ComputingTimesAssignmentIntegrationTest {
         assertEquals(enabled && !exact, report.contains("unreachable-destination diagnostic"));
         if (enabled) {
           assertTrue(report.contains("completed"), report);
-          assertTrue(report.contains(exact ? "A*:" : "Dijkstra:"), report);
-          assertTrue(seconds(report, exact ? "A*" : "Dijkstra") > 0, report);
+          String label =
+              !exact
+                  ? "Dijkstra"
+                  : algorithm == ExactMFAlgorithm.ALT
+                      ? "ALT"
+                      : algorithm == ExactMFAlgorithm.LEGACY_ASTAR ? "Legacy A*" : "Improved A*";
+          assertTrue(report.contains(label + ":"), report);
+          assertTrue(seconds(report, label) > 0, report);
+          assertEquals(
+              exact && algorithm == ExactMFAlgorithm.ALT, report.contains("ALT preprocessing:"));
+          if (exact && algorithm == ExactMFAlgorithm.ALT) {
+            assertTrue(seconds(report, "ALT preprocessing") > 0, report);
+          }
           assertTrue(report.contains("Outside-phase breakdown"), report);
           if (!exact) {
             assertEquals(12, count(report, "Completed Dijkstra searches"));
@@ -143,7 +157,7 @@ class ComputingTimesAssignmentIntegrationTest {
     } finally {
       NodusC.displayComputingTimes = previousAudit;
       NodusC.useCompactShortestPaths = previousGraph;
-      NodusC.useLegacyAStar = previousLegacy;
+      NodusC.exactMFAlgorithm = previousAlgorithm;
     }
   }
 

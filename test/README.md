@@ -159,26 +159,50 @@ for the workflow mechanism.
 
 ## Comparing Exact Multi-flow search times
 
-Before running an Exact Multi-flow assignment, set these switches in the Groovy console or a
+Before running an Exact Multi-flow assignment, choose an algorithm in the Groovy console or a
 startup script:
 
 ```groovy
 import edu.uclouvain.core.nodus.NodusC
+import edu.uclouvain.core.nodus.NodusC.ExactMFAlgorithm
+
 NodusC.displayComputingTimes = true
-NodusC.useLegacyAStar = false // Safe zero heuristic; default
+NodusC.exactMFAlgorithm = ExactMFAlgorithm.ALT
 ```
 
-Repeat with `NodusC.useLegacyAStar = true` to select the previous geographic heuristic. Each worker
-job selects its search at construction, so change the switch before starting the assignment.
-Keep the assignment settings and `NodusC.useCompactShortestPaths` identical between comparisons.
-Both choices support compact arrays and the original linked graph/heap storage. The legacy
-heuristic can select nonoptimal routes when geographic distance overestimates transport costs.
+`NodusC.exactMFAlgorithm` replaces the former `NodusC.useLegacyAStar` boolean:
 
-Both implementations use the same `A*:` measurement around each complete `compute()` call,
-including its per-search initialization. This row sums elapsed time across worker jobs and may
-exceed wall time with parallel workers. Graph/heap construction remains worker setup, outside the
-`A*:` row. Use `Total elapsed:` to compare complete assignments. Repeat runs to account for JVM
-warm-up and ordinary timing variation; auditing is sampled at assignment start.
+| Selector value | Search | Timing row |
+| --- | --- | --- |
+| `ExactMFAlgorithm.LEGACY_ASTAR` | Historical geographic heuristic | `Legacy A*:` |
+| `ExactMFAlgorithm.IMPROVED_ASTAR` | Safe zero heuristic (default), giving Dijkstra ordering | `Improved A*:` |
+| `ExactMFAlgorithm.ALT` | A* with directed, cost-based landmark lower bounds | `ALT:` |
+
+Each worker job samples the selector when creating its search, so change it before starting the
+assignment. Keep assignment settings and `NodusC.useCompactShortestPaths` identical between runs.
+All three algorithms support compact arrays and original linked graph/heap storage. The legacy
+heuristic can select nonoptimal routes when geographic distance overestimates transport costs.
+ALT can choose different equal-cost routes; the subsequent penalties can then generate different
+alternatives even though each search minimizes its current penalized cost.
+
+Every search row measures the complete `compute()` call, including per-search initialization.
+Rows sum elapsed time across worker jobs and may exceed wall time with parallel workers. Graph
+and heap construction remain worker setup for both A* variants. ALT additionally reports
+`ALT preprocessing:`, measuring its construction and landmark preprocessing once per worker job.
+Use `Total elapsed:` to compare complete assignments, including ALT setup; comparing search rows
+alone omits its preprocessing cost. Repeat runs to account for JVM warm-up and timing variation.
+Auditing is sampled at assignment start and does not read the timing clock when disabled.
+
+ALT selects up to 16 deterministic landmarks, preferring interior transport nodes and spreading
+landmarks using baseline costs. It stores costs to and from each landmark, taking approximately
+`16 * landmarks * virtualNodes` bytes for distance tables per worker job, plus search arrays.
+Preprocessing uses the group's original unrestricted costs before loading restrictions and
+OD-specific markups. The same tables and lazily cached destination bounds serve all searches in
+that job; increasing costs, blocking edges, and restoring original costs keep the bounds valid.
+Each new assignment rebuilds the tables for its cost functions. Negative cost markups requested
+from scripts disable landmark bounds and retain exact zero-heuristic searches. Edge costs must
+remain nonnegative, as for the existing Dijkstra-based implementation. ALT preprocessing honors
+assignment cancellation.
 
 ## Coverage
 
@@ -546,13 +570,17 @@ warm-up and ordinary timing variation; auditing is sampled at assignment start.
   geographic distance is not a guaranteed lower bound for user-defined transport costs.
   Separate legacy checks retain the previous heuristic, heap behavior and known overestimate for
   performance comparisons with either graph representation.
+- `BinaryHeapALTTest`: directed landmark queries against an independent Floyd-Warshall reference
+  across cost scales, disconnected components, parallel edges, zero-cost cycles, markups, blocked
+  edges and restoration. Covers useful nongeographic bounds, label reopening, sparse resets,
+  non-finite costs, overflowing distances, zero-landmark fallback and preprocessing cancellation.
 - `ExactMultiFlowCostScaleTest`: H2/HSQLDB assignments with linked/compact storage, serial/concurrent
   group workers and one/two alternatives. Checks a cheaper route travelling away from its goal,
   zero-cost movement, changed costs on reruns, proportional route shares, stored path costs,
   per-link/group flows and preserved demand. Exact MF retains separate searches and cost penalties
   per OD pair. These checks do not benchmark large-network search times.
-  The comparison switch is exercised on successive runs with both engines, graph representations
-  and worker counts, checking the actual route and flow differences of the legacy search.
+  The comparison selector is exercised on successive runs with all three engines, both graph
+  representations and worker counts, checking the actual route and flow differences of the legacy search.
 - `RealLinkInitializerTest`: EsriPolyline and OMPoly lengths from declared degree/radian inputs,
   endpoint fallback near the equator/prime meridian and across the date line, reversed paths and
   intermediate vertices. Uses an independent haversine reference. Checks missing/degenerate and
@@ -653,9 +681,9 @@ warm-up and ordinary timing variation; auditing is sampled at assignment start.
 - `ComputingTimesAssignmentIntegrationTest`: fast and exact coordinators produce identical saved
   paths, costs and network flows with auditing disabled, enabled and disabled again, using both
   graph representations and serial/concurrent workers. Disconnected loading-mode alternatives
-  exercise the real reachability-observer wiring and its per-mode resets. Exact MF covers both
-  legacy and zero-heuristic searches. A controlled clock verifies a positive `A*:` measurement for
-  both choices and no timing-clock reads when auditing is disabled.
+  exercise the real reachability-observer wiring and its per-mode resets. Exact MF covers
+  legacy, zero-heuristic and ALT searches. A controlled clock verifies positive search timings for
+  all three choices, separate ALT preprocessing and no timing-clock reads when auditing is disabled.
 - `MultiFlowEdgeUpdatesTest`: shared-edge penalties, loading restrictions on intermediate
   nodes, separate lifetimes of path marks and pending demand, and restoration between
   searches. Each case runs against linked and compact storage and checks resulting routes

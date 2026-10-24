@@ -536,7 +536,9 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Fix project settings: failed writes and file preservation
 - Fix first service save and schema migration: transaction preservation
 - A* now uses a zero heuristic (Dijkstra ordering), ensuring correct routes with arbitrary cost scales
-- Add `NodusC.useLegacyAStar` to compare the previous geographic heuristic with the safe default
+- Implement the ALT algorithm for the exact multi-flow assignment
+- Add `NodusC.exactMFAlgorithm` to select legacy A*, improved zero-heuristic A*, or directed ALT
+  for Exact Multi-flow, with optional search timings and separate ALT preprocessing timings
 - Preserve saved node rules and pending edits after failed saves
 - Compare complete rules when detecting changes and duplicates, and defer missing-table creation until saving
 - Preserve existing CSV/XLS/XLSX exports on late read, write or resource-close failures by staging

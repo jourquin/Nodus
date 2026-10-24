@@ -25,6 +25,7 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerPhase;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
+import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapALT;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapAStar;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.CompactShortestPathGraph;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.LegacyBinaryHeapAStar;
@@ -43,19 +44,18 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 
 /**
  * The exact multi-flow assignment computes one or several alternative routes for each mode/means
- * combination. It is based on the AStar shortest path algorithm instead of the algorithm of
- * Dijkstra in order to prevent some side effects described in <i> Jourquin B., A multi-flow
- * multi-modal assignment procedure on large freight transportation networks, Studies in Regional
- * Science, Vol 35, n°4, pp. 929- 946, 2005.</i>.
+ * combination, with independent shortest-path searches and penalties for each OD pair to prevent
+ * the shared-tree side effects described in <i> Jourquin B., A multi-flow multi-modal assignment
+ * procedure on large freight transportation networks, Studies in Regional Science, Vol 35, n°4, pp.
+ * 929- 946, 2005.</i>.
  *
- * <p>Even if the AStar algorithm is faster than Dijkstra if the shortest path between a single
- * origin-destination pair must be computed, running AStar for each pair of a row in the OD matrix
- * is slower than running Dijkstra, which computes, in a single run, all the routes for the this row
- * of OD pairs. The exact multi-flow assignment is therefore (much) slower than the fast multi-fmow
- * assignment.
+ * <p>NodusC.exactMFAlgorithm selects geographic A*, safe zero-heuristic A*, or cost-based ALT. Fast
+ * multi-flow shares one search across an OD row; Exact multi-flow searches separately for every
+ * pair and alternative. ALT preprocessing is shared across the searches of this worker job.
  *
  * @author Bart Jourquin
  */
@@ -104,8 +104,19 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
    */
   @Override
   boolean doAssignment() {
+    try {
+      return assignPaths();
+    } finally {
+      // In particular, release the large ALT tables before this worker picks up another job.
+      shortestPath = null;
+      edgeUpdates = null;
+      graph = null;
+    }
+  }
+
+  /** Runs one group/class job with its own graph, penalties and optional landmark tables. */
+  private boolean assignPaths() {
     workerTimes.includePhases(
-        WorkerPhase.ASTAR,
         WorkerPhase.RECONSTRUCTION,
         WorkerPhase.HEADER_MATCHING,
         WorkerPhase.MODAL_SPLITTING,
@@ -116,9 +127,37 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     CompactShortestPathGraph compactGraph = createCompactGraph();
     edgeUpdates = new MultiFlowEdgeUpdates(graph, compactGraph);
 
-    shortestPath = NodusC.useLegacyAStar
-        ? new LegacyBinaryHeapAStar(graph, compactGraph)
-        : new BinaryHeapAStar(graph, compactGraph);
+    final WorkerPhase searchPhase;
+    switch (NodusC.exactMFAlgorithm) {
+      case LEGACY_ASTAR:
+        shortestPath = new LegacyBinaryHeapAStar(graph, compactGraph);
+        searchPhase = WorkerPhase.LEGACY_ASTAR;
+        break;
+      case ALT:
+        workerTimes.startPhase(WorkerPhase.ALT_PREPROCESSING);
+        try {
+          // Cost-based bounds require all later costs to stay at or above this baseline.
+          // Scripts can request negative markups; retain exact routing with a zero bound then.
+          shortestPath =
+              new BinaryHeapALT(
+                  graph,
+                  compactGraph,
+                  assignmentParameters.getCostMarkup() >= 0 ? BinaryHeapALT.DEFAULT_LANDMARKS : 0,
+                  this::isCancelled);
+        } catch (CancellationException e) {
+          return false;
+        } finally {
+          workerTimes.endPhase();
+        }
+        searchPhase = WorkerPhase.ALT;
+        break;
+      case IMPROVED_ASTAR:
+      default:
+        shortestPath = new BinaryHeapAStar(graph, compactGraph);
+        searchPhase = WorkerPhase.ASTAR;
+        break;
+    }
+    workerTimes.includePhases(searchPhase);
     availableModeMeans = virtualNet.getAvailableModeMeans(groupIndex);
     paths = new Path[assignmentParameters.getNbIterations() * availableModeMeans.length];
 
@@ -204,7 +243,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
                 alternativePath < assignmentParameters.getNbIterations();
                 alternativePath++) {
               // Compute shortest path tree
-              workerTimes.startPhase(WorkerPhase.ASTAR);
+              workerTimes.startPhase(searchPhase);
               try {
                 shortestPath.compute(beginNode, endNode);
               } finally {
@@ -308,8 +347,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
         } // end of the demand cell
       } // end of demand list
     } // Next node
-
-    graph = null;
 
     return true;
   }

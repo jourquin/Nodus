@@ -306,6 +306,7 @@ class ShortestPathTest {
     assertThrows(IllegalArgumentException.class, () -> new BinaryHeapAStar(second.heads, compact));
     assertThrows(
         IllegalArgumentException.class, () -> new LegacyBinaryHeapAStar(second.heads, compact));
+    assertThrows(IllegalArgumentException.class, () -> new BinaryHeapALT(second.heads, compact));
   }
 
   @TestFactory

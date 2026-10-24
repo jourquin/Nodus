@@ -32,6 +32,14 @@ import java.util.LinkedList;
  * been proven to be the most effective for the class of problems to be resolved by means of virtual
  * networks.
  *
+ * <p>Algorithm reference:
+ *
+ * <ul>
+ *   <li>E. W. Dijkstra (1959).
+ *       <a href="https://doi.org/10.1007/BF01386390">A note on two problems in connexion with
+ *       graphs</a>. <i>Numerische Mathematik</i>, 1, pp. 269-271.
+ * </ul>
+ *
  * @author Bart Jourquin
  */
 public class BinaryHeapDijkstra {
@@ -417,6 +425,23 @@ public class BinaryHeapDijkstra {
       return node >= initialSource ? node - initialSource + 1 : node + graph.length - initialSource;
     }
     return position;
+  }
+
+  /**
+   * Reopens a settled node for an improved label in landmark A*. Missing landmark distances can
+   * make its admissible bounds inconsistent. The slot and node were already touched before being
+   * extracted, so the normal sparse reset also covers reinsertion.
+   */
+  final void reopen(int node) {
+    if (compactHeap != null) {
+      compactHeap.reopen(node);
+      heapSize = compactHeap.size;
+      return;
+    }
+    int tailLength = graph.length - initialSource;
+    int initialPosition = node >= initialSource ? node - initialSource + 1 : node + tailLength;
+    upperBoundCosts[++heapSize] = stock[initialPosition];
+    nodePos[node] = heapSize;
   }
 
   /**
