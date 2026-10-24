@@ -62,12 +62,21 @@ public class BinaryHeapALT extends BinaryHeapAStar {
   private final int[] estimateGoals;
   private int goal;
 
-  /** Creates landmark tables and uses linked graph/heap storage for queries. */
+  /**
+   * Creates landmark tables and uses linked graph/heap storage for queries.
+   *
+   * @param graph worker-owned graph with nonnegative costs
+   */
   public BinaryHeapALT(AdjacencyNode[] graph) {
     this(graph, null);
   }
 
-  /** Creates landmark tables and selects the requested query storage. */
+  /**
+   * Creates landmark tables and selects the requested query storage.
+   *
+   * @param graph worker-owned graph with nonnegative costs
+   * @param compactGraph synchronized compact graph, or null for linked queries
+   */
   public BinaryHeapALT(AdjacencyNode[] graph, CompactShortestPathGraph compactGraph) {
     this(graph, compactGraph, DEFAULT_LANDMARKS, () -> false);
   }

@@ -48,7 +48,7 @@ class BinaryHeapALTTest {
             dynamicTest(
                 "compact=" + compact + "/scale=" + scale,
                 () -> {
-                  Random random = new Random(20261024);
+                  final Random random = new Random(20261024);
                   Graph graph = new Graph(25);
                   // Asymmetric components, an isolated node, zero-cost cycles and parallel edges.
                   graph.edge(1, 2, 0);
