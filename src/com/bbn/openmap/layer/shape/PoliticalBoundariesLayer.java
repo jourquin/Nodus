@@ -28,6 +28,7 @@ import com.bbn.openmap.MapBean;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
 import edu.uclouvain.core.nodus.NodusC;
+import java.awt.Container;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
@@ -52,6 +53,19 @@ public class PoliticalBoundariesLayer extends ShapeLayer {
   /** Default constructor. */
   public PoliticalBoundariesLayer() {
     super();
+  }
+
+  /**
+   * Waits for the current render before closing the embedded shapefile and clearing its index.
+   *
+   * <p>ShapeLayer.prepare() holds this same monitor. Its inherited removal callback does not,
+   * allowing map changes on the EDT to close a stream still being read by a layer worker.
+   *
+   * @param container map container removing the layer
+   */
+  @Override
+  public synchronized void removed(Container container) {
+    super.removed(container);
   }
 
   /**
