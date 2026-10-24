@@ -56,16 +56,18 @@ public class PoliticalBoundariesLayer extends ShapeLayer {
   }
 
   /**
-   * Waits for the current render before closing the embedded shapefile and clearing its index.
+   * Detaches the displayed graphics without waiting for a background render.
    *
-   * <p>ShapeLayer.prepare() holds this same monitor. Its inherited removal callback does not,
-   * allowing map changes on the EDT to close a stream still being read by a layer worker.
+   * <p>This application-wide layer is reused across project changes. Keep its spatial index:
+   * SpatialIndex.getOMGraphics() closes its own readers after each render. The inherited removal
+   * callback would close those readers mid-render and clear lists still being used by workers.
+   * Waiting for prepare() instead can deadlock the EDT against the worker and AWT's tree lock.
    *
    * @param container map container removing the layer
    */
   @Override
-  public synchronized void removed(Container container) {
-    super.removed(container);
+  public void removed(Container container) {
+    setList(null);
   }
 
   /**

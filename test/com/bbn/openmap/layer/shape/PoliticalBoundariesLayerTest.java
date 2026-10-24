@@ -23,6 +23,7 @@ package com.bbn.openmap.layer.shape;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.bbn.openmap.io.BinaryFile;
@@ -44,10 +45,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.LockSupport;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
+import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
@@ -61,7 +63,7 @@ class PoliticalBoundariesLayerTest {
   @TempDir Path directory;
 
   @Test
-  void removalWaitsForJarRenderingAndLayerCanBeRenderedAgain() throws Exception {
+  void removalKeepsEdtResponsiveDuringJarRenderingAndLayerCanBeRenderedAgain() throws Exception {
     Path jar = directory.resolve("boundaries with spaces.jar");
     try (JarOutputStream output = new JarOutputStream(Files.newOutputStream(jar))) {
       for (String extension : new String[] {"shp", "ssx"}) {
@@ -89,40 +91,52 @@ class PoliticalBoundariesLayerTest {
     PoliticalBoundariesLayer layer = new PoliticalBoundariesLayer();
     layer.setSpatialIndex(index);
     layer.setProjection(new Mercator(new LatLonPoint.Double(50, 4), 1000000, 800, 600));
-    int expected = layer.prepare().size();
+    OMGraphicList previousGraphics = layer.prepare();
+    int expected = previousGraphics.size();
+    layer.setList(previousGraphics);
     assertTrue(expected > 1, "The viewport must contain actual boundary graphics");
-    var workers = Executors.newFixedThreadPool(2);
+    var workers = Executors.newSingleThreadExecutor();
     ByteArrayOutputStream diagnostics = new ByteArrayOutputStream();
     PrintStream previousError = System.err;
     try (PrintStream errors = new PrintStream(diagnostics, true, StandardCharsets.UTF_8)) {
       System.setErr(errors);
       try {
         gate.armed.set(true);
-        Future<OMGraphicList> rendering = workers.submit(layer::prepare);
-        assertTrue(gate.reading.await(5, TimeUnit.SECONDS), "Render must reach the shapefile stream");
-        AtomicReference<Thread> removingThread = new AtomicReference<>();
-        Future<?> removal =
-            workers.submit(
-                () -> {
-                  removingThread.set(Thread.currentThread());
-                  layer.removed(null);
-                });
-        // Wait for removal to finish (the old race) or block on the active renderer's monitor.
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-        while (!removal.isDone()
-            && (removingThread.get() == null
-                || removingThread.get().getState() != Thread.State.BLOCKED)
-            && System.nanoTime() < deadline) {
-          LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
-        }
+        final Future<OMGraphicList> rendering = workers.submit(layer::prepare);
         assertTrue(
-            removal.isDone()
-                || (removingThread.get() != null
-                    && removingThread.get().getState() == Thread.State.BLOCKED),
-            "Removal must attempt cleanup while the renderer is paused");
+            gate.reading.await(5, TimeUnit.SECONDS), "Render must reach the shapefile stream");
+        int closedBeforeRemoval = gate.closed.get();
+        CountDownLatch removalReturned = new CountDownLatch(1);
+        CountDownLatch nextUiEvent = new CountDownLatch(1);
+        AtomicReference<Throwable> removalFailure = new AtomicReference<>();
+        // MapBean can notify removal while AWT holds the component tree lock. Never wait for
+        // prepare() here: the worker may itself need AWT while generating its graphics.
+        SwingUtilities.invokeLater(
+            () -> {
+              try {
+                synchronized (layer.getTreeLock()) {
+                  layer.removed(null);
+                }
+              } catch (Throwable failure) {
+                removalFailure.set(failure);
+              } finally {
+                removalReturned.countDown();
+              }
+            });
+        SwingUtilities.invokeLater(nextUiEvent::countDown);
+        assertTrue(
+            removalReturned.await(2, TimeUnit.SECONDS),
+            "Layer removal must return on the EDT while a shapefile read is paused");
+        assertTrue(nextUiEvent.await(2, TimeUnit.SECONDS), "The next UI event must remain runnable");
+        assertNull(removalFailure.get());
+        assertNull(layer.getList(), "Removal must detach the displayed graphics");
+        assertEquals(expected, previousGraphics.size(), "Removal must not mutate shared graphics");
+        assertEquals(1, gate.resume.getCount(), "The render is still paused");
+        assertEquals(
+            closedBeforeRemoval, gate.closed.get(), "Removal must not close the active stream");
         gate.resume.countDown();
         OMGraphicList rendered = rendering.get(5, TimeUnit.SECONDS);
-        removal.get(5, TimeUnit.SECONDS);
+        assertTrue(gate.closed.get() > closedBeforeRemoval, "The renderer must close its own stream");
         assertEquals("", diagnostics.toString(StandardCharsets.UTF_8));
         assertEquals(expected, rendered.size(), "Removal must not truncate the render");
         // The singleton boundary layer is reused when opening projects and toggling its visibility.
@@ -136,6 +150,7 @@ class PoliticalBoundariesLayerTest {
         workers.shutdownNow();
         assertTrue(workers.awaitTermination(5, TimeUnit.SECONDS));
         System.setErr(previousError);
+        SwingUtilities.invokeAndWait(() -> {});
         index.close(true);
         layer.dispose();
       }
@@ -144,6 +159,7 @@ class PoliticalBoundariesLayerTest {
 
   private static final class ReadGate {
     final AtomicBoolean armed = new AtomicBoolean();
+    final AtomicInteger closed = new AtomicInteger();
     final CountDownLatch reading = new CountDownLatch(1);
     final CountDownLatch resume = new CountDownLatch(1);
   }
@@ -169,6 +185,12 @@ class PoliticalBoundariesLayerTest {
     private void wrapStream() {
       inputStream =
           new FilterInputStream(inputStream) {
+            @Override
+            public void close() throws IOException {
+              gate.closed.incrementAndGet();
+              super.close();
+            }
+
             @Override
             public long skip(long count) throws IOException {
               if (gate.armed.compareAndSet(true, false)) {

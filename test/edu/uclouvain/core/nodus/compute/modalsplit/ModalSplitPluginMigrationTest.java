@@ -184,7 +184,7 @@ class ModalSplitPluginMigrationTest {
         assertEquals(4, ModalSplitMethodsLoader.getAvailableModalSplitMethods().size());
         checkShares("MLogit");
         // Project opening also scans the same directory for general plugins after the modal prompt.
-        NodusPlugin first =
+        final NodusPlugin first =
             checkGeneralPluginDiscovery(directory, modalMethods.getSkippedPluginJars());
         assertEquals("", diagnostics.toString(StandardCharsets.UTF_8));
         ModalSplitMethodsLoader.disposeAvailableModalSplitMethods();

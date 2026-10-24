@@ -192,7 +192,7 @@ public class ModalSplitMethodsLoader {
     try {
       classPath = new PluginClassPath(directory, ModalSplitMethodsLoader.class.getClassLoader());
 
-      int nbMethodsBefore = availableModalSplitMethods.size();
+      final int nbMethodsBefore = availableModalSplitMethods.size();
 
       // Finish approved conversions before this loader can cache any classes or open any JARs.
       skippedPluginJars.addAll(upgradeLegacyPlugins(classPath));

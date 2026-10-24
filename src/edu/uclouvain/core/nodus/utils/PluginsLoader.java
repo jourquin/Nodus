@@ -87,7 +87,8 @@ public class PluginsLoader implements AutoCloseable {
     }
 
     try {
-      classPath = new PluginClassPath(directory, PluginsLoader.class.getClassLoader(), excludedJars);
+      classPath =
+          new PluginClassPath(directory, PluginsLoader.class.getClassLoader(), excludedJars);
     } catch (IOException ex) {
       ex.printStackTrace();
     }
