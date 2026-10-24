@@ -105,7 +105,7 @@ class PoliticalBoundariesLayerTest {
         final Future<OMGraphicList> rendering = workers.submit(layer::prepare);
         assertTrue(
             gate.reading.await(5, TimeUnit.SECONDS), "Render must reach the shapefile stream");
-        int closedBeforeRemoval = gate.closed.get();
+        final int closedBeforeRemoval = gate.closed.get();
         CountDownLatch removalReturned = new CountDownLatch(1);
         CountDownLatch nextUiEvent = new CountDownLatch(1);
         AtomicReference<Throwable> removalFailure = new AtomicReference<>();
@@ -127,7 +127,8 @@ class PoliticalBoundariesLayerTest {
         assertTrue(
             removalReturned.await(2, TimeUnit.SECONDS),
             "Layer removal must return on the EDT while a shapefile read is paused");
-        assertTrue(nextUiEvent.await(2, TimeUnit.SECONDS), "The next UI event must remain runnable");
+        assertTrue(
+            nextUiEvent.await(2, TimeUnit.SECONDS), "The next UI event must remain runnable");
         assertNull(removalFailure.get());
         assertNull(layer.getList(), "Removal must detach the displayed graphics");
         assertEquals(expected, previousGraphics.size(), "Removal must not mutate shared graphics");
@@ -136,7 +137,8 @@ class PoliticalBoundariesLayerTest {
             closedBeforeRemoval, gate.closed.get(), "Removal must not close the active stream");
         gate.resume.countDown();
         OMGraphicList rendered = rendering.get(5, TimeUnit.SECONDS);
-        assertTrue(gate.closed.get() > closedBeforeRemoval, "The renderer must close its own stream");
+        assertTrue(
+            gate.closed.get() > closedBeforeRemoval, "The renderer must close its own stream");
         assertEquals("", diagnostics.toString(StandardCharsets.UTF_8));
         assertEquals(expected, rendered.size(), "Removal must not truncate the render");
         // The singleton boundary layer is reused when opening projects and toggling its visibility.
