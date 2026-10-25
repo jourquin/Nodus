@@ -66,6 +66,11 @@ changing quantity units changes likelihoods and uncertainty. Fixed reference par
 and cost coefficients at the zero bound have no t-statistic. BIC, robust covariance
 and bootstrap diagnostics are omitted. To assign with the fitted parameters, select the updated cost file in the assignment dialog. Its parameter table selects and locks the embedded modal method automatically; estimation does not change scenario settings.
 
+Automatic method selection uses the table's `@nodus.method` entry. User-defined plugins can also
+use `@paramTable` with their own parameter keys. If their table has no `@nodus.method` entry, the
+modal-method selector stays available and the plugin can be selected manually. Embedded methods
+still validate their required method metadata when loading parameters for an assignment.
+
 The **Workflow diagnostics and saved parameters** section is hidden by default.
 To include it, set the application-wide switch in `nodus.groovy` or the project's
 `ProjectName.groovy` startup script:

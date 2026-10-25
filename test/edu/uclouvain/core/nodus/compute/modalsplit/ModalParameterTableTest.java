@@ -27,6 +27,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -81,6 +84,72 @@ class ModalParameterTableTest {
 
         values.remove(ModalParameterTable.METHOD);
         ModalParameterTable.save(connection, table, values);
+        assertNull(ModalParameterTable.methodForCostFile(connection, costs));
+
+        // A missing declaration allows a plugin; an explicitly blank declaration is invalid.
+        values.setProperty(ModalParameterTable.METHOD, " ");
+        ModalParameterTable.save(connection, table, values);
+        assertThrows(
+            SQLException.class, () -> ModalParameterTable.methodForCostFile(connection, costs));
+      }
+    }
+  }
+
+  @Test
+  void pluginParameterTablesWithoutNodusMetadataLeaveTheMethodSelectionAvailable()
+      throws Exception {
+    Path costs = directory.resolve("model1.costs");
+    Files.writeString(costs, "mv.1,1=BASECOST\n@paramTable=modal_choice_params_model1\n");
+    for (String jdbc : List.of("jdbc:h2:mem:", "jdbc:hsqldb:mem:")) {
+      try (Connection connection =
+          DriverManager.getConnection(jdbc + UUID.randomUUID(), "sa", "")) {
+        // The Calibrated OD modal choice plugin owns these keys and does not require a method row.
+        try (Statement statement = connection.createStatement()) {
+          statement.executeUpdate(
+              "CREATE TABLE modal_choice_params_model1"
+                  + " (param_key VARCHAR(191), param_value VARCHAR(4096))");
+          statement.executeUpdate(
+              "INSERT INTO modal_choice_params_model1 VALUES"
+                  + " ('@MC.Plugin','CalibratedODModalChoice'),('mc.b_cost_iww','-1')");
+        }
+        assertNull(ModalParameterTable.methodForCostFile(connection, costs));
+
+        // Automatic selection is optional; embedded methods still validate their table metadata.
+        NodusProject project =
+            new NodusProject(null) {
+              @Override
+              public Connection getMainJDBCConnection() {
+                return connection;
+              }
+            };
+        AssignmentParameters assignment = new AssignmentParameters(project);
+        Properties properties = new Properties();
+        properties.setProperty(ModalParameterTable.POINTER, "modal_choice_params_model1");
+        assignment.setCostFunctions(properties);
+        for (String method : List.of("MNL", "MNP", "Proportional")) {
+          assertThrows(
+              IllegalArgumentException.class, () -> ModalParameterTable.load(assignment, method));
+        }
+        try (Statement statement = connection.createStatement();
+            ResultSet rows =
+                statement.executeQuery("SELECT COUNT(*) FROM modal_choice_params_model1")) {
+          assertTrue(rows.next());
+          assertEquals(2, rows.getInt(1));
+        }
+      }
+    }
+  }
+
+  @Test
+  void costFileMethodLookupStillReportsUnreadableFilesAndMissingTables() throws Exception {
+    Path costs = directory.resolve("missing.costs");
+    for (String jdbc : List.of("jdbc:h2:mem:", "jdbc:hsqldb:mem:")) {
+      Files.deleteIfExists(costs);
+      try (Connection connection =
+          DriverManager.getConnection(jdbc + UUID.randomUUID(), "sa", "")) {
+        assertThrows(
+            IOException.class, () -> ModalParameterTable.methodForCostFile(connection, costs));
+        Files.writeString(costs, "mv.1,1=BASECOST\n@paramTable=missing_table\n");
         assertThrows(
             SQLException.class, () -> ModalParameterTable.methodForCostFile(connection, costs));
       }

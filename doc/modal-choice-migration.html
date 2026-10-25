@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc 3.12" />
+  <meta name="generator" content="pandoc 3.12.1" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>Modal-choice plugins in Nodus 9.0</title>
   <style>
@@ -195,6 +195,13 @@ diagnostics are omitted. To assign with the fitted parameters, select
 the updated cost file in the assignment dialog. Its parameter table
 selects and locks the embedded modal method automatically; estimation
 does not change scenario settings.</p>
+<p>Automatic method selection uses the table's
+<code>@nodus.method</code> entry. User-defined plugins can also use
+<code>@paramTable</code> with their own parameter keys. If their table
+has no <code>@nodus.method</code> entry, the modal-method selector stays
+available and the plugin can be selected manually. Embedded methods
+still validate their required method metadata when loading parameters
+for an assignment.</p>
 <p>The <strong>Workflow diagnostics and saved parameters</strong>
 section is hidden by default. To include it, set the application-wide
 switch in <code>nodus.groovy</code> or the project's

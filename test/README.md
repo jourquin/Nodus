@@ -570,6 +570,8 @@ assignment cancellation.
   geographic distance is not a guaranteed lower bound for user-defined transport costs.
   Separate legacy checks retain the previous heuristic, heap behavior and known overestimate for
   performance comparisons with either graph representation.
+  Unreachable legacy searches remain quiet and match Dijkstra's reachability across disconnected
+  components, zero-cost cycles, blocked edges, markups and restoration, using both representations.
 - `BinaryHeapALTTest`: directed landmark queries against an independent Floyd-Warshall reference
   across cost scales, disconnected components, parallel edges, zero-cost cycles, markups, blocked
   edges and restoration. Covers useful nongeographic bounds, label reopening, sparse resets,
@@ -608,6 +610,10 @@ assignment cancellation.
 - `CostParserWorkerFailureTest`: real worker threads and the cost coordinator handle invalid
   formulas, unchecked exceptions and progress cancellation. Checks prompt peer termination,
   retained diagnostics, quiet user cancellation and successful retries after failures.
+- `ModalParameterTableTest`: parameter persistence, method discovery and plugin tables without
+  `@nodus.method` metadata. Missing declarations leave manual method selection available; empty
+  declarations and unreadable tables still report errors, and embedded parameter validation stays
+  strict. Covers H2 and HSQLDB, including saving and recovery failures.
 - `ModalSplitTest`: proportional and multinomial-logit shares, normalization across modes
   and paths, large costs, invalid costs, legacy negative-cost defaults, and isolation between
   fitted/default groups and worker clones.

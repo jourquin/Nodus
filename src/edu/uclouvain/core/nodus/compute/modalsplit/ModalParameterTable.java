@@ -138,15 +138,16 @@ public final class ModalParameterTable {
   }
 
   /**
-   * Returns the modal method declared by the parameter table linked from a cost file, if present.
-   * A cost file without a table pointer leaves the choice to the user. A linked table must declare
-   * its method, as required when loading its parameters for an assignment.
+   * Returns the modal method declared by the parameter table linked from a cost file, if present. A
+   * cost file without a table pointer, or a plugin table without method metadata, leaves the choice
+   * to the user. Embedded methods still require matching metadata when loading their parameters for
+   * an assignment.
    *
    * @param connection the project's database connection
    * @param costFile the selected cost-functions file
-   * @return the stored method name, or null when there is no table pointer
+   * @return the stored method name, or null when there is no table pointer or method declaration
    * @throws IOException if the selected cost file cannot be read
-   * @throws SQLException if the linked parameter table cannot be read or has no method
+   * @throws SQLException if the linked parameter table cannot be read or declares an empty method
    */
   public static String methodForCostFile(Connection connection, Path costFile)
       throws IOException, SQLException {
@@ -164,7 +165,9 @@ public final class ModalParameterTable {
       statement.setString(1, METHOD);
       try (ResultSet rows = statement.executeQuery()) {
         if (!rows.next()) {
-          throw new SQLException("Parameter table " + table + " has no " + METHOD + " value");
+          // @paramTable is also used by plugins whose parameter tables have their own keys.
+          // Only an explicit @nodus.method declaration selects and locks a method in the dialog.
+          return null;
         }
         String method = rows.getString(1);
         if (method == null || method.isBlank()) {
@@ -246,7 +249,7 @@ public final class ModalParameterTable {
       SaveAction beforeCommit,
       SaveAction onFailure)
       throws Exception {
-    
+
     for (String key : values.stringPropertyNames()) {
       if (key.length() > MAX_KEY_LENGTH) {
         throw new IllegalArgumentException(
@@ -266,7 +269,7 @@ public final class ModalParameterTable {
     if (present) {
       checkSchema(connection, name);
     }
-    
+
     Savepoint savepoint = null;
     String table = quoted(connection, name);
     try {

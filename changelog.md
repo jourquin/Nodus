@@ -539,11 +539,15 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Implement the ALT algorithm for the exact multi-flow assignment
 - Add `NodusC.exactMFAlgorithm` to select legacy A*, improved zero-heuristic A*, or directed ALT
   for Exact Multi-flow, with optional search timings and separate ALT preprocessing timings
+- Silence legacy A* output for normal unreachable searches; use the assignment's optional
+  lost-path reporting instead
 - Preserve saved node rules and pending edits after failed saves
 - Compare complete rules when detecting changes and duplicates, and defer missing-table creation until saving
 - Preserve existing CSV/XLS/XLSX exports on late read, write or resource-close failures by staging
   complete files before replacement
 - Fix SQL batch splitting and comment handling around quoted text
 - Fix potential bug in modal-choice plugin loader
+- Keep assignment Save/Assign buttons available for plugin parameter tables without optional
+  `@nodus.method` metadata; retain automatic method selection for tables that declare it
 - Fix a rendering race in PoliticalBoundariesLayer
 

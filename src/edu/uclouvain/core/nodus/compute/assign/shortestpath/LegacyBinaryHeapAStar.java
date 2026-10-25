@@ -32,8 +32,8 @@ package edu.uclouvain.core.nodus.compute.assign.shortestpath;
  * <p>Algorithm reference (the geographic estimate above is specific to this implementation):
  *
  * <ul>
- *   <li>P. E. Hart, N. J. Nilsson and B. Raphael (1968).
- *       <a href="https://doi.org/10.1109/TSSC.1968.300136">A Formal Basis for the Heuristic
+ *   <li>P. E. Hart, N. J. Nilsson and B. Raphael (1968). <a
+ *       href="https://doi.org/10.1109/TSSC.1968.300136">A Formal Basis for the Heuristic
  *       Determination of Minimum Cost Paths</a>. <i>IEEE Transactions on Systems Science and
  *       Cybernetics</i>, 4(2), pp. 100-107.
  * </ul>
@@ -77,6 +77,9 @@ public class LegacyBinaryHeapAStar extends BinaryHeapAStar {
   /**
    * Runs the AStar algorithm to completion.
    *
+   * <p>An unreachable OD/mode combination is a normal result. The goal keeps its infinite cost and
+   * zero predecessor; the assignment worker handles optional lost-path reporting.
+   *
    * @param source Loading virtual node num
    * @param goal Unloading virtual node num
    */
@@ -87,7 +90,6 @@ public class LegacyBinaryHeapAStar extends BinaryHeapAStar {
 
     while (min != goal) {
       if (min == -1 || minWeight == Double.MAX_VALUE) {
-        System.err.println("Goal not reachable from source.");
         return;
       }
 
