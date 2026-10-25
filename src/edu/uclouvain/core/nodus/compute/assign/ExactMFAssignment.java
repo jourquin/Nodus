@@ -21,6 +21,7 @@
 
 package edu.uclouvain.core.nodus.compute.assign;
 
+import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsidePhase;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.OutsideScope;
@@ -31,22 +32,28 @@ import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.modalsplit.MultinomialLogit;
 import edu.uclouvain.core.nodus.compute.modalsplit.Proportional;
+import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Set;
 
 /**
  * The exact multi-flow assignment computes one or several alternative routes for each mode/means
- * combination independently for each OD pair. NodusC.exactMFAlgorithm selects the historical
- * geographic A*, the safe zero-heuristic A*, or ALT with cost-based landmark bounds. Separate
- * searches and cost penalties per OD pair prevent the shared-tree side effects described in <i>
- * Jourquin B., A multi-flow multi-modal assignment procedure on large freight transportation
- * networks, Studies in Regional Science, Vol 35, n°4, pp. 929- 946, 2005.</i>.
+ * combination. First routes share a Dijkstra tree per origin and loading mode/means.
+ * NodusC.exactMFAlgorithm selects the safe zero-heuristic A* or destination-based A*. The latter
+ * shares first routes and baseline bounds from reverse Dijkstra trees per destination and loading
+ * mode/means. Separate searches and cost penalties per OD pair for these alternatives prevent the
+ * shared-tree side effects described in <i> Jourquin B., A multi-flow multi-modal assignment
+ * procedure on large freight transportation networks, Studies in Regional Science, Vol 35, n°4, pp.
+ * 929- 946, 2005.</i>.
  *
- * <p>Fast multi-flow shares a Dijkstra tree across the destinations in one OD row. Exact multi-flow
- * recomputes the routes and applies alternative-path penalties separately for every OD pair, so it
- * performs more searches.
+ * <p>Fast multi-flow shares searches and penalties across the destinations in one OD row. Exact
+ * multi-flow shares only the unpenalized first search; additional routes retain OD-specific
+ * penalties. A single-route assignment uses only Dijkstra, without A* query setup.
  *
  * @author Bart Jourquin
  */
@@ -178,14 +185,29 @@ public class ExactMFAssignment extends Assignment {
         return false;
       }
 
-      // Start counting before workers can process the first origin.
+      // Count the outer routing units before workers start: origins or destinations per group.
       int lengthOfTask = 0;
+      boolean destinationBased =
+          NodusC.exactMFAlgorithm == NodusC.ExactMFAlgorithm.DESTINATION_ASTAR;
       for (byte groupIndex = 0; groupIndex < (byte) virtualNet.getGroups().length; groupIndex++) {
+        Set<Integer> destinations = destinationBased ? new HashSet<>() : null;
         for (int nodeIndex = 0; nodeIndex < virtualNet.getVirtualNodeLists().length; nodeIndex++) {
-          if (virtualNet.getVirtualNodeLists()[nodeIndex].hasDemandForGroup(
+          if (destinationBased) {
+            LinkedList<ODCell> row =
+                virtualNet.getVirtualNodeLists()[nodeIndex].getDemandForGroup(
+                    virtualNet.getGroups()[groupIndex], odClass);
+            if (row != null) {
+              for (ODCell demand : row) {
+                destinations.add(demand.getDestinationNodeId());
+              }
+            }
+          } else if (virtualNet.getVirtualNodeLists()[nodeIndex].hasDemandForGroup(
               virtualNet.getGroups()[groupIndex], odClass)) {
             lengthOfTask++;
           }
+        }
+        if (destinationBased) {
+          lengthOfTask += destinations.size();
         }
       }
       nodusMapPanel.startProgress(lengthOfTask);

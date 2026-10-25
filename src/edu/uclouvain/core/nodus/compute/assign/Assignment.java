@@ -446,11 +446,7 @@ public abstract class Assignment implements Runnable {
         }
         computationCompleted = success;
       } finally {
-        computingTimes.finishAndPrint(
-            getClass().getSimpleName(),
-            assignmentParameters.getScenario(),
-            assignmentParameters.getThreads(),
-            computationCompleted);
+        saveComputingTimesReport(computationCompleted);
       }
 
       if (!success && !errorMessage.isEmpty()) {
@@ -518,6 +514,38 @@ public abstract class Assignment implements Runnable {
         nodusMapPanel.getAssignmentMenuItem().setEnabled(true);
       }
       nodusMapPanel.updateScenarioComboBox(true);
+    }
+  }
+
+  /** Optional reporting must not turn successfully published assignment results into a failure. */
+  private void saveComputingTimesReport(boolean completed) {
+    AssignmentComputingTimes times = assignmentParameters.getComputingTimes();
+    if (!times.isEnabled()) {
+      return;
+    }
+    try {
+      Class<?> method = getClass();
+      while (method.isAnonymousClass()) {
+        method = method.getSuperclass();
+      }
+      times.finishAndSave(
+          Paths.get(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)),
+          nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME),
+          method.getSimpleName(),
+          assignmentParameters.getScenario(),
+          assignmentParameters.getThreads(),
+          completed);
+    } catch (Exception failure) {
+      nodusProject
+          .getNodusMapPanel()
+          .showAssignmentMessage(
+              i18n.get(
+                      Assignment.class,
+                      "Computing_times_report_failed",
+                      "Could not save the assignment computing-time report:")
+                  + "\n"
+                  + failure.getMessage(),
+              JOptionPane.WARNING_MESSAGE);
     }
   }
 

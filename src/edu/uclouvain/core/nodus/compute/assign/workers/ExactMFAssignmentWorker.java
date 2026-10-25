@@ -25,10 +25,11 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerPhase;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
-import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapALT;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapAStar;
+import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDestinationAStar;
+import edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.CompactShortestPathGraph;
-import edu.uclouvain.core.nodus.compute.assign.shortestpath.LegacyBinaryHeapAStar;
+import edu.uclouvain.core.nodus.compute.assign.shortestpath.ReverseDijkstra;
 import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.modalsplit.Path;
 import edu.uclouvain.core.nodus.compute.modalsplit.PathsForMode;
@@ -42,20 +43,23 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CancellationException;
 
 /**
  * The exact multi-flow assignment computes one or several alternative routes for each mode/means
- * combination, with independent shortest-path searches and penalties for each OD pair to prevent
- * the shared-tree side effects described in <i> Jourquin B., A multi-flow multi-modal assignment
- * procedure on large freight transportation networks, Studies in Regional Science, Vol 35, n°4, pp.
- * 929- 946, 2005.</i>.
+ * combination, with independent penalties for each OD pair to prevent the shared-tree side effects
+ * described in <i> Jourquin B., A multi-flow multi-modal assignment procedure on large freight
+ * transportation networks, Studies in Regional Science, Vol 35, n°4, pp. 929- 946, 2005.</i>.
  *
- * <p>NodusC.exactMFAlgorithm selects geographic A*, safe zero-heuristic A*, or cost-based ALT. Fast
- * multi-flow shares one search across an OD row; Exact multi-flow searches separately for every
- * pair and alternative. ALT preprocessing is shared across the searches of this worker job.
+ * <p>The first, unpenalized routes share one Dijkstra search per origin and loading mode/means.
+ * NodusC.exactMFAlgorithm selects safe zero-heuristic A* for subsequent alternatives. The
+ * destination-based A* option instead shares reverse Dijkstra first routes and baseline bounds per
+ * destination and loading mode/means. All later searches and penalties remain separate for each OD
+ * pair. Tables belong to one group/cost-class worker job.
  *
  * @author Bart Jourquin
  */
@@ -71,6 +75,8 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
   int[] availableModeMeans;
 
   private BinaryHeapAStar shortestPath;
+
+  private BinaryHeapDijkstra firstRouteSearch;
 
   /**
    * Two hash tables. The first will contain the OD pairs between which at least one path was found,
@@ -106,15 +112,18 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
   boolean doAssignment() {
     try {
       return assignPaths();
+    } catch (CancellationException e) {
+      return false;
     } finally {
-      // In particular, release the large ALT tables before this worker picks up another job.
+      // Release destination trees and search storage before this worker picks up another job.
       shortestPath = null;
+      firstRouteSearch = null;
       edgeUpdates = null;
       graph = null;
     }
   }
 
-  /** Runs one group/class job with its own graph, penalties and optional landmark tables. */
+  /** Runs one group/class job with its own graph, penalties and optional destination trees. */
   private boolean assignPaths() {
     workerTimes.includePhases(
         WorkerPhase.RECONSTRUCTION,
@@ -126,38 +135,30 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     graph = virtualNet.generateAdjacencyList(groupIndex);
     CompactShortestPathGraph compactGraph = createCompactGraph();
     edgeUpdates = new MultiFlowEdgeUpdates(graph, compactGraph);
-
-    final WorkerPhase searchPhase;
-    switch (NodusC.exactMFAlgorithm) {
-      case LEGACY_ASTAR:
-        shortestPath = new LegacyBinaryHeapAStar(graph, compactGraph);
-        searchPhase = WorkerPhase.LEGACY_ASTAR;
-        break;
-      case ALT:
-        workerTimes.startPhase(WorkerPhase.ALT_PREPROCESSING);
-        try {
-          // Cost-based bounds require all later costs to stay at or above this baseline.
-          // Scripts can request negative markups; retain exact routing with a zero bound then.
-          shortestPath =
-              new BinaryHeapALT(
-                  graph,
-                  compactGraph,
-                  assignmentParameters.getCostMarkup() >= 0 ? BinaryHeapALT.DEFAULT_LANDMARKS : 0,
-                  this::isCancelled);
-        } catch (CancellationException e) {
-          return false;
-        } finally {
-          workerTimes.endPhase();
-        }
-        searchPhase = WorkerPhase.ALT;
-        break;
-      case IMPROVED_ASTAR:
-      default:
-        shortestPath = new BinaryHeapAStar(graph, compactGraph);
-        searchPhase = WorkerPhase.ASTAR;
-        break;
+    NodusC.ExactMFAlgorithm algorithm = NodusC.exactMFAlgorithm;
+    boolean destinationBased = algorithm == NodusC.ExactMFAlgorithm.DESTINATION_ASTAR;
+    if (!destinationBased) {
+      firstRouteSearch = new BinaryHeapDijkstra(graph, virtualNet, compactGraph);
+      workerTimes.includePhases(WorkerPhase.DIJKSTRA);
+    } else {
+      workerTimes.includePhases(WorkerPhase.REVERSE_DIJKSTRA);
     }
-    workerTimes.includePhases(searchPhase);
+
+    WorkerPhase searchPhase = null;
+    if (assignmentParameters.getNbIterations() > 1) {
+      switch (algorithm) {
+        case DESTINATION_ASTAR:
+          shortestPath = new BinaryHeapDestinationAStar(graph, compactGraph, this::isCancelled);
+          searchPhase = WorkerPhase.DESTINATION_ASTAR;
+          break;
+        case IMPROVED_ASTAR:
+        default:
+          shortestPath = new BinaryHeapAStar(graph, compactGraph);
+          searchPhase = WorkerPhase.ASTAR;
+          break;
+      }
+      workerTimes.includePhases(searchPhase);
+    }
     availableModeMeans = virtualNet.getAvailableModeMeans(groupIndex);
     paths = new Path[assignmentParameters.getNbIterations() * availableModeMeans.length];
 
@@ -178,6 +179,10 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     }
     modalSplitMethod.initializeGroup(currentGroup);
 
+    if (destinationBased) {
+      return assignDestinations(compactGraph, searchPhase);
+    }
+
     for (int nodeIndex = 0; nodeIndex < virtualNet.getVirtualNodeLists().length; nodeIndex++) {
 
       if (!updateProgressBar(nodeIndex)) {
@@ -196,159 +201,332 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
       if (demandList != null) {
         // Compute all the n shortest paths in the virtual network starting from here
         int beginNode = virtualNet.getVirtualNodeLists()[nodeIndex].getLoadingVirtualNodeId();
+        int[][] firstRoutePredecessors = computeFirstRoutes(nodeIndex, beginNode);
+        if (firstRoutePredecessors == null) {
+          return false;
+        }
 
         Iterator<ODCell> it = demandList.iterator();
         while (it.hasNext()) {
-          pathIdentity.clear();
-          int currentPathPropertiesIndex = 0;
-
-          // Get demand and num of unloading virtual node
-          ODCell demand = it.next();
-          int endNodeIndex =
-              virtualNet.getNodeIndexInVirtualNodeList(demand.getDestinationNodeId(), true);
-          int endNode = virtualNet.getVirtualNodeLists()[endNodeIndex].getUnloadingVirtualNodeId();
-
-          /*
-           * Compute "iteration" alternative paths for each mode/means combination
-           */
-          LinkedList<MFPathHeader> pathHeaders = new LinkedList<>();
-          for (int availableModeMean : availableModeMeans) {
-
-            /*
-             * Performance tip : only try to compute paths from here if there is a loading
-             *  possibility to the current mode/means combination (loading virtual links are
-             *   put at the end of the virtual node list.
-             */
-            VirtualNode vn =
-                virtualNet.getVirtualNodeLists()[nodeIndex].getVirtualNodeList().getLast();
-            LinkedList<VirtualLink> ll = vn.getVirtualLinkList();
-            boolean canLoadToCurrentModeMeansFromThisNode = false;
-            Iterator<VirtualLink> it2 = ll.iterator();
-            while (it2.hasNext()) {
-              VirtualLink vl = it2.next();
-              if (vl.getEndVirtualNode().getModeMeansKey() == availableModeMean) {
-                canLoadToCurrentModeMeansFromThisNode = true;
-                break;
-              }
-            }
-
-            /*
-             * Only open graph to current mode/means combination
-             */
-            if (canLoadToCurrentModeMeansFromThisNode) {
-              edgeUpdates.restrictLoading(availableModeMean);
-            }
-
-            for (int alternativePath = 0;
-                alternativePath < assignmentParameters.getNbIterations();
-                alternativePath++) {
-              // Compute shortest path tree
-              workerTimes.startPhase(searchPhase);
-              try {
-                shortestPath.compute(beginNode, endNode);
-              } finally {
-                workerTimes.endPhase();
-              }
-
-              // Mark the paths for all the destinations to reach and compute their costs
-              workerTimes.startPhase(WorkerPhase.RECONSTRUCTION);
-              try {
-                paths[currentPathPropertiesIndex] =
-                    markPaths(
-                        groupIndex,
-                        nodeIndex,
-                        shortestPath,
-                        currentPathPropertiesIndex,
-                        demand,
-                        pathHeaders);
-              } finally {
-                workerTimes.endPhase();
-              }
-
-              if (paths[currentPathPropertiesIndex] == null) {
-                return false;
-              }
-
-              /*
-               * Increase the costs in the adjacency list to make the already used links more
-               *  expensive (not for last iteration).
-               */
-              double costMarkup = 1 + assignmentParameters.getCostMarkup();
-              if (alternativePath < assignmentParameters.getNbIterations() - 1) {
-                edgeUpdates.increaseCosts(costMarkup);
-              }
-              currentPathPropertiesIndex++;
-            } // Next alternative path
-
-            // Restore only weights changed for this mode/means combination.
-            edgeUpdates.restoreWeights();
-            edgeUpdates.clearPathMarks();
-          } // Next mode/means
-
-          // Log lost paths if needed
-          if (assignmentParameters.isLogLostPaths()) {
-            logLostPaths();
-          }
-
-          // Compute the fraction of the demand to be assigned to each alternative path
-          // for this O-D cell
-          workerTimes.startPhase(WorkerPhase.MODAL_SPLITTING);
-          try {
-            if (!modalSplit(demand)) {
-              return false;
-            }
-          } finally {
-            workerTimes.endPhase();
-          }
-
-          // Apply modal marketShare to path headers
-          if (assignmentParameters.isSavePaths()) {
-
-            workerTimes.startPhase(WorkerPhase.HEADER_MATCHING);
-            try {
-              // Update the path headers in memory to compute the quantity on each path
-              Iterator<MFPathHeader> it3 = pathHeaders.iterator();
-              while (it3.hasNext()) {
-                MFPathHeader ph = it3.next();
-
-                if (ph.demand.getOriginNodeId() == demand.getOriginNodeId()
-                    && ph.demand.getDestinationNodeId() == demand.getDestinationNodeId()) {
-                  if (paths[ph.iteration].isValid) {
-                    double q = demand.getQuantity() * paths[ph.iteration].marketShare;
-                    if (!pathBuffer.savePathHeader(
-                        ph.iteration,
-                        demand,
-                        q,
-                        ph.weights,
-                        ph.loadingMode,
-                        ph.loadingMeans,
-                        ph.unloadingMode,
-                        ph.unloadingMeans,
-                        ph.nbTranshipments,
-                        ph.index)) {
-                      return false;
-                    }
-                  }
-                }
-              }
-              pathHeaders.clear();
-            } finally {
-              workerTimes.endPhase();
-            }
-          }
-
-          // Apply the modal split only to links that received path demand.
-          workerTimes.startPhase(WorkerPhase.VOLUME_DISTRIBUTION);
-          try {
-            edgeUpdates.spreadVolumes(groupIndex, paths);
-          } finally {
-            workerTimes.endPhase();
+          if (!assignOD(
+              nodeIndex, it.next(), firstRoutePredecessors, null, null, null, searchPhase)) {
+            return false;
           }
         } // end of the demand cell
       } // end of demand list
     } // Next node
 
     return true;
+  }
+
+  /** Uses identical reconstruction, modal split and OD-local penalties in both orientations. */
+  private boolean assignOD(
+      int nodeIndex,
+      ODCell demand,
+      int[][] firstRoutePredecessors,
+      ReverseDijkstra.Result[] destinationBounds,
+      boolean[] canLoad,
+      int[] scratch,
+      WorkerPhase searchPhase) {
+    int beginNode = virtualNet.getVirtualNodeLists()[nodeIndex].getLoadingVirtualNodeId();
+    pathIdentity.clear();
+    int currentPathPropertiesIndex = 0;
+
+    // Get demand and num of unloading virtual node
+    int endNodeIndex =
+        virtualNet.getNodeIndexInVirtualNodeList(demand.getDestinationNodeId(), true);
+    int endNode = virtualNet.getVirtualNodeLists()[endNodeIndex].getUnloadingVirtualNodeId();
+
+    /*
+     * Compute "iteration" alternative paths for each mode/means combination
+     */
+    LinkedList<MFPathHeader> pathHeaders = new LinkedList<>();
+    for (int modeIndex = 0; modeIndex < availableModeMeans.length; modeIndex++) {
+      int[] firstPredecessors;
+      if (destinationBounds == null) {
+        firstPredecessors = firstRoutePredecessors[modeIndex];
+      } else if (canLoad[modeIndex] && destinationBounds[modeIndex] != null) {
+        destinationBounds[modeIndex].copyPredecessors(beginNode, scratch);
+        firstPredecessors = scratch;
+        if (shortestPath != null) {
+          ((BinaryHeapDestinationAStar) shortestPath)
+              .setBounds(destinationBounds[modeIndex], assignmentParameters.getCostMarkup() >= 0);
+        }
+      } else {
+        firstPredecessors = null;
+      }
+      // As in Fast MF, an unavailable loading mode contributes no candidate routes.
+      if (firstPredecessors == null) {
+        for (int alternativePath = 0;
+            alternativePath < assignmentParameters.getNbIterations();
+            alternativePath++) {
+          paths[currentPathPropertiesIndex] = new Path();
+          paths[currentPathPropertiesIndex++].isValid = false;
+        }
+        continue;
+      }
+
+      edgeUpdates.restrictLoading(availableModeMeans[modeIndex]);
+
+      for (int alternativePath = 0;
+          alternativePath < assignmentParameters.getNbIterations();
+          alternativePath++) {
+        if (isCancelled()) {
+          return false;
+        }
+        int[] predecessors = firstPredecessors;
+        if (alternativePath > 0) {
+          // No path was marked for an unreachable first route, so penalties cannot
+          // change this OD/mode's reachability in later alternatives.
+          if (firstPredecessors[endNode] == 0) {
+            paths[currentPathPropertiesIndex] = new Path();
+            paths[currentPathPropertiesIndex++].isValid = false;
+            continue;
+          }
+          workerTimes.startPhase(searchPhase);
+          try {
+            shortestPath.compute(beginNode, endNode);
+          } finally {
+            workerTimes.endPhase();
+          }
+          predecessors = shortestPath.getPredecessors();
+        }
+
+        // Mark the paths for all the destinations to reach and compute their costs
+        workerTimes.startPhase(WorkerPhase.RECONSTRUCTION);
+        try {
+          paths[currentPathPropertiesIndex] =
+              markPaths(
+                  groupIndex,
+                  nodeIndex,
+                  predecessors,
+                  currentPathPropertiesIndex,
+                  demand,
+                  pathHeaders);
+        } finally {
+          workerTimes.endPhase();
+        }
+
+        if (paths[currentPathPropertiesIndex] == null) {
+          return false;
+        }
+
+        /*
+         * Increase the costs in the adjacency list to make the already used links more
+         *  expensive (not for last iteration).
+         */
+        double costMarkup = 1 + assignmentParameters.getCostMarkup();
+        if (alternativePath < assignmentParameters.getNbIterations() - 1) {
+          edgeUpdates.increaseCosts(costMarkup);
+        }
+        currentPathPropertiesIndex++;
+      } // Next alternative path
+
+      // Restore only weights changed for this mode/means combination.
+      edgeUpdates.restoreWeights();
+      edgeUpdates.clearPathMarks();
+    } // Next mode/means
+
+    // Log lost paths if needed
+    if (assignmentParameters.isLogLostPaths()) {
+      logLostPaths();
+    }
+
+    // Compute the fraction of the demand to be assigned to each alternative path
+    // for this O-D cell
+    workerTimes.startPhase(WorkerPhase.MODAL_SPLITTING);
+    try {
+      if (!modalSplit(demand)) {
+        return false;
+      }
+    } finally {
+      workerTimes.endPhase();
+    }
+
+    // Apply modal marketShare to path headers
+    if (assignmentParameters.isSavePaths()) {
+
+      workerTimes.startPhase(WorkerPhase.HEADER_MATCHING);
+      try {
+        // Update the path headers in memory to compute the quantity on each path
+        Iterator<MFPathHeader> it3 = pathHeaders.iterator();
+        while (it3.hasNext()) {
+          MFPathHeader ph = it3.next();
+
+          if (ph.demand.getOriginNodeId() == demand.getOriginNodeId()
+              && ph.demand.getDestinationNodeId() == demand.getDestinationNodeId()) {
+            if (paths[ph.iteration].isValid) {
+              double q = demand.getQuantity() * paths[ph.iteration].marketShare;
+              if (!pathBuffer.savePathHeader(
+                  ph.iteration,
+                  demand,
+                  q,
+                  ph.weights,
+                  ph.loadingMode,
+                  ph.loadingMeans,
+                  ph.unloadingMode,
+                  ph.unloadingMeans,
+                  ph.nbTranshipments,
+                  ph.index)) {
+                return false;
+              }
+            }
+          }
+        }
+        pathHeaders.clear();
+      } finally {
+        workerTimes.endPhase();
+      }
+    }
+
+    // Apply the modal split only to links that received path demand.
+    workerTimes.startPhase(WorkerPhase.VOLUME_DISTRIBUTION);
+    try {
+      edgeUpdates.spreadVolumes(groupIndex, paths);
+    } finally {
+      workerTimes.endPhase();
+    }
+    return true;
+  }
+
+  /** Holds only the current destination's mode trees; never caches trees across worker jobs. */
+  private boolean assignDestinations(
+      CompactShortestPathGraph compactGraph, WorkerPhase searchPhase) {
+    Map<Integer, List<DestinationDemand>> destinations = new LinkedHashMap<>();
+    for (int origin = 0; origin < virtualNet.getVirtualNodeLists().length; origin++) {
+      if (isCancelled()) {
+        return false;
+      }
+      LinkedList<ODCell> row =
+          virtualNet.getVirtualNodeLists()[origin].getDemandForGroup(currentGroup, odClass);
+      if (row == null || row.isEmpty()) {
+        continue;
+      }
+      boolean[] canLoad = loadingModes(origin);
+      for (ODCell demand : row) {
+        int target = virtualNet.getNodeIndexInVirtualNodeList(demand.getDestinationNodeId(), true);
+        destinations
+            .computeIfAbsent(target, key -> new ArrayList<>())
+            .add(new DestinationDemand(origin, demand, canLoad));
+      }
+    }
+    if (destinations.isEmpty()) {
+      return true;
+    }
+    ReverseDijkstra reverse;
+    workerTimes.startPhase(WorkerPhase.DESTINATION_SETUP);
+    try {
+      reverse = new ReverseDijkstra(graph, compactGraph, this::isCancelled);
+    } finally {
+      workerTimes.endPhase();
+    }
+    int[] scratch = new int[graph.length];
+    for (Map.Entry<Integer, List<DestinationDemand>> entry : destinations.entrySet()) {
+      if (isCancelled() || !updateProgress(assignmentProgressMessage())) {
+        return false;
+      }
+      int goal = virtualNet.getVirtualNodeLists()[entry.getKey()].getUnloadingVirtualNodeId();
+      ReverseDijkstra.Result[] trees = new ReverseDijkstra.Result[availableModeMeans.length];
+      for (int modeIndex = 0; modeIndex < availableModeMeans.length; modeIndex++) {
+        int requiredCount = 0;
+        for (DestinationDemand cell : entry.getValue()) {
+          if (cell.canLoad[modeIndex]) {
+            requiredCount++;
+          }
+        }
+        if (requiredCount == 0) {
+          continue;
+        }
+        int[] requiredOrigins = new int[requiredCount];
+        int requiredIndex = 0;
+        for (DestinationDemand cell : entry.getValue()) {
+          if (cell.canLoad[modeIndex]) {
+            requiredOrigins[requiredIndex++] =
+                virtualNet.getVirtualNodeLists()[cell.origin].getLoadingVirtualNodeId();
+          }
+        }
+        edgeUpdates.restrictLoading(availableModeMeans[modeIndex]);
+        try {
+          workerTimes.startPhase(WorkerPhase.REVERSE_DIJKSTRA);
+          try {
+            trees[modeIndex] = reverse.compute(goal, requiredOrigins, this::isCancelled);
+          } finally {
+            workerTimes.endPhase();
+          }
+        } finally {
+          edgeUpdates.restoreWeights();
+        }
+        ReverseDijkstra.Result tree = trees[modeIndex];
+        workerTimes.addReverseSearch(
+            tree.stoppedEarly(), tree.getSettledNodeCount(), tree.getScannedEdgeCount());
+      }
+      for (DestinationDemand cell : entry.getValue()) {
+        if (!assignOD(cell.origin, cell.demand, null, trees, cell.canLoad, scratch, searchPhase)) {
+          return false;
+        }
+      }
+      if (shortestPath != null) {
+        ((BinaryHeapDestinationAStar) shortestPath).clearBounds();
+      }
+    }
+    return true;
+  }
+
+  private static final class DestinationDemand {
+    final int origin;
+    final ODCell demand;
+    final boolean[] canLoad;
+
+    DestinationDemand(int origin, ODCell demand, boolean[] canLoad) {
+      this.origin = origin;
+      this.demand = demand;
+      this.canLoad = canLoad;
+    }
+  }
+
+  private boolean[] loadingModes(int nodeIndex) {
+    boolean[] result = new boolean[availableModeMeans.length];
+    VirtualNode loadingNode =
+        virtualNet.getVirtualNodeLists()[nodeIndex].getVirtualNodeList().getLast();
+    for (VirtualLink link : loadingNode.getVirtualLinkList()) {
+      int modeMeans = link.getEndVirtualNode().getModeMeansKey();
+      for (int modeIndex = 0; modeIndex < availableModeMeans.length; modeIndex++) {
+        result[modeIndex] |= availableModeMeans[modeIndex] == modeMeans;
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Shares the original-cost trees only within this origin and group/class. Snapshots survive later
+   * OD-specific searches but are discarded before processing the next origin. Null entries
+   * represent modes/means that cannot be loaded here, never unrestricted fallback searches.
+   */
+  private int[][] computeFirstRoutes(int nodeIndex, int beginNode) {
+    int[][] predecessors = new int[availableModeMeans.length][];
+    boolean[] canLoad = loadingModes(nodeIndex);
+    for (int modeIndex = 0; modeIndex < availableModeMeans.length; modeIndex++) {
+      if (isCancelled()) {
+        return null;
+      }
+      int modeMeans = availableModeMeans[modeIndex];
+      if (!canLoad[modeIndex]) {
+        continue;
+      }
+      edgeUpdates.restrictLoading(modeMeans);
+      try {
+        workerTimes.startPhase(WorkerPhase.DIJKSTRA);
+        try {
+          firstRouteSearch.compute(beginNode, demandList);
+        } finally {
+          workerTimes.endPhase();
+        }
+        predecessors[modeIndex] = firstRouteSearch.getPredecessors().clone();
+      } finally {
+        edgeUpdates.restoreWeights();
+      }
+    }
+    return predecessors;
   }
 
   private HashMap<Integer, PathsForMode> getPaths() {
@@ -501,7 +679,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
   private Path markPaths(
       byte groupIndex,
       int nodeIndex,
-      BinaryHeapAStar shortestPath,
+      int[] pi,
       int iteration,
       ODCell demand,
       LinkedList<MFPathHeader> pathHeaders) {
@@ -541,7 +719,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     int mode = -1;
     int beginNode = virtualNodeList[nodeIndex].getLoadingVirtualNodeId();
     Path path = new Path();
-    int[] pi = shortestPath.getPredecessors();
     List<Integer> linkIds = new ArrayList<>();
     while (currentNode != beginNode) {
       // Predecessor
@@ -575,7 +752,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
         if (vl.getType() == VirtualLink.TYPE_TRANSHIP) {
           intermodalModeKey *=
               NodusC.MAXMM * vl.getBeginVirtualNode().getMode() + vl.getEndVirtualNode().getMode();
-          mode = intermodalModeKey;
           path.intermodal = true;
           nbTranshipments++;
         }
@@ -632,7 +808,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
       }
     }
 
-    path.intermodalModeKey = mode;
+    path.intermodalModeKey = path.intermodal ? intermodalModeKey : mode;
     path.loadingMode = loadingMode;
     path.loadingMeans = loadingMeans;
     // path.weight = weight;
@@ -689,20 +865,18 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
   private boolean updateProgressBar(int nodeIndex) {
     if (virtualNet.getVirtualNodeLists()[nodeIndex].hasDemandForGroup(currentGroup, odClass)) {
-      String s = null;
-      if (virtualNet.getNbODClasses() > 1) {
-        s =
-            MessageFormat.format(
-                i18n.get(Assignment.class, "Assignment_for_class", "Assignment for class {0}"),
-                odClass);
-      } else {
-        s = i18n.get(Assignment.class, "Assignment", "Assignment");
-      }
-
-      if (!updateProgress(s)) {
+      if (!updateProgress(assignmentProgressMessage())) {
         return false;
       }
     }
     return true;
+  }
+
+  private String assignmentProgressMessage() {
+    if (virtualNet.getNbODClasses() > 1) {
+      return MessageFormat.format(
+          i18n.get(Assignment.class, "Assignment_for_class", "Assignment for class {0}"), odClass);
+    }
+    return i18n.get(Assignment.class, "Assignment", "Assignment");
   }
 }

@@ -25,8 +25,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.uclouvain.core.nodus.NodusC;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import java.util.regex.Matcher;
@@ -37,15 +42,31 @@ final class ComputingTimesTestSupport implements AutoCloseable {
   private final boolean previous = NodusC.displayComputingTimes;
   final Clock clock = new Clock();
   final AssignmentComputingTimes audit;
+  final Path directory;
 
   ComputingTimesTestSupport(boolean enabled) {
     NodusC.displayComputingTimes = enabled;
+    try {
+      directory = Files.createTempDirectory("nodus-computing-times-");
+    } catch (IOException failure) {
+      throw new UncheckedIOException(failure);
+    }
     audit = new AssignmentComputingTimes(clock);
     audit.startAssignment();
   }
 
   String report(boolean success) {
-    return capture(() -> audit.finishAndPrint("test", 7, 2, success));
+    try {
+      Path report = audit.finishAndSave(directory, "test", "test", 7, 2, success);
+      return report == null ? "" : Files.readString(report, StandardCharsets.UTF_8);
+    } catch (IOException failure) {
+      throw new UncheckedIOException(failure);
+    }
+  }
+
+  static String report(AssignmentParameters parameters) throws IOException {
+    Path report = parameters.getComputingTimes().getReportPath();
+    return report == null ? "" : Files.readString(report, StandardCharsets.UTF_8);
   }
 
   static String capture(Runnable action) {
@@ -72,7 +93,12 @@ final class ComputingTimesTestSupport implements AutoCloseable {
 
   private static String value(String report, String label, String suffix) {
     Matcher match =
-        Pattern.compile("(?m)^\\h*" + Pattern.quote(label + ":") + "\\h+(\\S+)" + suffix + "$")
+        Pattern.compile(
+                "<tr><td>"
+                    + Pattern.quote(AssignmentComputingTimesReport.escape(label + ":"))
+                    + "</td><td>(\\S+)"
+                    + suffix
+                    + "</td></tr>")
             .matcher(report);
     assertTrue(match.find(), () -> "Missing report row: " + label + "\n" + report);
     return match.group(1);
@@ -81,6 +107,14 @@ final class ComputingTimesTestSupport implements AutoCloseable {
   @Override
   public void close() {
     NodusC.displayComputingTimes = previous;
+    try (var files = Files.walk(directory)) {
+      for (Path file :
+          files.sorted(Comparator.reverseOrder()).collect(java.util.stream.Collectors.toList())) {
+        Files.delete(file);
+      }
+    } catch (IOException failure) {
+      throw new UncheckedIOException(failure);
+    }
   }
 
   /** Explicit timestamps by default; a one-second step also gives deterministic search tails. */

@@ -157,55 +157,125 @@ for the workflow mechanism.
 
 [ant-ci]: https://docs.github.com/en/actions/tutorials/build-and-test-code/java-with-ant
 
-## Comparing Exact Multi-flow search times
+## Assignment computing-time HTML reports
 
-Before running an Exact Multi-flow assignment, choose an algorithm in the Groovy console or a
-startup script:
+Set `NodusC.displayComputingTimes = true` before starting an assignment to save its performance
+report as a standalone UTF-8 HTML file in the project directory. The switch is sampled at the start
+of the run and is off by default. All assignment methods use this output: All-or-Nothing,
+Incremental, equilibrium, Fast/Exact Multi-flow and static/dynamic time-dependent assignments.
+Timings are no longer printed to the terminal.
+
+Reports use the same table layout, light header shading, timestamp and print styling as the
+modal-choice parameter report. They include the scenario, assignment method, configured threads,
+completion status, wall-time totals, outside-phase breakdown, worker timings and search-call counts.
+Fast MF's optional reachability diagnostics are included in their own tables.
+
+Filenames distinguish scenario, method and Exact MF selector. Examples:
+
+```text
+demo_scenario27_FastMFAssignment_computing_times.html
+demo_scenario27_ExactMFAssignment_IMPROVED_ASTAR_computing_times.html
+demo_scenario27_ExactMFAssignment_DESTINATION_ASTAR_computing_times.html
+```
+
+Re-running the same scenario/method/selector replaces that report; other algorithm reports remain
+available for comparison. Failed/cancelled runs are marked explicitly. Reports are staged before
+replacement; a write failure retains the previous file and reports a warning without invalidating
+published assignment results. HTML rendering and saving are excluded from the measured times.
+`parameters.getComputingTimes().getReportPath()` returns the saved file, or `null` when no report
+was saved in the current run. Reports are not opened automatically.
+
+### Comparing Exact Multi-flow search times
+
+Before running an Exact Multi-flow assignment, choose its search algorithm in the Groovy console
+or a startup script:
 
 ```groovy
 import edu.uclouvain.core.nodus.NodusC
 import edu.uclouvain.core.nodus.NodusC.ExactMFAlgorithm
 
 NodusC.displayComputingTimes = true
-NodusC.exactMFAlgorithm = ExactMFAlgorithm.ALT
+NodusC.exactMFAlgorithm = ExactMFAlgorithm.DESTINATION_ASTAR
 ```
 
-`NodusC.exactMFAlgorithm` replaces the former `NodusC.useLegacyAStar` boolean:
+`NodusC.exactMFAlgorithm` accepts these choices:
 
-| Selector value | Search | Timing row |
+| Selector value | Search for subsequent routes | Timing row |
 | --- | --- | --- |
-| `ExactMFAlgorithm.LEGACY_ASTAR` | Historical geographic heuristic | `Legacy A*:` |
 | `ExactMFAlgorithm.IMPROVED_ASTAR` | Safe zero heuristic (default), giving Dijkstra ordering | `Improved A*:` |
-| `ExactMFAlgorithm.ALT` | A* with directed, cost-based landmark lower bounds | `ALT:` |
+| `ExactMFAlgorithm.DESTINATION_ASTAR` | A* with reverse-Dijkstra bounds for the current destination | `Destination A*:` |
 
-Each worker job samples the selector when creating its search, so change it before starting the
-assignment. Keep assignment settings and `NodusC.useCompactShortestPaths` identical between runs.
-All three algorithms support compact arrays and original linked graph/heap storage. The legacy
-heuristic can select nonoptimal routes when geographic distance overestimates transport costs.
-ALT can choose different equal-cost routes; the subsequent penalties can then generate different
-alternatives even though each search minimizes its current penalized cost.
+Improved A* uses a shared forward Dijkstra first pass: one search per origin and
+available loading mode/means, within the current commodity group and OD cost class. Its predecessor trees provide
+the first route to every requested destination. Origins that cannot load a particular mode/means
+skip that combination. Destinations unreachable in a first tree need no subsequent searches for
+that combination. Penalties for later routes remain independent for every OD pair, and original
+weights are restored between combinations. Intermodal routes retain their complete modal grouping
+key, as in Fast Multi-flow.
 
+With `Nb routes = 1`, all choices use only Dijkstra (forward or reverse), without constructing an
+A* query search. Each worker job samples the selector when creating
+its searches, so change it before starting the assignment. Keep assignment settings and
+`NodusC.useCompactShortestPaths` identical between runs.
+Both algorithms support compact arrays and original linked graph/heap storage. The unused
+legacy geographic A* implementation and its selector have been removed.
+Destination-based A* can choose different equal-cost routes; the subsequent penalties can
+then generate different alternatives even though each search minimizes its current penalized cost.
+
+The `Dijkstra:` row measures shared first-route searches; the selected algorithm's row measures
+subsequent OD-specific searches. Search-call counts appear in a separate HTML table for each algorithm.
 Every search row measures the complete `compute()` call, including per-search initialization.
 Rows sum elapsed time across worker jobs and may exceed wall time with parallel workers. Graph
-and heap construction remain worker setup for both A* variants. ALT additionally reports
-`ALT preprocessing:`, measuring its construction and landmark preprocessing once per worker job.
-Use `Total elapsed:` to compare complete assignments, including ALT setup; comparing search rows
-alone omits its preprocessing cost. Repeat runs to account for JVM warm-up and timing variation.
+and heap construction remain worker setup for improved A*.
+Use `Total elapsed:` to compare complete assignments, including destination-bound setup; comparing
+query rows alone omits the reverse searches and other preparation costs. Repeat runs to account for JVM warm-up and timing variation.
 Auditing is sampled at assignment start and does not read the timing clock when disabled.
 
-ALT selects up to 16 deterministic landmarks, preferring interior transport nodes and spreading
-landmarks using baseline costs. It stores costs to and from each landmark, taking approximately
-`16 * landmarks * virtualNodes` bytes for distance tables per worker job, plus search arrays.
-Preprocessing uses the group's original unrestricted costs before loading restrictions and
-OD-specific markups. The same tables and lazily cached destination bounds serve all searches in
-that job; increasing costs, blocking edges, and restoring original costs keep the bounds valid.
-Each new assignment rebuilds the tables for its cost functions. Negative cost markups requested
-from scripts disable landmark bounds and retain exact zero-heuristic searches. Edge costs must
-remain nonnegative, as for the existing Dijkstra-based implementation. ALT preprocessing honors
-assignment cancellation.
+First-route predecessor snapshots use approximately `4 * eligibleLoadingModes * virtualNodes`
+bytes per worker, in addition to the Dijkstra search arrays. They are discarded at the next origin;
+no trees are reused across origins, commodity groups, cost classes or assignment runs.
+
+Destination-based A* groups the job's OD cells by destination. For each destination and eligible
+loading mode/means, a reverse Dijkstra search computes the original-cost distances to that
+unloading node. It stops as soon as all distinct required origins have final distances. Its next-hop
+tree supplies first routes for those origins; its bounds guide later OD-specific A* searches after
+markups. If an origin is unreachable, the search exhausts its finite frontier as before.
+
+If the final settled distance is R, unexplored nodes have baseline distance at least R. Their bound
+is therefore R, rounded down for numerical safety. This caps the full distance heuristic at R.
+Unexplored nodes remain eligible for forward queries, including penalized detours outside the
+reverse tree; their tentative labels are never used as exact distances or unreachable flags.
+Loading restrictions are included in these bounds. The reverse index references live costs and is
+built once per job. Each mode's bounds remain separate and costs
+are restored after every OD/mode, preserving independent penalties. Negative markups disable A*
+bounds and retain zero-heuristic queries. Progress counts destinations per group instead of origins.
+
+The report includes `Destination A* setup:` for reverse-index construction, `Reverse Dijkstra:` for
+first routes and bounds (including distance-table preparation), and `Destination A*:` for subsequent
+OD searches. Both search types have call counts. A separate `Reverse Dijkstra work` table reports
+completed searches, searches stopped after reaching their required origins, exhausted searches,
+nodes settled and edges scanned. Compare `Total elapsed:` with improved A* to include
+all setup costs. With one route there is no `Destination A*:` query row.
+
+Only the current destination's tables are retained: approximately
+`20 * eligibleLoadingModes * virtualNodes` bytes per worker for distances, rounded bounds and next
+hops, plus the reverse index, origin request markers, query arrays, one predecessor scratch array
+and the OD grouping index.
+No tables survive a group/class job or assignment run. This option shares reverse searches per
+destination to obtain cost-based, constant-time bounds on many OD queries. Early stopping reduces
+reverse work but can weaken the bounds and increase forward-query work; compare complete runs.
+A speedup depends on the network, demand pattern, number of modes and markups; benchmark complete assignments. Equal-cost
+first routes may differ from forward Dijkstra and can produce different subsequent alternatives.
 
 ## Coverage
 
+- `BinaryHeapDestinationAStarTest`: independent Floyd-Warshall comparisons across tiny/large costs,
+  directed components, zero-cost cycles, parallel/nonfinite edges, penalties, restrictions, restoration,
+  destination switching, tree isolation, zero-bound fallback and cancellation. Full and early-stopped
+  trees are compared with independent reference costs; penalized routes can pass through unexplored
+  nodes. Covers duplicate/empty origin sets, unreachable origins, safe capped bounds and reduced
+  reverse work. Assignment tests compare
+  saved routes/volumes with improved A*, including multiple origins, groups, classes and both storage modes.
 - `CommentedPropertiesTest`, `PropertiesFileSaveTest`, `NodusProjectPropertiesTest`: standard Java
   property syntax, comments and entry order, new/removed settings, escaped keys, Unicode and multiline
   values. Injected write/flush/close/replacement failures preserve existing project and local settings
@@ -568,21 +638,20 @@ assignment cancellation.
   route. Seeded networks with zero and nonzero coordinates are checked against an independent
   Floyd-Warshall reference, including reconstructed predecessor-path costs. A* uses a zero heuristic:
   geographic distance is not a guaranteed lower bound for user-defined transport costs.
-  Separate legacy checks retain the previous heuristic, heap behavior and known overestimate for
-  performance comparisons with either graph representation.
-  Unreachable legacy searches remain quiet and match Dijkstra's reachability across disconnected
-  components, zero-cost cycles, blocked edges, markups and restoration, using both representations.
-- `BinaryHeapALTTest`: directed landmark queries against an independent Floyd-Warshall reference
-  across cost scales, disconnected components, parallel edges, zero-cost cycles, markups, blocked
-  edges and restoration. Covers useful nongeographic bounds, label reopening, sparse resets,
-  non-finite costs, overflowing distances, zero-landmark fallback and preprocessing cancellation.
 - `ExactMultiFlowCostScaleTest`: H2/HSQLDB assignments with linked/compact storage, serial/concurrent
   group workers and one/two alternatives. Checks a cheaper route travelling away from its goal,
   zero-cost movement, changed costs on reruns, proportional route shares, stored path costs,
   per-link/group flows and preserved demand. Exact MF retains separate searches and cost penalties
-  per OD pair. These checks do not benchmark large-network search times.
-  The comparison selector is exercised on successive runs with all three engines, both graph
-  representations and worker counts, checking the actual route and flow differences of the legacy search.
+  per OD pair for additional routes. These checks do not benchmark large-network search times.
+  The comparison selector is exercised on successive runs with both engines, both graph
+  representations and worker counts, checking the expected Dijkstra first routes.
+- `ExactMultiFlowFirstRouteIntegrationTest`: both selectors on H2/HSQLDB with linked/compact
+  storage and concurrent group jobs. One-route outputs match Fast MF for multiple destinations and
+  origins, including a cheaper route travelling away from its goal and unavailable loading modes.
+  A recording modal-choice method checks separate unimodal/intermodal choice sets. Independently
+  known second routes distinguish Exact MF's OD-local penalties from Fast MF's shared penalties.
+  Optional timing counts verify first-route trees per eligible origin/mode or destination/mode and the expected
+  number of subsequent pair searches. Single-route runs omit A* query searches.
 - `RealLinkInitializerTest`: EsriPolyline and OMPoly lengths from declared degree/radian inputs,
   endpoint fallback near the equator/prime meridian and across the date line, reversed paths and
   intermediate vertices. Uses an independent haversine reference. Checks missing/degenerate and
@@ -684,12 +753,21 @@ assignment cancellation.
   per-thread database subtraction, nested exclusive coordinator phases, nested path-output calls,
   partial failed stages, disabled audits, once-only merging/reporting and reset between runs.
   Counters from a worker belonging to an earlier assignment cannot enter a later report.
+- `AssignmentComputingTimesReportTest`: standalone UTF-8 HTML tables, escaped names, timestamps,
+  exact timing/count values, independent scenario/method/selector filenames, safe replacement and
+  staging cleanup. Disabled auditing does not access files; failed runs retain their status, and
+  the Exact MF selector is sampled at assignment start.
 - `ComputingTimesAssignmentIntegrationTest`: fast and exact coordinators produce identical saved
   paths, costs and network flows with auditing disabled, enabled and disabled again, using both
   graph representations and serial/concurrent workers. Disconnected loading-mode alternatives
   exercise the real reachability-observer wiring and its per-mode resets. Exact MF covers
-  legacy, zero-heuristic and ALT searches. A controlled clock verifies positive search timings for
-  all three choices, separate ALT preprocessing and no timing-clock reads when auditing is disabled.
+  zero-heuristic and destination-based searches. A controlled clock verifies positive search
+  timings for both choices, separate reverse-Dijkstra/setup timings,
+  early-stop/exhaustion counts and no timing-clock reads when auditing is disabled.
+  HTML reports are also checked for All-or-Nothing, Incremental, MSA, Frank-Wolfe and incremental
+  Frank-Wolfe assignments. An injected report-save failure warns without invalidating the saved
+  assignment. `TimeDependentAssignmentIntegrationTest` verifies HTML reporting for both timed
+  methods on H2 and HSQLDB while preserving all reference flows.
 - `MultiFlowEdgeUpdatesTest`: shared-edge penalties, loading restrictions on intermediate
   nodes, separate lifetimes of path marks and pending demand, and restoration between
   searches. Each case runs against linked and compact storage and checks resulting routes

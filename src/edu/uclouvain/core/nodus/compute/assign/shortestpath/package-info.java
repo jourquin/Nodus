@@ -24,8 +24,8 @@
  *
  * <p>{@link edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDijkstra}, {@link
  * edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapAStar} and {@link
- * edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapALT} compute path weights and
- * predecessor information on the virtual-network adjacency structure. {@link
+ * edu.uclouvain.core.nodus.compute.assign.shortestpath.BinaryHeapDestinationAStar} compute path
+ * weights and predecessor information on the virtual-network adjacency structure. {@link
  * edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode} retains the connection to
  * virtual links for path reconstruction and volume updates.
  *

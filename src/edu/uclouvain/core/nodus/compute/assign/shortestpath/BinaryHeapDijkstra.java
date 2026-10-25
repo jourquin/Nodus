@@ -35,9 +35,8 @@ import java.util.LinkedList;
  * <p>Algorithm reference:
  *
  * <ul>
- *   <li>E. W. Dijkstra (1959).
- *       <a href="https://doi.org/10.1007/BF01386390">A note on two problems in connexion with
- *       graphs</a>. <i>Numerische Mathematik</i>, 1, pp. 269-271.
+ *   <li>E. W. Dijkstra (1959). <a href="https://doi.org/10.1007/BF01386390">A note on two problems
+ *       in connexion with graphs</a>. <i>Numerische Mathematik</i>, 1, pp. 269-271.
  * </ul>
  *
  * @author Bart Jourquin
@@ -428,8 +427,8 @@ public class BinaryHeapDijkstra {
   }
 
   /**
-   * Reopens a settled node for an improved label in landmark A*. Missing landmark distances can
-   * make its admissible bounds inconsistent. The slot and node were already touched before being
+   * Reopens a settled node for an improved label in destination-based A*. Rounding guards can make
+   * its admissible bounds inconsistent. The slot and node were already touched before being
    * extracted, so the normal sparse reset also covers reinsertion.
    */
   final void reopen(int node) {

@@ -26,17 +26,20 @@ import static edu.uclouvain.core.nodus.compute.assign.ComputingTimesTestSupport.
 import static edu.uclouvain.core.nodus.compute.assign.ComputingTimesTestSupport.seconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusC.ExactMFAlgorithm;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
@@ -53,6 +56,69 @@ import org.junit.jupiter.api.parallel.Resources;
 @Timeout(30)
 class ComputingTimesAssignmentIntegrationTest {
   @TempDir Path directory;
+
+  @TestFactory
+  Stream<DynamicTest> htmlReportsCoverAllStaticAssignmentMethods() {
+    java.util.Map<String, java.util.function.Function<AssignmentParameters, Assignment>> methods =
+        new java.util.LinkedHashMap<>();
+    methods.put("All-or-Nothing", AllOrNothingAssignment::new);
+    methods.put("Incremental", IncrementalAssignment::new);
+    methods.put("MSA", MSAAssignment::new);
+    methods.put("Frank-Wolfe", FrankWolfeAssignment::new);
+    methods.put("Incremental Frank-Wolfe", IncFrankWolfeAssignment::new);
+    return methods
+        .entrySet()
+        .stream()
+        .map(
+            method ->
+                dynamicTest(
+                    method.getKey(),
+                    () -> {
+                      boolean previous = NodusC.displayComputingTimes;
+                      try (AssignmentTestProject project = new AssignmentTestProject(directory)) {
+                        NodusC.displayComputingTimes = true;
+                        AssignmentParameters parameters = project.parameters(4);
+                        parameters.setNbIterations(3);
+                        Assignment assignment = method.getValue().apply(parameters);
+                        String output = capture(() -> project.run(assignment, 2));
+                        assertFalse(output.contains("Computing times:"));
+                        Path saved = parameters.getComputingTimes().getReportPath();
+                        assertEquals(directory.toAbsolutePath(), saved.getParent());
+                        String html = Files.readString(saved);
+                        assertTrue(html.contains(assignment.getClass().getSimpleName()), html);
+                        assertTrue(html.contains("Total elapsed:"), html);
+                        assertTrue(html.contains("Dijkstra searches:"), html);
+                        assertTrue(html.endsWith("</body></html>"), html);
+                      } finally {
+                        NodusC.displayComputingTimes = previous;
+                      }
+                    }));
+  }
+
+  @Test
+  void optionalReportFailureDoesNotInvalidatePublishedAssignmentOutputs() throws Exception {
+    boolean previous = NodusC.displayComputingTimes;
+    try (AssignmentTestProject project = new AssignmentTestProject(directory)) {
+      NodusC.displayComputingTimes = true;
+      Path destination =
+          AssignmentComputingTimesReport.reportPath(
+              directory, "mini", "AllOrNothingAssignment", 1, ExactMFAlgorithm.IMPROVED_ASTAR);
+      Files.createDirectory(destination);
+      Path marker = Files.writeString(destination.resolve("marker"), "Previous output");
+      AssignmentParameters parameters = project.parameters(4);
+      project.run(new AllOrNothingAssignment(parameters), 2, 1);
+      assertEquals(140, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 0.005);
+      assertEquals("Previous output", Files.readString(marker));
+      assertNull(parameters.getComputingTimes().getReportPath());
+      try (var files = Files.list(directory)) {
+        assertFalse(
+            files.anyMatch(
+                file -> file.getFileName().toString().startsWith(".nodus-computing-times-")));
+      }
+    } finally {
+      NodusC.displayComputingTimes = previous;
+    }
+  }
 
   @TestFactory
   Stream<DynamicTest> auditingPreservesFastAndExactResultsWithBothGraphsAndWorkerCounts() {
@@ -120,29 +186,45 @@ class ComputingTimesAssignmentIntegrationTest {
         parameters.setModalSplitMethodName("Proportional");
         final Assignment assignment =
             exact ? new ExactMFAssignment(parameters) : new FastMFAssignment(parameters);
-        String report = capture(() -> project.run(assignment, 2));
-        assertEquals(enabled, report.contains("Computing times:"));
+        String output = capture(() -> project.run(assignment, 2));
+        assertFalse(output.contains("Computing times:"), output);
+        String report = ComputingTimesTestSupport.report(parameters);
+        assertEquals(enabled, report.contains("<h1>Nodus assignment computing times</h1>"));
         assertEquals(enabled && !exact, report.contains("unreachable-destination diagnostic"));
         if (enabled) {
           assertTrue(report.contains("completed"), report);
           String label =
               !exact
                   ? "Dijkstra"
-                  : algorithm == ExactMFAlgorithm.ALT
-                      ? "ALT"
-                      : algorithm == ExactMFAlgorithm.LEGACY_ASTAR ? "Legacy A*" : "Improved A*";
+                  : algorithm == ExactMFAlgorithm.DESTINATION_ASTAR
+                      ? "Destination A*"
+                      : "Improved A*";
           assertTrue(report.contains(label + ":"), report);
           assertTrue(seconds(report, label) > 0, report);
-          assertEquals(
-              exact && algorithm == ExactMFAlgorithm.ALT, report.contains("ALT preprocessing:"));
-          if (exact && algorithm == ExactMFAlgorithm.ALT) {
-            assertTrue(seconds(report, "ALT preprocessing") > 0, report);
+          boolean destinationBased = exact && algorithm == ExactMFAlgorithm.DESTINATION_ASTAR;
+          assertEquals(destinationBased, report.contains("Reverse Dijkstra work"));
+          if (destinationBased) {
+            assertEquals(3, count(report, "Completed reverse searches"));
+            assertEquals(2, count(report, "Stopped after reaching required origins"));
+            assertEquals(1, count(report, "Exhausted finite frontier"));
+            assertTrue(count(report, "Reverse nodes settled") > 0);
+            assertTrue(count(report, "Reverse edges scanned") > 0);
           }
           assertTrue(report.contains("Outside-phase breakdown"), report);
           if (!exact) {
             assertEquals(12, count(report, "Completed Dijkstra searches"));
             assertEquals(4, count(report, "Searches ending with unreachable destinations"));
             assertEquals(3, count(report, "Potentially entirely skippable searches"));
+          } else {
+            String firstLabel =
+                algorithm == ExactMFAlgorithm.DESTINATION_ASTAR ? "Reverse Dijkstra" : "Dijkstra";
+            assertTrue(seconds(report, firstLabel) > 0, report);
+            assertEquals(3, count(report, firstLabel + " searches"), report);
+            assertEquals(
+                algorithm == ExactMFAlgorithm.DESTINATION_ASTAR,
+                report.contains("Destination A* setup:"));
+            // The disconnected mode gets a first tree but no further OD searches.
+            assertEquals(6, count(report, label + " searches"), report);
           }
         }
         assertEquals(enabled, clock.reads() > 0);

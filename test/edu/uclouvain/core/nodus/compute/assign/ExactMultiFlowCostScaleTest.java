@@ -57,7 +57,9 @@ class ExactMultiFlowCostScaleTest {
         for (int threads : new int[] {1, 4}) {
           for (int alternatives : new int[] {1, 2}) {
             for (ExactMFAlgorithm algorithm :
-                new ExactMFAlgorithm[] {ExactMFAlgorithm.IMPROVED_ASTAR, ExactMFAlgorithm.ALT}) {
+                new ExactMFAlgorithm[] {
+                  ExactMFAlgorithm.IMPROVED_ASTAR, ExactMFAlgorithm.DESTINATION_ASTAR
+                }) {
               tests.add(
                   dynamicTest(
                       "HSQLDB="
@@ -123,7 +125,7 @@ class ExactMultiFlowCostScaleTest {
   }
 
   @TestFactory
-  List<DynamicTest> switchingTheSelectorChoosesEachSearchOnTheNextRun() {
+  List<DynamicTest> singleRouteUsesDijkstraRegardlessOfSelectorOrPreviousRun() {
     final List<DynamicTest> tests = new ArrayList<>();
     for (boolean hsql : new boolean[] {false, true}) {
       for (boolean compact : new boolean[] {false, true}) {
@@ -155,18 +157,18 @@ class ExactMultiFlowCostScaleTest {
       parameters.setModalSplitMethodName("Proportional");
       for (ExactMFAlgorithm algorithm :
           new ExactMFAlgorithm[] {
-            ExactMFAlgorithm.IMPROVED_ASTAR, ExactMFAlgorithm.LEGACY_ASTAR,
-            ExactMFAlgorithm.ALT, ExactMFAlgorithm.IMPROVED_ASTAR
+            ExactMFAlgorithm.IMPROVED_ASTAR,
+            ExactMFAlgorithm.DESTINATION_ASTAR,
+            ExactMFAlgorithm.IMPROVED_ASTAR
           }) {
         NodusC.exactMFAlgorithm = algorithm;
-        boolean legacy = algorithm == ExactMFAlgorithm.LEGACY_ASTAR;
         project.run(new ExactMFAssignment(parameters), 2);
         assertEquals(2, project.number("SELECT COUNT(*) FROM mini_paths1_header"));
         for (int group : new int[] {1, 2}) {
           final double quantity = group * 210;
-          assertRoute(project, group, 11, legacy ? quantity : 0, 0.5);
-          assertRoute(project, group, 12, legacy ? 0 : quantity, 0.2);
-          assertRoute(project, group, 13, legacy ? 0 : quantity, 0.2);
+          assertRoute(project, group, 11, 0, 0.5);
+          assertRoute(project, group, 12, quantity, 0.2);
+          assertRoute(project, group, 13, quantity, 0.2);
         }
         assertEquals(630, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 0.001);
       }

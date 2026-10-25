@@ -68,6 +68,7 @@ class AssignmentComputingTimesTest {
         worker.endPathOutput(output);
         worker.endPhase();
         worker.addReachability(ReachabilityMetric.SEARCHES, 1);
+        worker.addReverseSearch(true, 10, 20);
       }
       assertEquals(0, audit.getThreadDatabaseTime());
       assertEquals("", fixture.report(true));
@@ -281,7 +282,7 @@ class AssignmentComputingTimesTest {
   }
 
   @Test
-  void finishingAnActiveRunCountsItsPartialWallTimeAndPrintsOnlyOnce() {
+  void finishingAnActiveRunCountsItsPartialWallTimeAndSavesOnlyOnce() {
     try (ComputingTimesTestSupport fixture = new ComputingTimesTestSupport(true)) {
       fixture.clock.at(2);
       final long job = fixture.audit.startPaths();
@@ -308,6 +309,7 @@ class AssignmentComputingTimesTest {
       WorkerTimes oldWorker = audit.newWorkerTimes();
       oldWorker.startPhase(WorkerPhase.DIJKSTRA);
       oldWorker.addReachability(ReachabilityMetric.SEARCHES, 10);
+      oldWorker.addReverseSearch(true, 100, 200);
       fixture.clock.at(10);
       audit.startAssignment();
       final var currentScope = audit.outside(OutsidePhase.COSTS);
@@ -317,6 +319,7 @@ class AssignmentComputingTimesTest {
       WorkerTimes currentWorker = audit.newWorkerTimes();
       currentWorker.startPhase(WorkerPhase.ASTAR);
       currentWorker.addReachability(ReachabilityMetric.SEARCHES, 2);
+      currentWorker.addReverseSearch(false, 5, 7);
       fixture.clock.at(12);
       currentWorker.close();
       currentScope.close();
@@ -328,7 +331,13 @@ class AssignmentComputingTimesTest {
       assertEquals(0, seconds(report, "Database writing (writer calls)"));
       assertFalse(report.contains("Dijkstra:"), report);
       assertEquals(1, seconds(report, "Improved A*"));
+      assertEquals(1, count(report, "Improved A* searches"));
+      assertFalse(report.contains("<td>Dijkstra searches:</td>"), report);
       assertEquals(2, count(report, "Completed Dijkstra searches"));
+      assertEquals(1, count(report, "Completed reverse searches"));
+      assertEquals(0, count(report, "Stopped after reaching required origins"));
+      assertEquals(5, count(report, "Reverse nodes settled"));
+      assertEquals(7, count(report, "Reverse edges scanned"));
       assertFalse(report.contains("Network initialization and generation:"), report);
     }
   }
@@ -340,11 +349,17 @@ class AssignmentComputingTimesTest {
       WorkerTimes second = fixture.audit.newWorkerTimes();
       first.addReachability(ReachabilityMetric.SEARCHES, 2);
       second.addReachability(ReachabilityMetric.SEARCHES, 3);
+      first.startPhase(WorkerPhase.DIJKSTRA);
+      first.endPhase();
+      first.startPhase(WorkerPhase.DIJKSTRA);
+      first.endPhase();
+      second.startPhase(WorkerPhase.DIJKSTRA);
       first.close();
       second.close();
       first.close();
       String report = fixture.report(true);
       assertEquals(5, count(report, "Completed Dijkstra searches"));
+      assertEquals(3, count(report, "Dijkstra searches"));
       assertTrue(report.contains("n/a"));
       assertFalse(report.contains("NaN"));
       assertFalse(report.contains("Infinity"));
@@ -354,6 +369,28 @@ class AssignmentComputingTimesTest {
       String next = fixture.report(true);
       assertFalse(next.contains("unreachable-destination diagnostic"));
       assertFalse(next.contains("Assignment breakdown"));
+    }
+  }
+
+  @Test
+  void reverseWorkCountersMergeOnceAndResetBetweenAssignments() {
+    try (ComputingTimesTestSupport fixture = new ComputingTimesTestSupport(true)) {
+      WorkerTimes first = fixture.audit.newWorkerTimes();
+      WorkerTimes second = fixture.audit.newWorkerTimes();
+      first.addReverseSearch(true, 10, 20);
+      first.addReverseSearch(false, 100, 200);
+      second.addReverseSearch(true, 5, 6);
+      first.close();
+      second.close();
+      first.close();
+      String report = fixture.report(true);
+      assertEquals(3, count(report, "Completed reverse searches"));
+      assertEquals(2, count(report, "Stopped after reaching required origins"));
+      assertEquals(1, count(report, "Exhausted finite frontier"));
+      assertEquals(115, count(report, "Reverse nodes settled"));
+      assertEquals(226, count(report, "Reverse edges scanned"));
+      fixture.audit.startAssignment();
+      assertFalse(fixture.report(true).contains("Reverse Dijkstra work"));
     }
   }
 

@@ -22,6 +22,8 @@
 package edu.uclouvain.core.nodus.compute.assign;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 import edu.uclouvain.core.nodus.NodusC;
@@ -36,13 +38,47 @@ import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 
 /** Complete timed coordinators: SQL demand through cost passes, workers and saved time slices. */
 @Tag("integration")
 @ResourceLock("JDBCUtils")
+@ResourceLock("NodusC.displayComputingTimes")
+@ResourceLock(Resources.SYSTEM_OUT)
 @Timeout(30)
 class TimeDependentAssignmentIntegrationTest {
   @TempDir Path directory;
+
+  @TestFactory
+  List<DynamicTest> htmlComputingTimesIncludeEveryTimedPeriod() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (boolean dynamic : new boolean[] {false, true}) {
+      for (boolean hsql : new boolean[] {false, true}) {
+        tests.add(
+            dynamicTest(
+                "HTML/dynamic=" + dynamic + "/HSQLDB=" + hsql,
+                () -> {
+                  boolean previous = NodusC.displayComputingTimes;
+                  try (AssignmentTestProject project = project(hsql)) {
+                    NodusC.displayComputingTimes = true;
+                    Assignment assignment = assignment(project, dynamic, 4);
+                    String output =
+                        ComputingTimesTestSupport.capture(() -> project.run(assignment, 2));
+                    assertReference(project, dynamic);
+                    String html =
+                        ComputingTimesTestSupport.report(assignment.getAssignmentParameters());
+                    assertFalse(output.contains("Computing times:"));
+                    assertTrue(html.contains(assignment.getClass().getSimpleName()));
+                    assertTrue(html.contains("Dijkstra searches:"));
+                    assertTrue(html.endsWith("</body></html>"));
+                  } finally {
+                    NodusC.displayComputingTimes = previous;
+                  }
+                }));
+      }
+    }
+    return tests;
+  }
 
   @TestFactory
   List<DynamicTest> timedCoordinators() {

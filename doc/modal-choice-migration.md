@@ -99,8 +99,8 @@ rows after confirmation. Existing projects without `@paramTable` can still read 
 keys from their cost files.
 
 The HTML report presents two separate sections: **Behavioral layer** contains all
-commodity groups' parameter estimates and correlations, followed by **Pivot calibration**
-with their pivot diagnostics. If pivots were not requested, the second section states this.
+commodity groups' parameter estimates and correlations, followed by **Pivot calibration** with
+their pivot diagnostics. If pivots were not requested, the second section states this.
 When pivots are computed, each commodity group's pivot section includes their
 distribution by nonreference mode: unweighted and observed-modal-quantity-weighted
 medians, and percentages at the configured lower and upper bounds. Bound percentages

@@ -78,7 +78,7 @@ public class NodusC {
    * *********************************************************************************************
    */
 
-  /** Print runtime measurements for each assignment. Sampled when the assignment starts. */
+  /** Save an HTML runtime report in the project directory for each assignment. Sampled at start. */
   public static boolean displayComputingTimes = false;
 
   /**
@@ -98,20 +98,19 @@ public class NodusC {
    */
   public static boolean useCompactShortestPaths = true;
 
-  /** Shortest-path implementations available to Exact Multi-flow. */
+  /** Shortest-path implementations and tree orientation for Exact Multi-flow. */
   public enum ExactMFAlgorithm {
-    /** Historical geographic heuristic; can select nonoptimal routes with arbitrary costs. */
-    LEGACY_ASTAR,
     /** Safe zero heuristic, giving Dijkstra ordering for arbitrary nonnegative costs. */
     IMPROVED_ASTAR,
-    /** A* with cost-based landmark lower bounds, reused across OD pairs and cost markups. */
-    ALT
+    /** A* with baseline reverse-Dijkstra bounds shared by destination and loading mode/means. */
+    DESTINATION_ASTAR
   }
 
   /**
-   * Exact Multi-flow search algorithm. Set before starting an assignment; each worker job samples
-   * this selector when creating its search. Independent of useCompactShortestPaths. The improved
-   * zero-heuristic search remains the default for compatibility.
+   * Exact Multi-flow search algorithm. First routes share a Dijkstra tree per origin and loading
+   * mode/means, or per destination for DESTINATION_ASTAR. Single-route assignments use only these
+   * trees. Set before starting an assignment; each worker job samples it when creating its search.
+   * Independent of useCompactShortestPaths. The improved zero-heuristic search remains the default.
    */
   public static volatile ExactMFAlgorithm exactMFAlgorithm = ExactMFAlgorithm.IMPROVED_ASTAR;
 

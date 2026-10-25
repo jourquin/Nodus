@@ -27,9 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNode;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,8 +35,6 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.function.Executable;
-import org.junit.jupiter.api.parallel.ResourceLock;
-import org.junit.jupiter.api.parallel.Resources;
 
 /** Checks both search algorithms with linked and compact graph storage. */
 class ShortestPathTest {
@@ -310,104 +305,8 @@ class ShortestPathTest {
         IllegalArgumentException.class, () -> new BinaryHeapDijkstra(second.heads, null, compact));
     assertThrows(IllegalArgumentException.class, () -> new BinaryHeapAStar(second.heads, compact));
     assertThrows(
-        IllegalArgumentException.class, () -> new LegacyBinaryHeapAStar(second.heads, compact));
-    assertThrows(IllegalArgumentException.class, () -> new BinaryHeapALT(second.heads, compact));
-  }
-
-  @TestFactory
-  List<DynamicTest> legacySearchRetainsThePreviousGeographicHeuristicAndHeapBehavior() {
-    final List<DynamicTest> tests = new ArrayList<>();
-    for (boolean compact : new boolean[] {false, true}) {
-      tests.add(
-          dynamicTest(
-              "compact=" + compact,
-              () -> {
-                final Graph graph = detourGraph();
-                final CompactShortestPathGraph copy =
-                    compact ? new CompactShortestPathGraph(graph.heads) : null;
-                final BinaryHeapAStar search = new LegacyBinaryHeapAStar(graph.heads, copy);
-                // This deliberately preserves the old overestimate, for honest timing comparisons.
-                search.compute(1, 3);
-                assertPath(search, 0.5, 1, 3);
-                final AdjacencyNode direct = graph.heads[1];
-                direct.edgeWeight = Double.POSITIVE_INFINITY;
-                if (copy != null) {
-                  copy.copyWeight(direct);
-                }
-                search.compute(1, 3);
-                assertPath(search, 0.2, 1, 2, 3);
-                search.compute(1, 2);
-                assertPath(search, 0.1, 1, 2);
-                direct.edgeWeight = 0.5;
-                if (copy != null) {
-                  copy.copyWeight(direct);
-                }
-                search.compute(1, 3);
-                assertPath(search, 0.5, 1, 3);
-              }));
-    }
-    return tests;
-  }
-
-  @TestFactory
-  @ResourceLock(Resources.SYSTEM_ERR)
-  List<DynamicTest> legacyUnreachableSearchesAreQuietAndMatchDijkstraAfterCostChanges() {
-    List<DynamicTest> tests = new ArrayList<>();
-    for (boolean compact : new boolean[] {false, true}) {
-      tests.add(
-          dynamicTest(
-              "compact=" + compact,
-              () -> {
-                Graph graph = new Graph(7);
-                for (int node = 1; node < graph.heads.length; node++) {
-                  graph.nodes[node] = node(node, (node - 4) * 0.2, (node % 3) * 0.2);
-                }
-                graph.resetHeads();
-                graph.edge(1, 2, 1);
-                AdjacencyNode bridge = graph.edge(2, 3, 2);
-                graph.edge(3, 4, 1);
-                graph.edge(5, 6, 0);
-                graph.edge(6, 5, 0);
-                CompactShortestPathGraph copy =
-                    compact ? new CompactShortestPathGraph(graph.heads) : null;
-                BinaryHeapDijkstra reference = new BinaryHeapDijkstra(graph.heads, null, copy);
-                BinaryHeapAStar legacy = new LegacyBinaryHeapAStar(graph.heads, copy);
-                PrintStream original = System.err;
-                ByteArrayOutputStream errors = new ByteArrayOutputStream();
-                try (PrintStream captured = new PrintStream(errors, true, StandardCharsets.UTF_8)) {
-                  System.setErr(captured);
-                  try {
-                    // A loading restriction can remove a route; markups and restoration must not
-                    // leave
-                    // stale reachability or predecessor labels on subsequent searches.
-                    for (double cost : new double[] {2, Double.POSITIVE_INFINITY, 20, 2}) {
-                      bridge.edgeWeight = cost;
-                      if (copy != null) {
-                        copy.copyWeight(bridge);
-                      }
-                      for (int from = 1; from < graph.heads.length; from++) {
-                        for (int to = 1; to < graph.heads.length; to++) {
-                          reference.compute(from, to);
-                          legacy.compute(from, to);
-                          boolean reachable = reference.getWeights()[to] < Double.MAX_VALUE;
-                          assertEquals(
-                              reachable,
-                              legacy.getWeights()[to] < Double.MAX_VALUE,
-                              from + " -> " + to + ", bridge cost=" + cost);
-                          if (!reachable) {
-                            assertEquals(0, legacy.getPredecessors()[to]);
-                          }
-                        }
-                      }
-                    }
-                  } finally {
-                    System.setErr(original);
-                  }
-                }
-                assertEquals("", errors.toString(StandardCharsets.UTF_8));
-              }));
-    }
-    return tests;
+        IllegalArgumentException.class,
+        () -> new BinaryHeapDestinationAStar(second.heads, compact, () -> false));
   }
 
   private static void add(List<DynamicTest> tests, SearchKind kind, String name, Executable check) {

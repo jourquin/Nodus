@@ -30,19 +30,19 @@ package edu.uclouvain.core.nodus.compute.assign.shortestpath;
  * heap ordering therefore follows Dijkstra's algorithm, independent of coordinates and cost units.
  *
  * <p>The search reuses the linked or compact heap without scanning all edges before each OD pair.
- * Exact multi-flow still searches and penalizes alternatives separately for each OD pair.
+ * Exact multi-flow uses shared Dijkstra first routes, then searches and penalizes subsequent
+ * alternatives separately for each OD pair.
  *
  * <p>The "improved A*" option is Nodus's zero-heuristic specialization of A*. Its algorithmic
  * references are therefore the original A* and Dijkstra papers:
  *
  * <ul>
- *   <li>P. E. Hart, N. J. Nilsson and B. Raphael (1968).
- *       <a href="https://doi.org/10.1109/TSSC.1968.300136">A Formal Basis for the Heuristic
+ *   <li>P. E. Hart, N. J. Nilsson and B. Raphael (1968). <a
+ *       href="https://doi.org/10.1109/TSSC.1968.300136">A Formal Basis for the Heuristic
  *       Determination of Minimum Cost Paths</a>. <i>IEEE Transactions on Systems Science and
  *       Cybernetics</i>, 4(2), pp. 100-107.
- *   <li>E. W. Dijkstra (1959).
- *       <a href="https://doi.org/10.1007/BF01386390">A note on two problems in connexion with
- *       graphs</a>. <i>Numerische Mathematik</i>, 1, pp. 269-271.
+ *   <li>E. W. Dijkstra (1959). <a href="https://doi.org/10.1007/BF01386390">A note on two problems
+ *       in connexion with graphs</a>. <i>Numerische Mathematik</i>, 1, pp. 269-271.
  * </ul>
  *
  * @author Bart Jourquin
@@ -71,7 +71,7 @@ public class BinaryHeapAStar extends BinaryHeapDijkstra {
   }
 
   /**
-   * Allows geographic and landmark searches to use heuristic heap keys.
+   * Allows destination-based searches to use heuristic heap keys.
    *
    * @param graph worker-owned adjacency list
    * @param compactGraph synchronized compact copy, or null for linked storage

@@ -116,11 +116,25 @@ final class CompactShortestPathHeap {
     if (position == -1 || !(costs[nodeAt(position)] > candidate)) {
       return false;
     }
-    moveUp(node, position, candidate);
+    moveUp(node, position, candidate, true);
     return true;
   }
 
-  /** Reinserts a settled node before lowering its label in an inconsistent landmark search. */
+  /**
+   * Lowers a label with a finite, query-fixed estimate. First-discovery keys fall from infinity;
+   * later keys only decrease, so upward repair alone suffices for destination-based A*.
+   */
+  boolean improveWithEstimate(int node, double candidate, double estimate) {
+    int position = positionOf(node);
+    if (position == -1 || !(costs[nodeAt(position)] > candidate)) {
+      return false;
+    }
+    estimates[node] = estimate;
+    moveUp(node, position, candidate, false);
+    return true;
+  }
+
+  /** Reinserts a settled node when rounded destination bounds permit a cheaper label. */
   void reopen(int node) {
     heap[++size] = node;
     positions[node] = size;
@@ -130,11 +144,11 @@ final class CompactShortestPathHeap {
   void decreaseKey(int node, double cost) {
     int position = positionOf(node);
     nodeAt(position);
-    moveUp(node, position, cost);
+    moveUp(node, position, cost, true);
   }
 
   /** Moves only strictly cheaper nodes upward, preserving the existing treatment of ties. */
-  private void moveUp(int node, int position, double cost) {
+  private void moveUp(int node, int position, double cost, boolean repairDown) {
     costs[node] = cost;
     if (estimates != null) {
       keys[node] = cost + estimates[node];
@@ -153,22 +167,10 @@ final class CompactShortestPathHeap {
     }
     heap[position] = node;
     positions[node] = position;
-    if (estimates != null) {
+    if (estimates != null && repairDown) {
       // A* also repairs downward after an estimate changes, even for non-finite keys.
       heapify(position);
     }
-  }
-
-  /** Tests A*'s original zero-estimate sentinel, materializing an unsettled node if needed. */
-  boolean needsEstimate(int node) {
-    int position = positionOf(node);
-    return position != -1 && estimates[nodeAt(position)] == 0;
-  }
-
-  /** Sets an A* estimate without repairing the heap until a distance relaxation improves it. */
-  void setEstimate(int node, double estimate) {
-    estimates[node] = estimate;
-    keys[node] = costs[node] + estimate;
   }
 
   /** Removes the root, replacing it by the last logical entry before repairing the heap. */

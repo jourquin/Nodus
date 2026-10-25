@@ -59,12 +59,6 @@ public class AdjacencyNode {
    */
   public boolean isNodeToReach;
 
-  /** Latitude of node. */
-  public double latitude;
-
-  /** Longitude of node. */
-  public double longitude;
-
   /** Next adjacency node in the list. */
   public AdjacencyNode nextNode;
 
@@ -86,21 +80,7 @@ public class AdjacencyNode {
    * @param vn VirtualNode
    */
   public AdjacencyNode(VirtualNode vn) {
-    longitude = vn.getLongitude();
-    latitude = vn.getLatitude();
     virtualNodeNum = vn.getId();
-  }
-
-  /**
-   * Returns the straight-line distance to the goal (used by AStar).
-   *
-   * @param goal The target AdjacencyNode.
-   * @return the straight-line distance to the goal
-   */
-  public double goalEst(AdjacencyNode goal) {
-    return Math.sqrt(
-        Math.pow(Math.abs(goal.longitude - longitude), 2)
-            + Math.pow(Math.abs(goal.latitude - latitude), 2));
   }
 
   /**

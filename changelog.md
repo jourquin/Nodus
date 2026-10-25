@@ -536,11 +536,18 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Fix project settings: failed writes and file preservation
 - Fix first service save and schema migration: transaction preservation
 - A* now uses a zero heuristic (Dijkstra ordering), ensuring correct routes with arbitrary cost scales
-- Implement the ALT algorithm for the exact multi-flow assignment
-- Add `NodusC.exactMFAlgorithm` to select legacy A*, improved zero-heuristic A*, or directed ALT
-  for Exact Multi-flow, with optional search timings and separate ALT preprocessing timings
-- Silence legacy A* output for normal unreachable searches; use the assignment's optional
-  lost-path reporting instead
+- Add `DESTINATION_ASTAR` as an additional Exact Multi-flow option: reverse Dijkstra first-route
+  trees and cost bounds shared by destination/loading mode, OD-local A* penalties, and separate
+  reverse-Dijkstra, query and setup timings in the optional HTML report
+- Add `NodusC.exactMFAlgorithm` to select improved zero-heuristic or destination-based A* for
+  Exact Multi-flow, with optional search timings and separate preprocessing timings
+- Share a Dijkstra first-route tree per origin and eligible loading mode/means in the origin-based
+  Exact Multi-flow variants; retain independent OD penalties and selected searches for later routes
+- Skip unavailable loading modes and repeated searches for unreachable Exact Multi-flow destinations;
+  preserve intermodal grouping keys when reconstructing routes
+- Report first-route Dijkstra times and search-call counts; omit A* query setup for single-route assignments
+- Save optional assignment computing-time reports as HTML in the project folder instead of terminal
+  output, using the modal-choice/KPI table style and separate files per scenario, method and Exact MF selector
 - Preserve saved node rules and pending edits after failed saves
 - Compare complete rules when detecting changes and duplicates, and defer missing-table creation until saving
 - Preserve existing CSV/XLS/XLSX exports on late read, write or resource-close failures by staging

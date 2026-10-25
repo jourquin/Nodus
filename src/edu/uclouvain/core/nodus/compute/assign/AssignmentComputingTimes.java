@@ -22,8 +22,9 @@
 package edu.uclouvain.core.nodus.compute.assign;
 
 import edu.uclouvain.core.nodus.NodusC;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.EnumSet;
-import java.util.Locale;
 import java.util.function.LongSupplier;
 
 /**
@@ -91,7 +92,7 @@ public final class AssignmentComputingTimes {
 
     private final String label;
 
-    /** Associates an exclusive outside phase with its terminal label. */
+    /** Associates an exclusive outside phase with its report label. */
     OutsidePhase(String label) {
       this.label = label;
     }
@@ -101,14 +102,14 @@ public final class AssignmentComputingTimes {
   public enum WorkerPhase {
     /** The complete shortest-path search, including its initialization. */
     DIJKSTRA("Dijkstra"),
-    /** Historical Exact multi-flow search, including per-search initialization. */
-    LEGACY_ASTAR("Legacy A*"),
     /** Zero-heuristic Exact multi-flow search, including per-search initialization. */
     ASTAR("Improved A*"),
-    /** Building the Exact multi-flow landmark tables once per worker job. */
-    ALT_PREPROCESSING("ALT preprocessing"),
-    /** Landmark-guided Exact multi-flow search, including per-search initialization. */
-    ALT("ALT"),
+    /** Indexing reverse topology once per destination-based Exact MF worker job. */
+    DESTINATION_SETUP("Destination A* setup"),
+    /** Reverse searches supplying first routes and capped baseline destination bounds. */
+    REVERSE_DIJKSTRA("Reverse Dijkstra"),
+    /** OD-specific searches guided by baseline reverse-Dijkstra destination bounds. */
+    DESTINATION_ASTAR("Destination A*"),
     /** Reconstructing and loading routes in workers that perform both in one traversal. */
     RECONSTRUCTION_LOADING("Path reconstruction and volume loading"),
     /** Moving dynamic demands to their starting nodes for the next time slice. */
@@ -124,7 +125,7 @@ public final class AssignmentComputingTimes {
 
     private final String label;
 
-    /** Associates a stage with its terminal label. */
+    /** Associates a stage with its report label. */
     WorkerPhase(String label) {
       this.label = label;
     }
@@ -177,7 +178,7 @@ public final class AssignmentComputingTimes {
 
     private final String label;
 
-    /** Associates a counter with its terminal label. */
+    /** Associates a counter with its report label. */
     ReachabilityMetric(String label) {
       this.label = label;
     }
@@ -187,12 +188,19 @@ public final class AssignmentComputingTimes {
   private final long[] elapsed = new long[Phase.values().length];
   private final ThreadLocal<long[]> threadDatabaseTime = ThreadLocal.withInitial(() -> new long[1]);
   private final long[] workerElapsed = new long[WorkerPhase.values().length];
+  private final long[] workerCalls = new long[WorkerPhase.values().length];
   private final boolean[] workerPhases = new boolean[WorkerPhase.values().length];
   private final long[] reachability = new long[ReachabilityMetric.values().length];
   private boolean hasReachabilityDetails;
+  private long reverseSearches;
+  private long reverseEarlyStops;
+  private long reverseSettledNodes;
+  private long reverseScannedEdges;
   private long workerPathOutputTime;
   private boolean hasWorkerDetails;
   private volatile boolean enabled;
+  private NodusC.ExactMFAlgorithm exactAlgorithm;
+  private Path reportPath;
   private long assignmentStarted;
   private long pathsStarted;
   private long pathsWallTime;
@@ -221,6 +229,8 @@ public final class AssignmentComputingTimes {
   /** Resets the audit and samples the global switch once for this run. */
   public synchronized void startAssignment() {
     enabled = NodusC.displayComputingTimes;
+    exactAlgorithm = NodusC.exactMFAlgorithm;
+    reportPath = null;
     for (int i = 0; i < elapsed.length; i++) {
       elapsed[i] = 0;
     }
@@ -229,12 +239,17 @@ public final class AssignmentComputingTimes {
     activePathWorkers = 0;
     for (int i = 0; i < workerElapsed.length; i++) {
       workerElapsed[i] = 0;
+      workerCalls[i] = 0;
       workerPhases[i] = false;
     }
     for (int i = 0; i < reachability.length; i++) {
       reachability[i] = 0;
     }
     hasReachabilityDetails = false;
+    reverseSearches = 0;
+    reverseEarlyStops = 0;
+    reverseSettledNodes = 0;
+    reverseScannedEdges = 0;
     workerPathOutputTime = 0;
     hasWorkerDetails = false;
     threadDatabaseTime.remove();
@@ -249,6 +264,24 @@ public final class AssignmentComputingTimes {
       outsideElapsed[i] = 0;
       outsidePhases[i] = false;
     }
+  }
+
+  /**
+   * Whether the current run is recording performance measurements.
+   *
+   * @return True until the enabled run is finalized.
+   */
+  public boolean isEnabled() {
+    return enabled;
+  }
+
+  /**
+   * Last report saved by this run.
+   *
+   * @return Saved file, or null when reporting was disabled or saving failed.
+   */
+  public synchronized Path getReportPath() {
+    return reportPath;
   }
 
   /**
@@ -318,7 +351,7 @@ public final class AssignmentComputingTimes {
       this.run = run;
     }
 
-    /** Finishes this scope without changing a later assignment or an already printed report. */
+    /** Finishes this scope without changing a later assignment or an already finalized report. */
     @Override
     public void close() {
       if (audit == null || Thread.currentThread() != audit.coordinatorThread) {
@@ -436,9 +469,14 @@ public final class AssignmentComputingTimes {
     private final boolean recording = enabled;
     private final long run = runSequence;
     private final long[] durations = new long[WorkerPhase.values().length];
+    private final long[] calls = new long[WorkerPhase.values().length];
     private final long[] searchMeasurements =
         recording ? new long[ReachabilityMetric.values().length] : null;
     private boolean hasSearchMeasurements;
+    private long reverseSearchCount;
+    private long reverseEarlyStopCount;
+    private long reverseSettledCount;
+    private long reverseScannedCount;
     private final boolean[] phases = new boolean[WorkerPhase.values().length];
     private WorkerPhase currentPhase;
     private int pathOutputDepth;
@@ -482,6 +520,24 @@ public final class AssignmentComputingTimes {
     }
 
     /**
+     * Records completed reverse-search work without additional clock reads or shared locks.
+     *
+     * @param stoppedEarly true if all requested origins were settled before exhausting the graph
+     * @param settledNodes number of finalized reverse distances
+     * @param scannedEdges number of reverse edges examined
+     */
+    public void addReverseSearch(boolean stoppedEarly, int settledNodes, long scannedEdges) {
+      if (recording) {
+        reverseSearchCount++;
+        if (stoppedEarly) {
+          reverseEarlyStopCount++;
+        }
+        reverseSettledCount += settledNodes;
+        reverseScannedCount += scannedEdges;
+      }
+    }
+
+    /**
      * Includes the stages applicable to this worker, even if cancellation leaves them unstarted.
      *
      * @param applicable Stages to show in the report for this algorithm.
@@ -502,6 +558,7 @@ public final class AssignmentComputingTimes {
     public void startPhase(WorkerPhase phase) {
       if (recording) {
         phases[phase.ordinal()] = true;
+        calls[phase.ordinal()]++;
         currentPhase = phase;
         outputBeforePhase = pathOutputTime;
         phaseStarted = clock.getAsLong();
@@ -550,12 +607,17 @@ public final class AssignmentComputingTimes {
         if (enabled && run == runSequence) {
           for (int i = 0; i < durations.length; i++) {
             workerElapsed[i] += durations[i];
+            workerCalls[i] += calls[i];
             workerPhases[i] |= phases[i];
           }
           for (int i = 0; i < searchMeasurements.length; i++) {
             reachability[i] += searchMeasurements[i];
           }
           hasReachabilityDetails |= hasSearchMeasurements;
+          reverseSearches += reverseSearchCount;
+          reverseEarlyStops += reverseEarlyStopCount;
+          reverseSettledNodes += reverseSettledCount;
+          reverseScannedEdges += reverseScannedCount;
           workerPathOutputTime += pathOutputTime;
           hasWorkerDetails = true;
         }
@@ -564,18 +626,25 @@ public final class AssignmentComputingTimes {
   }
 
   /**
-   * Prints one summary and stops measuring, before post-assignment scripts and completion dialogs.
-   * Failed runs contain measurements up to the failure, not subsequent error handling.
+   * Saves one HTML summary and stops measuring, before post-assignment scripts and completion
+   * dialogs. Failed runs contain measurements up to the failure, not subsequent error handling.
+   * Rendering and file writing are excluded from all measured durations. No terminal output is
+   * produced, and disabled auditing performs no file access.
    *
+   * @param directory Project directory in which to save the report.
+   * @param project Project name used in the document and filename.
    * @param assignment The assignment implementation's name.
    * @param scenario The scenario ID.
    * @param threads The configured worker count.
    * @param success True if computation and saving completed successfully.
+   * @return Saved HTML file, or null when auditing is disabled or already finished.
+   * @throws IOException If the report cannot be saved; earlier reports are retained.
    */
-  public synchronized void finishAndPrint(
-      String assignment, int scenario, int threads, boolean success) {
+  public synchronized Path finishAndSave(
+      Path directory, String project, String assignment, int scenario, int threads, boolean success)
+      throws IOException {
     if (!enabled) {
-      return;
+      return null;
     }
     long finished = clock.getAsLong();
     accountOutsideUntil(finished);
@@ -583,76 +652,97 @@ public final class AssignmentComputingTimes {
     if (activePathWorkers > 0) {
       pathsWallTime += finished - pathsStarted;
     }
-    StringBuilder report = new StringBuilder();
-    report.append(
-        String.format(
-            Locale.ROOT,
-            "%nComputing times: %s (scenario %d, %d threads, %s)%n",
-            assignment,
-            scenario,
-            threads,
-            success ? "completed" : "failed/cancelled"));
-    appendTime(report, "Total elapsed", finished - assignmentStarted);
-    appendTime(report, "Virtual network generation (wall)", elapsed[Phase.NETWORK.ordinal()]);
-    appendTime(report, "Cost parser (wall)", elapsed[Phase.COSTS.ordinal()]);
-    appendTime(report, "Paths and flow assignment (wall, includes path writes)", pathsWallTime);
-    appendTime(
-        report, "Paths and flow assignment (worker sum, excludes DB calls)", pathsWorkerTime);
-    appendTime(report, "Database writing (writer calls)", elapsed[Phase.DATABASE.ordinal()]);
-    appendOutside(report);
-    if (hasWorkerDetails) {
-      report.append("  Assignment breakdown (worker elapsed sums, not CPU time):\n");
-      for (WorkerPhase phase : WorkerPhase.values()) {
-        if (workerPhases[phase.ordinal()]) {
-          appendTime(report, "  " + phase.label, workerElapsed[phase.ordinal()]);
+    try {
+      AssignmentComputingTimesReport report =
+          new AssignmentComputingTimesReport(
+              project, assignment, scenario, threads, success, exactAlgorithm);
+      report.time("Total elapsed", finished - assignmentStarted);
+      report.time("Virtual network generation (wall)", elapsed[Phase.NETWORK.ordinal()]);
+      report.time("Cost parser (wall)", elapsed[Phase.COSTS.ordinal()]);
+      report.time("Paths and flow assignment (wall, includes path writes)", pathsWallTime);
+      report.time("Paths and flow assignment (worker sum, excludes DB calls)", pathsWorkerTime);
+      report.time("Database writing (writer calls)", elapsed[Phase.DATABASE.ordinal()]);
+      long outside = 0;
+      for (long duration : outsideElapsed) {
+        outside += duration;
+      }
+      report.time("Outside parallel assignment (wall)", outside);
+      appendOutside(report);
+      if (hasWorkerDetails) {
+        report.section(
+            "Assignment breakdown (worker elapsed sums, not CPU time)", "Stage", "Elapsed time");
+        for (WorkerPhase phase : WorkerPhase.values()) {
+          if (workerPhases[phase.ordinal()]) {
+            report.time(phase.label, workerElapsed[phase.ordinal()]);
+          }
+        }
+        report.time("Path output (includes DB calls and writer waits)", workerPathOutputTime);
+        report.paragraph(
+            "Computation stages exclude path-output calls. Other worker setup and"
+                + " cost markups are not itemized in the breakdown.");
+        report.section("Shortest-path search calls (all worker jobs)", "Algorithm", "Search calls");
+        for (WorkerPhase phase :
+            EnumSet.of(
+                WorkerPhase.DIJKSTRA,
+                WorkerPhase.ASTAR,
+                WorkerPhase.REVERSE_DIJKSTRA,
+                WorkerPhase.DESTINATION_ASTAR)) {
+          if (workerPhases[phase.ordinal()]) {
+            report.count(phase.label + " searches", workerCalls[phase.ordinal()]);
+          }
         }
       }
-      appendTime(
-          report, "  Path output (includes DB calls and writer waits)", workerPathOutputTime);
-      report.append("  Computation stages exclude path-output calls.\n");
-      report.append(
-          "  Other worker setup and cost markups are not itemized in the breakdown.\n");
+      if (reverseSearches > 0) {
+        report.section("Reverse Dijkstra work (all worker jobs)", "Measurement", "Count");
+        report.count("Completed reverse searches", reverseSearches);
+        report.count("Stopped after reaching required origins", reverseEarlyStops);
+        report.count("Exhausted finite frontier", reverseSearches - reverseEarlyStops);
+        report.count("Reverse nodes settled", reverseSettledNodes);
+        report.count("Reverse edges scanned", reverseScannedEdges);
+        report.paragraph(
+            "Unexplored nodes retain a conservative cost bound and remain available to A*."
+                + " Unreachable required origins force the reverse search to exhaust its finite frontier.");
+      }
+      if (hasReachabilityDetails) {
+        appendReachability(report);
+      }
+      report.paragraph("Worker sums and database writer calls overlap the wall-time breakdown.");
+      Path destination =
+          AssignmentComputingTimesReport.reportPath(
+              directory, project, assignment, scenario, exactAlgorithm);
+      reportPath = AssignmentComputingTimesReport.save(destination, report.document());
+      return reportPath;
+    } finally {
+      threadDatabaseTime.remove();
     }
-    if (hasReachabilityDetails) {
-      appendReachability(report);
-    }
-    report.append("  Worker sums and database writer calls overlap the wall-time breakdown.\n");
-    System.out.print(report);
-    threadDatabaseTime.remove();
   }
 
-  /** Prints a partition of elapsed time outside the union of all assignment worker intervals. */
-  private void appendOutside(StringBuilder report) {
-    long total = 0;
-    for (long duration : outsideElapsed) {
-      total += duration;
-    }
-    appendTime(report, "Outside parallel assignment (wall)", total);
-    report.append("  Outside-phase breakdown (exclusive wall times):\n");
+  /** Renders elapsed time outside the union of all assignment worker intervals. */
+  private void appendOutside(AssignmentComputingTimesReport report) {
+    report.section("Outside-phase breakdown (exclusive wall times)", "Phase", "Elapsed time");
     for (OutsidePhase phase : OutsidePhase.values()) {
       long duration = outsideElapsed[phase.ordinal()];
       if (outsidePhases[phase.ordinal()] || duration > 0) {
-        appendTime(report, "  " + phase.label, duration);
+        report.time(phase.label, duration);
       }
     }
-    report.append(
-        "  Outside rows sum to outside time; outside + path wall = total (before rounding).\n");
-    report.append(
-        "  Nested phases count once; intervals with active assignment jobs are excluded.\n");
+    report.paragraph(
+        "Outside rows sum to outside time; outside + path wall = total (before rounding)."
+            + " Nested phases count once; intervals with active assignment jobs are excluded.");
   }
 
   /**
-   * Prints observations separately from the existing stage timings; no work was actually skipped.
+   * Renders observations separately from the existing stage timings; no work was actually skipped.
    */
-  private void appendReachability(StringBuilder report) {
-    report.append("  Fast multi-flow unreachable-destination diagnostic:\n");
+  private void appendReachability(AssignmentComputingTimesReport report) {
+    report.section("Fast multi-flow unreachable-destination diagnostic", "Measurement", "Value");
     for (ReachabilityMetric metric :
         EnumSet.range(ReachabilityMetric.SEARCHES, ReachabilityMetric.AVOIDABLE_TIME)) {
       long value = reachability[metric.ordinal()];
       if (metric == ReachabilityMetric.SEARCH_TIME || metric == ReachabilityMetric.AVOIDABLE_TIME) {
-        appendTime(report, "  " + metric.label, value);
+        report.time(metric.label, value);
       } else {
-        report.append(String.format(Locale.ROOT, "    %-56s %12d%n", metric.label + ":", value));
+        report.count(metric.label, value);
       }
     }
     appendShare(
@@ -665,21 +755,21 @@ public final class AssignmentComputingTimes {
         "Potentially avoidable share of observed Dijkstra time",
         ReachabilityMetric.AVOIDABLE_TIME,
         ReachabilityMetric.SEARCH_TIME);
-    report.append("  Shortenable and entirely skippable searches are separate counts.\n");
-    report.append("  The preceding reuse estimates require earlier alternatives.\n");
-    report.append("  Reachability preprocessing potential (includes first routes):\n");
+    report.paragraph(
+        "Shortenable and entirely skippable searches are separate counts."
+            + " The preceding reuse estimates require earlier alternatives.");
+    report.section(
+        "Reachability preprocessing potential (includes first routes)", "Measurement", "Value");
     for (ReachabilityMetric metric :
         EnumSet.range(
             ReachabilityMetric.MIXED_DESTINATION_SEARCHES,
             ReachabilityMetric.PREPROCESSING_AVOIDABLE_EDGES)) {
-      report.append(
-          String.format(
-              Locale.ROOT, "    %-56s %12d%n", metric.label + ":", reachability[metric.ordinal()]));
+      report.count(metric.label, reachability[metric.ordinal()]);
     }
     for (ReachabilityMetric metric :
         EnumSet.range(
             ReachabilityMetric.TAIL_TIME, ReachabilityMetric.PREPROCESSING_AVOIDABLE_TIME)) {
-      appendTime(report, "  " + metric.label, reachability[metric.ordinal()]);
+      report.time(metric.label, reachability[metric.ordinal()]);
     }
     appendShare(
         report,
@@ -691,27 +781,21 @@ public final class AssignmentComputingTimes {
         "Upper-bound share of observed Dijkstra time",
         ReachabilityMetric.PREPROCESSING_AVOIDABLE_TIME,
         ReachabilityMetric.SEARCH_TIME);
-    report.append("  Upper bound assumes missing destinations are known before each search.\n");
-    report.append("  Preprocessing and lookup costs are not measured or deducted.\n");
-    report.append("  Reuse and preprocessing estimates overlap; do not add them together.\n");
-    report.append(
-        "  Searches ran in full; these are diagnostic observations, not wall-time savings.\n");
-    report.append(
-        "  Diagnostic counters add overhead; their times are already included in Dijkstra.\n");
+    report.paragraph(
+        "Upper bound assumes missing destinations are known before each search."
+            + " Preprocessing and lookup costs are not measured or deducted."
+            + " Reuse and preprocessing estimates overlap; do not add them together.");
+    report.paragraph(
+        "Searches ran in full; these are diagnostic observations, not wall-time savings."
+            + " Diagnostic counters add overhead; their times are already included in Dijkstra.");
   }
 
   /** Shows a measured proportion, using n/a when no denominator was observed. */
   private void appendShare(
-      StringBuilder report, String label, ReachabilityMetric part, ReachabilityMetric whole) {
-    long total = reachability[whole.ordinal()];
-    String share =
-        total == 0
-            ? "n/a"
-            : String.format(Locale.ROOT, "%.2f %%", 100.0 * reachability[part.ordinal()] / total);
-    report.append(String.format(Locale.ROOT, "    %-56s %12s%n", label + ":", share));
-  }
-
-  private static void appendTime(StringBuilder report, String label, long nanos) {
-    report.append(String.format(Locale.ROOT, "  %-58s %10.3f s%n", label + ":", nanos / 1.0e9));
+      AssignmentComputingTimesReport report,
+      String label,
+      ReachabilityMetric part,
+      ReachabilityMetric whole) {
+    report.share(label, reachability[part.ordinal()], reachability[whole.ordinal()]);
   }
 }
