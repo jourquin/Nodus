@@ -36,9 +36,10 @@ import java.util.function.BooleanSupplier;
  * <p>Bounds are rounded down to guard different forward/reverse floating-point accumulation.
  * Improved labels can reopen settled nodes because rounding can make the bounds inconsistent.
  * Reverse searches stop after reaching their required origins. Unexplored nodes retain a safe bound
- * at the stopping radius and can still participate in penalized detours. Only exhausted reverse
- * searches can prove a node unreachable. Equal-cost paths may differ from the origin-based
- * algorithms, affecting later penalties.
+ * at the stopping radius and can still participate in penalized detours. A reachability prepass
+ * proves which nodes have no directed path through the current available edges, independently of
+ * the weighted stopping radius. Equal-cost paths may differ from the origin-based algorithms,
+ * affecting later penalties.
  *
  * <p>References:
  *

@@ -69,6 +69,7 @@ class AssignmentComputingTimesTest {
         worker.endPhase();
         worker.addReachability(ReachabilityMetric.SEARCHES, 1);
         worker.addReverseSearch(true, 10, 20);
+        worker.addReversePrepass(1, 2, 10, 20);
       }
       assertEquals(0, audit.getThreadDatabaseTime());
       assertEquals("", fixture.report(true));
@@ -310,6 +311,7 @@ class AssignmentComputingTimesTest {
       oldWorker.startPhase(WorkerPhase.DIJKSTRA);
       oldWorker.addReachability(ReachabilityMetric.SEARCHES, 10);
       oldWorker.addReverseSearch(true, 100, 200);
+      oldWorker.addReversePrepass(10, 20, 100, 200);
       fixture.clock.at(10);
       audit.startAssignment();
       final var currentScope = audit.outside(OutsidePhase.COSTS);
@@ -320,6 +322,7 @@ class AssignmentComputingTimesTest {
       currentWorker.startPhase(WorkerPhase.ASTAR);
       currentWorker.addReachability(ReachabilityMetric.SEARCHES, 2);
       currentWorker.addReverseSearch(false, 5, 7);
+      currentWorker.addReversePrepass(2, 3, 5, 7);
       fixture.clock.at(12);
       currentWorker.close();
       currentScope.close();
@@ -338,6 +341,10 @@ class AssignmentComputingTimesTest {
       assertEquals(0, count(report, "Stopped after reaching required origins"));
       assertEquals(5, count(report, "Reverse nodes settled"));
       assertEquals(7, count(report, "Reverse edges scanned"));
+      assertEquals(1, count(report, "Completed reachability prepasses"));
+      assertEquals(5, count(report, "Required origins checked"));
+      assertEquals(3, count(report, "Required origins proven unreachable"));
+      assertEquals(0, count(report, "Reverse searches skipped after prepass"));
       assertFalse(report.contains("Network initialization and generation:"), report);
     }
   }
@@ -391,6 +398,29 @@ class AssignmentComputingTimesTest {
       assertEquals(226, count(report, "Reverse edges scanned"));
       fixture.audit.startAssignment();
       assertFalse(fixture.report(true).contains("Reverse Dijkstra work"));
+    }
+  }
+
+  @Test
+  void prepassCountersMergeOnceIncludingEntirelySkippedWeightedSearches() {
+    try (ComputingTimesTestSupport fixture = new ComputingTimesTestSupport(true)) {
+      WorkerTimes first = fixture.audit.newWorkerTimes();
+      WorkerTimes second = fixture.audit.newWorkerTimes();
+      first.addReversePrepass(2, 3, 10, 20);
+      second.addReversePrepass(0, 4, 30, 40);
+      first.close();
+      second.close();
+      first.close();
+      String report = fixture.report(true);
+      assertEquals(2, count(report, "Completed reachability prepasses"));
+      assertEquals(9, count(report, "Required origins checked"));
+      assertEquals(7, count(report, "Required origins proven unreachable"));
+      assertEquals(1, count(report, "Reverse searches skipped after prepass"));
+      assertEquals(40, count(report, "Prepass nodes visited"));
+      assertEquals(60, count(report, "Prepass edges scanned"));
+      assertEquals(0, count(report, "Completed reverse searches"));
+      fixture.audit.startAssignment();
+      assertFalse(fixture.report(true).contains("Reverse reachability prepass"));
     }
   }
 

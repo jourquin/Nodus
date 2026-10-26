@@ -45,10 +45,10 @@ class BinaryHeapDestinationAStarTest {
     List<DynamicTest> tests = new ArrayList<>();
     for (boolean compact : new boolean[] {false, true}) {
       for (double scale : new double[] {1e-200, 1e-9, 1, 1e9, 1e200}) {
-        for (boolean limited : new boolean[] {false, true}) {
+        for (int strategy : new int[] {0, 1, 2}) {
           tests.add(
               dynamicTest(
-                  "compact=" + compact + "/scale=" + scale + "/earlyStop=" + limited,
+                  "compact=" + compact + "/scale=" + scale + "/strategy=" + strategy,
                   () -> {
                     Graph graph = new Graph(25);
                     graph.edge(1, 2, 0);
@@ -69,9 +69,15 @@ class BinaryHeapDestinationAStarTest {
                     ReverseDijkstra.Result[] trees = new ReverseDijkstra.Result[graph.heads.length];
                     for (int target = 1; target < trees.length; target++) {
                       ReverseDijkstra.Result full = reverse.compute(target, () -> false);
-                      int[] required = {1, 2, 4, 7, 7, target};
+                      int[] required = {1, 2, 4, 7, 7, 25, target};
                       trees[target] =
-                          limited ? reverse.compute(target, required, () -> false) : full;
+                          strategy == 0
+                              ? full
+                              : strategy == 1
+                                  ? reverse.compute(target, required, () -> false)
+                                  : reverse.compute(
+                                      reverse.computeReachability(target, required, () -> false),
+                                      () -> false);
                       assertTrue(trees[target].getSettledNodeCount() <= full.getSettledNodeCount());
                       for (int source : required) {
                         assertEquals(full.isReachable(source), trees[target].isReachable(source));
@@ -360,6 +366,178 @@ class BinaryHeapDestinationAStarTest {
               }));
     }
     return tests;
+  }
+
+  @TestFactory
+  List<DynamicTest> reachabilityPrepassFiltersOriginsWithoutDiscardingPenalizedDetours() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (boolean compact : new boolean[] {false, true}) {
+      tests.add(
+          dynamicTest(
+              "compact=" + compact,
+              () -> {
+                Graph graph = new Graph(103);
+                AdjacencyNode direct = graph.edge(1, 102, 20);
+                for (int node = 2; node < 102; node++) {
+                  graph.edge(1, node, 1);
+                  graph.edge(node, 102, 100);
+                }
+                CompactShortestPathGraph copy =
+                    compact ? new CompactShortestPathGraph(graph.heads) : null;
+                ReverseDijkstra reverse = new ReverseDijkstra(graph.heads, copy, () -> false);
+                ReverseDijkstra.Result old = reverse.compute(102, new int[] {1, 103}, () -> false);
+                assertFalse(old.stoppedEarly());
+                ReverseDijkstra.Reachability prepass =
+                    reverse.computeReachability(102, new int[] {1, 1, 103, 103}, () -> false);
+                assertEquals(1, prepass.getReachableOriginCount());
+                assertEquals(1, prepass.getUnreachableOriginCount());
+                assertEquals(102, prepass.getVisitedNodeCount());
+                assertTrue(prepass.getScannedEdgeCount() > 0);
+                ReverseDijkstra.Result tree = reverse.compute(prepass, () -> false);
+                assertTrue(tree.stoppedEarly());
+                assertEquals(2, tree.getSettledNodeCount());
+                assertTrue(tree.getScannedEdgeCount() < old.getScannedEdgeCount());
+                assertTrue(tree.isKnownUnreachable(103));
+                assertFalse(tree.isKnownUnreachable(2));
+                assertFalse(tree.isReachable(2));
+                int[] pi = new int[graph.heads.length];
+                tree.copyPredecessors(1, pi);
+                assertEquals(1, pi[102]);
+                tree.copyPredecessors(103, pi);
+                assertEquals(0, pi[102]);
+                direct.edgeWeight = 200;
+                if (copy != null) copy.copyWeight(direct);
+                BinaryHeapDestinationAStar search =
+                    new BinaryHeapDestinationAStar(graph.heads, copy, () -> false);
+                search.setBounds(tree, true);
+                search.compute(1, 102);
+                assertEquals(101, search.getWeights()[102]);
+                search.compute(103, 102);
+                assertEquals(Double.MAX_VALUE, search.getWeights()[102]);
+                assertEquals(0, search.getPredecessors()[102]);
+                ReverseDijkstra.Reachability none =
+                    reverse.computeReachability(102, new int[] {103}, () -> false);
+                ReverseDijkstra.Result skipped = reverse.compute(none, () -> false);
+                assertEquals(0, skipped.getSettledNodeCount());
+                assertEquals(0, skipped.getScannedEdgeCount());
+                assertTrue(skipped.isKnownUnreachable(103));
+                assertFalse(skipped.isKnownUnreachable(1));
+                search.setBounds(skipped, true);
+                search.compute(1, 102);
+                assertEquals(101, search.getWeights()[102]);
+                // Older snapshots retain their distances and reachability despite later calls.
+                assertEquals(20, tree.distances[1]);
+                assertTrue(prepass.canReachGoal(1));
+                assertFalse(prepass.canReachGoal(103));
+              }));
+    }
+    return tests;
+  }
+
+  @TestFactory
+  List<DynamicTest> prepassReadsCurrentBlockedEdgesAndKeepsModeAndGoalSnapshotsIndependent() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (boolean compact : new boolean[] {false, true}) {
+      tests.add(
+          dynamicTest(
+              "compact=" + compact,
+              () -> {
+                Graph graph = new Graph(7);
+                AdjacencyNode firstLoad = graph.edge(1, 2, 0);
+                AdjacencyNode secondLoad = graph.edge(1, 3, 0);
+                AdjacencyNode otherLoad = graph.edge(4, 3, 0);
+                graph.edge(2, 6, 2);
+                graph.edge(3, 6, 3);
+                graph.edge(5, 6, Double.NaN);
+                graph.edge(5, 6, Double.MAX_VALUE);
+                graph.edge(5, 6, Double.POSITIVE_INFINITY);
+                CompactShortestPathGraph copy =
+                    compact ? new CompactShortestPathGraph(graph.heads) : null;
+                ReverseDijkstra reverse = new ReverseDijkstra(graph.heads, copy, () -> false);
+                setCost(secondLoad, Double.POSITIVE_INFINITY, copy);
+                setCost(otherLoad, Double.POSITIVE_INFINITY, copy);
+                ReverseDijkstra.Reachability first =
+                    reverse.computeReachability(6, new int[] {1, 4, 5, 7}, () -> false);
+                ReverseDijkstra.Result firstTree = reverse.compute(first, () -> false);
+                assertEquals(1, first.getReachableOriginCount());
+                assertEquals(3, first.getUnreachableOriginCount());
+                assertTrue(first.canReachGoal(1));
+                assertFalse(first.canReachGoal(4));
+                assertFalse(first.canReachGoal(5));
+                setCost(firstLoad, Double.POSITIVE_INFINITY, copy);
+                setCost(secondLoad, 0, copy);
+                setCost(otherLoad, 0, copy);
+                ReverseDijkstra.Reachability second =
+                    reverse.computeReachability(6, new int[] {1, 4, 5, 7}, () -> false);
+                ReverseDijkstra.Result secondTree = reverse.compute(second, () -> false);
+                assertEquals(2, second.getReachableOriginCount());
+                assertEquals(2, second.getUnreachableOriginCount());
+                assertTrue(second.canReachGoal(4));
+                assertFalse(first.canReachGoal(4));
+                BinaryHeapDestinationAStar search =
+                    new BinaryHeapDestinationAStar(graph.heads, copy, () -> false);
+                search.setBounds(secondTree, true);
+                search.compute(4, 6);
+                assertEquals(3, search.getWeights()[6]);
+                reverse.computeReachability(2, new int[] {1, 4}, () -> false);
+                assertTrue(second.canReachGoal(4));
+                assertFalse(first.canReachGoal(4));
+                setCost(firstLoad, 0, copy);
+                setCost(secondLoad, Double.POSITIVE_INFINITY, copy);
+                setCost(otherLoad, Double.POSITIVE_INFINITY, copy);
+                search.setBounds(firstTree, true);
+                search.compute(1, 6);
+                assertEquals(2, search.getWeights()[6]);
+                search.compute(4, 6);
+                assertEquals(Double.MAX_VALUE, search.getWeights()[6]);
+                search.setBounds(firstTree, false);
+                search.compute(1, 6);
+                assertEquals(2, search.getWeights()[6]);
+              }));
+    }
+    return tests;
+  }
+
+  @Test
+  void prepassValidatesRequestsCancelsAndDistinguishesCostOverflowFromNoDirectedPath() {
+    Graph graph = new Graph(4);
+    AdjacencyNode edge = graph.edge(1, 2, 1e308);
+    graph.edge(2, 3, 1e308);
+    ReverseDijkstra reverse = new ReverseDijkstra(graph.heads, null, () -> false);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> reverse.computeReachability(0, new int[] {1}, () -> false));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> reverse.computeReachability(3, new int[] {0}, () -> false));
+    assertThrows(
+        IllegalArgumentException.class, () -> reverse.computeReachability(3, null, () -> false));
+    AtomicInteger checks = new AtomicInteger();
+    assertThrows(
+        CancellationException.class,
+        () -> reverse.computeReachability(3, new int[] {1}, () -> checks.incrementAndGet() >= 2));
+    ReverseDijkstra.Reachability reachable =
+        reverse.computeReachability(3, new int[] {1}, () -> false);
+    assertTrue(reachable.canReachGoal(1));
+    ReverseDijkstra.Result overflow = reverse.compute(reachable, () -> false);
+    assertFalse(overflow.stoppedEarly());
+    assertTrue(overflow.isKnownUnreachable(1));
+    assertFalse(overflow.isReachable(1));
+    assertThrows(CancellationException.class, () -> reverse.compute(reachable, () -> true));
+    ReverseDijkstra.Reachability empty = reverse.computeReachability(3, new int[0], () -> false);
+    assertEquals(0, reverse.compute(empty, () -> false).getSettledNodeCount());
+    Graph other = new Graph(4);
+    ReverseDijkstra wrong = new ReverseDijkstra(other.heads, null, () -> false);
+    assertThrows(IllegalArgumentException.class, () -> wrong.compute(reachable, () -> false));
+    edge.edgeWeight = -1;
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> reverse.computeReachability(3, new int[] {1}, () -> false));
+  }
+
+  private static void setCost(AdjacencyNode edge, double cost, CompactShortestPathGraph compact) {
+    edge.edgeWeight = cost;
+    if (compact != null) compact.copyWeight(edge);
   }
 
   private static void checkAllPairs(

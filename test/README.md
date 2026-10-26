@@ -202,8 +202,8 @@ NodusC.exactMFAlgorithm = ExactMFAlgorithm.DESTINATION_ASTAR
 
 | Selector value | Search for subsequent routes | Timing row |
 | --- | --- | --- |
-| `ExactMFAlgorithm.IMPROVED_ASTAR` | Safe zero heuristic (default), giving Dijkstra ordering | `Improved A*:` |
-| `ExactMFAlgorithm.DESTINATION_ASTAR` | A* with reverse-Dijkstra bounds for the current destination | `Destination A*:` |
+| `ExactMFAlgorithm.IMPROVED_ASTAR` | Safe zero heuristic, giving Dijkstra ordering | `Improved A*:` |
+| `ExactMFAlgorithm.DESTINATION_ASTAR` | A* with reverse-Dijkstra bounds for the current destination (default) | `Destination A*:` |
 
 Improved A* uses a shared forward Dijkstra first pass: one search per origin and
 available loading mode/means, within the current commodity group and OD cost class. Its predecessor trees provide
@@ -239,7 +239,17 @@ Destination-based A* groups the job's OD cells by destination. For each destinat
 loading mode/means, a reverse Dijkstra search computes the original-cost distances to that
 unloading node. It stops as soon as all distinct required origins have final distances. Its next-hop
 tree supplies first routes for those origins; its bounds guide later OD-specific A* searches after
-markups. If an origin is unreachable, the search exhausts its finite frontier as before.
+markups.
+
+Before each destination/loading-mode search, an iterative reverse reachability prepass traverses
+only currently available directed edges. Loading restrictions, infinite/NaN costs and the infinity
+sentinel are respected. Distinct unreachable origins are removed from the weighted search's
+stopping condition; they still produce the normal invalid paths and optional lost-path records.
+If no required origin is reachable, Dijkstra is skipped entirely. The prepass snapshot also lets
+forward A* reject proven unreachable nodes while retaining unexplored, reachable detours.
+Snapshots remain private to their destination, mode, group and cost class. They are rebuilt from
+current baseline costs on every run. A topological path whose accumulated cost overflows can still
+require the weighted search to exhaust its finite frontier.
 
 If the final settled distance is R, unexplored nodes have baseline distance at least R. Their bound
 is therefore R, rounded down for numerical safety. This caps the full distance heuristic at R.
@@ -251,16 +261,20 @@ are restored after every OD/mode, preserving independent penalties. Negative mar
 bounds and retain zero-heuristic queries. Progress counts destinations per group instead of origins.
 
 The report includes `Destination A* setup:` for reverse-index construction, `Reverse Dijkstra:` for
-first routes and bounds (including distance-table preparation), and `Destination A*:` for subsequent
-OD searches. Both search types have call counts. A separate `Reverse Dijkstra work` table reports
-completed searches, searches stopped after reaching their required origins, exhausted searches,
+first routes and bounds (including distance-table preparation), `Reachability prepass:` for the
+traversal and result preparation for entirely skipped trees, and `Destination A*:` for subsequent
+OD searches. Both weighted search types have call counts; reverse counts exclude entirely skipped
+combinations. A `Reverse reachability prepass` table reports completed prepasses, distinct required
+origins checked, origins proven unreachable, weighted searches skipped, nodes visited and edges
+scanned. Origin counts are summed over destination/loading-mode prepasses, not global unique IDs.
+A separate `Reverse Dijkstra work` table reports completed searches, searches stopped after reaching their required origins, exhausted searches,
 nodes settled and edges scanned. Compare `Total elapsed:` with improved A* to include
 all setup costs. With one route there is no `Destination A*:` query row.
 
 Only the current destination's tables are retained: approximately
-`20 * eligibleLoadingModes * virtualNodes` bytes per worker for distances, rounded bounds and next
-hops, plus the reverse index, origin request markers, query arrays, one predecessor scratch array
-and the OD grouping index.
+`20.125 * eligibleLoadingModes * virtualNodes` bytes per worker for distances, rounded bounds,
+next hops and reachability bits, plus the reverse index, origin request markers, one reusable
+reachability stack, query arrays, one predecessor scratch array and the OD grouping index.
 No tables survive a group/class job or assignment run. This option shares reverse searches per
 destination to obtain cost-based, constant-time bounds on many OD queries. Early stopping reduces
 reverse work but can weaken the bounds and increase forward-query work; compare complete runs.
@@ -274,7 +288,9 @@ first routes may differ from forward Dijkstra and can produce different subseque
   destination switching, tree isolation, zero-bound fallback and cancellation. Full and early-stopped
   trees are compared with independent reference costs; penalized routes can pass through unexplored
   nodes. Covers duplicate/empty origin sets, unreachable origins, safe capped bounds and reduced
-  reverse work. Assignment tests compare
+  reverse work. Prepass tests cover mixed and entirely unreachable requests, live blocked edges,
+  mode/goal snapshot isolation, duplicate origins, cost overflow, cancellation and heap-free skipped
+  searches. Assignment tests compare
   saved routes/volumes with improved A*, including multiple origins, groups, classes and both storage modes.
 - `CommentedPropertiesTest`, `PropertiesFileSaveTest`, `NodusProjectPropertiesTest`: standard Java
   property syntax, comments and entry order, new/removed settings, escaped keys, Unicode and multiline
@@ -651,7 +667,9 @@ first routes may differ from forward Dijkstra and can produce different subseque
   A recording modal-choice method checks separate unimodal/intermodal choice sets. Independently
   known second routes distinguish Exact MF's OD-local penalties from Fast MF's shared penalties.
   Optional timing counts verify first-route trees per eligible origin/mode or destination/mode and the expected
-  number of subsequent pair searches. Single-route runs omit A* query searches.
+  number of subsequent pair searches. Mixed and entirely disconnected destinations retain the same
+  lost-path records, reachable outputs and OD demand with the prepass enabled. Single-route runs
+  omit A* query searches.
 - `RealLinkInitializerTest`: EsriPolyline and OMPoly lengths from declared degree/radian inputs,
   endpoint fallback near the equator/prime meridian and across the date line, reversed paths and
   intermediate vertices. Uses an independent haversine reference. Checks missing/degenerate and
@@ -763,7 +781,8 @@ first routes may differ from forward Dijkstra and can produce different subseque
   exercise the real reachability-observer wiring and its per-mode resets. Exact MF covers
   zero-heuristic and destination-based searches. A controlled clock verifies positive search
   timings for both choices, separate reverse-Dijkstra/setup timings,
-  early-stop/exhaustion counts and no timing-clock reads when auditing is disabled.
+  early-stop/exhaustion counts, prepass counts/skipped searches and no timing-clock reads when
+  auditing is disabled.
   HTML reports are also checked for All-or-Nothing, Incremental, MSA, Frank-Wolfe and incremental
   Frank-Wolfe assignments. An injected report-save failure warns without invalidating the saved
   assignment. `TimeDependentAssignmentIntegrationTest` verifies HTML reporting for both timed

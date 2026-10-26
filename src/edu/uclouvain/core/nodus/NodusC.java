@@ -110,9 +110,9 @@ public class NodusC {
    * Exact Multi-flow search algorithm. First routes share a Dijkstra tree per origin and loading
    * mode/means, or per destination for DESTINATION_ASTAR. Single-route assignments use only these
    * trees. Set before starting an assignment; each worker job samples it when creating its search.
-   * Independent of useCompactShortestPaths. The improved zero-heuristic search remains the default.
+   * Independent of useCompactShortestPaths. Destination-based A* is the default.
    */
-  public static volatile ExactMFAlgorithm exactMFAlgorithm = ExactMFAlgorithm.IMPROVED_ASTAR;
+  public static volatile ExactMFAlgorithm exactMFAlgorithm = ExactMFAlgorithm.DESTINATION_ASTAR;
 
   /*
    * *********************************************************************************************

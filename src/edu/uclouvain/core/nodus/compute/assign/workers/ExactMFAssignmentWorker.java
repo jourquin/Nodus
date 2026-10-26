@@ -141,7 +141,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
       firstRouteSearch = new BinaryHeapDijkstra(graph, virtualNet, compactGraph);
       workerTimes.includePhases(WorkerPhase.DIJKSTRA);
     } else {
-      workerTimes.includePhases(WorkerPhase.REVERSE_DIJKSTRA);
+      workerTimes.includePhases(WorkerPhase.REVERSE_REACHABILITY, WorkerPhase.REVERSE_DIJKSTRA);
     }
 
     WorkerPhase searchPhase = null;
@@ -447,18 +447,34 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
         }
         edgeUpdates.restrictLoading(availableModeMeans[modeIndex]);
         try {
-          workerTimes.startPhase(WorkerPhase.REVERSE_DIJKSTRA);
+          ReverseDijkstra.Reachability reachability;
+          workerTimes.startPhase(WorkerPhase.REVERSE_REACHABILITY);
           try {
-            trees[modeIndex] = reverse.compute(goal, requiredOrigins, this::isCancelled);
+            reachability = reverse.computeReachability(goal, requiredOrigins, this::isCancelled);
+            if (reachability.getReachableOriginCount() == 0) {
+              // Keep a tree result for normal invalid-path/lost-path handling, without heap work.
+              trees[modeIndex] = reverse.compute(reachability, this::isCancelled);
+            }
           } finally {
             workerTimes.endPhase();
+          }
+          workerTimes.addReversePrepass(
+              reachability.getReachableOriginCount(), reachability.getUnreachableOriginCount(),
+              reachability.getVisitedNodeCount(), reachability.getScannedEdgeCount());
+          if (reachability.getReachableOriginCount() > 0) {
+            workerTimes.startPhase(WorkerPhase.REVERSE_DIJKSTRA);
+            try {
+              trees[modeIndex] = reverse.compute(reachability, this::isCancelled);
+            } finally {
+              workerTimes.endPhase();
+            }
+            ReverseDijkstra.Result tree = trees[modeIndex];
+            workerTimes.addReverseSearch(
+                tree.stoppedEarly(), tree.getSettledNodeCount(), tree.getScannedEdgeCount());
           }
         } finally {
           edgeUpdates.restoreWeights();
         }
-        ReverseDijkstra.Result tree = trees[modeIndex];
-        workerTimes.addReverseSearch(
-            tree.stoppedEarly(), tree.getSettledNodeCount(), tree.getScannedEdgeCount());
       }
       for (DestinationDemand cell : entry.getValue()) {
         if (!assignOD(cell.origin, cell.demand, null, trees, cell.canLoad, scratch, searchPhase)) {

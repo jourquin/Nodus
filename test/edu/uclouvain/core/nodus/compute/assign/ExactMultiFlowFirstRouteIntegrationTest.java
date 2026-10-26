@@ -150,6 +150,91 @@ class ExactMultiFlowFirstRouteIntegrationTest {
     return tests;
   }
 
+  @TestFactory
+  List<DynamicTest> prepassPreservesLostPathReportingAndSkipsDisconnectedSearches() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (boolean hsql : new boolean[] {false, true}) {
+      for (boolean compact : new boolean[] {false, true}) {
+        tests.add(
+            dynamicTest(
+                "lost paths/HSQLDB=" + hsql + "/compact=" + compact,
+                () -> {
+                  try (Settings settings = new Settings(compact, ExactMFAlgorithm.IMPROVED_ASTAR);
+                      AssignmentTestProject project =
+                          new AssignmentTestProject(
+                              directory,
+                              4,
+                              new double[][] {{11, 1, 2, 1, 0}, {12, 3, 4, 1, 0}},
+                              hsql)) {
+                    project.execute(
+                        "INSERT INTO mini_od VALUES (1,1,2,100),(1,3,2,10),(1,1,4,20),(1,3,4,200),(1,1,3,30),"
+                            + "(2,1,2,200),(2,3,2,20),(2,1,4,40),(2,3,4,400),(2,1,3,60)");
+                    AssignmentParameters parameters = parameters(project, 2);
+                    parameters.setLogLostPaths(true);
+                    // Permit unroutable cells as a modal-choice cost collector does, so both
+                    // algorithms
+                    // can complete and expose every ordinary lost-path record for comparison.
+                    ModalSplitMethod split =
+                        new Proportional(project) {
+                          @Override
+                          public boolean split(ODCell demand, List<PathsForMode> modes) {
+                            return modes.isEmpty() || super.split(demand, modes);
+                          }
+                        };
+                    List<List<String>> expected = null;
+                    List<String> lostPaths = null;
+                    for (ExactMFAlgorithm algorithm :
+                        new ExactMFAlgorithm[] {
+                          ExactMFAlgorithm.IMPROVED_ASTAR, ExactMFAlgorithm.DESTINATION_ASTAR
+                        }) {
+                      NodusC.exactMFAlgorithm = algorithm;
+                      ExactMFAssignment assignment =
+                          new ExactMFAssignment(parameters) {
+                            @Override
+                            public ModalSplitMethod getModalSplitMethod() {
+                              return split;
+                            }
+
+                            @Override
+                            void displayConsoleIfNeeded() {
+                              /* Capture lost-path text without opening Swing. */
+                            }
+                          };
+                      String output = capture(() -> project.run(assignment, 2));
+                      List<String> lost =
+                          output
+                              .lines()
+                              .filter(line -> line.startsWith("delete from "))
+                              .sorted()
+                              .collect(Collectors.toList());
+                      assertEquals(6, lost.size());
+                      assertEquals(
+                          900, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 0.005);
+                      assertEquals(1080, project.number("SELECT SUM(qty) FROM mini_od"), 0.005);
+                      if (expected == null) {
+                        expected = project.snapshot();
+                        lostPaths = lost;
+                      } else {
+                        assertEquals(expected, project.snapshot());
+                        assertEquals(lostPaths, lost);
+                        String report = ComputingTimesTestSupport.report(parameters);
+                        assertEquals(6, count(report, "Completed reachability prepasses"));
+                        assertEquals(10, count(report, "Required origins checked"));
+                        assertEquals(6, count(report, "Required origins proven unreachable"));
+                        assertEquals(2, count(report, "Reverse searches skipped after prepass"));
+                        assertEquals(4, count(report, "Reverse Dijkstra searches"));
+                        assertEquals(4, count(report, "Stopped after reaching required origins"));
+                        assertEquals(0, count(report, "Exhausted finite frontier"));
+                        assertEquals(4, count(report, "Destination A* searches"));
+                      }
+                    }
+                  }
+                }));
+      }
+    }
+    return tests;
+  }
+
   private void firstRoutes(boolean hsql, boolean compact, ExactMFAlgorithm algorithm)
       throws Exception {
     try (Settings settings = new Settings(compact, algorithm);

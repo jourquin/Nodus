@@ -106,6 +106,8 @@ public final class AssignmentComputingTimes {
     ASTAR("Improved A*"),
     /** Indexing reverse topology once per destination-based Exact MF worker job. */
     DESTINATION_SETUP("Destination A* setup"),
+    /** Directed reachability before reverse Dijkstra, including setup for skipped trees. */
+    REVERSE_REACHABILITY("Reachability prepass"),
     /** Reverse searches supplying first routes and capped baseline destination bounds. */
     REVERSE_DIJKSTRA("Reverse Dijkstra"),
     /** OD-specific searches guided by baseline reverse-Dijkstra destination bounds. */
@@ -196,6 +198,7 @@ public final class AssignmentComputingTimes {
   private long reverseEarlyStops;
   private long reverseSettledNodes;
   private long reverseScannedEdges;
+  private final ReversePrepassCounts reversePrepasses = new ReversePrepassCounts();
   private long workerPathOutputTime;
   private boolean hasWorkerDetails;
   private volatile boolean enabled;
@@ -250,6 +253,7 @@ public final class AssignmentComputingTimes {
     reverseEarlyStops = 0;
     reverseSettledNodes = 0;
     reverseScannedEdges = 0;
+    reversePrepasses.clear();
     workerPathOutputTime = 0;
     hasWorkerDetails = false;
     threadDatabaseTime.remove();
@@ -454,6 +458,40 @@ public final class AssignmentComputingTimes {
     return new WorkerTimes();
   }
 
+  /** Count-only observations; no clocks, locks or graph state are retained here. */
+  private static final class ReversePrepassCounts {
+    long completed;
+    long origins;
+    long unreachable;
+    long skipped;
+    long nodes;
+    long edges;
+
+    void add(int reachableOrigins, int unreachableOrigins, int visitedNodes, long scannedEdges) {
+      completed++;
+      origins += (long) reachableOrigins + unreachableOrigins;
+      unreachable += unreachableOrigins;
+      if (reachableOrigins == 0) {
+        skipped++;
+      }
+      nodes += visitedNodes;
+      edges += scannedEdges;
+    }
+
+    void merge(ReversePrepassCounts other) {
+      completed += other.completed;
+      origins += other.origins;
+      unreachable += other.unreachable;
+      skipped += other.skipped;
+      nodes += other.nodes;
+      edges += other.edges;
+    }
+
+    void clear() {
+      completed = origins = unreachable = skipped = nodes = edges = 0;
+    }
+  }
+
   /**
    * Accumulates a worker breakdown without locking the shared audit in its inner loops.
    *
@@ -477,6 +515,7 @@ public final class AssignmentComputingTimes {
     private long reverseEarlyStopCount;
     private long reverseSettledCount;
     private long reverseScannedCount;
+    private final ReversePrepassCounts prepasses = recording ? new ReversePrepassCounts() : null;
     private final boolean[] phases = new boolean[WorkerPhase.values().length];
     private WorkerPhase currentPhase;
     private int pathOutputDepth;
@@ -534,6 +573,21 @@ public final class AssignmentComputingTimes {
         }
         reverseSettledCount += settledNodes;
         reverseScannedCount += scannedEdges;
+      }
+    }
+
+    /**
+     * Records completed prepass work once per destination/loading mode, without clock reads.
+     *
+     * @param reachableOrigins number of distinct required origins with a directed path
+     * @param unreachableOrigins number of distinct required origins proven unreachable
+     * @param visitedNodes number of visited reverse-graph nodes
+     * @param scannedEdges number of reverse edges examined
+     */
+    public void addReversePrepass(
+        int reachableOrigins, int unreachableOrigins, int visitedNodes, long scannedEdges) {
+      if (recording) {
+        prepasses.add(reachableOrigins, unreachableOrigins, visitedNodes, scannedEdges);
       }
     }
 
@@ -618,6 +672,7 @@ public final class AssignmentComputingTimes {
           reverseEarlyStops += reverseEarlyStopCount;
           reverseSettledNodes += reverseSettledCount;
           reverseScannedEdges += reverseScannedCount;
+          reversePrepasses.merge(prepasses);
           workerPathOutputTime += pathOutputTime;
           hasWorkerDetails = true;
         }
@@ -692,7 +747,19 @@ public final class AssignmentComputingTimes {
           }
         }
       }
-      if (reverseSearches > 0) {
+      if (reversePrepasses.completed > 0) {
+        report.section("Reverse reachability prepass (all worker jobs)", "Measurement", "Count");
+        report.count("Completed reachability prepasses", reversePrepasses.completed);
+        report.count("Required origins checked", reversePrepasses.origins);
+        report.count("Required origins proven unreachable", reversePrepasses.unreachable);
+        report.count("Reverse searches skipped after prepass", reversePrepasses.skipped);
+        report.count("Prepass nodes visited", reversePrepasses.nodes);
+        report.count("Prepass edges scanned", reversePrepasses.edges);
+        report.paragraph(
+            "Origin counts are distinct within each destination/loading-mode prepass and summed"
+                + " across jobs. Proven unreachable origins retain normal lost-path reporting.");
+      }
+      if (reverseSearches > 0 || reversePrepasses.completed > 0) {
         report.section("Reverse Dijkstra work (all worker jobs)", "Measurement", "Count");
         report.count("Completed reverse searches", reverseSearches);
         report.count("Stopped after reaching required origins", reverseEarlyStops);
@@ -701,7 +768,8 @@ public final class AssignmentComputingTimes {
         report.count("Reverse edges scanned", reverseScannedEdges);
         report.paragraph(
             "Unexplored nodes retain a conservative cost bound and remain available to A*."
-                + " Unreachable required origins force the reverse search to exhaust its finite frontier.");
+                + " Prepass-proven unreachable origins are excluded from the stopping condition."
+                + " Reverse-search counts exclude combinations with no reachable required origins.");
       }
       if (hasReachabilityDetails) {
         appendReachability(report);

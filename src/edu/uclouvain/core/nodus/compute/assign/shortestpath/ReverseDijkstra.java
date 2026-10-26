@@ -37,12 +37,17 @@ import java.util.function.BooleanSupplier;
  * distance, every unsettled node has distance at least R. Its bound is therefore R, never a
  * tentative distance or an unreachable flag. This is the admissible capped potential
  * min(d(v,goal),R); full searches retain their original distance bounds. Requested origins retain
- * complete first routes in either case. Unreachable requested origins require exhausting the finite
- * frontier.
+ * complete first routes in either case. An optional reverse reachability prepass excludes origins
+ * with no directed path through available edges from the stopping condition. It also supplies a
+ * compact snapshot of proven unreachable nodes for forward queries. With no reachable required
+ * origins, the weighted search is omitted. Costs must remain unchanged between prepass and search.
  *
  * <p>Reference: E. W. Dijkstra (1959). <a href="https://doi.org/10.1007/BF01386390">A note on two
  * problems in connexion with graphs</a>. <i>Numerische Mathematik</i>, 1, pp. 269-271. Applying the
  * algorithm to reversed directed edges gives distances to the destination in the original graph.
+ * The iterative reachability traversal follows the directed depth-first-search method described by
+ * R. Sedgewick and K. Wayne (2011), <i>Algorithms</i>, 4th edition, section 4.2; see <a
+ * href="https://algs4.cs.princeton.edu/42digraph/">Directed Graphs</a>.
  */
 public final class ReverseDijkstra {
   private final AdjacencyNode[] graph;
@@ -54,6 +59,7 @@ public final class ReverseDijkstra {
   private final CompactShortestPathHeap heap;
   private final int[] requested;
   private int requestGeneration;
+  private int[] reachabilityStack;
 
   /**
    * Indexes reverse topology once, without copying mutable edge costs.
@@ -139,21 +145,125 @@ public final class ReverseDijkstra {
    * @return independent tree with exact settled distances and safe bounds elsewhere
    */
   public Result compute(int goal, int[] requiredSources, BooleanSupplier cancelled) {
+    return compute(goal, requiredSources, null, cancelled);
+  }
+
+  /**
+   * Finds directed reachability using current costs, without priority-queue operations.
+   *
+   * <p>Only edges with cost below the infinity sentinel are available; NaN and infinite costs are
+   * excluded. The traversal reuses this worker's stack, while each snapshot owns its visited bits
+   * and distinct reachable-origin list. Apply loading restrictions before calling this method.
+   *
+   * @param goal destination virtual node
+   * @param requiredSources required loading virtual nodes, possibly repeated
+   * @param cancelled cancellation check during traversal
+   * @return independent reachability snapshot for this destination and loading mode
+   */
+  public Reachability computeReachability(
+      int goal, int[] requiredSources, BooleanSupplier cancelled) {
     checkCancelled(cancelled);
-    if (goal <= 0 || goal >= graph.length) {
-      throw new IllegalArgumentException("Invalid destination virtual node");
+    validateNode(goal);
+    if (requiredSources == null) {
+      throw new IllegalArgumentException("Required origins must not be null");
     }
+    if (reachabilityStack == null) {
+      reachabilityStack = new int[graph.length];
+    }
+    long[] reachable = new long[(graph.length >>> 6) + 1];
+    reachable[goal >>> 6] |= 1L << (goal & 63);
+    int stackSize = 0;
+    reachabilityStack[stackSize++] = goal;
+    int visited = 1;
+    int checks = 0;
+    long scanned = 0;
+    while (stackSize > 0) {
+      int node = reachabilityStack[--stackSize];
+      if ((checks++ & 1023) == 0) {
+        checkCancelled(cancelled);
+      }
+      for (int edge = offsets[node]; edge < offsets[node + 1]; edge++) {
+        scanned++;
+        if ((checks++ & 1023) == 0) {
+          checkCancelled(cancelled);
+        }
+        double cost = edgeCost(edge);
+        requireNonnegative(cost);
+        int source = sources[edge];
+        long mask = 1L << (source & 63);
+        int word = source >>> 6;
+        if (cost < Double.MAX_VALUE && (reachable[word] & mask) == 0) {
+          reachable[word] |= mask;
+          reachabilityStack[stackSize++] = source;
+          visited++;
+        }
+      }
+    }
+
+    nextRequestGeneration();
+    int[] origins = new int[requiredSources.length];
+    int count = 0;
+    int unreachable = 0;
+    for (int source : requiredSources) {
+      if ((checks++ & 1023) == 0) {
+        checkCancelled(cancelled);
+      }
+      validateNode(source);
+      if (requested[source] != requestGeneration) {
+        requested[source] = requestGeneration;
+        if ((reachable[source >>> 6] & (1L << (source & 63))) != 0) {
+          origins[count++] = source;
+        } else {
+          unreachable++;
+        }
+      }
+    }
+    checkCancelled(cancelled);
+    return new Reachability(
+        graph, goal, reachable, Arrays.copyOf(origins, count), unreachable, visited, scanned);
+  }
+
+  /**
+   * Searches only for the reachable origins identified by a prepass on the same graph and costs.
+   *
+   * @param reachability snapshot made after applying the current loading restrictions
+   * @param cancelled cancellation check during the search
+   * @return first routes and safe bounds; no heap work when all required origins are unreachable
+   */
+  public Result compute(Reachability reachability, BooleanSupplier cancelled) {
+    if (reachability == null || reachability.graph != graph) {
+      throw new IllegalArgumentException("Reachability must belong to this adjacency list");
+    }
+    return compute(reachability.goal, reachability.origins, reachability, cancelled);
+  }
+
+  private void validateNode(int node) {
+    if (node <= 0 || node >= graph.length) {
+      throw new IllegalArgumentException("Invalid virtual node");
+    }
+  }
+
+  private void nextRequestGeneration() {
     if (requestGeneration == Integer.MAX_VALUE) {
       Arrays.fill(requested, 0);
       requestGeneration = 0;
     }
     requestGeneration++;
+  }
+
+  private double edgeCost(int edge) {
+    return compact == null ? links[edge].edgeWeight : compact.costs[edgeIds[edge]];
+  }
+
+  private Result compute(
+      int goal, int[] requiredSources, Reachability reachability, BooleanSupplier cancelled) {
+    checkCancelled(cancelled);
+    validateNode(goal);
+    nextRequestGeneration();
     int remaining = 0;
     if (requiredSources != null) {
       for (int source : requiredSources) {
-        if (source <= 0 || source >= graph.length) {
-          throw new IllegalArgumentException("Invalid origin virtual node");
-        }
+        validateNode(source);
         if (requested[source] != requestGeneration) {
           requested[source] = requestGeneration;
           remaining++;
@@ -163,6 +273,10 @@ public final class ReverseDijkstra {
     double[] distances = new double[graph.length];
     Arrays.fill(distances, Double.MAX_VALUE);
     int[] next = new int[graph.length];
+    if (reachability != null && remaining == 0) {
+      distances[goal] = 0;
+      return new Result(graph, goal, distances, next, 0, 0, 0, reachability);
+    }
     heap.initialize(goal, next, distances);
     int visited = 0;
     int settled = 0;
@@ -191,7 +305,7 @@ public final class ReverseDijkstra {
         if ((visited++ & 1023) == 0) {
           checkCancelled(cancelled);
         }
-        double cost = compact == null ? links[edge].edgeWeight : compact.costs[edgeIds[edge]];
+        double cost = edgeCost(edge);
         requireNonnegative(cost);
         double candidate = heap.minWeight + cost;
         if (candidate < Double.MAX_VALUE && heap.improve(sources[edge], candidate)) {
@@ -200,7 +314,7 @@ public final class ReverseDijkstra {
       }
     }
     checkCancelled(cancelled);
-    return new Result(graph, goal, distances, next, cutoff, settled, scanned);
+    return new Result(graph, goal, distances, next, cutoff, settled, scanned, reachability);
   }
 
   private static void requireNonnegative(double cost) {
@@ -215,6 +329,81 @@ public final class ReverseDijkstra {
     }
   }
 
+  /** Directed reachability snapshot for one destination and current loading-mode costs. */
+  public static final class Reachability {
+    private final AdjacencyNode[] graph;
+    private final int goal;
+    private final long[] reachable;
+    private final int[] origins;
+    private final int unreachableOrigins;
+    private final int visited;
+    private final long scanned;
+
+    private Reachability(
+        AdjacencyNode[] graph,
+        int goal,
+        long[] reachable,
+        int[] origins,
+        int unreachableOrigins,
+        int visited,
+        long scanned) {
+      this.graph = graph;
+      this.goal = goal;
+      this.reachable = reachable;
+      this.origins = origins;
+      this.unreachableOrigins = unreachableOrigins;
+      this.visited = visited;
+      this.scanned = scanned;
+    }
+
+    /**
+     * Whether the current available directed edges contain a path to this destination.
+     *
+     * @param node virtual node to check
+     * @return true for a topological path; accumulated costs can still overflow in a weighted
+     *     search
+     */
+    public boolean canReachGoal(int node) {
+      return (reachable[node >>> 6] & (1L << (node & 63))) != 0;
+    }
+
+    /**
+     * Counts required origins retained for the weighted search.
+     *
+     * @return number of distinct required origins with an available directed path
+     */
+    public int getReachableOriginCount() {
+      return origins.length;
+    }
+
+    /**
+     * Counts required origins excluded by the prepass.
+     *
+     * @return number of distinct required origins with no available directed path
+     */
+    public int getUnreachableOriginCount() {
+      return unreachableOrigins;
+    }
+
+    /**
+     * Counts the nodes visited by this traversal.
+     *
+     * @return number of visited reverse-graph nodes
+     */
+    public int getVisitedNodeCount() {
+      return visited;
+    }
+
+    /**
+     * Counts the edges inspected by this traversal.
+     *
+     * @return number of reverse edges examined, including blocked edges
+     */
+    public long getScannedEdgeCount() {
+      return scanned;
+    }
+  }
+
   /** Immutable finalized distances, next hops and safe bounds for one destination/loading mode. */
   public static final class Result {
     final AdjacencyNode[] graph;
@@ -225,6 +414,7 @@ public final class ReverseDijkstra {
     private final int[] next;
     private final int settled;
     private final long scanned;
+    private final Reachability reachability;
 
     private Result(
         AdjacencyNode[] graph,
@@ -233,7 +423,8 @@ public final class ReverseDijkstra {
         int[] next,
         double cutoff,
         int settled,
-        long scanned) {
+        long scanned,
+        Reachability reachability) {
       this.graph = graph;
       this.goal = goal;
       this.distances = distances;
@@ -241,6 +432,7 @@ public final class ReverseDijkstra {
       this.cutoff = cutoff;
       this.settled = settled;
       this.scanned = scanned;
+      this.reachability = reachability;
       bounds = new double[distances.length];
       // The unexplored portion shares one bound: avoid repeating its rounding calculation
       // for every vertex when an early stop leaves most of the network untouched.
@@ -294,9 +486,10 @@ public final class ReverseDijkstra {
       return scanned;
     }
 
-    /** An unexplored node is unreachable only when the finite frontier was exhausted. */
+    /** A prepass can prove unreachability even when the weighted search stopped early. */
     boolean isKnownUnreachable(int node) {
-      return !stoppedEarly() && !isReachable(node);
+      return (reachability != null && !reachability.canReachGoal(node))
+          || (!stoppedEarly() && !isReachable(node));
     }
 
     /**

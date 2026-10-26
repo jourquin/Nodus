@@ -204,9 +204,14 @@ class ComputingTimesAssignmentIntegrationTest {
           boolean destinationBased = exact && algorithm == ExactMFAlgorithm.DESTINATION_ASTAR;
           assertEquals(destinationBased, report.contains("Reverse Dijkstra work"));
           if (destinationBased) {
-            assertEquals(3, count(report, "Completed reverse searches"));
+            assertEquals(2, count(report, "Completed reverse searches"));
             assertEquals(2, count(report, "Stopped after reaching required origins"));
-            assertEquals(1, count(report, "Exhausted finite frontier"));
+            assertEquals(0, count(report, "Exhausted finite frontier"));
+            assertEquals(3, count(report, "Completed reachability prepasses"));
+            assertEquals(3, count(report, "Required origins checked"));
+            assertEquals(1, count(report, "Required origins proven unreachable"));
+            assertEquals(1, count(report, "Reverse searches skipped after prepass"));
+            assertTrue(seconds(report, "Reachability prepass") > 0);
             assertTrue(count(report, "Reverse nodes settled") > 0);
             assertTrue(count(report, "Reverse edges scanned") > 0);
           }
@@ -219,11 +224,12 @@ class ComputingTimesAssignmentIntegrationTest {
             String firstLabel =
                 algorithm == ExactMFAlgorithm.DESTINATION_ASTAR ? "Reverse Dijkstra" : "Dijkstra";
             assertTrue(seconds(report, firstLabel) > 0, report);
-            assertEquals(3, count(report, firstLabel + " searches"), report);
+            assertEquals(destinationBased ? 2 : 3, count(report, firstLabel + " searches"), report);
             assertEquals(
                 algorithm == ExactMFAlgorithm.DESTINATION_ASTAR,
                 report.contains("Destination A* setup:"));
-            // The disconnected mode gets a first tree but no further OD searches.
+            // The prepass skips the disconnected mode; other first routes and OD searches are
+            // unchanged.
             assertEquals(6, count(report, label + " searches"), report);
           }
         }

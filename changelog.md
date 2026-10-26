@@ -516,7 +516,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
   
 ## v9.0 - BuildXXXXXXXX
 - Allow a per table specific encoding for DBF file.
-- Fix (potential) bugs in Cost parser, semi-dynamic assignments and exclusion rules at node   
+- Fix (potential) bugs in cost parser, semi-dynamic assignments and exclusion rules at node   
 - Improved project locker
 - Improved close/open workflow
 - Rename/Delete scenario now also updates the node rules accordingly
@@ -524,7 +524,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Fix a potential bug in in the length calculation of polylines
 - More robust vehicle parser   
 - More robust validation of mandatory layer fields at loading time
-- More robust assignment output writing
+- More robust assignment output tables writing
 - Improved Scenario comparison and summation
 - Strict check of the format of the mandatory layer fields and possibility to convert eligible "wrong" fields
 - More robust scenario comparison and summation
@@ -538,23 +538,16 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - A* now uses a zero heuristic (Dijkstra ordering), ensuring correct routes with arbitrary cost scales
 - Add `DESTINATION_ASTAR` as an additional Exact Multi-flow option: reverse Dijkstra first-route
   trees and cost bounds shared by destination/loading mode, OD-local A* penalties, and separate
-  reverse-Dijkstra, query and setup timings in the optional HTML report
+  reverse-Dijkstra, query and setup timings in the optional HTML report. This is now the default 
+  Exact Multi-flow algorithm
 - Add `NodusC.exactMFAlgorithm` to select improved zero-heuristic or destination-based A* for
-  Exact Multi-flow, with optional search timings and separate preprocessing timings
-- Share a Dijkstra first-route tree per origin and eligible loading mode/means in the origin-based
-  Exact Multi-flow variants; retain independent OD penalties and selected searches for later routes
-- Skip unavailable loading modes and repeated searches for unreachable Exact Multi-flow destinations;
-  preserve intermodal grouping keys when reconstructing routes
-- Report first-route Dijkstra times and search-call counts; omit A* query setup for single-route assignments
+  Exact Multi-flow
 - Save optional assignment computing-time reports as HTML in the project folder instead of terminal
-  output, using the modal-choice/KPI table style and separate files per scenario, method and Exact MF selector
+  output
 - Preserve saved node rules and pending edits after failed saves
 - Compare complete rules when detecting changes and duplicates, and defer missing-table creation until saving
 - Preserve existing CSV/XLS/XLSX exports on late read, write or resource-close failures by staging
   complete files before replacement
 - Fix SQL batch splitting and comment handling around quoted text
 - Fix potential bug in modal-choice plugin loader
-- Keep assignment Save/Assign buttons available for plugin parameter tables without optional
-  `@nodus.method` metadata; retain automatic method selection for tables that declare it
-- Fix a rendering race in PoliticalBoundariesLayer
 
