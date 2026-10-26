@@ -149,6 +149,82 @@ public final class ReverseDijkstra {
   }
 
   /**
+   * Searches only for the reachable origins identified by a prepass on the same graph and costs.
+   *
+   * @param reachability snapshot made after applying the current loading restrictions
+   * @param cancelled cancellation check during the search
+   * @return first routes and safe bounds; no heap work when all required origins are unreachable
+   */
+  public Result compute(Reachability reachability, BooleanSupplier cancelled) {
+    if (reachability == null || reachability.graph != graph) {
+      throw new IllegalArgumentException("Reachability must belong to this adjacency list");
+    }
+    return compute(reachability.goal, reachability.origins, reachability, cancelled);
+  }
+
+  private Result compute(
+      int goal, int[] requiredSources, Reachability reachability, BooleanSupplier cancelled) {
+    checkCancelled(cancelled);
+    validateNode(goal);
+    nextRequestGeneration();
+    int remaining = 0;
+    if (requiredSources != null) {
+      for (int source : requiredSources) {
+        validateNode(source);
+        if (requested[source] != requestGeneration) {
+          requested[source] = requestGeneration;
+          remaining++;
+        }
+      }
+    }
+    double[] distances = new double[graph.length];
+    Arrays.fill(distances, Double.MAX_VALUE);
+    int[] next = new int[graph.length];
+    if (reachability != null && remaining == 0) {
+      distances[goal] = 0;
+      return new Result(graph, goal, distances, next, 0, 0, 0, reachability);
+    }
+    heap.initialize(goal, next, distances);
+    int visited = 0;
+    int settled = 0;
+    long scanned = 0;
+    double cutoff = Double.MAX_VALUE;
+    int node;
+    while ((node = heap.extractMin()) != -1 && heap.minWeight != Double.MAX_VALUE) {
+      if ((visited++ & 1023) == 0) {
+        checkCancelled(cancelled);
+      }
+      distances[node] = heap.minWeight;
+      settled++;
+      if (requiredSources != null) {
+        if (requested[node] == requestGeneration) {
+          remaining--;
+        }
+        if (remaining == 0) {
+          // No incoming edge can lead to a distance below this radius, even if it has not
+          // been relaxed yet. Nodes outside the settled tree remain available to forward A*.
+          cutoff = heap.minWeight;
+          break;
+        }
+      }
+      for (int edge = offsets[node]; edge < offsets[node + 1]; edge++) {
+        scanned++;
+        if ((visited++ & 1023) == 0) {
+          checkCancelled(cancelled);
+        }
+        double cost = edgeCost(edge);
+        requireNonnegative(cost);
+        double candidate = heap.minWeight + cost;
+        if (candidate < Double.MAX_VALUE && heap.improve(sources[edge], candidate)) {
+          next[sources[edge]] = node;
+        }
+      }
+    }
+    checkCancelled(cancelled);
+    return new Result(graph, goal, distances, next, cutoff, settled, scanned, reachability);
+  }
+
+  /**
    * Finds directed reachability using current costs, without priority-queue operations.
    *
    * <p>Only edges with cost below the infinity sentinel are available; NaN and infinite costs are
@@ -223,20 +299,6 @@ public final class ReverseDijkstra {
         graph, goal, reachable, Arrays.copyOf(origins, count), unreachable, visited, scanned);
   }
 
-  /**
-   * Searches only for the reachable origins identified by a prepass on the same graph and costs.
-   *
-   * @param reachability snapshot made after applying the current loading restrictions
-   * @param cancelled cancellation check during the search
-   * @return first routes and safe bounds; no heap work when all required origins are unreachable
-   */
-  public Result compute(Reachability reachability, BooleanSupplier cancelled) {
-    if (reachability == null || reachability.graph != graph) {
-      throw new IllegalArgumentException("Reachability must belong to this adjacency list");
-    }
-    return compute(reachability.goal, reachability.origins, reachability, cancelled);
-  }
-
   private void validateNode(int node) {
     if (node <= 0 || node >= graph.length) {
       throw new IllegalArgumentException("Invalid virtual node");
@@ -253,68 +315,6 @@ public final class ReverseDijkstra {
 
   private double edgeCost(int edge) {
     return compact == null ? links[edge].edgeWeight : compact.costs[edgeIds[edge]];
-  }
-
-  private Result compute(
-      int goal, int[] requiredSources, Reachability reachability, BooleanSupplier cancelled) {
-    checkCancelled(cancelled);
-    validateNode(goal);
-    nextRequestGeneration();
-    int remaining = 0;
-    if (requiredSources != null) {
-      for (int source : requiredSources) {
-        validateNode(source);
-        if (requested[source] != requestGeneration) {
-          requested[source] = requestGeneration;
-          remaining++;
-        }
-      }
-    }
-    double[] distances = new double[graph.length];
-    Arrays.fill(distances, Double.MAX_VALUE);
-    int[] next = new int[graph.length];
-    if (reachability != null && remaining == 0) {
-      distances[goal] = 0;
-      return new Result(graph, goal, distances, next, 0, 0, 0, reachability);
-    }
-    heap.initialize(goal, next, distances);
-    int visited = 0;
-    int settled = 0;
-    long scanned = 0;
-    double cutoff = Double.MAX_VALUE;
-    int node;
-    while ((node = heap.extractMin()) != -1 && heap.minWeight != Double.MAX_VALUE) {
-      if ((visited++ & 1023) == 0) {
-        checkCancelled(cancelled);
-      }
-      distances[node] = heap.minWeight;
-      settled++;
-      if (requiredSources != null) {
-        if (requested[node] == requestGeneration) {
-          remaining--;
-        }
-        if (remaining == 0) {
-          // No incoming edge can lead to a distance below this radius, even if it has not
-          // been relaxed yet. Nodes outside the settled tree remain available to forward A*.
-          cutoff = heap.minWeight;
-          break;
-        }
-      }
-      for (int edge = offsets[node]; edge < offsets[node + 1]; edge++) {
-        scanned++;
-        if ((visited++ & 1023) == 0) {
-          checkCancelled(cancelled);
-        }
-        double cost = edgeCost(edge);
-        requireNonnegative(cost);
-        double candidate = heap.minWeight + cost;
-        if (candidate < Double.MAX_VALUE && heap.improve(sources[edge], candidate)) {
-          next[sources[edge]] = node;
-        }
-      }
-    }
-    checkCancelled(cancelled);
-    return new Result(graph, goal, distances, next, cutoff, settled, scanned, reachability);
   }
 
   private static void requireNonnegative(double cost) {

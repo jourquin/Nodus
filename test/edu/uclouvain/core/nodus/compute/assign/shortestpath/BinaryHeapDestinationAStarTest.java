@@ -377,7 +377,7 @@ class BinaryHeapDestinationAStarTest {
               "compact=" + compact,
               () -> {
                 Graph graph = new Graph(103);
-                AdjacencyNode direct = graph.edge(1, 102, 20);
+                final AdjacencyNode direct = graph.edge(1, 102, 20);
                 for (int node = 2; node < 102; node++) {
                   graph.edge(1, node, 1);
                   graph.edge(node, 102, 100);
@@ -406,7 +406,9 @@ class BinaryHeapDestinationAStarTest {
                 tree.copyPredecessors(103, pi);
                 assertEquals(0, pi[102]);
                 direct.edgeWeight = 200;
-                if (copy != null) copy.copyWeight(direct);
+                if (copy != null) {
+                  copy.copyWeight(direct);
+                }
                 BinaryHeapDestinationAStar search =
                     new BinaryHeapDestinationAStar(graph.heads, copy, () -> false);
                 search.setBounds(tree, true);
@@ -443,9 +445,9 @@ class BinaryHeapDestinationAStarTest {
               "compact=" + compact,
               () -> {
                 Graph graph = new Graph(7);
-                AdjacencyNode firstLoad = graph.edge(1, 2, 0);
-                AdjacencyNode secondLoad = graph.edge(1, 3, 0);
-                AdjacencyNode otherLoad = graph.edge(4, 3, 0);
+                final AdjacencyNode firstLoad = graph.edge(1, 2, 0);
+                final AdjacencyNode secondLoad = graph.edge(1, 3, 0);
+                final AdjacencyNode otherLoad = graph.edge(4, 3, 0);
                 graph.edge(2, 6, 2);
                 graph.edge(3, 6, 3);
                 graph.edge(5, 6, Double.NaN);
@@ -458,7 +460,7 @@ class BinaryHeapDestinationAStarTest {
                 setCost(otherLoad, Double.POSITIVE_INFINITY, copy);
                 ReverseDijkstra.Reachability first =
                     reverse.computeReachability(6, new int[] {1, 4, 5, 7}, () -> false);
-                ReverseDijkstra.Result firstTree = reverse.compute(first, () -> false);
+                final ReverseDijkstra.Result firstTree = reverse.compute(first, () -> false);
                 assertEquals(1, first.getReachableOriginCount());
                 assertEquals(3, first.getUnreachableOriginCount());
                 assertTrue(first.canReachGoal(1));
@@ -469,7 +471,7 @@ class BinaryHeapDestinationAStarTest {
                 setCost(otherLoad, 0, copy);
                 ReverseDijkstra.Reachability second =
                     reverse.computeReachability(6, new int[] {1, 4, 5, 7}, () -> false);
-                ReverseDijkstra.Result secondTree = reverse.compute(second, () -> false);
+                final ReverseDijkstra.Result secondTree = reverse.compute(second, () -> false);
                 assertEquals(2, second.getReachableOriginCount());
                 assertEquals(2, second.getUnreachableOriginCount());
                 assertTrue(second.canReachGoal(4));
@@ -537,7 +539,9 @@ class BinaryHeapDestinationAStarTest {
 
   private static void setCost(AdjacencyNode edge, double cost, CompactShortestPathGraph compact) {
     edge.edgeWeight = cost;
-    if (compact != null) compact.copyWeight(edge);
+    if (compact != null) {
+      compact.copyWeight(edge);
+    }
   }
 
   private static void checkAllPairs(

@@ -769,7 +769,8 @@ public final class AssignmentComputingTimes {
         report.paragraph(
             "Unexplored nodes retain a conservative cost bound and remain available to A*."
                 + " Prepass-proven unreachable origins are excluded from the stopping condition."
-                + " Reverse-search counts exclude combinations with no reachable required origins.");
+                + " Reverse-search counts exclude combinations with no reachable required"
+                + " origins.");
       }
       if (hasReachabilityDetails) {
         appendReachability(report);

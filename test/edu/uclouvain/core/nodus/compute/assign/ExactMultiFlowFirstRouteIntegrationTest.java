@@ -99,14 +99,16 @@ class ExactMultiFlowFirstRouteIntegrationTest {
                     project.execute(
                         "ALTER TABLE mini_od ADD " + classColumn + " INTEGER DEFAULT 0");
                     project.execute(
-                        "INSERT INTO mini_od VALUES (1,1,3,100,0),(1,2,3,50,0),(1,1,3,200,1),(1,2,3,100,1),"
+                        "INSERT INTO mini_od VALUES "
+                            + "(1,1,3,100,0),(1,2,3,50,0),(1,1,3,200,1),(1,2,3,100,1),"
                             + "(2,1,3,200,0),(2,2,3,100,0),(2,1,3,400,1),(2,2,3,200,1)");
                     AssignmentParameters parameters = parameters(project, 2);
                     parameters.setCostMarkup(5);
                     // Class 0 prefers 1-2-3; class 1 prefers the direct 1-3 link.
                     parameters.getCostFunctions().setProperty("mv.1,1-1", "6-BASECOST");
                     String headers =
-                        "SELECT grp,org,dst,iteration,qty,mvcost FROM mini_paths1_header ORDER BY grp,org,dst,iteration,mvcost";
+                        "SELECT grp,org,dst,iteration,qty,mvcost FROM mini_paths1_header "
+                            + "ORDER BY grp,org,dst,iteration,mvcost";
                     capture(() -> project.run(new ExactMFAssignment(parameters), 2));
                     assertEquals(
                         8,
@@ -167,7 +169,8 @@ class ExactMultiFlowFirstRouteIntegrationTest {
                               new double[][] {{11, 1, 2, 1, 0}, {12, 3, 4, 1, 0}},
                               hsql)) {
                     project.execute(
-                        "INSERT INTO mini_od VALUES (1,1,2,100),(1,3,2,10),(1,1,4,20),(1,3,4,200),(1,1,3,30),"
+                        "INSERT INTO mini_od VALUES "
+                            + "(1,1,2,100),(1,3,2,10),(1,1,4,20),(1,3,4,200),(1,1,3,30),"
                             + "(2,1,2,200),(2,3,2,20),(2,1,4,40),(2,3,4,400),(2,1,3,60)");
                     AssignmentParameters parameters = parameters(project, 2);
                     parameters.setLogLostPaths(true);
