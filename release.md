@@ -26,6 +26,6 @@ Nodus 9 (first build on October 13, 2026)
 For Nodus 9.x, modal choice plugin source code needs updated imports, but Nodus offers to convert eligible Nodus 8.x modal-choice JARs without recompilation.
 
 
-The CHANGELOG.MD file contains an exhaustive list of the improvements made to the software.
+The [changelog](changelog.md) lists the improvements made to the software.
 
 

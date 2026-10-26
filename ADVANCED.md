@@ -5,7 +5,7 @@ For a software overview, installation, compilation and platform-specific tips,
 see the [main README](README.md).
 
 - [Memory allocation and JVM options](#memory-allocation)
-- [Session settings in NodusC.java](#session-settings)
+- [Application and project settings in NodusC.java](#application-and-project-settings)
 - [Local database servers and external JDBC connections](#local-database-servers-and-external-jdbc-connections)
 - [Assignment information dialogs](#assignment-information-dialogs)
 - [Assignment runtime audit](#assignment-runtime-audit)
@@ -69,6 +69,11 @@ defaults, even if the next project has no Groovy file. This includes timing repo
 dialogs, estimation diagnostics, map options and the Exact MF algorithm selector. Changes made
 from a project script or the Groovy console last until the next project loads. A project's close
 script still sees its current settings; canceling project closure keeps those settings in place.
+
+Closing a project, opening another one, or quitting waits for an active assignment, estimation
+or KPI computation to finish before running the close script and releasing project resources.
+The computation can still be canceled through its normal progress controls. This keeps the
+database connection and loaded layers available until the worker has finished its cleanup.
 
 Put a setting in the startup script to apply it to every project, or in a project's script to
 apply it only there. The startup script is run once at application launch, not on every project
@@ -163,6 +168,11 @@ pending service changes or run the project close script. Reopen the project thro
 **File > Open project** with **Re-import** checked to rebuild the database tables
 from the DBF files. Nodus does not silently replace the session: the old connection
 may have uncommitted work, and editors and database utilities still refer to it.
+
+Legacy node-rule tables with a two-digit numeric `scenario` column are widened when the rules
+are loaded, allowing the full scenario range through 1000. Existing rules and unrelated pending
+edits are preserved. On database engines whose schema changes commit automatically, the upgrade
+uses a separate connection; a lock held by another editor may need to be released before retrying.
 
 ## Tests and continuous integration
 

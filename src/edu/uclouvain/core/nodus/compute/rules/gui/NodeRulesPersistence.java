@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.compute.rules.gui;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.compute.rules.NodeRulesSchema;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -312,7 +313,7 @@ final class NodeRulesPersistence {
   private static void create(Connection connection, String table) throws SQLException {
     final String[] types = {
       "NUMERIC(11,0)",
-      "NUMERIC(2,0)",
+      NodeRulesSchema.SCENARIO_TYPE,
       "NUMERIC(2,0)",
       "NUMERIC(2,0)",
       "NUMERIC(2,0)",

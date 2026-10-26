@@ -43,15 +43,27 @@ final class ResultQueries {
           }
         }
       } else if (ch == '-' && i + 1 < sql.length() && sql.charAt(i + 1) == '-') {
-        while (i + 1 < sql.length() && sql.charAt(i + 1) != '\n') {
+        while (i + 1 < sql.length() && sql.charAt(i + 1) != '\n' && sql.charAt(i + 1) != '\r') {
           i++;
         }
       } else if (ch == '/' && i + 1 < sql.length() && sql.charAt(i + 1) == '*') {
+        int comments = 1;
         i += 2;
-        while (i + 1 < sql.length() && !(sql.charAt(i) == '*' && sql.charAt(i + 1) == '/')) {
-          i++;
+        while (i < sql.length() && comments > 0) {
+          if (i + 1 < sql.length() && sql.charAt(i) == '/' && sql.charAt(i + 1) == '*') {
+            comments++;
+            i += 2;
+          } else if (i + 1 < sql.length() && sql.charAt(i) == '*' && sql.charAt(i + 1) == '/') {
+            comments--;
+            i += 2;
+          } else {
+            i++;
+          }
         }
-        i++;
+        if (comments != 0) {
+          throw new SQLException("Unterminated SQL block comment");
+        }
+        i--;
       } else if (ch == '(') {
         depth++;
       } else if (ch == ')') {

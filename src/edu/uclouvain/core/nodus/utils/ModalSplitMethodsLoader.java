@@ -325,6 +325,7 @@ public class ModalSplitMethodsLoader {
           continue;
         } catch (SecurityException e1) {
           e1.printStackTrace();
+          continue;
         }
 
         Object o = null;

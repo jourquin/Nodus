@@ -113,13 +113,17 @@ public final class TableImport {
       }
       rename(connection, staged, table);
       installed = true;
+      if (committingDdl) {
+        // Retain the original until the replacement's final commit has succeeded.
+        connection.commit();
+      }
       if (originalRenamed) {
         execute(connection, "DROP TABLE " + quoted(backup));
         originalRenamed = false;
       }
-      if (autoCommit || committingDdl) {
+      if (autoCommit && !committingDdl) {
         connection.commit();
-      } else {
+      } else if (!committingDdl) {
         connection.releaseSavepoint(savepoint);
       }
     } catch (Exception failure) {

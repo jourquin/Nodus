@@ -119,8 +119,7 @@ public class SoundPlayer {
    * @throws IOException On I/O error.
    * @throws LineUnavailableException If no clip line is available.
    */
-  private void playSound(AudioInputStream sourceStream)
-      throws IOException, LineUnavailableException {
+  void playSound(AudioInputStream sourceStream) throws IOException, LineUnavailableException {
 
     // At present, ALAW and ULAW encodings must be converted to PCM_SIGNED before they can be
     // played.
@@ -140,34 +139,37 @@ public class SoundPlayer {
       playbackStream = AudioSystem.getAudioInputStream(format, sourceStream);
     }
 
-    // Create the clip
-    DataLine.Info info =
-        new DataLine.Info(
-            Clip.class, playbackStream.getFormat(), getClipBufferSize(playbackStream, format));
-
-    final Clip clip = (Clip) AudioSystem.getLine(info);
-
+    Clip clip = null;
+    boolean started = false;
     try {
-      // This method does not return until the audio file is completely loaded.
-      clip.open(playbackStream);
-    } catch (IOException | LineUnavailableException e) {
-      clip.close();
-      throw e;
+      // The caller owns the original stream; this method owns any conversion wrapper.
+      try (AudioInputStream converted = playbackStream == sourceStream ? null : playbackStream) {
+        DataLine.Info info =
+            new DataLine.Info(
+                Clip.class, playbackStream.getFormat(), getClipBufferSize(playbackStream, format));
+        clip = createClip(info);
+        // This method does not return until the audio file is completely loaded.
+        clip.open(playbackStream);
+      }
+      clip.addLineListener(
+          event -> {
+            if (event.getType() == LineEvent.Type.STOP) {
+              event.getLine().close();
+            }
+          });
+      // Transfer ownership to the line listener only after playback starts successfully.
+      clip.start();
+      started = true;
     } finally {
-      if (playbackStream != sourceStream) {
-        playbackStream.close();
+      if (!started && clip != null) {
+        clip.close();
       }
     }
+  }
 
-    clip.addLineListener(
-        event -> {
-          if (event.getType() == LineEvent.Type.STOP) {
-            event.getLine().close();
-          }
-        });
-
-    // Start playing. The line listener releases the clip when playback stops.
-    clip.start();
+  /** Obtains a clip from the audio system; overridden by headless resource-lifecycle tests. */
+  Clip createClip(DataLine.Info info) throws LineUnavailableException {
+    return (Clip) AudioSystem.getLine(info);
   }
 
   /**

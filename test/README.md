@@ -139,7 +139,8 @@ No custom secrets or database setup are required.
 
 Open the repository's **Actions** tab and select **Tests** to inspect runs.
 Compilation errors or failing tests make the corresponding check fail. The run's
-**Artifacts** section contains `test-reports-java-11` and `test-reports-java-25`,
+**Artifacts** section contains `test-reports-java-11`, `test-reports-java-25` and
+`test-reports-java-27`,
 with the text and JUnit XML reports retained for 14 days. Reports are uploaded
 even after test failures; a failure before test execution may leave no reports.
 After the workflow is on the default branch, **Actions > Tests > Run workflow**
@@ -310,7 +311,8 @@ first routes may differ from forward Dijkstra and can produce different subseque
   exclusive end boundaries and complete slices, scenario-specific time settings, Enter/Escape,
   canceled prompts, missing/invalid settings, SQL failures and once-only completion. Verifies restored
   labels/listeners, stopped and stale timers, replacement playback, absent labels, large time values,
-  quoted/nested/OR query predicates and project cleanup before JDBC closure and reuse of the map.
+  quoted/nested/OR query predicates, CR/LF line comments, nested block comments on H2, and project
+  cleanup before JDBC closure and reuse of the map.
 - `ScenariosTest`: comparison and summation on H2/HSQLDB with matching/disjoint links,
   unequal/reordered commodity columns, every operation type, directions, services, time periods,
   large identifiers/vehicle counts, filters and empty inputs. Covers current and legacy schemas,
@@ -322,7 +324,8 @@ first routes may differ from forward Dijkstra and can produce different subseque
   explicit failed-row statuses, commit failure before and after the commit reaches the database,
   and publication-commit failure. Checks transactional and auto-commit writes, non-batch drivers,
   consolidated quantities/costs/vehicles, preservation of previous output, closed statements,
-  progress cleanup and error-reporting failures that must not prevent rollback.
+  progress cleanup and error-reporting failures that must not prevent rollback. Two-group and
+  maximum-group cases verify consolidated vehicle counts beyond the integer and ten-digit ranges.
 - `AssignmentOutputFailureTest`: real routing and output with failures in network writing,
   final path batches, path commits, statement closure, publication renames and publication commits.
   Checks complete previous-result preservation, first-attempt failure, successful retries,
@@ -725,7 +728,8 @@ first routes may differ from forward Dijkstra and can produce different subseque
   and when the project closes before opening completes.
 - `NodusProjectCloseWorkflowTest`: real asynchronous close hooks, registered resource cleanup,
   JDBC closure and lock release must finish before the next project opens. Latches check the
-  ordering, once-only EDT callbacks, and retained ownership on cancellation or failed saving;
+  ordering, deferred closure while a computation owns the project, once-only EDT callbacks,
+  and retained ownership on cancellation or failed saving;
   discarded open callbacks must not run on a later successful close.
 - `NodusMapPanelStartupStateTest`: quitting after manually closing a project clears its saved
   startup name while preserving the chooser directory and reload preference. Quitting with a
@@ -831,6 +835,12 @@ first routes may differ from forward Dijkstra and can produce different subseque
   during deletion, insertion, statement closure and transaction completion preserve saved rows
   and pending edits for retry. Covers empty replacements, complete reads, malformed rows,
   first saves without implicit commits, connection cleanup, custom schemas and reordered columns.
+- `NodeRulesSchemaTest`: reader/editor creation supports scenario 1000 on H2 and HSQLDB. Legacy
+  two-digit scenario columns are widened through the real project-open upgrade hook, preserving
+  generic/scenario rules, caller savepoints and unrelated pending edits; repeated upgrades are safe.
+- `SoundPlayerTest`: a fake audio clip and real ULAW conversion exercise unavailable lines,
+  initialization/listener/start failures, conversion-stream close failures and asynchronous STOP
+  cleanup without an audio device. Successful playback retains its clip until the STOP event.
 - `VehiclesParserTest`: capacity and passenger-car-unit property precedence, isolation
   between scenarios, groups and mode/means, default values, fractional values, and repeated
   initialization. Rejects malformed, non-finite, zero/negative capacities and negative PCU factors

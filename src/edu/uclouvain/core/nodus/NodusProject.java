@@ -242,6 +242,7 @@ public class NodusProject implements ShapeConstants {
   private LocalDatabaseServer databaseServer;
 
   private volatile boolean closeInProgress = false;
+  private javax.swing.Timer computationCloseTimer;
 
   private final List<Runnable> closeCompletionCallbacks = new LinkedList<>();
 
@@ -318,6 +319,26 @@ public class NodusProject implements ShapeConstants {
     }
 
     if (closeInProgress) {
+      return;
+    }
+
+    // Assignment, estimation and KPI workers use the project connection and loaded layers.
+    // Keep those resources alive until the current computation has released its UI gate.
+    if (!nodusMapPanel.getAssignmentMenuItem().isEnabled()) {
+      nodusMapPanel.setFileMenuBusy(true);
+      if (computationCloseTimer == null) {
+        computationCloseTimer =
+            new javax.swing.Timer(
+                100,
+                event -> {
+                  if (nodusMapPanel.getAssignmentMenuItem().isEnabled() || !isOpen) {
+                    computationCloseTimer.stop();
+                    computationCloseTimer = null;
+                    close();
+                  }
+                });
+        computationCloseTimer.start();
+      }
       return;
     }
 
@@ -647,8 +668,8 @@ public class NodusProject implements ShapeConstants {
           NodusC.PROP_ADD_POLITICAL_BOUNDARIES,
           Boolean.toString(nodusMapPanel.isPoliticalBoundariesAdded()));
 
-      new PropertiesFileSave().save(
-          Path.of(projectResourceFileNameAndPath + NodusC.TYPE_LOCAL), localProperties);
+      new PropertiesFileSave()
+          .save(Path.of(projectResourceFileNameAndPath + NodusC.TYPE_LOCAL), localProperties);
 
       localProperties.clear();
       localProperties = null;
@@ -2381,9 +2402,8 @@ public class NodusProject implements ShapeConstants {
   }
 
   /**
-   * Saves the project's properties without truncating the previous file on failure.
-   * Saving errors propagate as UncheckedIOException so callers cannot treat a failed save as
-   * success.
+   * Saves the project's properties without truncating the previous file on failure. Saving errors
+   * propagate as UncheckedIOException so callers cannot treat a failed save as success.
    */
   public void saveProperties() {
 

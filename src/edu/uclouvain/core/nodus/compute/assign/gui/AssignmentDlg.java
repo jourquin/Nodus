@@ -488,8 +488,13 @@ public class AssignmentDlg extends EscapeDialog {
       default:
         break;
     }
-    Thread t = new Thread(as);
-    t.start();
+    nodusMapPanel.getAssignmentMenuItem().setEnabled(false);
+    try {
+      new Thread(as, "Nodus-Assignment").start();
+    } catch (RuntimeException | Error failure) {
+      nodusMapPanel.getAssignmentMenuItem().setEnabled(true);
+      throw failure;
+    }
 
     setVisible(false);
   }
@@ -711,8 +716,7 @@ public class AssignmentDlg extends EscapeDialog {
   private void updateModalSplitMethodFromCostFile() {
     boolean wasLocked = !modalSplitMethodComboBox.isEnabled();
     if (!wasLocked) {
-      manualModalSplitMethod =
-          (ModalSplitMethodName) modalSplitMethodComboBox.getSelectedItem();
+      manualModalSplitMethod = (ModalSplitMethodName) modalSplitMethodComboBox.getSelectedItem();
     }
     modalSplitMethodAvailable = true;
     boolean linked = false;
@@ -727,8 +731,7 @@ public class AssignmentDlg extends EscapeDialog {
       try {
         NodusProject project = nodusMapPanel.getNodusProject();
         Path path =
-            Path.of(
-                project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH), selectedFile.toString());
+            Path.of(project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH), selectedFile.toString());
         String method =
             ModalParameterTable.methodForCostFile(project.getMainJDBCConnection(), path);
         if (method != null) {

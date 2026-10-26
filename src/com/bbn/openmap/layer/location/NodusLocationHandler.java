@@ -506,6 +506,7 @@ public class NodusLocationHandler extends AbstractLocationHandler
           } catch (Exception e) {
             // This could happen for unbalanced layers when the integrity tester has not finished.
             // Ignore exception because the project will not be opened.
+            continue;
           }
 
           // Be sure an AppObject is attached to this graphic

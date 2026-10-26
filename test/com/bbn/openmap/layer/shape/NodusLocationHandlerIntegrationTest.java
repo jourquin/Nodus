@@ -81,6 +81,19 @@ class NodusLocationHandlerIntegrationTest {
   }
 
   @Test
+  void missingGeometryRowsCannotReuseThePreviousObjectsLabel() throws Exception {
+    try (LayerTestProject project = new LayerTestProject(directory, false);
+        Labels labels = new Labels(project)) {
+      // Keep the DBF/index entries while simulating a truncated geometry list during loading.
+      project.layer.getEsriGraphicList().remove(2);
+      project.layer.getEsriGraphicList().remove(1);
+      labels.handler.reloadData();
+      assertEquals(List.of("original 30"), labels.names());
+      assertEquals("original 30", object(project, 30).getLocation().getName());
+    }
+  }
+
+  @Test
   void databaseRefreshUpdatesTextsAndMembershipOfAnUnchangedLabelFilter() throws Exception {
     try (LayerTestProject project = new LayerTestProject(directory, false);
         Labels labels = new Labels(project)) {

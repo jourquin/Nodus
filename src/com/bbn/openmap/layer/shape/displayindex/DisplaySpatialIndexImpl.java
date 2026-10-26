@@ -96,8 +96,7 @@ public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
   private static int LL_MIN_Lon = 3;
 
   /**
-   * Determines if two rectangles intersect. Actually, this method determines if two rectangles
-   * don't intersect, and then returns a negation of that result. But the bottom line is the same.
+   * Determines whether two rectangles intersect.
    *
    * @param boundingBoxA First rectangle
    * @param boundingBoxB Second rectangle
@@ -142,13 +141,11 @@ public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
   }
 
   /**
-   * Determines if two rectangles intersect. Actually, this method determines if two rectangles
-   * don't intersect, and then returns a negation of that result. But the bottom line is the same.
+   * Determines whether rectangle A completely contains rectangle B, including its boundary.
    *
    * @param boundingBoxA First rectangle
    * @param boundingBoxB Second rectangle
-   * @return <code>true</code> if the rectangles intersect, <code>false</code> if they do not
-   *     A------------| | B-----| | | | | | | |-----| | |____________|
+   * @return true if B is a subset of A
    */
   protected static boolean subset(DataBounds boundingBoxA, DataBounds boundingBoxB) {
     return subset(
@@ -163,19 +160,17 @@ public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
   }
 
   /**
-   * Determines if two rectangles intersect. Actually, this method determines if two rectangles
-   * don't intersect, and then returns a negation of that result. But the bottom line is the same.
+   * Determines whether rectangle A completely contains rectangle B, including its boundary.
    *
-   * @param xmin1 the small x of rectangle A
-   * @param ymin1 the small y of rectangle A
-   * @param xmax1 the big x of rectangle A
-   * @param ymax1 the big y of rectangle A
-   * @param xmin2 the small x of rectangle B
-   * @param ymin2 the small y of rectangle B
-   * @param xmax2 the big x of rectangle B
-   * @param ymax2 the big y of rectangle B
-   * @return <code>true</code> if the rectangles intersect, <code>false</code> if they do not
-   *     A------------| | B-----| | | | | | | |-----| | |____________|
+   * @param xminA minimum x of rectangle A
+   * @param yminA minimum y of rectangle A
+   * @param xmaxA maximum x of rectangle A
+   * @param ymaxA maximum y of rectangle A
+   * @param xminB minimum x of rectangle B
+   * @param yminB minimum y of rectangle B
+   * @param xmaxB maximum x of rectangle B
+   * @param ymaxB maximum y of rectangle B
+   * @return true if B is a subset of A
    */
   protected static boolean subset(
       double xminA,
@@ -555,7 +550,7 @@ public abstract class DisplaySpatialIndexImpl implements DisplaySpatialIndex {
   /**
    * Indexes the list of graphics.
    *
-   * @param bounds if not null, add min/max values to them.
+   * @param elist graphics to index
    * @return The size of the list
    * @throws IOException On error
    * @throws FormatException On error

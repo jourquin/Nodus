@@ -406,23 +406,36 @@ class ResultPlaybackTest {
             "SELECT id,SUM(qty) FROM results WHERE 'where in a string' <> '' "
                 + "AND (grp=1 OR grp=2) GROUP BY id,time HAVING SUM(qty)>0",
             "SELECT id,SUM(qty) FROM results WHERE grp=1 OR grp=2 -- WHERE ignored\n"
+                + "GROUP BY id,time",
+            "SELECT id,SUM(qty) FROM results WHERE grp=1 OR grp=2 -- WHERE ignored\r"
                 + "GROUP BY id,time")
-        .flatMap(
-            query ->
-                examples(
-                    query,
-                    (f, lr) ->
-                        edt(
-                            () -> {
-                              final List<Boolean> done = new ArrayList<>();
-                              assertTrue(lr.displayTimeDependentFlows(query, done::add));
-                              assertEquals(10, f.object(true, 30).getResult());
-                              lr.tick();
-                              assertEquals(20, f.object(true, 30).getResult());
-                              lr.tick();
-                              assertEquals(List.of(true), done);
-                              assertTrue(lr.errors.isEmpty());
-                            })));
+        .flatMap(this::checkPlaybackQuery);
+  }
+
+  @TestFactory
+  Stream<DynamicTest> nestedCommentsCannotIntroducePredicatesInsideTheComment() {
+    // Nested SQL comments are valid in H2; HSQLDB rejects this syntax itself.
+    return checkPlaybackQuery(
+            "SELECT id,SUM(qty) FROM results WHERE grp=1 OR grp=2 "
+                + "/* outer /* nested */ WHERE ignored */ GROUP BY id,time")
+        .limit(1);
+  }
+
+  private Stream<DynamicTest> checkPlaybackQuery(String query) {
+    return examples(
+        query,
+        (f, lr) ->
+            edt(
+                () -> {
+                  final List<Boolean> done = new ArrayList<>();
+                  assertTrue(lr.displayTimeDependentFlows(query, done::add), lr.errors.toString());
+                  assertEquals(10, f.object(true, 30).getResult());
+                  lr.tick();
+                  assertEquals(20, f.object(true, 30).getResult());
+                  lr.tick();
+                  assertEquals(List.of(true), done);
+                  assertTrue(lr.errors.isEmpty());
+                }));
   }
 
   @TestFactory

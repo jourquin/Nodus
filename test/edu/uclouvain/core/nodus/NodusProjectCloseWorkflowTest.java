@@ -79,7 +79,12 @@ class NodusProjectCloseWorkflowTest {
   @Test
   void openingNextProjectWaitsForHookCleanupJdbcClosureAndLockRelease() throws Exception {
     try (Fixture fixture = new Fixture()) {
+      SwingUtilities.invokeAndWait(() -> fixture.panel.getAssignmentMenuItem().setEnabled(false));
       SwingUtilities.invokeAndWait(() -> fixture.panel.openProject("next.nodus"));
+      assertFalse(fixture.hookEntered.await(150, TimeUnit.MILLISECONDS));
+      assertFalse(fixture.connection.isClosed());
+      assertEquals(0, fixture.opened.get());
+      SwingUtilities.invokeAndWait(() -> fixture.panel.getAssignmentMenuItem().setEnabled(true));
       assertTrue(fixture.hookEntered.await(5, TimeUnit.SECONDS));
       assertEquals(0, fixture.opened.get());
       assertFalse(fixture.connection.isClosed());

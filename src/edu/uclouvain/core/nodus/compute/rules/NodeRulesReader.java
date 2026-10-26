@@ -292,7 +292,7 @@ public class NodeRulesReader {
     JDBCField[] field = new JDBCField[8];
     int idx = 0;
     field[idx++] = new JDBCField(NodusC.DBF_NUM, "NUMERIC(11)");
-    field[idx++] = new JDBCField(NodusC.DBF_SCENARIO, "NUMERIC(2)");
+    field[idx++] = new JDBCField(NodusC.DBF_SCENARIO, NodeRulesSchema.SCENARIO_TYPE);
     field[idx++] = new JDBCField(NodusC.DBF_GROUP, "NUMERIC(2)");
     field[idx++] = new JDBCField(NodusC.DBF_MODE1, "NUMERIC(2)");
     field[idx++] = new JDBCField(NodusC.DBF_MEANS1, "NUMERIC(2)");
@@ -324,6 +324,11 @@ public class NodeRulesReader {
 
     // Test if  the "scenario" field exists
     if (JDBCUtils.hasField(tableName, NodusC.DBF_SCENARIO)) {
+      try {
+        NodeRulesSchema.ensureScenarioRange(nodusProject, tableName);
+      } catch (SQLException failure) {
+        throw new IllegalStateException("Cannot upgrade node-rule scenario range", failure);
+      }
       return;
     }
 

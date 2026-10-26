@@ -128,7 +128,8 @@ public class VirtualNetworkWriter {
     // Consolidated data
     field[idx++] = new JDBCField(NodusC.DBF_UNITCOST, "NUMERIC(13,3)");
     field[idx++] = new JDBCField(NodusC.DBF_QUANTITY, "NUMERIC(13,3)");
-    field[idx++] = new JDBCField(NodusC.DBF_VEHICLES, "NUMERIC(10)");
+    // A consolidated count can include up to MAXGROUPS individually valid integer counts.
+    field[idx++] = new JDBCField(NodusC.DBF_VEHICLES, "NUMERIC(12)");
 
     if (!JDBCUtils.createTable(tableName, field)) {
       return false;
@@ -325,7 +326,7 @@ public class VirtualNetworkWriter {
 
                   double totalQty = 0.0;
                   double averageWeight = 0.0;
-                  int totalVehicles = 0;
+                  long totalVehicles = 0;
 
                   for (byte k = 0; k < (byte) groups.length; k++) {
 
@@ -344,7 +345,7 @@ public class VirtualNetworkWriter {
 
                   prepStmt.setDouble(idx++, averageWeight);
                   prepStmt.setDouble(idx++, totalQty);
-                  prepStmt.setInt(idx++, totalVehicles);
+                  prepStmt.setLong(idx++, totalVehicles);
 
                   // Save into table according to batch policy;
                   if (hasBatchSupport) {

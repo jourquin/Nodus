@@ -26,11 +26,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.testing.AssignmentOutputFixture;
 import edu.uclouvain.core.nodus.testing.AssignmentOutputFixture.Fault;
 import java.nio.file.Path;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
@@ -179,6 +182,62 @@ class VirtualNetworkWriterTest {
                         }
                       }
                     }));
+  }
+
+  @TestFactory
+  Stream<DynamicTest> consolidatedVehicleCountsCanExceedTheIntegerRange() {
+    return Stream.of(false, true)
+        .flatMap(
+            hsql ->
+                Stream.of(2, NodusC.MAXGROUPS)
+                    .map(
+                        count ->
+                            DynamicTest.dynamicTest(
+                                "HSQLDB=" + hsql + ", groups=" + count,
+                                () -> {
+                                  try (AssignmentOutputFixture project =
+                                      new AssignmentOutputFixture(directory, hsql)) {
+                                    final AssignmentParameters parameters = project.parameters(1);
+                                    final VirtualNetwork network = new VirtualNetwork(parameters);
+                                    try {
+                                      assertTrue(network.generate());
+                                      byte[] groups = new byte[count];
+                                      for (int i = 0; i < count; i++) {
+                                        groups[i] = (byte) i;
+                                      }
+                                      network.setGroups(groups);
+                                      for (VirtualNodeList nodes : network.getVirtualNodeLists()) {
+                                        for (VirtualNode node : nodes.getVirtualNodeList()) {
+                                          for (VirtualLink link : node.getVirtualLinkList()) {
+                                            for (byte group = 0; group < count; group++) {
+                                              link.setCost(group, 2);
+                                              link.addVolume(group, 2);
+                                              link.volumesToVehicles(group, 0, 1e-9, 0);
+                                            }
+                                          }
+                                        }
+                                      }
+                                      assertTrue(
+                                          new VirtualNetworkWriter(parameters, network).save());
+                                      try (Statement statement =
+                                              project.getMainJDBCConnection().createStatement();
+                                          ResultSet rows =
+                                              statement.executeQuery(
+                                                  "SELECT MIN(veh), MAX(veh), MIN(veh0), MAX(veh0)"
+                                                      + " FROM mini_vnet1 WHERE vtype="
+                                                      + VirtualLink.TYPE_MOVE)) {
+                                        assertTrue(rows.next());
+                                        assertEquals(count * 2_000_000_000L, rows.getLong(1));
+                                        assertEquals(count * 2_000_000_000L, rows.getLong(2));
+                                        assertEquals(2_000_000_000L, rows.getLong(3));
+                                        assertEquals(2_000_000_000L, rows.getLong(4));
+                                      }
+                                      project.assertClean();
+                                    } finally {
+                                      network.dispose();
+                                    }
+                                  }
+                                })));
   }
 
   @TestFactory

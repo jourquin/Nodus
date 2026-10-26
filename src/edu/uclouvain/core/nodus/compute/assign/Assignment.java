@@ -398,7 +398,7 @@ public abstract class Assignment implements Runnable {
   /** Main routine that calls the actual assignment algorithm in the derived classes. */
   @Override
   public void run() {
-   
+
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
     nodusMapPanel.getAssignmentMenuItem().setEnabled(false);
     completion = null;
@@ -408,7 +408,6 @@ public abstract class Assignment implements Runnable {
     nodusMapPanel.updateScenarioComboBox(true);
 
     boolean success = false;
-    boolean outOfMemory = false;
     AssignmentOutputTables outputs = null;
     AssignmentComputingTimes computingTimes = assignmentParameters.getComputingTimes();
     computingTimes.startAssignment();
@@ -475,7 +474,6 @@ public abstract class Assignment implements Runnable {
       nodusMapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);
     } catch (OutOfMemoryError e) {
       success = false;
-      outOfMemory = true;
 
       // Free memory and force garbage collection
       virtualNet = null;
@@ -510,9 +508,8 @@ public abstract class Assignment implements Runnable {
       nodusMapPanel.stopProgress();
       nodusMapPanel.resetText();
 
-      if (!outOfMemory) {
-        nodusMapPanel.getAssignmentMenuItem().setEnabled(true);
-      }
+      // Release the computation gate after cleanup, including a pending shutdown after OOM.
+      nodusMapPanel.getAssignmentMenuItem().setEnabled(true);
       nodusMapPanel.updateScenarioComboBox(true);
     }
   }
@@ -648,10 +645,9 @@ public abstract class Assignment implements Runnable {
     return maxGap < threshold;
   }
 
-  
   /**
-   * Records the normal completion of a convergence-controlled assignment. 
-   * 
+   * Records the normal completion of a convergence-controlled assignment.
+   *
    * @param converged True if the assignment converged, false if the maximum number of iterations
    *     was reached.
    * @param iterations The number of iterations performed.
@@ -677,7 +673,7 @@ public abstract class Assignment implements Runnable {
   /**
    * Sets the normal completion of an assignment that was configured to run for a fixed number of
    * iterations. This method is used for assignments that do not use convergence control.
-   * 
+   *
    * @param iterations The number of iterations performed.
    */
   protected final void setFixedIterationsCompletion(int iterations) {

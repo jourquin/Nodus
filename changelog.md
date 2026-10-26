@@ -515,6 +515,17 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Remove the "Save paths" checkbox in the assignment dialog, as it is now mandatory.
   
 ## v9.0 - BuildXXXXXXXX
+- Preserve the previous imported table if the replacement's final commit fails
+- Defer project closure and switching until active assignment, estimation or KPI computation cleanup
+  has finished
+- Upgrade legacy node-rule scenario fields to support all scenarios through 1000 without committing
+  unrelated pending edits
+- Close audio clips and conversion streams when sound playback fails to initialize
+- Skip missing map geometries instead of reusing the preceding object's label
+- Preserve playback time filters with carriage-return line comments and nested SQL block comments
+- Save consolidated vehicle totals without integer overflow, including up to 100 commodity groups
+- Repair obsolete Javadoc parameter names, HTML tags and Markdown links found during the
+  [release audit](doc/release-audit-2026-10-26.md)
 - Restore mutable NodusC settings before loading each project, preserving application defaults
   configured by nodus.groovy and preventing overrides from leaking between projects
 - Include final partial periods in time-dependent assignments and result playback; report

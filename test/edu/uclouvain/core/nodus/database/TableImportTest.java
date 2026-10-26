@@ -155,7 +155,7 @@ class TableImportTest {
   List<DynamicTest> installationFailureRestoresOriginalTableAndCleansStage() {
     List<DynamicTest> tests = new ArrayList<>();
     for (boolean hsql : new boolean[] {false, true}) {
-      for (String point : List.of("install", "drop backup")) {
+      for (String point : List.of("install", "drop backup", "commit")) {
         tests.add(
             DynamicTest.dynamicTest(
                 hsql + "/" + point,
@@ -163,6 +163,8 @@ class TableImportTest {
                   try (DatabaseFixture f = new DatabaseFixture(directory, hsql)) {
                     prepare(f);
                     boolean[] injected = {false};
+                    java.util.concurrent.atomic.AtomicInteger commits =
+                        new java.util.concurrent.atomic.AtomicInteger();
                     Connection failing =
                         (Connection)
                             java.lang.reflect.Proxy.newProxyInstance(
@@ -170,6 +172,13 @@ class TableImportTest {
                                 new Class<?>[] {Connection.class},
                                 (proxy, method, args) -> {
                                   try {
+                                    if (point.equals("commit")
+                                        && method.getName().equals("commit")
+                                        && commits.incrementAndGet() == 2) {
+                                      injected[0] = true;
+                                      throw new java.sql.SQLException(
+                                          "Injected final commit failure");
+                                    }
                                     Object result = method.invoke(f.connection, args);
                                     if (method.getName().equals("createStatement")) {
                                       Statement delegate = (Statement) result;
@@ -184,7 +193,8 @@ class TableImportTest {
                                                   point.equals("install")
                                                       ? sql.startsWith("ALTER TABLE \"NDI_")
                                                           && sql.contains("RENAME TO")
-                                                      : sql.startsWith("DROP TABLE \"NDB_");
+                                                      : point.equals("drop backup")
+                                                          && sql.startsWith("DROP TABLE \"NDB_");
                                               if (trigger && !injected[0]) {
                                                 injected[0] = true;
                                                 throw new java.sql.SQLException(
@@ -281,8 +291,9 @@ class TableImportTest {
 
   @Test
   void failedRollbackDoesNotImplicitlyCommitFailedImport() throws Exception {
-    try (Connection connection = java.sql.DriverManager.getConnection(
-        "jdbc:h2:mem:rollback_" + java.util.UUID.randomUUID(), "sa", "")) {
+    try (Connection connection =
+        java.sql.DriverManager.getConnection(
+            "jdbc:h2:mem:rollback_" + java.util.UUID.randomUUID(), "sa", "")) {
       assertTrue(JDBCUtils.setConnection(connection));
       try (Statement statement = connection.createStatement()) {
         statement.execute("CREATE TABLE earlier (id INTEGER)");
