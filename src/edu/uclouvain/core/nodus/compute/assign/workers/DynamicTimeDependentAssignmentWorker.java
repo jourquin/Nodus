@@ -48,6 +48,8 @@ import java.util.LinkedList;
 public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
 
   private BinaryHeapDijkstra shortestPath;
+  private TimeHorizonDiagnostics horizonDiagnostics;
+  private boolean finalPeriod;
   float assignmentEndTime;
   float assignmentStartTime;
   int currentTimeSlice;
@@ -70,6 +72,10 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
    */
   @Override
   boolean doAssignment() {
+    horizonDiagnostics =
+        new TimeHorizonDiagnostics(
+            virtualNet.getAssignmentStartTime(), virtualNet.getAssignmentEndTime());
+    finalPeriod = currentTimeSlice == virtualNet.getNbTimeSlices() - 1;
     workerTimes.includePhases(
         WorkerPhase.DIJKSTRA, WorkerPhase.RECONSTRUCTION_LOADING, WorkerPhase.DEMAND_RELOCATION);
 
@@ -173,6 +179,9 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
       workerTimes.endPhase();
     }
 
+    if (finalPeriod) {
+      horizonDiagnostics.report(currentGroup, odClass);
+    }
     return true;
   }
 
@@ -187,6 +196,12 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
 
     while (it.hasNext()) {
       ODCell demand = it.next();
+      if (horizonDiagnostics.isOutsideDeparture(demand)) {
+        if (finalPeriod) {
+          horizonDiagnostics.outsideDeparture(demand);
+        }
+        continue;
+      }
 
       // Not yet started ?
       if (demand.getStartingTime() >= assignmentEndTime) {
@@ -285,6 +300,9 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
         if (link.getType() == VirtualLink.TYPE_MOVE) {
           arrivalTime += link.getLength() * 3600.0 / link.getSpeed();
           if (arrivalTime > assignmentEndTime) {
+            if (finalPeriod && isPathFound) {
+              horizonDiagnostics.unfinishedRoute(demand, arrivalTime);
+            }
             linksToAssign = safePrefixLength;
             final int newNodeIndex =
                 virtualNet.getNodeIndexInVirtualNodeList(continuation.getRealNodeId(false), false);
@@ -397,8 +415,8 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
    */
   public void setTimeParameters(int currentTimeSlice, int sliceStartTime, int sliceDuration) {
     this.currentTimeSlice = currentTimeSlice;
-    this.assignmentStartTime = sliceStartTime * 60;
-    this.assignmentEndTime = this.assignmentStartTime + sliceDuration * 60;
+    this.assignmentStartTime = sliceStartTime * 60.0f;
+    this.assignmentEndTime = this.assignmentStartTime + sliceDuration * 60.0f;
   }
 
   /**

@@ -1604,7 +1604,7 @@ public class VirtualNetwork {
   }
 
   /**
-   * Sets the specific parameters for time dependent assignments.
+   * Sets the specific parameters for time dependent assignments, including a final partial slice.
    *
    * @param assignmentStartTime The assignment starting time, expressed in minutes after midnight.
    * @param assignmentEndTime The assignment end time, expressed in minutes after midnight.
@@ -1612,16 +1612,17 @@ public class VirtualNetwork {
    */
   public void setAssignmentTimeParameters(
       int assignmentStartTime, int assignmentEndTime, int timeSliceDuration) {
-    if (timeSliceDuration <= 0
-        || assignmentEndTime <= assignmentStartTime
-        || assignmentEndTime - assignmentStartTime < timeSliceDuration) {
+    if (assignmentStartTime < 0
+        || timeSliceDuration <= 0
+        || assignmentEndTime <= assignmentStartTime) {
       throw new IllegalArgumentException("Invalid assignment time parameters");
     }
 
     this.assignmentStartTime = assignmentStartTime;
     this.assignmentEndTime = assignmentEndTime;
     this.timeSliceDuration = timeSliceDuration;
-    nbTimeSlices = (assignmentEndTime - assignmentStartTime) / timeSliceDuration;
+    // Include a final partial period without extending the requested end time.
+    nbTimeSlices = 1 + (assignmentEndTime - assignmentStartTime - 1) / timeSliceDuration;
   }
 
   /**

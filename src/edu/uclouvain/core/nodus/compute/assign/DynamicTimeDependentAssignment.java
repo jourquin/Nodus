@@ -93,8 +93,7 @@ public class DynamicTimeDependentAssignment extends Assignment {
 
     if (assignmentStartTime < 0
         || assignmentEndTime <= assignmentStartTime
-        || timeSliceDuration <= 0
-        || assignmentEndTime - assignmentStartTime < timeSliceDuration) {
+        || timeSliceDuration <= 0) {
       JOptionPane.showMessageDialog(
           null,
           i18n.get(
@@ -106,10 +105,10 @@ public class DynamicTimeDependentAssignment extends Assignment {
       return false;
     }
 
-    final int nbTimeSlices = (assignmentEndTime - assignmentStartTime) / timeSliceDuration;
     // Generate a virtual network
     virtualNet.setAssignmentTimeParameters(
         assignmentStartTime, assignmentEndTime, timeSliceDuration);
+    final int nbTimeSlices = virtualNet.getNbTimeSlices();
 
     if (!virtualNet.generate()) {
       return false;
@@ -190,7 +189,10 @@ public class DynamicTimeDependentAssignment extends Assignment {
         assignmentWorkers = new AssignmentWorker[threads];
         for (int i = 0; i < assignmentWorkers.length; i++) {
           DynamicTimeDependentAssignmentWorker aw = new DynamicTimeDependentAssignmentWorker(queue);
-          aw.setTimeParameters(currentTimeSlice, sliceStartTime, timeSliceDuration);
+          aw.setTimeParameters(
+              currentTimeSlice,
+              sliceStartTime,
+              Math.min(timeSliceDuration, assignmentEndTime - sliceStartTime));
           assignmentWorkers[i] = aw;
           assignmentWorkers[i].start();
         }

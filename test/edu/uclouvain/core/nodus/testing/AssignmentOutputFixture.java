@@ -41,6 +41,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Locale;
@@ -62,6 +63,7 @@ public final class AssignmentOutputFixture extends AssignmentTestProject {
     PATH_FINAL_BATCH,
     PATH_COMMIT,
     STATEMENT_CLOSE,
+    PUBLISH_METADATA,
     PUBLISH_RENAME,
     PUBLISH_RENAME_AFTER,
     PUBLISH_BACKUP_AFTER,
@@ -249,11 +251,19 @@ public final class AssignmentOutputFixture extends AssignmentTestProject {
                       return Proxy.newProxyInstance(
                           DatabaseMetaData.class.getClassLoader(),
                           new Class<?>[] {DatabaseMetaData.class},
-                          (object, member, values) ->
-                              member.getName().equals("supportsBatchUpdates")
-                                      && fault == Fault.NO_BATCH
-                                  ? false
-                                  : invoke(metadata, member, values));
+                          (object, member, values) -> {
+                            if (member.getName().equals("getTables")
+                                && networkCommitted
+                                && "MINI_VNET1".equalsIgnoreCase((String) values[2])
+                                && trip(Fault.PUBLISH_METADATA)) {
+                              throw new SQLNonTransientConnectionException(
+                                  "connection exception: closed", "08003");
+                            }
+                            return member.getName().equals("supportsBatchUpdates")
+                                    && fault == Fault.NO_BATCH
+                                ? false
+                                : invoke(metadata, member, values);
+                          });
                     }
                     if (name.equals("prepareStatement")) {
                       PreparedStatement statement =

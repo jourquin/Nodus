@@ -54,6 +54,7 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.parallel.Resources;
 
@@ -61,6 +62,7 @@ import org.junit.jupiter.api.parallel.Resources;
  * Exercises the real project's property writers and early open failures without desktop dialogs.
  */
 @ResourceLock(Resources.SYSTEM_ERR)
+@Isolated("Early project opening restores all mutable NodusC settings")
 class NodusProjectPropertiesTest {
   private static final byte[] ORIGINAL =
       "# Coût\nkeep=before\nremove=old\n".getBytes(StandardCharsets.ISO_8859_1);

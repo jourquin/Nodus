@@ -26,6 +26,7 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -155,13 +156,13 @@ public final class AssignmentOutputTables implements AutoCloseable {
    */
   public void publish() throws SQLException {
     for (Table table : tables) {
-      if (table.required && !JDBCUtils.tableExists(table.staged)) {
+      if (table.required && !tableExists(table.staged)) {
         throw new SQLException("Missing assignment output: " + table.destination);
       }
     }
     try {
       for (Table table : tables) {
-        if (JDBCUtils.tableExists(table.destination)) {
+        if (tableExists(table.destination)) {
           // Record the attempt first: the driver can throw after executing the rename.
           table.backupAttempted = true;
           rename(table.destination, table.backup);
@@ -202,7 +203,7 @@ public final class AssignmentOutputTables implements AutoCloseable {
           table.installAttempted = false;
         }
         if (table.backupAttempted) {
-          if (JDBCUtils.tableExists(table.backup)) {
+          if (tableExists(table.backup)) {
             rename(table.backup, table.destination);
           }
           table.backupAttempted = false;
@@ -213,6 +214,26 @@ public final class AssignmentOutputTables implements AutoCloseable {
             "Cannot restore " + table.destination + "; retained backup: " + table.backup);
         restoreFailure.printStackTrace();
       }
+    }
+  }
+
+  /** Checks this output attempt's connection without hiding metadata failures. */
+  private boolean tableExists(String name) throws SQLException {
+    String identifier = JDBCUtils.getCompliantIdentifier(name);
+    try (ResultSet rows =
+        connection
+            .getMetaData()
+            .getTables(
+                connection.getCatalog(),
+                connection.getSchema(),
+                identifier,
+                new String[] {"TABLE"})) {
+      while (rows.next()) {
+        if (identifier.equals(rows.getString("TABLE_NAME"))) {
+          return true;
+        }
+      }
+      return false;
     }
   }
 
@@ -227,7 +248,7 @@ public final class AssignmentOutputTables implements AutoCloseable {
   }
 
   private void drop(String name) throws SQLException {
-    if (JDBCUtils.tableExists(name)) {
+    if (tableExists(name)) {
       try (Statement statement = connection.createStatement()) {
         statement.execute("DROP TABLE " + JDBCUtils.getQuotedCompliantIdentifier(name));
       }

@@ -57,12 +57,9 @@ import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 
 /*
- * TODO Test MF !!
  * TODO Test cost parser with vehicles
- * TODO Test semi-dynamic assignments and display
  * TODO Test exclusions
- * TODO test incremental + FW assignment
- * TODO Test plugins
+ * TODO assignment perf by default
  */
 
 /**
@@ -262,9 +259,12 @@ public class Nodus {
             scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
             scriptRunner.setVariable("startNodus", true);
             scriptRunner.setVariable("quitNodus", false);
+            nodusMapPanel.setFileMenuBusy(true);
             scriptRunner.runAsync(
                 true,
                 success -> {
+                  NodusC.captureApplicationSettings();
+                  nodusMapPanel.setFileMenuBusy(false);
                   // Load the project passed as parameter
                   if (projectToLoad != null) {
                     nodusMapPanel.openProject(projectToLoad);

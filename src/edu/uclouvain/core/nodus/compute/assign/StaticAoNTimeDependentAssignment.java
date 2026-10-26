@@ -90,8 +90,7 @@ public class StaticAoNTimeDependentAssignment extends Assignment {
 
     if (assignmentStartTime < 0
         || assignmentEndTime <= assignmentStartTime
-        || timeSliceDuration <= 0
-        || assignmentEndTime - assignmentStartTime < timeSliceDuration) {
+        || timeSliceDuration <= 0) {
       JOptionPane.showMessageDialog(
           null,
           i18n.get(

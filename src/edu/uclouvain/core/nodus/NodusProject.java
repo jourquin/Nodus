@@ -1928,6 +1928,7 @@ public class NodusProject implements ShapeConstants {
    */
   public void openProject(String projectName) throws OutOfMemoryError {
 
+    NodusC.restoreApplicationSettings();
     jdbcConnectionLost = false;
     monitorMainConnection = false;
     projectResourceFileNameAndPath = projectName;

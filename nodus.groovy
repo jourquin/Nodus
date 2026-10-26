@@ -38,6 +38,10 @@ import com.bbn.openmap.proj.coords.LatLonPoint;
  * found in the directory that contains the [projetname].nodus file, it is executed when the 
  * project is loaded and closed. The "openProject", "closeProject" and "nodusMapPanel" variables
  * are then set by Nodus.
+ *
+ * Public mutable NodusC settings configured here at startup become the application defaults.
+ * Nodus restores these defaults before loading each project, then runs its project script.
+ * Overrides made by a project script do not carry over to the next project.
  */
 
 if (startNodus) {

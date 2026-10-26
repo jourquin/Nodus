@@ -52,17 +52,32 @@ previous generated shell format automatically, preserving custom JVM arguments
 and the first backup. Custom multiline scripts stay unchanged; add the option
 manually if needed.
 
-## Session settings
+## Application and project settings
 
 Public settings in [NodusC.java](https://github.com/jourquin/Nodus/blob/master/src/edu/uclouvain/core/nodus/NodusC.java) can be set
-from the startup [nodus.groovy](nodus.groovy) script or the Groovy console. The examples
-below control assignment reporting for the current session. Put them in the startup
-script to apply them whenever Nodus starts.
+from the startup [nodus.groovy](nodus.groovy) script, a project's `[projectname].groovy` file,
+or the Groovy console.
+
+The settings follow this order:
+
+1. The values declared in `NodusC` provide the defaults.
+2. Changes made by the startup `nodus.groovy` become the application defaults for that session.
+3. Each project starts with those application defaults; its own Groovy script can override them.
+
+Before another project loads, all public mutable `NodusC` settings are restored to the application
+defaults, even if the next project has no Groovy file. This includes timing reports, assignment
+dialogs, estimation diagnostics, map options and the Exact MF algorithm selector. Changes made
+from a project script or the Groovy console last until the next project loads. A project's close
+script still sees its current settings; canceling project closure keeps those settings in place.
+
+Put a setting in the startup script to apply it to every project, or in a project's script to
+apply it only there. The startup script is run once at application launch, not on every project
+switch. Existing HTML reports are retained when reporting is disabled.
 
 ### Assignment information dialogs
 
-Informational assignment completion dialogs are enabled by default. To disable them for
-the current Nodus session, add this to the startup `nodus.groovy` script or run it from Groovy:
+Informational assignment completion dialogs are enabled by default. To disable them for all
+projects, add this to the startup `nodus.groovy` script:
 
 ```groovy
 edu.uclouvain.core.nodus.NodusC.displayAssignmentInformationDialogs = false
@@ -74,15 +89,20 @@ including reaching the maximum iteration count without convergence, remain visib
 
 ### Assignment runtime audit
 
-Set `NodusC.displayComputingTimes = true` to print a timing summary to standard output for each
-assignment. The switch defaults to `false` and is sampled at the beginning of `Assignment.run()`.
+Set `NodusC.displayComputingTimes = true` to save a timing report as an HTML file in the project
+directory for each assignment. The switch defaults to `false` and is sampled at the beginning of
+`Assignment.run()`.
 It can also be enabled from a Groovy script before running assignments:
 
 ```groovy
 edu.uclouvain.core.nodus.NodusC.displayComputingTimes = true
 ```
 
-The summary identifies the algorithm, scenario, configured thread count and completion status,
+Set `NodusC.displayComputingTimes = false` before starting an assignment to disable new reports.
+Existing HTML files remain unchanged. `NodusC.displayMapComputingTimes` is independent: it controls
+map preparation timings printed during pan/zoom operations and does not control assignment reports.
+
+The report identifies the algorithm, scenario, configured thread count and completion status,
 and reports seconds for:
 
 - Total elapsed computation and saving, including final path batches, indexes and commits.
@@ -99,7 +119,7 @@ Path writes overlap the parallel assignment phase, so the reported rows must not
 Summed worker time can exceed total elapsed time and includes waiting for the writer lock; it is
 not CPU time. Total elapsed time also includes unlisted work such as loading demand and converting
 volumes to vehicles. Completion dialogs and post-assignment scripts are excluded. Failed or
-cancelled runs print a partial audit, excluding subsequent failure cleanup.
+cancelled runs save a partial audit, excluding subsequent failure cleanup.
 
 ## Local database servers and external JDBC connections
 

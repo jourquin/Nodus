@@ -164,6 +164,8 @@ report as a standalone UTF-8 HTML file in the project directory. The switch is s
 of the run and is off by default. All assignment methods use this output: All-or-Nothing,
 Incremental, equilibrium, Fast/Exact Multi-flow and static/dynamic time-dependent assignments.
 Timings are no longer printed to the terminal.
+Set the same switch to `false` before starting a run to disable new reports; existing HTML files
+remain unchanged. `NodusC.displayMapComputingTimes` controls map preparation timings separately.
 
 Reports use the same table layout, light header shading, timestamp and print styling as the
 modal-choice parameter report. They include the scenario, assignment method, configured threads,
@@ -493,6 +495,11 @@ first routes may differ from forward Dijkstra and can produce different subseque
   empty preferences must adopt the same saved credentials. Uses a temporary home directory.
 - `ScriptRunnerTest`: a Groovy assertion failure still reports failure and invokes the
   asynchronous lifecycle continuation on the event dispatch thread.
+- `NodusRuntimeSettingsTest`: declared defaults, startup Groovy overrides, repeated resets and
+  restoration of all public mutable NodusC settings, with final constants left intact.
+  Project-open workflow tests switch from a project with a real Groovy hook to one without a
+  script on H2 and HSQLDB, retaining startup settings and checking close-hook ordering. These
+  tests run in isolation because project loading restores all mutable NodusC settings.
 - `GitHubReleaseTest`: older, equal, newer and malformed release tags are compared without
   contacting GitHub.
 - `SetJVMArgsTest`: migration of legacy JVM argument files, preservation of heap and custom
@@ -606,6 +613,9 @@ first routes may differ from forward Dijkstra and can produce different subseque
   and without schema headers. Direct commands require approval before replacing existing tables,
   including empty ones; declining or closing the prompt preserves rows and schema. Checks new
   tables, silent script/batch execution, restored confirmation after a script, and EDT prompts.
+  Missing source files and directories masquerading as files are reported before any prompt or
+  database changes. Failed imports stop batches and preserve pending transactions; CSV commands
+  explain when the destination schema must be created first.
 - `SQLConsoleExportTest`: real CSV/CSVH, DBF, XLS and XLSX exports; cancelling or
   accepting direct overwrites; new outputs; loaded scripts, pasted batches, variable
   definitions and `runBatch()`; restoring confirmation after a script; and execution
@@ -748,6 +758,8 @@ first routes may differ from forward Dijkstra and can produce different subseque
   departures within a slice or in future slices, group/class isolation, unfinished and unreachable
   demand, the assignment horizon and slice indices beyond the byte range. Asserts per-slice and
   reverse-direction flows, demand conservation, once-only loading/unloading and saved path links.
+  Covers final partial periods, windows shorter than one slice, excluded departures and bounded
+  horizon diagnostics with counts and quantities for unfinished routes.
   Static flows use half-open arrival buckets; dynamic traversal may finish at a slice's end before
   continuing in the next slice. These tests call the workers directly, without worker threads or
   the full timed-assignment coordinator.
@@ -755,7 +767,11 @@ first routes may differ from forward Dijkstra and can produce different subseque
   H2 and HSQLDB with SQL departure times and a route whose cost changes between periods.
   Checks rerouting after relocation, handling charged once, historical unit costs, per-period
   flows and vehicles, saved paths, demand conservation and worker termination. Serial,
-  parallel and repeated runs must produce identical normalized outputs.
+  parallel and repeated runs must produce identical normalized outputs. Changing time slices,
+  thread counts and detailed-path settings within the same project must retain its JDBC connection;
+  restoring the original settings must reproduce the original complete output set.
+  Final partial periods must be saved without extending the requested end time, in serial and
+  parallel runs; departures outside the window are excluded and reported on both databases.
 - `PathWeightsTest`: all seven cost and duration components contribute to totals.
 - `VirtualLinkFlowTest`: exact and fast multi-flow demand distribution, rejected paths,
   demand consumed only once, independent commodity groups and dynamic time slices,

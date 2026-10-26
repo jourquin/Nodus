@@ -44,10 +44,10 @@ import java.util.LinkedList;
 public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
 
   private BinaryHeapDijkstra shortestPath;
+  private TimeHorizonDiagnostics horizonDiagnostics;
 
   float assignmentEndTime;
   float assignmentStartTime;
-  int nbTimeSlices;
   float timeSliceDuration;
 
   /**
@@ -66,6 +66,9 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
    */
   @Override
   boolean doAssignment() {
+    horizonDiagnostics =
+        new TimeHorizonDiagnostics(
+            virtualNet.getAssignmentStartTime(), virtualNet.getAssignmentEndTime());
     workerTimes.includePhases(WorkerPhase.DIJKSTRA, WorkerPhase.RECONSTRUCTION_LOADING);
 
     // Initialize the adjacency list for current group
@@ -125,6 +128,7 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
       }
     }
 
+    horizonDiagnostics.report(currentGroup, odClass);
     return true;
   }
 
@@ -138,6 +142,10 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
 
     while (it.hasNext()) {
       ODCell demand = it.next();
+      if (horizonDiagnostics.isOutsideDeparture(demand)) {
+        horizonDiagnostics.outsideDeparture(demand);
+        continue;
+      }
 
       LinkedList<VirtualLink> orderedLinkList = new LinkedList<>();
 
@@ -218,12 +226,6 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
         if (currentTime >= assignmentStartTime && currentTime < assignmentEndTime) {
           int timeSlice = (int) Math.floor((currentTime - assignmentStartTime) / timeSliceDuration);
 
-          // Stop if out of time frame
-          if (timeSlice >= nbTimeSlices) {
-            pathWasTruncated = true;
-            break;
-          }
-
           switch (vl.getType()) {
             case VirtualLink.TYPE_LOAD:
               pathCosts.ldCost += vl.getCost(groupIndex);
@@ -270,13 +272,9 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
 
           vl.addVolume(groupIndex, timeSlice, demand.getQuantity());
         } else {
-          System.out.println(
-              demand.getOriginNodeId()
-                  + "-"
-                  + demand.getDestinationNodeId()
-                  + " starting at "
-                  + demand.getStartingTime() / 60
-                  + " minutes after midnight is out of time frame");
+          if (isPathFound) {
+            horizonDiagnostics.unfinishedRoute(demand, currentTime);
+          }
           pathWasTruncated = true;
           break;
         }
@@ -320,17 +318,15 @@ public class StaticAoNTimeDependentAssignmentWorker extends AssignmentWorker {
    */
   public void setTimeParameters(
       int assignmentStartTime, int assignmentEndTime, int timeSliceDuration) {
-    if (timeSliceDuration <= 0
-        || assignmentEndTime <= assignmentStartTime
-        || assignmentEndTime - assignmentStartTime < timeSliceDuration) {
+    if (assignmentStartTime < 0
+        || timeSliceDuration <= 0
+        || assignmentEndTime <= assignmentStartTime) {
       throw new IllegalArgumentException("Invalid assignment time parameters");
     }
 
     // Transform minutes into seconds
-    this.assignmentStartTime = assignmentStartTime * 60;
-    this.assignmentEndTime = assignmentEndTime * 60;
-    this.timeSliceDuration = timeSliceDuration * 60;
-
-    nbTimeSlices = (assignmentEndTime - assignmentStartTime) / timeSliceDuration;
+    this.assignmentStartTime = assignmentStartTime * 60.0f;
+    this.assignmentEndTime = assignmentEndTime * 60.0f;
+    this.timeSliceDuration = timeSliceDuration * 60.0f;
   }
 }

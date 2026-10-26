@@ -515,6 +515,12 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Remove the "Save paths" checkbox in the assignment dialog, as it is now mandatory.
   
 ## v9.0 - BuildXXXXXXXX
+- Restore mutable NodusC settings before loading each project, preserving application defaults
+  configured by nodus.groovy and preventing overrides from leaking between projects
+- Include final partial periods in time-dependent assignments and result playback; report
+  out-of-window departures and unfinished trips with bounded examples in both timed methods
+- Report missing or unreadable DBF/CSV/XLS/XLSX import files in the SQL console before overwrite
+  prompts or database changes; explain missing CSV destination schemas without a modal error
 - Allow a per table specific encoding for DBF file.
 - Fix (potential) bugs in cost parser, semi-dynamic assignments and exclusion rules at node   
 - Improved project locker

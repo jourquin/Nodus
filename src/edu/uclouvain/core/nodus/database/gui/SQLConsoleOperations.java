@@ -307,15 +307,36 @@ final class SQLConsoleOperations {
       return false;
     }
 
-    File exportFile = getExportFile(operation, tableName);
-    if (confirmOverwrite
-        && exportFile != null
-        && !confirmExportOverwrite(operation, tableName, exportFile)) {
-      return false;
+    boolean importing = operation.startsWith("IMPORT");
+    File tableFile = getTableFile(operation, tableName);
+    if (importing && tableFile != null && (!tableFile.isFile() || !tableFile.canRead())) {
+      return reportImportProblem(
+          operation,
+          MessageFormat.format(
+              i18n.get(
+                  SQLConsole.class,
+                  "Import_source_unavailable",
+                  "Source file not found or unreadable: {0}"),
+              tableFile.getAbsolutePath()));
+    }
+    if ((operation.equals(IMPORTCSV) || operation.equals(IMPORTCSVH))
+        && !JDBCUtils.tableExists(tableName)) {
+      return reportImportProblem(
+          operation,
+          MessageFormat.format(
+              i18n.get(
+                  SQLConsole.class,
+                  "Import_CSV_requires_table",
+                  "Create table \"{0}\" with the required columns before importing CSV data."),
+              tableName));
     }
     if (confirmOverwrite
-        && operation.startsWith("IMPORT")
-        && !confirmImportOverwrite(operation, tableName)) {
+        && !importing
+        && tableFile != null
+        && !confirmExportOverwrite(operation, tableName, tableFile)) {
+      return false;
+    }
+    if (confirmOverwrite && importing && !confirmImportOverwrite(operation, tableName)) {
       return false;
     }
 
@@ -354,7 +375,7 @@ final class SQLConsoleOperations {
     } else {
       g =
           MessageFormat.format(
-              i18n.get(SQLConsole.class, "_failed", "{0} of \"{1}\"{ failed."),
+              i18n.get(SQLConsole.class, "_failed", "{0} of \"{1}\" failed."),
               operation,
               tableName);
     }
@@ -368,21 +389,35 @@ final class SQLConsoleOperations {
     return succeeded;
   }
 
-  /** Resolves the same output path as the table exporters; imports have no output file. */
-  private File getExportFile(String operation, String tableName) {
+  /** Reports an input problem in the result area and in headless script output. */
+  private boolean reportImportProblem(String operation, String message) {
+    if (!withGUI && console.typeOfResultFormat != 1) {
+      System.out.println(message);
+    }
+    console.displayMessageInResult(operation, message);
+    return false;
+  }
+
+  /** Resolves the source or destination file used by the corresponding importer or exporter. */
+  private File getTableFile(String operation, String tableName) {
     String extension;
     switch (operation) {
       case EXPORTDBF:
+      case IMPORTDBF:
         extension = NodusC.TYPE_DBF;
         break;
       case EXPORTCSV:
       case EXPORTCSVH:
+      case IMPORTCSV:
+      case IMPORTCSVH:
         extension = NodusC.TYPE_CSV;
         break;
       case EXPORTXLS:
+      case IMPORTXLS:
         extension = NodusC.TYPE_XLS;
         break;
       case EXPORTXLSX:
+      case IMPORTXLSX:
         extension = NodusC.TYPE_XLSX;
         break;
       default:

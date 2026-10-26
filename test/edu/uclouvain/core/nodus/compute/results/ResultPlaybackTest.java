@@ -156,7 +156,7 @@ class ResultPlaybackTest {
   }
 
   @TestFactory
-  Stream<DynamicTest> periodSettingsUseTheSelectedScenarioAndOnlyCompleteSlices() {
+  Stream<DynamicTest> periodSettingsUseTheSelectedScenarioIncludingTheFinalPartialSlice() {
     return examples(
         "scenario settings and final partial slice",
         (f, lr) -> {
@@ -180,8 +180,31 @@ class ResultPlaybackTest {
                 f.key(KeyEvent.VK_ENTER);
                 assertTrue(f.label.getLabelText().endsWith("02:00"));
                 f.key(KeyEvent.VK_ENTER);
-                assertEquals(List.of(60, 90, 120), periods(f));
+                assertTrue(f.label.getLabelText().endsWith("02:30"));
+                assertTrue(done.isEmpty());
+                f.key(KeyEvent.VK_ENTER);
+                assertEquals(List.of(60, 90, 120, 150), periods(f));
                 assertEquals(List.of(true), done);
+              });
+        });
+  }
+
+  @TestFactory
+  Stream<DynamicTest> playbackIncludesAWindowShorterThanOnePeriod() {
+    return examples(
+        "single partial period",
+        (f, lr) -> {
+          f.costs("0", "20", "30");
+          edt(
+              () -> {
+                final List<Boolean> done = new ArrayList<>();
+                lr.interval = 0;
+                assertTrue(lr.displayTimeDependentFlows(QUERY, done::add));
+                assertEquals(List.of(0), periods(f));
+                assertTrue(done.isEmpty());
+                f.key(KeyEvent.VK_ENTER);
+                assertEquals(List.of(true), done);
+                assertEquals(List.of(0), periods(f));
               });
         });
   }
@@ -247,7 +270,6 @@ class ResultPlaybackTest {
             new String[] {"60", "0", "30"},
             new String[] {"0", "60", "0"},
             new String[] {"0", "60", "-30"},
-            new String[] {"0", "20", "30"},
             new String[] {"", "60", "30"})
         .flatMap(
             settings ->
@@ -366,7 +388,8 @@ class ResultPlaybackTest {
                 assertTrue(lr.displayTimeDependentFlows(QUERY, done::add));
                 lr.tick();
                 lr.tick();
-                assertEquals(List.of(2147483580, 2147483610), periods(f));
+                assertEquals(List.of(2147483580, 2147483610, 2147483640), periods(f));
+                lr.tick();
                 assertEquals(List.of(true), done);
               });
         });

@@ -310,7 +310,7 @@ public class LinkResults implements ShapeConstants {
   }
 
   /**
-   * Starts playback for complete assignment periods, excluding the end boundary.
+   * Starts playback for all assignment periods, including a final partial period.
    *
    * @param sqlStmt query returning link and value, grouped by link and time
    * @param onDone called once on completion, cancellation or failure, on the EDT
@@ -354,11 +354,11 @@ public class LinkResults implements ShapeConstants {
       int start = Integer.parseInt(costs.getProperty(NodusC.VARNAME_STARTTIME, "-1").trim());
       int end = Integer.parseInt(costs.getProperty(NodusC.VARNAME_ENDTIME, "-1").trim());
       int step = Integer.parseInt(costs.getProperty(NodusC.VARNAME_TIMESLICE, "-1").trim());
-      if (start < 0 || end <= start || step <= 0 || end - start < step || interval < 0) {
+      if (start < 0 || end <= start || step <= 0 || interval < 0) {
         throw new IllegalArgumentException("Invalid assignment time settings");
       }
       ResultQueries.forTime(sqlStmt, start);
-      final int boundary = start + (end - start) / step * step;
+      final int boundary = end;
       double magnitude = 0;
       Map<Integer, RealNetworkObject> objects = ResultDisplay.objects(nodusProject.getLinkLayers());
       Set<RealNetworkObject> scaled = display.scalingObjects(nodusProject.getLinkLayers());

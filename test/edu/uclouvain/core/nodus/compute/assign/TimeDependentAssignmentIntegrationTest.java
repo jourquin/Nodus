@@ -23,13 +23,16 @@ package edu.uclouvain.core.nodus.compute.assign;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.real.RealLinkInitializer;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
+import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.nio.file.Path;
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DynamicTest;
@@ -107,6 +110,47 @@ class TimeDependentAssignmentIntegrationTest {
     return tests;
   }
 
+  @TestFactory
+  List<DynamicTest> changingTimedSettingsKeepsTheProjectConnectionAndReplacesCompleteOutputs() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (boolean hsql : new boolean[] {false, true}) {
+      for (boolean dynamic : new boolean[] {false, true}) {
+        tests.add(
+            dynamicTest(
+                "changing settings/dynamic=" + dynamic + "/HSQLDB=" + hsql,
+                () -> {
+                  try (AssignmentTestProject project = project(hsql)) {
+                    final Connection connection = project.getMainJDBCConnection();
+                    project.run(assignment(project, dynamic, 4), 2);
+                    final List<List<String>> reference = snapshot(project);
+                    for (int step : new int[] {1, 3, 2, 1, 2}) {
+                      final Assignment run = assignment(project, dynamic, step == 1 ? 1 : 4);
+                      final AssignmentParameters parameters = run.getAssignmentParameters();
+                      parameters
+                          .getCostFunctions()
+                          .setProperty(NodusC.VARNAME_TIMESLICE, Integer.toString(step));
+                      parameters.setDetailedPaths(step == 2);
+                      project.run(run, 2);
+                      assertSame(connection, project.getMainJDBCConnection());
+                      assertSame(connection, JDBCUtils.getConnection());
+                      assertFalse(connection.isClosed());
+                      assertTrue(connection.isValid(2));
+                      assertEquals(
+                          6 / step, project.number("SELECT COUNT(DISTINCT time) FROM mini_vnet1"));
+                      assertEquals(140, project.number("SELECT SUM(qty) FROM mini_od"));
+                      assertEquals(step == 2, JDBCUtils.tableExists("mini_paths1_detail"));
+                      if (step == 2) {
+                        assertReference(project, dynamic);
+                        assertEquals(reference, snapshot(project));
+                      }
+                    }
+                  }
+                }));
+      }
+    }
+    return tests;
+  }
+
   private AssignmentTestProject project(boolean hsql) throws Exception {
     // 1 -> 2 takes 100s. From 2, the direct route costs 2 and takes 100s;
     // the route through 3 costs 3+3 and takes 20+20s. At period 1 the direct cost becomes 10.
@@ -129,6 +173,68 @@ class TimeDependentAssignmentIntegrationTest {
             + " INTEGER");
     project.execute("INSERT INTO mini_od VALUES(1,1,4,100,10),(2,1,4,40,11)");
     return project;
+  }
+
+  @TestFactory
+  List<DynamicTest> partialPeriodsRespectTheRequestedEndAndReportExcludedDemand() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (boolean dynamic : new boolean[] {false, true}) {
+      for (boolean hsql : new boolean[] {false, true}) {
+        tests.add(
+            dynamicTest(
+                "partial period/dynamic=" + dynamic + "/HSQLDB=" + hsql,
+                () -> {
+                  try (AssignmentTestProject project =
+                      new AssignmentTestProject(
+                          directory, 2, new double[][] {{11, 1, 2, 1, 0}}, hsql)) {
+                    final float length =
+                        RealLinkInitializer.computeLength(
+                            project.links.getEsriGraphicList().getOMGraphicAt(0));
+                    project
+                        .links
+                        .getModel()
+                        .setValueAt(length * 3600.0 / 90, 0, NodusC.DBF_IDX_SPEED);
+                    project.execute("ALTER TABLE mini_od ADD COLUMN \"TIME\" INTEGER");
+                    project.execute(
+                        "INSERT INTO mini_od VALUES"
+                            + "(1,1,2,100,13),(1,1,2,40,14),(1,1,2,7,9),(1,1,2,11,15)");
+                    for (int threads : new int[] {1, 4}) {
+                      final Assignment run = assignment(project, dynamic, threads);
+                      run.getAssignmentParameters()
+                          .getCostFunctions()
+                          .setProperty(NodusC.VARNAME_ENDTIME, "15");
+                      String output = ComputingTimesTestSupport.capture(() -> project.run(run, 1));
+                      assertTrue(output.contains("2 OD demands depart outside"), output);
+                      assertTrue(output.contains("1 OD demands have unfinished routes"), output);
+                      assertEquals(
+                          3, project.number("SELECT COUNT(DISTINCT time) FROM mini_vnet1"));
+                      assertEquals(14, project.number("SELECT MAX(time) FROM mini_vnet1"));
+                      assertEquals(
+                          100, project.number("SELECT SUM(qty) FROM mini_vnet1 WHERE vtype=0"));
+                      assertEquals(
+                          100,
+                          project.number(
+                              "SELECT SUM(qty) FROM mini_vnet1 WHERE vtype=0 AND time=14"));
+                      assertEquals(
+                          100,
+                          project.number(
+                              "SELECT SUM(qty) FROM mini_vnet1 WHERE vtype="
+                                  + VirtualLink.TYPE_UNLOAD));
+                      assertEquals(158, project.number("SELECT SUM(qty) FROM mini_od"));
+                    }
+                    // A single partial period also passes coordinator validation.
+                    final Assignment shortRun = assignment(project, dynamic, 1);
+                    shortRun
+                        .getAssignmentParameters()
+                        .getCostFunctions()
+                        .setProperty(NodusC.VARNAME_TIMESLICE, "10");
+                    project.run(shortRun, 1);
+                    assertEquals(1, project.number("SELECT COUNT(DISTINCT time) FROM mini_vnet1"));
+                  }
+                }));
+      }
+    }
+    return tests;
   }
 
   private Assignment assignment(AssignmentTestProject project, boolean dynamic, int threads) {

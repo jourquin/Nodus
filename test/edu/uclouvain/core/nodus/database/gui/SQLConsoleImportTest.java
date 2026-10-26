@@ -28,9 +28,13 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.DatabaseFixture;
+import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
 import edu.uclouvain.core.nodus.database.xls.ExportXLS;
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.ResultSet;
@@ -49,10 +53,12 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 
 /** Real console imports and database contents; only the confirmation response is replaced. */
 @Tag("integration")
 @ResourceLock("JDBCUtils")
+@ResourceLock(Resources.SYSTEM_ERR)
 class SQLConsoleImportTest {
   @TempDir Path directory;
 
@@ -148,7 +154,101 @@ class SQLConsoleImportTest {
               assertEquals(0, console.prompts);
               assertRows(database, 42, "Imported");
             });
+      } else if (format == Format.CSV || format == Format.CSVH) {
+        add(
+            tests,
+            format,
+            "missing CSV schema is explained in the console",
+            (console, database, folder) -> {
+              database.execute("DROP TABLE testdata");
+              assertFalse(console.direct(format.command()));
+              assertEquals(0, console.prompts);
+              assertTrue(console.resultMessage.contains("testdata"));
+              assertFalse(JDBCUtils.tableExists("testdata"));
+            });
       }
+    }
+    return tests;
+  }
+
+  @TestFactory
+  List<DynamicTest> missingSourcesPreserveTablesAndTransactionsWithoutOverwritePrompts() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (Format format : Format.values()) {
+      for (boolean existing : new boolean[] {false, true}) {
+        for (boolean batch : new boolean[] {false, true}) {
+          add(
+              tests,
+              format,
+              "missing source/existing=" + existing + "/batch=" + batch,
+              (console, database, folder) -> {
+                Path source = folder.resolve("testdata" + format.extension);
+                Files.delete(source);
+                if (!existing) {
+                  database.execute("DROP TABLE testdata");
+                }
+                database.execute("CREATE TABLE earlier (num INTEGER)");
+                database.connection.setAutoCommit(false);
+                database.execute("INSERT INTO earlier VALUES (99)");
+                PrintStream previousError = System.err;
+                ByteArrayOutputStream errors = new ByteArrayOutputStream();
+                try (PrintStream capture = new PrintStream(errors, true, StandardCharsets.UTF_8)) {
+                  System.setErr(capture);
+                  assertFalse(
+                      batch
+                          ? console.runBatch(
+                              new String[] {
+                                format.command(), "INSERT INTO earlier VALUES (100)"
+                              })
+                          : console.direct(format.command()));
+                } finally {
+                  System.setErr(previousError);
+                }
+                assertEquals(0, errors.size(), errors.toString(StandardCharsets.UTF_8));
+                assertEquals(0, console.prompts);
+                assertTrue(console.resultMessage.contains(source.toString()));
+                assertEquals(existing, JDBCUtils.tableExists("testdata"));
+                if (existing) {
+                  assertRows(database, 7, "Keep this row");
+                }
+                assertFalse(database.connection.getAutoCommit());
+                try (Statement statement = database.connection.createStatement();
+                    ResultSet rows = statement.executeQuery("SELECT num FROM earlier")) {
+                  assertTrue(rows.next());
+                  assertEquals(99, rows.getInt(1));
+                  assertFalse(rows.next(), "A failed import must stop the batch");
+                }
+                database.connection.rollback();
+                try (Statement statement = database.connection.createStatement();
+                    ResultSet rows = statement.executeQuery("SELECT COUNT(*) FROM earlier")) {
+                  assertTrue(rows.next());
+                  assertEquals(0, rows.getInt(1), "Missing input must not commit earlier edits");
+                }
+                database.connection.setAutoCommit(true);
+              });
+        }
+      }
+    }
+    return tests;
+  }
+
+  @TestFactory
+  List<DynamicTest> directoriesAreRejectedAsImportSourcesBeforeOverwritePrompts() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (Format format : Format.values()) {
+      add(
+          tests,
+          format,
+          "directory in place of source file",
+          (console, database, folder) -> {
+            Path source = folder.resolve("testdata" + format.extension);
+            Files.delete(source);
+            Files.createDirectory(source);
+            assertFalse(console.direct(format.command()));
+            assertEquals(0, console.prompts);
+            assertTrue(console.resultMessage.contains(source.toString()));
+            assertRows(database, 7, "Keep this row");
+          });
     }
     return tests;
   }
@@ -190,18 +290,20 @@ class SQLConsoleImportTest {
   }
 
   private enum Format {
-    CSV("IMPORTCSV"),
-    CSVH("IMPORTCSVH"),
-    DBF("IMPORTDBF"),
-    XLS("IMPORTXLS"),
-    XLSX("IMPORTXLSX"),
-    XLS_WITHOUT_SCHEMA("IMPORTXLS"),
-    XLSX_WITHOUT_SCHEMA("IMPORTXLSX");
+    CSV("IMPORTCSV", ".csv"),
+    CSVH("IMPORTCSVH", ".csv"),
+    DBF("IMPORTDBF", ".dbf"),
+    XLS("IMPORTXLS", ".xls"),
+    XLSX("IMPORTXLSX", ".xlsx"),
+    XLS_WITHOUT_SCHEMA("IMPORTXLS", ".xls"),
+    XLSX_WITHOUT_SCHEMA("IMPORTXLSX", ".xlsx");
 
     private final String operation;
+    private final String extension;
 
-    Format(String operation) {
+    Format(String operation, String extension) {
       this.operation = operation;
+      this.extension = extension;
     }
 
     String command() {
@@ -234,6 +336,7 @@ class SQLConsoleImportTest {
     private int prompts;
     private int answer = JOptionPane.NO_OPTION;
     private String message;
+    private String resultMessage;
 
     RecordingConsole(NodusProject project) {
       super(project, false);
@@ -242,6 +345,12 @@ class SQLConsoleImportTest {
     boolean direct(String command) {
       getSqlCommandArea().setText(command);
       return execute(false);
+    }
+
+    @Override
+    void displayMessageInResult(String head, String text) {
+      resultMessage = text;
+      super.displayMessageInResult(head, text);
     }
 
     @Override

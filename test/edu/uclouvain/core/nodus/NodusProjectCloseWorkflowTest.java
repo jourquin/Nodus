@@ -53,15 +53,28 @@ import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
 /** Runs real successful/aborted close sequences, substituting only presentation and opening B. */
 @ResourceLock("ProjectLocker")
 @ResourceLock("JDBCUtils")
 @ResourceLock("ModalSplitMethodsLoader")
+@Isolated("Checks preservation of mutable NodusC settings on canceled project switches")
 @Timeout(25)
 class NodusProjectCloseWorkflowTest {
   @TempDir Path directory;
+
+  @Test
+  void cancelledProjectSwitchKeepsItsRuntimeOverrides() throws Exception {
+    try (RuntimeSettingsFixture ignored = new RuntimeSettingsFixture()) {
+      NodusC.displayComputingTimes = false;
+      NodusC.captureApplicationSettings();
+      NodusC.displayComputingTimes = true;
+      checkAbortedClose(JOptionPane.CANCEL_OPTION, false);
+      assertTrue(NodusC.displayComputingTimes);
+    }
+  }
 
   @Test
   void openingNextProjectWaitsForHookCleanupJdbcClosureAndLockRelease() throws Exception {

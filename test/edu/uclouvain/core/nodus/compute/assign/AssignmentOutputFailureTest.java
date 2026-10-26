@@ -67,6 +67,7 @@ class AssignmentOutputFailureTest {
                         Fault.PATH_FINAL_BATCH,
                         Fault.PATH_COMMIT,
                         Fault.STATEMENT_CLOSE,
+                        Fault.PUBLISH_METADATA,
                         Fault.PUBLISH_RENAME,
                         Fault.PUBLISH_RENAME_AFTER,
                         Fault.PUBLISH_BACKUP_AFTER,

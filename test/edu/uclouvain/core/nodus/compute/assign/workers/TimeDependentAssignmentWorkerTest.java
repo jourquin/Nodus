@@ -49,9 +49,11 @@ import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 
 /** Direct worker checks with real graph generation, demand relocation and temporary path output. */
 @ResourceLock("JDBCUtils")
+@ResourceLock(Resources.SYSTEM_OUT)
 @Timeout(20)
 class TimeDependentAssignmentWorkerTest {
   @TempDir Path directory;
@@ -229,8 +231,9 @@ class TimeDependentAssignmentWorkerTest {
                   } finally {
                     System.setOut(original);
                   }
-                  assertTrue(
-                      diagnostics.toString(StandardCharsets.UTF_8).contains("out of time frame"));
+                  final String output = diagnostics.toString(StandardCharsets.UTF_8);
+                  assertTrue(output.contains("1 OD demands have unfinished routes"), output);
+                  assertTrue(output.contains("departure 0 minutes; next link arrival 2"), output);
                   fixture.assertFlows(11, 0, 100);
                   fixture.assertFlows(12, 0, 0);
                   fixture.assertOperationTotal(VirtualLink.TYPE_UNLOAD, 0);
@@ -280,7 +283,8 @@ class TimeDependentAssignmentWorkerTest {
                 try (Fixture fixture = new Fixture(new float[][] {{0.5f, 60}}, 3, 1)) {
                   fixture.demand(1, 100, 0, (byte) 0);
                   fixture.forward(11).setCost((byte) 0, -1);
-                  fixture.runDynamic(compact, 0, (byte) 0, (byte) 0);
+                  String output = capture(() -> fixture.runAll(compact, true));
+                  assertTrue(output.isEmpty(), output);
                   fixture.assertFlows(11, 0, 0, 0);
                   fixture.assertDemand(100);
                   fixture.finish();
@@ -294,18 +298,97 @@ class TimeDependentAssignmentWorkerTest {
     return tests;
   }
 
+  @TestFactory
+  List<DynamicTest> partialPeriodsAndHorizonDiagnostics() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (boolean compact : new boolean[] {false, true}) {
+      for (boolean dynamic : new boolean[] {false, true}) {
+        final String prefix = "compact=" + compact + "/dynamic=" + dynamic + ": ";
+        tests.add(
+            dynamicTest(
+                prefix + "a trip completes in the final partial period",
+                () -> {
+                  try (Fixture fixture = new Fixture(new float[][] {{1.5f, 60}}, 5, 2)) {
+                    fixture.demand(1, 100, 3, (byte) 0);
+                    String output = capture(() -> fixture.runAll(compact, dynamic));
+                    assertTrue(output.isEmpty(), output);
+                    fixture.assertFlows(11, 0, 0, 100);
+                    fixture.assertOperationTotal(VirtualLink.TYPE_UNLOAD, 100);
+                    fixture.finish();
+                    assertEquals(
+                        100, fixture.project.number("SELECT SUM(qty) FROM mini_paths1_header"));
+                  }
+                }));
+        tests.add(
+            dynamicTest(
+                prefix + "a window shorter than one period is valid",
+                () -> {
+                  try (Fixture fixture = new Fixture(new float[][] {{0.5f, 60}}, 1, 2)) {
+                    fixture.demand(1, 100, 0, (byte) 0);
+                    fixture.runAll(compact, dynamic);
+                    fixture.assertFlows(11, 100);
+                    fixture.assertOperationTotal(VirtualLink.TYPE_UNLOAD, 100);
+                  }
+                }));
+        tests.add(
+            dynamicTest(
+                prefix + "horizon diagnostics count demands and bound console output",
+                () -> {
+                  try (Fixture fixture = new Fixture(new float[][] {{1.5f, 60}}, 5, 2)) {
+                    for (int i = 0; i < 50; i++) {
+                      fixture.demand(1, 2, 4, (byte) 0);
+                    }
+                    fixture.demand(1, 7, -1, (byte) 0);
+                    fixture.demand(1, 11, 5, (byte) 0);
+                    fixture.demand(1, 13, 6, (byte) 0);
+                    String output = capture(() -> fixture.runAll(compact, dynamic));
+                    assertTrue(output.contains("3 OD demands depart outside"), output);
+                    assertTrue(output.contains("quantity 31"), output);
+                    assertTrue(output.contains("1 OD demands have unfinished routes"), output);
+                    assertTrue(output.contains("quantity 100"), output);
+                    assertTrue(
+                        output
+                            .replace(',', '.')
+                            .contains("departure 4 minutes; next link arrival 5.5"),
+                        output);
+                    assertEquals(4, output.lines().count(), output);
+                    fixture.assertFlows(11, 0, 0, 0);
+                    fixture.assertOperationTotal(VirtualLink.TYPE_LOAD, 100);
+                    fixture.assertOperationTotal(VirtualLink.TYPE_UNLOAD, 0);
+                    fixture.assertDemand(131);
+                  }
+                }));
+      }
+    }
+    return tests;
+  }
+
+  private static String capture(Runnable action) {
+    final PrintStream original = System.out;
+    final ByteArrayOutputStream output = new ByteArrayOutputStream();
+    try (PrintStream captured = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+      System.setOut(captured);
+      action.run();
+    } finally {
+      System.setOut(original);
+    }
+    return output.toString(StandardCharsets.UTF_8);
+  }
+
   private final class Fixture implements AutoCloseable {
     final AssignmentTestProject project;
     final AssignmentParameters parameters;
     final VirtualNetwork network;
     final PathWriter writer;
     final int sliceMinutes;
+    final int endMinutes;
     final int slices;
     final List<VirtualLink> allLinks = new ArrayList<>();
 
     Fixture(float[][] lengthAndSpeed, int endMinutes, int sliceMinutes) throws Exception {
       this.sliceMinutes = sliceMinutes;
-      slices = endMinutes / sliceMinutes;
+      this.endMinutes = endMinutes;
+      slices = 1 + (endMinutes - 1) / sliceMinutes;
       double[][] rows = new double[lengthAndSpeed.length][5];
       for (int i = 0; i < rows.length; i++) {
         rows[i] = new double[] {11 + i, i + 1, i + 2, i + 2, 0};
@@ -362,7 +445,7 @@ class TimeDependentAssignmentWorkerTest {
               fail(message);
             }
           };
-      worker.setTimeParameters(0, slices * sliceMinutes, sliceMinutes);
+      worker.setTimeParameters(0, endMinutes, sliceMinutes);
       run(worker, compact, group, odClass);
     }
 
@@ -379,8 +462,19 @@ class TimeDependentAssignmentWorkerTest {
               fail(message);
             }
           };
-      worker.setTimeParameters(slice, slice * sliceMinutes, sliceMinutes);
+      worker.setTimeParameters(
+          slice, slice * sliceMinutes, Math.min(sliceMinutes, endMinutes - slice * sliceMinutes));
       run(worker, compact, group, odClass);
+    }
+
+    void runAll(boolean compact, boolean dynamic) {
+      if (dynamic) {
+        for (int slice = 0; slice < slices; slice++) {
+          runDynamic(compact, slice, (byte) 0, (byte) 0);
+        }
+      } else {
+        runStatic(compact, (byte) 0, (byte) 0);
+      }
     }
 
     void run(AssignmentWorker worker, boolean compact, byte group, byte odClass) {

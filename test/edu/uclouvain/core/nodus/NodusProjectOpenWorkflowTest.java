@@ -51,6 +51,7 @@ import edu.uclouvain.core.nodus.services.ServiceHandler;
 import edu.uclouvain.core.nodus.testing.PluginTestJars;
 import edu.uclouvain.core.nodus.testing.ProjectFilesFixture;
 import edu.uclouvain.core.nodus.utils.ProjectLocker;
+import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.OutputStream;
@@ -61,6 +62,7 @@ import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
 import java.sql.Connection;
@@ -82,6 +84,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.parallel.Resources;
 
@@ -89,9 +92,94 @@ import org.junit.jupiter.api.parallel.Resources;
 @ResourceLock("ProjectLocker")
 @ResourceLock("JDBCUtils")
 @ResourceLock("ModalSplitMethodsLoader")
+@Isolated("Project opening restores all mutable NodusC settings")
 @Timeout(40)
 public class NodusProjectOpenWorkflowTest {
   @TempDir Path directory;
+
+  @TestFactory
+  Stream<DynamicTest> projectSettingsDoNotLeakAndApplicationScriptDefaultsArePreserved() {
+    return Stream.of(false, true)
+        .flatMap(
+            hsql ->
+                Stream.of(false, true)
+                    .map(
+                        startupOverrides ->
+                            DynamicTest.dynamicTest(
+                                "HSQLDB=" + hsql + "/startup overrides=" + startupOverrides,
+                                () -> checkRuntimeSettings(hsql, startupOverrides))));
+  }
+
+  private void checkRuntimeSettings(boolean hsql, boolean startupOverrides) throws Exception {
+    try (Fixture fixture = new Fixture(hsql)) {
+      NodusC.restoreApplicationSettings();
+      if (startupOverrides) {
+        final Path startup =
+            Files.writeString(
+                directory.resolve("nodus.groovy"),
+                "import edu.uclouvain.core.nodus.NodusC\n"
+                    + "NodusC.displayComputingTimes = true\n"
+                    + "NodusC.displayMapComputingTimes = true\n"
+                    + "NodusC.displayAssignmentInformationDialogs = false\n"
+                    + "NodusC.includeEstimationWorkflowDiagnostics = true\n"
+                    + "NodusC.useCompactShortestPaths = false\n"
+                    + "NodusC.useMapDisplaySimplification = false\n"
+                    + "NodusC.exactMFAlgorithm = NodusC.ExactMFAlgorithm.IMPROVED_ASTAR\n");
+        assertTrue(new ScriptRunner(startup.toString()).run(false));
+        NodusC.captureApplicationSettings();
+      }
+      final Path second = directory.resolve("second.nodus");
+      Files.copy(directory.resolve("project.nodus"), second, StandardCopyOption.REPLACE_EXISTING);
+      assertFalse(Files.exists(directory.resolve("second.groovy")));
+      Files.writeString(
+          directory.resolve("project.groovy"),
+          "import edu.uclouvain.core.nodus.NodusC\n"
+              + "if (openProject) {\n"
+              + "NodusC.displayComputingTimes = !NodusC.displayComputingTimes\n"
+              + "NodusC.displayMapComputingTimes = !NodusC.displayMapComputingTimes\n"
+              + "NodusC.displayAssignmentInformationDialogs = "
+              + "!NodusC.displayAssignmentInformationDialogs\n"
+              + "NodusC.includeEstimationWorkflowDiagnostics = "
+              + "!NodusC.includeEstimationWorkflowDiagnostics\n"
+              + "NodusC.useCompactShortestPaths = !NodusC.useCompactShortestPaths\n"
+              + "NodusC.useMapDisplaySimplification = !NodusC.useMapDisplaySimplification\n"
+              + "NodusC.exactMFAlgorithm = NodusC.exactMFAlgorithm == "
+              + "NodusC.ExactMFAlgorithm.DESTINATION_ASTAR ? "
+              + "NodusC.ExactMFAlgorithm.IMPROVED_ASTAR : "
+              + "NodusC.ExactMFAlgorithm.DESTINATION_ASTAR\n"
+              + "}\n"
+              + "if (closeProject) {\n"
+              + "nodusMapPanel.rememberCloseTimingFlag(NodusC.displayComputingTimes)\n"
+              + "NodusC.displayComputingTimes = true\n"
+              + "}\n");
+      fixture.open();
+      assertEquals(!startupOverrides, NodusC.displayComputingTimes);
+      assertEquals(!startupOverrides, NodusC.displayMapComputingTimes);
+      assertEquals(startupOverrides, NodusC.displayAssignmentInformationDialogs);
+      assertEquals(!startupOverrides, NodusC.includeEstimationWorkflowDiagnostics);
+      assertEquals(startupOverrides, NodusC.useCompactShortestPaths);
+      assertEquals(startupOverrides, NodusC.useMapDisplaySimplification);
+      fixture.panel.setPanelField("nodusProject", fixture.project);
+      fixture.panel.expectedOpenProject = "second";
+      fixture.panel.finished = new CountDownLatch(1);
+      SwingUtilities.invokeAndWait(() -> fixture.panel.openProject(second.toString()));
+      fixture.awaitOpen();
+      fixture.panel.expectedOpenProject = null;
+      assertEquals(!startupOverrides, fixture.panel.closeTimingFlag);
+      assertEquals(startupOverrides, NodusC.displayComputingTimes);
+      assertEquals(startupOverrides, NodusC.displayMapComputingTimes);
+      assertEquals(!startupOverrides, NodusC.displayAssignmentInformationDialogs);
+      assertEquals(startupOverrides, NodusC.includeEstimationWorkflowDiagnostics);
+      assertEquals(!startupOverrides, NodusC.useCompactShortestPaths);
+      assertEquals(!startupOverrides, NodusC.useMapDisplaySimplification);
+      assertEquals(
+          startupOverrides
+              ? NodusC.ExactMFAlgorithm.IMPROVED_ASTAR
+              : NodusC.ExactMFAlgorithm.DESTINATION_ASTAR,
+          NodusC.exactMFAlgorithm);
+      assertEquals("second", fixture.project.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME));
+    }
+  }
 
   @TestFactory
   @ResourceLock(Resources.SYSTEM_ERR)
@@ -415,6 +503,7 @@ public class NodusProjectOpenWorkflowTest {
   }
 
   private final class Fixture implements AutoCloseable {
+    final RuntimeSettingsFixture runtimeSettings = new RuntimeSettingsFixture();
     final Logger previousLogger = Nodus.nodusLogger;
     final Panel panel = new Panel();
     final OpeningProject project = new OpeningProject(panel);
@@ -491,7 +580,11 @@ public class NodusProjectOpenWorkflowTest {
         ProjectLocker.releaseLock();
         JDBCUtils.setConnection(null);
         Nodus.nodusLogger = previousLogger;
-        SwingUtilities.invokeAndWait(panel.map::dispose);
+        try {
+          SwingUtilities.invokeAndWait(panel.map::dispose);
+        } finally {
+          runtimeSettings.close();
+        }
       }
     }
   }
@@ -554,6 +647,8 @@ public class NodusProjectOpenWorkflowTest {
     volatile boolean busy;
     volatile boolean fileMenuBusy;
     volatile boolean completionOnEdt;
+    volatile Boolean closeTimingFlag;
+    String expectedOpenProject;
     boolean failPluginLoad;
     OpeningProject project;
     Connection failedConnection;
@@ -597,6 +692,11 @@ public class NodusProjectOpenWorkflowTest {
       if (!hookRelease.await(10, TimeUnit.SECONDS)) {
         throw new IllegalStateException("Hook was not released");
       }
+    }
+
+    /** Called from a close hook before the next project resets the settings. */
+    public void rememberCloseTimingFlag(boolean value) {
+      closeTimingFlag = value;
     }
 
     @Override
@@ -698,7 +798,11 @@ public class NodusProjectOpenWorkflowTest {
     @Override
     public void setBusy(boolean value) {
       busy = value;
-      if (!value) {
+      if (!value
+          && (expectedOpenProject == null
+              || (project.isOpen()
+                  && expectedOpenProject.equals(
+                      project.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME))))) {
         completionOnEdt = SwingUtilities.isEventDispatchThread();
         finished.countDown();
       }

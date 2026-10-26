@@ -22,7 +22,11 @@
 package edu.uclouvain.core.nodus;
 
 /**
- * This class contains all the constants defined in Nodus.
+ * This class contains the constants and runtime settings defined in Nodus.
+ *
+ * <p>Public mutable settings are restored before each project loads. Their application defaults
+ * are the declared values, updated once after the startup {@code nodus.groovy} script completes.
+ * A project script can override them for that project without affecting the next project.
  *
  * @author Bart Jourquin
  */
@@ -78,11 +82,16 @@ public class NodusC {
    * *********************************************************************************************
    */
 
-  /** Save an HTML runtime report in the project directory for each assignment. Sampled at start. */
+  /**
+   * Save an HTML runtime report in the project directory for each assignment. Sampled at start;
+   * false prevents new reports but retains existing files. Independent of map preparation timings
+   * controlled by {@link #displayMapComputingTimes}.
+   */
   public static boolean displayComputingTimes = false;
 
   /**
    * Print map preparation timings for pan/zoom diagnostics; excludes painting and UI queue time.
+   * Assignment HTML reports are controlled separately by {@link #displayComputingTimes}.
    */
   public static boolean displayMapComputingTimes = false;
 
@@ -1300,4 +1309,16 @@ public class NodusC {
    */
   public static final String PROP_H2_SERVER_PORT = "h2serverport";
 
+  // Keep this after the public fields so their declared defaults have all been initialized.
+  private static volatile NodusRuntimeSettings applicationSettings = NodusRuntimeSettings.capture();
+
+  /** Retains application-wide defaults once the startup nodus.groovy hook has completed. */
+  static void captureApplicationSettings() {
+    applicationSettings = NodusRuntimeSettings.capture();
+  }
+
+  /** Clears the previous project's overrides before any part of the next project is loaded. */
+  static void restoreApplicationSettings() {
+    applicationSettings.restore();
+  }
 }
