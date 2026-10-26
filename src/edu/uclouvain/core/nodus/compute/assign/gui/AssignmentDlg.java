@@ -1717,17 +1717,9 @@ public class AssignmentDlg extends EscapeDialog {
     iterationSpinner.setModel(iterationSpinnerModel);
     iterationSpinner.addChangeListener(
         new ChangeListener() {
-          // Cost-markup is useful only if more than one path is computed
-          // for each mode/means combination
           @Override
           public void stateChanged(ChangeEvent evt) {
-            if (iterationSpinner.getValue().toString().equals("1")) {
-              costMarkupSpinner.setEnabled(false);
-              costMarkUpLabel.setEnabled(false);
-            } else {
-              costMarkupSpinner.setEnabled(true);
-              costMarkUpLabel.setEnabled(true);
-            }
+            updateOptions();
           }
         });
 
@@ -2063,6 +2055,7 @@ public class AssignmentDlg extends EscapeDialog {
     sqlTextArea.setText(queryString);
 
     updateModalSplitMethodFromCostFile();
+    updateOptions();
   }
 
   /** Save the state of the values of the GUI components in the properties. */
@@ -2339,6 +2332,21 @@ public class AssignmentDlg extends EscapeDialog {
 
   /** Enables the GUI components relevant for the selected assignment method. */
   private void updateOptions() {
+    boolean multipleRoutes = Integer.parseInt(iterationSpinner.getValue().toString()) > 1;
+    exactMFRadioButton.setEnabled(multipleRoutes);
+    // Keep these state-dependent keys outside the automatic field-name tooltip catalogue.
+    exactMFRadioButton.setToolTipText(
+        i18n.get(
+            AssignmentDlg.class,
+            multipleRoutes
+                ? "Multi_flow_Exact_method_enabled_tooltip"
+                : "Multi_flow_Exact_method_tooltip",
+            multipleRoutes
+                ? "Compute alternative routes with the exact A-star multi-flow method."
+                : "Exact multi-flow is available only when more than one route is selected."));
+    if (!multipleRoutes && exactMFRadioButton.isSelected()) {
+      fastMFRadioButton.setSelected(true);
+    }
     updateAssignmentSelection();
 
     boolean enabled = false;

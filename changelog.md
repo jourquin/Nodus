@@ -542,6 +542,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
   Exact Multi-flow algorithm
 - Add `NodusC.exactMFAlgorithm` to select improved zero-heuristic or destination-based A* for
   Exact Multi-flow
+- Exact Multi-Flow is now enabled only when more that one route is requested.
 - Save optional assignment computing-time reports as HTML in the project folder instead of terminal
   output
 - Preserve saved node rules and pending edits after failed saves

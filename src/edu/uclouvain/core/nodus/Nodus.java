@@ -58,11 +58,9 @@ import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 
 /*
  * TODO Test MF !!
- * TODO Test new A* and compare performance with old A*
- * TODO Test cost parser
+ * TODO Test cost parser with vehicles
  * TODO Test semi-dynamic assignments and display
  * TODO Test exclusions
- * TODO Test scenario comparison 
  * TODO test incremental + FW assignment
  * TODO Test plugins
  */

@@ -187,6 +187,9 @@ was saved in the current run. Reports are not opened automatically.
 
 ### Comparing Exact Multi-flow search times
 
+The assignment dialog enables Exact Multi-flow only with `Nb routes > 1`. Reducing the count to
+one selects Fast Multi-flow; saved one-route Exact scenarios also open with Fast Multi-flow selected.
+
 Before running an Exact Multi-flow assignment, choose its search algorithm in the Groovy console
 or a startup script:
 
