@@ -25,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.uclouvain.core.nodus.NodusC;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 /** Checks update decisions across release tags without making network requests. */
@@ -39,6 +41,7 @@ class GitHubReleaseTest {
   @Test
   void newerReleaseIsAnUpdate() {
     assertTrue(GitHubRelease.compareVersions("v9.1", "9.0") > 0);
+    assertTrue(GitHubRelease.compareVersions("v9.2", "9.1") > 0);
     assertTrue(GitHubRelease.compareVersions("10.0", "9.99") > 0);
   }
 
@@ -46,12 +49,21 @@ class GitHubReleaseTest {
   void equivalentNumericTagsUseBuildComparison() {
     assertEquals(0, GitHubRelease.compareVersions("v9.0.0", "9.0"));
     assertEquals(0, GitHubRelease.compareVersions("V09.00", "9.0"));
+    assertEquals(0, GitHubRelease.compareVersions("v9.1.0", "9.1"));
+    assertEquals(0, GitHubRelease.compareVersions("V09.01", "9.1"));
+    assertEquals(0, GitHubRelease.compareVersions("v" + NodusC.VERSION + ".0", NodusC.VERSION));
+  }
+
+  @Test
+  void oldMinorReleaseTagsCannotOverrideTheRunningVersion() {
+    for (String tag : List.of("v9.0", "9.0.1", "v9.0.999")) {
+      assertTrue(GitHubRelease.compareVersions(tag, NodusC.VERSION) < 0, tag);
+    }
   }
 
   @Test
   void unrecognizedTagsAreNotSilentlyOrdered() {
     assertThrows(
-        IllegalArgumentException.class,
-        () -> GitHubRelease.compareVersions("release-nine", "9.0"));
+        IllegalArgumentException.class, () -> GitHubRelease.compareVersions("release-nine", "9.0"));
   }
 }

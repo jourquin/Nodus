@@ -1,4 +1,6 @@
-# Nodus 9.0 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
+# Nodus 9.1 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
+
+**(Nodus 9.1 is work in progress, already usable, but not yet released)**
 
 Nodus is a transportation network modeling software especially designed for multimodal and
 intermodal freight transport. It is developed at the Center for Operations Research and
@@ -132,6 +134,7 @@ external connections. Upgrade to Groovy 4.
 performance measurement indicators. It is also a performance-focused release, highlighting faster assignments (at least four times faster on a set of selected projects), more responsive map navigation and faster database operations. From the developers' perspective, a series of unit tests have been added with an automatic continuous integration workflow. The modal-choice API is moved into its own package. Therefore, custom modal-choice
 plugin sources need updated imports. Nodus can upgrade eligible existing plugin JARs without recompilation, keeping a `.jar.nodus8` backup; see the
 [Nodus 9.0 migration guide](https://github.com/jourquin/Nodus/blob/master/doc/modal-choice-migration.md).
+- 9.1 - November 2026: performance and reliability update
 
 
 See the [change log](changelog.md) for a detailed build history.

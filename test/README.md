@@ -484,6 +484,12 @@ first routes may differ from forward Dijkstra and can produce different subseque
   the old file, precedence of existing Nodus 9 preferences (including an empty file), and
   saving fresh-installation settings exclusively to `.nodus9.properties`. Uses a temporary
   home directory and never reads or writes the user's actual preferences.
+- `GitHubReleaseTest`: numeric release ordering, including 9.0-to-9.1 upgrades, rejection of older
+  9.0 patch tags while running 9.1, and equivalent tags for the running `NodusC.VERSION`.
+  Historical version numbers are intentional test inputs. Nodus 9.0 and 9.1 share
+  `.nodus9.properties`; those preference and bridge-credential tests retain their major-version names.
+- `SplashResourceTest`: the splash resource selected by `NodusC.VERSION` must exist for startup
+  and About, decode successfully, and retain the 640-by-320 canvas. No windows are opened.
 - `ProjectCleanupRegistryTest`: exactly-once, reverse-order project resource shutdown;
   isolation of a failing action; and rejection of duplicate or late registrations.
 - `ProjectLockerTest`: rejected duplicate acquisitions retain the actual OS lock, another
@@ -503,8 +509,6 @@ first routes may differ from forward Dijkstra and can produce different subseque
   Project-open workflow tests switch from a project with a real Groovy hook to one without a
   script on H2 and HSQLDB, retaining startup settings and checking close-hook ordering. These
   tests run in isolation because project loading restores all mutable NodusC settings.
-- `GitHubReleaseTest`: older, equal, newer and malformed release tags are compared without
-  contacting GitHub.
 - `SetJVMArgsTest`: migration of legacy JVM argument files, preservation of heap and custom
   settings, backups, repeated runs, and leaving current or customized scripts intact. The
   previous generated shell format also gains the macOS fullscreen export. Shell execution

@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc 3.12" />
+  <meta name="generator" content="pandoc 3.13" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
   <title>Model performance indicators in Nodus</title>
   <style>
@@ -154,11 +154,9 @@ the selected modes;</li>
 the union of OD/group keys found on either side for those modes.</li>
 </ul>
 <p>Totals for one OD/group are</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Q</mi><mi>r</mi></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>,</mo><mspace width="2.0em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
-Q_r=\sum_{m\in\mathcal M}q_{rm},
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Q</mi><mi>r</mi></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>,</mo><mspace width="2.0em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">Q_r=\sum_{m\in\mathcal M}q_{rm},
 \qquad
-\hat Q_r=\sum_{m\in\mathcal M}\hat q_{rm}.
-</annotation></semantics></math></p>
+\hat Q_r=\sum_{m\in\mathcal M}\hat q_{rm}.</annotation></semantics></math></p>
 <p>The comparison grid contains every selected mode for every key in
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="script">ℛ</mi><annotation encoding="application/x-tex">\mathcal R</annotation></semantics></math>,
 including cells where both quantities are zero. Quantity indicators use
@@ -171,16 +169,12 @@ group/mode intersection. Let
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="script">𝒮</mi><annotation encoding="application/x-tex">\mathcal S</annotation></semantics></math>
 of OD/group keys: all commodity groups combined or one commodity group.
 Their <strong>eligible ODs</strong> are</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">{</mo><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi><mo>:</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">}</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\mathcal E_{\mathcal S}
-=\{r\in\mathcal S:Q_r&gt;0\ \text{and}\ \hat Q_r&gt;0\}.
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">{</mo><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi><mo>:</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">}</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">\mathcal E_{\mathcal S}
+=\{r\in\mathcal S:Q_r&gt;0\ \text{and}\ \hat Q_r&gt;0\}.</annotation></semantics></math></p>
 <p>For each eligible OD, normalize each side separately:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><mfrac><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mi>Q</mi><mi>r</mi></msub></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><mfrac><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
-p_{rm}=\frac{q_{rm}}{Q_r},
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><mfrac><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mi>Q</mi><mi>r</mi></msub></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><mfrac><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">p_{rm}=\frac{q_{rm}}{Q_r},
 \qquad
-\hat p_{rm}=\frac{\hat q_{rm}}{\hat Q_r}.
-</annotation></semantics></math></p>
+\hat p_{rm}=\frac{\hat q_{rm}}{\hat Q_r}.</annotation></semantics></math></p>
 <p>Eligibility requires positive <strong>OD totals</strong>, not
 positive flow on every mode. An unavailable waterway mode may therefore
 have
@@ -196,12 +190,10 @@ actual infinite cross-entropy penalty, as explained below.</p>
 <h2 id="wape-weighted-absolute-percentage-error">3. WAPE: weighted
 absolute percentage error</h2>
 <p>For the chosen cell set,</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">WAPE</mi><mo>&#8289;</mo></mrow><mi mathvariant="script">𝒞</mi></msub><mo>=</mo><mn>100</mn><mspace width="0.167em"></mspace><mfrac><mrow><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><mo stretchy="false" form="prefix">|</mo><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>−</mo><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="prefix">|</mo></mrow><mrow><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\operatorname{WAPE}_{\mathcal C}
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">WAPE</mi><mo>&#8289;</mo></mrow><mi mathvariant="script">𝒞</mi></msub><mo>=</mo><mn>100</mn><mspace width="0.167em"></mspace><mfrac><mrow><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><mo stretchy="false" form="prefix">|</mo><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>−</mo><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="prefix">|</mo></mrow><mrow><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">\operatorname{WAPE}_{\mathcal C}
 =100\,
 \frac{\sum_{(r,m)\in\mathcal C}|\hat q_{rm}-q_{rm}|}
-     {\sum_{(r,m)\in\mathcal C}q_{rm}}.
-</annotation></semantics></math></p>
+     {\sum_{(r,m)\in\mathcal C}q_{rm}}.</annotation></semantics></math></p>
 <p><strong>Interpretation:</strong> 0% means every compared quantity is
 reproduced exactly. A value of 20% means the total absolute error equals
 20% of the reference quantity in that scope. Lower is better when
@@ -228,12 +220,10 @@ between modes, provided each OD total is conserved.</p>
 <p>The report gives WAPE overall, by mode, by commodity group, and by
 group/mode.</p>
 <h2 id="relative-bias">4. Relative bias</h2>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">Bias</mi><mo>&#8289;</mo></mrow><mi mathvariant="script">𝒞</mi></msub><mo>=</mo><mn>100</mn><mspace width="0.167em"></mspace><mfrac><mrow><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>−</mo><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><mrow><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\operatorname{Bias}_{\mathcal C}
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">Bias</mi><mo>&#8289;</mo></mrow><mi mathvariant="script">𝒞</mi></msub><mo>=</mo><mn>100</mn><mspace width="0.167em"></mspace><mfrac><mrow><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>−</mo><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><mrow><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">\operatorname{Bias}_{\mathcal C}
 =100\,
 \frac{\sum_{(r,m)\in\mathcal C}(\hat q_{rm}-q_{rm})}
-     {\sum_{(r,m)\in\mathcal C}q_{rm}}.
-</annotation></semantics></math></p>
+     {\sum_{(r,m)\in\mathcal C}q_{rm}}.</annotation></semantics></math></p>
 <p><strong>Interpretation:</strong> +10% means assigned quantity is 10%
 higher than reference quantity in that scope; -10% means it is 10%
 lower. The ideal value is zero, and a smaller absolute bias indicates a
@@ -248,11 +238,9 @@ and another underestimated. Inspect the mode and group/mode rows
 alongside WAPE.</p>
 <h2 id="rmse-root-mean-squared-error">5. RMSE: root mean squared
 error</h2>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">RMSE</mi><mo>&#8289;</mo></mrow><mi mathvariant="script">𝒞</mi></msub><mo>=</mo><msqrt><mrow><mfrac><mn>1</mn><msub><mi>n</mi><mi mathvariant="script">𝒞</mi></msub></mfrac><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>−</mo><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><msup><mo stretchy="false" form="postfix">)</mo><mn>2</mn></msup></mrow></msqrt><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\operatorname{RMSE}_{\mathcal C}
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">RMSE</mi><mo>&#8289;</mo></mrow><mi mathvariant="script">𝒞</mi></msub><mo>=</mo><msqrt><mrow><mfrac><mn>1</mn><msub><mi>n</mi><mi mathvariant="script">𝒞</mi></msub></mfrac><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi></mrow></munder><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>−</mo><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><msup><mo stretchy="false" form="postfix">)</mo><mn>2</mn></msup></mrow></msqrt><mi>.</mi></mrow><annotation encoding="application/x-tex">\operatorname{RMSE}_{\mathcal C}
 =\sqrt{\frac{1}{n_{\mathcal C}}
-       \sum_{(r,m)\in\mathcal C}(\hat q_{rm}-q_{rm})^2}.
-</annotation></semantics></math></p>
+       \sum_{(r,m)\in\mathcal C}(\hat q_{rm}-q_{rm})^2}.</annotation></semantics></math></p>
 <p><strong>Interpretation:</strong> RMSE is in the same unit as the
 quantities, for example tonnes. Zero means a perfect cell-by-cell match.
 Lower is better for a fixed comparison scope. Squaring gives large cell
@@ -275,21 +263,17 @@ shares and OD share error</h2>
 <p>For an OD/group scope
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="script">𝒮</mi><annotation encoding="application/x-tex">\mathcal S</annotation></semantics></math>,
 aggregate reference and assigned shares are</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>m</mi></msub><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub></mrow></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mover><mi>s</mi><mo accent="true">̂</mo></mover><mi>m</mi></msub><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
-s_m=\frac{\sum_{r\in\mathcal S}q_{rm}}
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mi>m</mi></msub><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub></mrow></mfrac><mo>,</mo><mspace width="2.0em"></mspace><msub><mover><mi>s</mi><mo accent="true">̂</mo></mover><mi>m</mi></msub><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">s_m=\frac{\sum_{r\in\mathcal S}q_{rm}}
           {\sum_{r\in\mathcal S}Q_r},
 \qquad
 \hat s_m=\frac{\sum_{r\in\mathcal S}\hat q_{rm}}
-               {\sum_{r\in\mathcal S}\hat Q_r}.
-</annotation></semantics></math></p>
+               {\sum_{r\in\mathcal S}\hat Q_r}.</annotation></semantics></math></p>
 <p>The report displays
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>100</mn><msub><mi>s</mi><mi>m</mi></msub></mrow><annotation encoding="application/x-tex">100s_m</annotation></semantics></math>,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>100</mn><msub><mover><mi>s</mi><mo accent="true">̂</mo></mover><mi>m</mi></msub></mrow><annotation encoding="application/x-tex">100\hat s_m</annotation></semantics></math>,
 and</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="normal">Δ</mi><mi>m</mi></msub><mo>=</mo><mn>100</mn><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>s</mi><mo accent="true">̂</mo></mover><mi>m</mi></msub><mo>−</mo><msub><mi>s</mi><mi>m</mi></msub><mo stretchy="false" form="postfix">)</mo><mspace width="1.0em"></mspace><mtext mathvariant="normal">in percentage points</mtext><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\Delta_m=100(\hat s_m-s_m)
-\quad\text{in percentage points}.
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="normal">Δ</mi><mi>m</mi></msub><mo>=</mo><mn>100</mn><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>s</mi><mo accent="true">̂</mo></mover><mi>m</mi></msub><mo>−</mo><msub><mi>s</mi><mi>m</mi></msub><mo stretchy="false" form="postfix">)</mo><mspace width="1.0em"></mspace><mtext mathvariant="normal">in percentage points</mtext><mi>.</mi></mrow><annotation encoding="application/x-tex">\Delta_m=100(\hat s_m-s_m)
+\quad\text{in percentage points}.</annotation></semantics></math></p>
 <p><strong>Interpretation:</strong> an observed road share of 40% and
 assigned share of 45% give an error of <strong>+5 percentage
 points</strong>, not +5%. A negative difference indicates a mode's
@@ -306,9 +290,7 @@ match while total quantities differ substantially.</p>
 <h3 id="share-error-for-an-individual-odgroup">Share error for an
 individual OD/group</h3>
 <p>For each eligible OD/group,</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mi>r</mi></msub><mo>=</mo><mn>50</mn><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><mo stretchy="false" form="prefix">|</mo><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>−</mo><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="prefix">|</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
-T_r=50\sum_{m\in\mathcal M}|\hat p_{rm}-p_{rm}|.
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mi>r</mi></msub><mo>=</mo><mn>50</mn><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><mo stretchy="false" form="prefix">|</mo><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>−</mo><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="prefix">|</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">T_r=50\sum_{m\in\mathcal M}|\hat p_{rm}-p_{rm}|.</annotation></semantics></math></p>
 <p>This is the total-variation distance expressed as a percentage. Its
 range is <strong>0% to 100%</strong>. Zero means identical modal shares;
 100% means the two distributions put all their freight on different
@@ -335,9 +317,7 @@ set
 and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>a</mi><mo>=</mo><mi>t</mi><mo>−</mo><mi>j</mi></mrow><annotation encoding="application/x-tex">a=t-j</annotation></semantics></math>.
 Then</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>P</mi><mi>u</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>a</mi><mo stretchy="false" form="postfix">)</mo><msub><mi>T</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>j</mi><mo>+</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow></msub><mo>+</mo><mi>a</mi><msub><mi>T</mi><mrow><mo stretchy="false" form="prefix">(</mo><mo stretchy="false" form="prefix">⌈</mo><mi>t</mi><mo stretchy="false" form="postfix">⌉</mo><mo>+</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
-P_u=(1-a)T_{(j+1)}+aT_{(\lceil t\rceil+1)}.
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>P</mi><mi>u</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>a</mi><mo stretchy="false" form="postfix">)</mo><msub><mi>T</mi><mrow><mo stretchy="false" form="prefix">(</mo><mi>j</mi><mo>+</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow></msub><mo>+</mo><mi>a</mi><msub><mi>T</mi><mrow><mo stretchy="false" form="prefix">(</mo><mo stretchy="false" form="prefix">⌈</mo><mi>t</mi><mo stretchy="false" form="postfix">⌉</mo><mo>+</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">P_u=(1-a)T_{(j+1)}+aT_{(\lceil t\rceil+1)}.</annotation></semantics></math></p>
 <p>The median uses
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>u</mi><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">u=0.5</annotation></semantics></math>
 and P90 uses
@@ -350,16 +330,12 @@ ODs are not assigned an arbitrary modal distribution and are excluded;
 their counts and quantities are reported separately.</p>
 <h2 id="cross-entropy">7. Cross-entropy</h2>
 <p>For each eligible OD/group,</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mi>r</mi></msub><mo>=</mo><mi>−</mi><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mrow><mi mathvariant="normal">ln</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
-C_r=-\sum_{m\in\mathcal M}p_{rm}\ln(\hat p_{rm}).
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mi>r</mi></msub><mo>=</mo><mi>−</mi><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mrow><mi mathvariant="normal">ln</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">C_r=-\sum_{m\in\mathcal M}p_{rm}\ln(\hat p_{rm}).</annotation></semantics></math></p>
 <p>The reporting scope's score is the observed-quantity-weighted
 mean:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>C</mi><mo accent="true">¯</mo></mover><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub><msub><mi>C</mi><mi>r</mi></msub></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\overline C_{\mathcal S}
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>C</mi><mo accent="true">¯</mo></mover><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub><msub><mi>C</mi><mi>r</mi></msub></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">\overline C_{\mathcal S}
 =\frac{\sum_{r\in\mathcal E_{\mathcal S}}Q_r C_r}
-       {\sum_{r\in\mathcal E_{\mathcal S}}Q_r}.
-</annotation></semantics></math></p>
+       {\sum_{r\in\mathcal E_{\mathcal S}}Q_r}.</annotation></semantics></math></p>
 <p>Natural logarithms are used, so the score is measured in
 <strong>nats</strong>. Lower is better when comparing models on the same
 reference observations and eligible scope. The range is <strong>0 to
@@ -369,9 +345,7 @@ receives a large penalty.</p>
 <p>Cross-entropy is <strong>not generally zero for a perfect
 match</strong>. Its minimum for the fixed observed shares is their
 weighted entropy, where</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mi>r</mi></msub><mo>=</mo><mi>−</mi><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mrow><mi mathvariant="normal">ln</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
-H_r=-\sum_{m\in\mathcal M}p_{rm}\ln(p_{rm}).
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mi>r</mi></msub><mo>=</mo><mi>−</mi><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mrow><mi mathvariant="normal">ln</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">H_r=-\sum_{m\in\mathcal M}p_{rm}\ln(p_{rm}).</annotation></semantics></math></p>
 <p>For instance, when the reference split is 50% road and 50% rail,
 predicting those shares exactly gives
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mi>r</mi></msub><mo>=</mo><mrow><mi mathvariant="normal">ln</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mn>2</mn><mo stretchy="false" form="postfix">)</mo><mo>≈</mo><mn>0.6931</mn></mrow><annotation encoding="application/x-tex">C_r=\ln(2)\approx0.6931</annotation></semantics></math>.
@@ -422,22 +396,16 @@ quantities. These diagnostics concern eligible ODs only; completely
 unassigned ODs are reported separately.</p>
 <h2 id="jensenshannon-divergence">8. Jensen–Shannon divergence</h2>
 <p>For each eligible OD/group, form the mean distribution</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><mfrac><mrow><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>+</mo><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow><mn>2</mn></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\mu_{rm}=\frac{p_{rm}+\hat p_{rm}}{2}.
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><mfrac><mrow><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>+</mo><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub></mrow><mn>2</mn></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">\mu_{rm}=\frac{p_{rm}+\hat p_{rm}}{2}.</annotation></semantics></math></p>
 <p>The Jensen–Shannon divergence is</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>J</mi><mi>r</mi></msub><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mn>2</mn></msub><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mi>μ</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mn>2</mn></msub><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mi>μ</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">
-J_r=\frac12\sum_{m\in\mathcal M}p_{rm}
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>J</mi><mi>r</mi></msub><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mn>2</mn></msub><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><msub><mi>p</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mi>μ</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><munder><mo>∑</mo><mrow><mi>m</mi><mo>∈</mo><mi mathvariant="script">ℳ</mi></mrow></munder><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mrow><mi mathvariant="normal">log</mi><mo>&#8289;</mo></mrow><mn>2</mn></msub><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><msub><mover><mi>p</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><msub><mi>μ</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mi>.</mi></mrow><annotation encoding="application/x-tex">J_r=\frac12\sum_{m\in\mathcal M}p_{rm}
              \log_2\!\left(\frac{p_{rm}}{\mu_{rm}}\right)
    +\frac12\sum_{m\in\mathcal M}\hat p_{rm}
-             \log_2\!\left(\frac{\hat p_{rm}}{\mu_{rm}}\right).
-</annotation></semantics></math></p>
+             \log_2\!\left(\frac{\hat p_{rm}}{\mu_{rm}}\right).</annotation></semantics></math></p>
 <p>Its overall or commodity-group value is</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>J</mi><mo accent="true">¯</mo></mover><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub><msub><mi>J</mi><mi>r</mi></msub></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\overline J_{\mathcal S}
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>J</mi><mo accent="true">¯</mo></mover><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub><msub><mi>J</mi><mi>r</mi></msub></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><msub><mi mathvariant="script">ℰ</mi><mi mathvariant="script">𝒮</mi></msub></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">\overline J_{\mathcal S}
 =\frac{\sum_{r\in\mathcal E_{\mathcal S}}Q_r J_r}
-       {\sum_{r\in\mathcal E_{\mathcal S}}Q_r}.
-</annotation></semantics></math></p>
+       {\sum_{r\in\mathcal E_{\mathcal S}}Q_r}.</annotation></semantics></math></p>
 <p><strong>Interpretation:</strong> with the base-2 logarithms used by
 Nodus, the range is <strong>0 to 1</strong>. Zero means matching
 distributions; 1 means disjoint distributions, with no mode carrying
@@ -481,25 +449,19 @@ counts</h3>
 <p>Using an indicator function
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><mi>⋅</mi><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\mathbf1[\cdot]</annotation></semantics></math>,
 the observed OD count is</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">o</mi><mi mathvariant="normal">b</mi><mi mathvariant="normal">s</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
-N_{\mathrm{obs}}=\sum_{r\in\mathcal S}\mathbf1[Q_r&gt;0].
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">o</mi><mi mathvariant="normal">b</mi><mi mathvariant="normal">s</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">N_{\mathrm{obs}}=\sum_{r\in\mathcal S}\mathbf1[Q_r&gt;0].</annotation></semantics></math></p>
 <p>The eligible count displayed with distribution scores is</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">e</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">b</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
-N_{\mathrm{eligible}}
-=\sum_{r\in\mathcal S}\mathbf1[Q_r&gt;0\ \text{and}\ \hat Q_r&gt;0].
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">e</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">b</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">N_{\mathrm{eligible}}
+=\sum_{r\in\mathcal S}\mathbf1[Q_r&gt;0\ \text{and}\ \hat Q_r&gt;0].</annotation></semantics></math></p>
 <p>An OD appearing in several commodity groups counts separately for
 each group. These counts describe the evaluated sample, rather than its
 accuracy by themselves.</p>
 <h3 id="quantity-coverage-on-ods-with-some-assigned-flow">Quantity
 coverage on ODs with some assigned flow</h3>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">Coverage</mi><mo>&#8289;</mo></mrow><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><mn>100</mn><mspace width="0.167em"></mspace><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\operatorname{Coverage}_{\mathcal S}
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">Coverage</mi><mo>&#8289;</mo></mrow><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><mn>100</mn><mspace width="0.167em"></mspace><mfrac><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo></mrow><mrow><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub></mrow></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">\operatorname{Coverage}_{\mathcal S}
 =100\,
 \frac{\sum_{r\in\mathcal S}Q_r\mathbf1[\hat Q_r&gt;0]}
-     {\sum_{r\in\mathcal S}Q_r}.
-</annotation></semantics></math></p>
+     {\sum_{r\in\mathcal S}Q_r}.</annotation></semantics></math></p>
 <p>The range is <strong>0% to 100%</strong>; higher is better for
 inclusion of observed demand. It is undefined with no observed quantity.
 A value of 100% means every observed OD carrying reference quantity has
@@ -510,23 +472,19 @@ enough for that OD to count as covered. Inspect quantity shortfalls and
 modal-cell errors as well.</p>
 <h3 id="observed-ods-without-assigned-flow">Observed ODs without
 assigned flow</h3>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">g</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>=</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>Q</mi><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">g</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>=</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
-N_{\mathrm{missing}}
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">g</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>=</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>Q</mi><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">g</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><msub><mi>Q</mi><mi>r</mi></msub><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>=</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">N_{\mathrm{missing}}
 =\sum_{r\in\mathcal S}\mathbf1[Q_r&gt;0\ \text{and}\ \hat Q_r=0],
 \qquad
 Q_{\mathrm{missing}}
-=\sum_{r\in\mathcal S}Q_r\mathbf1[\hat Q_r=0].
-</annotation></semantics></math></p>
+=\sum_{r\in\mathcal S}Q_r\mathbf1[\hat Q_r=0].</annotation></semantics></math></p>
 <p>The count and observed quantity have ideal values of zero. These ODs
 are excluded from distribution scores because no assigned distribution
 can be normalized.</p>
 <h3 id="od-quantity-shortfall-and-excess">OD quantity shortfall and
 excess</h3>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>−</mo><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>X</mi><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>−</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
-S_{\mathcal S}=\sum_{r\in\mathcal S}\max(Q_r-\hat Q_r,0),
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>−</mo><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>X</mi><mi mathvariant="script">𝒮</mi></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>−</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>,</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">S_{\mathcal S}=\sum_{r\in\mathcal S}\max(Q_r-\hat Q_r,0),
 \qquad
-X_{\mathcal S}=\sum_{r\in\mathcal S}\max(\hat Q_r-Q_r,0).
-</annotation></semantics></math></p>
+X_{\mathcal S}=\sum_{r\in\mathcal S}\max(\hat Q_r-Q_r,0).</annotation></semantics></math></p>
 <p>Both are in quantity units, nonnegative, and ideally zero. Shortfall
 measures underassignment relative to reference OD totals; excess
 measures overassignment. They are computed separately so that opposite
@@ -534,10 +492,8 @@ OD discrepancies do not cancel. Equal global totals can coexist with
 substantial shortfalls and excesses. These diagnostics assess OD totals,
 so incorrect modal splits can remain even when both values are zero.</p>
 <h3 id="assigned-only-ods">Assigned-only ODs</h3>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">e</mi><mi mathvariant="normal">x</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">a</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>=</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
-N_{\mathrm{extra}}
-=\sum_{r\in\mathcal S}\mathbf1[Q_r=0\ \text{and}\ \hat Q_r&gt;0].
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">e</mi><mi mathvariant="normal">x</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">a</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>r</mi><mo>∈</mo><mi mathvariant="script">𝒮</mi></mrow></munder><mn mathvariant="bold">𝟏</mn><mo stretchy="false" form="prefix">[</mo><msub><mi>Q</mi><mi>r</mi></msub><mo>=</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>Q</mi><mo accent="true">̂</mo></mover><mi>r</mi></msub><mo>&gt;</mo><mn>0</mn><mo stretchy="false" form="postfix">]</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">N_{\mathrm{extra}}
+=\sum_{r\in\mathcal S}\mathbf1[Q_r=0\ \text{and}\ \hat Q_r&gt;0].</annotation></semantics></math></p>
 <p>The ideal count is zero when both datasets are intended to cover the
 same demand. Their assigned quantities contribute to excess. They are
 excluded from share scores because no positive observed total
@@ -545,16 +501,12 @@ exists.</p>
 <h3 id="observed-positive-assigned-zero-modal-cells">Observed-positive,
 assigned-zero modal cells</h3>
 <p>Let</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">𝒵</mi><mi mathvariant="script">𝒞</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">{</mo><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi><mo>:</mo><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>&gt;</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><mn>0</mn><mo stretchy="false" form="postfix">}</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
-\mathcal Z_{\mathcal C}
-=\{(r,m)\in\mathcal C:q_{rm}&gt;0\ \text{and}\ \hat q_{rm}=0\}.
-</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">𝒵</mi><mi mathvariant="script">𝒞</mi></msub><mo>=</mo><mo stretchy="false" form="prefix">{</mo><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><mi mathvariant="script">𝒞</mi><mo>:</mo><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>&gt;</mo><mn>0</mn><mspace width="0.222em"></mspace><mtext mathvariant="normal">and</mtext><mspace width="0.222em"></mspace><msub><mover><mi>q</mi><mo accent="true">̂</mo></mover><mrow><mi>r</mi><mi>m</mi></mrow></msub><mo>=</mo><mn>0</mn><mo stretchy="false" form="postfix">}</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">\mathcal Z_{\mathcal C}
+=\{(r,m)\in\mathcal C:q_{rm}&gt;0\ \text{and}\ \hat q_{rm}=0\}.</annotation></semantics></math></p>
 <p>The report gives</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">z</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">o</mi></mrow></msub><mo>=</mo><mo stretchy="false" form="prefix">|</mo><msub><mi mathvariant="script">𝒵</mi><mi mathvariant="script">𝒞</mi></msub><mo stretchy="false" form="prefix">|</mo><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>Q</mi><mrow><mi mathvariant="normal">z</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">o</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><msub><mi mathvariant="script">𝒵</mi><mi mathvariant="script">𝒞</mi></msub></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
-N_{\mathrm{zero}}=|\mathcal Z_{\mathcal C}|,
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">z</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">o</mi></mrow></msub><mo>=</mo><mo stretchy="false" form="prefix">|</mo><msub><mi mathvariant="script">𝒵</mi><mi mathvariant="script">𝒞</mi></msub><mo stretchy="false" form="prefix">|</mo><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>Q</mi><mrow><mi mathvariant="normal">z</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">o</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mrow><mo stretchy="false" form="prefix">(</mo><mi>r</mi><mo>,</mo><mi>m</mi><mo stretchy="false" form="postfix">)</mo><mo>∈</mo><msub><mi mathvariant="script">𝒵</mi><mi mathvariant="script">𝒞</mi></msub></mrow></munder><msub><mi>q</mi><mrow><mi>r</mi><mi>m</mi></mrow></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">N_{\mathrm{zero}}=|\mathcal Z_{\mathcal C}|,
 \qquad
-Q_{\mathrm{zero}}=\sum_{(r,m)\in\mathcal Z_{\mathcal C}}q_{rm}.
-</annotation></semantics></math></p>
+Q_{\mathrm{zero}}=\sum_{(r,m)\in\mathcal Z_{\mathcal C}}q_{rm}.</annotation></semantics></math></p>
 <p>These identify observed modal flows absent from the assigned matrix.
 Unlike the infinite-cross-entropy diagnostics, they also include
 completely unassigned ODs. Zero observed waterway flow on an infeasible

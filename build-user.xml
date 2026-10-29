@@ -49,7 +49,7 @@
 			encoding="UTF-8" docencoding="UTF-8" charset="UTF-8" 
 			packagenames="com.bbn.openmap.*, edu.uclouvain.core.*" 
 			author="true" version="true" use="true" 
-			windowtitle="Nodus 9.0 API"
+			windowtitle="Nodus 9.1 API"
 			doctitle="Nodus" bottom="${copyrightString}"
 			classpathref="Nodus.classpath" failonerror="false" />
 	</target>
@@ -189,7 +189,7 @@
 
 	<target name="RunModalChoiceMigrationHtml" depends="CheckPandocMath" if="pandoc.available">
 		<pandoc-help-page source="${basedir}/doc/modal-choice-migration.md"
-			output="${basedir}/doc/modal-choice-migration.html" title="Modal-choice plugins in Nodus 9.0" />
+			output="${basedir}/doc/modal-choice-migration.html" title="Modal-choice plugins in Nodus 9.1" />
 	</target>
 	<target name="ModalChoiceMigrationHtml" depends="RunModalChoiceMigrationHtml"
 		description="Generates doc/modal-choice-migration.html from Markdown when Pandoc is available.">
