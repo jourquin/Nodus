@@ -515,6 +515,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Remove the "Save paths" checkbox in the assignment dialog, as it is now mandatory.
   
 ## v9.1 - BuildXXXXXXXX
+- Keep tile downloads off the Swing component lock so layer controls remain responsive while
+  background maps are loading
 - Wait for assignment and cost-parser workers to terminate after cancellation before releasing
   shared resources; reject partial results after fatal worker errors
 - Restrict column metadata to literal table names in the current schema, preventing similarly named

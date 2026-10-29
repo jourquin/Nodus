@@ -22,9 +22,11 @@
 package com.bbn.openmap.layer.image;
 
 import com.bbn.openmap.Environment;
+import com.bbn.openmap.dataAccess.mapTile.MapTileFactory;
 import com.bbn.openmap.dataAccess.mapTile.ServerMapTileFactory;
 import com.bbn.openmap.layer.OMGraphicHandlerLayer;
 import com.bbn.openmap.omGraphics.OMGraphicList;
+import com.bbn.openmap.proj.Projection;
 import com.bbn.openmap.util.I18n;
 import com.bbn.openmap.util.PropUtils;
 import edu.uclouvain.core.nodus.swing.GUIUtils;
@@ -75,6 +77,9 @@ public class NodusMapTileLayer extends MapTileLayer {
 
   /** . */
   private JPanel transparencyPanel = null;
+
+  /** Serializes downloads without taking the Swing component monitor needed by UI listeners. */
+  private final Object tilePreparationLock = new Object();
 
   /** Default constructor. */
   public NodusMapTileLayer() {
@@ -206,12 +211,20 @@ public class NodusMapTileLayer extends MapTileLayer {
     return transparencyPanel;
   }
 
-  /** Call prepare only if the server is reachable. */
+  /**
+   * Fetches tiles on the layer worker without locking this Swing component during network I/O.
+   * Preparations remain serialized using a separate lock. Calling the synchronized superclass
+   * implementation would hold the component monitor, blocking OpenMap's mouse delegator when it
+   * rebuilds layer listeners after a visibility change.
+   */
   @Override
-  public synchronized OMGraphicList prepare() {
-    if (isServerReachable) {
-      return super.prepare();
-    } else {
+  public OMGraphicList prepare() {
+    synchronized (tilePreparationLock) {
+      Projection projection = getProjection();
+      MapTileFactory factory = getTileFactory();
+      if (isServerReachable && projection != null && factory != null) {
+        return factory.getTiles(projection, getZoomLevel(), new OMGraphicList());
+      }
       return null;
     }
   }

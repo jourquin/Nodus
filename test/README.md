@@ -369,6 +369,12 @@ first routes may differ from forward Dijkstra and can produce different subseque
   and local tile factories, restore saved opacity and clear memory/disk caches while preserving a
   second layer's files. Missing-server preparation never calls the tile factory. No public map
   servers, rendered-pixel comparisons or dialog construction are involved.
+- `BackgroundMapResponsivenessTest`: a local HTTP server pauses tile or WMS image responses while
+  the EDT hides/shows the background and another layer, rebuilds mouse-mode listeners through
+  OpenMap's actual mouse delegator, and repaints the buffered map through the real layer handler/panel.
+  Both standard and server tile factories
+  are covered. Requests must still be pending when UI work completes. Fixtures release all paused
+  responses before disposing the map; the regular suite opens no windows.
 - `ExtensionApiCompatibilityTest`: the frozen public/protected API of the four extension
   entry classes, a plugin and subclass compiled before their refactoring, plugin menu dispatch
   and project/global disposal, and Groovy bean properties, overloads and shared collections.
