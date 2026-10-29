@@ -25,8 +25,8 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.database.MySqlTablePublication;
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -160,16 +160,26 @@ public final class AssignmentOutputTables implements AutoCloseable {
         throw new SQLException("Missing assignment output: " + table.destination);
       }
     }
+    MySqlTablePublication grouped = null;
     try {
-      for (Table table : tables) {
-        if (tableExists(table.destination)) {
-          // Record the attempt first: the driver can throw after executing the rename.
-          table.backupAttempted = true;
-          rename(table.destination, table.backup);
+      if (MySqlTablePublication.isSupported(connection)) {
+        grouped = new MySqlTablePublication(connection);
+        for (Table table : tables) {
+          table.backupAttempted =
+              grouped.add(table.destination, table.required ? table.staged : null, table.backup);
         }
-        if (table.required) {
-          table.installAttempted = true;
-          rename(table.staged, table.destination);
+        grouped.publish();
+      } else {
+        for (Table table : tables) {
+          if (tableExists(table.destination)) {
+            // Record the attempt first: the driver can throw after executing the rename.
+            table.backupAttempted = true;
+            rename(table.destination, table.backup);
+          }
+          if (table.required) {
+            table.installAttempted = true;
+            rename(table.staged, table.destination);
+          }
         }
       }
       if (!connection.getAutoCommit()) {
@@ -177,7 +187,17 @@ public final class AssignmentOutputTables implements AutoCloseable {
       }
       published = true;
     } catch (SQLException failure) {
-      restore(failure);
+      if (grouped == null) {
+        restore(failure);
+      } else {
+        try {
+          grouped.restore();
+        } catch (SQLException recovery) {
+          failure.addSuppressed(recovery);
+          System.err.println(
+              "Cannot verify output restoration; retain any nb_ backup tables for recovery.");
+        }
+      }
       throw failure;
     }
     // Backups are no longer needed once the whole output set has been published successfully.
@@ -219,22 +239,7 @@ public final class AssignmentOutputTables implements AutoCloseable {
 
   /** Checks this output attempt's connection without hiding metadata failures. */
   private boolean tableExists(String name) throws SQLException {
-    String identifier = JDBCUtils.getCompliantIdentifier(name);
-    try (ResultSet rows =
-        connection
-            .getMetaData()
-            .getTables(
-                connection.getCatalog(),
-                connection.getSchema(),
-                identifier,
-                new String[] {"TABLE"})) {
-      while (rows.next()) {
-        if (identifier.equals(rows.getString("TABLE_NAME"))) {
-          return true;
-        }
-      }
-      return false;
-    }
+    return JDBCUtils.tableExists(connection, name);
   }
 
   private void rename(String from, String to) throws SQLException {

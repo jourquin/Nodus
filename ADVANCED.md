@@ -154,6 +154,64 @@ MySQL, PostgreSQL, and other JDBC databases, including separately managed HSQLDB
 and H2 instances. For a Nodus-managed built-in server, omit `jdbc.url` and
 use the port properties above instead.
 
+### MySQL/MariaDB storage engines
+
+InnoDB is recommended for Nodus projects using MySQL or MariaDB. Nodus uses transactions and
+savepoints to recover from failed edits and saves. MyISAM and other nontransactional engines
+cannot provide that rollback protection. For a new database, use the bundled MariaDB driver:
+
+```properties
+jdbc.driver=org.mariadb.jdbc.Driver
+jdbc.url=jdbc:mariadb://127.0.0.1:3306/DatabaseName
+jdbc.user=your-username
+jdbc.password=your-password
+```
+
+The database and account must already exist. The MariaDB driver can connect to MariaDB or MySQL
+servers using this URL scheme. InnoDB is the standard server default, so no engine option is
+normally needed. If the administrator selected another default, append
+`?sessionVariables=default_storage_engine=InnoDB` to select InnoDB for this connection's new tables.
+See MariaDB's [default-storage-engine setting](https://mariadb.com/docs/server/server-management/variables-and-modes/server-system-variables#default_storage_engine).
+Explicit connection settings continue to be honored, including a legacy MyISAM default. Changing
+`default_storage_engine` affects newly created tables only; existing tables require a separate,
+explicit conversion. Nodus never converts them automatically.
+
+After imports and the project-open script finish, Nodus checks the actual base-table engines in
+the selected database and the session's default engine. It warns once per project opening if
+either uses a nontransactional engine, including mixed InnoDB/MyISAM databases and empty databases
+with a nontransactional default. Unknown engine capabilities or failed checks also produce a
+warning; opening can continue. The check runs off the UI thread, reads only metadata, and leaves
+tables, session settings and pending transactions unchanged. The warning does not disable editing.
+
+The dialog's **Do not show this warning again** checkbox hides subsequent storage-engine warnings
+for this project. The choice is saved with the other project-local settings in `ProjectName.nodus.local` when
+the project closes; other projects are unaffected. Metadata checks still run. To show the warning
+again, remove `showStorageEngineWarning=false` from that project's local settings file or set it to
+`true` while the project is closed.
+
+InnoDB protects transactional data changes; schema operations can still cause implicit commits.
+Nodus loads imports and assignment outputs into staging tables before replacing existing tables.
+On MySQL/MariaDB, publication uses one grouped `RENAME TABLE` statement: the previous tables move
+to private backup names and their replacements take the public names together. For assignments,
+the group includes the virtual network, path headers and optional path details; an obsolete detail
+table moves aside in the same statement. Other database products retain their existing publication
+path.
+
+If publication fails, Nodus inspects the actual table names and restores the previous set with one
+inverse rename. This also handles a JDBC exception after the server executed the original rename.
+If restoration cannot be verified or completed, backup tables remain available for recovery.
+Backup cleanup after successful publication is optional: a cleanup error is reported without
+undoing the completed import or assignment. Server-crash recovery guarantees still depend on the
+server version and storage engine. Transaction guarantees also do not extend to external DBF/shape
+files, whose saves have separate file-recovery logic.
+
+Performance depends on the workload and configuration. Compare disposable copies of a project
+with matching indexes, batch sizes and thread counts, an adequate InnoDB buffer pool, and normal
+durability settings. Include both initial and warmed-up runs, and compare import, output-writing
+and total assignment times, especially when detailed paths are saved. No fixed speed ratio is
+assumed. See MariaDB's [storage-engine guidance](https://mariadb.com/docs/server/server-usage/storage-engines/choosing-the-right-storage-engine)
+and [implicit-commit reference](https://mariadb.com/docs/server/reference/sql-statements/transactions/sql-statements-that-cause-an-implicit-commit).
+
 For MySQL/MariaDB projects, Nodus sends a JDBC validation ping every minute while
 the project is open. This keeps a normally idle server session active and detects a
 lost connection. The interval must be shorter than the server's `wait_timeout`;

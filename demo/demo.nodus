@@ -1,10 +1,10 @@
 # By default, Nodus uses an embedded DBMS, but other can be used, such as MySQL/MariaDB.
 # Some JDBC drivers are provided in the Nodus distribution. It is the case for MySQL/MariaDB.
-# In this example, the MYISAM engine is used, which is faster that INNODB, but less secure.
+# InnoDB is recommended and is the default on standard MySQL/MariaDB servers.
 #jdbc.driver=org.mariadb.jdbc.Driver
 #jdbc.user=nodus
 #jdbc.password=nodus
-#jdbc.url=jdbc:mysql://localhost/demo?sessionVariables=default_storage_engine=MYISAM
+#jdbc.url=jdbc:mariadb://localhost/demo
 
 # Another example using Postgresql (driver also provided with Nodus
 #jdbc.driver=org.postgresql.Driver

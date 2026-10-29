@@ -30,6 +30,8 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
@@ -96,6 +98,7 @@ public final class TableImport {
     Savepoint savepoint = null;
     boolean originalRenamed = false;
     boolean installed = false;
+    MySqlTablePublication grouped = null;
     try {
       if (autoCommit) {
         connection.setAutoCommit(false);
@@ -107,18 +110,37 @@ public final class TableImport {
       if (committingDdl) {
         connection.commit();
       }
-      if (exists(connection, table)) {
-        rename(connection, table, backup);
-        originalRenamed = true;
+      if (committingDdl && MySqlTablePublication.isSupported(connection)) {
+        grouped = new MySqlTablePublication(connection);
+        originalRenamed = grouped.add(table, staged, backup);
+        grouped.publish();
+      } else {
+        if (exists(connection, table)) {
+          rename(connection, table, backup);
+          originalRenamed = true;
+        }
+        rename(connection, staged, table);
       }
-      rename(connection, staged, table);
       installed = true;
       if (committingDdl) {
         // Retain the original until the replacement's final commit has succeeded.
         connection.commit();
       }
       if (originalRenamed) {
-        execute(connection, "DROP TABLE " + quoted(backup));
+        if (grouped == null) {
+          execute(connection, "DROP TABLE " + quoted(backup));
+        } else {
+          // Publication is committed. Optional cleanup cannot undo a successful import.
+          try {
+            execute(connection, "DROP TABLE " + quoted(backup));
+          } catch (SQLException cleanup) {
+            Logger.getLogger(TableImport.class.getName())
+                .log(
+                    Level.WARNING,
+                    "Imported table published; check backup cleanup for " + backup,
+                    cleanup);
+          }
+        }
         originalRenamed = false;
       }
       if (autoCommit && !committingDdl) {
@@ -136,7 +158,16 @@ public final class TableImport {
           }
         } else {
           connection.rollback();
-          if (originalRenamed) {
+          if (grouped != null) {
+            try {
+              grouped.restore();
+              installed = false;
+            } catch (SQLException recovery) {
+              failure.addSuppressed(
+                  new SQLException("Retain backup " + backup + " for manual recovery.", recovery));
+              throw failure;
+            }
+          } else if (originalRenamed) {
             try {
               if (installed) {
                 rename(connection, table, staged);
@@ -171,19 +202,7 @@ public final class TableImport {
   }
 
   private static boolean exists(Connection connection, String table) throws SQLException {
-    String name = JDBCUtils.getCompliantIdentifier(table);
-    try (java.sql.ResultSet tables =
-        connection
-            .getMetaData()
-            .getTables(
-                connection.getCatalog(), connection.getSchema(), null, new String[] {"TABLE"})) {
-      while (tables.next()) {
-        if (name.equals(tables.getString("TABLE_NAME"))) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return JDBCUtils.tableExists(connection, table);
   }
 
   private static void rename(Connection connection, String from, String to) throws SQLException {

@@ -652,6 +652,13 @@ public class NodusC {
   public static final String PROP_EMBEDDED_DB = "embedded_db";
 
   /**
+   * Whether this project shows warnings about nontransactional database storage engines.
+   *
+   * @hidden
+   */
+  public static final String PROP_SHOW_STORAGE_ENGINE_WARNING = "showStorageEngineWarning";
+
+  /**
    * Properties strings used in project and/or project local properties.
    *
    * @hidden

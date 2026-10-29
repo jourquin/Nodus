@@ -515,6 +515,12 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Remove the "Save paths" checkbox in the assignment dialog, as it is now mandatory.
   
 ## v9.0 - BuildXXXXXXXX
+- Match table names literally in JDBC existence checks, including underscores and percent signs,
+  within the current catalog/schema
+- Publish MySQL/MariaDB imports and complete assignment output sets with one grouped table rename;
+  recover from publication failures without discarding the previous tables
+- Recommend InnoDB in MySQL/MariaDB connection examples; warn once per project opening when actual
+  table engines or the default engine lack transaction support, without converting existing tables
 - Preserve the previous imported table if the replacement's final commit fails
 - Defer project closure and switching until active assignment, estimation or KPI computation cleanup
   has finished
@@ -524,8 +530,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Skip missing map geometries instead of reusing the preceding object's label
 - Preserve playback time filters with carriage-return line comments and nested SQL block comments
 - Save consolidated vehicle totals without integer overflow, including up to 100 commodity groups
-- Repair obsolete Javadoc parameter names, HTML tags and Markdown links found during the
-  [release audit](doc/release-audit-2026-10-26.md)
+- Repair some obsolete Javadoc parameter names, HTML tags and Markdown links
 - Restore mutable NodusC settings before loading each project, preserving application defaults
   configured by nodus.groovy and preventing overrides from leaking between projects
 - Include final partial periods in time-dependent assignments and result playback; report

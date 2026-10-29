@@ -867,6 +867,27 @@ Most database integration tests use H2 and HSQLDB. The suite does not run agains
 MariaDB or PostgreSQL servers. Explicit JDBC configuration tests check that Nodus leaves those
 servers independently managed, without connecting to them.
 
+`JDBCUtilsTableExistsTest` checks literal underscores, percent signs and metadata escape characters
+against actual H2/HSQLDB tables, rejecting names that would otherwise match metadata wildcards.
+`GroupedTablePublicationTest` exercises MySQL/MariaDB publication through an embedded-driver SQL
+adapter. It checks imports and complete assignment output sets, failures before and after a grouped
+rename, failed commits and restoration, first attempts, obsolete detail removal, and optional backup
+cleanup failures. These tests verify the application recovery logic; they do not establish native
+server statement atomicity. Separate validation on a disposable MariaDB instance covered native
+grouped renames with both InnoDB and MyISAM, including a failure partway through a rename statement
+and preservation of unrelated pending edits during imports. That server validation is not part of
+the default suite and must never use production tables.
+
+`MySqlStorageEnginesTest` supplies read-only JDBC metadata for transactional, nontransactional,
+mixed and unknown table engines. It covers an independently selected default engine, empty
+databases, other database products and query/read/close failures. Unexpected data changes,
+connection-setting changes, commits, rollbacks or connection closure fail these tests.
+`NodusProjectStorageEngineWarningTest` checks once-per-opening warnings, completion after an
+unavailable metadata check, stale project callbacks, background queries and EDT presentation.
+It also exercises the dialog checkbox, real local-settings persistence, suppression after reload,
+isolation from other projects, and ignoring a checkbox choice after project replacement.
+These tests do not connect to a production database or convert existing tables.
+
 `NetworkEditFailureTest` covers SQL write failures partway through insertions and link splits,
 including rollback and preservation of earlier uncommitted work. Integrity tests cover automatic
 self-loop removal and failed-deletion retry, but not the timer's polling interval. Service-save
@@ -1019,10 +1040,16 @@ first attempt leaves no scenario output; a failed replacement retains the previo
 A successful header-only assignment removes the previous detail table. Temporary names do not use
 the scenario's public table prefixes.
 
+MySQL/MariaDB publish the complete set with a single grouped `RENAME TABLE`, including removal of
+obsolete details. Recovery inspects actual names before issuing one inverse rename, handling both
+errors before execution and lost acknowledgements after execution. Other engines use the existing
+sequential replacement path. Crash recovery depends on the server version and storage engine.
+
 Post-assignment scripts and success notifications run after publication. If the script itself
 fails, the completed network and path outputs remain together; the assignment reports failure.
 If the database prevents restoration after a publication failure, the backup table is retained
-rather than deleting the last complete data.
+rather than deleting the last complete data. Failure to remove backups after successful publication
+is reported without undoing the completed result.
 
 Output DDL and commits still use the shared project connection. They can commit earlier unrelated
 SQL work, as demonstrated on H2 and HSQLDB. Savepoints cover inserts made after staging-table

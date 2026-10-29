@@ -254,7 +254,8 @@ public final class AssignmentOutputFixture extends AssignmentTestProject {
                           (object, member, values) -> {
                             if (member.getName().equals("getTables")
                                 && networkCommitted
-                                && "MINI_VNET1".equalsIgnoreCase((String) values[2])
+                                && "MINI_VNET1"
+                                    .equalsIgnoreCase(((String) values[2]).replace("\\_", "_"))
                                 && trip(Fault.PUBLISH_METADATA)) {
                               throw new SQLNonTransientConnectionException(
                                   "connection exception: closed", "08003");

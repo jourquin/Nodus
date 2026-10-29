@@ -40,6 +40,7 @@ import com.bbn.openmap.util.PropUtils;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.LocalDatabaseServer;
+import edu.uclouvain.core.nodus.database.MySqlStorageEngines;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
 import edu.uclouvain.core.nodus.database.ShapeIntegrityTester;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
@@ -56,9 +57,11 @@ import edu.uclouvain.core.nodus.utils.NodusFileFilter;
 import edu.uclouvain.core.nodus.utils.ProjectLocker;
 import edu.uclouvain.core.nodus.utils.PropertiesFileSave;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Frame;
+import java.awt.Insets;
 import java.awt.Window;
 import java.awt.geom.Point2D;
 import java.io.File;
@@ -83,17 +86,23 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.UIManager;
 
 /**
  * A Nodus project file is a properties file with a .nodus extension. <br>
@@ -105,12 +114,13 @@ import javax.swing.SwingWorker;
  * <br>
  * # By default, Nodus uses an embedded DBMS, but other can be used, such as MySQL/MariaDB. <br>
  * # Some JDBC drivers are provided in the Nodus distribution. It is the case for MySQL/MariaDB.<br>
- * # In this example, the MYISAM engine is used, which is faster that INNODB, but less secure.<br>
+ * # InnoDB is recommended and is the default on standard MySQL/MariaDB servers.<br>
+ * # Changing the default engine affects new tables only; existing tables are not converted.<br>
  * <br>
  * #jdbc.driver=org.mariadb.jdbc.Driver <br>
  * #jdbc.user=nodus <br>
  * #jdbc.password=nodus <br>
- * #jdbc.url=jdbc:mysql://localhost/demo?sessionVariables=default_storage_engine=MYISAM <br>
+ * #jdbc.url=jdbc:mariadb://localhost/demo <br>
  * <br>
  * # These two properties are mandatory. They contain a list of node and link layers <br>
  * network.nodes= centroids road_points iww_points rail_points terminals <br>
@@ -244,6 +254,9 @@ public class NodusProject implements ShapeConstants {
   private volatile boolean closeInProgress = false;
   private javax.swing.Timer computationCloseTimer;
 
+  private boolean storageEnginesChecked;
+  private long storageEngineCheckGeneration;
+
   private final List<Runnable> closeCompletionCallbacks = new LinkedList<>();
 
   /**
@@ -314,6 +327,7 @@ public class NodusProject implements ShapeConstants {
     }
 
     if (!isOpen) {
+      storageEngineCheckGeneration++;
       closeProjectResourcesThen(() -> finishCloseUi(false));
       return;
     }
@@ -1722,7 +1736,144 @@ public class NodusProject implements ShapeConstants {
     // Modal JAR migration must finish before a general plugin loader can cache the old classes.
     nodusMapPanel.loadPlugins(
         getLocalProperty(NodusC.PROP_PROJECT_DOTPATH), true, modalMethods.getSkippedPluginJars());
-    runProjectLifecycleScriptAsync(true, false, this::completeProjectOpenUi);
+    runProjectLifecycleScriptAsync(
+        true, false, () -> checkStorageEnginesBeforeOpening(this::completeProjectOpenUi));
+  }
+
+  /** Checks once per opening, off the EDT, after imports and the project hook have finished. */
+  void checkStorageEnginesBeforeOpening(Runnable onDone) {
+    if (jdbcConnection == null || closeInProgress) {
+      return;
+    }
+    if (!monitorMainConnection || storageEnginesChecked) {
+      onDone.run();
+      return;
+    }
+    storageEnginesChecked = true;
+    final Connection connection = jdbcConnection;
+    final long generation = storageEngineCheckGeneration;
+    AtomicReference<String> warning = new AtomicReference<>();
+    runProjectOpenTask(
+        "Nodus-Storage-Engine-Check",
+        () -> {
+          try {
+            MySqlStorageEngines.Inspection inspection = MySqlStorageEngines.inspect(connection);
+            if (inspection.requiresWarning()) {
+              warning.set(storageEngineWarningMessage(inspection));
+            }
+          } catch (SQLException failure) {
+            Logger.getLogger(NodusProject.class.getName())
+                .log(Level.WARNING, "Could not inspect database storage engines", failure);
+            warning.set(
+                i18n.get(
+                    NodusProject.class,
+                    "Storage_engine_check_failed",
+                    "Nodus could not verify transaction support for this project's database "
+                        + "tables. Recovery after failed writes could not be checked."));
+          }
+        },
+        () -> {
+          if (generation != storageEngineCheckGeneration || connection != jdbcConnection) {
+            return;
+          }
+          if (warning.get() != null
+              && getLocalProperty(NodusC.PROP_SHOW_STORAGE_ENGINE_WARNING, true)) {
+            showStorageEngineWarning(warning.get());
+          }
+          if (generation == storageEngineCheckGeneration && connection == jdbcConnection) {
+            onDone.run();
+          }
+        });
+  }
+
+  /** Describes per-table limitations without claiming that all database operations are atomic. */
+  private String storageEngineWarningMessage(MySqlStorageEngines.Inspection inspection) {
+    List<String> paragraphs = new LinkedList<>();
+    if (!inspection.getNonTransactionalTables().isEmpty()) {
+      paragraphs.add(
+          MessageFormat.format(
+              i18n.get(
+                  NodusProject.class,
+                  "Non_transactional_tables",
+                  "The project database contains {0} table(s) without transaction support "
+                      + "({1})."),
+              inspection.getNonTransactionalTables().size(),
+              String.join(", ", inspection.getNonTransactionalEngines())));
+    }
+    if (inspection.isDefaultNonTransactional()) {
+      paragraphs.add(
+          MessageFormat.format(
+              i18n.get(
+                  NodusProject.class,
+                  "Non_transactional_default",
+                  "New tables use {0}, which does not support transactions."),
+              inspection.getDefaultEngine()));
+    }
+    if (inspection.hasUnverifiedEngines()) {
+      paragraphs.add(
+          i18n.get(
+              NodusProject.class,
+              "Unverified_storage_engines",
+              "Transaction support could not be verified for some tables or the default engine."));
+    }
+    paragraphs.add(
+        i18n.get(
+            NodusProject.class,
+            "Non_transactional_recovery",
+            "Changes to nontransactional tables cannot be rolled back.\n"
+                + "Failed or canceled operations may leave partial database changes.\n\n"
+                + "InnoDB is recommended. Existing tables have not been converted."));
+    return String.join("\n\n", paragraphs);
+  }
+
+  /** Offers per-project suppression saved with the other project-local settings. */
+  void showStorageEngineWarning(String message) {
+    final Properties settings = localProperties;
+    final Connection connection = jdbcConnection;
+    final long generation = storageEngineCheckGeneration;
+    JCheckBox doNotShowAgain =
+        new JCheckBox(
+            i18n.get(
+                NodusProject.class,
+                "Do_not_show_storage_engine_warning_again",
+                "Do not show this warning again"));
+    presentStorageEngineWarning(message, doNotShowAgain);
+    if (doNotShowAgain.isSelected()
+        && settings != null
+        && settings == localProperties
+        && connection == jdbcConnection
+        && generation == storageEngineCheckGeneration) {
+      setLocalProperty(NodusC.PROP_SHOW_STORAGE_ENGINE_WARNING, false);
+    }
+  }
+
+  /** Displays the warning and opt-out control; tests replace only the native dialog. */
+  void presentStorageEngineWarning(String message, JCheckBox doNotShowAgain) {
+    final JButton ok = new JButton(UIManager.getString("OptionPane.okButtonText"));
+    doNotShowAgain.setBorder(BorderFactory.createEmptyBorder());
+    doNotShowAgain.setMargin(new Insets(0, 0, 0, 0));
+    JPanel actions = new JPanel(new BorderLayout(24, 0));
+    actions.setOpaque(false);
+    actions.setBorder(BorderFactory.createEmptyBorder(16, 0, 0, 0));
+    actions.add(doNotShowAgain, BorderLayout.LINE_START);
+    actions.add(ok, BorderLayout.LINE_END);
+    // Keeping the action row in the message column aligns it with the warning text.
+    JOptionPane pane =
+        new JOptionPane(
+            new Object[] {message, actions},
+            JOptionPane.WARNING_MESSAGE,
+            JOptionPane.DEFAULT_OPTION,
+            null,
+            new Object[0]);
+    ok.addActionListener(event -> pane.setValue(JOptionPane.OK_OPTION));
+    JDialog dialog = pane.createDialog(nodusMapPanel, NodusC.APPNAME);
+    try {
+      dialog.getRootPane().setDefaultButton(ok);
+      SwingUtilities.invokeLater(ok::requestFocusInWindow);
+      dialog.setVisible(true);
+    } finally {
+      dialog.dispose();
+    }
   }
 
   /** Creates the service data handler and its desktop editor. */
@@ -1950,6 +2101,8 @@ public class NodusProject implements ShapeConstants {
   public void openProject(String projectName) throws OutOfMemoryError {
 
     NodusC.restoreApplicationSettings();
+    storageEngineCheckGeneration++;
+    storageEnginesChecked = false;
     jdbcConnectionLost = false;
     monitorMainConnection = false;
     projectResourceFileNameAndPath = projectName;

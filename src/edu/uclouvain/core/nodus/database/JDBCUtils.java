@@ -781,7 +781,7 @@ public class JDBCUtils {
    * <p>Typical usage:
    *
    * <pre>{@code
-   * try (ResultSet rs = JDBCUtils.getTables(tableNamePattern)) {
+   * try (ResultSet rs = JDBCUtils.getTables()) {
    *     while (rs.next()) {
    *         String tableName = rs.getString("TABLE_NAME");
    *         // Use table metadata...
@@ -1042,13 +1042,62 @@ public class JDBCUtils {
     if (jdbcConnection == null || dmd == null) {
       return false;
     }
-
-    try (ResultSet rs = getTables(tableName)) {
-      return rs.next();
+    try {
+      return tableExists(jdbcConnection, tableName);
     } catch (SQLException e) {
       e.printStackTrace();
     }
     return false;
+  }
+
+  /**
+   * Checks an exact table name in the supplied connection's current catalog/schema. Unlike the
+   * convenience overload, this method propagates metadata failures to persistence callers.
+   *
+   * @param connection caller-owned connection
+   * @param tableName literal, unquoted table name; percent and underscore are not wildcards
+   * @return whether that exact table exists
+   * @throws SQLException if the table metadata cannot be read
+   */
+  public static boolean tableExists(Connection connection, String tableName) throws SQLException {
+    if (tableName == null || tableName.isEmpty()) {
+      return false;
+    }
+    DatabaseMetaData metadata = connection.getMetaData();
+    String name = tableName;
+    if (metadata.storesLowerCaseIdentifiers()) {
+      name = name.toLowerCase(java.util.Locale.ROOT);
+    } else if (metadata.storesUpperCaseIdentifiers()) {
+      name = name.toUpperCase(java.util.Locale.ROOT);
+    }
+    String currentSchema = connection.getSchema();
+    try (ResultSet rows =
+        metadata.getTables(
+            connection.getCatalog(),
+            literalMetadataPattern(metadata, currentSchema),
+            literalMetadataPattern(metadata, name),
+            new String[] {"TABLE"})) {
+      while (rows.next()) {
+        if (name.equals(rows.getString("TABLE_NAME"))
+            && (currentSchema == null || currentSchema.equals(rows.getString("TABLE_SCHEM")))) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private static String literalMetadataPattern(DatabaseMetaData metadata, String name)
+      throws SQLException {
+    if (name == null) {
+      return null;
+    }
+    String escape = metadata.getSearchStringEscape();
+    if (escape == null || escape.isEmpty() || name.contains(escape)) {
+      // Literal escape characters are handled inconsistently by drivers; compare names directly.
+      return null;
+    }
+    return name.replace("_", escape + "_").replace("%", escape + "%");
   }
 
   /**
