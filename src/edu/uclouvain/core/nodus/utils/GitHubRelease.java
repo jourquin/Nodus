@@ -387,13 +387,22 @@ public class GitHubRelease {
         new JOptionPane(
             label, JOptionPane.INFORMATION_MESSAGE, JOptionPane.DEFAULT_OPTION, null, null, null);
     JDialog dialog = pane.createDialog(owner, NodusC.APPNAME);
+    dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+    // This notification is not reused; release its native window on OK as well as window closure.
+    pane.addPropertyChangeListener(
+        JOptionPane.VALUE_PROPERTY,
+        event -> {
+          if (event.getNewValue() != JOptionPane.UNINITIALIZED_VALUE) {
+            dialog.dispose();
+          }
+        });
     dialog.setModal(!inBackground);
     if (owner != null) {
       dialog.setLocationRelativeTo(owner);
       dialog.setAlwaysOnTop(true);
     }
     dialog.setVisible(true);
-    if (owner != null) {
+    if (owner != null && dialog.isShowing()) {
       dialog.toFront();
       dialog.setAlwaysOnTop(false);
     }
@@ -439,5 +448,4 @@ public class GitHubRelease {
       }
     }
   }
-
 }

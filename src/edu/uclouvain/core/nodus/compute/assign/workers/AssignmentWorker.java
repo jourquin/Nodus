@@ -63,7 +63,7 @@ public abstract class AssignmentWorker extends Thread {
   AssignmentParameters assignmentParameters;
 
   /** Set to true if thread is canceled on error or by the user. */
-  boolean canceled = false;
+  volatile boolean canceled = false;
 
   /** The num of the current group. */
   int currentGroup;
@@ -244,6 +244,10 @@ public abstract class AssignmentWorker extends Thread {
       }
       cancelAssignmentWorkers();
       e.printStackTrace();
+    } catch (Error failure) {
+      // A terminated worker must never make a partial assignment look successful to its owner.
+      cancelAssignmentWorkers();
+      throw failure;
     }
   }
 

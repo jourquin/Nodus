@@ -81,6 +81,7 @@ class SQLConsoleComponentsTest {
     try (DatabaseFixture database = new DatabaseFixture(directory)) {
       database.execute("CREATE TABLE INSPECTED (ID INTEGER NOT NULL, LABEL VARCHAR(30))");
       database.execute("CREATE UNIQUE INDEX INSPECTED_ID ON INSPECTED(ID)");
+      database.execute("CREATE INDEX COMPOSITE_INDEX ON INSPECTED(ID, LABEL)");
       DefaultMutableTreeNode root =
           SQLConsoleMetadata.build(database.connection, database.connection.getMetaData());
       assertEquals(database.connection.getMetaData().getURL(), root.getUserObject());
@@ -99,6 +100,20 @@ class SQLConsoleComponentsTest {
       assertTrue(values.contains("ID"));
       assertTrue(values.contains("LABEL"));
       assertTrue(values.contains("INSPECTED_ID"));
+      DefaultMutableTreeNode composite =
+          Collections.list(table.depthFirstEnumeration())
+              .stream()
+              .map(DefaultMutableTreeNode.class::cast)
+              .filter(node -> "COMPOSITE_INDEX".equals(node.getUserObject()))
+              .findFirst()
+              .orElseThrow();
+      List<Object> indexColumns = new ArrayList<>();
+      Collections.list(composite.children())
+          .stream()
+          .map(DefaultMutableTreeNode.class::cast)
+          .forEach(node -> indexColumns.add(node.getUserObject()));
+      assertTrue(indexColumns.contains("ID"));
+      assertTrue(indexColumns.contains("LABEL"));
     }
   }
 

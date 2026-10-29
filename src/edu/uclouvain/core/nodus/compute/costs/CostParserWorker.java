@@ -305,6 +305,10 @@ public class CostParserWorker extends Thread {
       Thread.currentThread().interrupt();
     } catch (RuntimeException failure) {
       cancelWorkers(failure.toString());
+    } catch (Error failure) {
+      // Preserve the fatal error while making the coordinator reject partially computed costs.
+      cancelWorkers(failure.toString());
+      throw failure;
     }
   }
 }

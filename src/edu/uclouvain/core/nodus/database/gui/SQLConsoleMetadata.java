@@ -82,7 +82,7 @@ final class SQLConsoleMetadata {
           makeDetachedNode(remark, tableNode);
         }
 
-        try (ResultSet col = metaData.getColumns(catalog, schema, name, null)) {
+        try (ResultSet col = JDBCUtils.getColumns(jdbcConnection, name)) {
           while (col.next()) {
             String c = col.getString(4);
             DefaultMutableTreeNode columnNode = makeDetachedNode(c, tableNode);
@@ -106,9 +106,9 @@ final class SQLConsoleMetadata {
 
         try (ResultSet ind = metaData.getIndexInfo(catalog, schema, name, false, false)) {
           String oldiname = null;
+          DefaultMutableTreeNode indexNode = null;
 
           while (ind.next()) {
-            DefaultMutableTreeNode indexNode = null;
             boolean nonunique = ind.getBoolean(4);
             String iname = ind.getString(6);
 

@@ -71,13 +71,16 @@ public class NodusWMSLayer extends WMSLayer {
 
     @Override
     public void run() {
-      JOptionPane.showMessageDialog(null, msg, "WMS", JOptionPane.ERROR_MESSAGE);
+      javax.swing.SwingUtilities.invokeLater(
+          () -> JOptionPane.showMessageDialog(null, msg, "WMS", JOptionPane.ERROR_MESSAGE));
     }
   }
 
   private static I18n i18n = Environment.getI18n();
 
   private static final long serialVersionUID = 4799752099609388953L;
+
+  private static final int HTTP_TIMEOUT_MILLIS = 10_000;
 
   /** . */
   private boolean capabilitiesAlreadyFetched = false;
@@ -194,6 +197,8 @@ public class NodusWMSLayer extends WMSLayer {
     try {
       java.net.URL url = new java.net.URL(buf.toString());
       urlc = (java.net.HttpURLConnection) url.openConnection();
+      urlc.setConnectTimeout(HTTP_TIMEOUT_MILLIS);
+      urlc.setReadTimeout(HTTP_TIMEOUT_MILLIS);
       if (urlc == null || urlc.getContentType() == null) {
         Thread thread =
             new ThreadedDialog(

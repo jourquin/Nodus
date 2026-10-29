@@ -83,7 +83,14 @@ public class NetUtils {
               host);
       JOptionPane pane = new JOptionPane(s, JOptionPane.WARNING_MESSAGE);
       JDialog dialog = pane.createDialog(null, i18n.get(NodusWMSLayer.class, "Warning", "Warning"));
-
+      dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+      pane.addPropertyChangeListener(
+          JOptionPane.VALUE_PROPERTY,
+          event -> {
+            if (event.getNewValue() != JOptionPane.UNINITIALIZED_VALUE) {
+              dialog.dispose();
+            }
+          });
       dialog.setModal(false); // this says not to block background components
       dialog.setVisible(true);
 

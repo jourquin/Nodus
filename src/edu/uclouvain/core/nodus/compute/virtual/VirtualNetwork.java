@@ -124,51 +124,35 @@ public class VirtualNetwork {
     }
   }
 
-  /**
-   * Waits for every cost worker to finish. If interrupted, workers are canceled before this method
-   * returns false.
-   */
+  /** Waits for termination even after interruption, before the network can be released. */
   private boolean waitForCostWorkers(CostParserWorker[] workers) {
     if (workers == null) {
       return true;
     }
-
-    boolean interrupted = false;
-
-    for (CostParserWorker worker : workers) {
-      if (worker == null) {
-        continue;
-      }
-
-      try {
-        worker.join();
-      } catch (InterruptedException e) {
-        interrupted = true;
-        break;
-      }
+    boolean interrupted = Thread.interrupted();
+    if (interrupted) {
+      cancelCostWorkers(workers);
     }
-
-    if (!interrupted) {
-      return true;
-    }
-
-    cancelCostWorkers(workers);
-
-    for (CostParserWorker worker : workers) {
-      if (worker == null) {
-        continue;
+    try {
+      for (CostParserWorker worker : workers) {
+        if (worker == null) {
+          continue;
+        }
+        while (worker.isAlive()) {
+          try {
+            worker.join();
+          } catch (InterruptedException e) {
+            interrupted = true;
+            cancelCostWorkers(workers);
+          }
+        }
       }
-
-      try {
-        worker.join(1000);
-      } catch (InterruptedException e) {
+      return !interrupted;
+    } finally {
+      if (interrupted) {
         Thread.currentThread().interrupt();
-        return false;
       }
     }
-
-    Thread.currentThread().interrupt();
-    return false;
   }
 
   /*

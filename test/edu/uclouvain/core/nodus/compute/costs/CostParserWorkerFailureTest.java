@@ -24,6 +24,7 @@ package edu.uclouvain.core.nodus.compute.costs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
@@ -38,7 +39,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
@@ -61,6 +64,62 @@ class CostParserWorkerFailureTest {
   @Test
   void uncheckedFailureCancelsPeersAndIsReported() throws Exception {
     exercise("exception");
+  }
+
+  @Test
+  void fatalFailureCancelsPeersAndRemainsVisibleToTheUncaughtHandler() throws Exception {
+    exercise("error");
+  }
+
+  @Test
+  void interruptedCostCoordinatorRetainsWorkersUntilTheirCleanupFinishes() throws Exception {
+    try (AssignmentTestProject project = new AssignmentTestProject(directory)) {
+      final VirtualNetwork network = new VirtualNetwork(project.parameters(1));
+      final CountDownLatch entered = new CountDownLatch(1);
+      final CountDownLatch release = new CountDownLatch(1);
+      project.setProgressHandler(
+          text -> {
+            if (Thread.currentThread() instanceof CostParserWorker) {
+              entered.countDown();
+              while (release.getCount() != 0) {
+                try {
+                  release.await();
+                } catch (InterruptedException ignored) {
+                  // Simulate an operation that needs time to complete after cancellation.
+                }
+              }
+              return false;
+            }
+            return true;
+          });
+      final FutureTask<Boolean> result =
+          new FutureTask<>(
+              () -> {
+                boolean success = network.computeCosts(0, 1, (byte) 0, 1);
+                assertTrue(Thread.currentThread().isInterrupted());
+                return success;
+              });
+      final Thread coordinator = new Thread(result, "test-cost-cleanup");
+      try {
+        assertTrue(network.generate());
+        network.setGroups(new byte[] {1});
+        network.setMaxClass((byte) 0);
+        coordinator.start();
+        assertTrue(entered.await(5, TimeUnit.SECONDS));
+        coordinator.interrupt();
+        assertThrows(TimeoutException.class, () -> result.get(1300, TimeUnit.MILLISECONDS));
+        coordinator.interrupt();
+        assertThrows(TimeoutException.class, () -> result.get(100, TimeUnit.MILLISECONDS));
+        release.countDown();
+        assertFalse(result.get(5, TimeUnit.SECONDS));
+      } finally {
+        release.countDown();
+        coordinator.join(5000);
+        assertFalse(coordinator.isAlive());
+        project.setProgressHandler(null);
+        network.dispose();
+      }
+    }
   }
 
   @Test
@@ -177,6 +236,9 @@ class CostParserWorkerFailureTest {
               if (fault.equals("exception")) {
                 throw new IllegalStateException("Injected cost-worker failure");
               }
+              if (fault.equals("error")) {
+                throw new AssertionError("Injected cost-worker failure");
+              }
               return !fault.equals("cancel");
             }
             return true;
@@ -211,7 +273,7 @@ class CostParserWorkerFailureTest {
         assertTrue(first.isCancelled());
         assertTrue(peer.isCancelled());
         assertTrue(peerInterrupted.get());
-        assertTrue(uncaught.isEmpty(), uncaught.toString());
+        assertEquals(fault.equals("error") ? 1 : 0, uncaught.size(), uncaught.toString());
         if (fault.equals("cancel")) {
           assertNull(first.getErrorMessage());
           assertNull(peer.getErrorMessage());

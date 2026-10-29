@@ -642,7 +642,7 @@ first routes may differ from forward Dijkstra and can produce different subseque
   lazy re-sorting, row insertion/deletion and data/structure/model replacement. Real JTable headers
   exercise reordered columns, modifier keys, clicks outside columns, and listener/renderer cleanup.
 - `SQLConsoleComponentsTest`: JDBC result labels, NULLs, text headers and result-set closure;
-  database metadata tables, columns and indexes; and history wrapping, deduplication,
+  database metadata tables, exact-table columns and composite indexes; and history wrapping, deduplication,
   persistence and dispatch to the original listener.
 - `TableExportTest`, `TableExportIntegrationTest`, `CsvExportPreservationTest`,
   `ExcelExportPreservationTest`: preserve previous CSV/CSVH/XLS/XLSX exports byte for byte after
@@ -711,8 +711,9 @@ first routes may differ from forward Dijkstra and can produce different subseque
   cannot form a shortest route, and repeated scenario/group jobs recompute availability. Uses
   the temporary H2 assignment fixture and checks both linked and compact shortest-path graphs.
 - `CostParserWorkerFailureTest`: real worker threads and the cost coordinator handle invalid
-  formulas, unchecked exceptions and progress cancellation. Checks prompt peer termination,
-  retained diagnostics, quiet user cancellation and successful retries after failures.
+  formulas, unchecked exceptions, fatal errors and progress cancellation. Checks prompt peer
+  termination, retained diagnostics, quiet user cancellation and successful retries after failures.
+  A delayed worker and repeated coordinator interrupts must not release the network before cleanup.
 - `ModalParameterTableTest`: parameter persistence, method discovery and plugin tables without
   `@nodus.method` metadata. Missing declarations leave manual method selection available; empty
   declarations and unreadable tables still report errors, and embedded parameter validation stays
@@ -752,7 +753,8 @@ first routes may differ from forward Dijkstra and can produce different subseque
 - `LogitCostFileTest`: comment/expression preservation, independent model sections, save-as
   contents, overwrite-confirmation rules and conflicts when source or output files change.
 - `AssignmentCancellationTest`: end-of-work markers, joining all workers, coordinator
-  interruption, cancellation while waiting for a first job, and malformed queued work.
+  interruption, slow cleanup exceeding one second, repeated interrupts, fatal worker errors,
+  cancellation while waiting for a first job, and malformed queued work.
   Uses real assignment-worker threads with latches and bounded waits, without loading a project.
   Verifies that normal cancellation is quiet and captures/asserts the expected error from
   deliberately malformed work, so a passing run does not print misleading stack traces.
@@ -869,6 +871,8 @@ servers independently managed, without connecting to them.
 
 `JDBCUtilsTableExistsTest` checks literal underscores, percent signs and metadata escape characters
 against actual H2/HSQLDB tables, rejecting names that would otherwise match metadata wildcards.
+Column metadata must belong only to the named table and the connection's current literal schema,
+including after a schema switch. This protects DBF/Excel exports and SQL-console metadata discovery.
 `GroupedTablePublicationTest` exercises MySQL/MariaDB publication through an embedded-driver SQL
 adapter. It checks imports and complete assignment output sets, failures before and after a grouped
 rename, failed commits and restoration, first attempts, obsolete detail removal, and optional backup

@@ -35,6 +35,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.StringJoiner;
+import javax.sql.rowset.CachedRowSet;
+import javax.sql.rowset.RowSetProvider;
 import javax.swing.JOptionPane;
 
 /**
@@ -276,9 +278,9 @@ public class JDBCUtils {
   /**
    * Returns metadata about the columns of a database table.
    *
-   * <p><strong>Resource ownership:</strong> the returned {@link ResultSet} is live and must be
-   * closed by the caller. This method does not close the {@code ResultSet} because it is returned
-   * to the caller for iteration.
+   * <p><strong>Resource ownership:</strong> the returned {@link ResultSet} must be closed by the
+   * caller. This method does not close the {@code ResultSet} because it is returned to the caller
+   * for iteration.
    *
    * <p>Typical usage:
    *
@@ -295,13 +297,50 @@ public class JDBCUtils {
    * metadata objects, or database-driver internal structures alive longer than necessary.
    *
    * @param tableName the name of the table whose columns are requested
-   * @return a live {@code ResultSet} containing column metadata; the caller is responsible for
-   *     closing it
+   * @return a {@code ResultSet} containing exact-table column metadata; the caller is responsible
+   *     for closing it
    * @throws SQLException if the metadata query fails
    */
   public static ResultSet getColumns(String tableName) throws SQLException {
+    return getColumns(jdbcConnection, tableName);
+  }
 
-    return dmd.getColumns(catalog, schema, JDBCUtils.getCompliantIdentifier(tableName), null);
+  /**
+   * Reads columns for one literal table name in the supplied connection's current catalog/schema.
+   * Underscores and percent signs are escaped instead of matching similarly named tables. For a
+   * literal metadata escape character, drivers disagree about escaping; a detached result is
+   * filtered by exact table/schema names instead. The caller owns the returned result in both
+   * cases.
+   *
+   * @param connection caller-owned connection
+   * @param tableName literal unquoted table name
+   * @return exact-table column metadata, positioned before its first row
+   * @throws SQLException if metadata cannot be read
+   */
+  public static ResultSet getColumns(Connection connection, String tableName) throws SQLException {
+    DatabaseMetaData metadata = connection.getMetaData();
+    String name = normalizedIdentifier(metadata, tableName);
+    String currentSchema = connection.getSchema();
+    String schemaPattern = literalMetadataPattern(metadata, currentSchema);
+    String tablePattern = literalMetadataPattern(metadata, name);
+    ResultSet columns =
+        metadata.getColumns(connection.getCatalog(), schemaPattern, tablePattern, null);
+    if (tablePattern != null && (currentSchema == null || schemaPattern != null)) {
+      return columns;
+    }
+    CachedRowSet exact;
+    try (ResultSet rows = columns) {
+      exact = RowSetProvider.newFactory().createCachedRowSet();
+      exact.populate(rows);
+    }
+    while (exact.next()) {
+      if (!name.equals(exact.getString("TABLE_NAME"))
+          || (currentSchema != null && !currentSchema.equals(exact.getString("TABLE_SCHEM")))) {
+        exact.deleteRow();
+      }
+    }
+    exact.beforeFirst();
+    return exact;
   }
 
   /**
@@ -1064,12 +1103,7 @@ public class JDBCUtils {
       return false;
     }
     DatabaseMetaData metadata = connection.getMetaData();
-    String name = tableName;
-    if (metadata.storesLowerCaseIdentifiers()) {
-      name = name.toLowerCase(java.util.Locale.ROOT);
-    } else if (metadata.storesUpperCaseIdentifiers()) {
-      name = name.toUpperCase(java.util.Locale.ROOT);
-    }
+    String name = normalizedIdentifier(metadata, tableName);
     String currentSchema = connection.getSchema();
     try (ResultSet rows =
         metadata.getTables(
@@ -1085,6 +1119,17 @@ public class JDBCUtils {
       }
     }
     return false;
+  }
+
+  private static String normalizedIdentifier(DatabaseMetaData metadata, String name)
+      throws SQLException {
+    if (metadata.storesLowerCaseIdentifiers()) {
+      return name.toLowerCase(java.util.Locale.ROOT);
+    }
+    if (metadata.storesUpperCaseIdentifiers()) {
+      return name.toUpperCase(java.util.Locale.ROOT);
+    }
+    return name;
   }
 
   private static String literalMetadataPattern(DatabaseMetaData metadata, String name)

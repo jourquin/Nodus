@@ -515,6 +515,12 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Remove the "Save paths" checkbox in the assignment dialog, as it is now mandatory.
   
 ## v9.0 - BuildXXXXXXXX
+- Wait for assignment and cost-parser workers to terminate after cancellation before releasing
+  shared resources; reject partial results after fatal worker errors
+- Restrict column metadata to literal table names in the current schema, preventing similarly named
+  tables from contaminating exports; show every column of composite indexes in the SQL console
+- Dispose temporary drawing-tool, unreachable-server and release-notification dialogs after dismissal
+- Bound WMS capabilities connection/read waits and display WMS failure dialogs on the UI thread
 - Match table names literally in JDBC existence checks, including underscores and percent signs,
   within the current catalog/schema
 - Publish MySQL/MariaDB imports and complete assignment output sets with one grouped table rename;

@@ -75,6 +75,11 @@ or KPI computation to finish before running the close script and releasing proje
 The computation can still be canceled through its normal progress controls. This keeps the
 database connection and loaded layers available until the worker has finished its cleanup.
 
+Interrupted assignment and cost-parser coordinators also wait for every worker to terminate before
+releasing the graph, output tables or project computation gate. A worker finishing a slow database
+operation can therefore delay cancellation. Worker errors invalidate the computation; partial results
+are not accepted just because a worker thread terminated.
+
 Put a setting in the startup script to apply it to every project, or in a project's script to
 apply it only there. The startup script is run once at application launch, not on every project
 switch. Existing HTML reports are retained when reporting is disabled.

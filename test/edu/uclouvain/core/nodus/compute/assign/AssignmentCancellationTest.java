@@ -23,6 +23,8 @@ package edu.uclouvain.core.nodus.compute.assign;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.uclouvain.core.nodus.compute.assign.workers.AllOrNothingAssignmentWorker;
@@ -35,6 +37,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -122,6 +126,60 @@ class AssignmentCancellationTest {
   }
 
   @Test
+  void interruptedCoordinatorWaitsForSlowCleanupDespiteFurtherInterrupts() throws Exception {
+    final CountDownLatch started = new CountDownLatch(1);
+    final CountDownLatch canceled = new CountDownLatch(1);
+    final CountDownLatch release = new CountDownLatch(1);
+    final AssignmentWorker worker =
+        new AllOrNothingAssignmentWorker(new WorkQueue()) {
+          @Override
+          public void requestCancel() {
+            super.requestCancel();
+            canceled.countDown();
+          }
+
+          @Override
+          public void run() {
+            started.countDown();
+            // Model a worker finishing an operation that does not respond immediately to
+            // interrupts.
+            while (release.getCount() != 0) {
+              try {
+                release.await();
+              } catch (InterruptedException ignored) {
+                // Its resources are still in use until the operation finishes.
+              }
+            }
+          }
+        };
+    final Coordinator coordinator = new Coordinator(worker);
+    final FutureTask<Boolean> result =
+        new FutureTask<>(
+            () -> {
+              boolean completed = coordinator.waitForAssignmentWorkers();
+              assertTrue(Thread.currentThread().isInterrupted());
+              return completed;
+            });
+    final Thread waiting = new Thread(result, "test-slow-worker-cleanup");
+    try {
+      worker.start();
+      assertTrue(started.await(5, TimeUnit.SECONDS));
+      waiting.start();
+      waiting.interrupt();
+      assertTrue(canceled.await(5, TimeUnit.SECONDS));
+      assertThrows(TimeoutException.class, () -> result.get(1200, TimeUnit.MILLISECONDS));
+      waiting.interrupt();
+      assertThrows(TimeoutException.class, () -> result.get(100, TimeUnit.MILLISECONDS));
+      release.countDown();
+      assertFalse(result.get(5, TimeUnit.SECONDS));
+      assertFalse(worker.isAlive());
+    } finally {
+      release.countDown();
+      stopAndJoin(worker, waiting);
+    }
+  }
+
+  @Test
   void interruptingAWorkerWaitingForItsFirstJobCancelsItWithoutAnAssignment() throws Exception {
     final ObservedQueue queue = new ObservedQueue(1);
     final AssignmentWorker worker = new AllOrNothingAssignmentWorker(queue);
@@ -136,6 +194,30 @@ class AssignmentCancellationTest {
       stopAndJoin(worker);
     }
     assertEquals("", errorOutput.toString(StandardCharsets.UTF_8));
+  }
+
+  @Test
+  void fatalWorkerFailureMarksTheAssignmentCanceledAndRemainsUncaught() throws Exception {
+    final AssertionError failure = new AssertionError("Injected worker error");
+    final WorkQueue queue =
+        new WorkQueue() {
+          @Override
+          public synchronized Object getWork() {
+            throw failure;
+          }
+        };
+    final AssignmentWorker worker = new AllOrNothingAssignmentWorker(queue);
+    final AtomicReference<Throwable> uncaught = new AtomicReference<>();
+    worker.setUncaughtExceptionHandler((thread, error) -> uncaught.set(error));
+    try {
+      worker.start();
+      worker.join(5000);
+      assertFalse(worker.isAlive());
+      assertTrue(worker.isCancelled());
+      assertSame(failure, uncaught.get());
+    } finally {
+      stopAndJoin(worker);
+    }
   }
 
   @Test

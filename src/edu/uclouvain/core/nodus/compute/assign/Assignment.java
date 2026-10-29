@@ -291,8 +291,8 @@ public abstract class Assignment implements Runnable {
   }
 
   /**
-   * Waits for all assignment workers to complete. If interrupted, workers are canceled before this
-   * method returns false.
+   * Waits for all assignment workers to terminate before their graph or output writer can be
+   * released. Interruption requests cancellation but does not bypass this cleanup barrier.
    *
    * @return true if all workers completed, false if the waiting thread was interrupted and workers
    *     were canceled.
@@ -302,42 +302,30 @@ public abstract class Assignment implements Runnable {
       return true;
     }
 
-    boolean interrupted = false;
-
-    for (AssignmentWorker worker : assignmentWorkers) {
-      if (worker == null) {
-        continue;
-      }
-
-      try {
-        worker.join();
-      } catch (InterruptedException e) {
-        interrupted = true;
-        break;
-      }
+    boolean interrupted = Thread.interrupted();
+    if (interrupted) {
+      cancelAssignmentWorkers();
     }
-
-    if (!interrupted) {
-      return true;
-    }
-
-    cancelAssignmentWorkers();
-
-    for (AssignmentWorker worker : assignmentWorkers) {
-      if (worker == null) {
-        continue;
+    try {
+      for (AssignmentWorker worker : assignmentWorkers) {
+        if (worker == null) {
+          continue;
+        }
+        while (worker.isAlive()) {
+          try {
+            worker.join();
+          } catch (InterruptedException e) {
+            interrupted = true;
+            cancelAssignmentWorkers();
+          }
+        }
       }
-
-      try {
-        worker.join(1000);
-      } catch (InterruptedException e) {
+      return !interrupted;
+    } finally {
+      if (interrupted) {
         Thread.currentThread().interrupt();
-        return false;
       }
     }
-
-    Thread.currentThread().interrupt();
-    return false;
   }
 
   /**

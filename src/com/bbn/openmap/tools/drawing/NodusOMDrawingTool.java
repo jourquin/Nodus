@@ -1056,8 +1056,12 @@ public class NodusOMDrawingTool extends OMDrawingTool implements OMGraphicConsta
       pane.setWantsInput(true);
 
       JDialog dialog = pane.createDialog(null, NodusC.APPNAME);
-      dialog.setLocationRelativeTo(nodusMapPanel);
-      dialog.setVisible(true);
+      try {
+        dialog.setLocationRelativeTo(nodusMapPanel);
+        dialog.setVisible(true);
+      } finally {
+        dialog.dispose();
+      }
       Object selectedValue = pane.getInputValue();
 
       if (selectedValue != null) {
