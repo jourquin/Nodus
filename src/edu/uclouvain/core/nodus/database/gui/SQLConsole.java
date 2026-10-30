@@ -25,12 +25,16 @@ import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.CLEARSC
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.EXPORTCSV;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.EXPORTCSVH;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.EXPORTDBF;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.EXPORTODS;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.EXPORTPARQUET;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.EXPORTXLS;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.EXPORTXLSX;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.EXTRACTSHP;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTCSV;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTCSVH;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTDBF;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTODS;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTPARQUET;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTXLS;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTXLSX;
 
@@ -119,6 +123,10 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  * - EXPORTCSVH tableName : Exports a table in CSV format, the first line containing the field names
  * (header line).<br>
  * - EXPORTDBF tableName : Exports a table in DBF format.<br>
+ * - IMPORTPARQUET tableName : Creates/replaces a table from a Parquet file.<br>
+ * - EXPORTPARQUET tableName : Exports a table in Parquet format.<br>
+ * - EXPORTODS tableName : Exports a table in ODS format.<br>
+ * - IMPORTODS tableName : Imports the first ODS sheet, using the Excel schema convention.<br>
  * - EXPORTXLS tableName : Exports a table in XLS format.<br>
  * - EXPORTXLSX tableName : Exports a table in XLSX format.<br>
  * - EXTRACTSHP FROM shapefile1 TO shapefile2 WHERE sqlCondition : Creates a new shapefile from the
@@ -690,6 +698,42 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
           setBusy(false);
           return false;
         }
+      }
+
+      if (SQLConsoleScript.startsWithCommand(sync, IMPORTPARQUET)) {
+        if (!operations.importExport(sqlCommand, IMPORTPARQUET, confirmOverwrite)) {
+          setBusy(false);
+          return false;
+        }
+        treeMustBeRefreshed = true;
+        continue;
+      }
+
+      if (SQLConsoleScript.startsWithCommand(sync, EXPORTPARQUET)) {
+        if (!operations.importExport(sqlCommand, EXPORTPARQUET, confirmOverwrite)) {
+          setBusy(false);
+          return false;
+        }
+
+        continue;
+      }
+
+      if (SQLConsoleScript.startsWithCommand(sync, EXPORTODS)) {
+        if (!operations.importExport(sqlCommand, EXPORTODS, confirmOverwrite)) {
+          setBusy(false);
+          return false;
+        }
+
+        continue;
+      }
+
+      if (SQLConsoleScript.startsWithCommand(sync, IMPORTODS)) {
+        if (!operations.importExport(sqlCommand, IMPORTODS, confirmOverwrite)) {
+          setBusy(false);
+          return false;
+        }
+        treeMustBeRefreshed = true;
+        continue;
       }
 
       if (SQLConsoleScript.startsWithCommand(sync, IMPORTXLSX)) {

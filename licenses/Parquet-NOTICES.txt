@@ -1,0 +1,231 @@
+Apache Parquet 1.16.0 bundle: licenses and notices
+
+Apache License 2.0: ApacheV2.license
+The common Apache terms are supplied once in that file. All additional
+license terms and notices below are retained from the original JAR entries.
+The unmodified JARs also retain their embedded license and notice files.
+
+
+==============================================================================
+Source: parquet-hadoop-bundle-1.16.0-META-INF_FastDoubleParser-NOTICE
+==============================================================================
+
+# FastDoubleParser
+
+This is a Java port of Daniel Lemire's fast_float project.
+This project provides parsers for double, float, BigDecimal and BigInteger values.
+
+## Copyright
+
+Copyright © 2024 Werner Randelshofer, Switzerland.
+
+## Licensing
+
+This code is licensed under MIT License.
+https://github.com/wrandelshofer/FastDoubleParser/blob/522be16e145f43308c43b23094e31d5efcaa580e/LICENSE
+(The file 'LICENSE' is included in the sources and classes Jar files that are released by this project
+- as is required by that license.)
+
+Some portions of the code have been derived from other projects.
+All these projects require that we include a copyright notice, and some require that we also include some text of their
+license file.
+
+fast_double_parser, Copyright (c) 2022 Daniel Lemire. BSL License.
+https://github.com/lemire/fast_double_parser
+https://github.com/lemire/fast_double_parser/blob/07d9189a8fb815fe800cb15ca022e7a07093236e/LICENSE.BSL
+(The file 'thirdparty-LICENSE' is included in the sources and classes Jar files that are released by this project
+- as is required by that license.)
+
+fast_float, Copyright (c) 2021 The fast_float authors. MIT License.
+https://github.com/fastfloat/fast_float
+https://github.com/fastfloat/fast_float/blob/cc1e01e9eee74128e48d51488a6b1df4a767a810/LICENSE-MIT
+(The file 'thirdparty-LICENSE' is included in the sources and classes Jar files that are released by this project
+- as is required by that license.)
+
+bigint, Copyright 2020 Tim Buktu. 2-clause BSD License.
+https://github.com/tbuktu/bigint/tree/floatfft
+https://github.com/tbuktu/bigint/blob/617c8cd8a7c5e4fb4d919c6a4d11e2586107f029/LICENSE
+https://github.com/wrandelshofer/FastDoubleParser/blob/39e123b15b71f29a38a087d16a0bc620fc879aa6/bigint-LICENSE
+(We only use those portions of the bigint project that can be licensed under 2-clause BSD License.)
+(The file 'thirdparty-LICENSE' is included in the sources and classes Jar files that are released by this project
+- as is required by that license.)
+
+
+==============================================================================
+Source: parquet-hadoop-bundle-1.16.0-META-INF_LICENSE
+==============================================================================
+
+--------------------------------------------------------------------------------
+
+This product depends on Apache Thrift and includes it in this binary artifact.
+
+Copyright: 2006-2010 The Apache Software Foundation.
+Home page: https://thrift.apache.org/
+License: http://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+This product depends on SLF4J and includes SLF4J in this binary artifact. SLF4J
+is a simple logging facade for Java.
+
+Copyright: 2004-2013 QOS.ch.
+Home page: http://www.slf4j.org/
+License: http://slf4j.org/license.html (MIT license)
+
+The following is the SLF4J license (MIT):
+
+  Copyright (c) 2004-2013 QOS.ch
+  All rights reserved.
+
+  Permission is hereby granted, free  of charge, to any person obtaining
+  a  copy  of this  software  and  associated  documentation files  (the
+  "Software"), to  deal in  the Software without  restriction, including
+  without limitation  the rights to  use, copy, modify,  merge, publish,
+  distribute,  sublicense, and/or sell  copies of  the Software,  and to
+  permit persons to whom the Software  is furnished to do so, subject to
+  the following conditions:
+
+  The  above  copyright  notice  and  this permission  notice  shall  be
+  included in all copies or substantial portions of the Software.
+
+  THE  SOFTWARE IS  PROVIDED  "AS  IS", WITHOUT  WARRANTY  OF ANY  KIND,
+  EXPRESS OR  IMPLIED, INCLUDING  BUT NOT LIMITED  TO THE  WARRANTIES OF
+  MERCHANTABILITY,    FITNESS    FOR    A   PARTICULAR    PURPOSE    AND
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+  OF CONTRACT, TORT OR OTHERWISE,  ARISING FROM, OUT OF OR IN CONNECTION
+  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+--------------------------------------------------------------------------------
+
+This project includes code from Daniel Lemire's JavaFastPFOR project in this
+binary artifact. The "Lemire" bit packing classes produced by parquet-generator
+are derived from the JavaFastPFOR project.
+
+Copyright: 2013 Daniel Lemire
+Home page: http://lemire.me/en/
+Project page: https://github.com/lemire/JavaFastPFOR
+License: Apache License Version 2.0 http://www.apache.org/licenses/LICENSE-2.0
+
+--------------------------------------------------------------------------------
+
+This product depends on fastutil and includes it in this binary artifact.
+Fastutil provides type-specific collection implementations.
+
+Copyright: 2002-2014 Sebastiano Vigna
+Home page: http://fasutil.di.unimi.it/
+License: http://www.apache.org/licenses/LICENSE-2.0.html
+
+--------------------------------------------------------------------------------
+
+This product depends on Jackson and includes it in this binary artifact.
+Jackson is a high-performance JSON processor.
+
+Copyright: 2007-2015 Tatu Saloranta and other contributors
+Home page: http://jackson.codehaus.org/
+License: http://www.apache.org/licenses/LICENSE-2.0.txt
+
+
+
+==============================================================================
+Source: parquet-hadoop-bundle-1.16.0-META-INF_NOTICE
+==============================================================================
+
+# Jackson JSON processor
+
+Jackson is a high-performance, Free/Open Source JSON processing library.
+It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
+been in development since 2007.
+It is currently developed by a community of developers.
+
+## Copyright
+
+Copyright 2007-, Tatu Saloranta (tatu.saloranta@iki.fi)
+
+## Licensing
+
+Jackson 2.x core and extension components are licensed under Apache License 2.0
+To find the details that apply to this artifact see the accompanying LICENSE file.
+
+## Credits
+
+A list of contributors may be found from CREDITS(-2.x) file, which is included
+in some artifacts (usually source distributions); but is always available
+from the source code management (SCM) system project uses.
+
+## FastDoubleParser
+
+jackson-core bundles a shaded copy of FastDoubleParser <https://github.com/wrandelshofer/FastDoubleParser>.
+That code is available under an MIT license <https://github.com/wrandelshofer/FastDoubleParser/blob/main/LICENSE>
+under the following copyright.
+
+Copyright © 2023 Werner Randelshofer, Switzerland. MIT License.
+
+See FastDoubleParser-NOTICE for details of other source code included in FastDoubleParser
+and the licenses and copyrights that apply to that code.
+
+
+==============================================================================
+Source: parquet-hadoop-bundle-1.16.0-META-INF_thirdparty-LICENSE
+==============================================================================
+
+------
+Third-party license for
+fast_float, Copyright (c) 2021 The fast_float authors. MIT License.
+https://github.com/fastfloat/fast_float
+https://github.com/fastfloat/fast_float/blob/35d523195bf7d57aba0e735ad6eba1e6f71ba8d6/LICENSE-MIT
+
+MIT License
+
+Copyright (c) 2021 The fast_float authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+------
+Third-party license for
+bigint, Copyright 2020 Tim Buktu. 2-clause BSD License.
+https://github.com/tbuktu/bigint/tree/floatfft
+https://github.com/tbuktu/bigint/blob/617c8cd8a7c5e4fb4d919c6a4d11e2586107f029/LICENSE
+https://github.com/wrandelshofer/FastDoubleParser/blob/39e123b15b71f29a38a087d16a0bc620fc879aa6/bigint-LICENSE
+(We only use those portions of the bigint project that can be licensed under 2-clause BSD License.)
+
+2-clause BSD License
+
+Copyright 2022 Tim Buktu
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

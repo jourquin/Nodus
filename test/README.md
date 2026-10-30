@@ -1068,3 +1068,13 @@ is reported without undoing the completed result.
 Output DDL and commits still use the shared project connection. They can commit earlier unrelated
 SQL work, as demonstrated on H2 and HSQLDB. Savepoints cover inserts made after staging-table
 creation; they do not restore DDL or undo work already committed by the database.
+
+## Parquet runtime isolation
+
+`ParquetRuntimeTest` launches a child JVM with application/test classes and only
+the JARs under `lib/`, matching the installed library layout. The child asserts
+that Hadoop and parquet-floor are absent, exports/imports typed/null/empty tables on both embedded engines, and checks
+that failed exports/imports preserve existing data. It also reads Snappy and
+uncompressed fixtures with unsigned and nanosecond timestamp columns. The parent uses the
+standard Apache reader to verify every exported value. Hadoop development JARs
+in `devtools/parquet/` remain on the parent test/compile classpath only.

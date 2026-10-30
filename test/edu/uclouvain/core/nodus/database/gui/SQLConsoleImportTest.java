@@ -197,9 +197,7 @@ class SQLConsoleImportTest {
                   assertFalse(
                       batch
                           ? console.runBatch(
-                              new String[] {
-                                format.command(), "INSERT INTO earlier VALUES (100)"
-                              })
+                              new String[] {format.command(), "INSERT INTO earlier VALUES (100)"})
                           : console.direct(format.command()));
                 } finally {
                   System.setErr(previousError);
@@ -295,6 +293,8 @@ class SQLConsoleImportTest {
     DBF("IMPORTDBF", ".dbf"),
     XLS("IMPORTXLS", ".xls"),
     XLSX("IMPORTXLSX", ".xlsx"),
+    ODS("IMPORTODS", ".ods"),
+    PARQUET("IMPORTPARQUET", ".parquet"),
     XLS_WITHOUT_SCHEMA("IMPORTXLS", ".xls"),
     XLSX_WITHOUT_SCHEMA("IMPORTXLSX", ".xlsx");
 
@@ -316,6 +316,12 @@ class SQLConsoleImportTest {
             folder.resolve("testdata.csv"), (this == CSVH ? "NUM,LABEL\n" : "") + "42,Imported\n");
       } else if (this == DBF) {
         assertTrue(ExportDBF.exportTable(database.project, "testdata"));
+      } else if (this == PARQUET) {
+        assertTrue(
+            edu.uclouvain.core.nodus.database.parquet.ExportParquet.exportTable(
+                database.project, "testdata"));
+      } else if (this == ODS) {
+        assertTrue(ExportXLS.exportODS(database.project, "testdata"));
       } else if (this == XLS || this == XLSX) {
         assertTrue(ExportXLS.exportTable(database.project, "testdata", this == XLSX));
       } else {

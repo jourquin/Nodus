@@ -81,6 +81,17 @@ public class ExportXLS {
         () -> isXLSX ? new SXSSFWorkbook(null, ROW_WINDOW, true, false) : new HSSFWorkbook());
   }
 
+  /** Exports an OpenDocument spreadsheet with the same schema row as Excel exports. */
+  public static boolean exportODS(NodusProject project, String table) {
+    return exportTable(
+        project,
+        table,
+        true,
+        new TableExport(),
+        org.apache.poi.xssf.usermodel.XSSFWorkbook::new,
+        true);
+  }
+
   /**
    * Keeps real serialization/closure inside staging, with injectable resources for failure tests.
    */
@@ -90,12 +101,22 @@ public class ExportXLS {
       boolean isXLSX,
       TableExport files,
       Supplier<Workbook> workbooks) {
+    return exportTable(nodusProject, tableName, isXLSX, files, workbooks, false);
+  }
+
+  private static boolean exportTable(
+      NodusProject nodusProject,
+      String tableName,
+      boolean isXLSX,
+      TableExport files,
+      Supplier<Workbook> workbooks,
+      boolean ods) {
     try {
       final Path target =
           Path.of(
               nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
                   + tableName
-                  + (isXLSX ? NodusC.TYPE_XLSX : NodusC.TYPE_XLS));
+                  + (ods ? NodusC.TYPE_ODS : isXLSX ? NodusC.TYPE_XLSX : NodusC.TYPE_XLS));
       files.write(
           target,
           output -> {
@@ -180,7 +201,11 @@ public class ExportXLS {
                 }
               }
 
-              wbs.write(output);
+              if (ods) {
+                OdsCodec.write(wbs, output);
+              } else {
+                wbs.write(output);
+              }
             }
           });
     } catch (Exception e) {

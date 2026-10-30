@@ -48,6 +48,67 @@ projects. This index does not replace those texts.
 | [XChart][xchart] `xchart-*` | 3.8.8 | Apache-2.0 |
 | [Apache XMLBeans][xmlbeans] `xmlbeans-*` | 5.1.1 | Apache-2.0 |
 
+## Parquet dependencies
+
+| Component | Bundled version | Distribution license |
+| --- | --- | --- |
+| [Apache Parquet](https://github.com/apache/parquet-java/tree/apache-parquet-1.16.0), `parquet-hadoop-bundle` | 1.16.0 | Apache-2.0; see [Parquet component terms and notices](Parquet-NOTICES.txt) |
+| [Apache Hadoop](https://hadoop.apache.org/releases.html), `hadoop-client-api`, `hadoop-client-runtime` in `devtools/parquet/` (build/test only) | 3.4.2 | Apache-2.0; see [Hadoop component terms and notices](../devtools/parquet/NOTICE.txt) |
+| [JTS Topology Suite](https://github.com/locationtech/jts/blob/1.20.0/LICENSES.md), `jts-core` | 1.20.0 | EDL-1.0 (BSD-3-Clause option), see [license](JTS-EDL-1.0.license) |
+
+These licenses permit redistribution with GPL-3.0-or-later Nodus.
+[Apache documents Apache-2.0 compatibility with GPLv3](https://apache.org/licenses/GPL-compatibility.html).
+The shared [Apache-2.0 license](ApacheV2.license) supplies the common terms.
+Additional Parquet component terms and notices are consolidated in
+[Parquet-NOTICES.txt](Parquet-NOTICES.txt). Hadoop build/test notices are in
+[devtools/parquet/NOTICE.txt](../devtools/parquet/NOTICE.txt). Original embedded
+license and notice files remain inside every unmodified JAR.
+The installer includes both `lib/` and `licenses/`. ODS support uses the JDK ZIP/XML
+APIs and existing Apache POI dependencies, without an additional library.
+Parquet 1.16.0 retains Nodus's Java 11 baseline. Exports use plain Parquet
+configuration and the JDK GZIP implementation; imports use local read options
+and GZIP/Snappy/uncompressed decoding: no Hadoop JARs or parquet-floor
+are installed. The Parquet bundle and JTS total about 9 MiB. Hadoop API classes
+are needed to compile Apache Parquet API overloads; the client runtime is used by
+the independent reader in the test suite. Both are development dependencies only.
+
+### Table format dependency downloads and checksums
+
+Unmodified Maven Central artifacts bundled in `lib/` (runtime) and `devtools/parquet/` (build/test only). SHA-256 hashes:
+
+- [parquet-hadoop-bundle-1.16.0.jar](https://repo.maven.apache.org/maven2/org/apache/parquet/parquet-hadoop-bundle/1.16.0/parquet-hadoop-bundle-1.16.0.jar)
+  SHA-256: `957e18ceaf78fa71f05082f9908e8d770c097657823902a2bafdd2e24c3cf28d`
+- [hadoop-client-api-3.4.2.jar](https://repo.maven.apache.org/maven2/org/apache/hadoop/hadoop-client-api/3.4.2/hadoop-client-api-3.4.2.jar)
+  SHA-256: `607c0299f4df33013bd0a0f37c8cf255c635bbaddd247b8fec68c210cc17d19f`
+- [hadoop-client-runtime-3.4.2.jar](https://repo.maven.apache.org/maven2/org/apache/hadoop/hadoop-client-runtime/3.4.2/hadoop-client-runtime-3.4.2.jar)
+  SHA-256: `18d071c7f72f8a946677b398a57af9c7afa2dd41a81023c310f99373fec200b3`
+- [jts-core-1.20.0.jar](https://repo.maven.apache.org/maven2/org/locationtech/jts/jts-core/1.20.0/jts-core-1.20.0.jar)
+  SHA-256: `6a783d8f9dba3d3cf7265435f134402f63c05838aa6cbcc4297ad3a5b2842baf`
+
+The Hadoop client JARs are stored in `devtools/parquet/` and excluded from the installer.
+Their distinct license/notice texts are consolidated in [devtools/parquet/NOTICE.txt](../devtools/parquet/NOTICE.txt).
+
+### JTS upstream licensing context
+
+The following licensing context is retained from the [JTS 1.20.0 upstream licensing file](https://github.com/locationtech/jts/blob/1.20.0/LICENSES.md) (dated May 30, 2017). Nodus distributes the binary under the EDL-1.0 option; its full text is in [JTS-EDL-1.0.license](JTS-EDL-1.0.license).
+
+The Eclipse Foundation makes available all content in this project ("Content"). Unless otherwise indicated below, the Content is provided to you under the terms and conditions of either the [Eclipse Public License 2.0](https://www.eclipse.org/legal/epl-v20.html) ("EPL") or the [Eclipse Distribution License 1.0](http://www.eclipse.org/org/documents/edl-v10.php) (a BSD Style License).  For purposes of the EPL, "Program" will mean the Content.
+
+If you did not receive this Content directly from the Eclipse Foundation, the Content is being redistributed by another party ("Redistributor") and different terms and conditions may apply to your use of any object code in the Content. Check the Redistributor's license that was provided with the Content. If no such license exists, contact the Redistributor. Unless otherwise indicated below, the terms and conditions of the EPL still apply to any source code in the Content and such source code may be obtained at http://www.eclipse.org.
+
+#### Third-party content
+
+The Content includes items that have been sourced from third parties as set out below. If you did not receive this Content directly from the Eclipse Foundation, the following is provided for informational purposes only, and you should look to the Redistributor's license for terms and conditions of use.
+
+##### GeoTools
+
+JTS includes some code from the GeoTools project.  This code has been licensed to the JTS project under the [OSGeo BSD License][jts-osgeo] by the GeoTools PSC
+([ORA contribution][jts-ora], [shapefile contribution][jts-shapefile]).
+
+[jts-osgeo]: https://www.osgeo.org/sites/osgeo.org/files/Page/osgeo-bsd-license.txt
+[jts-ora]: https://github.com/geotools/geotools/wiki/JTS-ORA-Contribution
+[jts-shapefile]: https://github.com/geotools/geotools/wiki/JTS-Shapefile-Contribution
+
 ## Database engines and JDBC drivers
 
 The built-in engines are in `lib/`; the optional MariaDB and PostgreSQL drivers are

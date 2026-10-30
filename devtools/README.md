@@ -98,3 +98,9 @@ its `build` target, alongside `build-subprojects,build-project`, and retain the
 `build-user.xml` import. The conversion implementation belongs in `build-user.xml`.
 
 See the [license inventory](../licenses/LICENSES.md) for bundled components' licenses.
+
+## Parquet compilation and tests
+
+[parquet/](parquet/README.md) contains Hadoop development dependencies, excluded
+from the installer. Keep its API JAR on the compilation classpath and both JARs
+on the test classpath. Production Parquet exports use the JDK GZIP implementation.

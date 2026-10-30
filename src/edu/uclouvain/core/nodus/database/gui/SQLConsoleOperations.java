@@ -41,6 +41,11 @@ import java.text.MessageFormat;
 final class SQLConsoleOperations {
   static final String CLEARSCENARIO = "CLEARSCENARIO";
 
+  static final String EXPORTPARQUET = "EXPORTPARQUET";
+  static final String IMPORTPARQUET = "IMPORTPARQUET";
+  static final String EXPORTODS = "EXPORTODS";
+  static final String IMPORTODS = "IMPORTODS";
+
   static final String EXPORTCSV = "EXPORTCSV";
 
   static final String EXPORTCSVH = "EXPORTCSVH";
@@ -342,7 +347,19 @@ final class SQLConsoleOperations {
 
     boolean succeeded = false;
 
-    if (operation.equals(EXPORTDBF)) {
+    if (operation.equals(EXPORTPARQUET)) {
+      succeeded =
+          edu.uclouvain.core.nodus.database.parquet.ExportParquet.exportTable(
+              nodusProject, tableName);
+    } else if (operation.equals(IMPORTPARQUET)) {
+      succeeded =
+          edu.uclouvain.core.nodus.database.parquet.ImportParquet.importTable(
+              nodusProject, tableName);
+    } else if (operation.equals(EXPORTODS)) {
+      succeeded = ExportXLS.exportODS(nodusProject, tableName);
+    } else if (operation.equals(IMPORTODS)) {
+      succeeded = ImportXLS.importODS(nodusProject, tableName);
+    } else if (operation.equals(EXPORTDBF)) {
       succeeded = ExportDBF.exportTable(nodusProject, tableName);
     } else if (operation.equals(IMPORTDBF)) {
       succeeded = ImportDBF.importTable(nodusProject, tableName);
@@ -402,6 +419,14 @@ final class SQLConsoleOperations {
   private File getTableFile(String operation, String tableName) {
     String extension;
     switch (operation) {
+      case EXPORTPARQUET:
+      case IMPORTPARQUET:
+        extension = NodusC.TYPE_PARQUET;
+        break;
+      case EXPORTODS:
+      case IMPORTODS:
+        extension = NodusC.TYPE_ODS;
+        break;
       case EXPORTDBF:
       case IMPORTDBF:
         extension = NodusC.TYPE_DBF;

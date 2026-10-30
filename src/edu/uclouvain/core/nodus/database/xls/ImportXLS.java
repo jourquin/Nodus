@@ -181,12 +181,25 @@ public class ImportXLS {
    * @return True on success.
    */
   public static boolean importTable(NodusProject nodusProject, String tableName, boolean isXLSX) {
-    String fileName = getFileName(nodusProject, tableName, isXLSX);
+    return importFile(nodusProject, tableName, getFileName(nodusProject, tableName, isXLSX), false);
+  }
+
+  /** Imports the first ODS sheet using the existing Excel schema and transaction rules. */
+  public static boolean importODS(NodusProject project, String table) {
+    return importFile(
+        project,
+        table,
+        project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + table + NodusC.TYPE_ODS,
+        true);
+  }
+
+  private static boolean importFile(
+      NodusProject nodusProject, String tableName, String fileName, boolean ods) {
     if (!new File(fileName).exists()) {
       return false;
     }
     try (InputStream input = new FileInputStream(fileName);
-        Workbook workbook = WorkbookFactory.create(input)) {
+        Workbook workbook = ods ? OdsCodec.read(input) : WorkbookFactory.create(input)) {
       String schema = getCreateTableStatement(workbook, tableName);
       int batchSize = nodusProject.getSqlBatchSize();
       if (schema != null) {

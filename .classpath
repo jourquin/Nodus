@@ -115,5 +115,11 @@
 	<classpathentry kind="lib" path="lib/poi-5.5.1.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-5.5.1.jar"/>
 	<classpathentry kind="lib" path="lib/poi-ooxml-full-5.5.1.jar"/>
+	<classpathentry kind="lib" path="lib/parquet-hadoop-bundle-1.16.0.jar"/>
+	<classpathentry kind="lib" path="devtools/parquet/hadoop-client-api-3.4.2.jar"/>
+	<classpathentry kind="lib" path="devtools/parquet/hadoop-client-runtime-3.4.2.jar">
+		<attributes><attribute name="test" value="true"/></attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/jts-core-1.20.0.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

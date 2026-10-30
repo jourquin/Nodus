@@ -529,6 +529,12 @@ public class NodusC {
   /** Extension used for csv files. */
   public static final String TYPE_CSV = ".csv";
 
+  /** OpenDocument spreadsheet extension. */
+  public static final String TYPE_ODS = ".ods";
+
+  /** Apache Parquet table extension. */
+  public static final String TYPE_PARQUET = ".parquet";
+
   /** Extension used for xls files. */
   public static final String TYPE_XLS = ".xls";
 

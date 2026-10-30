@@ -219,7 +219,9 @@ class SQLConsoleExportTest {
     EXPORTCSVH(".csv"),
     EXPORTDBF(".dbf"),
     EXPORTXLS(".xls"),
-    EXPORTXLSX(".xlsx");
+    EXPORTXLSX(".xlsx"),
+    EXPORTODS(".ods"),
+    EXPORTPARQUET(".parquet");
 
     private final String extension;
 
@@ -241,6 +243,13 @@ class SQLConsoleExportTest {
           assertTrue(reader.hasNextRecord());
           assertEquals(42, ((Number) reader.nextRecord()[0]).intValue());
           assertFalse(reader.hasNextRecord());
+        }
+      } else if (this == EXPORTPARQUET) {
+        assertEquals(
+            "PAR1", new String(Files.readAllBytes(output), 0, 4, StandardCharsets.US_ASCII));
+      } else if (this == EXPORTODS) {
+        try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(output.toFile())) {
+          assertTrue(zip.getEntry("content.xml") != null);
         }
       } else {
         try (InputStream input = Files.newInputStream(output);
