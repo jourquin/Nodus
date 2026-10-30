@@ -165,6 +165,11 @@ class NodusMapTileLayerTest {
 
   private static final class TestLayer extends NodusMapTileLayer {
     private static final long serialVersionUID = 1L;
+
+    @Override
+    public void doPrepare() {
+      // These tests call prepare() directly; factory setup must not start competing workers.
+    }
   }
 
   private static final class RecordingFactory extends ServerMapTileFactory {
