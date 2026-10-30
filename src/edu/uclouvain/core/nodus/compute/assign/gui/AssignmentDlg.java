@@ -1093,7 +1093,6 @@ public class AssignmentDlg extends EscapeDialog {
     mainPanelGridBagLayout.columnWeights = new double[] {1.0, 0.0, 1.0, 0.0};
     mainPanel.setLayout(mainPanelGridBagLayout);
 
-    // SwingTweaks.textPaneNimbusTweak(sqlLabel);
     sqlLabel.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_SQL);
     sqlLabel.setHighlightCurrentLine(false);
     sqlLabel.setEditable(false);
@@ -1662,9 +1661,6 @@ public class AssignmentDlg extends EscapeDialog {
           // of a previous assignment for it
           @Override
           public void stateChanged(ChangeEvent e) {
-            /*if (odTables == null) {
-              fillODTablesCombo();
-            }*/
             reloadState();
           }
         });
@@ -1801,7 +1797,6 @@ public class AssignmentDlg extends EscapeDialog {
     if (odTableName != null) {
       // The list of OD tables could not already be loaded
       if (odTables != null) {
-        // System.err.println(odTables.indexOf(odTableName));
         odTablesComboBox.setSelectedItem(odTableName);
       } else {
         if (JDBCUtils.tableExists(odTableName)) {
@@ -2233,7 +2228,6 @@ public class AssignmentDlg extends EscapeDialog {
             NodusC.PROP_ASSIGNMENT_DESCRIPTION + scenarioSuffix, descriptionTextField.getText());
 
     // Update title with current scenario number
-    // nodusMapPanel.updateScenarioComboBox();
   }
 
   /**

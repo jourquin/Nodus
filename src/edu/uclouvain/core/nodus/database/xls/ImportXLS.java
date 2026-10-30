@@ -126,8 +126,6 @@ public class ImportXLS {
         if (fieldType.equalsIgnoreCase("C") && nbTokens == 4) {
           return null;
         }
-        // static boolean oldAutoCommit = false;
-        // static boolean result = true;
 
         // Third is length. Must be a strictly positive number
         int fieldLength = Integer.parseInt(st.nextToken());
@@ -144,7 +142,6 @@ public class ImportXLS {
           }
         }
 
-        // sqlStmt += "\"" + fieldName + "\"";
         sqlStmt.append(JDBCUtils.getQuotedCompliantIdentifier(fieldName));
         if (fieldType.equalsIgnoreCase("N")) {
           sqlStmt

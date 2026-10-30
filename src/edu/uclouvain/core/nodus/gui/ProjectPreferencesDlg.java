@@ -758,11 +758,6 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     stringValue = nodusProject.getLocalProperty(NodusC.PROP_SERVICES_TABLE_PREFIX, stringDefValue);
     servicesTextField.setText(stringValue);
 
-    /*
-     * sValue = nodusProject.getLocalProperty(NodusC.PROP_DISTANCES_UNIT, Length.KM.toString());
-     * unitComboBox.setSelectedItem(sValue);
-     */
-
     oldAddPoliticalBoundaries =
         nodusProject.getLocalProperty(NodusC.PROP_ADD_POLITICAL_BOUNDARIES, false);
     boundariesCheckbox.setSelected(oldAddPoliticalBoundaries);
@@ -958,7 +953,6 @@ public class ProjectPreferencesDlg extends EscapeDialog {
         odTablesCombo.setSelectedItem(tableName);
       } else {
         if (JDBCUtils.tableExists(tableName)) {
-          // odTablesCombo.removeAll();
           odTablesCombo.addItem(tableName);
           odTablesCombo.setSelectedItem(tableName);
         }

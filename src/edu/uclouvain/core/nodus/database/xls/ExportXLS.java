@@ -187,7 +187,6 @@ public class ExportXLS {
       if (!GraphicsEnvironment.isHeadless()) {
         new NodusConsole();
       }
-      // nodusProject.getNodusMapPanel().setBusy(false);
       e.printStackTrace();
       return false;
     }

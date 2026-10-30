@@ -781,7 +781,6 @@ public class CostParser {
 
         // Get length
         setVariable(NodusC.VARNAME_LENGTH, rl.getLength());
-        // setVariable(NodusC.VARNAME_DURATION, rl.getDuration());
 
         // Remove the tranship variable if exists
         if (!hasMoveVariables) {

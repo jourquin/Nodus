@@ -65,8 +65,6 @@ public class AllOrNothingAssignment extends Assignment {
       assignmentParameters.setDurationFunctions(true);
     }
 
-    // long start = System.currentTimeMillis();
-
     // Generate a virtual network
     if (!virtualNet.generate()) {
       return false;
@@ -104,16 +102,6 @@ public class AllOrNothingAssignment extends Assignment {
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {
       displayConsoleIfNeeded();
-      /*new NodusConsole(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
-      System.out.println(i18n.get(Assignment.class, "Lost_paths", "Lost paths:"));
-      System.out.println(
-          NodusC.DBF_GROUP
-              + ", "
-              + NodusC.DBF_ORIGIN
-              + ", "
-              + NodusC.DBF_DESTINATION
-              + ", "
-              + NodusC.DBF_QUANTITY);*/
     }
 
     // Force Garbage collector?
@@ -185,9 +173,6 @@ public class AllOrNothingAssignment extends Assignment {
         }
       }
     } // Next odClass
-
-    // long end = System.currentTimeMillis();
-    // System.out.println("Duration : " + ((end - start) / 1000));
 
     // Transform the volumes into vehicles
     if (!virtualNet.volumesToVehicles(vehiclesParser)) {

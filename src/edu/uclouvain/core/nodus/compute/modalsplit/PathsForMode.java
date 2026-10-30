@@ -51,12 +51,6 @@ public class PathsForMode {
   /** Weight (cost) of the cheapest path in the list of alternatives. */
   private double cheapestPathTotalCost = Double.MAX_VALUE;
 
-  //  /** Weight (cost) of the cheapest path for transportation means 1. */
-  //  private double cheapestMeans1TotalCost = Double.MAX_VALUE;
-  //
-  //  /** Detailed cost of the cheapest path for means 1 in the list of alternatives. */
-  //  public PathWeights cheapestMeans1Path;
-
   /**
    * Initializes a valid paths list.
    *
@@ -67,13 +61,6 @@ public class PathsForMode {
     this.cheapestPathTotalCost = path.weights.getCost();
     this.cheapestPathWeights = path.weights;
     this.pathList.add(path);
-
-    /* if (path.loadingMeans == 1) {
-      cheapestMeans1TotalCost = path.weights.getCost();
-      //cheapestMeans1PathLength = path.weights.getLength();
-      //cheapestMeans1PathDuration = path.weights.getTransitTime();
-      cheapestMeans1Path = path.weights;
-    }*/
   }
 
   /**
@@ -88,14 +75,6 @@ public class PathsForMode {
       this.cheapestPathTotalCost = path.weights.getCost();
       this.cheapestPathWeights = path.weights;
     }
-
-    // Track the cheapest alternative for means 1
-    /* if (path.loadingMeans == 1 && path.weights.getCost() < cheapestMeans1TotalCost) {
-      cheapestMeans1TotalCost = path.weights.getCost();
-      //cheapestMeans1PathLength = path.weights.getLength();
-      //cheapestMeans1PathDuration = path.weights.getTransitTime();
-      cheapestMeans1Path = path.weights;
-    }*/
 
     this.pathList.add(path);
   }

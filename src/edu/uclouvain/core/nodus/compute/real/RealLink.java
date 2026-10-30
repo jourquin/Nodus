@@ -141,7 +141,6 @@ public class RealLink extends RealNetworkObject {
    */
   public double getCurrentPassengerCarUnits(VirtualLink virtualLink) {
     if (virtualLink.getBeginVirtualNode().getRealNodeId(false) == originNode) {
-      // System.err.println("CPU's: " + currentPassengerCarUnitsUp);
       return currentPassengerCarUnitsUp;
     } else {
       return currentPassengerCarUnitsDown;

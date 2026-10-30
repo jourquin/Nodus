@@ -54,8 +54,6 @@ public class PluginsLoader implements AutoCloseable {
     return availablePlugins;
   }
 
-  // private File directory;
-
   /**
    * Loads all the available plugins.
    *

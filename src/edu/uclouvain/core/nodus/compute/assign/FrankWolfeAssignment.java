@@ -103,8 +103,6 @@ public class FrankWolfeAssignment extends Assignment {
       }
     }
 
-    // long Start=System.currentTimeMillis() ;
-
     // Create a path writer
     createPathWriter();
 

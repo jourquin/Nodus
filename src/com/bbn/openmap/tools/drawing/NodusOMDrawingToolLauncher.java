@@ -254,7 +254,6 @@ public class NodusOMDrawingToolLauncher extends OMDrawingToolLauncher
     JToolBar jtb = null;
     if (getUseAsTool()) {
       jtb = new com.bbn.openmap.gui.GridBagToolBar();
-      // "Drawing Tool Launcher";
       JButton drawingToolButton =
           new JButton(
               new ImageIcon(

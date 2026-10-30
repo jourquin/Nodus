@@ -702,9 +702,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     VirtualNodeList[] virtualNodeList = virtualNet.getVirtualNodeLists();
     String key = null;
 
-    // double weight = 0.0;
-    // float length = 0;
-
     int currentPathIndex = 0;
     if (pathBuffer.isSavePaths()) {
       currentPathIndex = getNewPathIndex();
@@ -747,7 +744,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
             potentialLostPaths.put(key, demand);
           }
         }
-        // weight = Double.MAX_VALUE;
         path.isValid = false;
         isPathFound = false;
 
@@ -827,9 +823,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     path.intermodalModeKey = path.intermodal ? intermodalModeKey : mode;
     path.loadingMode = loadingMode;
     path.loadingMeans = loadingMeans;
-    // path.weight = weight;
     path.weights = pathCosts;
-    // path.length = length;
 
     // The total cost of a path must be strictly positive
     if (isPathFound && pathCosts.getCost() == 0.0) {

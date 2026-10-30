@@ -123,7 +123,6 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     public Component getTableCellEditorComponent(
         JTable table, Object value, boolean isSelected, int rowIndex, int colIndex) {
       this.rowIndex = rowIndex;
-      // oldValue = value;
 
       // Configure the component with the specified value
       ((JTextField) textField).setText((String) value);
@@ -1229,7 +1228,7 @@ public class DbfEditDlg extends EscapeDialog implements ShapeConstants {
     float l = -1;
 
     if (omGraphic instanceof EsriPolyline) {
-      l = NodusEsriLayer.getLength((EsriPolyline) omGraphic, Length.KM); // lengthUnit);
+      l = NodusEsriLayer.getLength((EsriPolyline) omGraphic, Length.KM);
       transhipComboBox.setVisible(false);
       transhipLabel.setVisible(false);
       transitCheckBox.setVisible(false);

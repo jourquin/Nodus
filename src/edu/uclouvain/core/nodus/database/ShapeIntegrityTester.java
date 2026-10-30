@@ -23,19 +23,13 @@ package edu.uclouvain.core.nodus.database;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.dataAccess.shape.DbfTableModel;
-import com.bbn.openmap.dataAccess.shape.EsriGraphicList;
-import com.bbn.openmap.dataAccess.shape.EsriPoint;
-import com.bbn.openmap.dataAccess.shape.EsriPolyline;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
-import com.bbn.openmap.proj.ProjMath;
-import com.bbn.openmap.proj.coords.LatLonPoint;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.TimerTask;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -326,7 +320,6 @@ public class ShapeIntegrityTester {
             break;
           }
 
-          // Integer node = new Integer(JDBCUtils.getInt(model.getValueAt(j, NodusC.DBF_IDX_NUM)));
           int node = (int) id;
           String foundName = nodes.get(node);
 
@@ -365,8 +358,6 @@ public class ShapeIntegrityTester {
       if (error) {
         break;
       }
-
-      // testOverlap(nodeLayers[i]);
     }
 
     HashMap<Integer, String> links;
@@ -504,14 +495,10 @@ public class ShapeIntegrityTester {
             reportError(integrityErrorMessage);
           }
 
-          // new DatabaseIntegrityTester(nodusProject);
           for (LinkLayerSnapshot element : linkLayersToPurge) {
             element.layer.purgeLinks();
           }
         });
-
-    // testFreeNodes();
-
   }
 
   /**
@@ -521,86 +508,6 @@ public class ShapeIntegrityTester {
    */
   protected void reportError(String message) {
     JOptionPane.showMessageDialog(null, message, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
-  }
-
-  /** Additional tests, not used in production. */
-  @SuppressWarnings("unused")
-  private void testFreeNodes() {
-    System.out.println("Test node locations");
-
-    nodeLayers = nodusProject.getNodeLayers();
-
-    HashMap<Object, LatLonPoint> nodes;
-
-    // Put the lat-lon of each point in hashmap
-    nodes = new HashMap<>();
-
-    for (NodusEsriLayer element : nodeLayers) {
-      DbfTableModel model = element.getModel();
-      EsriGraphicList list = element.getEsriGraphicList();
-      Iterator<?> it = list.iterator();
-      for (int j = 0; j < model.getRowCount(); j++) {
-        EsriPoint p = (EsriPoint) it.next();
-        LatLonPoint.Double llp = new LatLonPoint.Double(p.getLat(), p.getLon());
-        nodes.put(model.getValueAt(j, NodusC.DBF_IDX_NUM), llp);
-      }
-    }
-
-    // Test the extremities of each link
-    for (NodusEsriLayer element : linkLayers) {
-      DbfTableModel model = element.getModel();
-      EsriGraphicList list = element.getEsriGraphicList();
-      Iterator<?> it = list.iterator();
-      for (int j = 0; j < model.getRowCount(); j++) {
-        // Get lat/lon of end nodes
-        EsriPolyline epl = (EsriPolyline) it.next();
-        double[] pts = epl.getLatLonArray();
-        for (int k = 0; k < pts.length; k++) {
-          pts[k] = ProjMath.radToDeg(pts[k]);
-        }
-        LatLonPoint.Double ll1 = new LatLonPoint.Double(pts[0], pts[1]);
-        LatLonPoint.Double ll2 = new LatLonPoint.Double(pts[pts.length - 2], pts[pts.length - 1]);
-
-        // get origin node
-        LatLonPoint llp = nodes.get(model.getValueAt(j, NodusC.DBF_IDX_NODE1));
-        if (!llp.equals(ll1) && !llp.equals(ll2)) {
-          System.out.println(
-              "Invalid location for node " + model.getValueAt(j, NodusC.DBF_IDX_NODE1));
-        }
-
-        // destination node
-        llp = nodes.get(model.getValueAt(j, NodusC.DBF_IDX_NODE2));
-        if (!llp.equals(ll1) && !llp.equals(ll2)) {
-          System.out.println(
-              "Invalid location for node " + model.getValueAt(j, NodusC.DBF_IDX_NODE2));
-        }
-      }
-    }
-  }
-
-  /** Test if two nodes are at the same place. Not used in production. */
-  @SuppressWarnings("unused")
-  private void testOverlap(NodusEsriLayer p) {
-    DbfTableModel model = p.getModel();
-    EsriGraphicList l = p.getEsriGraphicList();
-    Iterator<?> it1 = l.iterator();
-    int index = 0;
-
-    while (it1.hasNext()) {
-      EsriPoint p1 = (EsriPoint) it1.next();
-      Iterator<?> it2 = l.iterator();
-
-      while (it2.hasNext()) {
-        EsriPoint p2 = (EsriPoint) it2.next();
-        if (p1 != p2) {
-          if (p1.getLat() == p2.getLat() && p1.getLon() == p2.getLon()) {
-
-            System.err.println(JDBCUtils.getInt(model.getValueAt(index, NodusC.DBF_IDX_NUM)));
-          }
-        }
-      }
-      index++;
-    }
   }
 
   /** Stops the periodic integrity test and releases retained references. */

@@ -64,9 +64,6 @@ public class AssignmentParameters {
     outputTables = tables;
   }
 
-  /* If true, ask before deleting old assignments. */
-  // private boolean confirmDelete = true;
-
   /** Cost functions file. */
   private Properties costFunctions;
 
@@ -305,15 +302,6 @@ public class AssignmentParameters {
     return withDurationFunction;
   }
 
-  /*
-   * Returns true if the user must confirm before an existing scenario is overwritten.
-   *
-   * @return boolean
-   */
-  /*public boolean isConfirmDelete() {
-    return confirmDelete;
-  }*/
-
   /**
    * Returns true if the details of each path (the list of used network links) must be saved.
    *
@@ -378,15 +366,6 @@ public class AssignmentParameters {
   public boolean isTimeDependent() {
     return isTimeDependent;
   }
-
-  /*
-   * If true, the user will be asked to confirm before overwritting an exiting assignment.
-   *
-   * @param confirmDelete boolean.
-   */
-  /*public void setConfirmDelete(boolean confirmDelete) {
-    this.confirmDelete = confirmDelete;
-  }*/
 
   /**
    * Sets the cost functions to use with the assignment. The cost functions can be: <br>

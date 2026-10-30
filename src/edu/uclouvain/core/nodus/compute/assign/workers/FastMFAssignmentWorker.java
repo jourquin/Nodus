@@ -505,8 +505,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
     while (it.hasNext()) {
       ODCell demand = it.next();
-      // double weight = 0.0;
-      // float length = 0;
 
       int currentPathIndex = 0;
       if (pathBuffer.isSavePaths()) {
@@ -549,7 +547,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
               potentialLostPaths.put(key, demand);
             }
           }
-          // weight = Double.MAX_VALUE;
 
           paths[indexInODRow].isValid = false;
           isPathFound = false;
@@ -648,9 +645,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
       paths[indexInODRow].intermodalModeKey = mode;
       paths[indexInODRow].loadingMode = loadingMode;
       paths[indexInODRow].loadingMeans = loadingMeans;
-      // paths[indexInODRow].weight = weight;
       paths[indexInODRow].weights = pathCosts;
-      // paths[indexInODRow].length = length;
       // Associate the key with the length to maximize chances to have a unique key
       paths[indexInODRow].detailedPathKey *= pathCosts.getLength();
 

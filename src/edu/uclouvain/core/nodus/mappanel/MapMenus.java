@@ -164,8 +164,6 @@ public final class MapMenus {
 
     setMenusText();
 
-    // menuFile.setText(i18n.get(NodusMapPanel.class, "File", "File"));
-
     menuItemFileSaveMapAsGIF = new NodusSaveAsImageMenuItem("GIF", new AcmeGifFormatter());
 
     menuItemFileSaveMapAsPNG = new NodusSaveAsImageMenuItem("PNG", new PNGImageFormatter());
@@ -173,16 +171,9 @@ public final class MapMenus {
     jpegFormatter.setImageQuality(NodusC.JPEG_QUALITY);
     menuItemFileSaveMapAsJPEG = new NodusSaveAsImageMenuItem("JPEG", jpegFormatter);
 
-    // menuProject.setText(i18n.get(NodusMapPanel.class, "Project", "Project"));
-
     menuProject.setEnabled(false);
 
-    // menuTools.setText(i18n.get(NodusMapPanel.class, "Tools", "Tools"));
-
-    // menuHelp.setText(i18n.get(NodusMapPanel.class, "Help", "Help"));
-
     menuItemFileSaveAs.setEnabled(false);
-    // menuItemFileSaveAs.setText(i18n.get(NodusMapPanel.class, "Save_as_", "Save as..."));
 
     menuItemFileSaveMapAsGIF.setText("GIF");
     menuItemFileSaveMapAsGIF.setMapHandler(panel.getMapHandler());
@@ -195,8 +186,6 @@ public final class MapMenus {
     menuItemFileSaveMapAsPNG.setText("PNG");
     menuItemFileSaveMapAsPNG.setMapHandler(panel.getMapHandler());
     menuItemFileSaveAs.add(menuItemFileSaveMapAsPNG);
-
-    // menuControl.setText(i18n.get(NodusMapPanel.class, "Control", "Control"));
 
     menuControl.setEnabled(false);
 

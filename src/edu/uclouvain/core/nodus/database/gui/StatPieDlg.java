@@ -348,7 +348,6 @@ public class StatPieDlg extends EscapeDialog {
 
     } catch (Exception ex) {
       // Probably because one tries to gather info for a group which was not assigned
-      // ex.printStackTrace();
     } finally {
       nodusProject.getNodusMapPanel().setBusy(false);
       setCursor(oldCursor);

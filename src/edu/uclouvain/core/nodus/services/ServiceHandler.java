@@ -246,7 +246,6 @@ public class ServiceHandler {
    */
   public ServiceHandler(NodusProject nodusProject, boolean withGUI) {
     this.nodusProject = nodusProject;
-    // nodusMapPanel = nodusProject.getNodusMapPanel();
 
     linkLayer = nodusProject.getLinkLayers();
     nodeLayer = nodusProject.getNodeLayers();
@@ -388,7 +387,7 @@ public class ServiceHandler {
           return false;
         }
       }
-    } // this.setLocationRelativeTo(nodusMapPanel);
+    }
     serviceEditorDlg.loadModeMeans((byte) mode, (byte) means);
     repaintLinkLayers();
     paintService(true);
@@ -2776,7 +2775,6 @@ public class ServiceHandler {
     if (serviceEditorDlg.isVisible()) {
 
       serviceEditorDlg.selectService(serviceName);
-      // setListening(true);
     }
     paintService(true);
   }

@@ -959,7 +959,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   private void initGUI() {
     JPanel commandPanel = new JPanel();
 
-    // resultPanel = new JPanel();
     nsSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, commandPanel, resultPanel);
     nsSplitPane.setContinuousLayout(true);
 

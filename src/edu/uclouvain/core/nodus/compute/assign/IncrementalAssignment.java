@@ -101,16 +101,6 @@ public class IncrementalAssignment extends Assignment {
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {
       displayConsoleIfNeeded();
-      /*new NodusConsole(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
-      System.out.println(i18n.get(Assignment.class, "Lost_paths", "Lost paths:"));
-      System.out.println(
-          NodusC.DBF_GROUP
-              + ", "
-              + NodusC.DBF_ORIGIN
-              + ", "
-              + NodusC.DBF_DESTINATION
-              + ", "
-              + NodusC.DBF_QUANTITY);*/
     }
 
     // Force Garbage collector?

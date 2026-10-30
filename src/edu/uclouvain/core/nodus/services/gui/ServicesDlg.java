@@ -1429,7 +1429,6 @@ public class ServicesDlg extends EscapeDialog {
               serviceHandler.resetService();
 
               serviceHandler.displayService("");
-              // setListening(true);
               serviceHandler.setListening(true);
               setShortestPathCreationAllowed(true);
               setShortestPathControlsSelected(true);
@@ -1814,8 +1813,6 @@ public class ServicesDlg extends EscapeDialog {
    * @return void
    */
   private void initialize() {
-    // this.setSize(500, 300);
-
     this.setContentPane(getMainPane());
     installEscapeKey();
     cards.show(mainPanel, LIST_CARD);

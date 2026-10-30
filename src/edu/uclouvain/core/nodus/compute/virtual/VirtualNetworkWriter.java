@@ -238,8 +238,6 @@ public class VirtualNetworkWriter {
     boolean saveCompleteVirtualNetwork =
         Boolean.parseBoolean(nodusProject.getLocalProperty(NodusC.PROP_SAVE_ALL_VN));
 
-    // long start = System.currentTimeMillis();
-
     boolean progressStarted = false;
     Savepoint savepoint = null;
     try {
@@ -385,9 +383,6 @@ public class VirtualNetworkWriter {
         nodusMapPanel.stopProgress();
       }
     }
-
-    // long end = System.currentTimeMillis();
-    // System.out.println("Duration : " + (end - start) / 1000);
 
     return true;
   }

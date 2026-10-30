@@ -275,7 +275,6 @@ public class NodusGroovyConsole extends NotePad {
 
     actions.askForSave();
 
-    // File script = GroovyPreParser.preParseScript(getFileName(true));
     File script = new File(getFileName(true));
     if (script != null) {
       job = new GroovyThread(nodusMapPanel, script);

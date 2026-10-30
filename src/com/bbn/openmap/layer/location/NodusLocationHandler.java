@@ -115,7 +115,6 @@ public class NodusLocationHandler extends AbstractLocationHandler
   private OMGraphicList graphicList = new OMGraphicList();
 
   /** By default, no field is displayed. */
-  // private int locationFieldIndex = -1;
 
   private String locationFieldName = "";
 
@@ -550,7 +549,6 @@ public class NodusLocationHandler extends AbstractLocationHandler
     // Update the labels
     graphicList.clear();
     Iterator<OMGraphic> it = nodusEsriLayer.getEsriGraphicList().iterator();
-    // int index = 0;
     DbfTableModel model = nodusEsriLayer.getModel();
 
     while (it.hasNext()) {
@@ -593,7 +591,6 @@ public class NodusLocationHandler extends AbstractLocationHandler
             if (rnbo.getSize() != 0) {
               label = nf.format(rnbo.getResult());
 
-              // EsriLayer.getProject().getUnit(EsriLayer.getType());
             }
           }
 
@@ -614,7 +611,6 @@ public class NodusLocationHandler extends AbstractLocationHandler
           }
         }
       }
-      // index++;
     }
 
     return;

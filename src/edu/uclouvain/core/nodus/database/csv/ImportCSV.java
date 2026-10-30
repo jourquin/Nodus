@@ -182,8 +182,6 @@ public class ImportCSV {
   static boolean importTable(
       NodusProject project, String tableName, boolean withHeader, Consumer<String> reportError) {
 
-    // long start = System.currentTimeMillis();
-
     int maxBatchSize = project.getSqlBatchSize();
 
     // Table must exist in order to know which structure it has
@@ -286,9 +284,6 @@ public class ImportCSV {
     } finally {
       restoreAutoCommit(con, restoreAutoCommit);
     }
-
-    // long end = System.currentTimeMillis();
-    // System.out.println("Duration : " + ((end - start) / 1000));
 
     return true;
   }

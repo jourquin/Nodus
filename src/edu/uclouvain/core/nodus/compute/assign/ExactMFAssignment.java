@@ -116,9 +116,6 @@ public class ExactMFAssignment extends Assignment {
       }
     }
 
-    // Get the structure of the virtual network
-    // VirtualNodeList[] vnl = virtualNet.getVirtualNetworkStructure();
-
     // Initialize the modal split method from the name found in the assignment parameters
     ModalSplitMethod modalSplitMethod = getModalSplitMethod();
     if (modalSplitMethod == null) {
@@ -141,19 +138,7 @@ public class ExactMFAssignment extends Assignment {
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {
       displayConsoleIfNeeded();
-      /*new NodusConsole(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
-      System.out.println(i18n.get(Assignment.class, "Lost_paths", "Lost paths:"));
-      System.out.println(
-          NodusC.DBF_GROUP
-              + ", "
-              + NodusC.DBF_ORIGIN
-              + ", "
-              + NodusC.DBF_DESTINATION
-              + ", "
-              + NodusC.DBF_QUANTITY);*/
     }
-
-    // long start = System.currentTimeMillis();
 
     // Force Garbage collector?
     NodusMapPanel nodusMapPanel = nodusProject.getNodusMapPanel();
@@ -259,9 +244,6 @@ public class ExactMFAssignment extends Assignment {
     if (!virtualNet.volumesToVehicles(vehiclesParser)) {
       return false;
     }
-
-    // long end = System.currentTimeMillis();
-    // System.out.println("Duration : " + ((end - start) / 1000));
 
     // Create a Virtual Network writer
     VirtualNetworkWriter vnw = new VirtualNetworkWriter(assignmentParameters, virtualNet);

@@ -55,16 +55,6 @@ public class VirtualNodeList {
     }
   }
 
-  /*private class ScenarioExclusions {
-    int scenario;
-    LinkedList<GroupExclusions> groupExclusions;
-
-    public ScenarioExclusions(int scenario) {
-      this.scenario = scenario;
-      groupExclusions = new LinkedList<GroupExclusions>();
-    }
-  }*/
-
   /** Virtual node number that represent the loading node. */
   private Vector<Demands> demands = null;
 
@@ -130,11 +120,6 @@ public class VirtualNodeList {
     if (isLoadingUnloading) {
       demands = new Vector<>(1, 1);
       demands.add(new Demands());
-      // allExclusions = new ScenarioExclusions;
-      // } else {
-      // if (isTranshipment) {
-      //  allExclusions = new LinkedList<ScenarioExclusions>();
-      // }
     }
   }
 

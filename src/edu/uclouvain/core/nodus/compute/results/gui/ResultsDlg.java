@@ -779,7 +779,6 @@ public class ResultsDlg extends EscapeDialog {
 
     setActions();
 
-    // sqlTextArea.setLineWrap(true);
     defaultQueryButtonConstraints.gridx = 3;
     defaultQueryButtonConstraints.gridy = 3;
     defaultQueryButtonConstraints.insets = new Insets(5, 5, 0, 5);

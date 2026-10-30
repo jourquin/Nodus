@@ -642,7 +642,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
       onTopKeeper.run(isStickyDrawingTool());
     }
 
-    // MapBean mb = getMapBean();
     mapBean.setBckgrnd(Environment.getCustomBackgroundColor());
 
     // Navigate with keys in the map
@@ -672,7 +671,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
             // Ctrl key for drawing tool
             if (evt.getKeyCode() == KeyEvent.VK_CONTROL || evt.getKeyCode() == KeyEvent.VK_META) {
-              // nodusDrawingTool.setControlPressed(true);
               controlPressed = true;
             }
 
@@ -687,7 +685,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
           public void keyReleased(KeyEvent evt) {
             // Ctrl key for drawing tool
             if (evt.getKeyCode() == KeyEvent.VK_CONTROL || evt.getKeyCode() == KeyEvent.VK_META) {
-              // nodusDrawingTool.setControlPressed(false);
               controlPressed = false;
             }
           }
@@ -2152,7 +2149,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    */
   private void menuItemProjectSQLConsoleActionPerformed(ActionEvent a) {
     if (nodusProject.isOpen()) {
-      // new SQLConsole(nodusProject);
       javax.swing.SwingUtilities.invokeLater(
           new Runnable() {
             @Override
@@ -2212,7 +2208,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
                   JOptionPane.ERROR_MESSAGE);
 
               nodusProject.getNodusMapPanel().closeAndSaveState();
-              // System.exit(0);
             }
           };
 
@@ -2412,7 +2407,6 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
         OMGraphicHandlerLayer l = (OMGraphicHandlerLayer) layers[i];
         if (l.isEnabled() && l.isVisible()) {
           l.doPrepare();
-          // System.out.println(l.getName());
         }
       }
     }

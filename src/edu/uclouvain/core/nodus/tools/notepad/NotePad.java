@@ -292,10 +292,8 @@ public class NotePad extends JFrame {
       displayFullPath = nodusMapPanel.getDisplayFullPath();
     }
 
-    // if (!JFrame.isDefaultLookAndFeelDecorated()) {
     setIconImage(
         Toolkit.getDefaultToolkit().createImage(NodusMapPanel.class.getResource("nodus.png")));
-    // }
 
     this.setSize(800, 600);
 
@@ -330,7 +328,6 @@ public class NotePad extends JFrame {
     menuBar.add(file = new JMenu(i18n.get(NotePad.class, "File", "File")));
     menuBar.add(edit = new JMenu(i18n.get(NotePad.class, "Edit", "Edit")));
 
-    // menuBar.add(format = new JMenu("Format"));
     file.add(
         newMenuItem =
             new JMenuItem(

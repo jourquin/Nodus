@@ -55,9 +55,6 @@ public class JDBCUtils {
   /** MySQL - MariaDB. */
   public static final int DB_MYSQL = 1;
 
-  /* Oracle (not fully tested). */
-  // public static final int DB_ORACLE = 4;
-
   /** PostgreSQL. */
   public static final int DB_POSTGRESQL = 3;
 

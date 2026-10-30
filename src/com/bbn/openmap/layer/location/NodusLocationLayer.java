@@ -36,18 +36,6 @@ public class NodusLocationLayer extends LocationLayer {
 
   static final long serialVersionUID = 7393919340553905118L;
 
-  //    public NodusLocationLayer() {
-  //
-  //      RenderingHints rh =
-  //          new RenderingHints(RenderingHints.KEY_ANTIALIASING,
-  // RenderingHints.VALUE_ANTIALIAS_ON);
-  //      RenderingHintsRenderPolicy rp = new RenderingHintsRenderPolicy(this);
-  //      rp.setRenderingHints(rh);
-  //      setRenderPolicy(rp);
-  //
-  //      setMouseModeIDsForEvents(new String[] {"Gestures"});
-  //    }
-
   /** Default constructor. */
   public NodusLocationLayer() {
     super();
@@ -70,11 +58,9 @@ public class NodusLocationLayer extends LocationLayer {
     int i;
 
     LocationHandler[] lh = new LocationHandler[size];
-    String[] lhn = new String[size];
 
     for (i = 0; i < nodeHandlers.length; i++) {
       lh[i] = nodeHandlers[i];
-      lhn[i] = nodeHandlers[i].getTableName();
       nodeHandlers[i].setPrettyName(nodeHandlers[i].getTableName());
     }
 
@@ -82,7 +68,6 @@ public class NodusLocationLayer extends LocationLayer {
 
     for (i = 0; i < linkHandlers.length; i++) {
       lh[i + offset] = linkHandlers[i];
-      lhn[i + offset] = linkHandlers[i].getTableName();
       linkHandlers[i].setPrettyName(linkHandlers[i].getTableName());
     }
 

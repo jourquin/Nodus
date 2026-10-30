@@ -157,7 +157,6 @@ public class SelectPropertiesDlg extends EscapeDialog implements ShapeConstants 
           }
         });
 
-    //SwingTweaks.textPaneNimbusTweak(sqlLabel);
     sqlLabel.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_SQL);
     sqlLabel.setHighlightCurrentLine(false);
     sqlLabel.setEditable(false);

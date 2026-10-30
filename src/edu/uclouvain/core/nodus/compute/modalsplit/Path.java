@@ -56,7 +56,7 @@ public class Path {
    * Hash key that represents the the combination of modes used along the path. Is equivalent to
    * loadingMode if this path only uses one mode.
    */
-  public int intermodalModeKey = -1; // noMode;
+  public int intermodalModeKey = -1;
 
   /**
    * Detailed costs (loading, unloading, transit, transhipment, moving and total). Is used only when

@@ -269,7 +269,6 @@ public class Nodus {
                     displayDefaultPoliticalBoundariesIfProjectLoadFails();
                   }
                 });
-            // nodusMapPanel.repaint(nodusMapPanel.getVisibleRect());
           }
         });
   }
@@ -381,7 +380,6 @@ public class Nodus {
                 || projectWillAskForCompactOnClose()
                 || confirmQuit(openMapFrame)) {
               nodusMapPanel.closeAndSaveState();
-              // System.exit(0);
             }
           }
         });
@@ -445,8 +443,6 @@ public class Nodus {
     }
 
     nodusMapPanel.restoreSizeAndLocation();
-    // omf.setVisible(true);
-    // nodusMapPanel.getMapBean().showLayerPalettes();
     setWindowListenerOnFrame(omf);
   }
 }

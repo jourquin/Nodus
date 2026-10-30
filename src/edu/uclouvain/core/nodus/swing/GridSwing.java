@@ -55,7 +55,6 @@ public class GridSwing extends AbstractTableModel {
   public void addRow(String[] r) {
     String[] row = new String[r.length];
 
-    // System.arraycopy(r, 0, row, 0, r.length);
     for (int i = 0; i < r.length; i++) {
       row[i] = r[i];
 
@@ -144,7 +143,6 @@ public class GridSwing extends AbstractTableModel {
   public void setHead(String[] h) {
     headers = new String[h.length];
 
-    // System.arraycopy(h, 0, headers, 0, h.length);
     for (int i = 0; i < h.length; i++) {
       headers[i] = h[i];
     }

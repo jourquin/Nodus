@@ -784,8 +784,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     NodusDbfTableModel ndtm = new NodusDbfTableModel(this);
     String dbfFile = tablePath + tableName + NodusC.TYPE_DBF;
     ndtm.showGUI(dbfFile, DbfTableModel.MODIFY_COLUMN_MASK | DbfTableModel.DONE_MASK);
-
-    // getModel().showGUI(dbfFile, DbfTableModel.MODIFY_COLUMN_MASK | DbfTableModel.DONE_MASK);
   }
 
   /**
@@ -1379,7 +1377,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
    * @return True if something was modified since last save.
    */
   public boolean isDirty() {
-    // if (dirtyShp || dirtyDbf || isTableStructureChanged()) {
     if (dirtyShp || dirtyDbf) {
       return true;
     }
@@ -1485,7 +1482,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     // Remove the dbf record in memory
     getModel().remove(index);
 
-    // remove NumIndex(num);
     updateNumIndex();
 
     // Remove the dbf record in the database table
@@ -2083,7 +2079,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
       Connection con = nodusProject.getMainJDBCConnection();
 
       Vector<String> names = new Vector<>();
-      // Vector<String> types = new Vector<>();
       Vector<Integer> sizes = new Vector<>();
       Vector<Integer> decimalDigits = new Vector<>();
       Map<String, Integer> numericColumns = new LinkedHashMap<>();
@@ -2092,7 +2087,6 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
         while (rs.next()) {
           names.add(rs.getString("COLUMN_NAME"));
           String typeName = rs.getString("TYPE_NAME").toUpperCase();
-          // types.add(typeName);
           decimalDigits.add(rs.getInt("DECIMAL_DIGITS"));
 
           if (typeName.contains("CHAR")) {
@@ -2253,12 +2247,10 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
       getLocationHandler().reloadData();
 
     } catch (Exception ex) {
-      // System.out.println(ex.toString());
       ex.printStackTrace();
       return false;
     }
 
-    // isReady = false;
     doPrepare();
 
     dirtyDbf = false;

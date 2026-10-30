@@ -404,7 +404,6 @@ public class NodeRulesDlg extends EscapeDialog {
                 // Don't allow to change row if current rule is wrong
                 if (currentRow != -1 && errorColor.equals(getTableRowForeground(currentRow))) {
                   rulesTable.setRowSelectionInterval(currentRow, currentRow);
-                  // saveButton.setEnabled(false);
                   return;
                 }
 

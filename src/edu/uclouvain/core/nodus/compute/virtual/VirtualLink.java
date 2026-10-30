@@ -764,7 +764,6 @@ public class VirtualLink {
     currentVolume = new double[nbGroups][nbTimeSlices];
     auxiliaryVolume = new double[nbGroups];
     previousVolume = new double[nbGroups];
-    // withFlow = false;
     this.nbGroups = (byte) nbGroups;
 
     for (int i = 0; i < nbGroups; i++) {

@@ -321,7 +321,6 @@ public class NotePadActions {
       try (PrintWriter fout = new PrintWriter(new FileWriter(notePad.getFileName(true)))) {
         fout.print(fileContent);
       } catch (IOException ioe) {
-        // System.err.println("I/O Error on Save");
         JOptionPane.showMessageDialog(
             null,
             i18n.get(NotePadActions.class, "I_OError_on_Save", "I/O Error on Save"),

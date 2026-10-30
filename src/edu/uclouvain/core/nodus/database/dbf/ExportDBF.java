@@ -237,7 +237,6 @@ public class ExportDBF implements ShapeConstants {
    * @return boolean
    */
   private static boolean exportDbf(NodusProject nodusProject, String tableName) {
-    // System.out.println("exportDbf...");
 
     String sqlStmt = "SELECT * FROM " + JDBCUtils.getQuotedCompliantIdentifier(tableName);
     return exportQuery(nodusProject, tableName, sqlStmt);
@@ -253,8 +252,6 @@ public class ExportDBF implements ShapeConstants {
    * @return boolean
    */
   private static boolean exportEsriDbf(NodusProject nodusProject, String tableName) {
-
-    // System.out.println("exportEsriDbf...");
 
     NodusEsriLayer layer = getLayerByTableName(nodusProject.getNodeLayers(), tableName);
 

@@ -67,8 +67,6 @@ public class StaticAoNTimeDependentAssignment extends Assignment {
       assignmentParameters.setDurationFunctions(true);
     }
 
-    // long start = System.currentTimeMillis();
-
     // Get the information about the time windows in the cost function
     Properties costFunctions = assignmentParameters.getCostFunctions();
 
@@ -216,9 +214,6 @@ public class StaticAoNTimeDependentAssignment extends Assignment {
         }
       }
     } // Next odClass
-
-    // long end = System.currentTimeMillis();
-    // System.out.println("Duration : " + ((end - start) / 1000));
 
     // Transform the volumes into vehicles
     for (int i = 0; i < virtualNet.getNbTimeSlices(); i++) {

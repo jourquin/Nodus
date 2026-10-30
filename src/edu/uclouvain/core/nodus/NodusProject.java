@@ -2380,7 +2380,6 @@ public class NodusProject implements ShapeConstants {
       e1.printStackTrace();
     }
     // Add the project's directory to classpath
-    // oldClasspath = ClassPathHacker.getClassPath();
 
     // Test if this project has valid virtual network tables
     if (!isValidVirtualNetworkVersion()) {

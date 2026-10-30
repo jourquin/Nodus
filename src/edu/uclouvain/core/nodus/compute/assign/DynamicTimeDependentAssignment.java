@@ -70,8 +70,6 @@ public class DynamicTimeDependentAssignment extends Assignment {
       assignmentParameters.setDurationFunctions(true);
     }
 
-    // long start = System.currentTimeMillis();
-
     // Get the information about the time windows in the cost function
     Properties costFunctions = assignmentParameters.getCostFunctions();
 
@@ -146,16 +144,6 @@ public class DynamicTimeDependentAssignment extends Assignment {
     // Display console if needed
     if (assignmentParameters.isLogLostPaths()) {
       displayConsoleIfNeeded();
-      /*new NodusConsole(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
-      System.out.println(i18n.get(Assignment.class, "Lost_paths", "Lost paths:"));
-      System.out.println(
-          NodusC.DBF_GROUP
-              + ", "
-              + NodusC.DBF_ORIGIN
-              + ", "
-              + NodusC.DBF_DESTINATION
-              + ", "
-              + NodusC.DBF_QUANTITY);*/
     }
 
     // Force Garbage collector?
@@ -241,9 +229,6 @@ public class DynamicTimeDependentAssignment extends Assignment {
         }
       } // Next odClass
     } // Next time slice
-
-    // long end = System.currentTimeMillis();
-    // System.out.println("Duration : " + ((end - start) / 1000));
 
     // Transform the volumes in vehicles
     for (int i = 0; i < virtualNet.getNbTimeSlices(); i++) {

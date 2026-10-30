@@ -96,7 +96,6 @@ public class ProjectFilesTools implements ShapeConstants {
     int[] mandatoryLengths = null;
     int[] mandatoryDecimalCounts = null;
 
-    // NodusC nodusC = new NodusC(null);
     if (layerType == SHAPE_TYPE_POINT) {
       mandatoryNames = NodusC.NODES_MANDATORY_NAMES;
       mandatoryTypes = NodusC.NODES_MANDATORY_TYPES;

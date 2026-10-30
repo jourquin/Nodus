@@ -552,7 +552,6 @@ public class ScenariosDlg extends EscapeDialog {
 
     mainPanel.setLayout(mainPanelGridBagLayout);
 
-    // SwingTweaks.textPaneNimbusTweak(whereLabel);
     whereLabel.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_SQL);
     whereLabel.setHighlightCurrentLine(false);
     whereLabel.setEditable(false);

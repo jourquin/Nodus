@@ -477,8 +477,6 @@ public class VirtualNetwork {
       worker[i] = new CostParserWorker(queue);
     }
 
-    // long start = System.currentTimeMillis();
-
     // Add the works to the queue
     for (byte groupIndex = 0; groupIndex < getNbGroups(); groupIndex++) {
       CostParser costParser =
@@ -1137,7 +1135,6 @@ public class VirtualNetwork {
       }
     }
 
-    // System.out.println(nbVirtualNodes + " " + nbVirtualLinks);
     // End of generation
     nodusMapPanel.stopProgress();
     return true;
@@ -1202,10 +1199,8 @@ public class VirtualNetwork {
             }
           }
 
-          // if (vl.getBeginNode() != vlorigin) {
           current.setNext(new AdjacencyNode(vl.getEndVirtualNode()), groupIndex, vl);
           current = current.nextNode;
-          // }
         }
       }
     }
@@ -1368,11 +1363,6 @@ public class VirtualNetwork {
    * @return Value of the variable.
    */
   public double getValue(String varName, byte group, byte odClass) {
-
-    /* if (vnl == null) {
-      return Double.NaN;
-    }*/
-
     return CostParser.getValue(costFunctions, varName, scenario, group, odClass);
   }
 
@@ -1391,7 +1381,6 @@ public class VirtualNetwork {
   private void initializeNodeIndexMap() {
     nodeIndex = new HashMap<>(nbRealNodes);
 
-    // Double upperBoundCosts;
     int index = 0;
 
     for (int i = 0; i < nodesDbf.length; i++) {

@@ -476,7 +476,6 @@ public abstract class Assignment implements Runnable {
           JOptionPane.ERROR_MESSAGE);
 
       nodusProject.getNodusMapPanel().closeAndSaveState();
-      // System.exit(0);
     } finally {
       stopGarbageCollectionRunner();
       if (!success) {
@@ -565,7 +564,6 @@ public abstract class Assignment implements Runnable {
 
     ScriptRunner scriptRunner = new ScriptRunner(scriptFileName);
     scriptRunner.setVariable("nodusMapPanel", nodusMapPanel);
-    // scriptRunner.run(true);
 
     return scriptRunner.run(false);
   }
