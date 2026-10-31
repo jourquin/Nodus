@@ -42,8 +42,8 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
 /**
- * Utility that imports a CSV file into a database table. The table structure must already exist in
- * the database before the importation process and the imported file must be RFC4180 compliant.
+ * Imports RFC4180 CSV records. Headerless imports use an existing table's column positions. Header
+ * imports map names to an existing table or infer and create a new table.
  *
  * @author Bart Jourquin
  */
@@ -158,14 +158,14 @@ public class ImportCSV {
 
   /**
    * Imports the table which name is passed as parameter. The CSV file must be located in the
-   * project directory. The correspondent table structure (empty table) must exist in the database.
-   * If the table is not empty, all the existing records are removed before importation. This method
-   * returns true if the file was successfully imported.
+   * project directory. Headerless imports require an existing table. Header imports match columns
+   * by name, or infer a missing table from the complete file. A successful import replaces the
+   * existing contents; failed imports preserve them.
    *
    * @param project The Nodus project.
    * @param tableName The name of the table in xhich the file will be imported. The latest must have
    *     the same name.
-   * @param withHeader True to parse a file with a header record.
+   * @param withHeader True to map header names or infer a missing table.
    * @return boolean True on success.
    */
   public static boolean importTable(NodusProject project, String tableName, boolean withHeader) {
@@ -178,10 +178,21 @@ public class ImportCSV {
                 null, message, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE));
   }
 
-  /** Runs the import with an error reporter that can also be used without a desktop. */
-  static boolean importTable(
+  /**
+   * Runs an import with an error reporter usable by the SQL console and headless callers.
+   *
+   * @param project the destination project and source directory
+   * @param tableName the destination table and CSV basename
+   * @param withHeader true to map header names or infer a missing table
+   * @param reportError receives validation or database error messages
+   * @return true after the complete import has succeeded
+   */
+  public static boolean importTable(
       NodusProject project, String tableName, boolean withHeader, Consumer<String> reportError) {
 
+    if (withHeader) {
+      return CsvHeaderImport.importTable(project, tableName, reportError);
+    }
     int maxBatchSize = project.getSqlBatchSize();
 
     // Table must exist in order to know which structure it has
@@ -227,15 +238,7 @@ public class ImportCSV {
       }
 
       try (Reader in = new FileReader(fileName);
-          CSVParser records =
-              withHeader
-                  ? CSVFormat.RFC4180
-                      .builder()
-                      .setHeader()
-                      .setSkipHeaderRecord(true)
-                      .get()
-                      .parse(in)
-                  : CSVFormat.RFC4180.parse(in)) {
+          CSVParser records = CSVFormat.RFC4180.parse(in)) {
 
         boolean hasBatchSupport = JDBCUtils.hasBatchSupport();
         Iterator<CSVRecord> recordIterator = records.iterator();

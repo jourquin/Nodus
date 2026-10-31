@@ -602,6 +602,11 @@ first routes may differ from forward Dijkstra and can produce different subseque
   all four retained-ID policies. Checks final geometry, conflict boundaries, dry runs, save/reload,
   and one label refresh per layer per pass on a long corridor. These tests check behavior,
   not elapsed time.
+- `CsvHeaderImportTest`: header-based mapping and schema inference on H2/HSQLDB, including exact
+  decimals, large integers, leading-zero identifiers, booleans, mixed text, dates retained as text,
+  SQL NULLs, BOMs and quoted column names. Checks malformed records and headers, width/type/range
+  errors, changes between passes, batch fallback and constraint failures. Failed imports retain
+  existing data and earlier transactions; successful imports respect caller-owned transactions.
 - `ExcelIoTest`: real XLS/XLSX imports and exports on H2 and HSQLDB, bounded JDBC batch calls,
   drivers without batch support, rollback after earlier batches succeeded, Unicode and blank
   cells, streaming temporary-file cleanup on success/failure, and legacy row/column limits.

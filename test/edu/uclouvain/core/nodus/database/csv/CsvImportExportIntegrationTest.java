@@ -111,7 +111,7 @@ class CsvImportExportIntegrationTest {
             List.of("2", "first\r\nsecond", "-12.340000"),
             List.of("3", "東京", "0.000000"),
             List.of("4", " padded ", "1.250000"),
-            List.of("5", "", "2.500000")),
+            java.util.Arrays.asList("5", null, "2.500000")),
         rows());
     assertTrue(errors.isEmpty());
     assertTrue(database.connection.getAutoCommit());
@@ -135,6 +135,9 @@ class CsvImportExportIntegrationTest {
       assertTrue(ExportCSV.exportTable(database.project, "data", header));
       database.execute("DELETE FROM data");
       assertTrue(importCsv(header), errors.toString());
+      if (header) {
+        expected.set(4, java.util.Arrays.asList("5", null, "-1234567890123456789.123456"));
+      }
       assertEquals(expected, rows());
     }
     assertTrue(errors.isEmpty());
@@ -237,7 +240,8 @@ class CsvImportExportIntegrationTest {
         ResultSet result =
             statement.executeQuery("SELECT id, label, amount FROM data ORDER BY id")) {
       while (result.next()) {
-        rows.add(List.of(result.getString(1), result.getString(2), result.getString(3)));
+        rows.add(
+            java.util.Arrays.asList(result.getString(1), result.getString(2), result.getString(3)));
       }
     }
     return rows;

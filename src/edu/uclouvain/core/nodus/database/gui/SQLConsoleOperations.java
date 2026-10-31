@@ -327,8 +327,7 @@ final class SQLConsoleOperations {
                   "Source file not found or unreadable: {0}"),
               tableFile.getAbsolutePath()));
     }
-    if ((operation.equals(IMPORTCSV) || operation.equals(IMPORTCSVH))
-        && !JDBCUtils.tableExists(tableName)) {
+    if (operation.equals(IMPORTCSV) && !JDBCUtils.tableExists(tableName)) {
       return reportImportProblem(
           operation,
           MessageFormat.format(
@@ -374,9 +373,19 @@ final class SQLConsoleOperations {
     } else if (operation.equals(EXPORTCSVH)) {
       succeeded = ExportCSV.exportTable(nodusProject, tableName, true);
     } else if (operation.equals(IMPORTCSV)) {
-      succeeded = ImportCSV.importTable(nodusProject, tableName, false);
+      succeeded =
+          ImportCSV.importTable(
+              nodusProject,
+              tableName,
+              false,
+              message -> importError[0] = new java.sql.SQLException(message));
     } else if (operation.equals(IMPORTCSVH)) {
-      succeeded = ImportCSV.importTable(nodusProject, tableName, true);
+      succeeded =
+          ImportCSV.importTable(
+              nodusProject,
+              tableName,
+              true,
+              message -> importError[0] = new java.sql.SQLException(message));
     } else if (operation.equals(IMPORTXLS) || operation.equals(IMPORTXLSH)) {
       succeeded =
           ImportXLS.importTable(

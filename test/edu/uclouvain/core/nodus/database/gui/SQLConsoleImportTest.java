@@ -143,7 +143,7 @@ class SQLConsoleImportTest {
               assertFalse(rows.next());
             }
           });
-      if (format != Format.CSV && format != Format.CSVH) {
+      if (format != Format.CSV) {
         add(
             tests,
             format,
@@ -154,7 +154,7 @@ class SQLConsoleImportTest {
               assertEquals(0, console.prompts);
               assertRows(database, 42, "Imported");
             });
-      } else if (format == Format.CSV || format == Format.CSVH) {
+      } else if (format == Format.CSV) {
         add(
             tests,
             format,
@@ -168,6 +168,27 @@ class SQLConsoleImportTest {
             });
       }
     }
+    add(
+        tests,
+        Format.CSVH,
+        "headers map fields by name",
+        (console, database, folder) -> {
+          Files.writeString(folder.resolve("testdata.csv"), "label,num\nReordered,43\n");
+          console.answer = JOptionPane.YES_OPTION;
+          assertTrue(console.direct("importcsvh testdata"));
+          assertRows(database, 43, "Reordered");
+        });
+    add(
+        tests,
+        Format.CSVH,
+        "invalid CSV header is explained without a dialog",
+        (console, database, folder) -> {
+          Files.writeString(folder.resolve("testdata.csv"), "other,num\nBad,43\n");
+          console.answer = JOptionPane.YES_OPTION;
+          assertFalse(console.direct("importcsvh testdata"));
+          assertTrue(console.resultMessage.contains("LABEL"));
+          assertRows(database, 7, "Keep this row");
+        });
     return tests;
   }
 

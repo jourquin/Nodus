@@ -136,8 +136,8 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  * output of the SQL where statement performed on a shapefile.<br>
  * - IMPORTCSV tableName : Imports a CSV file. The related empty table must exist in the database.
  * <br>
- * - IMPORTCSVH tableName : Imports a CSV file, ignoring the first (header) line. The related empty
- * table must exists in the database.<br>
+ * - IMPORTCSVH tableName : Uses first-record column names to map an existing table or infer a new
+ * table from all records. Empty fields become SQL NULL.<br>
  * - IMPORTDBF tableName : Imports a DBF file.<br>
  * - IMPORTXLS / IMPORTXLSX tableName : Imports a sheet using DBF column descriptions, an existing
  * table, or an inferred schema with COL1, COL2, etc. column names.<br>

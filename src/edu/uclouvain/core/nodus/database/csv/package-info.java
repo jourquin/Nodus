@@ -23,11 +23,13 @@
  * CSV import and export for project database tables.
  *
  * <p>{@link edu.uclouvain.core.nodus.database.csv.ImportCSV} reads comma-separated records into an
- * existing table, with an option to skip a header row. {@link
+ * existing table by position, or maps columns by header name and infers missing tables. {@link
  * edu.uclouvain.core.nodus.database.csv.ExportCSV} writes table contents with optional column
  * headers and escaping for delimiters, quotes and line breaks.
  *
- * <p>The importer uses the destination table metadata for conversion. CSV data does not itself
- * create the destination schema.
+ * <p>Header imports inspect the entire file before loading a second pass into the existing table or
+ * a staging table. Inference preserves leading-zero identifiers, mixed values and dates as text,
+ * uses exact numeric types, and treats empty fields as SQL NULL. Existing table definitions and
+ * constraints remain authoritative. A changed file or failed import preserves existing data.
  */
 package edu.uclouvain.core.nodus.database.csv;
