@@ -25,8 +25,6 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.TableExport;
-import edu.uclouvain.core.nodus.tools.console.NodusConsole;
-import java.awt.GraphicsEnvironment;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -84,28 +82,22 @@ public class ExportXLS {
   /**
    * Keeps real serialization/closure inside staging, with injectable resources for failure tests.
    */
+  @SuppressWarnings("resource") // The project owns and closes the connection used by the writer.
   static boolean exportTable(
       NodusProject nodusProject,
       String tableName,
       boolean isXLSX,
       TableExport files,
       Supplier<Workbook> workbooks) {
-    return exportTable(nodusProject, tableName, isXLSX, files, workbooks, false);
-  }
-
-  private static boolean exportTable(
-      NodusProject nodusProject,
-      String tableName,
-      boolean isXLSX,
-      TableExport files,
-      Supplier<Workbook> workbooks,
-      boolean ods) {
     try {
+      if (!TableExport.hasSourceColumns(nodusProject.getMainJDBCConnection(), tableName)) {
+        return false;
+      }
       final Path target =
           Path.of(
               nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
                   + tableName
-                  + (ods ? NodusC.TYPE_ODS : isXLSX ? NodusC.TYPE_XLSX : NodusC.TYPE_XLS));
+                  + (isXLSX ? NodusC.TYPE_XLSX : NodusC.TYPE_XLS));
       files.write(
           target,
           output -> {
@@ -119,7 +111,6 @@ public class ExportXLS {
               Sheet sheet = wbs.createSheet(sheetName);
 
               // Browse table. Do not close the project-owned JDBC connection here.
-              @SuppressWarnings("resource") // The project owns and closes this connection.
               Connection con = nodusProject.getMainJDBCConnection();
 
               // Insert table structure in first row
@@ -191,18 +182,12 @@ public class ExportXLS {
                 }
               }
 
-              if (ods) {
-                OdsCodec.write(wbs, output);
-              } else {
-                wbs.write(output);
-              }
+              wbs.write(output);
             }
           });
     } catch (Exception e) {
-      if (!GraphicsEnvironment.isHeadless()) {
-        new NodusConsole();
-      }
-      e.printStackTrace();
+      // Match DBF exports: the caller reports failure without an additional window or dialog.
+      System.err.println(e.toString());
       return false;
     }
 
@@ -211,12 +196,6 @@ public class ExportXLS {
 
   /** Exports an OpenDocument spreadsheet with the same schema row as Excel exports. */
   public static boolean exportODS(NodusProject project, String table) {
-    return exportTable(
-        project,
-        table,
-        true,
-        new TableExport(),
-        org.apache.poi.xssf.usermodel.XSSFWorkbook::new,
-        true);
+    return ExportODS.exportTable(project, table);
   }
 }

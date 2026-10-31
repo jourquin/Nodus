@@ -30,6 +30,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.AclFileAttributeView;
 import java.nio.file.attribute.PosixFileAttributeView;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * Publishes a single export only after serialization and resource closure succeed. Staging uses a
@@ -40,6 +43,22 @@ import java.nio.file.attribute.PosixFileAttributeView;
 public class TableExport {
   /** Default constructor. */
   public TableExport() {}
+
+  /**
+   * Checks source columns before exporting, matching DBF's silent failure for absent tables. Column
+   * metadata also recognizes exportable views and uses exact table-name matching.
+   *
+   * @param connection caller-owned project connection
+   * @param tableName source table or view name
+   * @return whether source columns exist
+   * @throws SQLException if metadata cannot be read
+   */
+  public static boolean hasSourceColumns(Connection connection, String tableName)
+      throws SQLException {
+    try (ResultSet columns = JDBCUtils.getColumns(connection, tableName)) {
+      return columns.next();
+    }
+  }
 
   /** Fully serializes an export and closes its format/JDBC resources before returning. */
   @FunctionalInterface

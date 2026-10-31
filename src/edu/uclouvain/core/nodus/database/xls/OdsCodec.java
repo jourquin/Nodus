@@ -21,9 +21,11 @@
 
 package edu.uclouvain.core.nodus.database.xls;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.sql.ResultSet;
 import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -33,7 +35,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamWriter;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -53,8 +54,12 @@ final class OdsCodec {
 
   private OdsCodec() {}
 
-  static void write(Workbook book, OutputStream output) throws Exception {
-    try (ZipOutputStream zip = new ZipOutputStream(output)) {
+  /** Streams schema and JDBC rows into a compressed ODS package without building a workbook. */
+  static void write(
+      String sheetName, String[] headers, boolean[] numerical, ResultSet rows, OutputStream output)
+      throws Exception {
+    try (ZipOutputStream zip = new ZipOutputStream(output);
+        BufferedOutputStream content = new BufferedOutputStream(zip, 64 * 1024)) {
       ZipEntry mime = new ZipEntry("mimetype");
       mime.setMethod(ZipEntry.STORED);
       mime.setSize(MIME.length);
@@ -77,7 +82,7 @@ final class OdsCodec {
               .getBytes(java.nio.charset.StandardCharsets.UTF_8));
       zip.closeEntry();
       zip.putNextEntry(new ZipEntry("content.xml"));
-      XMLStreamWriter xml = XMLOutputFactory.newFactory().createXMLStreamWriter(zip, "UTF-8");
+      XMLStreamWriter xml = XMLOutputFactory.newFactory().createXMLStreamWriter(content, "UTF-8");
       xml.writeStartDocument("UTF-8", "1.0");
       xml.writeStartElement("office", "document-content", OFFICE);
       xml.writeNamespace("office", OFFICE);
@@ -87,43 +92,24 @@ final class OdsCodec {
       xml.writeStartElement("office", "body", OFFICE);
       xml.writeStartElement("office", "spreadsheet", OFFICE);
       xml.writeStartElement("table", "table", TABLE);
-      xml.writeAttribute("table", TABLE, "name", book.getSheetName(0));
-      for (Row row : book.getSheetAt(0)) {
-        xml.writeStartElement("table", "table-row", TABLE);
-        for (int i = 0; i < row.getLastCellNum(); i++) {
-          Cell cell = row.getCell(i);
-          xml.writeStartElement("table", "table-cell", TABLE);
-          if (cell != null && cell.getCellType() != CellType.BLANK) {
-            boolean numeric = cell.getCellType() == CellType.NUMERIC;
-            xml.writeAttribute("office", OFFICE, "value-type", numeric ? "float" : "string");
-            if (numeric) {
-              xml.writeAttribute(
-                  "office", OFFICE, "value", Double.toString(cell.getNumericCellValue()));
-            }
-            xml.writeStartElement("text", "p", TEXT);
-            if (numeric) {
-              xml.writeCharacters(Double.toString(cell.getNumericCellValue()));
-            } else {
-              // Explicit spaces preserve leading, repeated and trailing whitespace in ODF readers.
-              String value = cell.getStringCellValue();
-              for (int j = 0; j < value.length(); j++) {
-                char ch = value.charAt(j);
-                if (ch == ' ') {
-                  xml.writeEmptyElement("text", "s", TEXT);
-                } else if (ch == '\t') {
-                  xml.writeEmptyElement("text", "tab", TEXT);
-                } else if (ch == '\n') {
-                  xml.writeEmptyElement("text", "line-break", TEXT);
-                } else {
-                  xml.writeCharacters(String.valueOf(ch));
-                }
-              }
-            }
-            xml.writeEndElement();
-          }
-          xml.writeEndElement();
+      xml.writeAttribute("table", TABLE, "name", sheetName);
+      writeRow(xml, headers);
+      Object[] values = new Object[headers.length];
+      int rowCount = 1;
+      while (rows.next()) {
+        if (rowCount >= org.apache.poi.ss.SpreadsheetVersion.EXCEL2007.getMaxRows()) {
+          throw new IllegalArgumentException("ODS export exceeds the spreadsheet row limit");
         }
-        xml.writeEndElement();
+        for (int column = 0; column < headers.length; column++) {
+          if (numerical[column]) {
+            Object value = rows.getObject(column + 1);
+            values[column] = value instanceof Number ? value : null;
+          } else {
+            values[column] = rows.getString(column + 1);
+          }
+        }
+        writeRow(xml, values);
+        rowCount++;
       }
       xml.writeEndElement();
       xml.writeEndElement();
@@ -131,7 +117,76 @@ final class OdsCodec {
       xml.writeEndElement();
       xml.writeEndDocument();
       xml.flush();
+      content.flush();
+      xml.close();
       zip.closeEntry();
+    }
+  }
+
+  private static void writeRow(XMLStreamWriter xml, Object[] values) throws Exception {
+    xml.writeStartElement("table", "table-row", TABLE);
+    for (Object value : values) {
+      xml.writeStartElement("table", "table-cell", TABLE);
+      if (value != null) {
+        boolean numeric = value instanceof Number;
+        String text;
+        if (numeric) {
+          double number = ((Number) value).doubleValue();
+          if (!Double.isFinite(number)) {
+            throw new IllegalArgumentException("Non-finite spreadsheet numeric value");
+          }
+          text = Double.toString(number);
+        } else {
+          text = value.toString();
+          if (text.length() > org.apache.poi.ss.SpreadsheetVersion.EXCEL2007.getMaxTextLength()) {
+            throw new IllegalArgumentException("ODS cell text exceeds the spreadsheet limit");
+          }
+        }
+        xml.writeAttribute("office", OFFICE, "value-type", numeric ? "float" : "string");
+        if (numeric) {
+          xml.writeAttribute("office", OFFICE, "value", text);
+        }
+        xml.writeStartElement("text", "p", TEXT);
+        if (numeric) {
+          xml.writeCharacters(text);
+        } else {
+          writeText(xml, text);
+        }
+        xml.writeEndElement();
+      }
+      xml.writeEndElement();
+    }
+    xml.writeEndElement();
+  }
+
+  private static void writeText(XMLStreamWriter xml, String text) throws Exception {
+    // Write ordinary text in runs, preserving whitespace explicitly for ODF readers.
+    int start = 0;
+    for (int i = 0; i < text.length(); i++) {
+      char ch = text.charAt(i);
+      if (ch != ' ' && ch != '\t' && ch != '\n') {
+        continue;
+      }
+      if (start < i) {
+        xml.writeCharacters(text.substring(start, i));
+      }
+      if (ch == ' ') {
+        int end = i + 1;
+        while (end < text.length() && text.charAt(end) == ' ') {
+          end++;
+        }
+        xml.writeEmptyElement("text", "s", TEXT);
+        if (end - i > 1) {
+          xml.writeAttribute("text", TEXT, "c", Integer.toString(end - i));
+        }
+        i = end - 1;
+      } else {
+        xml.writeEmptyElement("text", ch == '\t' ? "tab" : "line-break", TEXT);
+      }
+      start = i + 1;
+    }
+    if (start < text.length()) {
+      xml.writeCharacters(text.substring(start));
     }
   }
 

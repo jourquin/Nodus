@@ -605,6 +605,9 @@ first routes may differ from forward Dijkstra and can produce different subseque
 - `ExcelIoTest`: real XLS/XLSX imports and exports on H2 and HSQLDB, bounded JDBC batch calls,
   drivers without batch support, rollback after earlier batches succeeded, Unicode and blank
   cells, streaming temporary-file cleanup on success/failure, and legacy row/column limits.
+- `OdsStreamingTest`: exports 900,000 numeric cells in a child JVM with a 64 MiB heap and
+  independently checks the generated XML. Also checks Excel-compatible schema rows, Unicode
+  and whitespace on H2/HSQLDB, and preservation of existing exports after file failures.
 - `ServiceRoutingIntegrationTest`: real service SQL definitions through virtual-network
   generation and assignment. Checks ordered links including a repeated-link detour,
   boarding/alighting only at stops, through travel, transfer permissions, and waiting/transfer

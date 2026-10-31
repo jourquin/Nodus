@@ -31,7 +31,9 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.DatabaseFixture;
 import edu.uclouvain.core.nodus.database.dbf.DBFReader;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -175,6 +177,100 @@ class SQLConsoleExportTest {
     return tests;
   }
 
+  @TestFactory
+  List<DynamicTest> missingTablesReportOnlyConsoleFailure() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (Format format : Format.values()) {
+      for (boolean hsql : new boolean[] {false, true}) {
+        for (boolean batch : new boolean[] {false, true}) {
+          for (boolean existingFile : new boolean[] {false, true}) {
+            String name =
+                format
+                    + " missing table: hsql="
+                    + hsql
+                    + ", batch="
+                    + batch
+                    + ", existingFile="
+                    + existingFile;
+            tests.add(
+                dynamicTest(
+                    name,
+                    () -> {
+                      Path folder = Files.createTempDirectory(directory, "missing-export-");
+                      try (DatabaseFixture database = new DatabaseFixture(folder, hsql);
+                          RecordingConsole console = new RecordingConsole(database.project)) {
+                        Path output = folder.resolve("testdata" + format.extension);
+                        if (existingFile) {
+                          Files.write(output, ORIGINAL);
+                        }
+                        console.answer = JOptionPane.YES_OPTION;
+                        PrintStream previousOut = System.out;
+                        PrintStream previousErr = System.err;
+                        ByteArrayOutputStream diagnostics = new ByteArrayOutputStream();
+                        try (PrintStream capture =
+                            new PrintStream(diagnostics, true, StandardCharsets.UTF_8)) {
+                          System.setOut(capture);
+                          System.setErr(capture);
+                          assertFalse(
+                              batch
+                                  ? console.runBatch(new String[] {format.command()})
+                                  : console.direct(format.command()));
+                        } finally {
+                          System.setOut(previousOut);
+                          System.setErr(previousErr);
+                        }
+                        String diagnostic = diagnostics.toString(StandardCharsets.UTF_8);
+                        assertFalse(diagnostic.contains("\tat "), diagnostic);
+                        assertFalse(diagnostic.contains("Caused by:"), diagnostic);
+                        assertFalse(diagnostic.contains("Exception"), diagnostic);
+                        assertFalse(diagnostic.contains("SQL statement:"), diagnostic);
+                        assertTrue(
+                            console.resultMessage.contains(format.name()), console.resultMessage);
+                        assertTrue(
+                            console.resultMessage.contains("testdata"), console.resultMessage);
+                        if (existingFile) {
+                          assertArrayEquals(ORIGINAL, Files.readAllBytes(output));
+                        } else {
+                          assertFalse(Files.exists(output));
+                        }
+                        try (java.util.stream.Stream<Path> files = Files.list(folder)) {
+                          assertEquals(existingFile ? 1 : 0, files.count());
+                        }
+                        assertFalse(database.connection.isClosed());
+                      }
+                    }));
+          }
+        }
+      }
+    }
+    return tests;
+  }
+
+  @TestFactory
+  List<DynamicTest> viewsRemainExportable() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (Format format : Format.values()) {
+      for (boolean hsql : new boolean[] {false, true}) {
+        tests.add(
+            dynamicTest(
+                format + " view: hsql=" + hsql,
+                () -> {
+                  Path folder = Files.createTempDirectory(directory, "view-export-");
+                  try (DatabaseFixture database = new DatabaseFixture(folder, hsql);
+                      RecordingConsole console = new RecordingConsole(database.project)) {
+                    database.execute("CREATE TABLE source_data (num INTEGER)");
+                    database.execute("INSERT INTO source_data VALUES (42)");
+                    database.execute("CREATE VIEW testdata AS SELECT num FROM source_data");
+                    assertTrue(console.direct(format.command()));
+                    format.assertExport(folder.resolve("testdata" + format.extension));
+                    assertFalse(database.connection.isClosed());
+                  }
+                }));
+      }
+    }
+    return tests;
+  }
+
   @Test
   void batchWorksWithoutAWindowAndLeavesTheProjectConnectionOpen() throws Exception {
     try (DatabaseFixture database = new DatabaseFixture(directory)) {
@@ -266,6 +362,7 @@ class SQLConsoleExportTest {
     private int prompts;
     private int answer = JOptionPane.NO_OPTION;
     private String message;
+    private String resultMessage;
 
     RecordingConsole(NodusProject project) {
       super(project, false);
@@ -274,6 +371,12 @@ class SQLConsoleExportTest {
     boolean direct(String command) {
       getSqlCommandArea().setText(command);
       return execute(false);
+    }
+
+    @Override
+    void displayMessageInResult(String head, String text) {
+      resultMessage = text;
+      super.displayMessageInResult(head, text);
     }
 
     @Override

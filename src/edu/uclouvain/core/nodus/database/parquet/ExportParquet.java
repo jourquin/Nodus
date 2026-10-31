@@ -25,7 +25,6 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.TableExport;
-import edu.uclouvain.core.nodus.database.TableImport;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
@@ -36,7 +35,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 import org.apache.parquet.conf.PlainParquetConfiguration;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.simple.SimpleGroupFactory;
@@ -58,30 +60,48 @@ public final class ExportParquet {
 
   /** Exports a complete table to tableName.parquet in the project directory. */
   public static boolean exportTable(NodusProject project, String tableName) {
+    return exportTable(project, tableName, new TableExport());
+  }
+
+  /** Keeps serialization and error reporting inside staging, with injectable output for tests. */
+  static boolean exportTable(NodusProject project, String tableName, TableExport files) {
     try {
+      if (!TableExport.hasSourceColumns(project.getMainJDBCConnection(), tableName)) {
+        return false;
+      }
       Path target =
           Path.of(
               project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
                   + tableName
                   + NodusC.TYPE_PARQUET);
-      new TableExport()
-          .write(
-              target,
-              output -> {
-                @SuppressWarnings("resource") // The project owns and closes this connection.
-                Connection connection = project.getMainJDBCConnection();
-                try (Statement statement = connection.createStatement();
-                    ResultSet rows =
-                        statement.executeQuery(
-                            "SELECT * FROM " + JDBCUtils.getQuotedCompliantIdentifier(tableName))) {
-                  write(rows, output);
-                }
-              });
+      files.write(
+          target,
+          output -> {
+            @SuppressWarnings("resource") // The project owns and closes this connection.
+            Connection connection = project.getMainJDBCConnection();
+            try (Statement statement = connection.createStatement();
+                ResultSet rows =
+                    statement.executeQuery(
+                        "SELECT * FROM " + JDBCUtils.getQuotedCompliantIdentifier(tableName))) {
+              write(rows, output);
+            }
+          });
       return true;
     } catch (Exception error) {
-      TableImport.reportError(error);
+      // Match DBF exports: the caller reports failure without an additional window or dialog.
+      System.err.println(describeFailure(error));
       return false;
     }
+  }
+
+  /** Keeps wrapped stream failures visible without printing a stack trace or opening a dialog. */
+  private static String describeFailure(Exception error) {
+    Throwable cause = error;
+    Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+    while (cause.getCause() != null && seen.add(cause)) {
+      cause = cause.getCause();
+    }
+    return cause == error ? error.toString() : error + " (cause: " + cause + ")";
   }
 
   /** Serializes without taking ownership of the JDBC result set or caller's output stream. */

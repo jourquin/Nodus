@@ -84,6 +84,9 @@ public class ExportCSV {
         project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_CSV;
 
     try {
+      if (!TableExport.hasSourceColumns(project.getMainJDBCConnection(), tableName)) {
+        return false;
+      }
       files.write(
           Path.of(fileName),
           output -> {
