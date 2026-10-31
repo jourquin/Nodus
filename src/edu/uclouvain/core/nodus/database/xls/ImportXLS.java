@@ -193,13 +193,21 @@ public class ImportXLS {
         true);
   }
 
+  // Workbooks and streams are closed here; the borrowed JDBC connection belongs to the project.
+  @SuppressWarnings("resource")
   private static boolean importFile(
       NodusProject nodusProject, String tableName, String fileName, boolean ods) {
     if (!new File(fileName).exists()) {
       return false;
     }
     try (InputStream input = new FileInputStream(fileName);
-        Workbook workbook = ods ? OdsCodec.read(input) : WorkbookFactory.create(input)) {
+        Workbook workbook =
+            ods
+                ? new org.apache.poi.xssf.usermodel.XSSFWorkbook()
+                : WorkbookFactory.create(input)) {
+      if (ods) {
+        OdsCodec.read(input, workbook);
+      }
       String schema = getCreateTableStatement(workbook, tableName);
       int batchSize = nodusProject.getSqlBatchSize();
       if (schema != null) {

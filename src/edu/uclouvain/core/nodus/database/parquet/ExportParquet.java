@@ -29,6 +29,7 @@ import edu.uclouvain.core.nodus.database.TableImport;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -67,7 +68,9 @@ public final class ExportParquet {
           .write(
               target,
               output -> {
-                try (Statement statement = project.getMainJDBCConnection().createStatement();
+                @SuppressWarnings("resource") // The project owns and closes this connection.
+                Connection connection = project.getMainJDBCConnection();
+                try (Statement statement = connection.createStatement();
                     ResultSet rows =
                         statement.executeQuery(
                             "SELECT * FROM " + JDBCUtils.getQuotedCompliantIdentifier(tableName))) {
@@ -151,7 +154,9 @@ public final class ExportParquet {
       }
       org.apache.parquet.schema.Types.PrimitiveBuilder<PrimitiveType> builder =
           org.apache.parquet.schema.Types.optional(physical);
-      if (logical != null) builder.as(logical);
+      if (logical != null) {
+        builder.as(logical);
+      }
       fields.add(builder.named(metadata.getColumnName(i)));
     }
     MessageType schema = new MessageType("nodus", fields);
@@ -204,12 +209,14 @@ public final class ExportParquet {
             .withConf(new PlainParquetConfiguration())
             .withCodecFactory(new ParquetCodecs())
             .withCompressionCodec(CompressionCodecName.GZIP)
-            .withRowGroupSize(16 * 1024 * 1024)
+            .withRowGroupSize(16L * 1024 * 1024)
             .build()) {
       while (rows.next()) {
         Group group = groups.newGroup();
         for (int i = 1; i <= metadata.getColumnCount(); i++) {
-          if (rows.getObject(i) == null) continue;
+          if (rows.getObject(i) == null) {
+            continue;
+          }
           int c = i - 1;
           switch (metadata.getColumnType(i)) {
             case Types.BOOLEAN:
@@ -246,14 +253,16 @@ public final class ExportParquet {
               break;
             case Types.TIME:
               java.time.LocalTime time = rows.getObject(i, java.time.LocalTime.class);
-              if (time.getNano() % 1000 != 0)
+              if (time.getNano() % 1000 != 0) {
                 throw new SQLException("Sub-microsecond TIME unsupported");
+              }
               group.add(c, time.toNanoOfDay() / 1000);
               break;
             case Types.TIMESTAMP:
               java.time.LocalDateTime ts = rows.getObject(i, java.time.LocalDateTime.class);
-              if (ts.getNano() % 1000 != 0)
+              if (ts.getNano() % 1000 != 0) {
                 throw new SQLException("Sub-microsecond TIMESTAMP unsupported");
+              }
               group.add(
                   c,
                   Math.addExact(

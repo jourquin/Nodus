@@ -21,14 +21,19 @@
 
 package edu.uclouvain.core.nodus.database;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.uclouvain.core.nodus.database.parquet.ExportParquet;
 import edu.uclouvain.core.nodus.database.sql.NodusSQLTokenMaker;
 import edu.uclouvain.core.nodus.database.xls.ExportXLS;
 import edu.uclouvain.core.nodus.database.xls.ImportXLS;
-import java.nio.file.*;
-import java.sql.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import javax.swing.text.Segment;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.example.data.Group;
@@ -47,9 +52,13 @@ class NewTableFormatsTest {
   void parquetPreservesTypesNullsAndLargeIntegers() throws Exception {
     try (DatabaseFixture db = new DatabaseFixture(directory)) {
       db.execute(
-          "CREATE TABLE data (id BIGINT, amount DECIMAL(20,4), label VARCHAR(30), d DATE, flag BOOLEAN)");
+          (("CREATE TABLE data (id BIGINT, amount DECIMAL(20,4), label VA"
+              + ""
+              + "RCHAR(30), d DATE, flag BOOLEAN)")));
       db.execute(
-          "INSERT INTO data VALUES (9007199254740993, 1234567890123456.7890, 'été', DATE '2026-10-30', TRUE)");
+          (("INSERT INTO data VALUES (9007199254740993, 1234567890123456."
+              + ""
+              + "7890, 'été', DATE '2026-10-30', TRUE)")));
       db.execute("INSERT INTO data VALUES (NULL,NULL,NULL,NULL,NULL)");
       assertTrue(ExportParquet.exportTable(db.project, "data"));
       try (ParquetReader<Group> reader =
@@ -67,7 +76,9 @@ class NewTableFormatsTest {
         assertEquals(java.time.LocalDate.of(2026, 10, 30).toEpochDay(), row.getInteger(3, 0));
         assertTrue(row.getBoolean(4, 0));
         row = reader.read();
-        for (int i = 0; i < 5; i++) assertEquals(0, row.getFieldRepetitionCount(i));
+        for (int i = 0; i < 5; i++) {
+          assertEquals(0, row.getFieldRepetitionCount(i));
+        }
         assertNull(reader.read());
       }
       assertFalse(db.connection.isClosed());

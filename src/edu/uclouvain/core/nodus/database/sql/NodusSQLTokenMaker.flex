@@ -39,6 +39,9 @@ import org.fife.ui.rsyntaxtextarea.*;
  *   <li>You should also change the declaration/definition of zzBuffer to NOT
  *       be initialized.  This is a needless memory allocation for us since we
  *       will be pointing the array somewhere else anyway.</li>
+ *   <li>Remove the unused generated fields ZZ_BUFFERSIZE, zzPushbackPos, yyline,
+ *       yychar, yycolumn and zzAtBOL after generation; the line-based scanner does
+ *       not use them.</li>
  *   <li>You should NOT call <code>yylex()</code> on the generated scanner
  *       directly; rather, you should use <code>getTokenList</code> as you would
  *       with any other <code>TokenMaker</code> instance.</li>
@@ -211,10 +214,10 @@ import org.fife.ui.rsyntaxtextarea.*;
 		//zzStartRead = zzEndRead = s.offset;
 		zzStartRead = s.offset;
 		zzEndRead = zzStartRead + s.count - 1;
-		zzCurrentPos = zzMarkedPos = zzPushbackPos = s.offset;
+		zzCurrentPos = zzMarkedPos = s.offset;
 		zzLexicalState = YYINITIAL;
 		zzReader = reader;
-		zzAtBOL  = true;
+
 		zzAtEOF  = false;
 	}
 

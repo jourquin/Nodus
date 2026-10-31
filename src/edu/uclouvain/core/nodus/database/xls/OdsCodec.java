@@ -37,7 +37,6 @@ import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -68,9 +67,12 @@ final class OdsCodec {
       zip.putNextEntry(new ZipEntry("META-INF/manifest.xml"));
       zip.write(
           ("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-                  + "<manifest:manifest xmlns:manifest=\"urn:oasis:names:tc:opendocument:xmlns:manifest:1.0\" manifest:version=\"1.2\">"
-                  + "<manifest:file-entry manifest:full-path=\"/\" manifest:media-type=\"application/vnd.oasis.opendocument.spreadsheet\"/>"
-                  + "<manifest:file-entry manifest:full-path=\"content.xml\" manifest:media-type=\"text/xml\"/>"
+                  + ("<manifest:manifest xmlns:manifest=\"urn:oasis:names:tc:opend"
+                      + "ocument:xmlns:manifest:1.0\" manifest:version=\"1.2\">")
+                  + ("<manifest:file-entry manifest:full-path=\"/\" manifest:media"
+                      + "-type=\"application/vnd.oasis.opendocument.spreadsheet\"/>")
+                  + ("<manifest:file-entry manifest:full-path=\"content.xml\" mani"
+                      + "fest:media-type=\"text/xml\"/>")
                   + "</manifest:manifest>")
               .getBytes(java.nio.charset.StandardCharsets.UTF_8));
       zip.closeEntry();
@@ -94,20 +96,27 @@ final class OdsCodec {
           if (cell != null && cell.getCellType() != CellType.BLANK) {
             boolean numeric = cell.getCellType() == CellType.NUMERIC;
             xml.writeAttribute("office", OFFICE, "value-type", numeric ? "float" : "string");
-            if (numeric)
+            if (numeric) {
               xml.writeAttribute(
                   "office", OFFICE, "value", Double.toString(cell.getNumericCellValue()));
+            }
             xml.writeStartElement("text", "p", TEXT);
-            if (numeric) xml.writeCharacters(Double.toString(cell.getNumericCellValue()));
-            else {
+            if (numeric) {
+              xml.writeCharacters(Double.toString(cell.getNumericCellValue()));
+            } else {
               // Explicit spaces preserve leading, repeated and trailing whitespace in ODF readers.
               String value = cell.getStringCellValue();
               for (int j = 0; j < value.length(); j++) {
                 char ch = value.charAt(j);
-                if (ch == ' ') xml.writeEmptyElement("text", "s", TEXT);
-                else if (ch == '\t') xml.writeEmptyElement("text", "tab", TEXT);
-                else if (ch == '\n') xml.writeEmptyElement("text", "line-break", TEXT);
-                else xml.writeCharacters(String.valueOf(ch));
+                if (ch == ' ') {
+                  xml.writeEmptyElement("text", "s", TEXT);
+                } else if (ch == '\t') {
+                  xml.writeEmptyElement("text", "tab", TEXT);
+                } else if (ch == '\n') {
+                  xml.writeEmptyElement("text", "line-break", TEXT);
+                } else {
+                  xml.writeCharacters(String.valueOf(ch));
+                }
               }
             }
             xml.writeEndElement();
@@ -126,15 +135,20 @@ final class OdsCodec {
     }
   }
 
-  static Workbook read(InputStream input) throws Exception {
+  /** Fills the caller-owned workbook; the caller closes it on success or failure. */
+  static void read(InputStream input, Workbook book) throws Exception {
     Document document = null;
     try (ZipInputStream zip = new ZipInputStream(input)) {
       ZipEntry entry;
       while ((entry = zip.getNextEntry()) != null) {
-        if (!entry.getName().equals("content.xml")) continue;
+        if (!entry.getName().equals("content.xml")) {
+          continue;
+        }
         // Bound decompressed XML before DOM allocation; never resolve external entities.
         byte[] xml = zip.readNBytes(64 * 1024 * 1024 + 1);
-        if (xml.length > 64 * 1024 * 1024) throw new IOException("ODS content exceeds 64 MiB");
+        if (xml.length > 64 * 1024 * 1024) {
+          throw new IOException("ODS content exceeds 64 MiB");
+        }
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);
         factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
@@ -144,89 +158,106 @@ final class OdsCodec {
         break;
       }
     }
-    if (document == null) throw new IOException("ODS has no content.xml");
+    if (document == null) {
+      throw new IOException("ODS has no content.xml");
+    }
     NodeList tables = document.getElementsByTagNameNS(TABLE, "table");
-    if (tables.getLength() == 0) throw new IOException("ODS has no sheet");
-    Workbook book = new XSSFWorkbook();
-    try {
-      Sheet sheet = book.createSheet("data");
-      NodeList rows = ((Element) tables.item(0)).getElementsByTagNameNS(TABLE, "table-row");
-      int lastDataRow = rows.getLength() - 1;
-      while (lastDataRow >= 0) {
-        Element row = (Element) rows.item(lastDataRow);
-        if (hasValue(row)
-            || row.getElementsByTagNameNS(TEXT, "p").getLength() > 0
-            || repeat(row, "number-rows-repeated", 1048576) == 1) break;
-        lastDataRow--;
+    if (tables.getLength() == 0) {
+      throw new IOException("ODS has no sheet");
+    }
+    Sheet sheet = book.createSheet("data");
+    NodeList rows = ((Element) tables.item(0)).getElementsByTagNameNS(TABLE, "table-row");
+    int lastDataRow = rows.getLength() - 1;
+    while (lastDataRow >= 0) {
+      Element row = (Element) rows.item(lastDataRow);
+      if (hasValue(row)
+          || row.getElementsByTagNameNS(TEXT, "p").getLength() > 0
+          || repeat(row, "number-rows-repeated", 1048576) == 1) {
+        break;
       }
-      int rowIndex = 0;
-      long cells = 0;
-      for (int r = 0; r <= lastDataRow; r++) {
-        Element source = (Element) rows.item(r);
-        int repeatRows = repeat(source, "number-rows-repeated", 1048576);
-        if ((long) rowIndex + repeatRows > 1048576) throw new IOException("Too many ODS rows");
-        for (int n = 0; n < repeatRows; n++) {
-          Row row = sheet.createRow(rowIndex++);
-          int col = 0;
-          for (Node node = source.getFirstChild(); node != null; node = node.getNextSibling()) {
-            if (!(node instanceof Element) || !TABLE.equals(node.getNamespaceURI())) continue;
-            Element cell = (Element) node;
-            if (!cell.getLocalName().equals("table-cell")
-                && !cell.getLocalName().equals("covered-table-cell")) continue;
-            int count = repeat(cell, "number-columns-repeated", 16384);
-            if ((long) col + count > 16384) throw new IOException("Too many ODS columns");
-            String type = cell.getAttributeNS(OFFICE, "value-type");
-            if (type.isEmpty()) {
-              if (cell.hasAttributeNS(TABLE, "formula"))
-                throw new IOException("ODS formula has no cached result");
-              col += count;
-              continue;
+      lastDataRow--;
+    }
+    int rowIndex = 0;
+    long cells = 0;
+    for (int r = 0; r <= lastDataRow; r++) {
+      Element source = (Element) rows.item(r);
+      int repeatRows = repeat(source, "number-rows-repeated", 1048576);
+      if ((long) rowIndex + repeatRows > 1048576) {
+        throw new IOException("Too many ODS rows");
+      }
+      for (int n = 0; n < repeatRows; n++) {
+        Row row = sheet.createRow(rowIndex++);
+        int col = 0;
+        for (Node node = source.getFirstChild(); node != null; node = node.getNextSibling()) {
+          if (!(node instanceof Element) || !TABLE.equals(node.getNamespaceURI())) {
+            continue;
+          }
+          Element cell = (Element) node;
+          if (!cell.getLocalName().equals("table-cell")
+              && !cell.getLocalName().equals("covered-table-cell")) {
+            continue;
+          }
+          int count = repeat(cell, "number-columns-repeated", 16384);
+          if ((long) col + count > 16384) {
+            throw new IOException("Too many ODS columns");
+          }
+          String type = cell.getAttributeNS(OFFICE, "value-type");
+          if (type.isEmpty()) {
+            if (cell.hasAttributeNS(TABLE, "formula")) {
+              throw new IOException("ODS formula has no cached result");
             }
-            cells += count;
-            if (cells > 2000000) throw new IOException("ODS exceeds two million populated cells");
-            for (int c = 0; c < count; c++) {
-              Cell target = row.createCell(col++);
-              if (type.equals("float") || type.equals("currency") || type.equals("percentage")) {
-                target.setCellValue(Double.parseDouble(cell.getAttributeNS(OFFICE, "value")));
-              } else if (type.equals("boolean")) {
-                target.setCellValue(cell.getAttributeNS(OFFICE, "boolean-value"));
-              } else if (type.equals("date") || type.equals("time")) {
-                target.setCellValue(cell.getAttributeNS(OFFICE, type + "-value"));
-              } else {
-                StringBuilder value = new StringBuilder();
-                NodeList paragraphs = cell.getElementsByTagNameNS(TEXT, "p");
-                for (int p = 0; p < paragraphs.getLength(); p++) {
-                  if (p > 0) value.append('\n');
-                  appendText(paragraphs.item(p), value);
+            col += count;
+            continue;
+          }
+          cells += count;
+          if (cells > 2000000) {
+            throw new IOException("ODS exceeds two million populated cells");
+          }
+          for (int c = 0; c < count; c++) {
+            Cell target = row.createCell(col++);
+            if (type.equals("float") || type.equals("currency") || type.equals("percentage")) {
+              target.setCellValue(Double.parseDouble(cell.getAttributeNS(OFFICE, "value")));
+            } else if (type.equals("boolean")) {
+              target.setCellValue(cell.getAttributeNS(OFFICE, "boolean-value"));
+            } else if (type.equals("date") || type.equals("time")) {
+              target.setCellValue(cell.getAttributeNS(OFFICE, type + "-value"));
+            } else {
+              StringBuilder value = new StringBuilder();
+              NodeList paragraphs = cell.getElementsByTagNameNS(TEXT, "p");
+              for (int p = 0; p < paragraphs.getLength(); p++) {
+                if (p > 0) {
+                  value.append('\n');
                 }
-                target.setCellValue(
-                    paragraphs.getLength() == 0
-                        ? cell.getAttributeNS(OFFICE, "string-value")
-                        : value.toString());
+                appendText(paragraphs.item(p), value);
               }
+              target.setCellValue(
+                  paragraphs.getLength() == 0
+                      ? cell.getAttributeNS(OFFICE, "string-value")
+                      : value.toString());
             }
           }
         }
       }
-      return book;
-    } catch (Exception failure) {
-      book.close();
-      throw failure;
     }
   }
 
   private static boolean hasValue(Element row) {
     NodeList cells = row.getElementsByTagNameNS(TABLE, "table-cell");
-    for (int i = 0; i < cells.getLength(); i++)
+    for (int i = 0; i < cells.getLength(); i++) {
       if (((Element) cells.item(i)).hasAttributeNS(OFFICE, "value-type")
-          || ((Element) cells.item(i)).hasAttributeNS(TABLE, "formula")) return true;
+          || ((Element) cells.item(i)).hasAttributeNS(TABLE, "formula")) {
+        return true;
+      }
+    }
     return false;
   }
 
   private static int repeat(Element element, String attribute, int maximum) throws IOException {
     String value = element.getAttributeNS(attribute.equals("c") ? TEXT : TABLE, attribute);
     int count = value.isEmpty() ? 1 : Integer.parseInt(value);
-    if (count < 1 || count > maximum) throw new IOException("Invalid ODS repetition");
+    if (count < 1 || count > maximum) {
+      throw new IOException("Invalid ODS repetition");
+    }
     return count;
   }
 
@@ -250,7 +281,8 @@ final class OdsCodec {
           break;
       }
     }
-    for (Node child = node.getFirstChild(); child != null; child = child.getNextSibling())
+    for (Node child = node.getFirstChild(); child != null; child = child.getNextSibling()) {
       appendText(child, value);
+    }
   }
 }

@@ -81,17 +81,6 @@ public class ExportXLS {
         () -> isXLSX ? new SXSSFWorkbook(null, ROW_WINDOW, true, false) : new HSSFWorkbook());
   }
 
-  /** Exports an OpenDocument spreadsheet with the same schema row as Excel exports. */
-  public static boolean exportODS(NodusProject project, String table) {
-    return exportTable(
-        project,
-        table,
-        true,
-        new TableExport(),
-        org.apache.poi.xssf.usermodel.XSSFWorkbook::new,
-        true);
-  }
-
   /**
    * Keeps real serialization/closure inside staging, with injectable resources for failure tests.
    */
@@ -130,6 +119,7 @@ public class ExportXLS {
               Sheet sheet = wbs.createSheet(sheetName);
 
               // Browse table. Do not close the project-owned JDBC connection here.
+              @SuppressWarnings("resource") // The project owns and closes this connection.
               Connection con = nodusProject.getMainJDBCConnection();
 
               // Insert table structure in first row
@@ -217,5 +207,16 @@ public class ExportXLS {
     }
 
     return true;
+  }
+
+  /** Exports an OpenDocument spreadsheet with the same schema row as Excel exports. */
+  public static boolean exportODS(NodusProject project, String table) {
+    return exportTable(
+        project,
+        table,
+        true,
+        new TableExport(),
+        org.apache.poi.xssf.usermodel.XSSFWorkbook::new,
+        true);
   }
 }

@@ -72,7 +72,9 @@ final class ParquetCodecs implements CompressionCodecFactory {
     return new BytesInputDecompressor() {
       @Override
       public BytesInput decompress(BytesInput input, int size) throws IOException {
-        if (size < 0 || size > MAX_PAGE_SIZE) throw new IOException("Parquet page exceeds 64 MiB");
+        if (size < 0 || size > MAX_PAGE_SIZE) {
+          throw new IOException("Parquet page exceeds 64 MiB");
+        }
         InputStream raw = input.toInputStream();
         try (InputStream decoded =
             codec == CompressionCodecName.GZIP
@@ -81,7 +83,9 @@ final class ParquetCodecs implements CompressionCodecFactory {
                     ? new SnappyCompressorInputStream(raw)
                     : raw) {
           byte[] bytes = decoded.readNBytes(size + 1);
-          if (bytes.length != size) throw new IOException("Incorrect Parquet page size");
+          if (bytes.length != size) {
+            throw new IOException("Incorrect Parquet page size");
+          }
           return BytesInput.from(bytes);
         }
       }
@@ -89,11 +93,14 @@ final class ParquetCodecs implements CompressionCodecFactory {
       @Override
       public void decompress(ByteBuffer input, int compressedSize, ByteBuffer output, int size)
           throws IOException {
-        if (compressedSize < 0 || compressedSize > input.remaining())
+        if (compressedSize < 0 || compressedSize > input.remaining()) {
           throw new IOException("Invalid compressed Parquet page size");
+        }
         byte[] bytes = new byte[compressedSize];
         input.get(bytes);
-        output.put(decompress(BytesInput.from(bytes), size).toByteArray());
+        try (InputStream decoded = decompress(BytesInput.from(bytes), size).toInputStream()) {
+          output.put(decoded.readNBytes(size));
+        }
       }
 
       @Override

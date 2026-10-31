@@ -21,7 +21,11 @@
 
 package edu.uclouvain.core.nodus.database.parquet;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.uclouvain.core.nodus.Nodus;
 import edu.uclouvain.core.nodus.database.DatabaseFixture;
@@ -74,7 +78,9 @@ class ParquetRuntimeTest {
       assertTrue(child.waitFor(40, TimeUnit.SECONDS), "Runtime export timed out");
       assertEquals(0, child.exitValue(), Files.readString(log));
     } finally {
-      if (child.isAlive()) child.destroyForcibly();
+      if (child.isAlive()) {
+        child.destroyForcibly();
+      }
     }
     try (ParquetReader<Group> reader = reader("data")) {
       Group row = reader.read();
@@ -97,7 +103,9 @@ class ParquetRuntimeTest {
       assertEquals(-3.5, row.getDouble(9, 0));
       row = reader.read();
       assertNotNull(row);
-      for (int i = 0; i < 10; i++) assertEquals(0, row.getFieldRepetitionCount(i));
+      for (int i = 0; i < 10; i++) {
+        assertEquals(0, row.getFieldRepetitionCount(i));
+      }
       assertNull(reader.read());
     }
     try (ParquetReader<Group> reader = reader("emptydata")) {
@@ -139,7 +147,10 @@ class ParquetRuntimeTest {
                 if (codec == org.apache.parquet.hadoop.metadata.CompressionCodecName.SNAPPY) {
                   // Valid raw Snappy with a literal-only block; no native compression test
                   // dependency.
-                  byte[] bytes = input.toByteArray();
+                  byte[] bytes;
+                  try (java.io.InputStream raw = input.toInputStream()) {
+                    bytes = raw.readAllBytes();
+                  }
                   int remaining = bytes.length;
                   while (remaining >= 128) {
                     output.write((remaining & 127) | 128);
@@ -148,15 +159,20 @@ class ParquetRuntimeTest {
                   output.write(remaining);
                   if (bytes.length > 0) {
                     int length = bytes.length - 1;
-                    if (length < 60) output.write(length << 2);
-                    else {
+                    if (length < 60) {
+                      output.write(length << 2);
+                    } else {
                       int count = (32 - Integer.numberOfLeadingZeros(length) + 7) / 8;
                       output.write((59 + count) << 2);
-                      for (int i = 0; i < count; i++) output.write(length >>> (8 * i));
+                      for (int i = 0; i < count; i++) {
+                        output.write(length >>> (8 * i));
+                      }
                     }
                     output.write(bytes);
                   }
-                } else input.writeAllTo(output);
+                } else {
+                  input.writeAllTo(output);
+                }
                 return org.apache.parquet.bytes.BytesInput.from(output.toByteArray());
               }
 

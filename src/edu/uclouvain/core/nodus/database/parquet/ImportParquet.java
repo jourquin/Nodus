@@ -109,14 +109,18 @@ public final class ImportParquet {
     List<Column> columns = new ArrayList<>();
     Set<String> names = new HashSet<>();
     for (Type field : schema.getFields()) {
-      if (!field.isPrimitive() || field.isRepetition(Type.Repetition.REPEATED))
+      if (!field.isPrimitive() || field.isRepetition(Type.Repetition.REPEATED)) {
         throw new SQLException(
             "Nested/repeated Parquet field is not a table column: " + field.getName());
-      if (!names.add(field.getName().toUpperCase(Locale.ROOT)))
+      }
+      if (!names.add(field.getName().toUpperCase(Locale.ROOT))) {
         throw new SQLException("Duplicate Parquet column name: " + field.getName());
+      }
       columns.add(new Column(field.asPrimitiveType()));
     }
-    if (columns.isEmpty()) throw new SQLException("Parquet schema contains no columns");
+    if (columns.isEmpty()) {
+      throw new SQLException("Parquet schema contains no columns");
+    }
     return columns;
   }
 
@@ -130,11 +134,12 @@ public final class ImportParquet {
       throws Exception {
     String quoted = JDBCUtils.getQuotedCompliantIdentifier(table);
     List<String> definitions = new ArrayList<>();
-    for (Column column : columns)
+    for (Column column : columns) {
       definitions.add(
           JDBCUtils.getQuotedCompliantIdentifier(column.type.getName())
               + " "
               + storageType(connection, column.sqlType));
+    }
     try (Statement statement = connection.createStatement()) {
       statement.execute("CREATE TABLE " + quoted + " (" + String.join(",", definitions) + ")");
     }
@@ -150,7 +155,9 @@ public final class ImportParquet {
           RecordReader<Group> records = io.getRecordReader(group, new GroupRecordConverter(schema));
           for (long row = 0; row < group.getRowCount(); row++) {
             Group record = records.read();
-            if (record == null) throw new SQLException("Unexpected end of Parquet row group");
+            if (record == null) {
+              throw new SQLException("Unexpected end of Parquet row group");
+            }
             for (int c = 0; c < columns.size(); c++) {
               Object value =
                   record.getFieldRepetitionCount(c) == 0 ? null : columns.get(c).value(record, c);
@@ -162,18 +169,24 @@ public final class ImportParquet {
                 insert.executeBatch();
                 pending = 0;
               }
-            } else insert.executeUpdate();
+            } else {
+              insert.executeUpdate();
+            }
           }
         }
       }
-      if (pending > 0) insert.executeBatch();
+      if (pending > 0) {
+        insert.executeBatch();
+      }
     }
   }
 
   /** Uses driver type names for long text/binary columns (for example TEXT or BYTEA). */
   private static String storageType(Connection connection, String type) throws SQLException {
     boolean text = type.equals("LONGVARCHAR");
-    if (!text && !type.equals("LONGVARBINARY")) return type;
+    if (!text && !type.equals("LONGVARBINARY")) {
+      return type;
+    }
     int[] preferred =
         text
             ? new int[] {java.sql.Types.LONGVARCHAR, java.sql.Types.VARCHAR}
@@ -184,16 +197,23 @@ public final class ImportParquet {
       String sized = null;
       try (java.sql.ResultSet types = connection.getMetaData().getTypeInfo()) {
         while (types.next()) {
-          if (types.getInt("DATA_TYPE") != jdbcType) continue;
+          if (types.getInt("DATA_TYPE") != jdbcType) {
+            continue;
+          }
           String name = types.getString("TYPE_NAME");
           String parameters = types.getString("CREATE_PARAMS");
-          if (parameters == null || parameters.isEmpty()) return name;
+          if (parameters == null || parameters.isEmpty()) {
+            return name;
+          }
           long precision = types.getLong("PRECISION");
-          if (precision > 0 && sized == null)
+          if (precision > 0 && sized == null) {
             sized = name + "(" + Math.min(precision, 16777216L) + ")";
+          }
         }
       }
-      if (sized != null) return sized;
+      if (sized != null) {
+        return sized;
+      }
     }
     throw new SQLException("Database does not report a storage type for " + type);
   }
@@ -216,8 +236,9 @@ public final class ImportParquet {
       } else if (logical instanceof DateLogicalTypeAnnotation) {
         sqlType = "DATE";
       } else if (logical instanceof TimeLogicalTypeAnnotation) {
-        if (((TimeLogicalTypeAnnotation) logical).isAdjustedToUTC())
+        if (((TimeLogicalTypeAnnotation) logical).isAdjustedToUTC()) {
           throw new SQLException("UTC-adjusted Parquet TIME is unsupported: " + type.getName());
+        }
         sqlType = "TIME(9)";
       } else if (logical instanceof TimestampLogicalTypeAnnotation) {
         sqlType =
@@ -282,9 +303,12 @@ public final class ImportParquet {
       }
       if (logical instanceof StringLogicalTypeAnnotation
           || logical instanceof EnumLogicalTypeAnnotation
-          || logical instanceof JsonLogicalTypeAnnotation) return row.getString(c, 0);
-      if (logical instanceof DateLogicalTypeAnnotation)
+          || logical instanceof JsonLogicalTypeAnnotation) {
+        return row.getString(c, 0);
+      }
+      if (logical instanceof DateLogicalTypeAnnotation) {
         return LocalDate.ofEpochDay(row.getInteger(c, 0));
+      }
       if (logical instanceof TimeLogicalTypeAnnotation) {
         TimeLogicalTypeAnnotation time = (TimeLogicalTypeAnnotation) logical;
         long value =

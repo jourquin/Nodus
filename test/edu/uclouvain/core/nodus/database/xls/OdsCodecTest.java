@@ -21,12 +21,18 @@
 
 package edu.uclouvain.core.nodus.database.xls;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.zip.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 
 class OdsCodecTest {
@@ -53,12 +59,20 @@ class OdsCodecTest {
     String xml =
         PREFIX
             + "<table:table-row table:number-rows-repeated=\"2\">"
-            + "<table:table-cell office:value-type=\"string\"><text:p>été<text:s text:c=\"3\"/>rail<text:tab/>x<text:line-break/>y</text:p></table:table-cell>"
-            + "<table:table-cell table:number-columns-repeated=\"2\" office:value-type=\"float\" office:value=\"42\" table:formula=\"of:=21*2\"/>"
+            + ("<table:table-cell office:value-type=\"string\"><text:p>été<t"
+                + "ext:s text:c=\"3\"/>rail<text:tab/>x<text:line-break/>y</tex"
+                + "t:p></table:table-cell>")
+            + ("<table:table-cell table:number-columns-repeated=\"2\" office"
+                + ":value-type=\"float\" office:value=\"42\" table:formula=\"of"
+                + ":=21*2\"/>")
             + "</table:table-row>"
-            + "<table:table-row table:number-rows-repeated=\"1048574\"><table:table-cell table:number-columns-repeated=\"16384\"/></table:table-row>"
+            + ("<table:table-row table:number-rows-repeated=\"1048574\"><tab"
+                + "le:table-cell table:number-columns-repeated=\"16384\"/></tab"
+                + "le:table-row>")
             + SUFFIX;
-    try (Workbook book = OdsCodec.read(ods(xml))) {
+    try (Workbook book = new XSSFWorkbook();
+        InputStream input = ods(xml)) {
+      OdsCodec.read(input, book);
       assertEquals(1, book.getSheetAt(0).getLastRowNum());
       assertEquals(
           "été   rail\tx\ny", book.getSheetAt(0).getRow(1).getCell(0).getStringCellValue());
@@ -68,30 +82,39 @@ class OdsCodecTest {
 
   @Test
   void retainsExplicitEmptyDataRows() throws Exception {
-    try (Workbook book =
-        OdsCodec.read(
-            ods(PREFIX + "<table:table-row><table:table-cell/></table:table-row>" + SUFFIX))) {
+    String xml = PREFIX + "<table:table-row><table:table-cell/></table:table-row>" + SUFFIX;
+    try (Workbook book = new XSSFWorkbook();
+        InputStream input = ods(xml)) {
+      OdsCodec.read(input, book);
       assertEquals(1, book.getSheetAt(0).getPhysicalNumberOfRows());
     }
   }
 
   @Test
   void rejectsExternalEntitiesAndUncachedFormulas() throws Exception {
-    assertThrows(
-        Exception.class,
-        () ->
-            OdsCodec.read(
-                ods(
-                    "<!DOCTYPE office:document-content [<!ENTITY xxe SYSTEM 'file:///etc/passwd'>]>"
-                        + PREFIX
-                        + SUFFIX)));
-    assertThrows(
-        IOException.class,
-        () ->
-            OdsCodec.read(
-                ods(
-                    PREFIX
-                        + "<table:table-row><table:table-cell table:formula=\"of:=1+1\"><text:p/></table:table-cell></table:table-row>"
-                        + SUFFIX)));
+    try (Workbook book = new XSSFWorkbook()) {
+      assertThrows(
+          Exception.class,
+          () ->
+              OdsCodec.read(
+                  ods(
+                      ("<!DOCTYPE office:document-content [<!ENTITY xxe SYSTEM 'file"
+                              + ":///etc/passwd'>]>")
+                          + PREFIX
+                          + SUFFIX),
+                  book));
+    }
+    try (Workbook book = new XSSFWorkbook()) {
+      assertThrows(
+          IOException.class,
+          () ->
+              OdsCodec.read(
+                  ods(
+                      PREFIX
+                          + "<table:table-row><table:table-cell table:formula=\"of:=1+1\"><text:p/>"
+                          + "</table:table-cell></table:table-row>"
+                          + SUFFIX),
+                  book));
+    }
   }
 }
