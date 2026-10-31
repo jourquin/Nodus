@@ -5,6 +5,11 @@ excluded from the installer and normal runtime classpath. The API is needed by
 `javac` to resolve overloads in Apache Parquet's public API. The client runtime is
 needed by the standard Apache Parquet reader used in tests.
 
+Test readers and fixture writers use Parquet's local-file APIs with
+`PlainParquetConfiguration`. This avoids Hadoop filesystem authentication, which
+calls `Subject.getSubject` and fails on recent JDKs, while retaining the standard
+Apache reader as an independent check of Nodus exports.
+
 Nodus exports use `PlainParquetConfiguration` and a JDK GZIP codec, without loading
 Hadoop or parquet-floor at runtime. Imports use `LocalInputFile`, Parquet's row-group
 reader, and local GZIP/Snappy/uncompressed decoders. `NodusReadOptions` is a small

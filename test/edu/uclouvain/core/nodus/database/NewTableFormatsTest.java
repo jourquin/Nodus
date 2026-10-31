@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.uclouvain.core.nodus.database.parquet.ExportParquet;
+import edu.uclouvain.core.nodus.database.parquet.LocalParquetReader;
 import edu.uclouvain.core.nodus.database.sql.NodusSQLTokenMaker;
 import edu.uclouvain.core.nodus.database.xls.ExportXLS;
 import edu.uclouvain.core.nodus.database.xls.ImportXLS;
@@ -35,10 +36,8 @@ import java.nio.file.Path;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import javax.swing.text.Segment;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.hadoop.ParquetReader;
-import org.apache.parquet.hadoop.example.GroupReadSupport;
 import org.fife.ui.rsyntaxtextarea.Token;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -62,11 +61,7 @@ class NewTableFormatsTest {
       db.execute("INSERT INTO data VALUES (NULL,NULL,NULL,NULL,NULL)");
       assertTrue(ExportParquet.exportTable(db.project, "data"));
       try (ParquetReader<Group> reader =
-          ParquetReader.builder(
-                  new GroupReadSupport(),
-                  new org.apache.hadoop.fs.Path(directory.resolve("data.parquet").toUri()))
-              .withConf(new Configuration())
-              .build()) {
+          new LocalParquetReader(directory.resolve("data.parquet")).build()) {
         Group row = reader.read();
         assertEquals(9007199254740993L, row.getLong(0, 0));
         assertEquals(

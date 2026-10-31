@@ -1079,5 +1079,6 @@ the JARs under `lib/`, matching the installed library layout. The child asserts
 that Hadoop and parquet-floor are absent, exports/imports typed/null/empty tables on both embedded engines, and checks
 that failed exports/imports preserve existing data. It also reads Snappy and
 uncompressed fixtures with unsigned and nanosecond timestamp columns. The parent uses the
-standard Apache reader to verify every exported value. Hadoop development JARs
+standard Apache reader with local-file input to verify every exported value without
+Hadoop filesystem authentication (including on Java 25 and 27). Hadoop development JARs
 in `devtools/parquet/` remain on the parent test/compile classpath only.

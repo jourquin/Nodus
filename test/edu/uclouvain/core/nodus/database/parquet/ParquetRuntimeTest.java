@@ -39,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.hadoop.ParquetReader;
-import org.apache.parquet.hadoop.example.GroupReadSupport;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -198,10 +197,10 @@ class ParquetRuntimeTest {
         }) {
       try (org.apache.parquet.hadoop.ParquetWriter<Group> writer =
           org.apache.parquet.hadoop.example.ExampleParquetWriter.builder(
-                  new org.apache.hadoop.fs.Path(
-                      directory
-                          .resolve(codec.name().toLowerCase(java.util.Locale.ROOT) + ".parquet")
-                          .toUri()))
+                  new org.apache.parquet.io.LocalOutputFile(
+                      directory.resolve(
+                          codec.name().toLowerCase(java.util.Locale.ROOT) + ".parquet")))
+              .withConf(new org.apache.parquet.conf.PlainParquetConfiguration())
               .withType(schema)
               .withCompressionCodec(codec)
               .withCodecFactory(codecs)
@@ -220,9 +219,6 @@ class ParquetRuntimeTest {
   }
 
   private ParquetReader<Group> reader(String name) throws Exception {
-    return ParquetReader.builder(
-            new GroupReadSupport(),
-            new org.apache.hadoop.fs.Path(directory.resolve(name + ".parquet").toUri()))
-        .build();
+    return new LocalParquetReader(directory.resolve(name + ".parquet")).build();
   }
 }
