@@ -26,7 +26,7 @@ Nodus 9 (first build on October 13, 2026)
 For Nodus 9.x, modal choice plugin source code needs updated imports, but Nodus offers to convert eligible Nodus 8.x modal-choice JARs without recompilation.
 
 Release history:
-- Nodus 9.1 (first build on November 6, 2026) is a performance and reliability update, with a improved A* shortest path algorithm.
+- Nodus 9.1 (first build on XXXXXXXX) is a performance and reliability update, with a improved A* shortest path algorithm.
 
 
 The [changelog](changelog.md) lists the improvements made to the software.

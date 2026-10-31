@@ -121,7 +121,15 @@ class NewTableFormatsTest {
   @Test
   void lexerRecognizesNewCommandsIgnoringCase() {
     for (String command :
-        new String[] {"exportparquet", "IMPORTPARQUET", "EXPORTODS", "ImportODS"}) {
+        new String[] {
+          "exportparquet",
+          "IMPORTPARQUET",
+          "EXPORTODS",
+          "ImportODS",
+          "importxlsh",
+          "IMPORTXLSXH",
+          "ImportODSH"
+        }) {
       char[] text = (command + " data").toCharArray();
       Token token =
           new NodusSQLTokenMaker().getTokenList(new Segment(text, 0, text.length), Token.NULL, 0);

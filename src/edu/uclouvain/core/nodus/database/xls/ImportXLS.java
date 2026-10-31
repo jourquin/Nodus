@@ -21,7 +21,6 @@
 
 package edu.uclouvain.core.nodus.database.xls;
 
-import com.bbn.openmap.Environment;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
@@ -31,24 +30,19 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.Iterator;
-import java.util.StringTokenizer;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
+import java.util.function.Consumer;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 /**
- * Imports a .xls(x) file into a database table. The table structure must already exist in the
- * database before the importation process, unless the first row of the sheet contains the format of
- * each column, following the DBF standard.
+ * Imports spreadsheet data using a DBF schema row, an existing table, or an inferred schema.
+ * Ordinary headers can be selected explicitly; otherwise new columns are named COL1, COL2, etc.
  *
  * @author Bart Jourquin
  */
@@ -70,109 +64,12 @@ public class ImportXLS {
   }
 
   /**
-   * Builds the CREATE TABLE statement described by the first row of the Excel sheet, or returns
-   * null if the row does not use the DBF-style schema syntax.
-   */
-  private static String getCreateTableStatement(Workbook wb, String tableName) {
-    try {
-      // Get the first sheet
-      Sheet sheet = wb.getSheetAt(0);
-
-      Iterator<Row> rows = sheet.rowIterator();
-      if (!rows.hasNext()) {
-        return null;
-      }
-
-      Row row = rows.next();
-      if (row == null) {
-        return null;
-      }
-
-      // Parse first row
-      StringBuilder sqlStmt = new StringBuilder("CREATE TABLE ");
-      sqlStmt.append(JDBCUtils.getQuotedCompliantIdentifier(tableName)).append(" (");
-      Iterator<Cell> cells = row.cellIterator();
-      if (!cells.hasNext()) {
-        return null;
-      }
-
-      while (cells.hasNext()) {
-        Cell cell = cells.next();
-        if (cell.getCellType() != CellType.STRING) {
-          return null;
-        }
-
-        String content = cell.getStringCellValue();
-        // The content must have 3 or four tokens
-        StringTokenizer st = new StringTokenizer(content, ",");
-        int nbTokens = st.countTokens();
-        if (nbTokens != 3 && nbTokens != 4) {
-          return null;
-        }
-
-        // First token is the name of the field
-        final String fieldName = st.nextToken().trim();
-
-        // Second is the type of data. Must be N(umeric) or C(haracters)
-        String fieldType = st.nextToken().trim();
-        if (!fieldType.equalsIgnoreCase("N") && !fieldType.equalsIgnoreCase("C")) {
-          return null;
-        }
-
-        if (fieldType.equalsIgnoreCase("N") && nbTokens == 3) {
-          return null;
-        }
-
-        if (fieldType.equalsIgnoreCase("C") && nbTokens == 4) {
-          return null;
-        }
-
-        // Third is length. Must be a strictly positive number
-        int fieldLength = Integer.parseInt(st.nextToken());
-        if (fieldLength <= 0) {
-          return null;
-        }
-
-        // Fourth is precision
-        int fieldPrecision = 0;
-        if (nbTokens == 4) {
-          fieldPrecision = Integer.parseInt(st.nextToken());
-          if (fieldPrecision < 0) {
-            return null;
-          }
-        }
-
-        sqlStmt.append(JDBCUtils.getQuotedCompliantIdentifier(fieldName));
-        if (fieldType.equalsIgnoreCase("N")) {
-          sqlStmt
-              .append(" NUMERIC(")
-              .append(fieldLength)
-              .append(',')
-              .append(fieldPrecision)
-              .append(')');
-        } else {
-          sqlStmt.append(" VARCHAR(").append(fieldLength).append(')');
-        }
-
-        if (cells.hasNext()) {
-          sqlStmt.append(',');
-        } else {
-          sqlStmt.append(')');
-        }
-      }
-
-      return sqlStmt.toString();
-    } catch (NumberFormatException e) {
-      return null;
-    }
-  }
-
-  /**
    * Imports the table which name is passed as parameter. The XLSor XLSX file must be located in the
-   * project directory. The table must exist unless the first row of the sheet contains the field
-   * descriptions in the DBF format. A successful import replaces the existing contents; failed
-   * imports preserve them. Schema-bearing imports are staged before replacing the table (see {@link
-   * TableImport}). This method returns true if the file was successfully imported.
+   * project directory. A DBF schema row defines a replacement table. Otherwise an existing table
+   * supplies the schema, or the complete sheet is inspected to infer a new table. A successful
+   * import replaces the existing contents; failed imports preserve them. Schema-bearing imports are
+   * staged before replacing the table (see {@link TableImport}). This method returns true if the
+   * file was successfully imported.
    *
    * @param nodusProject The Nodus project.
    * @param tableName The name of the table. Must be the same as the XLS(X) file name, without its
@@ -181,22 +78,63 @@ public class ImportXLS {
    * @return True on success.
    */
   public static boolean importTable(NodusProject nodusProject, String tableName, boolean isXLSX) {
-    return importFile(nodusProject, tableName, getFileName(nodusProject, tableName, isXLSX), false);
+    return importTable(nodusProject, tableName, isXLSX, false, TableImport::reportError);
+  }
+
+  /**
+   * Imports Excel data, optionally using ordinary column names in the first row.
+   *
+   * @param project the destination project and source directory
+   * @param table the destination table and source basename
+   * @param xlsx true for XLSX, false for XLS
+   * @param header true to use ordinary first-row column names
+   * @param reportError receives validation or database failures
+   * @return true after all rows have been imported successfully
+   */
+  public static boolean importTable(
+      NodusProject project,
+      String table,
+      boolean xlsx,
+      boolean header,
+      Consumer<Exception> reportError) {
+    return importFile(
+        project, table, getFileName(project, table, xlsx), false, header, reportError);
   }
 
   /** Imports the first ODS sheet using the existing Excel schema and transaction rules. */
   public static boolean importODS(NodusProject project, String table) {
+    return importODS(project, table, false, TableImport::reportError);
+  }
+
+  /**
+   * Imports ODS data, optionally using ordinary column names in the first row.
+   *
+   * @param project the destination project and source directory
+   * @param table the destination table and source basename
+   * @param header true to use ordinary first-row column names
+   * @param reportError receives validation or database failures
+   * @return true after all rows have been imported successfully
+   */
+  public static boolean importODS(
+      NodusProject project, String table, boolean header, Consumer<Exception> reportError) {
     return importFile(
         project,
         table,
         project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + table + NodusC.TYPE_ODS,
-        true);
+        true,
+        header,
+        reportError);
   }
 
   // Workbooks and streams are closed here; the borrowed JDBC connection belongs to the project.
   @SuppressWarnings("resource")
   private static boolean importFile(
-      NodusProject nodusProject, String tableName, String fileName, boolean ods) {
+      NodusProject nodusProject,
+      String tableName,
+      String fileName,
+      boolean ods,
+      boolean header,
+      Consumer<Exception> reportError) {
     if (!new File(fileName).exists()) {
       return false;
     }
@@ -208,28 +146,24 @@ public class ImportXLS {
       if (ods) {
         OdsCodec.read(input, workbook);
       }
-      String schema = getCreateTableStatement(workbook, tableName);
+      if (workbook.getNumberOfSheets() == 0) {
+        throw new SQLException("Spreadsheet has no sheet");
+      }
+      Sheet sheet = workbook.getSheetAt(0);
+      Connection connection = nodusProject.getMainJDBCConnection();
+      SpreadsheetImportPlan plan = SpreadsheetImportPlan.read(connection, tableName, sheet, header);
       int batchSize = nodusProject.getSqlBatchSize();
-      if (schema != null) {
+      if (plan.replacement) {
         TableImport.replace(
             nodusProject,
             tableName,
-            (connection, staged) -> {
-              try (Statement statement = connection.createStatement()) {
-                statement.execute(getCreateTableStatement(workbook, staged));
+            (stagingConnection, staged) -> {
+              try (Statement statement = stagingConnection.createStatement()) {
+                statement.execute(plan.createStatement(staged));
               }
-              fillTable(connection, staged, workbook.getSheetAt(0), true, batchSize);
+              fillTable(stagingConnection, staged, sheet, plan, batchSize);
             });
       } else {
-        if (!JDBCUtils.tableExists(tableName)) {
-          throw new SQLException(
-              Environment.getI18n()
-                  .get(
-                      ImportXLS.class,
-                      "Table_structure_must_exist_before_importing_XLS_data",
-                      "Table structure must exist before importing XLS data"));
-        }
-        Connection connection = nodusProject.getMainJDBCConnection();
         boolean autoCommit = connection.getAutoCommit();
         boolean restoreAutoCommit = autoCommit;
         Savepoint savepoint = null;
@@ -242,7 +176,7 @@ public class ImportXLS {
             statement.executeUpdate(
                 "DELETE FROM " + JDBCUtils.getQuotedCompliantIdentifier(tableName));
           }
-          fillTable(connection, tableName, workbook.getSheetAt(0), false, batchSize);
+          fillTable(connection, tableName, sheet, plan, batchSize);
           if (autoCommit) {
             connection.commit();
           } else {
@@ -268,7 +202,7 @@ public class ImportXLS {
       }
       return true;
     } catch (Exception error) {
-      TableImport.reportError(error);
+      reportError.accept(error);
       return false;
     }
   }
@@ -277,35 +211,27 @@ public class ImportXLS {
    * Reuses the opened sheet and bounds queued JDBC rows without committing intermediate batches.
    */
   private static void fillTable(
-      Connection connection, String table, Sheet sheet, boolean hasSchema, int batchSize)
+      Connection connection, String table, Sheet sheet, SpreadsheetImportPlan plan, int batchSize)
       throws SQLException {
     String quoted = JDBCUtils.getQuotedCompliantIdentifier(table);
-    int[] types;
-    try (Statement statement = connection.createStatement();
-        ResultSet rows = statement.executeQuery("SELECT * FROM " + quoted + " WHERE 1=0")) {
-      ResultSetMetaData metadata = rows.getMetaData();
-      types = new int[metadata.getColumnCount()];
-      for (int i = 0; i < types.length; i++) {
-        types[i] = metadata.getColumnType(i + 1);
-      }
-    }
-    String placeholders = String.join(",", java.util.Collections.nCopies(types.length, "?"));
+    String placeholders = String.join(",", java.util.Collections.nCopies(plan.columns.size(), "?"));
     try (PreparedStatement statement =
         connection.prepareStatement("INSERT INTO " + quoted + " VALUES (" + placeholders + ")")) {
       Iterator<Row> rows = sheet.rowIterator();
-      if (hasSchema && rows.hasNext()) {
-        rows.next();
-      }
       boolean batchSupported = connection.getMetaData().supportsBatchUpdates();
       int pending = 0;
       while (rows.hasNext()) {
         Row row = rows.next();
-        for (int i = 0; i < types.length; i++) {
-          Cell cell = row.getCell(i, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
-          if (types[i] == java.sql.Types.CHAR || types[i] == java.sql.Types.VARCHAR) {
-            statement.setString(i + 1, cell == null ? "" : cell.getStringCellValue());
+        if (row.getRowNum() < plan.firstDataRow) {
+          continue;
+        }
+        for (int i = 0; i < plan.columns.size(); i++) {
+          SpreadsheetImportPlan.Column column = plan.columns.get(i);
+          Object value = column.value(row);
+          if (value == null) {
+            statement.setNull(i + 1, column.type);
           } else {
-            statement.setDouble(i + 1, cell == null ? 0 : cell.getNumericCellValue());
+            statement.setObject(i + 1, value);
           }
         }
         if (batchSupported) {

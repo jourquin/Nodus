@@ -143,7 +143,7 @@ class SQLConsoleImportTest {
               assertFalse(rows.next());
             }
           });
-      if (format == Format.DBF || format == Format.XLS || format == Format.XLSX) {
+      if (format != Format.CSV && format != Format.CSVH) {
         add(
             tests,
             format,
@@ -294,6 +294,9 @@ class SQLConsoleImportTest {
     XLS("IMPORTXLS", ".xls"),
     XLSX("IMPORTXLSX", ".xlsx"),
     ODS("IMPORTODS", ".ods"),
+    XLSH("IMPORTXLSH", ".xls"),
+    XLSXH("IMPORTXLSXH", ".xlsx"),
+    ODSH("IMPORTODSH", ".ods"),
     PARQUET("IMPORTPARQUET", ".parquet"),
     XLS_WITHOUT_SCHEMA("IMPORTXLS", ".xls"),
     XLSX_WITHOUT_SCHEMA("IMPORTXLSX", ".xlsx");
@@ -320,18 +323,47 @@ class SQLConsoleImportTest {
         assertTrue(
             edu.uclouvain.core.nodus.database.parquet.ExportParquet.exportTable(
                 database.project, "testdata"));
+      } else if (this == ODSH) {
+        String xml =
+            "<office:document-content "
+                + "xmlns:office=\"urn:oasis:names:tc:opendocument:xmlns:office:1.0\" "
+                + "xmlns:table=\"urn:oasis:names:tc:opendocument:xmlns:table:1.0\" "
+                + "xmlns:text=\"urn:oasis:names:tc:opendocument:xmlns:text:1.0\">"
+                + "<table:table><table:table-row>"
+                + "<table:table-cell office:value-type=\"string\">"
+                + "<text:p>NUM</text:p></table:table-cell>"
+                + "<table:table-cell office:value-type=\"string\">"
+                + "<text:p>LABEL</text:p></table:table-cell>"
+                + "</table:table-row><table:table-row>"
+                + "<table:table-cell office:value-type=\"float\" office:value=\"42\"/>"
+                + "<table:table-cell office:value-type=\"string\">"
+                + "<text:p>Imported</text:p></table:table-cell>"
+                + "</table:table-row></table:table></office:document-content>";
+        try (var zip =
+            new java.util.zip.ZipOutputStream(
+                Files.newOutputStream(folder.resolve("testdata.ods")))) {
+          zip.putNextEntry(new java.util.zip.ZipEntry("content.xml"));
+          zip.write(xml.getBytes(StandardCharsets.UTF_8));
+          zip.closeEntry();
+        }
       } else if (this == ODS) {
         assertTrue(ExportXLS.exportODS(database.project, "testdata"));
       } else if (this == XLS || this == XLSX) {
         assertTrue(ExportXLS.exportTable(database.project, "testdata", this == XLSX));
       } else {
-        boolean xlsx = this == XLSX_WITHOUT_SCHEMA;
+        boolean xlsx = this == XLSX_WITHOUT_SCHEMA || this == XLSXH;
         try (Workbook workbook = xlsx ? new XSSFWorkbook() : new HSSFWorkbook();
             OutputStream output =
                 Files.newOutputStream(folder.resolve("testdata" + (xlsx ? ".xlsx" : ".xls")))) {
           Sheet sheet = workbook.createSheet();
-          sheet.createRow(0).createCell(0).setCellValue(42);
-          sheet.getRow(0).createCell(1).setCellValue("Imported");
+          int firstData = 0;
+          if (this == XLSH || this == XLSXH) {
+            sheet.createRow(0).createCell(0).setCellValue("NUM");
+            sheet.getRow(0).createCell(1).setCellValue("LABEL");
+            firstData = 1;
+          }
+          sheet.createRow(firstData).createCell(0).setCellValue(42);
+          sheet.getRow(firstData).createCell(1).setCellValue("Imported");
           workbook.write(output);
         }
       }

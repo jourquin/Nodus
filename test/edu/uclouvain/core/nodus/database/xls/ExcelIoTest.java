@@ -92,7 +92,7 @@ class ExcelIoTest {
                                     assertEquals(
                                         List.of(
                                             "1:L'été 東京",
-                                            "2:",
+                                            "2:null",
                                             "3:L'été 東京",
                                             "4:L'été 東京",
                                             "5:L'été 東京"),

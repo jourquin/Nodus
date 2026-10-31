@@ -20,14 +20,16 @@
  */
 
 /**
- * Excel workbook import and export for project database tables.
+ * Spreadsheet import and export for project database tables.
  *
  * <p>{@link edu.uclouvain.core.nodus.database.xls.ImportXLS} and {@link
  * edu.uclouvain.core.nodus.database.xls.ExportXLS} use Apache POI to exchange table data in XLS or
- * XLSX format.
+ * XLSX format, with a ZIP/XML codec for ODS.
  *
- * <p>Imports use an existing table unless the first worksheet row supplies the DBF-style field
- * definitions needed to create one. The classes implement database-table interchange rather than a
- * general spreadsheet editing API.
+ * <p>Imports honor DBF-style schema rows, validate against existing tables, or infer a new table
+ * from the complete sheet. Explicit header modes use column names and map them to existing tables;
+ * headerless imports use column positions, with COL1, COL2, etc. for new tables. Blank cells become
+ * SQL NULL. The classes implement database-table interchange rather than general spreadsheet
+ * editing.
  */
 package edu.uclouvain.core.nodus.database.xls;

@@ -45,6 +45,7 @@ final class SQLConsoleOperations {
   static final String IMPORTPARQUET = "IMPORTPARQUET";
   static final String EXPORTODS = "EXPORTODS";
   static final String IMPORTODS = "IMPORTODS";
+  static final String IMPORTODSH = "IMPORTODSH";
 
   static final String EXPORTCSV = "EXPORTCSV";
 
@@ -65,8 +66,10 @@ final class SQLConsoleOperations {
   static final String IMPORTDBF = "IMPORTDBF";
 
   static final String IMPORTXLS = "IMPORTXLS";
+  static final String IMPORTXLSH = "IMPORTXLSH";
 
   static final String IMPORTXLSX = "IMPORTXLSX";
+  static final String IMPORTXLSXH = "IMPORTXLSXH";
 
   private static final I18n i18n = Environment.getI18n();
   private static final String NL = System.lineSeparator();
@@ -346,6 +349,8 @@ final class SQLConsoleOperations {
     }
 
     boolean succeeded = false;
+    Exception[] importError = {null};
+    java.util.function.Consumer<Exception> report = error -> importError[0] = error;
 
     if (operation.equals(EXPORTPARQUET)) {
       succeeded =
@@ -357,8 +362,9 @@ final class SQLConsoleOperations {
               nodusProject, tableName);
     } else if (operation.equals(EXPORTODS)) {
       succeeded = ExportXLS.exportODS(nodusProject, tableName);
-    } else if (operation.equals(IMPORTODS)) {
-      succeeded = ImportXLS.importODS(nodusProject, tableName);
+    } else if (operation.equals(IMPORTODS) || operation.equals(IMPORTODSH)) {
+      succeeded =
+          ImportXLS.importODS(nodusProject, tableName, operation.equals(IMPORTODSH), report);
     } else if (operation.equals(EXPORTDBF)) {
       succeeded = ExportDBF.exportTable(nodusProject, tableName);
     } else if (operation.equals(IMPORTDBF)) {
@@ -371,16 +377,23 @@ final class SQLConsoleOperations {
       succeeded = ImportCSV.importTable(nodusProject, tableName, false);
     } else if (operation.equals(IMPORTCSVH)) {
       succeeded = ImportCSV.importTable(nodusProject, tableName, true);
-    } else if (operation.equals(IMPORTXLS)) {
-      succeeded = ImportXLS.importTable(nodusProject, tableName, false);
+    } else if (operation.equals(IMPORTXLS) || operation.equals(IMPORTXLSH)) {
+      succeeded =
+          ImportXLS.importTable(
+              nodusProject, tableName, false, operation.equals(IMPORTXLSH), report);
     } else if (operation.equals(EXPORTXLS)) {
       succeeded = ExportXLS.exportTable(nodusProject, tableName, false);
-    } else if (operation.equals(IMPORTXLSX)) {
-      succeeded = ImportXLS.importTable(nodusProject, tableName, true);
+    } else if (operation.equals(IMPORTXLSX) || operation.equals(IMPORTXLSXH)) {
+      succeeded =
+          ImportXLS.importTable(
+              nodusProject, tableName, true, operation.equals(IMPORTXLSXH), report);
     } else if (operation.equals(EXPORTXLSX)) {
       succeeded = ExportXLS.exportTable(nodusProject, tableName, true);
     }
 
+    if (!succeeded && importError[0] != null) {
+      return reportImportProblem(operation, importError[0].getMessage());
+    }
     String g = "";
     if (succeeded) {
       g =
@@ -425,6 +438,7 @@ final class SQLConsoleOperations {
         break;
       case EXPORTODS:
       case IMPORTODS:
+      case IMPORTODSH:
         extension = NodusC.TYPE_ODS;
         break;
       case EXPORTDBF:
@@ -439,10 +453,12 @@ final class SQLConsoleOperations {
         break;
       case EXPORTXLS:
       case IMPORTXLS:
+      case IMPORTXLSH:
         extension = NodusC.TYPE_XLS;
         break;
       case EXPORTXLSX:
       case IMPORTXLSX:
+      case IMPORTXLSXH:
         extension = NodusC.TYPE_XLSX;
         break;
       default:

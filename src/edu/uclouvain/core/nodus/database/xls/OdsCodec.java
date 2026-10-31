@@ -220,7 +220,13 @@ final class OdsCodec {
     if (tables.getLength() == 0) {
       throw new IOException("ODS has no sheet");
     }
-    Sheet sheet = book.createSheet("data");
+    final Sheet sheet = book.createSheet("data");
+    org.apache.poi.ss.usermodel.CellStyle dateStyle = book.createCellStyle();
+    dateStyle.setDataFormat(book.createDataFormat().getFormat("yyyy-mm-dd"));
+    org.apache.poi.ss.usermodel.CellStyle timestampStyle = book.createCellStyle();
+    timestampStyle.setDataFormat(book.createDataFormat().getFormat("yyyy-mm-dd hh:mm:ss.000"));
+    org.apache.poi.ss.usermodel.CellStyle timeStyle = book.createCellStyle();
+    timeStyle.setDataFormat(book.createDataFormat().getFormat("hh:mm:ss.000"));
     NodeList rows = ((Element) tables.item(0)).getElementsByTagNameNS(TABLE, "table-row");
     int lastDataRow = rows.getLength() - 1;
     while (lastDataRow >= 0) {
@@ -273,9 +279,27 @@ final class OdsCodec {
             if (type.equals("float") || type.equals("currency") || type.equals("percentage")) {
               target.setCellValue(Double.parseDouble(cell.getAttributeNS(OFFICE, "value")));
             } else if (type.equals("boolean")) {
-              target.setCellValue(cell.getAttributeNS(OFFICE, "boolean-value"));
-            } else if (type.equals("date") || type.equals("time")) {
-              target.setCellValue(cell.getAttributeNS(OFFICE, type + "-value"));
+              String value = cell.getAttributeNS(OFFICE, "boolean-value");
+              if (!java.util.List.of("true", "false", "1", "0").contains(value)) {
+                throw new IOException("Invalid ODS boolean value: " + value);
+              }
+              target.setCellValue(value.equals("true") || value.equals("1"));
+            } else if (type.equals("date")) {
+              String date = cell.getAttributeNS(OFFICE, "date-value");
+              boolean timestamp = date.contains("T");
+              target.setCellValue(
+                  timestamp
+                      ? java.time.LocalDateTime.parse(date)
+                      : java.time.LocalDate.parse(date).atStartOfDay());
+              target.setCellStyle(timestamp ? timestampStyle : dateStyle);
+            } else if (type.equals("time")) {
+              java.time.Duration time =
+                  java.time.Duration.parse(cell.getAttributeNS(OFFICE, "time-value"));
+              if (time.isNegative() || time.compareTo(java.time.Duration.ofDays(1)) >= 0) {
+                throw new IOException("ODS time is outside a single day");
+              }
+              target.setCellValue(time.toNanos() / 86400000000000.0);
+              target.setCellStyle(timeStyle);
             } else {
               StringBuilder value = new StringBuilder();
               NodeList paragraphs = cell.getElementsByTagNameNS(TEXT, "p");

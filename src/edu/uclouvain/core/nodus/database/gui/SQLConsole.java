@@ -34,9 +34,12 @@ import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTC
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTCSVH;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTDBF;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTODS;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTODSH;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTPARQUET;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTXLS;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTXLSH;
 import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTXLSX;
+import static edu.uclouvain.core.nodus.database.gui.SQLConsoleOperations.IMPORTXLSXH;
 
 import com.bbn.openmap.Environment;
 import com.bbn.openmap.layer.shape.NodusEsriLayer;
@@ -136,12 +139,10 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  * - IMPORTCSVH tableName : Imports a CSV file, ignoring the first (header) line. The related empty
  * table must exists in the database.<br>
  * - IMPORTDBF tableName : Imports a DBF file.<br>
- * - IMPORTXLS tableName : Imports a XLS file. The related empty table must exist in the database
- * unless the first row of the sheet contains the format of each column, following the DBF standard.
- * <br>
- * - IMPORTXLSX tableName : Imports a XLSX file. The related empty table must exist in the database
- * unless the first row of the sheet contains the format of each column, following the DBF standard.
- * <br>
+ * - IMPORTXLS / IMPORTXLSX tableName : Imports a sheet using DBF column descriptions, an existing
+ * table, or an inferred schema with COL1, COL2, etc. column names.<br>
+ * - IMPORTXLSH / IMPORTXLSXH / IMPORTODSH tableName : Uses first-row column names and infers a new
+ * table, or matches those names to the existing table's columns.<br>
  * - STOP : Convenient command that stops a script. Useful for debugging. <br>
  *
  * <p>Script separators and comments are recognized outside quoted strings and identifiers. SQL
@@ -727,8 +728,26 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         continue;
       }
 
+      if (SQLConsoleScript.startsWithCommand(sync, IMPORTODSH)) {
+        if (!operations.importExport(sqlCommand, IMPORTODSH, confirmOverwrite)) {
+          setBusy(false);
+          return false;
+        }
+        treeMustBeRefreshed = true;
+        continue;
+      }
+
       if (SQLConsoleScript.startsWithCommand(sync, IMPORTODS)) {
         if (!operations.importExport(sqlCommand, IMPORTODS, confirmOverwrite)) {
+          setBusy(false);
+          return false;
+        }
+        treeMustBeRefreshed = true;
+        continue;
+      }
+
+      if (SQLConsoleScript.startsWithCommand(sync, IMPORTXLSXH)) {
+        if (!operations.importExport(sqlCommand, IMPORTXLSXH, confirmOverwrite)) {
           setBusy(false);
           return false;
         }
@@ -757,6 +776,15 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
           setBusy(false);
           return false;
         }
+      }
+
+      if (SQLConsoleScript.startsWithCommand(sync, IMPORTXLSH)) {
+        if (!operations.importExport(sqlCommand, IMPORTXLSH, confirmOverwrite)) {
+          setBusy(false);
+          return false;
+        }
+        treeMustBeRefreshed = true;
+        continue;
       }
 
       if (SQLConsoleScript.startsWithCommand(sync, IMPORTXLS)) {
