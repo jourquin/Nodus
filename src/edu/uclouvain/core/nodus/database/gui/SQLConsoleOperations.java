@@ -27,6 +27,7 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.database.ImportProgress;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.csv.ExportCSV;
 import edu.uclouvain.core.nodus.database.csv.ImportCSV;
@@ -349,53 +350,63 @@ final class SQLConsoleOperations {
     Exception[] importError = {null};
     java.util.function.Consumer<Exception> report = error -> importError[0] = error;
 
-    if (operation.equals(EXPORTPARQUET)) {
-      succeeded =
-          edu.uclouvain.core.nodus.database.parquet.ExportParquet.exportTable(
-              nodusProject, tableName);
-    } else if (operation.equals(IMPORTPARQUET)) {
-      succeeded =
-          edu.uclouvain.core.nodus.database.parquet.ImportParquet.importTable(
-              nodusProject, tableName, report);
-    } else if (operation.equals(EXPORTODS)) {
-      succeeded = ExportXLS.exportODS(nodusProject, tableName);
-    } else if (operation.equals(IMPORTODS) || operation.equals(IMPORTODSH)) {
-      succeeded =
-          ImportXLS.importODS(nodusProject, tableName, operation.equals(IMPORTODSH), report);
-    } else if (operation.equals(EXPORTDBF)) {
-      succeeded = ExportDBF.exportTable(nodusProject, tableName);
-    } else if (operation.equals(IMPORTDBF)) {
-      succeeded = ImportDBF.importTable(nodusProject, tableName, report);
-    } else if (operation.equals(EXPORTCSV)) {
-      succeeded = ExportCSV.exportTable(nodusProject, tableName, false);
-    } else if (operation.equals(EXPORTCSVH)) {
-      succeeded = ExportCSV.exportTable(nodusProject, tableName, true);
-    } else if (operation.equals(IMPORTCSV)) {
-      succeeded =
-          ImportCSV.importTable(
-              nodusProject,
-              tableName,
-              false,
-              message -> importError[0] = new java.sql.SQLException(message));
-    } else if (operation.equals(IMPORTCSVH)) {
-      succeeded =
-          ImportCSV.importTable(
-              nodusProject,
-              tableName,
-              true,
-              message -> importError[0] = new java.sql.SQLException(message));
-    } else if (operation.equals(IMPORTXLS) || operation.equals(IMPORTXLSH)) {
-      succeeded =
-          ImportXLS.importTable(
-              nodusProject, tableName, false, operation.equals(IMPORTXLSH), report);
-    } else if (operation.equals(EXPORTXLS)) {
-      succeeded = ExportXLS.exportTable(nodusProject, tableName, false);
-    } else if (operation.equals(IMPORTXLSX) || operation.equals(IMPORTXLSXH)) {
-      succeeded =
-          ImportXLS.importTable(
-              nodusProject, tableName, true, operation.equals(IMPORTXLSXH), report);
-    } else if (operation.equals(EXPORTXLSX)) {
-      succeeded = ExportXLS.exportTable(nodusProject, tableName, true);
+    ImportProgress progress = importing ? console.beginImport(operation, tableName) : null;
+    try {
+      if (operation.equals(EXPORTPARQUET)) {
+        succeeded =
+            edu.uclouvain.core.nodus.database.parquet.ExportParquet.exportTable(
+                nodusProject, tableName);
+      } else if (operation.equals(IMPORTPARQUET)) {
+        succeeded =
+            edu.uclouvain.core.nodus.database.parquet.ImportParquet.importTable(
+                nodusProject, tableName, report, progress);
+      } else if (operation.equals(EXPORTODS)) {
+        succeeded = ExportXLS.exportODS(nodusProject, tableName);
+      } else if (operation.equals(IMPORTODS) || operation.equals(IMPORTODSH)) {
+        succeeded =
+            ImportXLS.importODS(
+                nodusProject, tableName, operation.equals(IMPORTODSH), report, progress);
+      } else if (operation.equals(EXPORTDBF)) {
+        succeeded = ExportDBF.exportTable(nodusProject, tableName);
+      } else if (operation.equals(IMPORTDBF)) {
+        succeeded = ImportDBF.importTable(nodusProject, tableName, report, progress);
+      } else if (operation.equals(EXPORTCSV)) {
+        succeeded = ExportCSV.exportTable(nodusProject, tableName, false);
+      } else if (operation.equals(EXPORTCSVH)) {
+        succeeded = ExportCSV.exportTable(nodusProject, tableName, true);
+      } else if (operation.equals(IMPORTCSV)) {
+        succeeded =
+            ImportCSV.importTable(
+                nodusProject,
+                tableName,
+                false,
+                message -> importError[0] = new java.sql.SQLException(message),
+                progress);
+      } else if (operation.equals(IMPORTCSVH)) {
+        succeeded =
+            ImportCSV.importTable(
+                nodusProject,
+                tableName,
+                true,
+                message -> importError[0] = new java.sql.SQLException(message),
+                progress);
+      } else if (operation.equals(IMPORTXLS) || operation.equals(IMPORTXLSH)) {
+        succeeded =
+            ImportXLS.importTable(
+                nodusProject, tableName, false, operation.equals(IMPORTXLSH), report, progress);
+      } else if (operation.equals(EXPORTXLS)) {
+        succeeded = ExportXLS.exportTable(nodusProject, tableName, false);
+      } else if (operation.equals(IMPORTXLSX) || operation.equals(IMPORTXLSXH)) {
+        succeeded =
+            ImportXLS.importTable(
+                nodusProject, tableName, true, operation.equals(IMPORTXLSXH), report, progress);
+      } else if (operation.equals(EXPORTXLSX)) {
+        succeeded = ExportXLS.exportTable(nodusProject, tableName, true);
+      }
+    } finally {
+      if (progress != null) {
+        console.endImport(progress);
+      }
     }
 
     if (!succeeded && importError[0] != null) {
@@ -407,11 +418,24 @@ final class SQLConsoleOperations {
     }
     String g = "";
     if (succeeded) {
-      g =
-          MessageFormat.format(
-              i18n.get(SQLConsole.class, "_succeeded", "{0} of \"{1}\" succeeded."),
-              operation,
-              tableName);
+      if (importing) {
+        g =
+            MessageFormat.format(
+                i18n.get(
+                    SQLConsole.class,
+                    "Import_succeeded",
+                    "{0} of \"{1}\" succeeded: {2} records imported in {3} s."),
+                operation,
+                tableName,
+                progress.getRecords(),
+                String.format(java.util.Locale.ROOT, "%.1f", progress.getElapsedSeconds()));
+      } else {
+        g =
+            MessageFormat.format(
+                i18n.get(SQLConsole.class, "_succeeded", "{0} of \"{1}\" succeeded."),
+                operation,
+                tableName);
+      }
 
     } else {
       g =

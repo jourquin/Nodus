@@ -10,12 +10,18 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.sql.rowset.CachedRowSet;
+import javax.sql.rowset.RowSetMetaDataImpl;
+import javax.sql.rowset.RowSetProvider;
 
 /** Translates grouped SQL to an embedded driver; faults occur before or after the whole group. */
 public final class GroupedRenameJdbc {
@@ -44,8 +50,39 @@ public final class GroupedRenameJdbc {
                           if (member.getName().equals("getDatabaseProductName")) {
                             return "MariaDB";
                           }
+                          if (member.getName().equals("getTablePrivileges")
+                              || member.getName().equals("getColumnPrivileges")) {
+                            // The adapter models plain MySQL tables; HSQLDB's implicit owner grants
+                            // are not explicit MySQL table permissions.
+                            CachedRowSet empty = RowSetProvider.newFactory().createCachedRowSet();
+                            try (ResultSet rows = (ResultSet) invoke(metadata, member, values)) {
+                              empty.populate(rows);
+                            }
+                            while (empty.next()) {
+                              empty.deleteRow();
+                            }
+                            empty.beforeFirst();
+                            return empty;
+                          }
                           return invoke(metadata, member, values);
                         });
+                  }
+                  if (method.getName().equals("prepareStatement")) {
+                    String sql = (String) args[0];
+                    if (sql.equals("SELECT CURRENT_USER()")
+                        || (sql.contains("information_schema.USER_PRIVILEGES")
+                            && sql.contains("PRIVILEGE_TYPE='TRIGGER'"))) {
+                      return Proxy.newProxyInstance(
+                          PreparedStatement.class.getClassLoader(),
+                          new Class<?>[] {PreparedStatement.class},
+                          (object, member, values) -> {
+                            if (member.getName().equals("executeQuery")) {
+                              return singleValue(
+                                  sql.equals("SELECT CURRENT_USER()") ? "tester@localhost" : "1");
+                            }
+                            return null;
+                          });
+                    }
                   }
                   if (method.getName().equals("commit") && ++commits == failCommit) {
                     triggered = true;
@@ -109,5 +146,20 @@ public final class GroupedRenameJdbc {
     } catch (InvocationTargetException failure) {
       throw failure.getCause();
     }
+  }
+
+  private static ResultSet singleValue(String value) throws SQLException {
+    RowSetMetaDataImpl metadata = new RowSetMetaDataImpl();
+    metadata.setColumnCount(1);
+    metadata.setColumnName(1, "VALUE");
+    metadata.setColumnType(1, Types.VARCHAR);
+    CachedRowSet rows = RowSetProvider.newFactory().createCachedRowSet();
+    rows.setMetaData(metadata);
+    rows.moveToInsertRow();
+    rows.updateString(1, value);
+    rows.insertRow();
+    rows.moveToCurrentRow();
+    rows.beforeFirst();
+    return rows;
   }
 }

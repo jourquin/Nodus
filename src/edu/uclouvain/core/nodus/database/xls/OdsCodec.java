@@ -21,6 +21,7 @@
 
 package edu.uclouvain.core.nodus.database.xls;
 
+import edu.uclouvain.core.nodus.database.ImportProgress;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -192,6 +193,11 @@ final class OdsCodec {
 
   /** Fills the caller-owned workbook; the caller closes it on success or failure. */
   static void read(InputStream input, Workbook book) throws Exception {
+    read(input, book, new ImportProgress());
+  }
+
+  static void read(InputStream input, Workbook book, ImportProgress progress) throws Exception {
+    progress.checkCancelled();
     Document document = null;
     try (ZipInputStream zip = new ZipInputStream(input)) {
       ZipEntry entry;
@@ -216,6 +222,7 @@ final class OdsCodec {
     if (document == null) {
       throw new IOException("ODS has no content.xml");
     }
+    progress.checkCancelled();
     NodeList tables = document.getElementsByTagNameNS(TABLE, "table");
     if (tables.getLength() != 1) {
       throw new IOException("ODS import requires exactly one sheet; found " + tables.getLength());
@@ -230,6 +237,7 @@ final class OdsCodec {
     NodeList rows = ((Element) tables.item(0)).getElementsByTagNameNS(TABLE, "table-row");
     int lastDataRow = rows.getLength() - 1;
     while (lastDataRow >= 0) {
+      progress.checkCancelled();
       Element row = (Element) rows.item(lastDataRow);
       if (hasValue(row) || !row.getTextContent().isBlank()) {
         break;
@@ -246,6 +254,7 @@ final class OdsCodec {
         throw new IOException("Too many ODS rows");
       }
       for (int n = 0; n < repeatRows; n++) {
+        progress.checkCancelled();
         Row row = sheet.createRow(rowIndex++);
         int col = 0;
         for (Node node = source.getFirstChild(); node != null; node = node.getNextSibling()) {

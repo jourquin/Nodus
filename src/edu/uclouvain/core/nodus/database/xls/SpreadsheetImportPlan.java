@@ -21,6 +21,7 @@
 
 package edu.uclouvain.core.nodus.database.xls;
 
+import edu.uclouvain.core.nodus.database.ImportProgress;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -64,12 +65,14 @@ final class SpreadsheetImportPlan {
   }
 
   static SpreadsheetImportPlan read(
-      Connection connection, String table, Sheet sheet, boolean header) throws SQLException {
+      Connection connection, String table, Sheet sheet, boolean header, ImportProgress progress)
+      throws SQLException {
+    progress.checkCancelled();
     Row first = sheet.getRow(sheet.getFirstRowNum());
     if (first == null || first.getLastCellNum() < 1) {
       throw new SQLException("Spreadsheet has no table row");
     }
-    int lastData = lastPopulatedRow(sheet);
+    int lastData = lastPopulatedRow(sheet, progress);
     if (lastData < 0) {
       throw new SQLException("Spreadsheet has no table row");
     }
@@ -192,6 +195,7 @@ final class SpreadsheetImportPlan {
       plan.checkRow(first, first.getRowNum());
     }
     if (!described && !existing) {
+      progress.phase("Inferring");
       int nextRow = firstData;
       for (Row row : sheet) {
         if (row.getRowNum() > lastData) {
@@ -204,6 +208,7 @@ final class SpreadsheetImportPlan {
         for (Column column : columns) {
           column.observe(row);
         }
+        progress.scanned();
       }
       for (Column column : columns) {
         column.finishInference();
@@ -213,8 +218,9 @@ final class SpreadsheetImportPlan {
   }
 
   /** Formatting-only rows after the last value do not belong to the imported table. */
-  private static int lastPopulatedRow(Sheet sheet) {
+  private static int lastPopulatedRow(Sheet sheet, ImportProgress progress) throws SQLException {
     for (int index = sheet.getLastRowNum(); index >= sheet.getFirstRowNum(); index--) {
+      progress.checkCancelled();
       Row row = sheet.getRow(index);
       if (row != null) {
         for (Cell cell : row) {
@@ -440,6 +446,9 @@ final class SpreadsheetImportPlan {
             }
             BigDecimal number = (BigDecimal) value;
             if (type == Types.DECIMAL || type == Types.NUMERIC) {
+              if (precision == 0) {
+                return number;
+              }
               number = number.setScale(scale, RoundingMode.UNNECESSARY);
               if (precision > 0 && number.precision() > precision) {
                 throw new IllegalArgumentException("number exceeds precision " + precision);
@@ -454,6 +463,12 @@ final class SpreadsheetImportPlan {
                       && (integer < Byte.MIN_VALUE || integer > Byte.MAX_VALUE))) {
                 throw new IllegalArgumentException("integer exceeds column range");
               }
+            } else if (!Double.isFinite(number.doubleValue())
+                || (number.signum() != 0 && number.doubleValue() == 0)
+                || (type == Types.REAL
+                    && (!Float.isFinite(number.floatValue())
+                        || (number.signum() != 0 && number.floatValue() == 0)))) {
+              throw new IllegalArgumentException("number exceeds floating-point column range");
             }
             return number;
           case Types.BOOLEAN:

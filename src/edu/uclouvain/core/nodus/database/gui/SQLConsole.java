@@ -47,6 +47,7 @@ import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.database.ImportProgress;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.GUIUtils;
 import edu.uclouvain.core.nodus.swing.GridSwing;
@@ -75,6 +76,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.FutureTask;
@@ -154,7 +156,11 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  * <p>Each import accepts one table. Spreadsheet files must contain exactly one sheet and a
  * contiguous rectangular table without merged cells. Rows are checked in source order; incompatible
  * widths or inferred types stop the import and preserve existing data. Existing tables are checked
- * during loading; new inferred tables need one schema pass before loading.
+ * during loading; new inferred tables need one schema pass before loading. Imports detect
+ * source-file changes, refuse schema replacements that would discard protected table metadata, and
+ * require rollback support before replacing rows in place. Import progress is reported in this
+ * console; Cancel import requests rollback until publication starts. Successful imports report
+ * their data-record count and elapsed time.
  *
  * <p>Import/export basenames containing spaces can be enclosed in double quotes or backticks, for
  * example {@code IMPORTCSVH "traffic flows"}. The quotes delimit the command argument; the
@@ -212,6 +218,12 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   private Color colorButton;
 
   private JButton jbuttonExecute;
+
+  private JButton jbuttonCancelImport;
+
+  private volatile ImportProgress activeImport;
+
+  private boolean executingCommands;
 
   private Connection jdbcConnection;
 
@@ -442,6 +454,10 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
           }
         });
 
+    jbuttonCancelImport = new JButton(i18n.get(SQLConsole.class, "Cancel_import", "Cancel import"));
+    jbuttonCancelImport.setEnabled(false);
+    jbuttonCancelImport.addActionListener(event -> cancelImport());
+
     JButton jbuttonStatistics = new JButton(i18n.get(SQLConsole.class, "Statistics", "Statistics"));
     GUIUtils.setToolTip(
         jbuttonStatistics,
@@ -464,12 +480,15 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     toolbar.add(jbuttonClear);
     toolbar.addSeparator();
     toolbar.add(jbuttonExecute);
+    toolbar.add(jbuttonCancelImport);
     toolbar.addSeparator();
     toolbar.add(jbuttonStatistics);
     jbuttonClear.setAlignmentY(0.5F);
     jbuttonClear.setAlignmentX(0.5F);
     jbuttonExecute.setAlignmentY(0.5F);
     jbuttonExecute.setAlignmentX(0.5F);
+    jbuttonCancelImport.setAlignmentY(0.5F);
+    jbuttonCancelImport.setAlignmentX(0.5F);
     jbuttonStatistics.setAlignmentY(0.5F);
     jbuttonStatistics.setAlignmentX(0.5F);
 
@@ -915,6 +934,10 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    * a sound if the query execution time was a longer than 5 seconds.
    */
   private void executeSQLStatements() {
+    if (executingCommands) {
+      return;
+    }
+    executingCommands = true;
 
     final long start = System.currentTimeMillis();
     final int pos = sqlCommandsArea.getCaretPosition();
@@ -928,6 +951,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
           @Override
           protected void done() {
+            executingCommands = false;
             gridResultArea.fireTableChanged(null);
 
             // Deselect commands
@@ -951,6 +975,84 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
         };
 
     worker.execute();
+  }
+
+  /** Starts progress reporting for one import, without creating another window. */
+  ImportProgress beginImport(String operation, String table) {
+    ImportProgress progress =
+        new ImportProgress(value -> importProgressUpdated(operation, table, value));
+    activeImport = progress;
+    if (withGUI) {
+      runOnEdtAndWait(
+          () -> {
+            jbuttonCancelImport.setText(
+                i18n.get(SQLConsole.class, "Cancel_import", "Cancel import"));
+            jbuttonCancelImport.setEnabled(true);
+          });
+    }
+    return progress;
+  }
+
+  /** Releases the import's cancellation control after success, rollback or failure. */
+  void endImport(ImportProgress progress) {
+    if (activeImport == progress) {
+      activeImport = null;
+      if (withGUI) {
+        runOnEdtAndWait(() -> jbuttonCancelImport.setEnabled(false));
+      }
+    }
+  }
+
+  /**
+   * Requests cancellation of the active file import; cleanup completes on its worker thread.
+   *
+   * @return false if no import is running or publication has already started
+   */
+  public boolean cancelImport() {
+    ImportProgress progress = activeImport;
+    if (progress == null || !progress.cancel()) {
+      return false;
+    }
+    if (withGUI) {
+      runOnEdtAndWait(
+          () -> {
+            jbuttonCancelImport.setEnabled(false);
+            jbuttonCancelImport.setText(
+                i18n.get(SQLConsole.class, "Cancelling_import", "Cancelling…"));
+          });
+    }
+    return true;
+  }
+
+  /**
+   * Receives throttled import progress on the importing thread; Swing changes run on the EDT.
+   *
+   * @param operation import command being executed
+   * @param table destination table name
+   * @param progress current phase, counts and cancellation control
+   */
+  protected void importProgressUpdated(String operation, String table, ImportProgress progress) {
+    if (withGUI) {
+      String phase =
+          i18n.get(SQLConsole.class, "Import_" + progress.getPhase(), progress.getPhase());
+      String message =
+          MessageFormat.format(
+              i18n.get(SQLConsole.class, "Import_progress", "{0} \"{1}\": {2} records ({3} s)."),
+              phase,
+              table,
+              progress.getPhase().equals("Inferring")
+                  ? progress.getScanned()
+                  : progress.getRecords(),
+              String.format(java.util.Locale.ROOT, "%.1f", progress.getElapsedSeconds()));
+      runOnEdtAndWait(
+          () -> {
+            displayMessageInResult(operation, message);
+            gridResultArea.fireTableChanged(null);
+            if (progress.getPhase().equals("Finishing")) {
+              jbuttonCancelImport.setEnabled(false);
+            }
+          });
+    }
   }
 
   /**
@@ -1657,10 +1759,12 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     }
 
     if (busy) {
+      jbuttonExecute.setEnabled(false);
       frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
       sqlCommandsArea.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
       nodusMapPanel.setBusy(true);
     } else {
+      jbuttonExecute.setEnabled(true);
       frame.setCursor(oldCursor);
       sqlCommandsArea.setCursor(oldCursor);
       nodusMapPanel.setBusy(false);
@@ -1722,6 +1826,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
    */
   @Override
   public void windowClosing(WindowEvent ev) {
+    cancelImport();
     closeStatement();
 
     if (withGUI) {

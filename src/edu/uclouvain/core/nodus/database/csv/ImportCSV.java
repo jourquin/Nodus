@@ -25,6 +25,7 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.database.ImportProgress;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.util.function.Consumer;
 import javax.swing.JOptionPane;
@@ -74,6 +75,25 @@ public class ImportCSV {
    */
   public static boolean importTable(
       NodusProject project, String tableName, boolean withHeader, Consumer<String> reportError) {
+    return importTable(project, tableName, withHeader, reportError, new ImportProgress());
+  }
+
+  /**
+   * Imports CSV with progress and cooperative cancellation.
+   *
+   * @param project destination project and source directory
+   * @param tableName table and CSV basename
+   * @param withHeader whether the first record supplies column names
+   * @param reportError receiver for validation or database errors
+   * @param progress import progress and cancellation control
+   * @return true after the entire import succeeds
+   */
+  public static boolean importTable(
+      NodusProject project,
+      String tableName,
+      boolean withHeader,
+      Consumer<String> reportError,
+      ImportProgress progress) {
 
     if (!withHeader && !JDBCUtils.tableExists(tableName)) {
       reportError.accept(
@@ -83,6 +103,6 @@ public class ImportCSV {
               "Table structure must exist before importing CSV data"));
       return false;
     }
-    return CsvHeaderImport.importTable(project, tableName, withHeader, reportError);
+    return CsvHeaderImport.importTable(project, tableName, withHeader, reportError, progress);
   }
 }

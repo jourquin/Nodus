@@ -50,6 +50,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -58,6 +59,29 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 @ResourceLock("JDBCUtils")
 class SpreadsheetImportTest {
   @TempDir Path directory;
+
+  @Test
+  void realValuesCannotSilentlyOverflowOrUnderflowAndUnconstrainedDecimalsStayExact()
+      throws Exception {
+    try (Workbook book = new XSSFWorkbook()) {
+      var row = book.createSheet().createRow(0);
+      var cell = row.createCell(0);
+      var column = new SpreadsheetImportPlan.Column("value", 0);
+      column.type = Types.REAL;
+      for (double value : new double[] {1e39, 1e-50}) {
+        cell.setCellValue(value);
+        var error = assertThrows(java.sql.SQLException.class, () -> column.value(row));
+        assertTrue(error.getMessage().contains("row 1, column 1"), error.getMessage());
+        assertTrue(error.getMessage().contains("floating-point"), error.getMessage());
+      }
+      cell.setCellValue(0);
+      assertEquals(new java.math.BigDecimal("0.0"), column.value(row));
+      column.type = Types.NUMERIC;
+      column.precision = 0;
+      cell.setCellValue(1.25);
+      assertEquals(new java.math.BigDecimal("1.25"), column.value(row));
+    }
+  }
 
   @TestFactory
   List<DynamicTest> formatsAndDatabases() {
@@ -170,8 +194,11 @@ class SpreadsheetImportTest {
     }
     if (scenario.equals("schema")) {
       write(format, new Object[][] {{"newname,C,12", "quantity,N,8,2"}, {"rail", 1.25}});
-      assertTrue(importFile(db, format, false, errors), errors.toString());
-      assertEquals("rail", scalar(db, "SELECT newname FROM data"));
+      assertFalse(importFile(db, format, false, errors));
+      assertTrue(errors.get(0).getMessage().contains("Cannot replace table"), errors.toString());
+      assertEquals("original", scalar(db, "SELECT label FROM data WHERE id=99"));
+      assertThrows(
+          java.sql.SQLException.class, () -> db.execute("INSERT INTO data VALUES(99,'x')"));
       return;
     }
     Object[][] rows;

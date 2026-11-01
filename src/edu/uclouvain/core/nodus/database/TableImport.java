@@ -26,9 +26,12 @@ import edu.uclouvain.core.nodus.NodusProject;
 import java.awt.GraphicsEnvironment;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -64,6 +67,21 @@ public final class TableImport {
    * @throws Exception if loading or replacing the table fails
    */
   public static void replace(NodusProject project, String table, Loader loader) throws Exception {
+    replace(project, table, loader, new ImportProgress());
+  }
+
+  /**
+   * Stages an import with cancellation accepted until the completed table is published.
+   *
+   * @param project project supplying the database connection
+   * @param table destination table
+   * @param loader operation that creates and fills the staging table
+   * @param progress import progress and cancellation control
+   * @throws Exception if metadata protection, loading, cancellation or publication fails
+   */
+  @SuppressWarnings("resource") // The main connection is borrowed from the project.
+  public static void replace(
+      NodusProject project, String table, Loader loader, ImportProgress progress) throws Exception {
     Connection main = project.getMainJDBCConnection();
     if (main == null) {
       throw new SQLException("No project database connection");
@@ -81,15 +99,27 @@ public final class TableImport {
         if (schema != null) {
           connection.setSchema(schema);
         }
-        replace(connection, table, loader, true);
+        replace(connection, table, loader, true, progress);
       }
     } else {
-      replace(main, table, loader, false);
+      replace(main, table, loader, false, progress);
     }
   }
 
   static void replace(Connection connection, String table, Loader loader, boolean committingDdl)
       throws Exception {
+    replace(connection, table, loader, committingDdl, new ImportProgress());
+  }
+
+  private static void replace(
+      Connection connection,
+      String table,
+      Loader loader,
+      boolean committingDdl,
+      ImportProgress progress)
+      throws Exception {
+    progress.checkCancelled();
+    TableDefinitionGuard.check(connection, table);
     String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
     String staged = "NDI_" + suffix;
     String backup = "NDB_" + suffix;
@@ -107,6 +137,10 @@ public final class TableImport {
         savepoint = connection.setSavepoint();
       }
       loader.load(connection, staged);
+      progress.checkCancelled();
+      TableDefinitionGuard.check(connection, table);
+      TableDefinitionGuard.checkReplacementPermissions(connection, table, staged);
+      progress.finishing();
       if (committingDdl) {
         connection.commit();
       }
@@ -217,6 +251,50 @@ public final class TableImport {
     try (Statement statement = connection.createStatement()) {
       statement.setQueryTimeout(10);
       statement.executeUpdate(sql);
+    }
+  }
+
+  /**
+   * Refuses in-place row replacement when the destination cannot reliably roll back changes.
+   *
+   * @param connection borrowed destination connection
+   * @param table destination whose storage engine must support rollback
+   * @throws SQLException if transaction support is absent or cannot be established
+   */
+  public static void requireTransactionalRows(Connection connection, String table)
+      throws SQLException {
+    if (!connection.getMetaData().supportsTransactions()) {
+      throw new SQLException(
+          "Cannot safely import into table \""
+              + table
+              + "\": this database does not support rollback.");
+    }
+    String product = connection.getMetaData().getDatabaseProductName().toLowerCase(Locale.ROOT);
+    if (!product.contains("mysql") && !product.contains("mariadb")) {
+      return;
+    }
+    try (PreparedStatement statement =
+        connection.prepareStatement(
+            "SELECT e.TRANSACTIONS FROM information_schema.TABLES t"
+                + " LEFT JOIN information_schema.ENGINES e ON t.ENGINE=e.ENGINE"
+                + " WHERE t.TABLE_SCHEMA=DATABASE() AND t.TABLE_NAME=?")) {
+      String name = table;
+      if (connection.getMetaData().storesLowerCaseIdentifiers()) {
+        name = table.toLowerCase(Locale.ROOT);
+      } else if (connection.getMetaData().storesUpperCaseIdentifiers()) {
+        name = table.toUpperCase(Locale.ROOT);
+      }
+      statement.setString(1, name);
+      statement.setQueryTimeout(10);
+      try (ResultSet rows = statement.executeQuery()) {
+        if (!rows.next() || !"YES".equalsIgnoreCase(rows.getString(1))) {
+          throw new SQLException(
+              "Cannot safely import into table \""
+                  + table
+                  + "\": its storage engine does not provide verified rollback support."
+                  + " Use a transactional table or import into a new table.");
+        }
+      }
     }
   }
 

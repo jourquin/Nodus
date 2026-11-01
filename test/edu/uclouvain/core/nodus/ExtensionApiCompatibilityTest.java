@@ -71,9 +71,18 @@ class ExtensionApiCompatibilityTest {
 
   @Test
   void sqlConsoleApiMatchesItsPreRefactoringBaseline() throws Exception {
+    List<String> current = api(SQLConsole.class);
+    // Additive import monitoring leaves every existing extension entry point intact.
+    assertTrue(
+        current.remove(
+            "public boolean edu.uclouvain.core.nodus.database.gui.SQLConsole.cancelImport()"));
+    assertTrue(
+        current.remove(
+            "protected void edu.uclouvain.core.nodus.database.gui.SQLConsole.importProgressUpdated"
+                + "(java.lang.String,java.lang.String,"
+                + "edu.uclouvain.core.nodus.database.ImportProgress)"));
     assertEquals(
-        Files.readAllLines(Path.of("test", "fixtures", "sql-console-api", "api.txt")),
-        api(SQLConsole.class));
+        Files.readAllLines(Path.of("test", "fixtures", "sql-console-api", "api.txt")), current);
   }
 
   private static boolean exposed(Member member) {

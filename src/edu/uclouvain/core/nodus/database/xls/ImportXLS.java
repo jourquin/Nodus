@@ -23,11 +23,15 @@ package edu.uclouvain.core.nodus.database.xls;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.database.ImportBatch;
+import edu.uclouvain.core.nodus.database.ImportProgress;
+import edu.uclouvain.core.nodus.database.ImportSource;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.TableImport;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -97,8 +101,29 @@ public class ImportXLS {
       boolean xlsx,
       boolean header,
       Consumer<Exception> reportError) {
+    return importTable(project, table, xlsx, header, reportError, new ImportProgress());
+  }
+
+  /**
+   * Imports Excel with progress and cooperative cancellation.
+   *
+   * @param project destination project and source directory
+   * @param table destination table and file basename
+   * @param xlsx true for XLSX, false for XLS
+   * @param header whether the first row supplies column names
+   * @param reportError receiver for validation or database errors
+   * @param progress import progress and cancellation control
+   * @return true after the entire import succeeds
+   */
+  public static boolean importTable(
+      NodusProject project,
+      String table,
+      boolean xlsx,
+      boolean header,
+      Consumer<Exception> reportError,
+      ImportProgress progress) {
     return importFile(
-        project, table, getFileName(project, table, xlsx), false, header, reportError);
+        project, table, getFileName(project, table, xlsx), false, header, reportError, progress);
   }
 
   /** Imports a single-sheet ODS table using the Excel schema and transaction rules. */
@@ -117,13 +142,33 @@ public class ImportXLS {
    */
   public static boolean importODS(
       NodusProject project, String table, boolean header, Consumer<Exception> reportError) {
+    return importODS(project, table, header, reportError, new ImportProgress());
+  }
+
+  /**
+   * Imports ODS with progress and cooperative cancellation.
+   *
+   * @param project destination project and source directory
+   * @param table destination table and file basename
+   * @param header whether the first row supplies column names
+   * @param reportError receiver for validation or database errors
+   * @param progress import progress and cancellation control
+   * @return true after the entire import succeeds
+   */
+  public static boolean importODS(
+      NodusProject project,
+      String table,
+      boolean header,
+      Consumer<Exception> reportError,
+      ImportProgress progress) {
     return importFile(
         project,
         table,
         project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + table + NodusC.TYPE_ODS,
         true,
         header,
-        reportError);
+        reportError,
+        progress);
   }
 
   // Workbooks and streams are closed here; the borrowed JDBC connection belongs to the project.
@@ -134,25 +179,29 @@ public class ImportXLS {
       String fileName,
       boolean ods,
       boolean header,
-      Consumer<Exception> reportError) {
+      Consumer<Exception> reportError,
+      ImportProgress progress) {
     if (!new File(fileName).exists()) {
       return false;
     }
+    final ImportSource source;
     try {
+      source = new ImportSource(Path.of(fileName));
+      progress.phase("Reading");
       if (!ods && fileName.endsWith(NodusC.TYPE_XLSX)) {
-        requireSingleXlsxSheet(fileName);
+        requireSingleXlsxSheet(fileName, progress);
       }
     } catch (Exception error) {
       reportError.accept(error);
       return false;
     }
-    try (InputStream input = new FileInputStream(fileName);
+    try (InputStream input = ImportSource.cancellable(new FileInputStream(fileName), progress);
         Workbook workbook =
             ods
                 ? new org.apache.poi.xssf.usermodel.XSSFWorkbook()
                 : WorkbookFactory.create(input)) {
       if (ods) {
-        OdsCodec.read(input, workbook);
+        OdsCodec.read(input, workbook, progress);
       }
       if (workbook.getNumberOfSheets() != 1) {
         throw new SQLException(
@@ -160,7 +209,8 @@ public class ImportXLS {
       }
       Sheet sheet = workbook.getSheetAt(0);
       Connection connection = nodusProject.getMainJDBCConnection();
-      SpreadsheetImportPlan plan = SpreadsheetImportPlan.read(connection, tableName, sheet, header);
+      SpreadsheetImportPlan plan =
+          SpreadsheetImportPlan.read(connection, tableName, sheet, header, progress);
       int batchSize = nodusProject.getSqlBatchSize();
       if (plan.replacement) {
         TableImport.replace(
@@ -170,9 +220,12 @@ public class ImportXLS {
               try (Statement statement = stagingConnection.createStatement()) {
                 statement.execute(plan.createStatement(staged));
               }
-              fillTable(stagingConnection, staged, sheet, plan, batchSize);
-            });
+              fillTable(stagingConnection, staged, sheet, plan, batchSize, progress);
+              source.verify();
+            },
+            progress);
       } else {
+        TableImport.requireTransactionalRows(connection, tableName);
         boolean autoCommit = connection.getAutoCommit();
         boolean restoreAutoCommit = autoCommit;
         Savepoint savepoint = null;
@@ -181,11 +234,14 @@ public class ImportXLS {
             connection.setAutoCommit(false);
           }
           savepoint = connection.setSavepoint();
+          progress.checkCancelled();
           try (Statement statement = connection.createStatement()) {
             statement.executeUpdate(
                 "DELETE FROM " + JDBCUtils.getQuotedCompliantIdentifier(tableName));
           }
-          fillTable(connection, tableName, sheet, plan, batchSize);
+          fillTable(connection, tableName, sheet, plan, batchSize, progress);
+          source.verify();
+          progress.finishing();
           if (autoCommit) {
             connection.commit();
           } else {
@@ -217,7 +273,8 @@ public class ImportXLS {
   }
 
   /** Reads only workbook metadata so a multi-sheet XLSX is rejected before loading its cells. */
-  private static void requireSingleXlsxSheet(String file) throws Exception {
+  private static void requireSingleXlsxSheet(String file, ImportProgress progress)
+      throws Exception {
     try (org.apache.poi.openxml4j.opc.OPCPackage pkg =
             org.apache.poi.openxml4j.opc.OPCPackage.open(
                 new File(file), org.apache.poi.openxml4j.opc.PackageAccess.READ);
@@ -230,6 +287,7 @@ public class ImportXLS {
       int sheets = 0;
       try {
         while (xml.hasNext()) {
+          progress.checkCancelled();
           if (xml.next() == javax.xml.stream.XMLStreamConstants.START_ELEMENT
               && xml.getLocalName().equals("sheet")) {
             sheets++;
@@ -248,17 +306,24 @@ public class ImportXLS {
    * Reuses the opened sheet and bounds queued JDBC rows without committing intermediate batches.
    */
   private static void fillTable(
-      Connection connection, String table, Sheet sheet, SpreadsheetImportPlan plan, int batchSize)
+      Connection connection,
+      String table,
+      Sheet sheet,
+      SpreadsheetImportPlan plan,
+      int batchSize,
+      ImportProgress progress)
       throws SQLException {
+    progress.phase("Loading");
     String quoted = JDBCUtils.getQuotedCompliantIdentifier(table);
     String placeholders = String.join(",", java.util.Collections.nCopies(plan.columns.size(), "?"));
     try (PreparedStatement statement =
         connection.prepareStatement("INSERT INTO " + quoted + " VALUES (" + placeholders + ")")) {
       Iterator<Row> rows = sheet.rowIterator();
-      boolean batchSupported = connection.getMetaData().supportsBatchUpdates();
-      int pending = 0;
+      ImportBatch batch =
+          new ImportBatch(connection, statement, batchSize, "Spreadsheet row", progress);
       int nextRow = plan.firstDataRow;
       while (rows.hasNext()) {
+        progress.checkCancelled();
         Row row = rows.next();
         if (row.getRowNum() > plan.lastDataRow) {
           break;
@@ -269,28 +334,30 @@ public class ImportXLS {
         plan.checkRow(row, nextRow++);
         for (int i = 0; i < plan.columns.size(); i++) {
           SpreadsheetImportPlan.Column column = plan.columns.get(i);
-          Object value = column.value(row);
-          if (value == null) {
-            statement.setNull(i + 1, column.type);
-          } else {
-            statement.setObject(i + 1, value);
+          try {
+            Object value = column.value(row);
+            if (value == null) {
+              statement.setNull(i + 1, column.type);
+            } else {
+              statement.setObject(i + 1, value);
+            }
+          } catch (SQLException error) {
+            if (error.getMessage() != null && error.getMessage().startsWith("Spreadsheet row ")) {
+              throw error;
+            }
+            throw new SQLException(
+                "Spreadsheet row "
+                    + (row.getRowNum() + 1)
+                    + ", column "
+                    + (column.source + 1)
+                    + ": "
+                    + error.getMessage(),
+                error);
           }
         }
-        if (batchSupported) {
-          statement.addBatch();
-          if (++pending == batchSize) {
-            statement.executeBatch();
-            statement.clearBatch();
-            pending = 0;
-          }
-        } else {
-          statement.executeUpdate();
-        }
+        batch.add(row.getRowNum() + 1L);
       }
-      if (pending > 0) {
-        statement.executeBatch();
-        statement.clearBatch();
-      }
+      batch.flush();
     }
   }
 }

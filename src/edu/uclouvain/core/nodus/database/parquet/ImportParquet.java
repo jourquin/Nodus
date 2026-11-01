@@ -23,6 +23,9 @@ package edu.uclouvain.core.nodus.database.parquet;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.database.ImportBatch;
+import edu.uclouvain.core.nodus.database.ImportProgress;
+import edu.uclouvain.core.nodus.database.ImportSource;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.TableImport;
 import java.math.BigDecimal;
@@ -93,12 +96,31 @@ public final class ImportParquet {
    */
   public static boolean importTable(
       NodusProject project, String tableName, Consumer<Exception> reportError) {
+    return importTable(project, tableName, reportError, new ImportProgress());
+  }
+
+  /**
+   * Imports Parquet with progress and cooperative cancellation.
+   *
+   * @param project destination project and source directory
+   * @param tableName destination table and file basename
+   * @param reportError receiver for validation or database errors
+   * @param progress import progress and cancellation control
+   * @return true after the entire import succeeds
+   */
+  public static boolean importTable(
+      NodusProject project,
+      String tableName,
+      Consumer<Exception> reportError,
+      ImportProgress progress) {
     Path source =
         Path.of(
             project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
                 + tableName
                 + NodusC.TYPE_PARQUET);
     try {
+      ImportSource sourceFile = new ImportSource(source);
+      progress.phase("Reading");
       TableImport.replace(
           project,
           tableName,
@@ -109,9 +131,12 @@ public final class ImportParquet {
                 ParquetFileReader.open(new LocalInputFile(source), options)) {
               MessageType schema = reader.getFileMetaData().getSchema();
               List<Column> columns = columns(schema);
-              load(connection, staged, reader, schema, columns, project.getSqlBatchSize());
+              load(
+                  connection, staged, reader, schema, columns, project.getSqlBatchSize(), progress);
             }
-          });
+            sourceFile.verify();
+          },
+          progress);
       return true;
     } catch (Exception error) {
       reportError.accept(error);
@@ -144,8 +169,10 @@ public final class ImportParquet {
       ParquetFileReader reader,
       MessageType schema,
       List<Column> columns,
-      int batchSize)
+      int batchSize,
+      ImportProgress progress)
       throws Exception {
+    progress.phase("Loading");
     String quoted = JDBCUtils.getQuotedCompliantIdentifier(table);
     List<String> definitions = new ArrayList<>();
     for (Column column : columns) {
@@ -158,20 +185,21 @@ public final class ImportParquet {
       statement.execute("CREATE TABLE " + quoted + " (" + String.join(",", definitions) + ")");
     }
     String placeholders = String.join(",", Collections.nCopies(columns.size(), "?"));
-    boolean batching = connection.getMetaData().supportsBatchUpdates();
     try (PreparedStatement insert =
         connection.prepareStatement("INSERT INTO " + quoted + " VALUES (" + placeholders + ")")) {
       MessageColumnIO io = new ColumnIOFactory().getColumnIO(schema);
       PageReadStore pages;
-      int pending = 0;
+      ImportBatch batch = new ImportBatch(connection, insert, batchSize, "Parquet row", progress);
       long rowNumber = 0;
       long errorRow = 1;
       try {
         while ((pages = reader.readNextRowGroup()) != null) {
+          progress.checkCancelled();
           try (PageReadStore group = pages) {
             RecordReader<Group> records =
                 io.getRecordReader(group, new GroupRecordConverter(schema));
             for (long row = 0; row < group.getRowCount(); row++) {
+              progress.checkCancelled();
               rowNumber++;
               errorRow = rowNumber;
               Group record = records.read();
@@ -188,24 +216,18 @@ public final class ImportParquet {
                 Object value = count == 0 ? null : columns.get(c).value(record, c);
                 insert.setObject(c + 1, value);
               }
-              if (batching) {
-                insert.addBatch();
-                if (++pending >= Math.max(1, batchSize)) {
-                  insert.executeBatch();
-                  pending = 0;
-                }
-              } else {
-                insert.executeUpdate();
-              }
+              batch.add(rowNumber);
               errorRow = rowNumber + 1;
             }
           }
         }
-        if (pending > 0) {
-          errorRow = Math.max(1, rowNumber);
-          insert.executeBatch();
-        }
+        batch.flush();
       } catch (Exception error) {
+        if (error instanceof SQLException
+            && ("57014".equals(((SQLException) error).getSQLState())
+                || (error.getMessage() != null && error.getMessage().startsWith("Parquet row ")))) {
+          throw error;
+        }
         throw new SQLException(
             "Parquet row "
                 + errorRow

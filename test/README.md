@@ -610,6 +610,17 @@ first routes may differ from forward Dijkstra and can produce different subseque
 - `ExcelIoTest`: real XLS/XLSX imports and exports on H2 and HSQLDB, bounded JDBC batch calls,
   drivers without batch support, rollback after earlier batches succeeded, Unicode and blank
   cells, streaming temporary-file cleanup on success/failure, and legacy row/column limits.
+- `ImportRobustnessTest`: every import command on H2/HSQLDB, new and existing destinations,
+  caller-owned transactions, cancellation during loading or inference, source-file changes,
+  successful record counts and durations, and stopping a script after a failed import.
+- `ImportBatchTest`: exact or ranged source positions from JDBC batch results, including drivers
+  that stop at the first error, drivers that continue, and drivers without batch support.
+- `TableDefinitionGuardTest` and `ImportEngineGuardTest`: schema replacement refuses indexes,
+  constraints, defaults, generated values, triggers and grants; late grants or cancellation after
+  staging prevent publication. MySQL/MariaDB metadata adapters check hidden-trigger visibility
+  and transactional storage engines without connecting to a live server.
+- `DbfNumericImportTest`: exact integers beyond 32-bit and 64-bit ranges, decimal precision and
+  record counts excluding deleted DBF records, on H2 and HSQLDB.
 - SQL console import/export tests also cover quoted basenames with repeated spaces on H2/HSQLDB,
   every import variant, new and existing tables, double quotes and backticks, file lookup,
   overwrite cancellation, script variables and quoted SQL separator/comment characters.

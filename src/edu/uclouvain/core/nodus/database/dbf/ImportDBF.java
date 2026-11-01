@@ -23,9 +23,13 @@ package edu.uclouvain.core.nodus.database.dbf;
 
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.database.ImportBatch;
+import edu.uclouvain.core.nodus.database.ImportProgress;
+import edu.uclouvain.core.nodus.database.ImportSource;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.TableImport;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -45,8 +49,6 @@ public class ImportDBF {
   private static Connection jdbcConnection;
 
   private static int maxBatchSize;
-
-  private static boolean hasBatchSupport = false;
 
   /** Default constructor. */
   public ImportDBF() {}
@@ -86,7 +88,9 @@ public class ImportDBF {
    * @param dbfReader DBFReader
    * @throws Exception if a record cannot be read or inserted
    */
-  private static void fillTable(String tableName, DBFReader dbfReader) throws Exception {
+  private static void fillTable(String tableName, DBFReader dbfReader, ImportProgress progress)
+      throws Exception {
+    progress.phase("Loading");
     StringBuilder sqlStmt = new StringBuilder("INSERT INTO ");
     sqlStmt.append(JDBCUtils.getQuotedCompliantIdentifier(tableName)).append(" VALUES (");
     int n = dbfReader.getFieldCount();
@@ -110,9 +114,11 @@ public class ImportDBF {
     long recordNumber = 0;
     try (PreparedStatement prepStmt = jdbcConnection.prepareStatement(sqlStmt.toString())) {
 
-      int batchSize = 0;
+      ImportBatch batch =
+          new ImportBatch(jdbcConnection, prepStmt, maxBatchSize, "DBF record", progress);
 
       while (dbfReader.hasNextRecord()) {
+        progress.checkCancelled();
         recordNumber++;
         Object[] o = dbfReader.nextRecord();
 
@@ -144,11 +150,26 @@ public class ImportDBF {
           }
 
           if (o[i] instanceof BigDecimal) {
-            BigDecimal z = (BigDecimal) o[i];
-            if (fields[i].getDecimalCount() == 0) {
-              prepStmt.setInt(i + 1, z.intValue());
-            } else {
-              prepStmt.setDouble(i + 1, z.doubleValue());
+            try {
+              BigDecimal number = (BigDecimal) o[i];
+              long integerDigits = Math.max(0L, (long) number.precision() - number.scale());
+              if (number.signum() != 0
+                  && integerDigits > (long) fields[i].getLength() - fields[i].getDecimalCount()) {
+                throw new ArithmeticException("number exceeds the declared DBF precision");
+              }
+              if (number.stripTrailingZeros().scale() > fields[i].getDecimalCount()) {
+                throw new ArithmeticException("number requires rounding to the declared DBF scale");
+              }
+              BigDecimal value =
+                  number.setScale(fields[i].getDecimalCount(), RoundingMode.UNNECESSARY);
+              if (value.precision() > fields[i].getLength()) {
+                throw new ArithmeticException("number exceeds the declared DBF precision");
+              }
+              prepStmt.setBigDecimal(i + 1, value);
+            } catch (ArithmeticException invalid) {
+              throw new SQLException(
+                  "column " + (i + 1) + " (" + fields[i].getName() + "): " + invalid.getMessage(),
+                  invalid);
             }
           } else if (o[i] instanceof String) {
             prepStmt.setString(i + 1, (String) o[i]);
@@ -161,27 +182,19 @@ public class ImportDBF {
           }
         }
 
-        // Save into table according to batch policy;
-        if (hasBatchSupport) {
-          batchSize++;
-          prepStmt.addBatch();
-          if (batchSize >= maxBatchSize) {
-            prepStmt.executeBatch();
-            batchSize = 0;
-          }
-        } else {
-          prepStmt.executeUpdate();
-        }
+        batch.add(recordNumber);
       }
 
-      // Flush remaining records in batch
-      if (hasBatchSupport && batchSize > 0) {
-        prepStmt.executeBatch();
-      }
+      batch.flush();
 
     } catch (Exception error) {
-      throw new SQLException(
-          "DBF record/batch ending at " + recordNumber + ": " + error.getMessage(), error);
+      if (error instanceof SQLException
+          && error.getMessage() != null
+          && (error.getMessage().startsWith("DBF record ")
+              || "57014".equals(((SQLException) error).getSQLState()))) {
+        throw error;
+      }
+      throw new SQLException("DBF record " + recordNumber + ": " + error.getMessage(), error);
     }
   }
 
@@ -207,6 +220,23 @@ public class ImportDBF {
    */
   public static synchronized boolean importTable(
       NodusProject project, String tableName, Consumer<Exception> reportError) {
+    return importTable(project, tableName, reportError, new ImportProgress());
+  }
+
+  /**
+   * Imports exact DBF numeric values with progress and cooperative cancellation.
+   *
+   * @param project destination project and source directory
+   * @param tableName destination table and file basename
+   * @param reportError receiver for validation or database errors
+   * @param progress import progress and cancellation control
+   * @return true after the entire import succeeds
+   */
+  public static synchronized boolean importTable(
+      NodusProject project,
+      String tableName,
+      Consumer<Exception> reportError,
+      ImportProgress progress) {
     jdbcConnection = project.getMainJDBCConnection();
     if (jdbcConnection == null) {
       return false;
@@ -216,19 +246,25 @@ public class ImportDBF {
 
     maxBatchSize = project.getSqlBatchSize();
 
-    hasBatchSupport = JDBCUtils.hasBatchSupport();
-    try (DBFReader reader = DbfFiles.reader(project, Path.of(path, tableName + NodusC.TYPE_DBF))) {
-      if (!reader.isOpen()) {
-        throw new SQLException("Could not read the DBF table");
-      }
+    try {
+      ImportSource source = new ImportSource(Path.of(path, tableName + NodusC.TYPE_DBF));
+      progress.phase("Reading");
       TableImport.replace(
           project,
           tableName,
           (connection, staged) -> {
             jdbcConnection = connection;
-            createTable(staged, reader);
-            fillTable(staged, reader);
-          });
+            try (DBFReader reader =
+                DbfFiles.reader(project, Path.of(path, tableName + NodusC.TYPE_DBF))) {
+              if (!reader.isOpen()) {
+                throw new SQLException("Could not read the DBF table");
+              }
+              createTable(staged, reader);
+              fillTable(staged, reader, progress);
+            }
+            source.verify();
+          },
+          progress);
       return true;
     } catch (Exception e) {
       reportError.accept(e);
