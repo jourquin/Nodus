@@ -191,7 +191,7 @@ The bundled JFlex reports version 1.4.1; its license must not be confused with t
 IzPack's license is also supplied as [IzPack-Licence.txt](../devtools/IzPack/IzPack-Licence.txt),
 and API Guardian's as [devtools/junit/LICENSE](../devtools/junit/LICENSE).
 
-Pandoc, Eclipse, Checkstyle and the JDK used for development are installed separately.
+Eclipse, Checkstyle and the JDK used for development are installed separately.
 They are not part of the JAR inventory above. The same applies to a system Ant
 installation; the Ant companion JARs bundled with Groovy are listed separately.
 

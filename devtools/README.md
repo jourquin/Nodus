@@ -17,9 +17,7 @@ check that `build.xml` still contains `<import file="build-user.xml"/>`.
 | `ant Test` | Builds the application and runs all JUnit 5 unit and integration tests. |
 | `ant -f build-tests.xml` | Runs the same suite; this file's default target is `Test`. |
 | `ant Jar` | Rebuilds and packages `nodus9.jar`, including a new build ID; does not run tests. |
-| `ant Installer` | Runs tests, then builds help, the application JAR, API docs and installer. |
-| `ant ServicesWorkflowHtml` | Regenerates service workflow HTML when Pandoc is available. |
-| `ant MarkdownHelp` | Regenerates the modal-choice migration and model-performance help notes. |
+| `ant Installer` | Runs tests, then builds the application JAR, API docs and installer, including the maintained HTML help pages. |
 
 The installer is written to `BinaryDistribution/Nodus9-install.jar`. Test failures
 stop the `Installer` target before packaging. Use `ant -projecthelp` to list the
@@ -72,30 +70,21 @@ installer definition and language packs.
 JUnit Platform and OpenTest4J are bundled under `lib/groovy/`. The JUnit launcher
 Ant task must come from the installed Ant distribution (`ant-junitlauncher.jar`).
 
-## Markdown help generation
+## HTML help maintenance
 
-[Pandoc](https://pandoc.org/) is an external tool and is not bundled here. Run
-`ant ServicesWorkflowHtml` to convert
-[services-workflow.md](../doc/services/services-workflow.md) to its HTML help page.
-The normal `ant build` also converts [modal-choice-migration.md](../doc/modal-choice-migration.md)
-and [model-performance.md](../doc/model-performance.md) to standalone HTML pages in `doc/`.
-Both pages are linked from the English and French help indexes. Their formulas use
-native MathML, so the pages can be read offline without a MathJax service.
-Use `ant MarkdownHelp` to regenerate just these two pages, or the individual
-`ModalChoiceMigrationHtml` and `ModelPerformanceHtml` targets.
-If Pandoc is outside Ant's search path, supply its location:
+The HTML help pages are the editable sources. Update these files directly:
 
-```sh
-ant -Dpandoc.executable=/path/to/pandoc ServicesWorkflowHtml
-```
+- [services-workflow.html](../doc/services/services-workflow.html)
+- [modal-choice-migration.html](../doc/modal-choice-migration.html)
+- [model-performance.html](../doc/model-performance.html)
 
-The targets check the usual Homebrew locations and Ant's environment path. If Pandoc
-is unavailable, generation is skipped with a warning. Conversion failures also produce
-a warning without aborting the build. `ant build` runs `MarkdownHelp`; `Installer`
-runs it through `Jar` and also runs `ServicesWorkflowHtml`.
-If Eclipse regenerates `build.xml`, retain `MarkdownHelp` in the dependencies of
-its `build` target, alongside `build-subprojects,build-project`, and retain the
-`build-user.xml` import. The conversion implementation belongs in `build-user.xml`.
+Keep their heading IDs and table-of-contents links in sync when editing sections.
+Preserve the relative links to stylesheets, images and other local files. Formulas
+use native MathML, so the pages can be read offline without a MathJax service.
+The installer includes the HTML files as maintained in `doc/`; no Markdown
+conversion tool or additional Java library is required to build the help.
+Repository README files and developer notes remain in Markdown and are not
+converted during the build.
 
 See the [license inventory](../licenses/LICENSES.md) for bundled components' licenses.
 
