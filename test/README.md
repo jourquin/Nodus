@@ -610,6 +610,9 @@ first routes may differ from forward Dijkstra and can produce different subseque
 - `ExcelIoTest`: real XLS/XLSX imports and exports on H2 and HSQLDB, bounded JDBC batch calls,
   drivers without batch support, rollback after earlier batches succeeded, Unicode and blank
   cells, streaming temporary-file cleanup on success/failure, and legacy row/column limits.
+- SQL console import/export tests also cover quoted basenames with repeated spaces on H2/HSQLDB,
+  every import variant, new and existing tables, double quotes and backticks, file lookup,
+  overwrite cancellation, script variables and quoted SQL separator/comment characters.
 - `SpreadsheetImportTest`: XLS/XLSX/ODS imports on H2/HSQLDB with inferred and explicit schemas,
   named and generated columns, reordered headers, mixed types, leading-zero identifiers, late
   decimals and longer strings, boolean/date/time values, SQL NULLs, and header-only files.

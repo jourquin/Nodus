@@ -76,6 +76,38 @@ final class SQLConsoleScript {
         || Character.isWhitespace(trimmed.charAt(commandLength));
   }
 
+  /** Decodes a single import/export basename, keeping whitespace inside identifier quotes. */
+  static String tableArgument(String sqlStmt, String command) {
+    if (!startsWithCommand(sqlStmt, command)) {
+      throw new IllegalArgumentException("Expected " + command + " followed by a table name");
+    }
+    String argument = sqlStmt.trim().substring(command.length()).trim();
+    if (argument.isEmpty()) {
+      return argument;
+    }
+    char quote = argument.charAt(0);
+    if (quote != '"' && quote != '`') {
+      // Preserve the historical form in which the whole remainder is an unquoted basename.
+      return argument;
+    }
+    StringBuilder name = new StringBuilder();
+    for (int i = 1; i < argument.length(); i++) {
+      char value = argument.charAt(i);
+      if (value != quote) {
+        name.append(value);
+      } else if (i + 1 < argument.length() && argument.charAt(i + 1) == quote) {
+        name.append(quote);
+        i++;
+      } else {
+        if (!argument.substring(i + 1).isBlank()) {
+          throw new IllegalArgumentException("Expected one table name after " + command);
+        }
+        return name.toString();
+      }
+    }
+    throw new IllegalArgumentException("Unterminated quoted table name after " + command);
+  }
+
   /**
    * Reads a SQL batch file.
    *

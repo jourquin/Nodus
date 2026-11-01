@@ -297,14 +297,12 @@ final class SQLConsoleOperations {
    * @return true on success.
    */
   boolean importExport(String sqlStmt, String operation, boolean confirmOverwrite) {
-    String s = sqlStmt.toUpperCase();
-    int index = s.indexOf(operation);
-
-    if (index != -1) {
-      s = sqlStmt.substring(index + operation.length(), sqlStmt.length());
+    final String tableName;
+    try {
+      tableName = SQLConsoleScript.tableArgument(sqlStmt, operation);
+    } catch (IllegalArgumentException failure) {
+      return reportImportProblem(operation, failure.getMessage());
     }
-
-    String tableName = s.trim();
 
     if (tableName.length() == 0) {
       console.displayMessageInResult(

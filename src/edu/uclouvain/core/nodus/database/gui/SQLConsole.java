@@ -151,6 +151,11 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  * or block comments reject the complete batch before execution. Textual @@ substitutions remain
  * supported.
  *
+ * <p>Import/export basenames containing spaces can be enclosed in double quotes or backticks, for
+ * example {@code IMPORTCSVH "traffic flows"}. The quotes delimit the command argument; the
+ * corresponding file is {@code traffic flows.csv} in the project directory. SQL identifiers are
+ * quoted for the connected database automatically.
+ *
  * <p>Direct import commands ask before replacing existing tables; direct export commands and
  * EXTRACTSHP ask before overwriting files. Loaded scripts, multi-command batches, and runBatch
  * calls overwrite without prompting.

@@ -63,6 +63,120 @@ class SQLConsoleImportTest {
   @TempDir Path directory;
 
   @TestFactory
+  List<DynamicTest> whitespaceNamesWorkForEveryImport() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (Format format : Format.values()) {
+      for (boolean hsql : new boolean[] {false, true}) {
+        for (boolean existing : new boolean[] {false, true}) {
+          if (!existing && format == Format.CSV) {
+            continue;
+          }
+          for (String quoting : List.of("bare", "double", "backtick")) {
+            tests.add(
+                dynamicTest(
+                    format + "/space/" + hsql + "/" + existing + "/" + quoting,
+                    () -> {
+                      Path folder = Files.createTempDirectory(directory, "spaced-import-");
+                      try (DatabaseFixture db = new DatabaseFixture(folder, hsql);
+                          RecordingConsole console = new RecordingConsole(db.project)) {
+                        db.execute("CREATE TABLE testdata (num INTEGER, label VARCHAR(80))");
+                        db.execute("INSERT INTO testdata VALUES (42, 'Imported')");
+                        format.writeFile(db, folder);
+                        String name = quoting.equals("bare") ? "traffic flows" : "traffic  flows";
+                        final String quoted = JDBCUtils.getQuotedCompliantIdentifier(name);
+                        Files.move(
+                            folder.resolve("testdata" + format.extension),
+                            folder.resolve(name + format.extension));
+                        if (existing) {
+                          db.execute("ALTER TABLE testdata RENAME TO " + quoted);
+                          db.execute("DELETE FROM " + quoted);
+                          db.execute("INSERT INTO " + quoted + " VALUES (7, 'Original')");
+                        } else {
+                          db.execute("DROP TABLE testdata");
+                        }
+                        String argument =
+                            quoting.equals("bare")
+                                ? name
+                                : quoting.equals("double") ? "\"" + name + "\"" : "`" + name + "`";
+                        console.answer = JOptionPane.YES_OPTION;
+                        assertTrue(
+                            console.direct(
+                                format.operation.toLowerCase(java.util.Locale.ROOT)
+                                    + " "
+                                    + argument
+                                    + ";"),
+                            console.resultMessage);
+                        assertEquals(existing ? 1 : 0, console.prompts);
+                        try (Statement statement = db.connection.createStatement();
+                            ResultSet rows = statement.executeQuery("SELECT * FROM " + quoted)) {
+                          assertTrue(rows.next());
+                          assertEquals(42, rows.getInt(1));
+                          assertEquals("Imported", rows.getString(2));
+                          assertFalse(rows.next());
+                        }
+                        assertFalse(JDBCUtils.tableExists(db.connection, "testdata"));
+                        assertFalse(db.connection.isClosed());
+                        assertTrue(db.connection.getAutoCommit());
+                      }
+                    }));
+          }
+        }
+      }
+    }
+    return tests;
+  }
+
+  @TestFactory
+  List<DynamicTest> quotedWhitespaceNamesRespectScriptsAndOverwriteChecks() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (boolean hsql : new boolean[] {false, true}) {
+      tests.add(
+          dynamicTest(
+              "quoted script/" + hsql,
+              () -> {
+                Path folder = Files.createTempDirectory(directory, "quoted-script-");
+                try (DatabaseFixture db = new DatabaseFixture(folder, hsql);
+                    RecordingConsole console = new RecordingConsole(db.project)) {
+                  String name = "traffic; -- #  flows";
+                  final String quoted = JDBCUtils.getQuotedCompliantIdentifier(name);
+                  db.execute("CREATE TABLE testdata (num INTEGER, label VARCHAR(80))");
+                  db.execute("INSERT INTO testdata VALUES (42, 'Imported')");
+                  Format.CSVH.writeFile(db, folder);
+                  Files.move(folder.resolve("testdata.csv"), folder.resolve(name + ".csv"));
+                  db.execute("ALTER TABLE testdata RENAME TO " + quoted);
+                  db.execute("UPDATE " + quoted + " SET num=7");
+                  String command = "IMPORTCSVH \"" + name + "\"";
+                  assertFalse(console.direct(command));
+                  assertEquals(1, console.prompts);
+                  assertFalse(console.direct(command + " ignored"));
+                  assertEquals(1, console.prompts);
+                  assertTrue(console.resultMessage.contains("Expected one table name"));
+                  try (Statement statement = db.connection.createStatement();
+                      ResultSet rows = statement.executeQuery("SELECT num FROM " + quoted)) {
+                    assertTrue(rows.next());
+                    assertEquals(7, rows.getInt(1));
+                  }
+                  assertTrue(console.runBatch(new String[] {command}));
+                  assertEquals(1, console.prompts);
+                  Path script = folder.resolve("spaced.sql");
+                  Files.writeString(script, "@@table:=\"" + name + "\";\nIMPORTCSVH @@table;");
+                  console.loadScript(script.toFile());
+                  assertTrue(console.execute(false));
+                  console.resetScript();
+                  assertEquals(1, console.prompts);
+                  try (Statement statement = db.connection.createStatement();
+                      ResultSet rows = statement.executeQuery("SELECT num FROM " + quoted)) {
+                    assertTrue(rows.next());
+                    assertEquals(42, rows.getInt(1));
+                    assertFalse(rows.next());
+                  }
+                }
+              }));
+    }
+    return tests;
+  }
+
+  @TestFactory
   List<DynamicTest> overwriteScenarios() {
     List<DynamicTest> tests = new ArrayList<>();
     for (Format format : Format.values()) {

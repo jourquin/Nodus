@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.DatabaseFixture;
+import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.dbf.DBFReader;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -57,6 +58,37 @@ class SQLConsoleExportTest {
   private static final byte[] ORIGINAL = "Keep this existing file".getBytes(StandardCharsets.UTF_8);
 
   @TempDir Path directory;
+
+  @TestFactory
+  List<DynamicTest> quotedWhitespaceNamesWorkForEveryExport() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (Format format : Format.values()) {
+      tests.add(
+          dynamicTest(
+              format + "/quoted spaces",
+              () -> {
+                Path folder = Files.createTempDirectory(directory, "spaced-export-");
+                try (DatabaseFixture db = new DatabaseFixture(folder);
+                    RecordingConsole console = new RecordingConsole(db.project)) {
+                  String name = "traffic  flows";
+                  String quoted = JDBCUtils.getQuotedCompliantIdentifier(name);
+                  db.execute("CREATE TABLE " + quoted + " (num INTEGER)");
+                  db.execute("INSERT INTO " + quoted + " VALUES (42)");
+                  Path output = folder.resolve(name + format.extension);
+                  assertTrue(console.direct(format.name() + " \"" + name + "\";"));
+                  assertEquals(0, console.prompts);
+                  format.assertExport(output);
+                  assertFalse(Files.exists(folder.resolve("\"" + name + "\"" + format.extension)));
+                  console.answer = JOptionPane.NO_OPTION;
+                  byte[] before = Files.readAllBytes(output);
+                  assertFalse(console.direct(format.name() + " \"" + name + "\";"));
+                  assertEquals(1, console.prompts);
+                  assertArrayEquals(before, Files.readAllBytes(output));
+                }
+              }));
+    }
+    return tests;
+  }
 
   @TestFactory
   List<DynamicTest> overwriteScenarios() {

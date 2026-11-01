@@ -41,6 +41,44 @@ import org.junit.jupiter.api.io.TempDir;
 class SQLConsoleScriptTest {
   @TempDir Path directory;
 
+  @Test
+  void importExportBasenamesAreDecodedWithoutLosingTheirContents() {
+    assertEquals(
+        "traffic flows", SQLConsoleScript.tableArgument("importcsvh traffic flows", "IMPORTCSVH"));
+    assertEquals(
+        "traffic  flows",
+        SQLConsoleScript.tableArgument("IMPORTCSVH \"traffic  flows\"", "IMPORTCSVH"));
+    assertEquals(
+        "trafic été", SQLConsoleScript.tableArgument("IMPORTXLSXH \"trafic été\"", "IMPORTXLSXH"));
+    assertEquals(
+        "traffic\tflows",
+        SQLConsoleScript.tableArgument("IMPORTODS \"traffic\tflows\"", "IMPORTODS"));
+    assertEquals(
+        "traffic  flows",
+        SQLConsoleScript.tableArgument("IMPORTPARQUET `traffic  flows`", "IMPORTPARQUET"));
+    assertEquals(
+        "a\" table", SQLConsoleScript.tableArgument("IMPORTDBF \"a\"\" table\"", "IMPORTDBF"));
+    assertEquals(
+        "a` table", SQLConsoleScript.tableArgument("IMPORTCSVH `a`` table`", "IMPORTCSVH"));
+    assertEquals(
+        " traffic flows ",
+        SQLConsoleScript.tableArgument("EXPORTCSV \" traffic flows \"", "EXPORTCSV"));
+    assertEquals("", SQLConsoleScript.tableArgument("IMPORTCSVH \"\"", "IMPORTCSVH"));
+    for (String invalid :
+        List.of(
+            "IMPORTCSVH \"traffic flows",
+            "IMPORTCSVH `traffic flows",
+            "IMPORTCSVH \"traffic flows\" extra",
+            "IMPORTCSVH `traffic flows` extra")) {
+      assertThrows(
+          IllegalArgumentException.class,
+          () -> SQLConsoleScript.tableArgument(invalid, "IMPORTCSVH"));
+    }
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> SQLConsoleScript.tableArgument("IMPORTCSVH data", "IMPORTCSV"));
+  }
+
   @TestFactory
   List<DynamicTest> quotedTextCannotStartCommentsOrSeparateCommands() {
     final List<DynamicTest> tests = new ArrayList<>();
