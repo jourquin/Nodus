@@ -94,6 +94,27 @@ public class ImportCSV {
       boolean withHeader,
       Consumer<String> reportError,
       ImportProgress progress) {
+    return importTable(project, tableName, withHeader, reportError, progress, new CsvOptions());
+  }
+
+  /**
+   * Imports CSV with per-command encoding, delimiter and optional automatic detection.
+   *
+   * @param project destination project and source directory
+   * @param tableName table and CSV basename
+   * @param withHeader whether the first record supplies column names
+   * @param reportError receiver for validation or database errors
+   * @param progress import progress and cancellation control
+   * @param options validated encoding and delimiter settings
+   * @return true after the entire import succeeds
+   */
+  public static boolean importTable(
+      NodusProject project,
+      String tableName,
+      boolean withHeader,
+      Consumer<String> reportError,
+      ImportProgress progress,
+      CsvOptions options) {
 
     if (!withHeader && !JDBCUtils.tableExists(tableName)) {
       reportError.accept(
@@ -103,6 +124,7 @@ public class ImportCSV {
               "Table structure must exist before importing CSV data"));
       return false;
     }
-    return CsvHeaderImport.importTable(project, tableName, withHeader, reportError, progress);
+    return CsvHeaderImport.importTable(
+        project, tableName, withHeader, reportError, progress, options);
   }
 }

@@ -607,6 +607,12 @@ first routes may differ from forward Dijkstra and can produce different subseque
   SQL NULLs, BOMs and quoted column names. Checks malformed records and headers, width/type/range
   errors, changes between passes, batch fallback and constraint failures. Failed imports retain
   existing data and earlier transactions; successful imports respect caller-owned transactions.
+- `CsvCommandOptionsTest`, `CsvCommandIntegrationTest` and `CsvOptionsTest`: per-command CSV
+  encodings and delimiters, either option order, quoted basenames and option values, script variables,
+  UTF-8/UTF-16/Windows-1252 round trips, custom delimiters and quoting, bounded automatic detection,
+  ambiguous samples, Unicode BOM handling and validation beyond the sample. Invalid options precede
+  overwrite prompts; decoding/encoding and row failures preserve original tables, exports and earlier
+  uncommitted work. Detection replays its sample without another pass over the file.
 - `ExcelIoTest`: real XLS/XLSX imports and exports on H2 and HSQLDB, bounded JDBC batch calls,
   drivers without batch support, rollback after earlier batches succeeded, Unicode and blank
   cells, streaming temporary-file cleanup on success/failure, and legacy row/column limits.

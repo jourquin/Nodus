@@ -58,7 +58,7 @@ import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 
 /*
  * TODO Test exclusions
- * TODO test import/export ODS and PARQUET files
+ * TODO test import/export CSV files with optional ENCODING and DELIMITER clauses
  */
 
 /**

@@ -128,7 +128,11 @@ class NewTableFormatsTest {
           "ImportODS",
           "importxlsh",
           "IMPORTXLSXH",
-          "ImportODSH"
+          "ImportODSH",
+          "encoding",
+          "DELIMITER",
+          "Auto",
+          "tAb"
         }) {
       char[] text = (command + " data").toCharArray();
       Token token =

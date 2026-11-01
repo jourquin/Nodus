@@ -150,7 +150,7 @@ class SQLConsoleImportTest {
                   assertEquals(1, console.prompts);
                   assertFalse(console.direct(command + " ignored"));
                   assertEquals(1, console.prompts);
-                  assertTrue(console.resultMessage.contains("Expected one table name"));
+                  assertTrue(console.resultMessage.contains("Unknown CSV option"));
                   try (Statement statement = db.connection.createStatement();
                       ResultSet rows = statement.executeQuery("SELECT num FROM " + quoted)) {
                     assertTrue(rows.next());

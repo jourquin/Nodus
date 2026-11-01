@@ -21,6 +21,7 @@
 
 package edu.uclouvain.core.nodus.database.gui;
 
+import edu.uclouvain.core.nodus.database.csv.CsvOptions;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -106,6 +107,161 @@ final class SQLConsoleScript {
       }
     }
     throw new IllegalArgumentException("Unterminated quoted table name after " + command);
+  }
+
+  /**
+   * Parses named CSV options without splitting historical unquoted basenames at ordinary spaces.
+   */
+  static CsvArguments csvArguments(String sqlStmt, String command) {
+    if (!startsWithCommand(sqlStmt, command)) {
+      throw new IllegalArgumentException("Expected " + command + " followed by a table name");
+    }
+    String argument = sqlStmt.trim().substring(command.length()).trim();
+    if (argument.isEmpty()) {
+      return new CsvArguments("", new CsvOptions());
+    }
+    int optionStart = -1;
+    String table;
+    if (argument.charAt(0) == '"' || argument.charAt(0) == '`') {
+      CsvToken name = csvToken(argument, 0);
+      table = name.value;
+      optionStart = name.end;
+      if (optionStart < argument.length()
+          && !Character.isWhitespace(argument.charAt(optionStart))) {
+        throw new IllegalArgumentException("Expected whitespace after the CSV basename");
+      }
+    } else {
+      int offset = 0;
+      boolean first = true;
+      while (offset < argument.length()) {
+        CsvToken token = csvToken(argument, offset);
+        if (!first && !token.quoted && csvOption(token.value)) {
+          optionStart = token.start;
+          break;
+        }
+        first = false;
+        offset = token.end;
+        while (offset < argument.length() && Character.isWhitespace(argument.charAt(offset))) {
+          offset++;
+        }
+      }
+      if (optionStart < 0) {
+        return new CsvArguments(tableArgument(sqlStmt, command), new CsvOptions());
+      }
+      table = argument.substring(0, optionStart).trim();
+    }
+    String encoding = null;
+    char delimiter = ',';
+    boolean automatic = false;
+    boolean encodingSeen = false;
+    boolean delimiterSeen = false;
+    int offset = optionStart;
+    while (offset < argument.length()) {
+      while (offset < argument.length() && Character.isWhitespace(argument.charAt(offset))) {
+        offset++;
+      }
+      if (offset == argument.length()) {
+        break;
+      }
+      CsvToken option = csvToken(argument, offset);
+      if (option.quoted || !csvOption(option.value)) {
+        throw new IllegalArgumentException("Unknown CSV option: " + option.value);
+      }
+      offset = option.end;
+      while (offset < argument.length() && Character.isWhitespace(argument.charAt(offset))) {
+        offset++;
+      }
+      if (offset == argument.length()) {
+        throw new IllegalArgumentException("Expected a value after " + option.value);
+      }
+      CsvToken value = csvToken(argument, offset);
+      if (!value.quoted && csvOption(value.value)) {
+        throw new IllegalArgumentException("Expected a value after " + option.value);
+      }
+      offset = value.end;
+      if (offset < argument.length() && !Character.isWhitespace(argument.charAt(offset))) {
+        throw new IllegalArgumentException("Expected whitespace after the CSV option value");
+      }
+      if (option.value.equalsIgnoreCase("ENCODING")) {
+        if (encodingSeen) {
+          throw new IllegalArgumentException("Duplicate CSV ENCODING option");
+        }
+        encodingSeen = true;
+        encoding = value.value;
+      } else {
+        if (delimiterSeen) {
+          throw new IllegalArgumentException("Duplicate CSV DELIMITER option");
+        }
+        delimiterSeen = true;
+        if (!value.quoted && value.value.equalsIgnoreCase("AUTO")) {
+          if (!command.regionMatches(true, 0, "IMPORT", 0, 6)) {
+            throw new IllegalArgumentException("DELIMITER AUTO is only valid for CSV imports");
+          }
+          automatic = true;
+        } else if (!value.quoted && value.value.equalsIgnoreCase("TAB")) {
+          delimiter = '\t';
+        } else if (value.quoted && value.value.length() == 1) {
+          delimiter = value.value.charAt(0);
+        } else {
+          throw new IllegalArgumentException(
+              "CSV DELIMITER requires a quoted character, TAB or AUTO");
+        }
+      }
+    }
+    return new CsvArguments(table, new CsvOptions(encoding, delimiter, automatic));
+  }
+
+  private static boolean csvOption(String text) {
+    return text.equalsIgnoreCase("ENCODING") || text.equalsIgnoreCase("DELIMITER");
+  }
+
+  private static CsvToken csvToken(String text, int start) {
+    char quote = text.charAt(start);
+    if (quote != '"' && quote != '`' && quote != '\'') {
+      int end = start;
+      while (end < text.length() && !Character.isWhitespace(text.charAt(end))) {
+        end++;
+      }
+      return new CsvToken(text.substring(start, end), start, end, false);
+    }
+    StringBuilder value = new StringBuilder();
+    for (int i = start + 1; i < text.length(); i++) {
+      char next = text.charAt(i);
+      if (next != quote) {
+        value.append(next);
+      } else if (i + 1 < text.length() && text.charAt(i + 1) == quote) {
+        value.append(quote);
+        i++;
+      } else {
+        return new CsvToken(value.toString(), start, i + 1, true);
+      }
+    }
+    throw new IllegalArgumentException("Unterminated quoted CSV argument");
+  }
+
+  /** One CSV command's existing basename and validated optional format. */
+  static final class CsvArguments {
+    final String table;
+    final CsvOptions options;
+
+    CsvArguments(String table, CsvOptions options) {
+      this.table = table;
+      this.options = options;
+    }
+  }
+
+  private static final class CsvToken {
+    final String value;
+    final int start;
+    final int end;
+    final boolean quoted;
+
+    CsvToken(String value, int start, int end, boolean quoted) {
+      this.value = value;
+      this.start = start;
+      this.end = end;
+      this.quoted = quoted;
+    }
   }
 
   /**

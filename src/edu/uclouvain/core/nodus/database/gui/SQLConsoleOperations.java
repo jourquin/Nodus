@@ -29,6 +29,7 @@ import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.ImportProgress;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import edu.uclouvain.core.nodus.database.csv.CsvOptions;
 import edu.uclouvain.core.nodus.database.csv.ExportCSV;
 import edu.uclouvain.core.nodus.database.csv.ImportCSV;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
@@ -299,8 +300,21 @@ final class SQLConsoleOperations {
    */
   boolean importExport(String sqlStmt, String operation, boolean confirmOverwrite) {
     final String tableName;
+    final CsvOptions csvOptions;
+    boolean csv =
+        operation.equals(IMPORTCSV)
+            || operation.equals(IMPORTCSVH)
+            || operation.equals(EXPORTCSV)
+            || operation.equals(EXPORTCSVH);
     try {
-      tableName = SQLConsoleScript.tableArgument(sqlStmt, operation);
+      if (csv) {
+        SQLConsoleScript.CsvArguments arguments = SQLConsoleScript.csvArguments(sqlStmt, operation);
+        tableName = arguments.table;
+        csvOptions = arguments.options;
+      } else {
+        tableName = SQLConsoleScript.tableArgument(sqlStmt, operation);
+        csvOptions = null;
+      }
     } catch (IllegalArgumentException failure) {
       return reportImportProblem(operation, failure.getMessage());
     }
@@ -309,7 +323,13 @@ final class SQLConsoleOperations {
       console.displayMessageInResult(
           i18n.get(SQLConsole.class, "Usage", "Usage:"),
           MessageFormat.format(
-              i18n.get(SQLConsole.class, "TableName", "{0} TableName"), operation));
+              csv
+                  ? i18n.get(
+                      SQLConsole.class,
+                      "Csv_command_usage",
+                      "{0} basename [ENCODING charset] [DELIMITER separator]")
+                  : i18n.get(SQLConsole.class, "TableName", "{0} TableName"),
+              operation));
 
       return false;
     }
@@ -371,9 +391,9 @@ final class SQLConsoleOperations {
       } else if (operation.equals(IMPORTDBF)) {
         succeeded = ImportDBF.importTable(nodusProject, tableName, report, progress);
       } else if (operation.equals(EXPORTCSV)) {
-        succeeded = ExportCSV.exportTable(nodusProject, tableName, false);
+        succeeded = ExportCSV.exportTable(nodusProject, tableName, false, csvOptions, report);
       } else if (operation.equals(EXPORTCSVH)) {
-        succeeded = ExportCSV.exportTable(nodusProject, tableName, true);
+        succeeded = ExportCSV.exportTable(nodusProject, tableName, true, csvOptions, report);
       } else if (operation.equals(IMPORTCSV)) {
         succeeded =
             ImportCSV.importTable(
@@ -381,7 +401,8 @@ final class SQLConsoleOperations {
                 tableName,
                 false,
                 message -> importError[0] = new java.sql.SQLException(message),
-                progress);
+                progress,
+                csvOptions);
       } else if (operation.equals(IMPORTCSVH)) {
         succeeded =
             ImportCSV.importTable(
@@ -389,7 +410,8 @@ final class SQLConsoleOperations {
                 tableName,
                 true,
                 message -> importError[0] = new java.sql.SQLException(message),
-                progress);
+                progress,
+                csvOptions);
       } else if (operation.equals(IMPORTXLS) || operation.equals(IMPORTXLSH)) {
         succeeded =
             ImportXLS.importTable(

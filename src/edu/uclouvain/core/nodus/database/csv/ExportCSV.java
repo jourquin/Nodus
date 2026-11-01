@@ -26,13 +26,15 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.TableExport;
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
+import java.nio.charset.CodingErrorAction;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.Statement;
+import java.util.function.Consumer;
 
 /**
  * Simple CSV file writer.
@@ -45,13 +47,13 @@ public class ExportCSV {
   public ExportCSV() {}
 
   /** Escapes a value according to RFC4180 so exported files can be safely re-imported. */
-  private static String escapeCsvValue(Object value) {
+  private static String escapeCsvValue(Object value, char delimiter) {
     if (value == null) {
       return "";
     }
 
     String text = value.toString();
-    if (text.indexOf(',') == -1
+    if (text.indexOf(delimiter) == -1
         && text.indexOf('"') == -1
         && text.indexOf('\n') == -1
         && text.indexOf('\r') == -1) {
@@ -77,20 +79,59 @@ public class ExportCSV {
     return exportTable(project, tableName, withHeader, new TableExport());
   }
 
+  /**
+   * Exports CSV with a strict encoder and a per-command explicit delimiter.
+   *
+   * @param project source project and output directory
+   * @param tableName source table and output basename
+   * @param withHeader whether to write column names
+   * @param options validated encoding and explicit separator
+   * @param reportError receives export failures without opening a dialog
+   * @return true after the complete output file has been published
+   */
+  public static boolean exportTable(
+      NodusProject project,
+      String tableName,
+      boolean withHeader,
+      CsvOptions options,
+      Consumer<Exception> reportError) {
+    return exportTable(project, tableName, withHeader, new TableExport(), options, reportError);
+  }
+
   /** Uses the production staging workflow with injectable file operations for failure tests. */
   static boolean exportTable(
       NodusProject project, String tableName, boolean withHeader, TableExport files) {
+    return exportTable(
+        project,
+        tableName,
+        withHeader,
+        files,
+        new CsvOptions(),
+        error -> System.out.println(error.toString()));
+  }
+
+  @SuppressWarnings("resource") // The project owns the borrowed source connection.
+  private static boolean exportTable(
+      NodusProject project,
+      String tableName,
+      boolean withHeader,
+      TableExport files,
+      CsvOptions options,
+      Consumer<Exception> reportError) {
     String fileName =
         project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + tableName + NodusC.TYPE_CSV;
 
     try {
-      if (!TableExport.hasSourceColumns(project.getMainJDBCConnection(), tableName)) {
+      if (options.isAutomatic()) {
+        throw new IllegalArgumentException("DELIMITER AUTO is only valid for CSV imports");
+      }
+      Connection con = project.getMainJDBCConnection();
+      if (!TableExport.hasSourceColumns(con, tableName)) {
         return false;
       }
       files.write(
           Path.of(fileName),
           output -> {
-            Connection con = project.getMainJDBCConnection();
             try (Statement stmt = con.createStatement();
                 ResultSet rs =
                     stmt.executeQuery(
@@ -100,13 +141,20 @@ public class ExportCSV {
               int nbColumns = rsmd.getColumnCount();
 
               try (BufferedWriter bw =
-                  new BufferedWriter(new OutputStreamWriter(output, Charset.defaultCharset()))) {
+                  new BufferedWriter(
+                      new OutputStreamWriter(
+                          output,
+                          options
+                              .getCharset()
+                              .newEncoder()
+                              .onMalformedInput(CodingErrorAction.REPORT)
+                              .onUnmappableCharacter(CodingErrorAction.REPORT)))) {
                 // Save header if needed
                 if (withHeader) {
                   for (int i = 0; i < nbColumns; i++) {
-                    bw.write(escapeCsvValue(rsmd.getColumnName(i + 1)));
+                    bw.write(escapeCsvValue(rsmd.getColumnName(i + 1), options.getDelimiter()));
                     if (i < nbColumns - 1) {
-                      bw.write(',');
+                      bw.write(options.getDelimiter());
                     }
                   }
                   bw.newLine();
@@ -115,10 +163,10 @@ public class ExportCSV {
                 // Retrieve result of query
                 while (rs.next()) {
                   for (int i = 0; i < nbColumns; i++) {
-                    bw.write(escapeCsvValue(rs.getObject(i + 1)));
+                    bw.write(escapeCsvValue(rs.getObject(i + 1), options.getDelimiter()));
 
                     if (i < nbColumns - 1) {
-                      bw.write(',');
+                      bw.write(options.getDelimiter());
                     }
                   }
 
@@ -128,7 +176,7 @@ public class ExportCSV {
             }
           });
     } catch (Exception ex) {
-      System.out.println(ex.toString());
+      reportError.accept(new IOException(options.errorMessage(ex, true), ex));
 
       return false;
     }

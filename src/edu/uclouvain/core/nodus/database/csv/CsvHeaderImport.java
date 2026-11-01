@@ -29,11 +29,9 @@ import edu.uclouvain.core.nodus.database.ImportSource;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.database.TableImport;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.PushbackReader;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.DigestInputStream;
@@ -60,7 +58,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
-import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
@@ -78,7 +75,8 @@ final class CsvHeaderImport {
       String table,
       boolean withHeader,
       Consumer<String> reportError,
-      ImportProgress progress) {
+      ImportProgress progress,
+      CsvOptions options) {
     Path source =
         Path.of(project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + table + NodusC.TYPE_CSV);
     if (!Files.isRegularFile(source)) {
@@ -94,12 +92,19 @@ final class CsvHeaderImport {
       boolean existing = JDBCUtils.tableExists(connection, table);
       if (existing) {
         replaceRows(
-            connection, source, table, withHeader, project.getSqlBatchSize(), sourceFile, progress);
+            connection,
+            source,
+            table,
+            withHeader,
+            project.getSqlBatchSize(),
+            sourceFile,
+            progress,
+            options);
       } else {
         if (!withHeader) {
           throw new SQLException("Table structure must exist before importing CSV data");
         }
-        Plan plan = scan(source, progress);
+        Plan plan = scan(source, progress, options);
         sourceFile.verify();
         TableImport.replace(
             project,
@@ -108,19 +113,20 @@ final class CsvHeaderImport {
               try (Statement statement = staging.createStatement()) {
                 statement.execute(plan.createStatement(staging, name));
               }
-              load(staging, source, name, plan, project.getSqlBatchSize(), progress);
+              load(staging, source, name, plan, project.getSqlBatchSize(), progress, options);
               sourceFile.verify();
             },
             progress);
       }
       return true;
     } catch (Exception error) {
-      reportError.accept(error.getMessage() == null ? error.toString() : error.getMessage());
+      reportError.accept(options.errorMessage(error, false));
       return false;
     }
   }
 
-  private static Plan scan(Path source, ImportProgress progress) throws Exception {
+  private static Plan scan(Path source, ImportProgress progress, CsvOptions options)
+      throws Exception {
     progress.phase("Inferring");
     Plan plan = new Plan();
     plan.fingerprint =
@@ -144,7 +150,8 @@ final class CsvHeaderImport {
                 column.finishInference();
               }
             },
-            progress);
+            progress,
+            options);
     return plan;
   }
 
@@ -221,7 +228,8 @@ final class CsvHeaderImport {
       boolean withHeader,
       int batchSize,
       ImportSource sourceFile,
-      ImportProgress progress)
+      ImportProgress progress,
+      CsvOptions options)
       throws Exception {
     TableImport.requireTransactionalRows(connection, table);
     boolean autoCommit = connection.getAutoCommit();
@@ -243,7 +251,8 @@ final class CsvHeaderImport {
             }
             loadRecords(connection, table, plan, records, batchSize, progress);
           },
-          progress);
+          progress,
+          options);
       sourceFile.verify();
       progress.finishing();
       if (autoCommit) {
@@ -276,7 +285,8 @@ final class CsvHeaderImport {
       String table,
       Plan plan,
       int batchSize,
-      ImportProgress progress)
+      ImportProgress progress,
+      CsvOptions options)
       throws Exception {
     byte[] fingerprint =
         read(
@@ -288,7 +298,8 @@ final class CsvHeaderImport {
               }
               loadRecords(connection, table, plan, records, batchSize, progress);
             },
-            progress);
+            progress,
+            options);
     if (!Arrays.equals(plan.fingerprint, fingerprint)) {
       throw new SQLException("CSV file changed during import; retry with a stable source file");
     }
@@ -337,14 +348,14 @@ final class CsvHeaderImport {
   }
 
   /** Consumes one file pass while hashing the actual bytes parsed, without retaining records. */
-  private static byte[] read(Path source, Visitor visitor, ImportProgress progress)
-      throws Exception {
+  private static byte[] read(
+      Path source, Visitor visitor, ImportProgress progress, CsvOptions options) throws Exception {
     MessageDigest digest = MessageDigest.getInstance("SHA-256");
     try (InputStream input =
             new DigestInputStream(
                 ImportSource.cancellable(Files.newInputStream(source), progress), digest);
-        Reader reader = new InputStreamReader(input, Charset.defaultCharset());
-        CSVParser csv = CSVFormat.RFC4180.parse(reader)) {
+        PushbackReader reader = options.reader(input);
+        CSVParser csv = options.format(reader, progress).parse(reader)) {
       visitor.read(csv);
       return digest.digest();
     }

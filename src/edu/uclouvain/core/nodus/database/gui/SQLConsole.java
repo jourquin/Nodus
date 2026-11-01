@@ -165,7 +165,12 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  * <p>Import/export basenames containing spaces can be enclosed in double quotes or backticks, for
  * example {@code IMPORTCSVH "traffic flows"}. The quotes delimit the command argument; the
  * corresponding file is {@code traffic flows.csv} in the project directory. SQL identifiers are
- * quoted for the connected database automatically.
+ * quoted for the connected database automatically. CSV commands also accept {@code ENCODING
+ * charset} and {@code DELIMITER 'character'} in either order. {@code DELIMITER TAB} selects tabs;
+ * {@code DELIMITER AUTO} detects comma, semicolon, tab or pipe on imports only, using at most 64 Ki
+ * characters and 20 records. Ambiguous samples require an explicit delimiter. Omitting options
+ * retains the Java default charset and comma delimiter. Invalid character sequences or
+ * unrepresentable output characters fail without silent replacement.
  *
  * <p>Direct import commands ask before replacing existing tables; direct export commands and
  * EXTRACTSHP ask before overwriting files. Loaded scripts, multi-command batches, and runBatch
