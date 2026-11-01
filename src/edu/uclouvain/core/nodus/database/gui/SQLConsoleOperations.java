@@ -356,7 +356,7 @@ final class SQLConsoleOperations {
     } else if (operation.equals(IMPORTPARQUET)) {
       succeeded =
           edu.uclouvain.core.nodus.database.parquet.ImportParquet.importTable(
-              nodusProject, tableName);
+              nodusProject, tableName, report);
     } else if (operation.equals(EXPORTODS)) {
       succeeded = ExportXLS.exportODS(nodusProject, tableName);
     } else if (operation.equals(IMPORTODS) || operation.equals(IMPORTODSH)) {
@@ -365,7 +365,7 @@ final class SQLConsoleOperations {
     } else if (operation.equals(EXPORTDBF)) {
       succeeded = ExportDBF.exportTable(nodusProject, tableName);
     } else if (operation.equals(IMPORTDBF)) {
-      succeeded = ImportDBF.importTable(nodusProject, tableName);
+      succeeded = ImportDBF.importTable(nodusProject, tableName, report);
     } else if (operation.equals(EXPORTCSV)) {
       succeeded = ExportCSV.exportTable(nodusProject, tableName, false);
     } else if (operation.equals(EXPORTCSVH)) {
@@ -399,7 +399,11 @@ final class SQLConsoleOperations {
     }
 
     if (!succeeded && importError[0] != null) {
-      return reportImportProblem(operation, importError[0].getMessage());
+      return reportImportProblem(
+          operation,
+          importError[0].getMessage() == null
+              ? importError[0].toString()
+              : importError[0].getMessage());
     }
     String g = "";
     if (succeeded) {

@@ -603,7 +603,7 @@ first routes may differ from forward Dijkstra and can produce different subseque
   and one label refresh per layer per pass on a long corridor. These tests check behavior,
   not elapsed time.
 - `CsvHeaderImportTest`: header-based mapping and schema inference on H2/HSQLDB, including exact
-  decimals, large integers, leading-zero identifiers, booleans, mixed text, dates retained as text,
+  decimals, large integers, leading-zero identifiers, booleans, first-value types, dates retained as text,
   SQL NULLs, BOMs and quoted column names. Checks malformed records and headers, width/type/range
   errors, changes between passes, batch fallback and constraint failures. Failed imports retain
   existing data and earlier transactions; successful imports respect caller-owned transactions.
@@ -613,8 +613,14 @@ first routes may differ from forward Dijkstra and can produce different subseque
 - SQL console import/export tests also cover quoted basenames with repeated spaces on H2/HSQLDB,
   every import variant, new and existing tables, double quotes and backticks, file lookup,
   overwrite cancellation, script variables and quoted SQL separator/comment characters.
+- `SingleTableImportTest`: XLS/XLSX/ODS must contain one sheet and a contiguous rectangular
+  table. Covers hidden/empty extra sheets, XLSX metadata rejection before reading a corrupted second
+  sheet, merged cells, row gaps, short/wide rows, repeated headings, mixed types and first-error
+  ordering. Checks valid NULL cells and numeric widening, CSV record structure, nested Parquet
+  rejection and row-level Parquet value errors, and clean SQL-console errors for DBF/Parquet.
+  Every rejected import preserves existing tables on H2/HSQLDB.
 - `SpreadsheetImportTest`: XLS/XLSX/ODS imports on H2/HSQLDB with inferred and explicit schemas,
-  named and generated columns, reordered headers, mixed types, leading-zero identifiers, late
+  named and generated columns, reordered headers, consistent column types, leading-zero identifiers, late
   decimals and longer strings, boolean/date/time values, SQL NULLs, and header-only files.
   Invalid widths, duplicate or missing headers, incompatible values and SQL constraint failures
   retain existing rows, constraints and earlier uncommitted work. Console import tests cover

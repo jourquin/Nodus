@@ -217,8 +217,8 @@ final class OdsCodec {
       throw new IOException("ODS has no content.xml");
     }
     NodeList tables = document.getElementsByTagNameNS(TABLE, "table");
-    if (tables.getLength() == 0) {
-      throw new IOException("ODS has no sheet");
+    if (tables.getLength() != 1) {
+      throw new IOException("ODS import requires exactly one sheet; found " + tables.getLength());
     }
     final Sheet sheet = book.createSheet("data");
     org.apache.poi.ss.usermodel.CellStyle dateStyle = book.createCellStyle();
@@ -231,14 +231,13 @@ final class OdsCodec {
     int lastDataRow = rows.getLength() - 1;
     while (lastDataRow >= 0) {
       Element row = (Element) rows.item(lastDataRow);
-      if (hasValue(row)
-          || row.getElementsByTagNameNS(TEXT, "p").getLength() > 0
-          || repeat(row, "number-rows-repeated", 1048576) == 1) {
+      if (hasValue(row) || !row.getTextContent().isBlank()) {
         break;
       }
       lastDataRow--;
     }
     int rowIndex = 0;
+    int tableWidth = 0;
     long cells = 0;
     for (int r = 0; r <= lastDataRow; r++) {
       Element source = (Element) rows.item(r);
@@ -262,13 +261,43 @@ final class OdsCodec {
           if ((long) col + count > 16384) {
             throw new IOException("Too many ODS columns");
           }
+          if ((cell.hasAttributeNS(TABLE, "number-columns-spanned")
+                  && repeat(cell, "number-columns-spanned", 16384) > 1)
+              || (cell.hasAttributeNS(TABLE, "number-rows-spanned")
+                  && repeat(cell, "number-rows-spanned", 1048576) > 1)
+              || cell.getLocalName().equals("covered-table-cell")) {
+            throw new IOException(
+                "ODS row "
+                    + rowIndex
+                    + ", column "
+                    + (col + 1)
+                    + ": merged cells are not a single table");
+          }
           String type = cell.getAttributeNS(OFFICE, "value-type");
           if (type.isEmpty()) {
             if (cell.hasAttributeNS(TABLE, "formula")) {
-              throw new IOException("ODS formula has no cached result");
+              throw new IOException(
+                  "ODS row "
+                      + rowIndex
+                      + ", column "
+                      + (col + 1)
+                      + ": formula has no cached result");
+            }
+            for (int c = col; c < Math.min(col + count, tableWidth); c++) {
+              row.createCell(c);
             }
             col += count;
             continue;
+          }
+          if (tableWidth > 0 && col + count > tableWidth) {
+            throw new IOException(
+                "ODS row "
+                    + rowIndex
+                    + ", column "
+                    + (col + 1)
+                    + ": data extends beyond "
+                    + tableWidth
+                    + " columns");
           }
           cells += count;
           if (cells > 2000000) {
@@ -276,45 +305,61 @@ final class OdsCodec {
           }
           for (int c = 0; c < count; c++) {
             Cell target = row.createCell(col++);
-            if (type.equals("float") || type.equals("currency") || type.equals("percentage")) {
-              target.setCellValue(Double.parseDouble(cell.getAttributeNS(OFFICE, "value")));
-            } else if (type.equals("boolean")) {
-              String value = cell.getAttributeNS(OFFICE, "boolean-value");
-              if (!java.util.List.of("true", "false", "1", "0").contains(value)) {
-                throw new IOException("Invalid ODS boolean value: " + value);
-              }
-              target.setCellValue(value.equals("true") || value.equals("1"));
-            } else if (type.equals("date")) {
-              String date = cell.getAttributeNS(OFFICE, "date-value");
-              boolean timestamp = date.contains("T");
-              target.setCellValue(
-                  timestamp
-                      ? java.time.LocalDateTime.parse(date)
-                      : java.time.LocalDate.parse(date).atStartOfDay());
-              target.setCellStyle(timestamp ? timestampStyle : dateStyle);
-            } else if (type.equals("time")) {
-              java.time.Duration time =
-                  java.time.Duration.parse(cell.getAttributeNS(OFFICE, "time-value"));
-              if (time.isNegative() || time.compareTo(java.time.Duration.ofDays(1)) >= 0) {
-                throw new IOException("ODS time is outside a single day");
-              }
-              target.setCellValue(time.toNanos() / 86400000000000.0);
-              target.setCellStyle(timeStyle);
-            } else {
-              StringBuilder value = new StringBuilder();
-              NodeList paragraphs = cell.getElementsByTagNameNS(TEXT, "p");
-              for (int p = 0; p < paragraphs.getLength(); p++) {
-                if (p > 0) {
-                  value.append('\n');
+            try {
+              if (type.equals("float") || type.equals("currency") || type.equals("percentage")) {
+                target.setCellValue(Double.parseDouble(cell.getAttributeNS(OFFICE, "value")));
+              } else if (type.equals("boolean")) {
+                String value = cell.getAttributeNS(OFFICE, "boolean-value");
+                if (!java.util.List.of("true", "false", "1", "0").contains(value)) {
+                  throw new IOException("Invalid ODS boolean value: " + value);
                 }
-                appendText(paragraphs.item(p), value);
+                target.setCellValue(value.equals("true") || value.equals("1"));
+              } else if (type.equals("date")) {
+                String date = cell.getAttributeNS(OFFICE, "date-value");
+                boolean timestamp = date.contains("T");
+                target.setCellValue(
+                    timestamp
+                        ? java.time.LocalDateTime.parse(date)
+                        : java.time.LocalDate.parse(date).atStartOfDay());
+                target.setCellStyle(timestamp ? timestampStyle : dateStyle);
+              } else if (type.equals("time")) {
+                java.time.Duration time =
+                    java.time.Duration.parse(cell.getAttributeNS(OFFICE, "time-value"));
+                if (time.isNegative() || time.compareTo(java.time.Duration.ofDays(1)) >= 0) {
+                  throw new IOException("ODS time is outside a single day");
+                }
+                target.setCellValue(time.toNanos() / 86400000000000.0);
+                target.setCellStyle(timeStyle);
+              } else {
+                StringBuilder value = new StringBuilder();
+                NodeList paragraphs = cell.getElementsByTagNameNS(TEXT, "p");
+                for (int p = 0; p < paragraphs.getLength(); p++) {
+                  if (p > 0) {
+                    value.append('\n');
+                  }
+                  appendText(paragraphs.item(p), value);
+                }
+                target.setCellValue(
+                    paragraphs.getLength() == 0
+                        ? cell.getAttributeNS(OFFICE, "string-value")
+                        : value.toString());
               }
-              target.setCellValue(
-                  paragraphs.getLength() == 0
-                      ? cell.getAttributeNS(OFFICE, "string-value")
-                      : value.toString());
+            } catch (Exception invalid) {
+              throw new IOException(
+                  "ODS row " + rowIndex + ", column " + col + ": " + invalid.getMessage(), invalid);
             }
           }
+        }
+        if (rowIndex == 1) {
+          tableWidth = Math.max(0, row.getLastCellNum());
+        } else if (row.getLastCellNum() < tableWidth) {
+          throw new IOException(
+              "ODS row "
+                  + rowIndex
+                  + ": row has "
+                  + Math.max(0, row.getLastCellNum())
+                  + " columns; expected "
+                  + tableWidth);
         }
       }
     }

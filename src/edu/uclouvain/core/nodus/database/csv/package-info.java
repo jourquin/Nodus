@@ -27,9 +27,10 @@
  * edu.uclouvain.core.nodus.database.csv.ExportCSV} writes table contents with optional column
  * headers and escaping for delimiters, quotes and line breaks.
  *
- * <p>Header imports inspect the entire file before loading a second pass into the existing table or
- * a staging table. Inference preserves leading-zero identifiers, mixed values and dates as text,
- * uses exact numeric types, and treats empty fields as SQL NULL. Existing table definitions and
- * constraints remain authoritative. A changed file or failed import preserves existing data.
+ * <p>Imports into existing tables validate records while loading a single pass. Creating a table
+ * from headers needs one schema pass: first non-empty values establish the types, and incompatible
+ * later values or field counts stop at the first offending record. Text lengths and numeric
+ * precision can grow within the same type. Dates and leading-zero identifiers remain text; empty
+ * fields in header imports become SQL NULL. Failed imports preserve existing data and transactions.
  */
 package edu.uclouvain.core.nodus.database.csv;

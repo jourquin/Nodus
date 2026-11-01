@@ -44,6 +44,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Consumer;
 import org.apache.parquet.ParquetReadOptions;
 import org.apache.parquet.column.page.PageReadStore;
 import org.apache.parquet.example.data.Group;
@@ -79,6 +80,19 @@ public final class ImportParquet {
    * @return true after the complete import has been published
    */
   public static boolean importTable(NodusProject project, String tableName) {
+    return importTable(project, tableName, TableImport::reportError);
+  }
+
+  /**
+   * Imports one flat Parquet table, reporting failures to the supplied console callback.
+   *
+   * @param project the destination project and input directory
+   * @param tableName the destination table and source basename
+   * @param reportError receives the first import failure
+   * @return true after the complete table has been published
+   */
+  public static boolean importTable(
+      NodusProject project, String tableName, Consumer<Exception> reportError) {
     Path source =
         Path.of(
             project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH)
@@ -100,7 +114,7 @@ public final class ImportParquet {
           });
       return true;
     } catch (Exception error) {
-      TableImport.reportError(error);
+      reportError.accept(error);
       return false;
     }
   }
@@ -150,33 +164,54 @@ public final class ImportParquet {
       MessageColumnIO io = new ColumnIOFactory().getColumnIO(schema);
       PageReadStore pages;
       int pending = 0;
-      while ((pages = reader.readNextRowGroup()) != null) {
-        try (PageReadStore group = pages) {
-          RecordReader<Group> records = io.getRecordReader(group, new GroupRecordConverter(schema));
-          for (long row = 0; row < group.getRowCount(); row++) {
-            Group record = records.read();
-            if (record == null) {
-              throw new SQLException("Unexpected end of Parquet row group");
-            }
-            for (int c = 0; c < columns.size(); c++) {
-              Object value =
-                  record.getFieldRepetitionCount(c) == 0 ? null : columns.get(c).value(record, c);
-              insert.setObject(c + 1, value);
-            }
-            if (batching) {
-              insert.addBatch();
-              if (++pending >= Math.max(1, batchSize)) {
-                insert.executeBatch();
-                pending = 0;
+      long rowNumber = 0;
+      long errorRow = 1;
+      try {
+        while ((pages = reader.readNextRowGroup()) != null) {
+          try (PageReadStore group = pages) {
+            RecordReader<Group> records =
+                io.getRecordReader(group, new GroupRecordConverter(schema));
+            for (long row = 0; row < group.getRowCount(); row++) {
+              rowNumber++;
+              errorRow = rowNumber;
+              Group record = records.read();
+              if (record == null) {
+                throw new SQLException("Unexpected end of Parquet row group");
               }
-            } else {
-              insert.executeUpdate();
+              for (int c = 0; c < columns.size(); c++) {
+                int count = record.getFieldRepetitionCount(c);
+                if (count > 1
+                    || (count == 0 && columns.get(c).type.isRepetition(Type.Repetition.REQUIRED))) {
+                  throw new SQLException(
+                      "column " + (c + 1) + " does not match the Parquet schema");
+                }
+                Object value = count == 0 ? null : columns.get(c).value(record, c);
+                insert.setObject(c + 1, value);
+              }
+              if (batching) {
+                insert.addBatch();
+                if (++pending >= Math.max(1, batchSize)) {
+                  insert.executeBatch();
+                  pending = 0;
+                }
+              } else {
+                insert.executeUpdate();
+              }
+              errorRow = rowNumber + 1;
             }
           }
         }
-      }
-      if (pending > 0) {
-        insert.executeBatch();
+        if (pending > 0) {
+          errorRow = Math.max(1, rowNumber);
+          insert.executeBatch();
+        }
+      } catch (Exception error) {
+        throw new SQLException(
+            "Parquet row "
+                + errorRow
+                + ": "
+                + (error.getMessage() == null ? error.toString() : error.getMessage()),
+            error);
       }
     }
   }
@@ -299,7 +334,13 @@ public final class ImportParquet {
             integer = new BigInteger(row.getBinary(c, 0).getBytes());
             break;
         }
-        return new BigDecimal(integer, ((DecimalLogicalTypeAnnotation) logical).getScale());
+        DecimalLogicalTypeAnnotation decimal = (DecimalLogicalTypeAnnotation) logical;
+        BigDecimal value = new BigDecimal(integer, decimal.getScale());
+        if (value.precision() > decimal.getPrecision()) {
+          throw new SQLException(
+              "Decimal value exceeds declared precision for column " + type.getName());
+        }
+        return value;
       }
       if (logical instanceof StringLogicalTypeAnnotation
           || logical instanceof EnumLogicalTypeAnnotation

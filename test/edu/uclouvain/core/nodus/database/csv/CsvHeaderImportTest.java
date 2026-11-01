@@ -105,6 +105,36 @@ class CsvHeaderImportTest {
   }
 
   @TestFactory
+  List<DynamicTest> existingTablesValidateWhileLoadingAndStopBeforeLaterParseErrors() {
+    List<DynamicTest> tests = new ArrayList<>();
+    for (boolean hsql : new boolean[] {false, true}) {
+      tests.add(
+          dynamicTest(
+              "single pass/" + hsql,
+              () -> {
+                try (DatabaseFixture db = new DatabaseFixture(directory, hsql)) {
+                  db.execute("CREATE TABLE data(id INTEGER,label VARCHAR(16))");
+                  db.execute("INSERT INTO data VALUES(99,'original')");
+                  write("id,label\n1,first\nbad,wrong\n\"unterminated\n");
+                  java.util.concurrent.atomic.AtomicInteger deletes =
+                      new java.util.concurrent.atomic.AtomicInteger();
+                  Connection tracked = proxy(db.connection, deletes::incrementAndGet, false);
+                  List<String> errors = new ArrayList<>();
+                  assertFalse(importFile(project(db, tracked), errors));
+                  assertEquals(
+                      1,
+                      deletes.get(),
+                      "Validation must occur while loading, without a preliminary scan");
+                  assertTrue(errors.get(0).contains("CSV record 3"), errors.toString());
+                  assertEquals("original", scalar(db, "SELECT label FROM data WHERE id=99"));
+                  assertTrue(db.connection.getAutoCommit());
+                }
+              }));
+    }
+    return tests;
+  }
+
+  @TestFactory
   List<DynamicTest> transactionBoundaries() {
     List<DynamicTest> tests = new ArrayList<>();
     for (boolean hsql : new boolean[] {false, true}) {
@@ -149,7 +179,7 @@ class CsvHeaderImportTest {
     if (scenario.equals("infer")) {
       write(
           "code,quantity,weight,flag,mixed,shipdate,empty\n"
-              + "00123,10,12.50,TRUE,1,2026-10-31,\n"
+              + "00123,10,12.50,TRUE,road,2026-10-31,\n"
               + "00124,20,8.75,false,rail,01/02/2026,\n"
               + "a longer code,30,123.456,,\"padded, 東京\",not a date,\n");
       assertTrue(importFile(db.project, errors), errors.toString());
@@ -165,7 +195,7 @@ class CsvHeaderImportTest {
         assertEquals("00123", rows.getString(1));
         assertEquals(new BigDecimal("12.500"), rows.getBigDecimal(3));
         assertTrue(rows.getBoolean(4));
-        assertEquals("1", rows.getString(5));
+        assertEquals("road", rows.getString(5));
         assertEquals("2026-10-31", rows.getString(6));
         assertNull(rows.getObject(7));
         assertTrue(rows.next());
@@ -207,7 +237,7 @@ class CsvHeaderImportTest {
           expected = "Tokyo";
           break;
         case "identifiers":
-          write("code\n12\n00123\n-0012\n0.25\n");
+          write("code\n00123\n12\n-0012\n0.25\n");
           sql = "SELECT code FROM data WHERE code='00123'";
           expected = "00123";
           break;
@@ -237,8 +267,14 @@ class CsvHeaderImportTest {
           expected = "1";
           break;
       }
-      assertTrue(importFile(db.project, errors), errors.toString());
-      assertEquals(expected, scalar(db, sql));
+      if (scenario.equals("mixed")) {
+        assertFalse(importFile(db.project, errors));
+        assertTrue(errors.get(0).contains("CSV record 3"));
+        assertFalse(JDBCUtils.tableExists(db.connection, "data"));
+      } else {
+        assertTrue(importFile(db.project, errors), errors.toString());
+        assertEquals(expected, scalar(db, sql));
+      }
       return;
     }
     if (scenario.equals("reorder")) {
@@ -359,7 +395,9 @@ class CsvHeaderImportTest {
     assertFalse(importFile(project, errors));
     assertFalse(errors.isEmpty());
     if (scenario.equals("changed")) {
-      assertTrue(errors.get(0).contains("changed"), errors.toString());
+      assertTrue(
+          errors.get(0).contains("changed") || errors.get(0).contains("CSV record"),
+          errors.toString());
     }
     if (List.of("badNumber", "longText", "fraction", "precision", "notNull", "extremeNumber")
         .contains(scenario)) {

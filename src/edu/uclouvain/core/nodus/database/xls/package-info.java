@@ -26,6 +26,12 @@
  * edu.uclouvain.core.nodus.database.xls.ExportXLS} use Apache POI to exchange table data in XLS or
  * XLSX format, with a ZIP/XML codec for ODS.
  *
+ * <p>Each input must contain exactly one sheet and one contiguous rectangular table, without merged
+ * cells. Inferred column types follow the first non-empty data cells; later changes in type or row
+ * width fail with a row number. Existing schemas validate during loading. New schemas use one
+ * row-ordered inference pass, stopping at the first mismatch. Formatting-only trailing rows are
+ * outside the table and ignored.
+ *
  * <p>Imports honor DBF-style schema rows, validate against existing tables, or infer a new table
  * from the complete sheet. Explicit header modes use column names and map them to existing tables;
  * headerless imports use column positions, with COL1, COL2, etc. for new tables. Blank cells become

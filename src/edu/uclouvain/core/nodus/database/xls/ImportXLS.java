@@ -101,7 +101,7 @@ public class ImportXLS {
         project, table, getFileName(project, table, xlsx), false, header, reportError);
   }
 
-  /** Imports the first ODS sheet using the existing Excel schema and transaction rules. */
+  /** Imports a single-sheet ODS table using the Excel schema and transaction rules. */
   public static boolean importODS(NodusProject project, String table) {
     return importODS(project, table, false, TableImport::reportError);
   }
@@ -138,6 +138,14 @@ public class ImportXLS {
     if (!new File(fileName).exists()) {
       return false;
     }
+    try {
+      if (!ods && fileName.endsWith(NodusC.TYPE_XLSX)) {
+        requireSingleXlsxSheet(fileName);
+      }
+    } catch (Exception error) {
+      reportError.accept(error);
+      return false;
+    }
     try (InputStream input = new FileInputStream(fileName);
         Workbook workbook =
             ods
@@ -146,8 +154,9 @@ public class ImportXLS {
       if (ods) {
         OdsCodec.read(input, workbook);
       }
-      if (workbook.getNumberOfSheets() == 0) {
-        throw new SQLException("Spreadsheet has no sheet");
+      if (workbook.getNumberOfSheets() != 1) {
+        throw new SQLException(
+            "Import requires exactly one sheet; found " + workbook.getNumberOfSheets());
       }
       Sheet sheet = workbook.getSheetAt(0);
       Connection connection = nodusProject.getMainJDBCConnection();
@@ -207,6 +216,34 @@ public class ImportXLS {
     }
   }
 
+  /** Reads only workbook metadata so a multi-sheet XLSX is rejected before loading its cells. */
+  private static void requireSingleXlsxSheet(String file) throws Exception {
+    try (org.apache.poi.openxml4j.opc.OPCPackage pkg =
+            org.apache.poi.openxml4j.opc.OPCPackage.open(
+                new File(file), org.apache.poi.openxml4j.opc.PackageAccess.READ);
+        InputStream metadata =
+            new org.apache.poi.xssf.eventusermodel.XSSFReader(pkg).getWorkbookData()) {
+      javax.xml.stream.XMLInputFactory factory = javax.xml.stream.XMLInputFactory.newFactory();
+      factory.setProperty(javax.xml.stream.XMLInputFactory.SUPPORT_DTD, false);
+      factory.setProperty(javax.xml.stream.XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+      javax.xml.stream.XMLStreamReader xml = factory.createXMLStreamReader(metadata);
+      int sheets = 0;
+      try {
+        while (xml.hasNext()) {
+          if (xml.next() == javax.xml.stream.XMLStreamConstants.START_ELEMENT
+              && xml.getLocalName().equals("sheet")) {
+            sheets++;
+          }
+        }
+      } finally {
+        xml.close();
+      }
+      if (sheets != 1) {
+        throw new SQLException("Import requires exactly one sheet; found " + sheets);
+      }
+    }
+  }
+
   /**
    * Reuses the opened sheet and bounds queued JDBC rows without committing intermediate batches.
    */
@@ -220,11 +257,16 @@ public class ImportXLS {
       Iterator<Row> rows = sheet.rowIterator();
       boolean batchSupported = connection.getMetaData().supportsBatchUpdates();
       int pending = 0;
+      int nextRow = plan.firstDataRow;
       while (rows.hasNext()) {
         Row row = rows.next();
+        if (row.getRowNum() > plan.lastDataRow) {
+          break;
+        }
         if (row.getRowNum() < plan.firstDataRow) {
           continue;
         }
+        plan.checkRow(row, nextRow++);
         for (int i = 0; i < plan.columns.size(); i++) {
           SpreadsheetImportPlan.Column column = plan.columns.get(i);
           Object value = column.value(row);

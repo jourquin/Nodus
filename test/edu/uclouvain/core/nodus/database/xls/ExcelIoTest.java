@@ -245,8 +245,9 @@ class ExcelIoTest {
       for (int i = 0; i < 5; i++) {
         var row = sheet.createRow(i);
         row.createCell(0).setCellValue(i + 1);
+        row.createCell(1);
         if (i != 1) {
-          row.createCell(1).setCellValue(badLastRow && i == 4 ? "x".repeat(20) : "L'été 東京");
+          row.getCell(1).setCellValue(badLastRow && i == 4 ? "x".repeat(20) : "L'été 東京");
         }
       }
       try (var out = Files.newOutputStream(directory.resolve("data." + (xlsx ? "xlsx" : "xls")))) {

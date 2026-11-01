@@ -129,7 +129,7 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  * - IMPORTPARQUET tableName : Creates/replaces a table from a Parquet file.<br>
  * - EXPORTPARQUET tableName : Exports a table in Parquet format.<br>
  * - EXPORTODS tableName : Exports a table in ODS format.<br>
- * - IMPORTODS tableName : Imports the first ODS sheet, using the Excel schema convention.<br>
+ * - IMPORTODS tableName : Imports a single-sheet ODS table using the Excel schema convention.<br>
  * - EXPORTXLS tableName : Exports a table in XLS format.<br>
  * - EXPORTXLSX tableName : Exports a table in XLSX format.<br>
  * - EXTRACTSHP FROM shapefile1 TO shapefile2 WHERE sqlCondition : Creates a new shapefile from the
@@ -150,6 +150,11 @@ import org.fife.ui.rtextarea.RTextScrollPane;
  * C-style block comments are supported. The final command may omit its semicolon. Unclosed quotes
  * or block comments reject the complete batch before execution. Textual @@ substitutions remain
  * supported.
+ *
+ * <p>Each import accepts one table. Spreadsheet files must contain exactly one sheet and a
+ * contiguous rectangular table without merged cells. Rows are checked in source order; incompatible
+ * widths or inferred types stop the import and preserve existing data. Existing tables are checked
+ * during loading; new inferred tables need one schema pass before loading.
  *
  * <p>Import/export basenames containing spaces can be enclosed in double quotes or backticks, for
  * example {@code IMPORTCSVH "traffic flows"}. The quotes delimit the command argument; the

@@ -34,6 +34,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.function.Consumer;
 
 /**
  * Imports .dbf tables in the database used by the Nodus project.
@@ -51,13 +52,13 @@ public class ImportDBF {
   public ImportDBF() {}
 
   /**
-   * Creates a new table, based on the structure of the dbfReader. Returns true on success.
+   * Creates a table using the DBF field descriptors.
    *
    * @param tableName String
    * @param dbfReader DBFReader
-   * @return boolean
+   * @throws SQLException if the schema cannot be created
    */
-  private static boolean createTable(String tableName, DBFReader dbfReader) {
+  private static void createTable(String tableName, DBFReader dbfReader) throws SQLException {
     StringBuilder sqlStmt = new StringBuilder("CREATE TABLE ");
     sqlStmt.append(JDBCUtils.getQuotedCompliantIdentifier(tableName)).append(" (");
     int n = dbfReader.getFieldCount();
@@ -75,23 +76,17 @@ public class ImportDBF {
     sqlStmt.append(')');
     try (Statement stmt = jdbcConnection.createStatement()) {
       stmt.execute(sqlStmt.toString());
-
-    } catch (Exception e) {
-      e.printStackTrace();
-      return false;
     }
-
-    return true;
   }
 
   /**
-   * Fills the table with the records contained in the dbfReader. Returns true on success.
+   * Loads fixed-width DBF records, identifying the failing record or batch on error.
    *
    * @param tableName String
    * @param dbfReader DBFReader
-   * @return boolean
+   * @throws Exception if a record cannot be read or inserted
    */
-  private static boolean fillTable(String tableName, DBFReader dbfReader) {
+  private static void fillTable(String tableName, DBFReader dbfReader) throws Exception {
     StringBuilder sqlStmt = new StringBuilder("INSERT INTO ");
     sqlStmt.append(JDBCUtils.getQuotedCompliantIdentifier(tableName)).append(" VALUES (");
     int n = dbfReader.getFieldCount();
@@ -112,11 +107,13 @@ public class ImportDBF {
       fields[i] = dbfReader.getField(i);
     }
 
+    long recordNumber = 0;
     try (PreparedStatement prepStmt = jdbcConnection.prepareStatement(sqlStmt.toString())) {
 
       int batchSize = 0;
 
       while (dbfReader.hasNextRecord()) {
+        recordNumber++;
         Object[] o = dbfReader.nextRecord();
 
         // If the record is marked as deleted
@@ -124,6 +121,9 @@ public class ImportDBF {
           continue;
         }
 
+        if (o.length != n) {
+          throw new SQLException("record does not match DBF field count " + n);
+        }
         for (int i = 0; i < o.length; i++) {
 
           // QGIS (?) sometimes stores null values. Replace numeric and string values with
@@ -157,7 +157,7 @@ public class ImportDBF {
             Date date = new Date(d.getTime());
             prepStmt.setDate(i + 1, date);
           } else {
-            System.err.println("Unsupported data type");
+            throw new SQLException("Unsupported DBF data type in column " + (i + 1));
           }
         }
 
@@ -179,12 +179,10 @@ public class ImportDBF {
         prepStmt.executeBatch();
       }
 
-    } catch (Exception e) {
-      System.out.println(e.toString());
-      return false;
+    } catch (Exception error) {
+      throw new SQLException(
+          "DBF record/batch ending at " + recordNumber + ": " + error.getMessage(), error);
     }
-
-    return true;
   }
 
   /**
@@ -196,6 +194,19 @@ public class ImportDBF {
    * @return boolean
    */
   public static synchronized boolean importTable(NodusProject project, String tableName) {
+    return importTable(project, tableName, TableImport::reportError);
+  }
+
+  /**
+   * Imports one DBF table, reporting failures to the supplied console callback.
+   *
+   * @param project the destination project and input directory
+   * @param tableName the destination table and source basename
+   * @param reportError receives the first import failure
+   * @return true after the complete table has been published
+   */
+  public static synchronized boolean importTable(
+      NodusProject project, String tableName, Consumer<Exception> reportError) {
     jdbcConnection = project.getMainJDBCConnection();
     if (jdbcConnection == null) {
       return false;
@@ -208,20 +219,19 @@ public class ImportDBF {
     hasBatchSupport = JDBCUtils.hasBatchSupport();
     try (DBFReader reader = DbfFiles.reader(project, Path.of(path, tableName + NodusC.TYPE_DBF))) {
       if (!reader.isOpen()) {
-        return false;
+        throw new SQLException("Could not read the DBF table");
       }
       TableImport.replace(
           project,
           tableName,
           (connection, staged) -> {
             jdbcConnection = connection;
-            if (!createTable(staged, reader) || !fillTable(staged, reader)) {
-              throw new SQLException("Could not import " + tableName);
-            }
+            createTable(staged, reader);
+            fillTable(staged, reader);
           });
       return true;
     } catch (Exception e) {
-      TableImport.reportError(e);
+      reportError.accept(e);
       return false;
     } finally {
       jdbcConnection = null;
@@ -234,30 +244,24 @@ public class ImportDBF {
    * @param field JDBField
    * @return String
    */
-  private static String sqlType(DBFField field) {
+  private static String sqlType(DBFField field) throws SQLException {
     String sql;
 
     String formattedField = field.getName();
-    try {
-      DatabaseMetaData dmd = jdbcConnection.getMetaData();
+    DatabaseMetaData dmd = jdbcConnection.getMetaData();
 
-      // Lower or Upper case?
-      if (dmd.storesMixedCaseIdentifiers()) {
-        formattedField = field.getName();
-      } else if (dmd.storesLowerCaseIdentifiers()) {
-        formattedField = field.getName().toLowerCase();
-      } else if (dmd.storesUpperCaseIdentifiers()) {
-        formattedField = field.getName().toUpperCase();
-      }
+    // Lower or Upper case?
+    if (dmd.storesMixedCaseIdentifiers()) {
+      formattedField = field.getName();
+    } else if (dmd.storesLowerCaseIdentifiers()) {
+      formattedField = field.getName().toLowerCase();
+    } else if (dmd.storesUpperCaseIdentifiers()) {
+      formattedField = field.getName().toUpperCase();
+    }
 
-      String quotes = dmd.getIdentifierQuoteString();
-      if (!quotes.equals(" ")) {
-        formattedField = quotes + formattedField + quotes;
-      }
-
-    } catch (Exception e) {
-      System.err.println(e.toString());
-      return "";
+    String quotes = dmd.getIdentifierQuoteString();
+    if (!quotes.equals(" ")) {
+      formattedField = quotes + formattedField.replace(quotes, quotes + quotes) + quotes;
     }
 
     sql = formattedField + " ";

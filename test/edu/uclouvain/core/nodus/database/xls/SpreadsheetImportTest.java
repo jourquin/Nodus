@@ -107,7 +107,7 @@ class SpreadsheetImportTest {
             {
               "00123",
               1,
-              2,
+              "road",
               true,
               LocalDate.of(2026, 10, 31),
               LocalDateTime.of(2026, 10, 31, 12, 30),
@@ -126,7 +126,7 @@ class SpreadsheetImportTest {
         assertEquals(Types.DATE, r.getMetaData().getColumnType(5));
         assertTrue(r.next());
         assertEquals("00123", r.getString(1));
-        assertEquals("2.0", r.getString(3));
+        assertEquals("road", r.getString(3));
         assertTrue(r.getBoolean(4));
         assertEquals(LocalDate.of(2026, 10, 31), r.getObject(5, LocalDate.class));
         assertEquals(LocalTime.of(12, 30), r.getObject(7, LocalTime.class));

@@ -33,6 +33,7 @@ import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.sql.Connection;
@@ -61,7 +62,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
-/** Two-pass CSV header imports with inferred schemas and validated, transactional publication. */
+/** Single-pass CSV loading into existing tables, with one extra schema pass for inferred tables. */
 final class CsvHeaderImport {
   private static final Pattern NUMBER =
       Pattern.compile("[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?");
@@ -70,7 +71,8 @@ final class CsvHeaderImport {
   private CsvHeaderImport() {}
 
   @SuppressWarnings("resource") // The project owns and closes its JDBC connection.
-  static boolean importTable(NodusProject project, String table, Consumer<String> reportError) {
+  static boolean importTable(
+      NodusProject project, String table, boolean withHeader, Consumer<String> reportError) {
     Path source =
         Path.of(project.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH) + table + NodusC.TYPE_CSV);
     if (!Files.isRegularFile(source)) {
@@ -82,10 +84,13 @@ final class CsvHeaderImport {
         throw new SQLException("No project database connection");
       }
       boolean existing = JDBCUtils.tableExists(connection, table);
-      Plan plan = scan(connection, source, table, existing);
       if (existing) {
-        replaceRows(connection, source, table, plan, project.getSqlBatchSize());
+        replaceRows(connection, source, table, withHeader, project.getSqlBatchSize());
       } else {
+        if (!withHeader) {
+          throw new SQLException("Table structure must exist before importing CSV data");
+        }
+        Plan plan = scan(source);
         TableImport.replace(
             project,
             table,
@@ -103,8 +108,7 @@ final class CsvHeaderImport {
     }
   }
 
-  private static Plan scan(Connection connection, Path source, String table, boolean existing)
-      throws Exception {
+  private static Plan scan(Path source) throws Exception {
     Plan plan = new Plan();
     plan.fingerprint =
         read(
@@ -112,65 +116,65 @@ final class CsvHeaderImport {
             csv -> {
               Iterator<CSVRecord> records = csv.iterator();
               plan.headers = header(records);
-              if (existing) {
-                try (Statement statement = connection.createStatement();
-                    ResultSet rows =
-                        statement.executeQuery("SELECT * FROM " + quoted(table) + " WHERE 1=0")) {
-                  ResultSetMetaData metadata = rows.getMetaData();
-                  if (plan.headers.size() != metadata.getColumnCount()) {
-                    throw new SQLException(
-                        "CSV header has "
-                            + plan.headers.size()
-                            + " columns; table "
-                            + table
-                            + " expects "
-                            + metadata.getColumnCount());
-                  }
-                  Set<Integer> sources = new HashSet<>();
-                  for (int i = 0; i < metadata.getColumnCount(); i++) {
-                    Column column = new Column(metadata.getColumnName(i + 1), -1);
-                    for (int h = 0; h < plan.headers.size(); h++) {
-                      if (column.name.equalsIgnoreCase(plan.headers.get(h))) {
-                        column.source = h;
-                        break;
-                      }
-                    }
-                    if (column.source < 0) {
-                      throw new SQLException("CSV header is missing table column: " + column.name);
-                    }
-                    if (!sources.add(column.source)) {
-                      throw new SQLException(
-                          "Ambiguous CSV header mapping for table column: " + column.name);
-                    }
-                    column.type = metadata.getColumnType(i + 1);
-                    column.precision = metadata.getPrecision(i + 1);
-                    column.scale = metadata.getScale(i + 1);
-                    column.nullable = metadata.isNullable(i + 1) != ResultSetMetaData.columnNoNulls;
-                    plan.columns.add(column);
-                  }
-                }
-              } else {
-                for (int i = 0; i < plan.headers.size(); i++) {
-                  plan.columns.add(new Column(plan.headers.get(i), i));
-                }
+              for (int i = 0; i < plan.headers.size(); i++) {
+                plan.columns.add(new Column(plan.headers.get(i), i));
               }
               while (records.hasNext()) {
                 CSVRecord row = records.next();
                 plan.checkWidth(row);
                 for (Column column : plan.columns) {
-                  if (existing) {
-                    column.value(row);
-                  } else {
-                    column.observe(row.get(column.source));
-                  }
+                  column.observe(row);
                 }
               }
-              if (!existing) {
-                for (Column column : plan.columns) {
-                  column.finishInference();
-                }
+              for (Column column : plan.columns) {
+                column.finishInference();
               }
             });
+    return plan;
+  }
+
+  private static Plan existingPlan(
+      Connection connection, String table, Iterator<CSVRecord> records, boolean withHeader)
+      throws SQLException {
+    Plan plan = new Plan();
+    plan.headers = withHeader ? header(records) : new ArrayList<>();
+    try (Statement statement = connection.createStatement();
+        ResultSet rows = statement.executeQuery("SELECT * FROM " + quoted(table) + " WHERE 1=0")) {
+      ResultSetMetaData metadata = rows.getMetaData();
+      if (withHeader && plan.headers.size() != metadata.getColumnCount()) {
+        throw new SQLException(
+            "CSV header has "
+                + plan.headers.size()
+                + " columns; table "
+                + table
+                + " expects "
+                + metadata.getColumnCount());
+      }
+      Set<Integer> sources = new HashSet<>();
+      for (int i = 0; i < metadata.getColumnCount(); i++) {
+        Column column = new Column(metadata.getColumnName(i + 1), withHeader ? -1 : i);
+        if (withHeader) {
+          for (int h = 0; h < plan.headers.size(); h++) {
+            if (column.name.equalsIgnoreCase(plan.headers.get(h))) {
+              column.source = h;
+              break;
+            }
+          }
+          if (column.source < 0) {
+            throw new SQLException("CSV header is missing table column: " + column.name);
+          }
+          if (!sources.add(column.source)) {
+            throw new SQLException("Ambiguous CSV header mapping for table column: " + column.name);
+          }
+        }
+        column.type = metadata.getColumnType(i + 1);
+        column.precision = metadata.getPrecision(i + 1);
+        column.scale = metadata.getScale(i + 1);
+        column.nullable = metadata.isNullable(i + 1) != ResultSetMetaData.columnNoNulls;
+        column.nullForEmpty = withHeader;
+        plan.columns.add(column);
+      }
+    }
     return plan;
   }
 
@@ -196,7 +200,9 @@ final class CsvHeaderImport {
   }
 
   private static void replaceRows(
-      Connection connection, Path source, String table, Plan plan, int batchSize) throws Exception {
+      Connection connection, Path source, String table, boolean withHeader, int batchSize)
+      throws Exception {
+    BasicFileAttributes before = Files.readAttributes(source, BasicFileAttributes.class);
     boolean autoCommit = connection.getAutoCommit();
     boolean restore = autoCommit;
     Savepoint savepoint = null;
@@ -205,10 +211,22 @@ final class CsvHeaderImport {
         connection.setAutoCommit(false);
       }
       savepoint = connection.setSavepoint();
-      try (Statement statement = connection.createStatement()) {
-        statement.executeUpdate("DELETE FROM " + quoted(table));
+      read(
+          source,
+          csv -> {
+            Iterator<CSVRecord> records = csv.iterator();
+            Plan plan = existingPlan(connection, table, records, withHeader);
+            try (Statement statement = connection.createStatement()) {
+              statement.executeUpdate("DELETE FROM " + quoted(table));
+            }
+            loadRecords(connection, table, plan, records, batchSize);
+          });
+      BasicFileAttributes after = Files.readAttributes(source, BasicFileAttributes.class);
+      if (before.size() != after.size()
+          || !before.lastModifiedTime().equals(after.lastModifiedTime())
+          || !java.util.Objects.equals(before.fileKey(), after.fileKey())) {
+        throw new SQLException("CSV file changed during import; retry with a stable source file");
       }
-      load(connection, source, table, plan, batchSize);
       if (autoCommit) {
         connection.commit();
       } else {
@@ -235,51 +253,65 @@ final class CsvHeaderImport {
 
   private static void load(
       Connection connection, Path source, String table, Plan plan, int batchSize) throws Exception {
+    byte[] fingerprint =
+        read(
+            source,
+            csv -> {
+              Iterator<CSVRecord> records = csv.iterator();
+              if (!plan.headers.equals(header(records))) {
+                throw new SQLException("CSV header changed during import");
+              }
+              loadRecords(connection, table, plan, records, batchSize);
+            });
+    if (!Arrays.equals(plan.fingerprint, fingerprint)) {
+      throw new SQLException("CSV file changed during import; retry with a stable source file");
+    }
+  }
+
+  private static void loadRecords(
+      Connection connection, String table, Plan plan, Iterator<CSVRecord> records, int batchSize)
+      throws Exception {
     String parameters = String.join(",", java.util.Collections.nCopies(plan.columns.size(), "?"));
     boolean batching = connection.getMetaData().supportsBatchUpdates();
+    long lastRecord = 0;
     try (PreparedStatement statement =
         connection.prepareStatement(
             "INSERT INTO " + quoted(table) + " VALUES (" + parameters + ")")) {
-      byte[] fingerprint =
-          read(
-              source,
-              csv -> {
-                Iterator<CSVRecord> records = csv.iterator();
-                if (!plan.headers.equals(header(records))) {
-                  throw new SQLException("CSV header changed during import");
-                }
-                int pending = 0;
-                while (records.hasNext()) {
-                  CSVRecord row = records.next();
-                  plan.checkWidth(row);
-                  for (int i = 0; i < plan.columns.size(); i++) {
-                    Column column = plan.columns.get(i);
-                    Object value = column.value(row);
-                    if (value == null) {
-                      statement.setNull(i + 1, column.type);
-                    } else {
-                      statement.setObject(i + 1, value);
-                    }
-                  }
-                  if (batching) {
-                    statement.addBatch();
-                    if (++pending >= Math.max(1, batchSize)) {
-                      statement.executeBatch();
-                      statement.clearBatch();
-                      pending = 0;
-                    }
-                  } else {
-                    statement.executeUpdate();
-                  }
-                }
-                if (pending > 0) {
-                  statement.executeBatch();
-                  statement.clearBatch();
-                }
-              });
-      if (!Arrays.equals(plan.fingerprint, fingerprint)) {
-        throw new SQLException("CSV file changed during import; retry with a stable source file");
+      int pending = 0;
+      while (records.hasNext()) {
+        CSVRecord row = records.next();
+        lastRecord = row.getRecordNumber();
+        plan.checkWidth(row);
+        for (int i = 0; i < plan.columns.size(); i++) {
+          Column column = plan.columns.get(i);
+          Object value = column.value(row);
+          if (value == null) {
+            statement.setNull(i + 1, column.type);
+          } else {
+            statement.setObject(i + 1, value);
+          }
+        }
+        if (batching) {
+          statement.addBatch();
+          if (++pending >= Math.max(1, batchSize)) {
+            statement.executeBatch();
+            statement.clearBatch();
+            pending = 0;
+          }
+        } else {
+          statement.executeUpdate();
+        }
       }
+      if (pending > 0) {
+        statement.executeBatch();
+        statement.clearBatch();
+      }
+    } catch (SQLException error) {
+      if (error.getMessage() != null && error.getMessage().startsWith("CSV record ")) {
+        throw error;
+      }
+      throw new SQLException(
+          "CSV batch ending at record " + lastRecord + ": " + error.getMessage(), error);
     }
   }
 
@@ -314,14 +346,14 @@ final class CsvHeaderImport {
     byte[] fingerprint;
 
     void checkWidth(CSVRecord row) throws SQLException {
-      if (row.size() != headers.size()) {
+      if (row.size() != columns.size()) {
         throw new SQLException(
             "CSV record "
                 + row.getRecordNumber()
                 + " has "
                 + row.size()
                 + " fields; expected "
-                + headers.size());
+                + columns.size());
       }
     }
 
@@ -347,6 +379,7 @@ final class CsvHeaderImport {
     int precision;
     int scale;
     boolean nullable = true;
+    boolean nullForEmpty = true;
     String definition;
     private String kind = "";
     private int length = 1;
@@ -358,9 +391,13 @@ final class CsvHeaderImport {
       this.source = source;
     }
 
-    void observe(String value) {
+    void observe(CSVRecord row) throws SQLException {
+      String value = row.get(source);
       length = Math.max(length, value.length());
       if (value.isEmpty()) {
+        return;
+      }
+      if (kind.equals("text")) {
         return;
       }
       String next = "text";
@@ -389,7 +426,11 @@ final class CsvHeaderImport {
           next = "text";
         }
       }
-      kind = kind.isEmpty() ? next : kind.equals(next) ? kind : "text";
+      if (kind.isEmpty()) {
+        kind = next;
+      } else if (!kind.equals(next)) {
+        throw problem(row, source, name + ": expected " + kind + " values, found " + next);
+      }
     }
 
     void finishInference() {
@@ -417,7 +458,7 @@ final class CsvHeaderImport {
     Object value(CSVRecord row) throws SQLException {
       String value = row.get(source);
       try {
-        if (value.isEmpty()) {
+        if (value.isEmpty() && nullForEmpty) {
           if (!nullable) {
             throw new IllegalArgumentException("empty field for a NOT NULL column");
           }

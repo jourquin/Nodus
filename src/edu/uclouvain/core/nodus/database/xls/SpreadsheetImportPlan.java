@@ -46,31 +46,39 @@ import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 
-/** Resolves and validates a sheet's schema before any destination rows are removed. */
+/** Resolves one table schema and validates rows in source order as they are consumed. */
 final class SpreadsheetImportPlan {
   private static final Pattern DESCRIPTOR =
       Pattern.compile("([^,]+),\\s*([CN]),\\s*(\\d+)(?:,\\s*(\\d+))?", Pattern.CASE_INSENSITIVE);
   final List<Column> columns;
   final int firstDataRow;
+  final int lastDataRow;
   final boolean replacement;
 
-  private SpreadsheetImportPlan(List<Column> columns, int firstDataRow, boolean replacement) {
+  private SpreadsheetImportPlan(
+      List<Column> columns, int firstDataRow, int lastDataRow, boolean replacement) {
     this.columns = columns;
     this.firstDataRow = firstDataRow;
+    this.lastDataRow = lastDataRow;
     this.replacement = replacement;
   }
 
   static SpreadsheetImportPlan read(
       Connection connection, String table, Sheet sheet, boolean header) throws SQLException {
     Row first = sheet.getRow(sheet.getFirstRowNum());
-    int width = 0;
-    for (Row row : sheet) {
-      for (Cell cell : row) {
-        if (cell.getCellType() != CellType.BLANK) {
-          width = Math.max(width, cell.getColumnIndex() + 1);
-        }
-      }
+    if (first == null || first.getLastCellNum() < 1) {
+      throw new SQLException("Spreadsheet has no table row");
     }
+    int lastData = lastPopulatedRow(sheet);
+    if (lastData < 0) {
+      throw new SQLException("Spreadsheet has no table row");
+    }
+    if (sheet.getNumMergedRegions() != 0) {
+      var region = sheet.getMergedRegion(0);
+      throw problem(
+          region.getFirstRow(), region.getFirstColumn(), "merged cells are not a single table");
+    }
+    int width = first.getLastCellNum();
     int firstData = sheet.getFirstRowNum();
     boolean described = false;
     if (first != null) {
@@ -87,8 +95,10 @@ final class SpreadsheetImportPlan {
         throw new SQLException("Spreadsheet has no header row");
       }
       int headerWidth = first.getLastCellNum();
-      if (width > headerWidth) {
-        throw problem(sheet, width - 1, "data extends beyond the header");
+      while (headerWidth > 0
+          && (first.getCell(headerWidth - 1) == null
+              || first.getCell(headerWidth - 1).getCellType() == CellType.BLANK)) {
+        headerWidth--;
       }
       width = headerWidth;
       Set<String> names = new HashSet<>();
@@ -135,12 +145,11 @@ final class SpreadsheetImportPlan {
     boolean existing = JDBCUtils.tableExists(connection, table);
     if (!described && existing) {
       List<Column> target = existingColumns(connection, table);
-      if (width != target.size() && !(width == 0 && !header)) {
-        String message =
-            "sheet has " + width + " columns; table " + table + " expects " + target.size();
-        throw width > target.size()
-            ? problem(sheet, target.size(), message)
-            : problem(sheet.getFirstRowNum(), width, message);
+      if (width != target.size() && (header || width < target.size())) {
+        throw problem(
+            first.getRowNum(),
+            Math.min(width, target.size()),
+            "sheet has " + width + " columns; table " + table + " expects " + target.size());
       }
       for (Column column : target) {
         if (header) {
@@ -163,24 +172,80 @@ final class SpreadsheetImportPlan {
         throw new SQLException("Cannot infer columns from an empty spreadsheet");
       }
       if (!header) {
+        // Formatting outside a headerless table does not declare additional empty columns.
+        while (width > 0
+            && (first.getCell(width - 1) == null
+                || first.getCell(width - 1).getCellType() == CellType.BLANK)) {
+          width--;
+        }
+        if (width == 0) {
+          throw new SQLException("Cannot infer columns from an empty spreadsheet row");
+        }
         for (int i = 0; i < width; i++) {
           columns.add(new Column("COL" + (i + 1), i));
         }
       }
-      for (Column column : columns) {
-        column.infer(sheet, firstData);
-      }
     }
     SpreadsheetImportPlan plan =
-        new SpreadsheetImportPlan(columns, firstData, described || !existing);
-    for (Row row : sheet) {
-      if (row.getRowNum() >= firstData) {
-        for (Column column : columns) {
-          column.value(row);
+        new SpreadsheetImportPlan(columns, firstData, lastData, described || !existing);
+    if (!header && !described) {
+      plan.checkRow(first, first.getRowNum());
+    }
+    if (!described && !existing) {
+      int nextRow = firstData;
+      for (Row row : sheet) {
+        if (row.getRowNum() > lastData) {
+          break;
         }
+        if (row.getRowNum() < firstData) {
+          continue;
+        }
+        plan.checkRow(row, nextRow++);
+        for (Column column : columns) {
+          column.observe(row);
+        }
+      }
+      for (Column column : columns) {
+        column.finishInference();
       }
     }
     return plan;
+  }
+
+  /** Formatting-only rows after the last value do not belong to the imported table. */
+  private static int lastPopulatedRow(Sheet sheet) {
+    for (int index = sheet.getLastRowNum(); index >= sheet.getFirstRowNum(); index--) {
+      Row row = sheet.getRow(index);
+      if (row != null) {
+        for (Cell cell : row) {
+          // Preserve formulas (including empty results), errors and explicit empty strings.
+          if (cell.getCellType() != CellType.BLANK) {
+            return index;
+          }
+        }
+      }
+    }
+    return -1;
+  }
+
+  /** Checks each record's rectangular layout as it is consumed, without a separate sheet scan. */
+  void checkRow(Row row, int expectedRow) throws SQLException {
+    if (row.getRowNum() != expectedRow) {
+      throw problem(expectedRow, 0, "missing row inside the table");
+    }
+    int width = columns.size();
+    if (row.getLastCellNum() < width) {
+      throw problem(
+          row.getRowNum(),
+          Math.max(0, row.getLastCellNum()),
+          "row has " + Math.max(0, row.getLastCellNum()) + " columns; expected " + width);
+    }
+    for (Cell cell : row) {
+      if (cell.getColumnIndex() >= width && cell.getCellType() != CellType.BLANK) {
+        throw problem(
+            row.getRowNum(), cell.getColumnIndex(), "data extends beyond " + width + " columns");
+      }
+    }
   }
 
   String createStatement(String table) {
@@ -214,16 +279,6 @@ final class SpreadsheetImportPlan {
       }
     }
     return columns;
-  }
-
-  private static SQLException problem(Sheet sheet, int column, String message) {
-    for (Row row : sheet) {
-      Cell cell = row.getCell(column);
-      if (cell != null && cell.getCellType() != CellType.BLANK) {
-        return problem(row.getRowNum(), column, message);
-      }
-    }
-    return new SQLException(message);
   }
 
   private static SQLException problem(int row, int column, String message) {
@@ -277,49 +332,50 @@ final class SpreadsheetImportPlan {
       this.source = source;
     }
 
-    void infer(Sheet sheet, int firstData) throws SQLException {
-      String kind = "";
-      int length = 1;
-      int integers = 0;
-      for (Row row : sheet) {
-        if (row.getRowNum() < firstData) {
-          continue;
-        }
-        Object value;
-        try {
-          value = readCell(row.getCell(source));
-        } catch (RuntimeException invalid) {
-          throw problem(row.getRowNum(), source, invalid.getMessage());
-        }
-        if (value == null) {
-          continue;
-        }
-        length = Math.max(length, value.toString().length());
-        String next =
-            value instanceof BigDecimal
-                ? "number"
-                : value instanceof Boolean
-                    ? "boolean"
-                    : value instanceof LocalDate
-                        ? "date"
-                        : value instanceof LocalTime
-                            ? "time"
-                            : value instanceof LocalDateTime ? "timestamp" : "text";
-        if (kind.isEmpty()) {
-          kind = next;
-        } else if (!kind.equals(next)) {
-          kind =
-              (kind.equals("date") && next.equals("timestamp"))
-                      || (kind.equals("timestamp") && next.equals("date"))
-                  ? "timestamp"
-                  : "text";
-        }
-        if (value instanceof BigDecimal) {
-          BigDecimal number = ((BigDecimal) value).stripTrailingZeros();
-          integers = Math.max(integers, number.precision() - number.scale());
-          scale = Math.max(scale, Math.max(0, number.scale()));
+    private String kind = "";
+    private int length = 1;
+    private int integers;
+
+    void observe(Row row) throws SQLException {
+      Object value;
+      try {
+        value = readCell(row.getCell(source));
+      } catch (RuntimeException invalid) {
+        throw problem(row.getRowNum(), source, invalid.getMessage());
+      }
+      if (value == null) {
+        return;
+      }
+      length = Math.max(length, value.toString().length());
+      String next =
+          value instanceof BigDecimal
+              ? "number"
+              : value instanceof Boolean
+                  ? "boolean"
+                  : value instanceof LocalDate
+                      ? "date"
+                      : value instanceof LocalTime
+                          ? "time"
+                          : value instanceof LocalDateTime ? "timestamp" : "text";
+      if (kind.isEmpty()) {
+        kind = next;
+      } else if (!kind.equals(next)) {
+        if ((kind.equals("date") && next.equals("timestamp"))
+            || (kind.equals("timestamp") && next.equals("date"))) {
+          kind = "timestamp";
+        } else {
+          throw problem(
+              row.getRowNum(), source, name + ": expected " + kind + " cells, found " + next);
         }
       }
+      if (value instanceof BigDecimal) {
+        BigDecimal number = ((BigDecimal) value).stripTrailingZeros();
+        integers = Math.max(integers, number.precision() - number.scale());
+        scale = Math.max(scale, Math.max(0, number.scale()));
+      }
+    }
+
+    void finishInference() {
       precision = Math.max(1, integers + scale);
       if (kind.equals("number") && precision <= 38) {
         type = scale == 0 && integers <= 18 ? Types.BIGINT : Types.DECIMAL;

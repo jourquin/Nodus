@@ -81,12 +81,25 @@ class OdsCodecTest {
   }
 
   @Test
-  void retainsExplicitEmptyDataRows() throws Exception {
-    String xml = PREFIX + "<table:table-row><table:table-cell/></table:table-row>" + SUFFIX;
+  void preservesInteriorBlankRowsButIgnoresEmptyTrailingRows() throws Exception {
+    String data =
+        "<table:table-row><table:table-cell office:value-type=\"float\" office:value=\"1\"/>"
+            + "</table:table-row>";
+    String xml =
+        PREFIX
+            + data
+            + "<table:table-row><table:table-cell/></table:table-row>"
+            + data
+            + "<table:table-row><table:table-cell><text:p/></table:table-cell></table:table-row>"
+            + "<table:table-row/>"
+            + SUFFIX;
     try (Workbook book = new XSSFWorkbook();
         InputStream input = ods(xml)) {
       OdsCodec.read(input, book);
-      assertEquals(1, book.getSheetAt(0).getPhysicalNumberOfRows());
+      assertEquals(3, book.getSheetAt(0).getPhysicalNumberOfRows());
+      assertEquals(
+          org.apache.poi.ss.usermodel.CellType.BLANK,
+          book.getSheetAt(0).getRow(1).getCell(0).getCellType());
     }
   }
 
