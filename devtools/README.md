@@ -17,7 +17,7 @@ check that `build.xml` still contains `<import file="build-user.xml"/>`.
 | `ant Test` | Builds the application and runs all JUnit 5 unit and integration tests. |
 | `ant -f build-tests.xml` | Runs the same suite; this file's default target is `Test`. |
 | `ant Jar` | Rebuilds and packages `nodus9.jar`, including a new build ID; does not run tests. |
-| `ant Installer` | Runs tests, then builds the application JAR, API docs and installer, including the maintained HTML help pages. |
+| `ant Installer` | Runs tests, then builds the application JAR, API docs and installer, including the maintained HTML help pages and existing demo PDF. |
 
 The installer is written to `BinaryDistribution/Nodus9-install.jar`. Test failures
 stop the `Installer` target before packaging. Use `ant -projecthelp` to list the
@@ -72,11 +72,14 @@ Ant task must come from the installed Ant distribution (`ant-junitlauncher.jar`)
 
 ## HTML help maintenance
 
-The HTML help pages are the editable sources. Update these files directly:
+The application ships these HTML help pages. Update these files directly:
 
 - [services-workflow.html](../doc/services/services-workflow.html)
 - [modal-choice-migration.html](../doc/modal-choice-migration.html)
 - [model-performance.html](../doc/model-performance.html)
+
+The matching Markdown versions are also kept in the repository. Ant does not
+convert them; keep both versions consistent when changing these help pages.
 
 Keep their heading IDs and table-of-contents links in sync when editing sections.
 Preserve the relative links to stylesheets, images and other local files. Formulas
@@ -87,6 +90,14 @@ Repository README files and developer notes remain in Markdown and are not
 converted during the build.
 
 See the [license inventory](../licenses/LICENSES.md) for bundled components' licenses.
+
+## Demo manual maintenance
+
+Edit [Demo.odt](../demo/Demo.odt) in LibreOffice and manually export it to
+[Demo.pdf](../demo/Demo.pdf) before building the installer. Update the table of
+contents in Writer and retain its hyperlinks when exporting.
+`ant Installer` packages the existing PDF; Ant does not generate it or require
+LibreOffice.
 
 ## Parquet compilation and tests
 
