@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 import edu.uclouvain.core.nodus.database.DatabaseFixture;
 import edu.uclouvain.core.nodus.database.ExportFileFaults;
+import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -66,7 +67,7 @@ class OdsStreamingTest {
                 "-Xmx64m",
                 "-Djava.awt.headless=true",
                 "-cp",
-                System.getProperty("java.class.path"),
+                probeClasspath(),
                 OdsStreamingProbe.class.getName(),
                 output.toString())
             .redirectErrorStream(true)
@@ -113,6 +114,18 @@ class OdsStreamingTest {
       assertEquals((long) OdsStreamingProbe.ROWS * OdsStreamingProbe.COLUMNS, numbers);
       assertEquals(OdsStreamingProbe.ROWS + OdsStreamingProbe.COLUMNS, last);
     }
+  }
+
+  private static String probeClasspath() throws Exception {
+    // Eclipse can load tests outside java.class.path. Use the actual code locations,
+    // converting URLs through URI so Windows drive letters and spaces are preserved.
+    List<String> entries = new ArrayList<>();
+    for (Class<?> type : List.of(OdsStreamingProbe.class, OdsCodec.class, Workbook.class)) {
+      entries.add(
+          Path.of(type.getProtectionDomain().getCodeSource().getLocation().toURI()).toString());
+    }
+    entries.add(System.getProperty("java.class.path"));
+    return String.join(File.pathSeparator, entries);
   }
 
   @Test
