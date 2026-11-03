@@ -156,7 +156,9 @@ public final class NativeGroovyConsole {
       this.mainWindow = mainWindow;
     }
 
+    // Groovy exposes a raw Map here; parameterizing the override would cause a name clash.
     @Override
+    @SuppressWarnings("rawtypes")
     public void run(Map delegates) {
       super.run(delegates);
       if (getFrame() != null) {
