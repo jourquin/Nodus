@@ -152,7 +152,15 @@ class ProjectLockerTest {
       owner.terminate();
     }
     assertTrue(Files.exists(lockFile));
-    assertTrue(ProjectLocker.createLock(project("project")));
+    // Process exit can be observed before the OS finishes releasing its file locks.
+    final NodusProject project = project("project");
+    final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+    boolean acquired = ProjectLocker.createLock(project);
+    while (!acquired && System.nanoTime() < deadline) {
+      Thread.sleep(10);
+      acquired = ProjectLocker.createLock(project);
+    }
+    assertTrue(acquired, "The terminated process's lock was not released within 5 seconds");
     assertFalse(canAcquire("project"));
     ProjectLocker.releaseLock();
     assertTrue(canAcquire("project"));
