@@ -58,7 +58,13 @@ import org.apache.parquet.schema.Type;
 public final class ExportParquet {
   private ExportParquet() {}
 
-  /** Exports a complete table to tableName.parquet in the project directory. */
+  /**
+   * Exports a complete table to tableName.parquet in the project directory.
+   *
+   * @param project source project and output directory
+   * @param tableName source table and output basename
+   * @return true after the complete output file has been published
+   */
   public static boolean exportTable(NodusProject project, String tableName) {
     return exportTable(project, tableName, new TableExport());
   }

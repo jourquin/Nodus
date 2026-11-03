@@ -126,7 +126,13 @@ public class ImportXLS {
         project, table, getFileName(project, table, xlsx), false, header, reportError, progress);
   }
 
-  /** Imports a single-sheet ODS table using the Excel schema and transaction rules. */
+  /**
+   * Imports a single-sheet ODS table using the Excel schema and transaction rules.
+   *
+   * @param project destination project and source directory
+   * @param table destination table and source basename
+   * @return true after all rows have been imported successfully
+   */
   public static boolean importODS(NodusProject project, String table) {
     return importODS(project, table, false, TableImport::reportError);
   }

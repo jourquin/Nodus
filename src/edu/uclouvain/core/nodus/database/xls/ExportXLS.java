@@ -194,7 +194,13 @@ public class ExportXLS {
     return true;
   }
 
-  /** Exports an OpenDocument spreadsheet with the same schema row as Excel exports. */
+  /**
+   * Exports an OpenDocument spreadsheet with the same schema row as Excel exports.
+   *
+   * @param project source project and output directory
+   * @param table source table and output basename
+   * @return true after the complete output file has been published
+   */
   public static boolean exportODS(NodusProject project, String table) {
     return ExportODS.exportTable(project, table);
   }
