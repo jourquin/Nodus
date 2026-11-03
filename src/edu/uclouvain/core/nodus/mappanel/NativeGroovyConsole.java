@@ -22,7 +22,11 @@
 package edu.uclouvain.core.nodus.mappanel;
 
 import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.swing.ScriptEditorWindowSupport;
+import edu.uclouvain.core.nodus.utils.NodusGroovyShell;
+import groovy.lang.Binding;
 import java.awt.Frame;
+import java.awt.Window;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
@@ -31,11 +35,15 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.EventObject;
+import java.util.HashMap;
+import java.util.Map;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JTextPane;
+import javax.swing.SwingUtilities;
+import org.codehaus.groovy.control.CompilerConfiguration;
 
-/** Manages the optional native Groovy console without replacing its script entry point. */
+/** Manages the optional native Groovy console and its Nodus script naming convention. */
 public final class NativeGroovyConsole {
   /** Native Groovy console instance, when the user selected that console implementation. */
   private groovy.console.ui.Console nativeGroovyConsole;
@@ -64,7 +72,7 @@ public final class NativeGroovyConsole {
       return;
     }
 
-    final groovy.console.ui.Console console = new groovy.console.ui.Console();
+    final groovy.console.ui.Console console = new ScriptConsole(panel.getMainFrame());
     nativeGroovyConsole = console;
 
     // Set some defaults in UI
@@ -105,6 +113,78 @@ public final class NativeGroovyConsole {
 
     // Reset the preferences menu
     restoreApplicationMenus.run();
+  }
+
+  /**
+   * Creates a console that retains Nodus script naming when its shell is created or reset.
+   *
+   * @return native console with the Nodus shell and Groovy's standard compiler configuration
+   */
+  public static groovy.console.ui.Console createConsole() {
+    return new ScriptConsole(null);
+  }
+
+  /**
+   * Creates a new native console window context with a copy of the parent's script variables.
+   *
+   * @param parent console opening a new window
+   * @return console retaining Nodus naming and the parent's output interceptors
+   */
+  public static groovy.console.ui.Console createConsole(groovy.console.ui.Console parent) {
+    Map<?, ?> variables = parent.getShell().getContext().getVariables();
+    Binding binding = new Binding(new HashMap<>(variables));
+    Window mainWindow =
+        parent instanceof ScriptConsole ? ((ScriptConsole) parent).mainWindow : null;
+    groovy.console.ui.Console child =
+        new ScriptConsole(binding, parent.getBaseConfig(), mainWindow);
+    child.setSystemOutInterceptor(parent.getSystemOutInterceptor());
+    child.setSystemErrorInterceptor(parent.getSystemErrorInterceptor());
+    return child;
+  }
+
+  /** Keeps resets and File → New Window on the same shell implementation. */
+  private static final class ScriptConsole extends groovy.console.ui.Console {
+    private final Window mainWindow;
+
+    ScriptConsole(Window mainWindow) {
+      super();
+      this.mainWindow = mainWindow;
+    }
+
+    ScriptConsole(Binding binding, CompilerConfiguration configuration, Window mainWindow) {
+      super(null, binding, configuration);
+      this.mainWindow = mainWindow;
+    }
+
+    @Override
+    public void run(Map delegates) {
+      super.run(delegates);
+      if (getFrame() != null) {
+        Window window = SwingUtilities.getWindowAncestor(getFrame().getRootPane());
+        ScriptEditorWindowSupport.install(window, mainWindow);
+      }
+    }
+
+    @Override
+    public void newScript(ClassLoader parent, Binding binding) {
+      super.newScript(parent, binding);
+      setShell(new NodusGroovyShell(parent, binding, getConfig()));
+    }
+
+    @Override
+    public void fileNewWindow(EventObject event) {
+      groovy.console.ui.Console child = createConsole(this);
+      child.run();
+      configureCopyTarget(child);
+    }
+
+    @Override
+    public void installInterceptor() {
+      // Groovy's New Window action shares the existing interceptors instead of nesting them.
+      if (getSystemOutInterceptor() == null) {
+        super.installInterceptor();
+      }
+    }
   }
 
   /**

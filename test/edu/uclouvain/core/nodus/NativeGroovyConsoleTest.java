@@ -24,19 +24,79 @@ package edu.uclouvain.core.nodus;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import edu.uclouvain.core.nodus.mappanel.NativeGroovyConsole;
 import groovy.console.ui.Console;
+import groovy.lang.Binding;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.List;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.Test;
 
 class NativeGroovyConsoleTest {
+  @Test
+  void matchingClassAndFileNamesWorkBeforeAndAfterNativeShellReset() {
+    Console console = NativeGroovyConsole.createConsole();
+    Object panel = new Object();
+    console.setVariable("nodusMapPanel", panel);
+    String source = "class Tool { def panel }\nnew Tool(panel: nodusMapPanel).panel";
+
+    // The native console runs editor text through the List-argument overload.
+    assertSame(panel, console.getShell().run(source, "Tool.groovy", List.of()));
+    Binding binding = new Binding();
+    binding.setVariable("nodusMapPanel", panel);
+    console.newScript(console.getShell().getClassLoader(), binding);
+    assertSame(panel, console.getShell().run(source, "Tool.groovy", List.of()));
+    assertEquals(
+        List.of("first", "second"),
+        console.getShell().run("args.toList()", "Arguments.groovy", List.of("first", "second")));
+  }
+
+  @Test
+  void resettingNativeShellRetainsGroovyThreadInterruptionSupport() {
+    Console console = NativeGroovyConsole.createConsole();
+    console.setThreadInterrupt(true);
+    console.newScript(console.getShell().getClassLoader(), new Binding());
+    try {
+      Thread.currentThread().interrupt();
+      assertThrows(
+          InterruptedException.class,
+          () -> console.getShell().run("return 42", "Interrupted.groovy", List.of()));
+    } finally {
+      Thread.interrupted();
+    }
+  }
+
+  @Test
+  void newNativeWindowCopiesBindingsAndKeepsNodusScriptNaming() {
+    Console parent = NativeGroovyConsole.createConsole();
+    Object panel = new Object();
+    parent.setVariable("nodusMapPanel", panel);
+    Console child = NativeGroovyConsole.createConsole(parent);
+
+    assertSame(
+        panel,
+        child
+            .getShell()
+            .run(
+                "class Tool { def panel }\nnew Tool(panel: nodusMapPanel).panel",
+                "Tool.groovy",
+                List.of()));
+    child.setVariable("nodusMapPanel", "changed in child");
+    assertSame(panel, parent.getShell().getVariable("nodusMapPanel"));
+    child.newScript(child.getShell().getClassLoader(), new Binding());
+    assertEquals(
+        "Tool",
+        child.getShell().run("class Tool {}\nnew Tool().class.name", "Tool.groovy", List.of()));
+  }
+
   @Test
   void mouseSelectionCopiesReadOnlyOutputBeforeFocusArrives() throws Exception {
     SwingUtilities.invokeAndWait(

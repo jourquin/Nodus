@@ -37,7 +37,7 @@ import javax.swing.colorchooser.ColorSelectionModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-public class ARGBConverter_ extends JDialog {
+public class ARGBConverter extends JDialog {
   static final long serialVersionUID = -4355930570911227672L;
 
   JPanel panel1 = new JPanel();
@@ -61,7 +61,7 @@ public class ARGBConverter_ extends JDialog {
    *
    * @param frame Frame
    */
-  public ARGBConverter_(NodusMapPanel nodusMapPanel) {
+  public ARGBConverter(NodusMapPanel nodusMapPanel) {
     super(nodusMapPanel.getMainFrame(), "Color to ARGB string converter", false);
     try {
       jbInit();
@@ -193,4 +193,5 @@ public class ARGBConverter_ extends JDialog {
   }
 }
 
-new ARGBConverter_(nodusMapPanel);
+new ARGBConverter(nodusMapPanel);
+return null;

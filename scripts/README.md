@@ -15,6 +15,18 @@ Nodus supplies the variable `nodusMapPanel` to both its script editor and the op
 native Groovy console. A standalone `groovy example.groovy` command does not supply that
 variable or attach to an existing Nodus process.
 
+Since Nodus 9.1, scripts run by Nodus may declare a class with the same name as 
+their `.groovy` file.
+For example, `ARGBConverter.groovy` declares `class ARGBConverter` and creates it with
+`new ARGBConverter(nodusMapPanel)`. Nodus gives Groovy's generated script wrapper a
+leading underscore (`_ARGBConverter`), so the two classes have different names.
+This applies to application and project hooks, the Nodus script editor and the native
+Groovy console.cRunning thecsame source directly with standard Groovy still requires 
+different script and class names.
+
+Both script editors stay above the main Nodus window when a script opens a dialog owned
+by that main window. The script dialog keeps keyboard focus and stays above the editor.
+
 [example.groovy](example.groovy) illustrates the main entry point:
 
 ```groovy

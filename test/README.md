@@ -509,7 +509,12 @@ first routes may differ from forward Dijkstra and can produce different subseque
   without publishing credentials that were not saved. Two independent JVMs starting with
   empty preferences must adopt the same saved credentials. Uses a temporary home directory.
 - `ScriptRunnerTest`: a Groovy assertion failure still reports failure and invokes the
-  asynchronous lifecycle continuation on the event dispatch thread.
+  asynchronous lifecycle continuation on the event dispatch thread; hooks may declare a
+  class matching their filename while retaining the Nodus binding.
+- `NodusGroovyShellTest`: matching script/class names, packages, Unicode, configured source
+  encoding, reader cleanup and diagnostic line numbers; compiles the ARGB example headlessly.
+- `NativeGroovyConsoleTest`: script naming and bindings survive shell resets and new windows,
+  arguments and thread interruption remain available, and copy actions follow the selected pane.
 - `NodusRuntimeSettingsTest`: declared defaults, startup Groovy overrides, repeated resets and
   restoration of all public mutable NodusC settings, with final constants left intact.
   Project-open workflow tests switch from a project with a real Groovy hook to one without a

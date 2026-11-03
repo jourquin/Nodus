@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.utils;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
@@ -38,6 +39,23 @@ import org.junit.jupiter.api.io.TempDir;
 /** Checks that a failing Groovy hook cannot strand its caller's lifecycle continuation. */
 class ScriptRunnerTest {
   @TempDir Path temporaryDirectory;
+
+  @Test
+  void matchingClassAndHookFileNamesKeepTheNodusBinding() throws Exception {
+    Path script = temporaryDirectory.resolve("Hook.groovy");
+    Files.writeString(
+        script,
+        "class Hook { def panel }\n"
+            + "observed.set(new Hook(panel: nodusMapPanel).panel)\n");
+    Object panel = new Object();
+    AtomicReference<Object> observed = new AtomicReference<>();
+    ScriptRunner runner = new ScriptRunner(script.toString());
+    runner.setVariable("nodusMapPanel", panel);
+    runner.setVariable("observed", observed);
+
+    assertTrue(runner.run(false));
+    assertSame(panel, observed.get());
+  }
 
   @Test
   void asynchronousCompletionRunsOnEdtAfterAssertionError() throws Exception {

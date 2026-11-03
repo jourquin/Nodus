@@ -25,7 +25,9 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
+import edu.uclouvain.core.nodus.swing.ScriptEditorWindowSupport;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
+import edu.uclouvain.core.nodus.utils.NodusGroovyShell;
 import groovy.lang.GroovyShell;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -57,7 +59,7 @@ public class NodusGroovyConsole extends NotePad {
 
     private File script;
 
-    private GroovyShell shell = new GroovyShell();
+    private GroovyShell shell = new NodusGroovyShell();
 
     public GroovyThread(NodusMapPanel mapPanel, File script) {
       nodusMapPanel = mapPanel;
@@ -175,6 +177,7 @@ public class NodusGroovyConsole extends NotePad {
     }
 
     this.nodusMapPanel = nodusMapPanel;
+    ScriptEditorWindowSupport.install(this, nodusMapPanel.getMainFrame());
 
     getTextPane().setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_GROOVY);
     getTextPane().setCodeFoldingEnabled(true);

@@ -47,7 +47,7 @@ public class ScriptRunner {
    */
   public ScriptRunner(String scriptFileName) {
     this.scriptFileName = scriptFileName;
-    shell = new GroovyShell();
+    shell = new NodusGroovyShell();
   }
 
   /**
