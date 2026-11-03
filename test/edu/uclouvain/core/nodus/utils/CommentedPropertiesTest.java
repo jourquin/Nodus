@@ -115,7 +115,7 @@ class CommentedPropertiesTest {
     final TrackingWriter writer = new TrackingWriter();
     properties.store(writer, "ignored");
     assertFalse(writer.closed);
-    assertTrue(writer.toString().startsWith("# 東京\n"));
+    assertTrue(writer.toString().startsWith("# 東京" + System.lineSeparator()));
     final Properties expected = new Properties();
     expected.load(new StringReader(writer.toString()));
     assertEquals("東京", expected.getProperty("key"));
