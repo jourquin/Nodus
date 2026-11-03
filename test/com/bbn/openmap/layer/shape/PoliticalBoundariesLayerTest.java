@@ -36,6 +36,7 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.net.JarURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -48,6 +49,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.jar.JarOutputStream;
 import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.Test;
@@ -77,6 +79,15 @@ class PoliticalBoundariesLayerTest {
       }
     }
     String shape = "jar:" + jar.toUri().toURL() + "!/cntry02.shp";
+    // OpenMap opens jar URLs with caching enabled. Closing its entry streams leaves the cached
+    // JarFile open, which prevents @TempDir cleanup on Windows. Own this test-only archive's
+    // cached handle until all rendering and reader cleanup have finished, including on failure.
+    try (JarFile cachedJar = ((JarURLConnection) new URL(shape).openConnection()).getJarFile()) {
+      exerciseRemoval(shape);
+    }
+  }
+
+  private void exerciseRemoval(String shape) throws Exception {
     ReadGate gate = new ReadGate();
     SpatialIndex index =
         new SpatialIndex(shape) {
