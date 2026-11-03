@@ -78,7 +78,15 @@ class SQLConsoleExportTest {
                   assertTrue(console.direct(format.name() + " \"" + name + "\";"));
                   assertEquals(0, console.prompts);
                   format.assertExport(output);
-                  assertFalse(Files.exists(folder.resolve("\"" + name + "\"" + format.extension)));
+                  // Compare entry names: a path containing literal quotes is invalid on Windows.
+                  try (java.util.stream.Stream<Path> files = Files.list(folder)) {
+                    assertFalse(
+                        files.anyMatch(
+                            file ->
+                                file.getFileName()
+                                    .toString()
+                                    .equals("\"" + name + "\"" + format.extension)));
+                  }
                   console.answer = JOptionPane.NO_OPTION;
                   byte[] before = Files.readAllBytes(output);
                   assertFalse(console.direct(format.name() + " \"" + name + "\";"));
