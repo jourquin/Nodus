@@ -23,6 +23,11 @@ The installer is written to `BinaryDistribution/Nodus9-install.jar`. Test failur
 stop the `Installer` target before packaging. Use `ant -projecthelp` to list the
 available targets; `build-user.xml` itself has no default target.
 
+The complete forked test suite has a five-minute timeout. On slower machines,
+override it in milliseconds, for example `ant -Dtest.timeout=600000 Installer`
+for ten minutes. In Eclipse, set `test.timeout` on the Ant launch configuration's
+Properties tab. Individual JUnit test timeouts still apply.
+
 
 ## Java formatting and Checkstyle
 
