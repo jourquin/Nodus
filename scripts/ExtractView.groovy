@@ -49,7 +49,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
 
-public class ExtractView_ {
+public class ExtractView {
 
   float ulLat, ulLon, brLat, brLon;
 
@@ -63,7 +63,7 @@ public class ExtractView_ {
     return true;
   }
 
-  public ExtractView_(NodusMapPanel nodusMapPanel) {
+  public ExtractView(NodusMapPanel nodusMapPanel) {
 
     NodusProject nodusProject = nodusMapPanel.getNodusProject();
 
@@ -370,4 +370,4 @@ public class ExtractView_ {
   }
 }
 
-new ExtractView_(nodusMapPanel);
+new ExtractView(nodusMapPanel);

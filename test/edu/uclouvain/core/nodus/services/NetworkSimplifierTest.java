@@ -90,8 +90,9 @@ class NetworkSimplifierTest {
       throw new IllegalStateException("Cannot locate NetworkSimplifier.groovy above " + location);
     }
     scriptLoader = new GroovyClassLoader(NetworkSimplifierTest.class.getClassLoader());
-    scriptLoader.parseClass(script.toFile());
-    Class<?> type = scriptLoader.loadClass("SimplifyNetworks");
+    // Match Nodus's logical filename without executing the script's GUI entry point.
+    scriptLoader.parseClass(Files.readString(script), "_" + script.getFileName());
+    Class<?> type = scriptLoader.loadClass("NetworkSimplifier");
     prepare =
         type.getDeclaredMethod(
             "prepareServiceLines", NodusProject.class, boolean.class, Predicate.class);

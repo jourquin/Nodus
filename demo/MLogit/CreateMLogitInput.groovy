@@ -40,7 +40,7 @@ import java.util.Set;
  *
  * @author Bart Jourquin
  */
-public class CreateMLogitInput_ {
+public class CreateMLogitInput {
 
   // Path table of the uncalibrated assignment
   String srcTable = "demo_path5_header";
@@ -107,7 +107,7 @@ public class CreateMLogitInput_ {
    *
    * @param nodusMapPanel The Nodus map panel
    */
-  public CreateMLogitInput_(NodusMapPanel nodusMapPanel) {
+  public CreateMLogitInput(NodusMapPanel nodusMapPanel) {
 
     NodusProject nodusProject = nodusMapPanel.getNodusProject();
     if (nodusProject.isOpen()) {
@@ -257,5 +257,4 @@ public class CreateMLogitInput_ {
   }
 }
  
-new CreateMLogitInput_(nodusMapPanel);
- 
+new CreateMLogitInput(nodusMapPanel);

@@ -35,7 +35,7 @@ import edu.uclouvain.core.nodus.database.JDBCField;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.tools.console.NodusConsole;
 
-public class AddDistancesToODTable_ {
+public class AddDistancesODTable {
 
 	/**
 	 * The name of the OD table.
@@ -47,7 +47,7 @@ public class AddDistancesToODTable_ {
 	 */
 	int nbThreads = 2;
 
-	public AddDistancesToODTable_(NodusMapPanel nodusMapPanel) {
+	public AddDistancesODTable(NodusMapPanel nodusMapPanel) {
 		NodusProject nodusProject = nodusMapPanel.getNodusProject();
 		if (nodusProject.isOpen()) {
 
@@ -208,4 +208,4 @@ public class AddDistancesToODTable_ {
 
 }
 
-new AddDistancesToODTable_(nodusMapPanel);
+new AddDistancesODTable(nodusMapPanel);

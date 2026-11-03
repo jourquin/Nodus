@@ -96,7 +96,7 @@ import javax.swing.JOptionPane;
  * - The service frequency stored by Nodus is annualized. Here it is computed as
  *   frequencyPerWeek * 52.
  */
-public class CreateShortestPathServicesFromOD_ {
+public class CreateShortestPathServicesFromOD {
 
   /*
    * Editable parameters.
@@ -134,7 +134,7 @@ public class CreateShortestPathServicesFromOD_ {
    */
   boolean previewOnly = false;
 
-  public CreateShortestPathServicesFromOD_(NodusMapPanel nodusMapPanel) {
+  public CreateShortestPathServicesFromOD(NodusMapPanel nodusMapPanel) {
 
     new NodusConsole();
 
@@ -372,4 +372,4 @@ public class CreateShortestPathServicesFromOD_ {
   }
 }
 
-new CreateShortestPathServicesFromOD_(nodusMapPanel);
+new CreateShortestPathServicesFromOD(nodusMapPanel);

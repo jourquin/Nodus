@@ -583,4 +583,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Fix potential bug in modal-choice plugin loader
 - Add optional ENCODING and DELIMITER clauses to all four SQL CSV commands
 - Groovy scripts can now have the same name as the main class they implement
+- Update all the Groovy scripts in the Nodus distribution to be inline with this change
+
 

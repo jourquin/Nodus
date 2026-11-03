@@ -29,11 +29,11 @@ import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.FastMFAssignment;
 
-public class _Assignment {
+public class Assignment {
 
   NodusProject nodusProject;
 
-  public _Assignment(NodusMapPanel nodusMapPanel) {
+  public Assignment(NodusMapPanel nodusMapPanel) {
     // Get the project and be sure it is open
     nodusProject = nodusMapPanel.getNodusProject();
     if (!nodusProject.isOpen()) {
@@ -64,4 +64,4 @@ public class _Assignment {
 }
 
 // Uncomment to use as script
-new _Assignment(nodusMapPanel);
+new Assignment(nodusMapPanel);

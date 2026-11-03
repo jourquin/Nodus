@@ -75,8 +75,10 @@ class NetworkSimplifierMergeTest {
       throw new IllegalStateException("Cannot locate NetworkSimplifier.groovy");
     }
     loader = new GroovyClassLoader(NetworkSimplifierMergeTest.class.getClassLoader());
-    loader.parseClass(root.resolve("scripts/NetworkSimplifier.groovy").toFile());
-    simplifierClass = loader.loadClass("SimplifyNetworks");
+    Path script = root.resolve("scripts/NetworkSimplifier.groovy");
+    // Match Nodus's logical filename without executing the script's GUI entry point.
+    loader.parseClass(Files.readString(script), "_" + script.getFileName());
+    simplifierClass = loader.loadClass("NetworkSimplifier");
   }
 
   @AfterAll

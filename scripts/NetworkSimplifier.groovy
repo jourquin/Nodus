@@ -118,7 +118,7 @@ import javax.swing.SwingUtilities;
  * <p>The class stores global user settings at the top, followed by operational state such as
  * conflict rows and modified layers. Counters are reset for each target layer processed.
  */
-public final class SimplifyNetworks {
+public final class NetworkSimplifier {
 
   // ------------------------------------------------------------------
   // USER SETTINGS
@@ -294,12 +294,12 @@ public final class SimplifyNetworks {
    * @param nodusMapPanel map panel supplied by the Nodus Groovy scripting environment; it gives
    *     access to the currently open project.
    */
-  public SimplifyNetworks(NodusMapPanel nodusMapPanel) {
+  public NetworkSimplifier(NodusMapPanel nodusMapPanel) {
     this(nodusMapPanel, true);
   }
 
   /** Initializes the workflow separately so individual passes can also run without dialogs. */
-  private SimplifyNetworks(NodusMapPanel nodusMapPanel, boolean startImmediately) {
+  private NetworkSimplifier(NodusMapPanel nodusMapPanel, boolean startImmediately) {
     this.nodusMapPanel = nodusMapPanel;
     this.nodusProject = nodusMapPanel == null ? null : nodusMapPanel.getNodusProject();
 
@@ -2164,4 +2164,4 @@ public final class SimplifyNetworks {
  * the application. Remove this line if the class is moved into the Java source
  * tree and called directly from Nodus code.
  */
-new SimplifyNetworks(nodusMapPanel);
+new NetworkSimplifier(nodusMapPanel);
