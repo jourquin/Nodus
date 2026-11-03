@@ -2,6 +2,12 @@
 <project basedir=".">
 	<!--import file="build.xml"/-->
 
+	<!-- Eclipse regenerates build.xml without javac's source encoding. Apply the
+	     project default here, including to the generated compiler tasks. -->
+	<presetdef name="javac">
+		<javac encoding="UTF-8" />
+	</presetdef>
+
 	<!-- Forward to the standalone test build so Eclipse can validate this file on its own. -->
 	<target name="CleanTests" description="Removes compiled tests and test reports.">
 		<ant antfile="${basedir}/build-tests.xml" target="CleanTests" inheritAll="false" />
