@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import edu.uclouvain.core.nodus.NodusC;
+import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
@@ -282,9 +283,21 @@ class LocalDatabaseServerTest {
     }
 
     private static void assertPortReleased(int port) throws Exception {
-      try (ServerSocket socket = new ServerSocket()) {
-        socket.setReuseAddress(true);
-        socket.bind(new InetSocketAddress(HOST, port));
+      // HSQLDB can finish listener cleanup after SQL SHUTDOWN returns. Wait for
+      // actual port availability rather than depending on JVM thread scheduling.
+      long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+      while (true) {
+        try (ServerSocket socket = new ServerSocket()) {
+          socket.setReuseAddress(true);
+          socket.bind(new InetSocketAddress(HOST, port));
+          return;
+        } catch (BindException busy) {
+          if (System.nanoTime() >= deadline) {
+            throw new AssertionError(
+                "Database port " + port + " was not released within 5 seconds", busy);
+          }
+          Thread.sleep(10);
+        }
       }
     }
   }
