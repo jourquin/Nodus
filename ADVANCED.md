@@ -1,7 +1,7 @@
 # Nodus: advanced use and development
 
-This guide is for power users and developers configuring Nodus or working on its code.
-For a software overview, installation, compilation and platform-specific tips,
+This guide is for advanced users and developers who configure Nodus or work on its code.
+For an overview of the software, installation and build instructions, and platform-specific tips,
 see the [main README](README.md).
 
 - [Memory allocation and JVM options](#memory-allocation)
@@ -12,81 +12,83 @@ see the [main README](README.md).
 - [Tests and continuous integration](#tests-and-continuous-integration)
 - [Code quality tools](#code-quality-tools)
 
-## Memory allocation
+## Memory allocation and JVM arguments
 
-Nodus is written in Java. Therefore, it uses the memory allocation system provided by the Java Virtual Machine (JVM).
-In particular, the maximum memory allocated to the software must be defined by the user if the default
-values are not appropriate. This can be set using the -Xms and -Xmx command line parameters
-passed to the JVM. Please refer to the JVM documentation for detailed information on these switches.
+Nodus is written in Java and uses the Java Virtual Machine (JVM) to manage memory.
+If the default memory limits do not suit your projects, adjust the initial and maximum heap
+sizes using the JVM's `-Xms` and `-Xmx` command-line options. See your JVM's documentation
+for details on these options.
 
 By default, Nodus uses the following strategy:
 
-- If the physical memory of the computer it runs on is at most 4 GB, no -Xms (minimum heap) value is set.
-Otherwise it is set to 2 GB.
-- The maximum heap that can be claimed for (-Xmx) is set to 50% of the physical memory, with a maximum
-of 6 GB.
-- If Nodus runs on a 32-bit JVM (not recommended), -Xmx is limited to 1.4 GB and -Xms is not set.
+- On computers with at most 4 GB of physical memory, `-Xms` (the initial heap size) is not set.
+  Otherwise, it is set to 2 GB.
+- The maximum heap size (`-Xmx`) is set to 50% of physical memory, up to a limit of 6 GB.
+- On a 32-bit JVM (not recommended), `-Xmx` is limited to 1.4 GB and `-Xms` is not set.
 
-These values are stored in "jvmargs.sh" or "jvmargs.bat", a file created in the installation directory by
-Nodus at launch time if it doesn't exist yet. This file can be edited if other values (or even other JVM parameters)
-are desired.
+These values are stored in `jvmargs.sh` or `jvmargs.bat` in the installation directory.
+Nodus creates the file at launch if it does not already exist. Edit it to change the memory
+limits or add other JVM options.
 
-Since Nodus 8.4, version-dependent JVM parameters are also added dynamically in this file. This includes,
-since Nodus 9.0, `--illegal-access=deny` with Java 9 to 16, and `--enable-native-access=ALL-UNNAMED` with Java 24
-or later to enable native access for classpath libraries used by Nodus. With Java 24 or later,
-the `sun.misc.Unsafe` warning policy is also set explicitly for compatibility
-with libraries that still use deprecated memory-access methods.
+Since Nodus 8.4, the file also selects JVM options dynamically according to the Java version.
+Since Nodus 9.0, these include `--illegal-access=deny` for Java 9–16 and
+`--enable-native-access=ALL-UNNAMED` for Java 24 or later. The latter enables native access
+for classpath libraries used by Nodus. On Java 24 or later, the `sun.misc.Unsafe` warning
+policy is also set explicitly for compatibility with libraries that still use deprecated
+memory-access methods.
 
 Older releases could save `--illegal-access` permanently in a single-line `JVMARGS`
-assignment. `SetJVMArgs` now upgrades these legacy files automatically, keeping custom
-heap sizes and other arguments, and saving the original as `jvmargs.sh.bak` or
+assignment. `SetJVMArgs` now upgrades these legacy files automatically, preserving custom
+heap sizes and other arguments and saving the original as `jvmargs.sh.bak` or
 `jvmargs.bat.bak`. The replacement selects its flags at each launch, so Java 17 and
 later (including Java 27) receive no `--illegal-access` option. Custom multiline
-scripts and single assignments containing shell commands or variable expansion are
-left intact; remove an unconditional obsolete option manually in those files.
+scripts and single-line assignments containing shell commands or variable expansion are
+left intact. In those files, manually remove any obsolete option that is applied unconditionally.
 
 `SetJVMArgs` also adds a macOS-only
 `--add-exports=java.desktop/com.apple.eawt=ALL-UNNAMED` option to generated
-`jvmargs.sh` files for Groovy's native console fullscreen support. It upgrades the
+`jvmargs.sh` files to support full-screen mode in Groovy's native console. It upgrades the
 previous generated shell format automatically, preserving custom JVM arguments
-and the first backup. Custom multiline scripts stay unchanged; add the option
+and the original backup. Custom multiline scripts remain unchanged; add the option
 manually if needed.
 
 ## Application and project settings
 
-Public settings in [NodusC.java](https://github.com/jourquin/Nodus/blob/master/src/edu/uclouvain/core/nodus/NodusC.java) can be set
-from the startup [nodus.groovy](nodus.groovy) script, a project's `[projectname].groovy` file,
+Public settings in [NodusC.java](https://github.com/jourquin/Nodus/blob/master/src/edu/uclouvain/core/nodus/NodusC.java) can be configured
+in the startup [nodus.groovy](nodus.groovy) script, a project's `[projectname].groovy` file,
 or the Groovy console.
 
-The settings follow this order:
+Settings are applied in the following order:
 
 1. The values declared in `NodusC` provide the defaults.
-2. Changes made by the startup `nodus.groovy` become the application defaults for that session.
+2. Changes made by the startup `nodus.groovy` script become the application defaults for that session.
 3. Each project starts with those application defaults; its own Groovy script can override them.
 
-Before another project loads, all public mutable `NodusC` settings are restored to the application
+Before another project is loaded, all public mutable `NodusC` settings are restored to the application
 defaults, even if the next project has no Groovy file. This includes timing reports, assignment
 dialogs, estimation diagnostics, map options and the Exact MF algorithm selector. Changes made
-from a project script or the Groovy console last until the next project loads. A project's close
-script still sees its current settings; canceling project closure keeps those settings in place.
+in a project script or the Groovy console remain in effect until the next project is loaded.
+A project's closing script still sees its current settings; canceling project closure leaves
+those settings in place.
 
-Closing a project, opening another one, or quitting waits for an active assignment, estimation
-or KPI computation to finish before running the close script and releasing project resources.
-The computation can still be canceled through its normal progress controls. This keeps the
-database connection and loaded layers available until the worker has finished its cleanup.
+When you close a project, open another one, or quit, Nodus waits for any active assignment,
+estimation or performance-indicator computation to finish before running the closing script
+and releasing project resources. You can still cancel the computation through its normal
+progress controls. This keeps the database connection and loaded layers available until
+the worker has finished its cleanup.
 
 Interrupted assignment and cost-parser coordinators also wait for every worker to terminate before
 releasing the graph, output tables or project computation gate. A worker finishing a slow database
 operation can therefore delay cancellation. Worker errors invalidate the computation; partial results
-are not accepted just because a worker thread terminated.
+are not accepted merely because a worker thread has terminated.
 
-Put a setting in the startup script to apply it to every project, or in a project's script to
-apply it only there. The startup script is run once at application launch, not on every project
-switch. Existing HTML reports are retained when reporting is disabled.
+Put a setting in the startup script to apply it to every project, or in a project's script
+to apply it only to that project. The startup script runs once when the application launches.
+It does not run again when you switch projects. Disabling reports leaves existing HTML reports intact.
 
 ### Assignment information dialogs
 
-Informational assignment completion dialogs are enabled by default. To disable them for all
+Assignment completion dialogs are enabled by default. To disable these informational dialogs for all
 projects, add this to the startup `nodus.groovy` script:
 
 ```groovy
@@ -95,12 +97,12 @@ edu.uclouvain.core.nodus.NodusC.displayAssignmentInformationDialogs = false
 
 Set it back to `true` to restore the dialogs. The setting is read when an assignment finishes;
 it does not change calculations, saved results or completion metadata. Errors and warnings,
-including reaching the maximum iteration count without convergence, remain visible.
+including warnings when the maximum iteration count is reached without convergence, remain visible.
 
 ### Assignment runtime audit
 
 Set `NodusC.displayComputingTimes = true` to save a timing report as an HTML file in the project
-directory for each assignment. The switch defaults to `false` and is sampled at the beginning of
+directory for each assignment. The setting defaults to `false` and is read at the beginning of
 `Assignment.run()`.
 It can also be enabled from a Groovy script before running assignments:
 
@@ -110,47 +112,47 @@ edu.uclouvain.core.nodus.NodusC.displayComputingTimes = true
 
 Set `NodusC.displayComputingTimes = false` before starting an assignment to disable new reports.
 Existing HTML files remain unchanged. `NodusC.displayMapComputingTimes` is independent: it controls
-map preparation timings printed during pan/zoom operations and does not control assignment reports.
+map preparation timings printed when panning or zooming and does not control assignment reports.
 
-The report identifies the algorithm, scenario, configured thread count and completion status,
-and reports seconds for:
+The report identifies the algorithm, scenario, configured thread count and completion status.
+It reports the following durations in seconds:
 
-- Total elapsed computation and saving, including final path batches, indexes and commits.
+- Total elapsed time for computation and saving, including final path batches, indexes and commits.
 - Virtual-network initialization and generation.
 - Cost and duration evaluation, including parser initialization, all iterations, OD classes, time slices and Frank–Wolfe line-search evaluations.
-- Paths and flow assignment: elapsed wall time across active workers, plus summed worker time excluding their database writer calls. This includes graph preparation, path reconstruction, modal split and flow updates.
+- Path and flow assignment: elapsed wall time across active workers, plus summed worker time excluding their database writer calls. This includes graph preparation, path reconstruction, modal split and flow updates.
 - Database output: writer time for table creation, row preparation, path batches, equilibrium path updates, virtual-network results, indexes and commits.
 
-Path writes overlap the parallel assignment phase, so the reported rows must not be added together.
+Path writes overlap with the parallel assignment phase, so the reported rows must not be added together.
 Summed worker time can exceed total elapsed time and includes waiting for the writer lock; it is
-not CPU time. Total elapsed time also includes unlisted work such as loading demand and converting
+not CPU time. Total elapsed time also includes work not listed separately, such as loading demand and converting
 volumes to vehicles. Completion dialogs and post-assignment scripts are excluded. Failed or
-cancelled runs save a partial audit, excluding subsequent failure cleanup.
+canceled runs save a partial audit, excluding subsequent failure cleanup.
 
 ## Local database servers and external JDBC connections
 
 When no `jdbc.url` is specified in the `.nodus` file, Nodus manages the selected
 built-in database. HSQLDB and H2 listen only on `127.0.0.1`, so R, Python,
 and other JDBC clients on the same computer can connect while the project is open.
-They are not accessible from another computer. The default ports remain 9001 for
+They are not accessible from another computer. The default ports are 9001 for
 HSQLDB and 9092 for H2; override them with `hsqldbserverport` or
-`h2serverport`. A port conflict aborts project opening rather
-than connecting to the database service already using that port.
+`h2serverport`. If a port is already in use, Nodus aborts project opening
+rather than connecting to the database service using that port.
 
 Existing database credentials are preserved. The demo's HSQLDB scripts still use
-`SA` and an empty password through `localhost`; `127.0.0.1` can also be used explicitly
+`SA` with an empty password and connect through `localhost`; `127.0.0.1` can also be used explicitly
 to avoid differences in IPv6 hostname resolution. Loopback access does not isolate
 the database from other users or processes on the same computer.
 
 Nodus creates H2 project databases locally, then exposes only the project database
-through TCP. TCP clients can create tables and modify data according to their database
+over TCP. TCP clients can create tables and modify data according to their database
 privileges, but cannot create additional databases. H2's binding is configured at
 application startup because H2 caches this setting.
 
 An explicit `jdbc.url` selects an independently managed database. Nodus passes the
 configured URL, driver, username, and password to JDBC without changing the hostname
 or URL options. It neither starts nor stops that server and does not offer server
-shutdown/compaction on project close. This applies to local and remote MariaDB,
+shutdown or compaction when the project closes. This applies to local and remote MariaDB,
 MySQL, PostgreSQL, and other JDBC databases, including separately managed HSQLDB
 and H2 instances. For a Nodus-managed built-in server, omit `jdbc.url` and
 use the port properties above instead.
@@ -173,17 +175,17 @@ servers using this URL scheme. InnoDB is the standard server default, so no engi
 normally needed. If the administrator selected another default, append
 `?sessionVariables=default_storage_engine=InnoDB` to select InnoDB for this connection's new tables.
 See MariaDB's [default-storage-engine setting](https://mariadb.com/docs/server/server-management/variables-and-modes/server-system-variables#default_storage_engine).
-Explicit connection settings continue to be honored, including a legacy MyISAM default. Changing
+Explicit connection settings are honored, including a legacy MyISAM default. Changing
 `default_storage_engine` affects newly created tables only; existing tables require a separate,
 explicit conversion. Nodus never converts them automatically.
 
-After imports and the project-open script finish, Nodus checks the actual base-table engines in
-the selected database and the session's default engine. It warns once per project opening if
-either uses a nontransactional engine, including mixed InnoDB/MyISAM databases and empty databases
-with a nontransactional default. Unknown engine capabilities or failed checks also produce a
-warning; opening can continue. The check runs off the UI thread, reads only metadata, and leaves
+After imports and the project-opening script finish, Nodus checks the storage engines used by
+base tables in the selected database, along with the session's default engine. It warns once
+per project opening if any table or the session default uses a nontransactional engine. This
+includes mixed InnoDB/MyISAM databases and empty databases with a nontransactional default.
+Unknown engine capabilities or failed checks also produce a warning, but the project can still
+finish opening. The check runs on a background thread, reads only metadata, and leaves
 tables, session settings and pending transactions unchanged. The warning does not disable editing.
-
 
 ## Tests and continuous integration
 
@@ -197,8 +199,8 @@ ant -f build-tests.xml
 The default target compiles the application and runs the JUnit 5 suite in `test/`.
 The suite includes unit tests, database integration tests, complete assignments and
 OpenMap workflow tests. It runs without a graphical desktop or an existing project
-database; database tests create private in-memory H2 or HSQLDB databases, and file
-tests use temporary directories. A failing test makes the command fail.
+database; database tests create private temporary H2 or HSQLDB databases, and file
+tests use temporary directories. The command fails if any test fails.
 
 Text and XML reports are written to `test-build/reports/`. Test classes are kept
 separate from application classes and are not included in `nodus9.jar`.
@@ -215,14 +217,14 @@ To remove test output:
 ant -f build-tests.xml CleanTests
 ```
 
-In Eclipse, refresh the project and use **Run As > JUnit Test** on the `test` source
+In Eclipse, refresh the project and select **Run As > JUnit Test** for the `test` source
 folder or an individual test class. For Ant, right-click `build-tests.xml` and choose
 **Run As > Ant Build**. The `Test` target in `build-user.xml` forwards to the dedicated
 build file, so `ant Test` also runs the suite. `ant Installer` runs the suite before
 packaging and aborts if it fails.
 
-[GitHub Actions](https://github.com/jourquin/Nodus/blob/master/.github/workflows/tests.yml) runs the full suite on Temurin Java 11,
-25 and 27 on Ubuntu for pushes and pull requests, and saves the reports as downloadable
+[GitHub Actions](https://github.com/jourquin/Nodus/blob/master/.github/workflows/tests.yml) runs the full suite on Ubuntu with
+Temurin Java 11, 25 and 27 for pushes and pull requests, and saves the reports as downloadable
 artifacts. See the [test guide](https://github.com/jourquin/Nodus/blob/master/test/README.md) for coverage, Eclipse runtime setup
 and guidelines for adding tests, and its
 [CI instructions](https://github.com/jourquin/Nodus/blob/master/test/README.md#continuous-integration-on-github) for activation
@@ -230,10 +232,9 @@ and required status checks.
 
 ## Code quality tools
 
-The [Checkstyle](https://checkstyle.org) and [SpotBugs](https://spotbugs.github.io)
-plugins are used in Eclipse to follow the Google Java coding standard and look for
-bugs in Java code.
+The [Checkstyle](https://checkstyle.org) plugin is used in Eclipse to check adherence to the
+Google Java coding standard. The [SpotBugs](https://spotbugs.github.io) plugin checks Java code
+for potential bugs.
 
 Since Nodus 8.4, OpenAI [Codex](https://github.com/openai/codex) has been used to detect
 potential bugs, optimize algorithms and create unit tests.
-
