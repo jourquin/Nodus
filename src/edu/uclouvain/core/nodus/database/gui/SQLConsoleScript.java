@@ -340,24 +340,133 @@ final class SQLConsoleScript {
     return text.toString();
   }
 
+  /** A single insertion in the original editor text. */
+  static final class HistoryInsertion {
+    final int offset;
+    final String text;
+
+    HistoryInsertion(int offset, String text) {
+      this.offset = offset;
+      this.text = text;
+    }
+  }
+
+  /** Returns an insertion for scripts, or null when recall should replace a standalone command. */
+  static HistoryInsertion historyInsertion(
+      String script, int caret, boolean namedScript, String command) {
+    SourcePosition position = new SourcePosition(script, caret);
+    CommandScanner existing = new CommandScanner(script);
+    try {
+      existing.scan(position);
+    } catch (IllegalArgumentException ex) {
+      if (namedScript || existing.delimited) {
+        throw ex;
+      }
+      return null;
+    }
+    if (!namedScript && !existing.delimited) {
+      return null;
+    }
+
+    String recalled = command.strip();
+    CommandScanner selected = new CommandScanner(recalled);
+    selected.scan();
+
+    StringBuilder insertion = new StringBuilder();
+    int offset = position.offset;
+    if (existing.undelimitedCommand && offset > position.statementStart) {
+      offset = script.length();
+      appendDelimiter(insertion, existing.endsInLineComment);
+    }
+    if (insertion.length() > 0
+        || offset > 0 && !CommandScanner.lineBreak(script.charAt(offset - 1))) {
+      insertion.append('\n');
+    }
+    insertion.append(recalled);
+    if (selected.undelimitedCommand) {
+      appendDelimiter(insertion, selected.endsInLineComment);
+    }
+    if (offset == script.length() || !CommandScanner.lineBreak(script.charAt(offset))) {
+      insertion.append('\n');
+    }
+    return new HistoryInsertion(offset, insertion.toString());
+  }
+
+  private static void appendDelimiter(StringBuilder insertion, boolean afterLineComment) {
+    if (afterLineComment) {
+      insertion.append('\n');
+    }
+    insertion.append(';');
+  }
+
+  /** Tracks caret boundaries in the source without changing the execution parser's output. */
+  private static final class SourcePosition {
+    private final String text;
+    private int offset;
+    private int statementStart = -1;
+    private int lastStatementEnd = -1;
+
+    SourcePosition(String text, int offset) {
+      this.text = text;
+      this.offset = offset;
+    }
+
+    void token(int start) {
+      if (statementStart < 0) {
+        statementStart = start;
+      }
+    }
+
+    void delimiter(int end) {
+      if (statementStart >= 0 && offset > statementStart && offset < end) {
+        offset = end;
+      }
+      statementStart = -1;
+      lastStatementEnd = end;
+    }
+
+    void comment(int start, int end) {
+      if (offset > start && offset < end) {
+        offset = end;
+      } else if (lastStatementEnd >= 0 && offset >= lastStatementEnd && offset <= start) {
+        // Keep an inline comment with the terminated statement before it.
+        for (int i = lastStatementEnd; i < start; i++) {
+          char value = text.charAt(i);
+          if (!Character.isWhitespace(value) || CommandScanner.lineBreak(value)) {
+            return;
+          }
+        }
+        offset = end;
+        lastStatementEnd = end;
+      }
+    }
+  }
+
   /** A lexical scanner; statement syntax and execution remain the database's responsibility. */
   private static final class CommandScanner {
     private final String text;
     private final Vector<String> commands = new Vector<>();
     private final StringBuilder current = new StringBuilder();
     private boolean delimited;
+    private boolean undelimitedCommand;
+    private boolean endsInLineComment;
 
     CommandScanner(String text) {
       this.text = text;
     }
 
     void scan() {
+      scan(null);
+    }
+
+    void scan(SourcePosition position) {
       char quote = 0;
       int quoteStart = 0;
       String dollarQuote = null;
       int blockDepth = 0;
       int blockStart = 0;
       boolean lineComment = false;
+      int lineCommentStart = 0;
       boolean lineStart = true;
       for (int index = 0; index < text.length(); index++) {
         final char value = text.charAt(index);
@@ -376,6 +485,9 @@ final class SQLConsoleScript {
           if (lineBreak(value)) {
             lineComment = false;
             separate();
+            if (position != null) {
+              position.comment(lineCommentStart, index);
+            }
           }
         } else if (blockDepth > 0) {
           if (value == '/' && next == '*') {
@@ -384,6 +496,9 @@ final class SQLConsoleScript {
           } else if (value == '*' && next == '/') {
             blockDepth--;
             index++;
+            if (position != null && blockDepth == 0) {
+              position.comment(blockStart, index + 1);
+            }
           }
         } else if (dollarQuote != null) {
           if (text.startsWith(dollarQuote, index)) {
@@ -404,6 +519,9 @@ final class SQLConsoleScript {
             }
           }
         } else if (value == '\'' || value == '"' || value == '`') {
+          if (position != null) {
+            position.token(index);
+          }
           quote = value;
           quoteStart = index;
           current.append(value);
@@ -414,6 +532,7 @@ final class SQLConsoleScript {
           index++;
         } else if (value == '-' && next == '-' || hashComment) {
           lineComment = true;
+          lineCommentStart = index;
           separate();
           if (value == '-') {
             index++;
@@ -423,7 +542,13 @@ final class SQLConsoleScript {
         } else if (value == ';') {
           addCommand();
           delimited = true;
+          if (position != null) {
+            position.delimiter(index + 1);
+          }
         } else {
+          if (position != null) {
+            position.token(index);
+          }
           final String delimiter = dollarDelimiter(index);
           if (delimiter != null) {
             dollarQuote = delimiter;
@@ -443,7 +568,11 @@ final class SQLConsoleScript {
         throw new IllegalArgumentException(
             "Unterminated SQL block comment at character " + (blockStart + 1));
       }
-      addCommand();
+      endsInLineComment = lineComment;
+      if (position != null && lineComment) {
+        position.comment(lineCommentStart, text.length());
+      }
+      undelimitedCommand = addCommand();
     }
 
     private void separate() {
@@ -462,12 +591,14 @@ final class SQLConsoleScript {
           || value == '\u2029'; // Unicode newlines
     }
 
-    private void addCommand() {
+    private boolean addCommand() {
       final String command = current.toString().trim();
+      current.setLength(0);
       if (!command.isEmpty()) {
         commands.add(command);
+        return true;
       }
-      current.setLength(0);
+      return false;
     }
 
     /** Dollar quoting starts at a token boundary; dollar signs inside identifiers are ordinary. */

@@ -65,6 +65,7 @@ import java.awt.Insets;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowEvent;
@@ -88,6 +89,7 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
@@ -96,6 +98,8 @@ import javax.swing.JTextPane;
 import javax.swing.JToolBar;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
+import javax.swing.MenuElement;
+import javax.swing.MenuSelectionManager;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.text.BadLocationException;
@@ -232,7 +236,6 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
   private Connection jdbcConnection;
 
-  private JMenu menuRecent;
 
   private JMenuItem menuResultInGrid;
 
@@ -390,7 +393,7 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
   }
 
   /**
-   * Used to recall a command saved in the history.
+   * Handles indexed history actions from older integrations.
    *
    * @param ev ActionEvent
    * @hidden
@@ -407,15 +410,69 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
 
     if (s != null && s.startsWith("#")) {
       int i = Integer.parseInt(s.substring(1));
-      sqlCommandsArea.setText(history.get(i));
+      recallRecentCommand(history.get(i));
+    }
+  }
+
+  /** Recalls a history entry in one undoable editor change. */
+  void recallRecentCommand(String command) {
+    if (executingCommands) {
+      return;
+    }
+    SQLConsoleScript.HistoryInsertion insertion;
+    try {
+      insertion =
+          SQLConsoleScript.historyInsertion(
+              sqlCommandsArea.getText(),
+              sqlCommandsArea.getCaretPosition(),
+              scriptFileName != null,
+              command);
+    } catch (IllegalArgumentException ex) {
+      JOptionPane.showMessageDialog(
+          frame,
+          i18n.get(
+              SQLConsole.class,
+              "Cannot_insert_history",
+              "Cannot insert the command. Close any unfinished SQL quotes or block comments first."),
+          frame.getTitle(),
+          JOptionPane.WARNING_MESSAGE);
+      return;
+    }
+
+    if (insertion == null) {
+      sqlCommandsArea.replaceRange(command, 0, sqlCommandsArea.getDocument().getLength());
+      sqlCommandsArea.setCaretPosition(sqlCommandsArea.getDocument().getLength());
       resetScript();
+    } else {
+      sqlCommandsArea.replaceRange(insertion.text, insertion.offset, insertion.offset);
+      sqlCommandsArea.setCaretPosition(insertion.offset + insertion.text.length());
+    }
+    sqlCommandsArea.requestFocusInWindow();
+  }
+
+  private void showRecentCommands() {
+    if (executingCommands) {
+      return;
+    }
+    JPopupMenu popup = history.createPopup(this::recallRecentCommand);
+    MenuElement[] commands = popup.getSubElements();
+    if (commands.length == 0) {
+      JMenuItem empty =
+          new JMenuItem(i18n.get(SQLConsole.class, "No_recent_commands", "No recent commands"));
+      empty.setEnabled(false);
+      popup.add(empty);
+    }
+
+    popup.show(txtCommandScroll, 0, 0);
+    if (commands.length > 0) {
+      MenuSelectionManager.defaultManager().setSelectedPath(new MenuElement[] {popup, commands[0]});
     }
   }
 
   /** Records successful commands in the GUI history. */
   void addToRecent(String command) {
     if (withGUI) {
-      history.addToRecent(command);
+      runOnEdtAndWait(() -> history.addToRecent(command));
     }
   }
 
@@ -1350,15 +1407,21 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
     menuView.add(menuRefreshTree);
     menuView.add(menuResultInGrid);
     menuView.add(menuResultInText);
+    menuView.addSeparator();
+    JMenuItem menuCommandHistory =
+        new JMenuItem(i18n.get(SQLConsole.class, "Command_history", "Command history…"));
+    menuCommandHistory.setAccelerator(
+        KeyStroke.getKeyStroke(
+            KeyEvent.VK_H,
+            Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | InputEvent.SHIFT_DOWN_MASK));
+    menuCommandHistory.addActionListener(event -> showRecentCommands());
+    menuView.add(menuCommandHistory);
     bar.add(menuView);
-
-    menuRecent = new JMenu(i18n.get(SQLConsole.class, "Recent", "Recent"));
-    bar.add(menuRecent);
 
     frame.setJMenuBar(bar);
     initGUI();
 
-    history = new SQLConsoleHistory(nodusProject, menuRecent, this);
+    history = new SQLConsoleHistory(nodusProject);
 
     Dimension d = Toolkit.getDefaultToolkit().getScreenSize();
 

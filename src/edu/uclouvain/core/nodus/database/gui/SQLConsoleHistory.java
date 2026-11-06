@@ -22,69 +22,57 @@
 package edu.uclouvain.core.nodus.database.gui;
 
 import edu.uclouvain.core.nodus.NodusProject;
-import java.awt.event.ActionListener;
-import javax.swing.JMenu;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 
 /** Maintains recent commands and persists them in the project properties. */
 final class SQLConsoleHistory {
 
   private static final int MAX_HISTORY = 24;
-  private final String[] recentQueries = new String[MAX_HISTORY];
+  private static final String HISTORY_KEY = "sql.history";
+  private final List<String> recentQueries = new ArrayList<>(MAX_HISTORY);
   private final NodusProject nodusProject;
-  private final JMenu menuRecent;
-  private final ActionListener listener;
-  private int history;
 
-  SQLConsoleHistory(NodusProject project, JMenu menu, ActionListener listener) {
+  SQLConsoleHistory(NodusProject project) {
     this.nodusProject = project;
-    this.menuRecent = menu;
-    this.listener = listener;
   }
 
   String get(int index) {
-    return recentQueries[index];
+    return recentQueries.get(index);
   }
 
-  /**
-   * Adds a new SQL statement in the history.
-   *
-   * @param s The SQL statement to recall later
-   */
-  void addToRecent(String s) {
-    for (int i = 0; i < MAX_HISTORY; i++) {
-      if (s.equals(recentQueries[i])) {
-        return;
-      }
+  /** Moves a SQL statement to the top of the history. */
+  void addToRecent(String command) {
+    recentQueries.remove(command);
+    recentQueries.add(0, command);
+    if (recentQueries.size() > MAX_HISTORY) {
+      recentQueries.remove(MAX_HISTORY);
     }
+  }
 
-    if (recentQueries[history] != null) {
-      menuRecent.remove(history);
+  /** Builds the newest-first history popup. */
+  JPopupMenu createPopup(Consumer<String> recall) {
+    JPopupMenu popup = new JPopupMenu();
+    for (String command : recentQueries) {
+      String label = command.length() > 43 ? command.substring(0, 40) + "..." : command;
+      JMenuItem item = new JMenuItem(label);
+      item.addActionListener(event -> recall.accept(command));
+      popup.add(item);
     }
-
-    recentQueries[history] = s;
-
-    if (s.length() > 43) {
-      s = s.substring(0, 40) + "...";
-    }
-
-    JMenuItem item = new JMenuItem(s);
-
-    item.setActionCommand("#" + history);
-    item.addActionListener(listener);
-    menuRecent.insert(item, history);
-
-    history = (history + 1) % MAX_HISTORY;
+    return popup;
   }
 
   /** Loads history (recent SQL statements) from property file. */
   void loadHistory() {
-    for (int i = 0; i < MAX_HISTORY; i++) {
-      String key = "sql.history" + i;
-      String value = nodusProject.getLocalProperty(key, null);
-
-      if (value != null) {
-        addToRecent(value);
+    recentQueries.clear();
+    // Read oldest-first storage in reverse. Legacy ring buffers did not save their write position.
+    for (int i = MAX_HISTORY - 1; i >= 0; i--) {
+      String command = nodusProject.getLocalProperty(HISTORY_KEY + i, null);
+      if (command != null && !recentQueries.contains(command)) {
+        recentQueries.add(command);
       }
     }
   }
@@ -93,9 +81,11 @@ final class SQLConsoleHistory {
   void saveHistory() {
     if (nodusProject.isOpen()) {
       for (int i = 0; i < MAX_HISTORY; i++) {
-        if (recentQueries[i] != null) {
-          String key = "sql.history" + i;
-          nodusProject.setLocalProperty(key, recentQueries[i]);
+        String key = HISTORY_KEY + i;
+        if (i < recentQueries.size()) {
+          nodusProject.setLocalProperty(key, recentQueries.get(recentQueries.size() - 1 - i));
+        } else {
+          nodusProject.removeLocalProperty(key);
         }
       }
     }

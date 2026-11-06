@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus.database.gui;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
@@ -189,6 +190,54 @@ class SQLConsoleScriptTest {
     assertEquals(List.of("SELECT 1", "SELECT 2", "SELECT 3"), parsed.commands);
     assertTrue(parsed.batchFile);
     assertTrue(parsed.multipleCommands);
+  }
+
+  @Test
+  void historyRecallUsesSourceBoundariesAndPreservesComments() {
+    assertHistoryInsertion(
+        "SELECT 'a;^b'; -- keep with first\nSELECT 2;",
+        false,
+        "SELECT 42",
+        "SELECT 'a;b'; -- keep with first\nSELECT 42;\nSELECT 2;");
+    assertHistoryInsertion(
+        "SELECT 1;\n^\nSELECT 2;",
+        false,
+        "SELECT $$a;b$$;",
+        "SELECT 1;\nSELECT $$a;b$$;\nSELECT 2;");
+    assertHistoryInsertion(
+        "SELECT 1;\n/* outer /* nested^ */ comment */\nSELECT 2;",
+        false,
+        "SELECT 42",
+        "SELECT 1;\n/* outer /* nested */ comment */\nSELECT 42;\nSELECT 2;");
+    assertHistoryInsertion(
+        "SELECT $tag$a;^b$tag$; SELECT 2;",
+        false,
+        "SELECT 42",
+        "SELECT $tag$a;b$tag$;\nSELECT 42;\n SELECT 2;");
+  }
+
+  @Test
+  void historyRecallSeparatesUnterminatedStatementsInScripts() {
+    assertNull(SQLConsoleScript.historyInsertion("SELECT 'a;b'", 3, false, "SELECT 42"));
+    assertNull(SQLConsoleScript.historyInsertion("SELECT 'unfinished", 3, false, "SELECT 42"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> SQLConsoleScript.historyInsertion("SELECT 1; SELECT 'unfinished", 3, false, "SELECT 42"));
+    assertHistoryInsertion("SEL^ECT 1", true, "SELECT 42", "SELECT 1;\nSELECT 42;\n");
+    assertHistoryInsertion(
+        "SELECT 1;\nSELECT ^2 -- existing",
+        false,
+        "SELECT 42 -- recalled",
+        "SELECT 1;\nSELECT 2 -- existing\n;\nSELECT 42 -- recalled\n;\n");
+    assertHistoryInsertion("^", true, "SELECT 42", "SELECT 42;\n");
+  }
+
+  private static void assertHistoryInsertion(
+      String withCaret, boolean namedScript, String command, String expected) {
+    int caret = withCaret.indexOf('^');
+    String script = withCaret.substring(0, caret) + withCaret.substring(caret + 1);
+    var edit = SQLConsoleScript.historyInsertion(script, caret, namedScript, command);
+    assertEquals(expected, script.substring(0, edit.offset) + edit.text + script.substring(edit.offset));
   }
 
   @Test

@@ -24,13 +24,11 @@ package edu.uclouvain.core.nodus.database.gui;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.DatabaseFixture;
 import edu.uclouvain.core.nodus.swing.GridSwing;
-import java.awt.event.ActionListener;
 import java.nio.file.Path;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -38,9 +36,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultMutableTreeNode;
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -118,8 +118,10 @@ class SQLConsoleComponentsTest {
   }
 
   @Test
-  void historyWrapsDeduplicatesPersistsAndRetainsTheOriginalListener() throws Exception {
+  void historyShowsNewestFirstAndPreservesTheOrderWhenReopened() throws Exception {
     Properties properties = new Properties();
+    properties.setProperty("sql.history0", "SELECT 'older'");
+    properties.setProperty("sql.history2", "SELECT 'newer'");
     NodusProject project =
         new NodusProject(null) {
           @Override
@@ -136,31 +138,86 @@ class SQLConsoleComponentsTest {
           public void setLocalProperty(String key, String value) {
             properties.setProperty(key, value);
           }
+
+          @Override
+          public void removeLocalProperty(String key) {
+            properties.remove(key);
+          }
         };
     SwingUtilities.invokeAndWait(
         () -> {
-          JMenu menu = new JMenu();
           List<String> events = new ArrayList<>();
-          ActionListener listener = event -> events.add(event.getActionCommand());
-          SQLConsoleHistory history = new SQLConsoleHistory(project, menu, listener);
+          SQLConsoleHistory history = new SQLConsoleHistory(project);
+          history.loadHistory();
+          assertEquals("SELECT 'newer'", history.get(0));
+          assertEquals("SELECT 'older'", history.get(1));
+          history.saveHistory();
+          assertFalse(properties.containsKey("sql.history2"));
+
           for (int i = 0; i < 25; i++) {
             history.addToRecent("SELECT " + i);
           }
-          history.addToRecent("SELECT 24");
-          assertEquals(24, menu.getItemCount());
           assertEquals("SELECT 24", history.get(0));
-          assertEquals("SELECT 1", history.get(1));
-          assertSame(listener, menu.getItem(0).getActionListeners()[0]);
-          menu.getItem(0).doClick();
-          assertEquals(List.of("#0"), events);
+          assertEquals("SELECT 23", history.get(1));
+          assertEquals("SELECT 1", history.get(23));
+          history.addToRecent("SELECT 1");
+          assertEquals("SELECT 1", history.get(0));
+          assertEquals("SELECT 24", history.get(1));
+          JPopupMenu popup = history.createPopup(events::add);
+          assertEquals(24, popup.getComponentCount());
+          ((JMenuItem) popup.getComponent(0)).doClick();
+          assertEquals(List.of("SELECT 1"), events);
           history.saveHistory();
-          JMenu restoredMenu = new JMenu();
-          SQLConsoleHistory restored = new SQLConsoleHistory(project, restoredMenu, listener);
+          SQLConsoleHistory restored = new SQLConsoleHistory(project);
           restored.loadHistory();
-          assertEquals(24, restoredMenu.getItemCount());
+          JPopupMenu restoredPopup = restored.createPopup(events::add);
+          assertEquals(24, restoredPopup.getComponentCount());
           for (int i = 0; i < 24; i++) {
             assertEquals(history.get(i), restored.get(i));
+            assertEquals(history.get(i), ((JMenuItem) restoredPopup.getComponent(i)).getText());
           }
         });
+  }
+
+  @Test
+  void historyPopupRecallsAnUnterminatedCommandAndUndoRestoresTheDraft() throws Exception {
+    try (DatabaseFixture database = new DatabaseFixture(directory)) {
+      SwingUtilities.invokeAndWait(
+          () -> {
+            SQLConsole console = new SQLConsole(database.project, false);
+            try {
+              RSyntaxTextArea editor = (RSyntaxTextArea) console.getSqlCommandArea();
+              String draft = "SELECT draft";
+              editor.setText(draft);
+
+              SQLConsoleHistory history = new SQLConsoleHistory(database.project);
+              String command = "SELECT ID, DESCRIPTION FROM A_TABLE_WITH_A_LONG_NAME";
+              history.addToRecent(command);
+              history.addToRecent("SELECT 42");
+              JPopupMenu popup = history.createPopup(console::recallRecentCommand);
+              assertEquals(draft, editor.getText());
+              assertEquals(2, popup.getComponentCount());
+              assertEquals("SELECT 42", ((JMenuItem) popup.getComponent(0)).getText());
+              JMenuItem older = (JMenuItem) popup.getComponent(1);
+              assertEquals(command.substring(0, 40) + "...", older.getText());
+
+              older.doClick();
+              assertEquals(command, editor.getText());
+              assertEquals(command.length(), editor.getCaretPosition());
+              editor.undoLastAction();
+              assertEquals(draft, editor.getText());
+
+              String script = "SELECT 1;\nSELECT 2;";
+              editor.setText(script);
+              editor.setCaretPosition(3);
+              ((JMenuItem) popup.getComponent(0)).doClick();
+              assertEquals("SELECT 1;\nSELECT 42;\nSELECT 2;", editor.getText());
+              editor.undoLastAction();
+              assertEquals(script, editor.getText());
+            } finally {
+              console.windowClosing(null);
+            }
+          });
+    }
   }
 }
