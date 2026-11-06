@@ -4,11 +4,11 @@
 
 Nodus is transportation network modeling software designed specifically for multimodal and
 intermodal freight transport. It is developed at the Center for Operations Research and
-Econometrics ([CORE](https://www.uclouvain.be/en/research-institutes/lidam/core)) of the Université catholique de Louvain
-([UCLouvain](https://uclouvain.be/en/index.html), Belgium). The software is developed and maintained primarily by
-[Prof. Bart Jourquin](https://www.uclouvain.be/fr/people/bart.jourquin).
+Econometrics ([CORE](https://uclouvain.be/en/research-institutes/lidam/core)) of the Université catholique de Louvain
+([UCLouvain](https://uclouvain.be/en), Belgium). The software is developed and maintained primarily by
+[Prof. Bart Jourquin](https://uclouvain.be/fr/people/bart.jourquin).
 
-Visit the [GitHub Pages website](http://nodus.uclouvain.be) for documentation, and **download the Nodus installer and source code from**
+Visit the [GitHub Pages website](https://nodus.uclouvain.be) for documentation, and **download the Nodus installer and source code from**
 [GitHub](https://github.com/jourquin/Nodus/releases).
 
 ## Introduction
@@ -30,24 +30,24 @@ freight transport networks, such as:
 
 Numerous scientific articles describe research conducted using Nodus. Most of these papers,
 along with contributions to conferences and seminars, can be found on
-[ResearchGate](https://www.researchgate.net/profile/B_Jourquin).
+[ResearchGate](https://www.researchgate.net/profile/Bart-Jourquin).
 
 ## Key features
 
-- Compatible with GIS standards: shapefiles and web mapping, using [OpenMap](http://openmap-java.org/).
+- Compatible with GIS standards: shapefiles and web mapping, using [OpenMap](https://openmap-java.org/).
 - Parallel algorithms: capable of handling very large networks.
 - Cross-platform: Linux, macOS and Windows.
-- Open API: available through scripting (using the [Groovy](http://groovy-lang.org/) language,
+- Open API: available through scripting (using the [Groovy](https://groovy-lang.org/) language,
   [Python](https://www.python.org) through a [Py4J](https://www.py4j.org/index.html) bridge, or
   [R](https://www.r-project.org) through a [J4R](https://sourceforge.net/p/repiceasource/wiki/J4R/) bridge)
   or plugins packaged as Java JAR files.
 - Table exchange: CSV, DBF, XLS/XLSX, ODS, and Parquet.
-- JDBC: compatible with most database management systems. Bundled with [HSQLDB](http://hsqldb.org/) and
-  [H2](http://h2database.com/).
+- JDBC: compatible with most database management systems. Bundled with [HSQLDB](https://hsqldb.org/) and
+  [H2](https://www.h2database.com/html/main.html).
 - Flexible: user-defined database fields, variables, cost functions, modal-choice models, and more.
 
 See also the [documentation](https://nodus.uclouvain.be/doc/help.html) and
-the [demo project](https://github.com/jourquin/Nodus/blob/master/demo).
+the [demo project](https://github.com/jourquin/Nodus/tree/master/demo).
 
 ## Installation and use
 
@@ -68,7 +68,7 @@ Once installed, launch Nodus using:
 The software provides an integrated graphical user interface. Complete reference and user guides
 are not available, but the API is fully documented with Javadoc.
 A basic user guide and a documented sample Nodus project are available in the
-[demo](https://github.com/jourquin/Nodus/blob/master/demo) directory.
+[demo](https://github.com/jourquin/Nodus/tree/master/demo) directory.
 
 > **JDK performance**: Nodus can require substantial computing resources, especially for assignments.
 > Experience shows that the choice of JDK can have a significant impact on computation times. On average,
@@ -81,7 +81,7 @@ A basic user guide and a documented sample Nodus project are available in the
 > (add an entry under Preferences > Security & Privacy > Privacy > Full Disk Access).
 
 Nodus selects default memory limits at launch. For larger projects or custom JVM settings,
-see [memory allocation in the advanced guide](ADVANCED.md#memory-allocation).
+see [memory allocation in the advanced guide](ADVANCED.md#memory-allocation-and-jvm-arguments).
 
 ## Building from source
 
@@ -168,4 +168,4 @@ Their use is governed by the [Trademark Policy](https://github.com/jourquin/Nodu
 ## How to cite Nodus
 
 Jourquin, Bart. (2026) Nodus, the Transportation Network Modeling Software Designed for Multimodal and Intermodal
-Freight Transport. http://nodus.uclouvain.be. [DOI 10.5281/zenodo.21336779](https://doi.org/10.5281/zenodo.21336779).
+Freight Transport. <https://nodus.uclouvain.be>. [DOI 10.5281/zenodo.21336779](https://doi.org/10.5281/zenodo.21336779).

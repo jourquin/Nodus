@@ -123,7 +123,7 @@ The JUnit execution and reports still use the dedicated `build-tests.xml` approa
 
 ## Continuous integration on GitHub
 
-[The Tests workflow](../.github/workflows/tests.yml) runs the complete suite on
+[The Tests workflow](https://github.com/jourquin/Nodus/blob/master/.github/workflows/tests.yml) runs the complete suite on
 pushes and pull requests, with separate jobs for Temurin JDK 11, 25 and 27 on Ubuntu.
 All jobs compile for Java 11 and execute the tests on their selected runtime.
 The workflow downloads the full Apache Ant 1.10.18 distribution from Apache's CDN,

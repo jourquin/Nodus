@@ -92,9 +92,9 @@ Their distinct license/notice texts are consolidated in [devtools/parquet/NOTICE
 
 The following licensing context is retained from the [JTS 1.20.0 upstream licensing file](https://github.com/locationtech/jts/blob/1.20.0/LICENSES.md) (dated May 30, 2017). Nodus distributes the binary under the EDL-1.0 option; its full text is in [JTS-EDL-1.0.license](JTS-EDL-1.0.license).
 
-The Eclipse Foundation makes available all content in this project ("Content"). Unless otherwise indicated below, the Content is provided to you under the terms and conditions of either the [Eclipse Public License 2.0](https://www.eclipse.org/legal/epl-v20.html) ("EPL") or the [Eclipse Distribution License 1.0](http://www.eclipse.org/org/documents/edl-v10.php) (a BSD Style License).  For purposes of the EPL, "Program" will mean the Content.
+The Eclipse Foundation makes available all content in this project ("Content"). Unless otherwise indicated below, the Content is provided to you under the terms and conditions of either the [Eclipse Public License 2.0](https://www.eclipse.org/legal/epl/epl-v20.html) ("EPL") or the [Eclipse Distribution License 1.0](https://www.eclipse.org/org/documents/edl-v10/) (a BSD Style License).  For purposes of the EPL, "Program" will mean the Content.
 
-If you did not receive this Content directly from the Eclipse Foundation, the Content is being redistributed by another party ("Redistributor") and different terms and conditions may apply to your use of any object code in the Content. Check the Redistributor's license that was provided with the Content. If no such license exists, contact the Redistributor. Unless otherwise indicated below, the terms and conditions of the EPL still apply to any source code in the Content and such source code may be obtained at http://www.eclipse.org.
+If you did not receive this Content directly from the Eclipse Foundation, the Content is being redistributed by another party ("Redistributor") and different terms and conditions may apply to your use of any object code in the Content. Check the Redistributor's license that was provided with the Content. If no such license exists, contact the Redistributor. Unless otherwise indicated below, the terms and conditions of the EPL still apply to any source code in the Content and such source code may be obtained at [http://www.eclipse.org](https://www.eclipse.org/).
 
 #### Third-party content
 
@@ -105,7 +105,7 @@ The Content includes items that have been sourced from third parties as set out 
 JTS includes some code from the GeoTools project.  This code has been licensed to the JTS project under the [OSGeo BSD License][jts-osgeo] by the GeoTools PSC
 ([ORA contribution][jts-ora], [shapefile contribution][jts-shapefile]).
 
-[jts-osgeo]: https://www.osgeo.org/sites/osgeo.org/files/Page/osgeo-bsd-license.txt
+[jts-osgeo]: https://www.osgeo.org/wp-content/uploads/osgeo-bsd-license.pdf
 [jts-ora]: https://github.com/geotools/geotools/wiki/JTS-ORA-Contribution
 [jts-shapefile]: https://github.com/geotools/geotools/wiki/JTS-Shapefile-Contribution
 
@@ -166,7 +166,7 @@ code and documentation assets under additional licenses. The JLine distribution'
 MXParser's bundled license requires this acknowledgement:
 
 > This product includes software developed by the Indiana University Extreme! Lab.
-> For further information please visit http://www.extreme.indiana.edu/
+> For further information please visit [http://www.extreme.indiana.edu/](https://web.archive.org/web/20160316002422/http://www.extreme.indiana.edu/)
 
 ## Development, installer and test tools in `devtools/`
 
@@ -208,7 +208,7 @@ installation; the Ant companion JARs bundled with Groovy are listed separately.
 [monitor]: https://github.com/jourquin/JResourcesMonitor
 [jung]: https://github.com/jrtom/jung
 [log4j]: https://logging.apache.org/log4j/2.x/
-[openmap]: http://openmap-java.org/
+[openmap]: https://openmap-java.org/
 [parsii]: https://github.com/scireum/parsii
 [poi]: https://poi.apache.org/
 [py4j]: https://www.py4j.org/
@@ -219,8 +219,8 @@ installation; the Ant companion JARs bundled with Groovy are listed separately.
 [h2]: https://github.com/h2database/h2database/blob/version-2.4.240/LICENSE.txt
 [hsqldb]: https://hsqldb.org/web/hsqlLicense.html
 [mariadb]: https://github.com/mariadb-corporation/mariadb-connector-j
-[postgresql]: https://jdbc.postgresql.org/about/license/
-[groovy]: https://groovy-lang.org/license.html
+[postgresql]: https://github.com/pgjdbc/pgjdbc/blob/REL42.7.3/LICENSE
+[groovy]: https://github.com/apache/groovy/blob/GROOVY_5_1_3/LICENSE
 [ant]: https://ant.apache.org/license.html
 [gpars]: https://www.gpars.org/
 [hamcrest]: https://github.com/hamcrest/JavaHamcrest
@@ -230,10 +230,10 @@ installation; the Ant companion JARs bundled with Groovy are listed separately.
 [javaparser]: https://github.com/javaparser/javaparser
 [jcommander]: https://github.com/cbeust/jcommander
 [jna]: https://github.com/java-native-access/jna/blob/master/LICENSE
-[jquery]: https://jquery.org/license/
+[jquery]: https://jquery.com/license/
 [jsr166]: https://gee.cs.oswego.edu/dl/concurrency-interest/
 [junit4]: https://github.com/junit-team/junit4/blob/main/LICENSE-junit.txt
-[junit5]: https://github.com/junit-team/junit5/blob/r5.14.4/LICENSE.md
+[junit5]: https://github.com/junit-team/junit-framework/blob/r5.14.4/LICENSE.md
 [multiverse]: https://github.com/pveentjer/Multiverse/blob/master/LICENSE
 [mxparser]: https://github.com/x-stream/mxparser/blob/master/LICENSE.txt
 [opentest4j]: https://github.com/ota4j-team/opentest4j
@@ -247,6 +247,6 @@ installation; the Ant companion JARs bundled with Groovy are listed separately.
 [jflex]: https://jflex.de/
 [jflex-history]: https://jflex.de/history.html
 [izpack]: https://izpack.org/
-[pico]: https://picocontainer.com/project.html
+[pico]: https://central.sonatype.com/artifact/org.picocontainer/picocontainer/2.15.2
 [xz]: https://tukaani.org/xz/java.html
 [apiguardian]: https://github.com/apiguardian-team/apiguardian

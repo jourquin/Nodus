@@ -547,7 +547,7 @@ tests, confidence intervals or a substitute for a suitable sampling design.
 
 ## 12. References
 
-- [Forecasting: Principles and Practice — evaluating point forecast accuracy](https://otexts.com/fpp3/accuracy.html): absolute and squared errors, percentage errors, and evaluation on unused data.
+- [Forecasting: Principles and Practice — evaluating point forecast accuracy](https://otexts.com/fpp3/toolbox.html#sec-accuracy): absolute and squared errors, percentage errors, and evaluation on unused data.
 - [SciPy entropy documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.entropy.html): entropy, cross-entropy and logarithm conventions.
 - [SciPy relative-entropy convention](https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.rel_entr.html): zero observed shares and zero predicted shares.
 - [SciPy Jensen–Shannon documentation](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.jensenshannon.html): the mean-distribution definition and distinction between divergence and its square-root distance.

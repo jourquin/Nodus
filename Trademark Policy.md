@@ -44,7 +44,7 @@ If you fork or modify NODUS software:
 
 - You must rename your distribution if the changes are significant.
 - You must not use the NODUS logo or suggest that your version is the official one.
-- You are encouraged to state: “This project is derived from the official NODUS project by UCLouvain, available at https://nodus.uclouvain.be.”
+- You are encouraged to state: “This project is derived from the official NODUS project by UCLouvain, available at <https://nodus.uclouvain.be>.”
 
 ## 5. Commercial Use
 

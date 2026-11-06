@@ -4,7 +4,7 @@ This guide is for advanced users and developers who configure Nodus or work on i
 For an overview of the software, installation and build instructions, and platform-specific tips,
 see the [main README](README.md).
 
-- [Memory allocation and JVM options](#memory-allocation)
+- [Memory allocation and JVM options](#memory-allocation-and-jvm-arguments)
 - [Application and project settings in NodusC.java](#application-and-project-settings)
 - [Local database servers and external JDBC connections](#local-database-servers-and-external-jdbc-connections)
 - [Assignment information dialogs](#assignment-information-dialogs)
