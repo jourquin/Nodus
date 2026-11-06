@@ -58,8 +58,8 @@ import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 
 /*
  * TODO Test exclusions
- * TODO test import/export CSV files with optional ENCODING and DELIMITER clauses
- * TODO Carefully reread the .md files
+ * TODO history of commands in the SQL console ?
+ * TODO History of recent projects?
  */
 
 /**

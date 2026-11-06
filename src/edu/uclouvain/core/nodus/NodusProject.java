@@ -1892,6 +1892,7 @@ public class NodusProject implements ShapeConstants {
     getNodusMapPanel().setActiveMouseMode(mouseModeId);
     getNodusMapPanel().resetText();
     getNodusMapPanel().updateScenarioComboBox(true);
+    nodusMapPanel.rememberRecentProject(projectResourceFileNameAndPath);
     getNodusMapPanel().enableMenus(true);
     getNodusMapPanel().setFileMenuBusy(false);
     getNodusMapPanel().restoreMainFrameFocus();

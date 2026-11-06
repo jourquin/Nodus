@@ -34,6 +34,8 @@ import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import java.awt.Component;
 import java.awt.Desktop;
+import java.util.List;
+import java.util.function.Consumer;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -60,6 +62,8 @@ public final class MapMenus {
   public final JMenuItem menuItemFileExit = new JMenuItem();
   /** "File|Open" menu item. */
   public final JMenuItem menuItemFileOpen = new JMenuItem();
+  /** "File|Recent projects" submenu. */
+  private final JMenu menuRecentProjects = new JMenu();
   /** "File|Print" menu item. */
   public final JMenuItem menuItemFilePrint = new JMenuItem();
   /** "File|Save" menu item. */
@@ -212,6 +216,7 @@ public final class MapMenus {
     nodusMenuBar.add(menuHelp);
 
     menuFile.add(menuItemFileOpen);
+    menuFile.add(menuRecentProjects);
 
     installPreferences.run();
 
@@ -273,6 +278,7 @@ public final class MapMenus {
   /** Refreshes the translated labels of built-in menu items. */
   public void setMenuItemsText() {
     menuItemFileOpen.setText(i18n.get(NodusMapPanel.class, "Open_project", "Open project"));
+    menuRecentProjects.setText(i18n.get(NodusMapPanel.class, "Recent_projects", "Recent projects"));
 
     menuItemSystemProperties.setText(
         i18n.get(NodusMapPanel.class, "Open_preferences", "Global preferences"));
@@ -328,6 +334,23 @@ public final class MapMenus {
         i18n.get(NodusMapPanel.class, "Set_Background_color", "Set Background color"));
 
     setControlMenuItemsText();
+  }
+
+  /** Updates both project-opening controls when the File menu becomes busy or available. */
+  public void setProjectOpeningEnabled(boolean enabled) {
+    menuItemFileOpen.setEnabled(enabled);
+    menuRecentProjects.setEnabled(enabled && menuRecentProjects.getItemCount() > 0);
+  }
+
+  /** Rebuilds the recent-project list, displaying full paths to distinguish matching names. */
+  public void setRecentProjects(List<String> projects, Consumer<String> openProject) {
+    menuRecentProjects.removeAll();
+    for (String path : projects) {
+      JMenuItem item = new JMenuItem(path);
+      item.addActionListener(event -> openProject.accept(path));
+      menuRecentProjects.add(item);
+    }
+    setProjectOpeningEnabled(menuItemFileOpen.isEnabled());
   }
 
   /** Updates labels of control menu items whose text depends on component visibility. */

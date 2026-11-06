@@ -26,9 +26,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.uclouvain.core.nodus.NodusC;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Properties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -89,5 +91,32 @@ class NodusPreferencesTest {
     assertEquals(preferences, NodusPreferences.load(home));
     assertTrue(Files.isRegularFile(home.resolve(".nodus9.properties")));
     assertFalse(Files.exists(home.resolve(".nodus8.properties")));
+  }
+
+  @Test
+  void recentProjectsSeedFromTheLastProjectAndPersistWithMostRecentFirst() throws Exception {
+    Path directory = Files.createDirectory(home.resolve("Projects")).toRealPath();
+    Path lastProject = Files.createFile(directory.resolve("Existing project.nodus"));
+    Properties preferences = new Properties();
+    preferences.setProperty(NodusC.PROP_LAST_PATH, directory.toString());
+    preferences.setProperty(NodusC.PROP_LAST_PROJECT, lastProject.getFileName().toString());
+    NodusPreferences.save(home, preferences);
+
+    preferences = NodusPreferences.load(home);
+    assertEquals(List.of(lastProject.toString()), NodusPreferences.getRecentProjects(preferences));
+
+    for (String name : List.of("A", "B", "C", "D", "É")) {
+      Path project = Files.createFile(directory.resolve(name + ".nodus"));
+      NodusPreferences.rememberRecentProject(preferences, project.toString());
+    }
+    NodusPreferences.rememberRecentProject(preferences, directory.resolve("./B.nodus").toString());
+    preferences.remove(NodusC.PROP_LAST_PROJECT);
+    NodusPreferences.save(home, preferences);
+
+    assertEquals(
+        List.of("B", "É", "D", "C", "A").stream()
+            .map(name -> directory.resolve(name + ".nodus").toString())
+            .collect(java.util.stream.Collectors.toList()),
+        NodusPreferences.getRecentProjects(NodusPreferences.load(home)));
   }
 }

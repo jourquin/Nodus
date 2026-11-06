@@ -50,6 +50,7 @@ import edu.uclouvain.core.nodus.project.ProjectLayerIds;
 import edu.uclouvain.core.nodus.services.ServiceHandler;
 import edu.uclouvain.core.nodus.testing.PluginTestJars;
 import edu.uclouvain.core.nodus.testing.ProjectFilesFixture;
+import edu.uclouvain.core.nodus.utils.NodusPreferences;
 import edu.uclouvain.core.nodus.utils.ProjectLocker;
 import edu.uclouvain.core.nodus.utils.ScriptRunner;
 import java.io.ByteArrayOutputStream;
@@ -325,9 +326,13 @@ public class NodusProjectOpenWorkflowTest {
       assertTrue(fixture.panel.busy);
       assertTrue(fixture.panel.fileMenuBusy);
       assertEquals(1, fixture.project.getNodeLayers().length);
+      assertTrue(NodusPreferences.getRecentProjects(fixture.panel.getNodusProperties()).isEmpty());
       fixture.panel.hookRelease.countDown();
       fixture.awaitOpen();
       assertTrue(fixture.project.isOpen());
+      assertEquals(
+          List.of(directory.resolve("project.nodus").toRealPath().toString()),
+          NodusPreferences.getRecentProjects(fixture.panel.getNodusProperties()));
       assertFalse(fixture.panel.busy);
       assertTrue(fixture.panel.completionOnEdt);
     }
@@ -342,6 +347,7 @@ public class NodusProjectOpenWorkflowTest {
       assertEquals(1, fixture.project.errors.size());
       assertEquals("Injected late opening failure", fixture.project.errors.get(0).getMessage());
       assertFalse(fixture.project.isOpen());
+      assertTrue(NodusPreferences.getRecentProjects(fixture.panel.getNodusProperties()).isEmpty());
       assertFalse(fixture.panel.busy);
       assertFalse(fixture.panel.fileMenuBusy);
       assertDefaultMap(fixture.panel);

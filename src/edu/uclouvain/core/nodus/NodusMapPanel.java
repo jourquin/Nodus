@@ -140,6 +140,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -1096,7 +1097,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             menus.menuProjection.setVisible(state);
 
             // In the "File" menu, not all items must be disables/enabled
-            menus.menuItemFileOpen.setEnabled(true);
+            menus.setProjectOpeningEnabled(true);
             menus.menuItemFileSave.setEnabled(state);
             menus.menuItemFileClose.setEnabled(state);
             menus.menuItemFileSaveAs.setEnabled(state);
@@ -1134,7 +1135,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             boolean projectOpen = nodusProject != null && nodusProject.isOpen();
             boolean enabled = !busy;
 
-            menus.menuItemFileOpen.setEnabled(enabled);
+            menus.setProjectOpeningEnabled(enabled);
             menus.menuItemFileSave.setEnabled(enabled && projectOpen);
             menus.menuItemFileClose.setEnabled(enabled && projectOpen);
             menus.menuItemFileSaveAs.setEnabled(enabled && projectOpen);
@@ -1554,6 +1555,7 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
 
     // Create all the menus
     menus.initMenus();
+    refreshRecentProjects();
 
     // Add the plugins, if any
     nodusHomeDir = System.getProperty("NODUS_HOME", ".");
@@ -1996,6 +1998,35 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
             }
           }
         });
+  }
+
+  /** Remembers a project once its open workflow completes. */
+  void rememberRecentProject(String projectPath) {
+    NodusPreferences.rememberRecentProject(nodusProperties, projectPath);
+    refreshRecentProjects();
+  }
+
+  private void refreshRecentProjects() {
+    menus.setRecentProjects(
+        NodusPreferences.getRecentProjects(nodusProperties), this::openRecentProject);
+  }
+
+  private void openRecentProject(String projectPath) {
+    if (new File(projectPath).isFile()) {
+      openProject(projectPath);
+      return;
+    }
+
+    JOptionPane.showMessageDialog(
+        this,
+        MessageFormat.format(
+            i18n.get(
+                NodusMapPanel.class,
+                "Recent_project_unavailable",
+                "Recent project file is unavailable: {0}"),
+            projectPath),
+        NodusC.APPNAME,
+        JOptionPane.ERROR_MESSAGE);
   }
 
   /**

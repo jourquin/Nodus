@@ -21,6 +21,8 @@
 
 package edu.uclouvain.core.nodus.utils;
 
+import edu.uclouvain.core.nodus.NodusC;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -32,7 +34,10 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -47,6 +52,8 @@ public final class NodusPreferences {
 
   /** Current application preferences filename. */
   private static final String FILE_NAME = ".nodus9.properties";
+  private static final String RECENT_PROJECT_PREFIX = "recentProject.";
+  private static final int RECENT_PROJECT_LIMIT = 5;
 
   /** Bridge credentials in this file must be readable only by the current user on POSIX systems. */
   private static final Set<PosixFilePermission> PRIVATE_PERMISSIONS =
@@ -80,7 +87,51 @@ public final class NodusPreferences {
     try (InputStream in = Files.newInputStream(file)) {
       properties.load(in);
     }
+    String lastPath = properties.getProperty(NodusC.PROP_LAST_PATH);
+    String lastProject = properties.getProperty(NodusC.PROP_LAST_PROJECT);
+    if (getRecentProjects(properties).isEmpty() && lastPath != null && lastProject != null) {
+      File project = new File(lastPath, lastProject);
+      if (project.isFile()) {
+        rememberRecentProject(properties, project.getPath());
+      }
+    }
     return properties;
+  }
+
+  /** Returns remembered project file paths, newest first. */
+  public static List<String> getRecentProjects(Properties properties) {
+    Set<String> projects = new LinkedHashSet<>();
+    for (int i = 0; i < RECENT_PROJECT_LIMIT; i++) {
+      String path = properties.getProperty(RECENT_PROJECT_PREFIX + i);
+      if (path != null && !path.isBlank()) {
+        projects.add(path);
+      }
+    }
+    return new ArrayList<>(projects);
+  }
+
+  /** Promotes a successfully opened project and keeps at most five entries. */
+  public static void rememberRecentProject(Properties properties, String projectPath) {
+    File project = new File(projectPath).getAbsoluteFile();
+    String path = project.getPath();
+    try {
+      // The project filename determines its database name, including when it is a symlink.
+      path = new File(project.getParentFile().getCanonicalFile(), project.getName()).getPath();
+    } catch (IOException ex) {
+      // The original absolute path can still be reopened if the directory becomes available.
+    }
+
+    List<String> projects = getRecentProjects(properties);
+    projects.remove(path);
+    projects.add(0, path);
+    for (int i = 0; i < RECENT_PROJECT_LIMIT; i++) {
+      String key = RECENT_PROJECT_PREFIX + i;
+      if (i < projects.size()) {
+        properties.setProperty(key, projects.get(i));
+      } else {
+        properties.remove(key);
+      }
+    }
   }
 
   /**
