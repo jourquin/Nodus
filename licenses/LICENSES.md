@@ -31,7 +31,7 @@ projects. This index does not replace those texts.
 | Apache HttpComponents `httpcore5-*`, `httpcore5-h2-*` | 5.3.1 | Apache-2.0 |
 | [Guava][guava] `guava-*` | 19.0 | Apache-2.0 |
 | [J4R][j4r] `j4r-*` | 1.1.1 | LGPL-3.0 |
-| [JavaDBF4Nodus][javadbf] `javadbf4nodus-*` | 1.12.3 | LGPL-3.0 |
+| [JavaDBF4Nodus][javadbf] `javadbf4nodus-*` | 1.12.4 | LGPL-3.0 |
 | [JCheckList][jchecklist] `JCheckList.jar` | Unversioned filename | Apache-2.0 |
 | [JFreeChart][jfreechart] `jfreechart-*` | 1.5.3 | LGPL-2.1-or-later |
 | [json-simple][json-simple] `json-simple-*` | 1.1.1 | Apache-2.0 |
