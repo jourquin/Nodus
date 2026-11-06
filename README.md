@@ -69,7 +69,7 @@ Once installed, launch Nodus using:
 
 The software has a modern and integrated user-friendly GUI. Complete reference and user guides
 are not available, but the API is fully documented through Javadoc.
-A documented sample Nodus project can be found in the "[demo](https://github.com/jourquin/Nodus/blob/master/demo)" directory.
+A basic user guide and documented sample Nodus project can be found in the "[demo](https://github.com/jourquin/Nodus/blob/master/demo)" directory.
 
 > **Note on JDK**: Nodus is very demanding in terms of computing resources, especially when it comes to assignment. Experience
 shows that the choice of the JDK used can have a significant impact on calculation times. On average,
@@ -136,7 +136,7 @@ external connections. Upgrade to Groovy 4.
 performance measurement indicators. It is also a performance-focused release, highlighting faster assignments (at least four times faster on a set of selected projects), more responsive map navigation and faster database operations. From the developers' perspective, a series of unit tests have been added with an automatic continuous integration workflow. The modal-choice API is moved into its own package. Therefore, custom modal-choice
 plugin sources need updated imports. Nodus can upgrade eligible existing plugin JARs without recompilation, keeping a `.jar.nodus8` backup; see the
 [Nodus 9.0 migration guide](https://nodus.uclouvain.be/doc/modal-choice-migration.html).
-- 9.1 - November 2026: performance and reliability update
+- 9.1 - November 2026: performance and reliability update with a improved A* shortest path algorithm.
 
 
 See the [change log](changelog.md) for a detailed build history.

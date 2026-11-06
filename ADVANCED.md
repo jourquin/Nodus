@@ -117,13 +117,9 @@ and reports seconds for:
 
 - Total elapsed computation and saving, including final path batches, indexes and commits.
 - Virtual-network initialization and generation.
-- Cost and duration evaluation, including parser initialization, all iterations, OD classes,
-  time slices and Frank–Wolfe line-search evaluations.
-- Paths and flow assignment: elapsed wall time across active workers, plus summed worker time
-  excluding their database writer calls. This includes graph preparation, path reconstruction,
-  modal split and flow updates.
-- Database output: writer time for table creation, row preparation, path batches, equilibrium
-  path updates, virtual-network results, indexes and commits.
+- Cost and duration evaluation, including parser initialization, all iterations, OD classes, time slices and Frank–Wolfe line-search evaluations.
+- Paths and flow assignment: elapsed wall time across active workers, plus summed worker time excluding their database writer calls. This includes graph preparation, path reconstruction, modal split and flow updates.
+- Database output: writer time for table creation, row preparation, path batches, equilibrium path updates, virtual-network results, indexes and commits.
 
 Path writes overlap the parallel assignment phase, so the reported rows must not be added together.
 Summed worker time can exceed total elapsed time and includes waiting for the writer lock; it is
@@ -188,54 +184,6 @@ with a nontransactional default. Unknown engine capabilities or failed checks al
 warning; opening can continue. The check runs off the UI thread, reads only metadata, and leaves
 tables, session settings and pending transactions unchanged. The warning does not disable editing.
 
-The dialog's **Do not show this warning again** checkbox hides subsequent storage-engine warnings
-for this project. The choice is saved with the other project-local settings in `ProjectName.nodus.local` when
-the project closes; other projects are unaffected. Metadata checks still run. To show the warning
-again, remove `showStorageEngineWarning=false` from that project's local settings file or set it to
-`true` while the project is closed.
-
-InnoDB protects transactional data changes; schema operations can still cause implicit commits.
-Nodus loads imports and assignment outputs into staging tables before replacing existing tables.
-On MySQL/MariaDB, publication uses one grouped `RENAME TABLE` statement: the previous tables move
-to private backup names and their replacements take the public names together. For assignments,
-the group includes the virtual network, path headers and optional path details; an obsolete detail
-table moves aside in the same statement. Other database products retain their existing publication
-path.
-
-If publication fails, Nodus inspects the actual table names and restores the previous set with one
-inverse rename. This also handles a JDBC exception after the server executed the original rename.
-If restoration cannot be verified or completed, backup tables remain available for recovery.
-Backup cleanup after successful publication is optional: a cleanup error is reported without
-undoing the completed import or assignment. Server-crash recovery guarantees still depend on the
-server version and storage engine. Transaction guarantees also do not extend to external DBF/shape
-files, whose saves have separate file-recovery logic.
-
-Performance depends on the workload and configuration. Compare disposable copies of a project
-with matching indexes, batch sizes and thread counts, an adequate InnoDB buffer pool, and normal
-durability settings. Include both initial and warmed-up runs, and compare import, output-writing
-and total assignment times, especially when detailed paths are saved. No fixed speed ratio is
-assumed. See MariaDB's [storage-engine guidance](https://mariadb.com/docs/server/server-usage/storage-engines/choosing-the-right-storage-engine)
-and [implicit-commit reference](https://mariadb.com/docs/server/reference/sql-statements/transactions/sql-statements-that-cause-an-implicit-commit).
-
-For MySQL/MariaDB projects, Nodus sends a JDBC validation ping every minute while
-the project is open. This keeps a normally idle server session active and detects a
-lost connection. The interval must be shorter than the server's `wait_timeout`;
-idle transaction timeouts may still close a session. MariaDB Connector/J 3.x enables
-TCP keepalive by default, but TCP keepalive does not reset the server's SQL session timeout.
-Connector/J 3.x also removed the `autoReconnect` URL option, so adding it to
-`jdbc.url` will not recover a lost session.
-
-Once a project session is lost, Nodus warns once and prevents saving network layer
-edits to DBF files. Closing discards those unsaved network edits and does not save
-pending service changes or run the project close script. Reopen the project through
-**File > Open project** with **Re-import** checked to rebuild the database tables
-from the DBF files. Nodus does not silently replace the session: the old connection
-may have uncommitted work, and editors and database utilities still refer to it.
-
-Legacy node-rule tables with a two-digit numeric `scenario` column are widened when the rules
-are loaded, allowing the full scenario range through 1000. Existing rules and unrelated pending
-edits are preserved. On database engines whose schema changes commit automatically, the upgrade
-uses a separate connection; a lock held by another editor may need to be released before retrying.
 
 ## Tests and continuous integration
 

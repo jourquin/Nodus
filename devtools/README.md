@@ -84,15 +84,16 @@ The application ships these HTML help pages. Update these files directly:
 - [model-performance.html](../doc/model-performance.html)
 
 The matching Markdown versions are also kept in the repository. Ant does not
-convert them; keep both versions consistent when changing these help pages.
+convert them; keep both versions consistent when changing these help pages using 
+[pandoc](https://pandoc.org).
 
-Keep their heading IDs and table-of-contents links in sync when editing sections.
-Preserve the relative links to stylesheets, images and other local files. Formulas
-use native MathML, so the pages can be read offline without a MathJax service.
-The installer includes the HTML files as maintained in `doc/`; no Markdown
-conversion tool or additional Java library is required to build the help.
-Repository README files and developer notes remain in Markdown and are not
-converted during the build.
+Example:
+```
+pandoc doc/model-performance.md \
+  -f markdown-smart -s --mathml --toc --toc-depth=2 \
+  --metadata 'pagetitle=Model performance indicators in Nodus' \
+  -c style.css -o doc/model-performance.html
+```
 
 See the [license inventory](../licenses/LICENSES.md) for bundled components' licenses.
 

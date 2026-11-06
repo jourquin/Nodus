@@ -2,7 +2,7 @@
 
 Nodus can estimate **Multinomial logit**, **Multinomial probit**, and **Proportional** modal
 choice parameters directly from observed modal OD tables. The R and Biogeme scripts in this
-directory are optional examples of the earlier external workflow; they are not needed for the
+directory are optional examples of the external workflow; they are not needed for the
 built-in estimator. Estimation and demand assignment are separate operations.
 
 ## Run the built-in workflow with the demo project
@@ -229,9 +229,7 @@ the convergence checks are not a general separation test.
 
 The following files demonstrate external R and Biogeme workflow and the separate `MLogit`
 plug-in. They do not participate in **Project → Modal choice estimation…**. Keep Nodus open with
-the demo project loaded if running them: the example scripts connect to its local HSQLDB server
-at `localhost:9001` as `SA` with an empty password. Adjust the connection settings if the project
-uses another database or port.
+the demo project loaded if running them.
 
 1. Run an uncalibrated multimodal assignment to create a path-header table. Then run
    [`CreateMLogitInput.groovy`](CreateMLogitInput.groovy) in Nodus's Groovy console. Its configured
@@ -240,11 +238,12 @@ uses another database or port.
 2. Run [`MLogit.R`](MLogit.R) with R, RJDBC and `mlogit`, or [`MLogit.py`](MLogit.py) with the
    packages in [`Python-requirements.txt`](Python-requirements.txt) to estimate externally. The
    Python script fits one shared log-cost coefficient with a zero upper bound. The R script writes
-   `mlogit.txt` and `mlogit_coefs.txt`; its coefficient lines can be copied into a **separate cost
+   `mlogit.txt` and `mlogit_coefs.txt`; its coefficient lines can be copied into a **(separate) cost
    file without `@paramTable`**.
-3. [`MLogit.java`](MLogit.java) implements the external plug-in, built with [`compile.sh`](compile.sh)
-   or [`compile.bat`](compile.bat). Select that plug-in and the unlinked cost file in Assignment.
-   A file linked to a built-in parameter table locks Assignment to the method stored in that table.
+3. [`MLogit.java`](MLogit.java) implements the external plug-in. Build it with [`compile.sh`](compile.sh)
+   or [`compile.bat`](compile.bat) and copy it in the demo projext directory. The plugin will be recognized 
+   by Nodus at project loeading time and appear in the available modal-choice models. 
+   
 
 The Python script prints results separately for groups 0 and 1. Copy its `log(cost)` value to all
 three `log(cost).<mode>.<group>` keys for that group. Copy `(Intercept).2` from group 0 as
