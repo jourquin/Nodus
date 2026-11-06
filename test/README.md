@@ -14,9 +14,12 @@ On Fedora, install Ant's optional JUnit 5 task with `sudo dnf install ant-junit5
 The test fork uses the repository's JUnit libraries rather than Ant's system JUnit
 Platform libraries to avoid mixing incompatible versions.
 
-The default target is `Test`; `ant -f build-tests.xml Test` is equivalent. It builds
-the application using the normal build, recompiles the tests, then runs JUnit
-Jupiter in a separate JVM with `java.awt.headless=true`.
+The default target is `Test`; `ant -f build-tests.xml Test` is equivalent. It clears
+the previous test classes and reports, copies application resources through `init`,
+and compiles the application and tests with `--release 11`. It then runs JUnit
+Jupiter in a separate JVM with `java.awt.headless=true` and UTF-8 file encoding.
+The complete forked suite has a five-minute timeout, configurable in milliseconds
+with `-Dtest.timeout=300000`.
 
 The suite includes unit tests, database tests and complete assignment integration tests.
 The modal-choice migration tests compile temporary old and current demo plugins, then exercise
@@ -37,9 +40,9 @@ the tests. They never read or overwrite files in an existing Nodus project.
 Dependencies are included in the repository: JUnit 5 and OpenTest4J under
 `lib/groovy/`, API Guardian under `devtools/junit/`, and H2/HSQLDB under `lib/`.
 
-The local-server tests launch isolated JVMs with temporary HSQLDB and H2
-databases. They require permission to bind loopback TCP ports and check that the
-listeners cannot be reached through the computer's non-loopback interfaces. They
+`LocalDatabaseServerTest` launches isolated JVMs with temporary HSQLDB and H2
+databases. These tests require permission to bind loopback TCP ports and check that
+the listeners cannot be reached through the computer's non-loopback interfaces. They
 also cover local script connections, port conflicts, H2 database creation and
 authentication failures, listener cleanup after compaction, quiet HSQLDB startup
 with errors still reported, and explicit JDBC configurations that must not start a
@@ -289,6 +292,11 @@ first routes may differ from forward Dijkstra and can produce different subseque
 
 ## Coverage
 
+The entries below cover every `*Test.java` class under `test/`, including tests
+summarized in the running instructions and the Parquet runtime section. Shared
+fixtures, child-JVM probes and frozen compatibility JARs support those tests;
+they are not separate test classes.
+
 - `BinaryHeapDestinationAStarTest`: independent Floyd-Warshall comparisons across tiny/large costs,
   directed components, zero-cost cycles, parallel/nonfinite edges, penalties, restrictions, restoration,
   destination switching, tree isolation, zero-bound fallback and cancellation. Full and early-stopped
@@ -313,6 +321,15 @@ first routes may differ from forward Dijkstra and can produce different subseque
   labels/listeners, stopped and stale timers, replacement playback, absent labels, large time values,
   quoted/nested/OR query predicates, CR/LF line comments, nested block comments on H2, and project
   cleanup before JDBC closure and reuse of the map.
+- `PerformanceIndicatorsTest`: independently known quantity/share errors on H2/HSQLDB,
+  missing and extra ODs, unmapped modes, zero/empty inputs, cross-entropy and weighted
+  Jensen–Shannon divergence. Checks schema/key/quantity validation, quoted header names,
+  cancellation and preservation of input tables and pending transactions.
+- `PerformanceHeaderSelectionTest`: the current scenario takes precedence over remembered
+  headers and list order, including custom prefixes, scenario zero and missing current headers.
+- `PerformanceReportHtmlTest`: standalone UTF-8 reports, replacement and failure/cancellation
+  preservation, safe filenames, escaped names, selected indicators, undefined/infinite scores
+  and migration of the saved cross-entropy checkbox setting.
 - `ScenariosTest`: comparison and summation on H2/HSQLDB with matching/disjoint links,
   unequal/reordered commodity columns, every operation type, directions, services, time periods,
   large identifiers/vehicle counts, filters and empty inputs. Covers current and legacy schemas,
@@ -343,6 +360,14 @@ first routes may differ from forward Dijkstra and can produce different subseque
   attributes, unchanged geometry/CPG files and byte-for-byte original backups. Rejects rounding,
   overflow, ambiguous/non-numeric text, extreme exponents and truncated records before prompting.
   Existing backups, concurrent source/backup changes, failed installation and retries are covered.
+- `DbfEncodingIntegrationTest`, `NodusEsriLayerEncodingTest`: DBF encoding precedence
+  (explicit, layer/project, CPG and header settings), UTF-8 fallback, mixed-encoding
+  import/export and network-label round trips independent of the JVM default. Checks
+  uppercase CPG filenames, deleted-row alignment and preservation on unrepresentable text.
+- `LayerFileSaveTest`: interrupted replacement recovery, cleanup of committed journals,
+  retained backups after failed recovery and removal of newly installed files on failure.
+- `NodusProjectSaveFailureTest`: failed saves keep the project open and discard pending
+  exit/open callbacks; canceled close preserves its hook and restarts the integrity tester.
 - `NodusProjectOpenWorkflowTest`: real temporary project files and embedded H2/HSQLDB connections,
   `.nodus`/`.local` precedence, actual layer loading, modified-DBF reimport, Groovy open-hook completion,
   close/reopen, background and late-opening failure cleanup, and ID allocation across loaded and
@@ -375,6 +400,11 @@ first routes may differ from forward Dijkstra and can produce different subseque
   Both standard and server tile factories
   are covered. Requests must still be pending when UI work completes. Fixtures release all paused
   responses before disposing the map; the regular suite opens no windows.
+- `PoliticalBoundariesLayerTest`: removing a layer while its JAR-backed renderer is busy
+  keeps the EDT responsive; the layer can subsequently be rendered again.
+- `NodusMapPanelProgressTest`: indeterminate animation actually paints changing frames,
+  repeated fitting checks do not fill the bar, updates run on the EDT, parallel work counts
+  every step without flooding Swing, and later tasks return to determinate progress.
 - `ExtensionApiCompatibilityTest`: the frozen public/protected API of the four extension
   entry classes, a plugin and subclass compiled before their refactoring, plugin menu dispatch
   and project/global disposal, and Groovy bean properties, overloads and shared collections.
@@ -490,6 +520,9 @@ first routes may differ from forward Dijkstra and can produce different subseque
   the old file, precedence of existing Nodus 9 preferences (including an empty file), and
   saving fresh-installation settings exclusively to `.nodus9.properties`. Uses a temporary
   home directory and never reads or writes the user's actual preferences.
+- `LocaleUtilsTest`: French standard buttons after English Swing initialization,
+  regional French and switching back to English, preservation of custom options and
+  localized buttons across supported installed look and feels.
 - `GitHubReleaseTest`: numeric release ordering, including 9.0-to-9.1 upgrades, rejection of older
   9.0 patch tags while running 9.1, and equivalent tags for the running `NodusC.VERSION`.
   Historical version numbers are intentional test inputs. Nodus 9.0 and 9.1 share
@@ -520,6 +553,9 @@ first routes may differ from forward Dijkstra and can produce different subseque
   Project-open workflow tests switch from a project with a real Groovy hook to one without a
   script on H2 and HSQLDB, retaining startup settings and checking close-hook ordering. These
   tests run in isolation because project loading restores all mutable NodusC settings.
+- `NodusSqlBatchSizeTest`: project settings override global batch sizes, later global
+  changes take effect, invalid values fall back correctly, and projects without a map
+  panel still resolve their configured value or the built-in default.
 - `SetJVMArgsTest`: migration of legacy JVM argument files, preservation of heap and custom
   settings, backups, repeated runs, and leaving current or customized scripts intact. The
   previous generated shell format also gains the macOS fullscreen export. Shell execution
@@ -624,6 +660,9 @@ first routes may differ from forward Dijkstra and can produce different subseque
 - `ImportRobustnessTest`: every import command on H2/HSQLDB, new and existing destinations,
   caller-owned transactions, cancellation during loading or inference, source-file changes,
   successful record counts and durations, and stopping a script after a failed import.
+- `TableImportTest`: H2/HSQLDB staging and schema replacement for DBF/XLS/XLSX,
+  invalid input and injected installation/backup/commit failures, preservation of earlier
+  uncommitted work, cleanup of partial new tables and rollback failures without implicit commits.
 - `ImportBatchTest`: exact or ranged source positions from JDBC batch results, including drivers
   that stop at the first error, drivers that continue, and drivers without batch support.
 - `TableDefinitionGuardTest` and `ImportEngineGuardTest`: schema replacement refuses indexes,
@@ -647,6 +686,13 @@ first routes may differ from forward Dijkstra and can produce different subseque
   Invalid widths, duplicate or missing headers, incompatible values and SQL constraint failures
   retain existing rows, constraints and earlier uncommitted work. Console import tests cover
   the H command variants, confirmation behavior, scripts and newly inferred tables.
+- `NewTableFormatsTest`: Parquet type/null/large-integer round trips and preservation
+  after unsupported types, ODS round trips and malformed-input preservation, and
+  case-insensitive recognition of the new import/export commands.
+- `OdsCodecTest`: repeated rows/cells, whitespace and cached formulas, interior blank
+  rows versus trailing blanks, and rejection of external entities and uncached formulas.
+- `ParquetWriteFailureTest`: real dictionary-page write failures preserve the wrapped
+  I/O cause in diagnostics, retain an existing export and clean temporary output.
 - `OdsStreamingTest`: exports 900,000 numeric cells in a child JVM with a 64 MiB heap and
   independently checks the generated XML. Also checks Excel-compatible schema rows, Unicode
   and whitespace on H2/HSQLDB, and preservation of existing exports after file failures.
@@ -792,6 +838,27 @@ first routes may differ from forward Dijkstra and can produce different subseque
   project open preserves its name. Intercepts the exit callback and reloads temporary preferences.
 - `NodusProjectConnectionLossTest`: a lost JDBC session stops registered project resources
   once, warns once, and prevents further network edits or DBF saves.
+- `ModalSplitPluginMigrationTest`: old/current temporary plugins, approved upgrades without
+  a compiler, exact backups and unchanged resources, declined upgrades, and refusal of
+  existing backups, signed archives, removed Abraham references and missing dependencies.
+- `LogCostLogitEstimatorTest`: independent R likelihood references, known binary/shared-slope
+  recovery, analytical covariance, zero-bound fits, unavailable/rare choices, extreme costs,
+  scaling and reference handling. Rejects invalid, unidentified and separated data.
+- `ModeSpecificChoiceEstimatorTest`: independently known logit/probit coefficients and
+  covariance, cost scaling, reference changes and unavailable modes, boundary/rejected slopes,
+  identification, cancellation, mode-specific pivots and displayed formula selection.
+- `LogitCalibrationPanelTest`: headless controls commit active edits, reject duplicate modes
+  and unmapped references, retain model-specific reference choices and reuse matrix mappings
+  for performance comparison without requiring a reference mode.
+- `ModalEstimationReportTest`: escaped diagnostics, fit statistics, conventional covariance,
+  boundary-coefficient warnings, proportional factors and optional workflow diagnostics.
+- `ModalPivotDiagnosticsTest`: implicit zeros, observed-flow weighting, class aggregation,
+  negligible flows and distinction between iteration limits and convergence.
+- `ModalMatrixMergeTest`: optional/distinct destination names, duplicate/unmatched-cell sums
+  across classes, unchanged sources and restoration after failed or canceled saves.
+- `ModalParameterTableIntegrationTest`: optional merged matrices and overwrite choices,
+  empty/behavioral-only fits, unchanged unrelated transactions even on connection failure,
+  parallel fitting equivalence and reuse of stored behavior/pivots by all embedded methods.
 - `MultinomialProbitTest`, `ProbitProbabilitiesTest`, `LogCostProbitEstimatorTest`: joint normal
   choice probabilities against independent SciPy references, binary and rare-choice limits,
   likelihood derivatives, coefficient recovery, availability, identification, cost/quantity scaling,
@@ -910,15 +977,19 @@ first routes may differ from forward Dijkstra and can produce different subseque
   iterators, visibility of stop edits, protected collection views, and clearing cached lookups
   before another project is loaded.
 
-The suite does not yet exercise complete project loading from disk or complete graphical
-workflows. The assignment fixture supplies in-memory Esri layers and DBF table models.
-The separate OpenMap layer fixture reads and writes actual temporary point/link shapefiles
-and uses real SQL operations, replacing presentation callbacks. Style tests inspect graphic
-attributes; they do not verify rendered pixels, mouse interaction or asynchronous repaint timing.
-Schema-editor interaction and the actual save/cancel and modal-calibration dialogs remain
-outside this headless suite. Calibration estimation, coefficient persistence and reuse in
-assignments are covered by `LogitCalibrationIntegrationTest`; invalid vehicle properties
-that display dialogs remain untested.
+The suite exercises persisted project loading from temporary files, including real
+embedded database connections, while substituting window/menu presentation. Complete graphical
+workflows remain outside this headless suite. The assignment fixture supplies in-memory Esri
+layers and DBF table models; the separate OpenMap layer fixture reads and writes actual
+temporary point/link shapefiles and uses real SQL operations, replacing presentation callbacks.
+Style tests inspect graphic attributes rather than rendered map pixels. Dedicated progress
+and background-layer tests cover animation frames, EDT responsiveness and asynchronous work;
+they do not establish complete mouse-driven or visual correctness of the application.
+Headless schema/calibration panels and save/cancel callbacks are tested, but full top-level
+modal dialogs and manual interaction are not. Calibration estimation, coefficient persistence
+and reuse in assignments are covered by `LogitCalibrationIntegrationTest` and
+`ModalParameterTableIntegrationTest`. Invalid vehicle properties are covered by
+`VehiclesParserTest`, with error presentation captured so it does not open a dialog.
 
 Most database integration tests use H2 and HSQLDB. The suite does not run against external MySQL,
 MariaDB or PostgreSQL servers. Explicit JDBC configuration tests check that Nodus leaves those
