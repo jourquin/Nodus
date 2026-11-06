@@ -1,5 +1,13 @@
 # Start Python and R bridges for one project
 
+This guide covers bridge setup and client connections. For running Groovy scripts,
+general lifecycle hooks and example limitations, see the [scripting guide](README.md).
+
+Nodus bundles the Java server libraries `lib/py4j0.10.9.2.jar` and
+`lib/j4r-1.1.1.jar`, plus the R client archive **1.1.1-228**. Install the matching
+client in your Python or R environment as described below. These are bundled
+versions; the examples have not been tested with every Python or R release.
+
 If you need a Python or R bridge, put a Groovy lifecycle script beside your project:
 
 ```text
@@ -29,6 +37,10 @@ Copy the example below into `MyProject.groovy`. Set `enablePython` and
 Both bridges are optional; copying this script does not enable the R bridge
 unless you change `enableR` to `true`. If another Nodus instance already uses
 the example ports, choose different ports in the hook and matching client.
+Start each bridge in one lifecycle scope so application and project hooks do not
+compete for the same ports. The repository-root [nodus.groovy](../nodus.groovy)
+sets the initial map view and assignment settings; neither it nor
+[scripts/nodus.groovy](nodus.groovy) currently starts a bridge.
 
 The preferences file contains credentials. Nodus restricts it to owner-only
 access where POSIX file permissions are available; on Windows, keep it in
@@ -39,6 +51,9 @@ The **Py4J** listener below binds to `127.0.0.1`. The bundled **J4R 1.1.1**
 library binds its public and internal sockets on all network interfaces; its
 integer key does not make that a local-only service. Enable J4R only on a
 trusted or firewalled host. Do not expose its ports to an untrusted network.
+The local-only HSQLDB/H2 database listener settings do not restrict J4R's listeners.
+For direct JDBC access, which does not require either bridge, see the
+[database connection guide](../ADVANCED.md#local-database-servers-and-external-jdbc-connections).
 
 ## Example `MyProject.groovy`
 
@@ -120,13 +135,46 @@ alone do not receive automatic shutdown.
 
 ## Connect clients
 
-The bundled [Python example](example.py) reads `bridge.py4j.token` and connects
-to `127.0.0.1:25333`. Install the matching client with
-`python3 -m pip install py4j==0.10.9.2`, then run
-`python3 scripts/example.py` from the repository root.
+Open the project and wait for loading to finish before connecting a client.
+Review the [example limitations](README.md#basic-examples-and-current-limitations)
+before running the examples, particularly the R record-indexing limitation.
 
-The bundled [R example](example.R) reads `bridge.j4r.key`. Install the included
-[J4R client archive](J4R_1.1.1-228.tar.gz) in R, then run
-`source("scripts/example.R")` from the repository root. It uses public ports
-`18000:18001` and internal ports `50000:50001`. The R client disconnects when
-it finishes; Nodus controls the registered server lifetime.
+### Python client
+
+Install the client matching the bundled Py4J server version:
+
+```sh
+python3 -m pip install py4j==0.10.9.2
+```
+
+With Nodus, its project and the bridge running, execute this from the repository root:
+
+```sh
+python3 scripts/example.py
+```
+
+The [Python example](example.py) reads `bridge.py4j.token` from
+`~/.nodus9.properties`, connects to `127.0.0.1:25333` and obtains `nodusMapPanel`
+from `gateway.entry_point`. A custom server port also requires a matching client
+configuration.
+
+### R client
+
+Install the included [J4R client archive](J4R_1.1.1-228.tar.gz) from an R session
+whose working directory is the repository root:
+
+```r
+install.packages("scripts/J4R_1.1.1-228.tar.gz", repos = NULL, type = "source")
+```
+
+With Nodus, its project and the bridge running, execute:
+
+```r
+source("scripts/example.R")
+```
+
+The [R example](example.R) reads `bridge.j4r.key` from `~/.nodus9.properties`,
+connects with `connectToJava(...)` using public ports `18000:18001`, internal
+ports `50000:50001` and `public=TRUE`, then retrieves `nodusMapPanel` with
+`getMainInstance()`. It calls `shutdownClient()` when it finishes; Nodus controls
+the registered server lifetime, so disconnecting the client does not close the project.

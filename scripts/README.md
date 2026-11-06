@@ -15,13 +15,13 @@ Nodus supplies the variable `nodusMapPanel` to both its script editor and the op
 native Groovy console. A standalone `groovy example.groovy` command does not supply that
 variable or attach to an existing Nodus process.
 
-Since Nodus 9.1, scripts run by Nodus may declare a class with the same name as 
+Since Nodus 9.1, scripts run by Nodus may declare a class with the same name as
 their `.groovy` file.
 For example, `ARGBConverter.groovy` declares `class ARGBConverter` and creates it with
 `new ARGBConverter(nodusMapPanel)`. Nodus gives Groovy's generated script wrapper a
 leading underscore (`_ARGBConverter`), so the two classes have different names.
 This applies to application and project hooks, the Nodus script editor and the native
-Groovy console.cRunning thecsame source directly with standard Groovy still requires 
+Groovy console. Running the same source directly with standard Groovy still requires
 different script and class names.
 
 Both script editors stay above the main Nodus window when a script opens a dialog owned
@@ -38,81 +38,11 @@ if (project.isOpen()) {
 
 ## Connecting Python and R
 
-The Java server libraries are bundled with Nodus as `lib/py4j0.10.9.2.jar` and
-`lib/j4r-1.1.1.jar`. Install the corresponding client in the Python or R environment
-and start the bridge before running the client example.
-
-### Start the bridge in Nodus
-
-[The project bridge guide](RandPythonBrigdges.md) shows how to start either bridge
-from a `<projectname>.groovy` file beside `<projectname>.nodus`, retaining any
-existing hooks. Nodus generates the required credentials at startup and saves
-them in the current user's `~/.nodus9.properties`; the Python and R examples
-read them from the same file. Open the project and wait for loading to finish
-before connecting the client.
-
-The examples use these settings:
-
-| Bridge | Client settings |
-| --- | --- |
-| Py4J | `127.0.0.1:25333`, with the saved `bridge.py4j.token`. |
-| J4R | Ports `18000:18001`, internal ports `50000:50001`, `public=TRUE`, with the saved `bridge.j4r.key`. |
-
-If several Nodus instances run simultaneously, give their bridges different ports and
-adjust the clients accordingly. Start each bridge in one lifecycle scope, so application
-and project hooks do not compete for the same ports.
-
-The repository-root [nodus.groovy](../nodus.groovy) changes the initial map view and
-assignment settings; it does not currently start either bridge.
-[scripts/nodus.groovy](nodus.groovy) also leaves both bridges off. The bridge
-guide uses project hooks to choose which servers start, then registers their
-shutdown actions with the project so Nodus can stop them after connection loss.
-
-These bridge settings are separate from Nodus's database listeners. The J4R sample uses
-public-server mode and sockets without an explicit loopback binding. Keep it
-disabled on hosts exposed to an untrusted network. The local-only HSQLDB/H2
-settings do not restrict that bridge's listeners.
-See the [database connection guide][database-connections]
-for direct JDBC access, which does not require a Py4J or J4R bridge.
-
-[database-connections]: ../ADVANCED.md#local-database-servers-and-external-jdbc-connections
-
-### Python client
-
-Install the client matching the bundled Py4J server version:
-
-```sh
-python3 -m pip install py4j==0.10.9.2
-```
-
-With Nodus, its project and the bridge running, execute this from the repository root:
-
-```sh
-python3 scripts/example.py
-```
-
-[example.py](example.py) reads the token from `~/.nodus9.properties`, then obtains
-`nodusMapPanel` from `gateway.entry_point`. A custom server port also requires
-a matching client configuration.
-
-### R client
-
-A matching R client is included as [J4R_1.1.1-228.tar.gz](J4R_1.1.1-228.tar.gz).
-From an R session whose working directory is the repository root, install it with:
-
-```r
-install.packages("scripts/J4R_1.1.1-228.tar.gz", repos = NULL, type = "source")
-```
-
-After starting the Nodus bridge, review the indexing limitation below before running:
-
-```r
-source("scripts/example.R")
-```
-
-[example.R](example.R) connects with `connectToJava(...)`, retrieves the map panel with
-`getMainInstance()`, and calls `shutdownClient()` at the end. Nodus owns the
-registered server's lifetime; disconnecting this client does not close the project.
+Follow the [Python and R bridge guide](Python_and_R_bridges.md) to enable a bridge
+for a project, install the matching client and run [example.py](example.py) or
+[example.R](example.R). The guide covers credentials, ports, network access and
+automatic shutdown. Review the [example limitations](#basic-examples-and-current-limitations)
+below before running either client.
 
 ## Automatic scripts and lifecycle variables
 
@@ -192,9 +122,9 @@ when trying them for the first time.
 
 ## Bundled versions and documentation
 
-The current repository bundles **Groovy 5.1.3**, **Py4J 0.10.9.2** and **J4R 1.1.1**;
-its R client archive is version **1.1.1-228**. These are bundled versions, not a statement
-that every example has been tested with every Python or R release.
+The current repository bundles **Groovy 5.1.3**. Python and R bridge versions and
+client installation instructions are in the [bridge guide](Python_and_R_bridges.md).
+See the [license inventory](../licenses/LICENSES.md) for bundled library licenses.
 
-For Nodus API details, use the API documentation generated from the current sources 
+For Nodus API details, use the API documentation generated from the current sources
 with `ant ApiDoc`; see the [development tools guide](../devtools/README.md).
