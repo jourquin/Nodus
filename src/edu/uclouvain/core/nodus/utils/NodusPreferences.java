@@ -98,7 +98,12 @@ public final class NodusPreferences {
     return properties;
   }
 
-  /** Returns remembered project file paths, newest first. */
+  /**
+   * Returns remembered project file paths, newest first.
+   *
+   * @param properties Application preferences containing the recent-project entries
+   * @return Remembered project file paths, newest first, without duplicates
+   */
   public static List<String> getRecentProjects(Properties properties) {
     Set<String> projects = new LinkedHashSet<>();
     for (int i = 0; i < RECENT_PROJECT_LIMIT; i++) {
@@ -110,7 +115,12 @@ public final class NodusPreferences {
     return new ArrayList<>(projects);
   }
 
-  /** Promotes a successfully opened project and keeps at most five entries. */
+  /**
+   * Promotes a successfully opened project and keeps at most five entries.
+   *
+   * @param properties Application preferences to update
+   * @param projectPath File path of the successfully opened project
+   */
   public static void rememberRecentProject(Properties properties, String projectPath) {
     File project = new File(projectPath).getAbsoluteFile();
     String path = project.getPath();

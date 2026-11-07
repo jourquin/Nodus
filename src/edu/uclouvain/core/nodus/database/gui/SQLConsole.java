@@ -433,7 +433,8 @@ public class SQLConsole implements ActionListener, WindowListener, KeyListener {
           i18n.get(
               SQLConsole.class,
               "Cannot_insert_history",
-              "Cannot insert the command. Close any unfinished SQL quotes or block comments first."),
+              "Cannot insert the command. "
+                  + "Close any unfinished SQL quotes or block comments first."),
           frame.getTitle(),
           JOptionPane.WARNING_MESSAGE);
       return;

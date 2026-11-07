@@ -146,7 +146,7 @@ class SQLConsoleComponentsTest {
         };
     SwingUtilities.invokeAndWait(
         () -> {
-          List<String> events = new ArrayList<>();
+          final List<String> events = new ArrayList<>();
           SQLConsoleHistory history = new SQLConsoleHistory(project);
           history.loadHistory();
           assertEquals("SELECT 'newer'", history.get(0));

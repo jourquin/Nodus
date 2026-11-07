@@ -58,7 +58,6 @@ import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 
 /*
  * TODO Test exclusions
- * TODO Test history of commands in the SQL console, including in scripts
  */
 
 /**

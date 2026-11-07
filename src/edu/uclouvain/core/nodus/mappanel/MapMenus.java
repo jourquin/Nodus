@@ -336,13 +336,22 @@ public final class MapMenus {
     setControlMenuItemsText();
   }
 
-  /** Updates both project-opening controls when the File menu becomes busy or available. */
+  /**
+   * Updates both project-opening controls when the File menu becomes busy or available.
+   *
+   * @param enabled Whether opening a project is currently allowed
+   */
   public void setProjectOpeningEnabled(boolean enabled) {
     menuItemFileOpen.setEnabled(enabled);
     menuRecentProjects.setEnabled(enabled && menuRecentProjects.getItemCount() > 0);
   }
 
-  /** Rebuilds the recent-project list, displaying full paths to distinguish matching names. */
+  /**
+   * Rebuilds the recent-project list, displaying full paths to distinguish matching names.
+   *
+   * @param projects Project file paths in display order
+   * @param openProject Callback invoked with the selected project file path
+   */
   public void setRecentProjects(List<String> projects, Consumer<String> openProject) {
     menuRecentProjects.removeAll();
     for (String path : projects) {

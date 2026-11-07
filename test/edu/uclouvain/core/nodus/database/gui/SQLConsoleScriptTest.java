@@ -222,7 +222,9 @@ class SQLConsoleScriptTest {
     assertNull(SQLConsoleScript.historyInsertion("SELECT 'unfinished", 3, false, "SELECT 42"));
     assertThrows(
         IllegalArgumentException.class,
-        () -> SQLConsoleScript.historyInsertion("SELECT 1; SELECT 'unfinished", 3, false, "SELECT 42"));
+        () ->
+            SQLConsoleScript.historyInsertion(
+                "SELECT 1; SELECT 'unfinished", 3, false, "SELECT 42"));
     assertHistoryInsertion("SEL^ECT 1", true, "SELECT 42", "SELECT 1;\nSELECT 42;\n");
     assertHistoryInsertion(
         "SELECT 1;\nSELECT ^2 -- existing",
@@ -237,7 +239,8 @@ class SQLConsoleScriptTest {
     int caret = withCaret.indexOf('^');
     String script = withCaret.substring(0, caret) + withCaret.substring(caret + 1);
     var edit = SQLConsoleScript.historyInsertion(script, caret, namedScript, command);
-    assertEquals(expected, script.substring(0, edit.offset) + edit.text + script.substring(edit.offset));
+    assertEquals(
+        expected, script.substring(0, edit.offset) + edit.text + script.substring(edit.offset));
   }
 
   @Test
