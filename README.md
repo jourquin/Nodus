@@ -1,6 +1,5 @@
 # Nodus 9.1 <a href="https://zenodo.org/badge/latestdoi/111554354"><img src="https://zenodo.org/badge/111554354.svg" alt="DOI"></a>
 
-**Nodus 9.1 is a work in progress: it is already usable but has not yet been released.**
 
 Nodus is transportation network modeling software designed specifically for multimodal and
 intermodal freight transport. It is developed at the Center for Operations Research and
