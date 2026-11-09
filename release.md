@@ -1,34 +1,28 @@
-Nodus 8.0, which first build was released on March 4, 2021, introduced a series of new features, among which:
+Nodus is open-source transportation network modeling software for multimodal and intermodal freight transport, developed at UCLouvain. Its Virtual Networks methodology combines modal choice and traffic assignment within a single modeling framework.
 
-- The possibility of defining **transit time** functions in addition to cost functions;
-- An improved management of **node rules** (operations that are permitted (or not) at each node of the network);
-- An improved **graphics rendering** mode;
-- An **increased compatibility** with non legacy .DBF files used by geographic information systems;
-- …
+Since version 7.0 (first open-source release on GitHub, September 2018), Nodus has evolved in several key areas:
 
-Release history:
-- Nodus 8.1 (first build on April 26, 2021) introduced the possibility of developing Python and R scripts in addition to Groovy scripts.
-- Nodus 8.2 (first build on February 18, 2022) requires Java 11 or above and embeds H2 version 2. Existing projects using the H2 database require a database migration: https://www.h2database.com/html/migration-to-v2.html. The embedded HSQLDB, H2 and Derby engines now run in server mode, allowing external connections from another JDBC client.
-- Nodus 8.3 (first build on November 26, 2025) updates the embedded Groovy runtime to version 5.x. This version change is justified by the fact that, although unlikely, some scripts written in this language may need to be slightly adapted.
-- Nodus 8.4 (first build on June 23, 2026) reintroduces the Frank-Wolfe based assignment algorithms, which were removed since 8.0 because they were buggy. It should primarily be seen as a stability and robustness update: several sensitive parts of the code were reviewed and strengthened, in particular the project open/close workflows, SQL console execution, time-dependent result display, and resource release. 
-- Nodus 8.5 (first build on September 17, 2026) reintroduces lines & services, which were disabled since Nodus 8.0, with a completely redesigned workflow based on Virtual Network Version 4.
+- **Transport modeling:** explicit transit-time functions alongside cost functions, more flexible rules for permitted operations at network nodes, restored Frank–Wolfe assignment algorithms, and a redesigned lines and services workflow based on Virtual Network Version 4.
+- **Scripting and customization:** Python and R integration alongside Groovy, successive Groovy runtime upgrades, and a revised API for custom modal-choice methods.
+- **Maps and data:** improved map rendering and navigation, broader support for GIS-generated DBF files, and local database servers that allow external tools to connect to project data.
+- **Performance and reliability:** faster assignments and database operations, more responsive maps, and stronger handling of project files, imports, saves and resource cleanup.
 
-Nodus 8.x is **compatible** with projects developed for Nodus 7.x. However, specific modal choice plugins need to be adapted to the new API.
+# Nodus 9.0
 
+First released on October 13, 2026, Nodus 9.0 adds embedded modal-choice parameter estimation for univariate logit, probit and proportional methods, together with indicators for assessing modal-choice performance.
 
-# Nodus 9.0 
+It also delivers substantial performance improvements in assignments, map navigation and database operations, supported by automated tests and continuous integration.
 
-Nodus 9 (first build on October 13, 2026) 
-- Adds embedded modal-choice parameter estimation for univariate logit, probit and proportional methods. 
-- Adds modal choice performance measurement indicators.
-- Is a performance-focused release, highlighting faster assignments, more responsive map navigation and faster database operations.
+# Nodus 9.1
 
-For Nodus 9.x, modal choice plugin source code needs updated imports, but Nodus offers to convert eligible Nodus 8.x modal-choice JARs without recompilation.
+First released on November 9, 2026, Nodus 9.1 further improves performance and reliability, including shortest-path computation, assignment cancellation, project lifecycle management and data saving.
 
-Release history:
-- Nodus 9.1 (first build on November 9, 2026) is a performance and reliability update, with a improved A* shortest path algorithm.
+# Compatibility and migration
 
+Nodus 8.x preserves compatibility with projects developed for Nodus 7.x, but custom modal-choice plugins require adaptation to the revised API.
 
-The [changelog](changelog.md) lists the improvements made to the software.
+Nodus 9.x introduces a further package change for modal-choice plugins. Source code requires updated imports; eligible Nodus 8.x plugin JARs can be converted by Nodus without recompilation. See the [modal-choice migration guide](doc/modal-choice-migration.md).
 
+Nodus requires Java 11 or later. Older projects using H2 version 1 require a database migration when moving to H2 version 2. Groovy scripts written for earlier runtimes may also require minor adjustments.
 
+See the [changelog](changelog.md) for the detailed build history.
