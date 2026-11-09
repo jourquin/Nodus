@@ -44,6 +44,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Tag;
@@ -58,6 +59,83 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 @Timeout(30)
 class NodeRulesPersistenceTest {
   @TempDir Path directory;
+
+  @TestFactory
+  List<DynamicTest> savingFilteredEditsRetainsHiddenScenarioRules() {
+    final List<DynamicTest> tests = new ArrayList<>();
+    for (boolean hsql : new boolean[] {false, true}) {
+      tests.add(
+          dynamicTest(
+              "HSQLDB=" + hsql,
+              () -> {
+                try (Fixture f = new Fixture(hsql, true, "rules")) {
+                  List<String[]> loaded = NodeRulesPersistence.load(f.project, f.table, 2);
+                  List<List<String>> hidden =
+                      f.rows("SELECT * FROM rules WHERE ABS(num)=2 AND scenario=8");
+                  NodeRulesEditor[] editor = new NodeRulesEditor[1];
+                  SwingUtilities.invokeAndWait(
+                      () -> {
+                        editor[0] = new NodeRulesEditor();
+                        editor[0].configure(2, 7, () -> {});
+                        for (String[] row : loaded) {
+                          editor[0].model.addRow(row);
+                        }
+                        editor[0].currentScenarioOnly.doClick();
+                        assertEquals(2, editor[0].table.getRowCount());
+                        assertEquals(3, editor[0].model.getRowCount());
+                        editor[0].table.setRowSelectionInterval(1, 1);
+                        editor[0].group.setValue(5);
+                      });
+                  assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, editor[0].model));
+                  assertEquals(
+                      hidden, f.rows("SELECT * FROM rules WHERE ABS(num)=2 AND scenario=8"));
+                  assertEquals(
+                      List.of(List.of("5")),
+                      f.rows("SELECT grp FROM rules WHERE ABS(num)=2 AND scenario=7"));
+                  assertEquals(3, NodeRulesPersistence.load(f.project, f.table, 2).size());
+                  assertEquals(f.unrelated, f.otherRules());
+                }
+              }));
+    }
+    return tests;
+  }
+
+  @TestFactory
+  List<DynamicTest> allStoredScenariosCanBeLoadedEditedAndSavedForOneNode() {
+    final List<DynamicTest> tests = new ArrayList<>();
+    for (boolean hsql : new boolean[] {false, true}) {
+      tests.add(
+          dynamicTest(
+              "HSQLDB=" + hsql,
+              () -> {
+                try (Fixture f = new Fixture(hsql, true, "rules")) {
+                  f.execute("INSERT INTO rules VALUES(2,1000,1,0,0,3,2,1)");
+                  final DefaultTableModel model = NodeRulesComparisonTest.model();
+                  for (String[] row : NodeRulesPersistence.load(f.project, f.table, 2)) {
+                    model.addRow(row);
+                  }
+                  assertEquals(4, model.getRowCount());
+                  assertEquals(
+                      List.of("-1", "7", "8", "1000"),
+                      NodeRulesPersistence.snapshot(model)
+                          .stream()
+                          .map(row -> row.get(0))
+                          .collect(java.util.stream.Collectors.toList()));
+                  model.setValueAt("5", 2, 1);
+                  assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, model));
+                  assertEquals("5", NodeRulesPersistence.load(f.project, f.table, 2).get(2)[1]);
+                  assertEquals(f.unrelated, f.otherRules());
+                  model.removeRow(2);
+                  assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, model));
+                  assertEquals(3, NodeRulesPersistence.load(f.project, f.table, 2).size());
+                  assertTrue(
+                      f.rows("SELECT * FROM rules WHERE ABS(num)=2 AND scenario=8").isEmpty());
+                  assertEquals(f.unrelated, f.otherRules());
+                }
+              }));
+    }
+    return tests;
+  }
 
   @TestFactory
   List<DynamicTest> failedReplacementsPreserveRulesPendingEditsAndEarlierWork() {
@@ -103,7 +181,7 @@ class NodeRulesPersistenceTest {
       f.faults.phase = phase;
       final Exception failure =
           assertThrows(
-              Exception.class, () -> NodeRulesPersistence.save(f.project, f.table, 2, 7, edited));
+              Exception.class, () -> NodeRulesPersistence.save(f.project, f.table, 2, edited));
       assertEquals(
           phase.equals("runtime insert") ? IllegalStateException.class : SQLException.class,
           failure.getClass());
@@ -127,7 +205,7 @@ class NodeRulesPersistenceTest {
         f.connection.rollback();
         f.connection.setAutoCommit(true);
       }
-      assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, 7, edited));
+      assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, edited));
       assertEquals(2, f.editedRows().size());
       assertEquals(f.unrelated, f.otherRules());
       assertEquals(pending, NodeRulesPersistence.snapshot(edited));
@@ -140,7 +218,7 @@ class NodeRulesPersistenceTest {
   }
 
   @TestFactory
-  List<DynamicTest> successfulEditsPreserveOtherScopesAndTheCallersTransaction() {
+  List<DynamicTest> successfulEditsPreserveOtherNodesAndTheCallersTransaction() {
     final List<DynamicTest> tests = new ArrayList<>();
     for (boolean hsql : new boolean[] {false, true}) {
       for (boolean auto : new boolean[] {false, true}) {
@@ -151,8 +229,7 @@ class NodeRulesPersistenceTest {
                   try (Fixture f = new Fixture(hsql, true, "rules")) {
                     final List<List<String>> original = f.rules();
                     final Savepoint earlier = f.pending(auto);
-                    assertFalse(
-                        NodeRulesPersistence.save(f.project, f.table, 2, 7, replacements()));
+                    assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, replacements()));
                     assertEquals(2, f.editedRows().size());
                     assertEquals(f.unrelated, f.otherRules());
                     assertEquals(auto, f.connection.getAutoCommit());
@@ -199,7 +276,7 @@ class NodeRulesPersistenceTest {
                   model.addRow(rule(-2, -1, 3, 1, 11, 2, 1, false));
                   model.addRow(rule(-2, 7, 4, 1, 11, 2, 1, false));
                   final List<List<Object>> pending = NodeRulesPersistence.snapshot(model);
-                  assertTrue(NodeRulesPersistence.save(f.project, f.table, 2, 7, model));
+                  assertTrue(NodeRulesPersistence.save(f.project, f.table, 2, model));
                   assertEquals(7, f.editedRows().size());
                   assertEquals(pending, NodeRulesPersistence.snapshot(model));
                   assertEquals(f.unrelated, f.otherRules());
@@ -227,7 +304,7 @@ class NodeRulesPersistenceTest {
                   model.addRow(rule(-2, -1, 3, 1, 1, 2, 1, false));
                   model.addRow(rule(-2, 7, 4, 1, 1, 2, 1, false));
                   model.addRow(rule(-2, 7, 3, 1, -1, 2, 1, false));
-                  assertTrue(NodeRulesPersistence.save(f.project, f.table, 2, 7, model));
+                  assertTrue(NodeRulesPersistence.save(f.project, f.table, 2, model));
                   assertEquals(5, f.editedRows().size());
                   assertEquals(
                       List.of(List.of("-2", "7", "3", "2", "1", "1", "1", "1")),
@@ -253,18 +330,18 @@ class NodeRulesPersistenceTest {
                   try (Fixture f = new Fixture(hsql, false, "rules")) {
                     final Savepoint earlier = f.pending(false);
                     final int sessions = f.sessions();
-                    assertTrue(NodeRulesPersistence.load(f.project, f.table, 2, 7).isEmpty());
+                    assertTrue(NodeRulesPersistence.load(f.project, f.table, 2).isEmpty());
                     assertFalse(JDBCUtils.tableExists(f.table));
                     final DefaultTableModel model = replacements();
                     if (fail) {
                       f.faults.phase = "insert";
                       assertThrows(
                           SQLException.class,
-                          () -> NodeRulesPersistence.save(f.project, f.table, 2, 7, model));
+                          () -> NodeRulesPersistence.save(f.project, f.table, 2, model));
                       assertTrue(f.rules().isEmpty());
                       f.faults.phase = null;
                     } else {
-                      assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, 7, model));
+                      assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, model));
                       assertEquals(2, f.rules().size());
                     }
                     assertEquals(sessions, f.sessions(), "The schema connection must close");
@@ -273,7 +350,7 @@ class NodeRulesPersistenceTest {
                     f.connection.rollback(earlier);
                     assertTrue(f.rows("SELECT * FROM unrelated").isEmpty());
                     assertTrue(f.rules().isEmpty());
-                    assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, 7, model));
+                    assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, model));
                     f.connection.commit();
                     assertEquals(2, f.rules().size());
                     f.faults.assertClosed();
@@ -285,7 +362,7 @@ class NodeRulesPersistenceTest {
   }
 
   @TestFactory
-  List<DynamicTest> emptyModelsClearOnlyThisNodesGenericAndCurrentScenarioRules() {
+  List<DynamicTest> emptyModelsClearThisNodesRulesAcrossAllScenarios() {
     final List<DynamicTest> tests = new ArrayList<>();
     for (boolean hsql : new boolean[] {false, true}) {
       tests.add(
@@ -295,7 +372,7 @@ class NodeRulesPersistenceTest {
                 try (Fixture f = new Fixture(hsql, true, "rules")) {
                   assertFalse(
                       NodeRulesPersistence.save(
-                          f.project, f.table, 2, 7, NodeRulesComparisonTest.model()));
+                          f.project, f.table, 2, NodeRulesComparisonTest.model()));
                   assertTrue(f.editedRows().isEmpty());
                   assertEquals(f.unrelated, f.rules());
                 }
@@ -319,7 +396,7 @@ class NodeRulesPersistenceTest {
                     if (invalid.equals("node")) {
                       model.setValueAt("3", 1, 7);
                     } else if (invalid.equals("scenario")) {
-                      model.setValueAt("8", 1, 0);
+                      model.setValueAt("1001", 1, 0);
                     } else if (invalid.equals("number")) {
                       model.setValueAt("not a number", 1, 2);
                     } else if (invalid.equals("null")) {
@@ -330,7 +407,7 @@ class NodeRulesPersistenceTest {
                     final List<List<Object>> pending = NodeRulesPersistence.snapshot(model);
                     assertThrows(
                         IllegalArgumentException.class,
-                        () -> NodeRulesPersistence.save(f.project, f.table, 2, 7, model));
+                        () -> NodeRulesPersistence.save(f.project, f.table, 2, model));
                     assertEquals(original, f.rules());
                     assertEquals(pending, NodeRulesPersistence.snapshot(model));
                     assertEquals(0, f.faults.createdStatements);
@@ -355,15 +432,14 @@ class NodeRulesPersistenceTest {
                     final List<List<String>> original = f.rules();
                     f.faults.phase = phase;
                     assertThrows(
-                        SQLException.class,
-                        () -> NodeRulesPersistence.load(f.project, f.table, 2, 7));
+                        SQLException.class, () -> NodeRulesPersistence.load(f.project, f.table, 2));
                     f.faults.assertClosed();
                     assertEquals(original, f.rules());
                     assertFalse(f.connection.getAutoCommit());
                     f.connection.rollback(earlier);
                     assertTrue(f.rows("SELECT * FROM unrelated").isEmpty());
                     f.faults.phase = null;
-                    assertEquals(2, NodeRulesPersistence.load(f.project, f.table, 2, 7).size());
+                    assertEquals(3, NodeRulesPersistence.load(f.project, f.table, 2).size());
                     f.faults.assertClosed();
                   }
                 }));
@@ -391,8 +467,8 @@ class NodeRulesPersistenceTest {
                   f.execute(
                       "INSERT INTO " + f.quotedTable() + " VALUES('other node',0,1,2,1,1,3,7,-3)");
                   final DefaultTableModel model = replacements();
-                  assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, 7, model));
-                  final List<String[]> loaded = NodeRulesPersistence.load(f.project, f.table, 2, 7);
+                  assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, model));
+                  final List<String[]> loaded = NodeRulesPersistence.load(f.project, f.table, 2);
                   assertEquals(2, loaded.size());
                   for (int row = 0; row < loaded.size(); row++) {
                     assertEquals(
@@ -426,10 +502,9 @@ class NodeRulesPersistenceTest {
                     f.connection.setSchema("rule_space");
                     f.connection.setAutoCommit(auto);
                     final Savepoint earlier = auto ? null : f.connection.setSavepoint();
-                    assertTrue(NodeRulesPersistence.load(f.project, f.table, 2, 7).isEmpty());
+                    assertTrue(NodeRulesPersistence.load(f.project, f.table, 2).isEmpty());
                     final int sessions = f.sessions();
-                    assertFalse(
-                        NodeRulesPersistence.save(f.project, f.table, 2, 7, replacements()));
+                    assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, replacements()));
                     assertEquals(2, f.rules().size());
                     assertEquals("rule_space", f.connection.getSchema());
                     assertEquals(sessions, f.sessions());
@@ -479,7 +554,7 @@ class NodeRulesPersistenceTest {
                   final List<List<Object>> pending = NodeRulesPersistence.snapshot(model);
                   assertThrows(
                       SQLException.class,
-                      () -> NodeRulesPersistence.save(unavailable, f.table, 2, 7, model));
+                      () -> NodeRulesPersistence.save(unavailable, f.table, 2, model));
                   assertFalse(JDBCUtils.tableExists(f.table));
                   assertEquals(sessions, f.sessions());
                   assertEquals(pending, NodeRulesPersistence.snapshot(model));
@@ -487,7 +562,7 @@ class NodeRulesPersistenceTest {
                   assertFalse(f.connection.getAutoCommit());
                   f.connection.rollback(earlier);
                   assertTrue(f.rows("SELECT * FROM unrelated").isEmpty());
-                  assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, 7, model));
+                  assertFalse(NodeRulesPersistence.save(f.project, f.table, 2, model));
                   assertEquals(2, f.rules().size());
                   f.faults.assertClosed();
                 }
@@ -508,8 +583,7 @@ class NodeRulesPersistenceTest {
                   f.execute("UPDATE rules SET symetry=NULL WHERE scenario=7 AND num=2");
                   final List<List<String>> original = f.rules();
                   assertThrows(
-                      SQLException.class,
-                      () -> NodeRulesPersistence.load(f.project, f.table, 2, 7));
+                      SQLException.class, () -> NodeRulesPersistence.load(f.project, f.table, 2));
                   assertEquals(original, f.rules());
                   f.faults.assertClosed();
                 }
@@ -612,17 +686,11 @@ class NodeRulesPersistenceTest {
     }
 
     List<List<String>> editedRows() throws SQLException {
-      return rows(
-          "SELECT * FROM "
-              + quotedTable()
-              + " WHERE ABS(num)=2 AND (scenario=-1 OR scenario=7) ORDER BY 1,2,3,4,5,6,7,8");
+      return rows("SELECT * FROM " + quotedTable() + " WHERE ABS(num)=2 ORDER BY 1,2,3,4,5,6,7,8");
     }
 
     List<List<String>> otherRules() throws SQLException {
-      return rows(
-          "SELECT * FROM "
-              + quotedTable()
-              + " WHERE ABS(num)<>2 OR scenario NOT IN(-1,7) ORDER BY 1,2,3,4,5,6,7,8");
+      return rows("SELECT * FROM " + quotedTable() + " WHERE ABS(num)<>2 ORDER BY 1,2,3,4,5,6,7,8");
     }
 
     void execute(String sql) throws SQLException {

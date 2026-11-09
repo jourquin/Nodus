@@ -70,8 +70,8 @@ class NodeRulesSchemaTest {
                 }
               },
               new String[8]);
-      assertFalse(NodeRulesPersistence.save(f.project, "rules", 1, NodusC.MAXSCENARIOS, model));
-      assertEquals(1, NodeRulesPersistence.load(f.project, "rules", 1, NodusC.MAXSCENARIOS).size());
+      assertFalse(NodeRulesPersistence.save(f.project, "rules", 1, model));
+      assertEquals(1, NodeRulesPersistence.load(f.project, "rules", 1).size());
     }
   }
 

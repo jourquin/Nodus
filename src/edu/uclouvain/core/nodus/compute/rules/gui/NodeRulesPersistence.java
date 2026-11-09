@@ -77,8 +77,7 @@ final class NodeRulesPersistence {
   }
 
   /** Reads all rows before publishing any; a missing table is an empty editor, without DDL. */
-  static List<String[]> load(NodusProject project, String table, int node, int scenario)
-      throws SQLException {
+  static List<String[]> load(NodusProject project, String table, int node) throws SQLException {
     final Connection connection = connection(project);
     final List<String[]> rows = new ArrayList<>();
     if (!exists(connection, table)) {
@@ -104,7 +103,7 @@ final class NodeRulesPersistence {
             + ","
             + quote(NodusC.DBF_MEANS2);
     try (PreparedStatement statement = connection.prepareStatement(sql)) {
-      bindScope(statement, node, scenario);
+      bindScope(statement, node);
       try (ResultSet result = statement.executeQuery()) {
         while (result.next()) {
           final String[] cells = new String[8];
@@ -125,23 +124,23 @@ final class NodeRulesPersistence {
   }
 
   /**
-   * Replaces only this node's generic/current-scenario rules. On an existing transaction, success
-   * remains pending and failure rolls back to a savepoint, preserving unrelated work. Auto-commit
-   * callers get one complete transaction. Missing-table DDL is isolated on committing-DDL engines.
-   * The caller's model is never changed, including when duplicate rows are omitted from storage.
+   * Replaces all rules for this node, across every scenario and group. On an existing transaction,
+   * success remains pending and failure rolls back to a savepoint, preserving unrelated work.
+   * Auto-commit callers get one complete transaction. Missing-table DDL is isolated on
+   * committing-DDL engines. The caller's model is never changed, including when duplicate rows are
+   * omitted from storage.
    *
    * @return whether exact duplicates or directions covered by symmetric rules were omitted
    */
-  static boolean save(NodusProject project, String table, int node, int scenario, TableModel model)
+  static boolean save(NodusProject project, String table, int node, TableModel model)
       throws SQLException {
     final List<Row> rows = new ArrayList<>();
     final Set<List<Integer>> seen = new HashSet<>();
     final List<Row> parsed = new ArrayList<>();
     for (int row = 0; row < model.getRowCount(); row++) {
       final Row rule = parse(model, row);
-      if (Math.abs((long) rule.key.get(0)) != Math.abs((long) node)
-          || rule.key.get(1) != -1 && rule.key.get(1) != scenario) {
-        throw new IllegalArgumentException("Rule is outside the edited node/scenario");
+      if (Math.abs((long) rule.key.get(0)) != Math.abs((long) node)) {
+        throw new IllegalArgumentException("Rule is outside the edited node");
       }
       parsed.add(rule);
     }
@@ -177,12 +176,12 @@ final class NodeRulesPersistence {
       }
       missing = false;
     }
-    replace(connection, table, node, scenario, rows, missing);
+    replace(connection, table, node, rows, missing);
     return rows.size() != parsed.size();
   }
 
   private static void replace(
-      Connection connection, String table, int node, int scenario, List<Row> rows, boolean create)
+      Connection connection, String table, int node, List<Row> rows, boolean create)
       throws SQLException {
     final boolean autoCommit = connection.getAutoCommit();
     boolean restoreAutoCommit = false;
@@ -199,7 +198,7 @@ final class NodeRulesPersistence {
       }
       try (PreparedStatement delete =
           connection.prepareStatement("DELETE FROM " + quote(table) + " WHERE " + scope())) {
-        bindScope(delete, node, scenario);
+        bindScope(delete, node);
         delete.executeUpdate();
       }
       try (PreparedStatement insert =
@@ -258,6 +257,7 @@ final class NodeRulesPersistence {
               number(model, row, 5));
       final Object symmetry = model.getValueAt(row, 6);
       if (key.get(1) < -1
+          || key.get(1) > NodusC.MAXSCENARIOS
           || key.get(2) < -1
           || key.get(2) >= NodusC.MAXMM
           || !validPair(key.get(3), key.get(4))
@@ -341,19 +341,11 @@ final class NodeRulesPersistence {
   }
 
   private static String scope() {
-    return "ABS("
-        + quote(NodusC.DBF_NUM)
-        + ")=? AND ("
-        + quote(NodusC.DBF_SCENARIO)
-        + "=-1 OR "
-        + quote(NodusC.DBF_SCENARIO)
-        + "=?)";
+    return "ABS(" + quote(NodusC.DBF_NUM) + ")=?";
   }
 
-  private static void bindScope(PreparedStatement statement, int node, int scenario)
-      throws SQLException {
+  private static void bindScope(PreparedStatement statement, int node) throws SQLException {
     statement.setLong(1, Math.abs((long) node));
-    statement.setInt(2, scenario);
   }
 
   private static String quote(String identifier) {

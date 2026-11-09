@@ -949,6 +949,16 @@ they are not separate test classes.
 - `NodeRuleTest`: exact and wildcard matching, direction, transit exceptions, and precedence
   of selected-scenario and commodity-group rules over generic rules. Multiple scenario lookups
   must keep their own rules and restore the generic fallback for an unspecified scenario.
+  Exhausts all 64 wildcard subsets against all 64 simultaneous field-mismatch subsets for
+  both inclusion and exclusion matching.
+- `NodeRulesTableIntegrationTest`: validates the generated centroid regression table for nodes
+  1020201 and 1020303 through the real SQL reader, virtual network and cost worker. Its 25
+  scenarios check 2,400 independently enumerated loading/unloading decisions on H2 and HSQLDB,
+  with original and reversed row insertion order. Covers wildcard interactions, unions,
+  overlaps, duplicates, node/group/scenario isolation, symmetry and scenario 1000. See
+  [the case matrix](fixtures/node-rules/cases.md). The SQL fixture and its generator are retained
+  under `test/fixtures/node-rules/`; the original `scripts/node-rules-test/` output directory
+  is not required to run the tests.
 - `NodeRulesReaderIntegrationTest`: actual exclusion-table rows on H2 and HSQLDB reach
   transhipment-only nodes and affect computed costs. Checks symmetry, direction, scenario/group
   isolation, selected-scenario precedence, generic defaults, missing tables and unknown nodes.
@@ -959,6 +969,14 @@ they are not separate test classes.
   during deletion, insertion, statement closure and transaction completion preserve saved rows
   and pending edits for retry. Covers empty replacements, complete reads, malformed rows,
   first saves without implicit commits, connection cleanup, custom schemas and reordered columns.
+  The editor reads and saves all scenarios for its node, including generic rules and scenario
+  1000; edits and deletions in other scenarios preserve other nodes and caller transactions.
+- `NodeRulesEditorTest`: real Swing selection/control events retain the complete rule list and
+  never rewrite rows while reflecting a selection. Checks disabled controls without selection,
+  adding and deleting rules, repairing invalid rows, editing scenario numbers and restricting
+  common-polarity changes to the selected scenario. The optional current-scenario filter retains
+  generic rules, preserves selection when possible and maps edits/additions/deletions to the
+  correct model rows. H2/HSQLDB saves from a filtered view retain hidden scenario rules.
 - `NodeRulesSchemaTest`: reader/editor creation supports scenario 1000 on H2 and HSQLDB. Legacy
   two-digit scenario columns are widened through the real project-open upgrade hook, preserving
   generic/scenario rules, caller savepoints and unrelated pending edits; repeated upgrades are safe.

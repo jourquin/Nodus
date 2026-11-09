@@ -56,10 +56,6 @@ import javax.swing.text.DefaultEditorKit;
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 
-/*
- * TODO Test exclusions
- */
-
 /**
  * Main class that creates a new NodusMapPanel, but also initializes the application with a
  * previously saved LookAndFeel and runs a startup nodus.groovy script if it exists.

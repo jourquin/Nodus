@@ -77,6 +77,43 @@ class NodeRuleTest {
   }
 
   @Test
+  void everyWildcardSubsetMatchesOnlyItsUnconstrainedFields() {
+    // Exhaust all 64 wildcard patterns and all 64 simultaneous mismatch patterns.
+    // The independent oracle uses bit-set containment rather than rule matching.
+    int[] exact = {7, 3, 1, 2, 4, 5};
+    for (int wildcards = 0; wildcards < 64; wildcards++) {
+      int[] pattern = exact.clone();
+      for (int field = 0; field < 6; field++) {
+        if ((wildcards & (1 << field)) != 0) {
+          pattern[field] = -1;
+        }
+      }
+      NodeRule rule =
+          new NodeRule(-10, pattern[0], pattern[1], pattern[2], pattern[3], pattern[4], pattern[5]);
+      NodeRule inclusion =
+          new NodeRule(10, pattern[0], pattern[1], pattern[2], pattern[3], pattern[4], pattern[5]);
+      for (int mismatches = 0; mismatches < 64; mismatches++) {
+        int[] query = exact.clone();
+        for (int field = 0; field < 6; field++) {
+          if ((mismatches & (1 << field)) != 0) {
+            query[field] += 10;
+          }
+        }
+        boolean expected = (mismatches & ~wildcards) == 0;
+        String context = "wildcards=" + wildcards + " mismatches=" + mismatches;
+        assertEquals(
+            expected,
+            rule.isExcluded(10, query[0], query[1], query[2], query[3], query[4], query[5]),
+            context);
+        assertEquals(
+            expected,
+            inclusion.isIncluded(10, query[0], query[1], query[2], query[3], query[4], query[5]),
+            context);
+      }
+    }
+  }
+
+  @Test
   void transitRemainsAllowedButChangingMeansIsStillAMovement() {
     NodeRule exclusion = new NodeRule(-10, -1, -1, -1, -1, -1, -1);
     assertFalse(exclusion.isExcluded(10, 7, 3, 1, 2, 1, 2));
