@@ -374,6 +374,12 @@ they are not separate test classes.
   unloaded layers. Rejected or declined layer formats, later opening failures and normal closure
   restore one visible World layer and the initial map view, hide scenario controls and allow retry.
   Rescans remove stale IDs and reject an unavailable project directory.
+  A missing optional numeric DBF attribute must report the file, physical record and field,
+  preserve the DBF bytes, close JDBC, release the project lock, clear loaded layers and busy state,
+  restore the default map, and allow reopening after the data is repaired.
+- `NodusProjectOpenErrorTest`: invalid layer attributes reach the error-dialog callback on the
+  EDT without printing a stack trace. Unexpected programming failures still show their message
+  and retain the diagnostic stack trace. The callback is substituted to avoid opening a dialog.
 - `NodusWMSLayerTest`: the production SAX configuration rejects external general/parameter and
   custom/recursive entity declarations. Private sentinel files and a loopback HTTP canary check
   resource isolation; external DTD/schema and XInclude references must never trigger canary requests.
@@ -437,6 +443,11 @@ they are not separate test classes.
   refreshes; rejects incompatible row counts, columns, widths and decimal scales. Unknown or
   duplicate identifiers must leave every DBF row unchanged. Expected rejection messages are
   captured and asserted, so passing tests do not print misleading errors.
+- `NodusEsriLayerAttributeValidationTest`: real node/link DBFs reject blank, asterisk-filled,
+  malformed, non-finite and overflowing numbers in mandatory and optional numeric fields.
+  Errors identify the DBF path, physical record and field without changing the source bytes.
+  Covers valid numeric zero, physical record numbering after a deleted row, and the legacy
+  default for an empty date without a null-pointer failure.
 - `NodusEsriLayerEditingTest`: point/link insertion, deletion and removal of the last record;
   consistency of SQL rows, geometry, attributes and identifier indexes; replacing and clearing
   SQL filters; and saving/reloading `.shp`, `.shx` and `.dbf` files after edits. Includes quoted
@@ -1052,6 +1063,12 @@ automatically with the existing Ant target and GitHub workflow. To run just the 
 
 ```sh
 ant -f build-tests.xml '-Dtest.includes=**/NodusEsriLayer*Test.class' Test
+```
+
+To run the DBF attribute-validation and project-opening error/retry regressions together:
+
+```sh
+ant -f build-tests.xml '-Dtest.includes=**/NodusEsriLayerAttributeValidationTest.class,**/NodusProjectOpenErrorTest.class,**/NodusProjectOpenWorkflowTest.class' Test
 ```
 
 ## Four-node assignment reference case

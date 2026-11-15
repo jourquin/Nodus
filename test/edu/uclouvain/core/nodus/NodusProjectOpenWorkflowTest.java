@@ -370,7 +370,7 @@ public class NodusProjectOpenWorkflowTest {
   }
 
   @Test
-  void aMissingOptionalNumericAttributeReportsItsLocationAndReleasesTheProjectForRetry()
+  void missingOptionalNumericAttributeReportsItsLocationAndReleasesTheProjectForRetry()
       throws Exception {
     try (Fixture fixture = new Fixture(false)) {
       DBFField[] fields = java.util.Arrays.copyOf(ProjectFilesFixture.fields(true, false), 5);
@@ -382,7 +382,7 @@ public class NodusProjectOpenWorkflowTest {
       second[4] = null;
       ProjectFilesFixture.writeDbf(
           directory, "nodes", fields, StandardCharsets.UTF_8, List.of(first, second));
-      byte[] original = Files.readAllBytes(directory.resolve("nodes.dbf"));
+      final byte[] original = Files.readAllBytes(directory.resolve("nodes.dbf"));
       fixture.startOpen();
       assertTrue(fixture.panel.finished.await(10, TimeUnit.SECONDS));
       assertEquals(1, fixture.project.errors.size());

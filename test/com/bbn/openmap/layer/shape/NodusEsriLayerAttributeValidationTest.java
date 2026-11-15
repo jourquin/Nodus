@@ -70,7 +70,7 @@ class NodusEsriLayerAttributeValidationTest {
   }
 
   @Test
-  void aRealNumericZeroIsValidAndIsNotTreatedAsMissing() throws Exception {
+  void realNumericZeroIsValidAndIsNotTreatedAsMissing() throws Exception {
     try (LayerTestProject project = new LayerTestProject(directory, false)) {
       Path file = directory.resolve("features.dbf");
       byte[] zero = replaceSecondRecord(file, 4, "0.000");
@@ -86,7 +86,7 @@ class NodusEsriLayerAttributeValidationTest {
   }
 
   @Test
-  void aDeletedPrecedingRecordDoesNotShiftTheReportedRecordNumber() throws Exception {
+  void deletedPrecedingRecordDoesNotShiftTheReportedRecordNumber() throws Exception {
     try (LayerTestProject project = new LayerTestProject(directory, false)) {
       Path file = directory.resolve("features.dbf");
       byte[] data = replaceSecondRecord(file, 4, "bad");
@@ -129,7 +129,9 @@ class NodusEsriLayerAttributeValidationTest {
     ByteBuffer header = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN);
     int offset =
         Short.toUnsignedInt(header.getShort(8)) + Short.toUnsignedInt(header.getShort(10)) + 1;
-    for (int i = 0; i < column; i++) offset += data[32 + i * 32 + 16] & 255;
+    for (int i = 0; i < column; i++) {
+      offset += data[32 + i * 32 + 16] & 255;
+    }
     int width = data[32 + column * 32 + 16] & 255;
     byte[] text = value.getBytes(StandardCharsets.US_ASCII);
     assertTrue(text.length <= width);

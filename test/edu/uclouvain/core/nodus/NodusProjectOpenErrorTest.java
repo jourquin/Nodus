@@ -48,8 +48,10 @@ class NodusProjectOpenErrorTest {
       }
     }
     assertEquals(List.of(error.getMessage()), dialogs);
-    if (expectTrace)
+    if (expectTrace) {
       assertTrue(diagnostics.toString(StandardCharsets.UTF_8).contains(error.toString()));
-    else assertEquals("", diagnostics.toString(StandardCharsets.UTF_8));
+    } else {
+      assertEquals("", diagnostics.toString(StandardCharsets.UTF_8));
+    }
   }
 }

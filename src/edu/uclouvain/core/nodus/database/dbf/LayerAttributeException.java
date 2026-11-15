@@ -25,12 +25,21 @@ package edu.uclouvain.core.nodus.database.dbf;
 public final class LayerAttributeException extends IllegalArgumentException {
   private static final long serialVersionUID = 1L;
 
-  /** Creates a data error with the layer, physical record and field in its user-facing message. */
+  /**
+   * Creates a data error with the layer, physical record and field in its user-facing message.
+   *
+   * @param message description identifying the layer, physical record and invalid field
+   */
   public LayerAttributeException(String message) {
     super(message);
   }
 
-  /** Retains the underlying DBF decoding failure for diagnostics. */
+  /**
+   * Retains the underlying DBF decoding failure for diagnostics.
+   *
+   * @param message description identifying the layer, physical record and invalid field
+   * @param cause underlying DBF decoding failure
+   */
   public LayerAttributeException(String message, Throwable cause) {
     super(message, cause);
   }
