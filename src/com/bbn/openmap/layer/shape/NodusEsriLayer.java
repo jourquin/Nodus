@@ -57,6 +57,7 @@ import edu.uclouvain.core.nodus.database.TableImport;
 import edu.uclouvain.core.nodus.database.dbf.DbfFiles;
 import edu.uclouvain.core.nodus.database.dbf.ExportDBF;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
+import edu.uclouvain.core.nodus.database.dbf.LayerAttributeException;
 import edu.uclouvain.core.nodus.services.ServiceHandler;
 import edu.uclouvain.core.nodus.swing.GUIUtils;
 import edu.uclouvain.core.nodus.utils.ProjectConnectionStatus;
@@ -1000,8 +1001,48 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
     return true;
   }
 
-  /** Some DBF files contain NULL values for numeric fields. This method replaces them with zero. */
+  /** Reject invalid numeric attributes before any legacy repairs can modify the layer. */
+  private void validateNumericAttributes(DbfTableModel model) {
+    for (int column = 0; column < model.getColumnCount(); column++) {
+      char type = (char) model.getType(column);
+      if (type != 'N' && type != 'F') {
+        continue;
+      }
+      for (int row = 0; row < model.getRowCount(); row++) {
+        Object value = model.getValueAt(row, column);
+        if (value instanceof Number && Double.isFinite(((Number) value).doubleValue())) {
+          continue;
+        }
+        String layer = tableName == null ? getName() : tableName;
+        String file =
+            tablePath == null
+                ? layer + NodusC.TYPE_DBF
+                : Path.of(tablePath, layer + NodusC.TYPE_DBF).toString();
+        String found =
+            value == null || (value instanceof String && ((String) value).isBlank())
+                ? i18n.get(NodusEsriLayer.class, "Empty_numeric_value", "empty")
+                : String.valueOf(value);
+        throw new LayerAttributeException(
+            MessageFormat.format(
+                i18n.get(
+                    NodusEsriLayer.class,
+                    "Invalid_numeric_attribute",
+                    "Cannot open layer \"{0}\".\nDBF: {1}\nRecord: {2}; field: {3}"
+                        + "\nExpected a finite numeric value; found {4}."
+                        + "\nCorrect the DBF value, then reopen the project."),
+                layer,
+                file,
+                row + 1,
+                model.getColumnName(column),
+                found));
+      }
+    }
+  }
+
+  /** Validate numeric values, then normalize legacy dates and logical fields. */
   private void fixDBFFile() {
+    DbfTableModel tm = getModel();
+    validateNumericAttributes(tm);
 
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
     dateFormat.setLenient(false);
@@ -1009,26 +1050,15 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
     boolean mustBeFixed = false;
 
-    DbfTableModel tm = getModel();
     for (int col = 0; col < tm.getColumnCount(); col++) {
       char type = (char) tm.getType(col);
 
       for (int row = 0; row < tm.getRowCount(); row++) {
         Object o = tm.getValueAt(row, col);
-        if (type == DbfTableModel.TYPE_NUMERIC && !(o instanceof Double)) {
-
-          String value = (String) o;
-          value = value.trim();
-          if (value.length() == 0) {
-            tm.setValueAt(Double.valueOf(0.0), row, col);
-            mustBeFixed = true;
-          }
-        }
-
         // Replace unset dates with default standard value
         if (type == DbfTableModel.TYPE_DATE) {
           try {
-            dateFormat.parse((String) o);
+            dateFormat.parse(o instanceof String ? (String) o : "");
           } catch (ParseException pe) {
             tm.setValueAt(defaultDate, row, col);
             mustBeFixed = true;
@@ -1048,8 +1078,8 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
 
         // Change logical values to 1 (true) or 0 (false)
         for (int row = 0; row < tm.getRowCount(); row++) {
-          String o = (String) tm.getValueAt(row, col);
-          if (o.equals("T")) {
+          Object o = tm.getValueAt(row, col);
+          if ("T".equals(o)) {
             tm.setValueAt(Double.valueOf(1.0), row, col);
           } else {
             tm.setValueAt(Double.valueOf(0.0), row, col);
@@ -2003,7 +2033,8 @@ public class NodusEsriLayer extends FastEsriLayer implements ShapeConstants {
             .putAttribute(SHAPE_DBF_INFO_ATTRIBUTE, attributes.model.getRecord(row));
       }
     } catch (IOException failure) {
-      throw new IllegalStateException("Cannot read DBF attributes for " + tableName, failure);
+      throw new LayerAttributeException(
+          "Cannot read DBF attributes for " + tableName + ":\n" + failure.getMessage(), failure);
     }
     Iterator<OMGraphic> lit = list.iterator();
     while (lit.hasNext()) {

@@ -25,6 +25,10 @@ import com.bbn.openmap.dataAccess.shape.DbfTableModel;
 import edu.uclouvain.core.nodus.NodusProject;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -145,6 +149,52 @@ public final class DbfFiles {
     }
   }
 
+  /** Adds physical row/field context when the numeric decoder fails before a model exists. */
+  private static IOException numericReadFailure(
+      Path file, DBFReader reader, int physicalRecord, DBFException failure) {
+    String location = "DBF: " + file + "\nRecord: " + physicalRecord;
+    try (FileChannel channel = FileChannel.open(file)) {
+      ByteBuffer header = ByteBuffer.allocate(32).order(ByteOrder.LITTLE_ENDIAN);
+      readFully(channel, header);
+      int headerLength = Short.toUnsignedInt(header.getShort(8));
+      int recordLength = Short.toUnsignedInt(header.getShort(10));
+      channel.position(headerLength + (long) (physicalRecord - 1) * recordLength);
+      ByteBuffer record = ByteBuffer.allocate(recordLength);
+      readFully(channel, record);
+      int offset = 1;
+      // readModel uses showDeletedRows, whose first field is a synthetic deletion flag.
+      for (int column = 1; column < reader.getFieldCount(); column++) {
+        DBFField field = reader.getField(column);
+        if ((field.getType() == 'N' || field.getType() == 'F') && !field.isBinary()) {
+          String value =
+              new String(record.array(), offset, field.getLength(), StandardCharsets.US_ASCII)
+                  .trim();
+          if (!value.isEmpty() && !value.matches("\\*+")) {
+            try {
+              new BigDecimal(value);
+            } catch (NumberFormatException invalid) {
+              return new IOException(
+                  location + "; field: " + field.getName() + "\nInvalid numeric value: " + value,
+                  failure);
+            }
+          }
+        }
+        offset += field.getLength();
+      }
+    } catch (IOException | RuntimeException diagnosisFailure) {
+      failure.addSuppressed(diagnosisFailure);
+    }
+    return new IOException(location + "\n" + failure.getMessage(), failure);
+  }
+
+  private static void readFully(FileChannel channel, ByteBuffer buffer) throws IOException {
+    while (buffer.hasRemaining()) {
+      if (channel.read(buffer) < 0) {
+        throw new IOException("Truncated DBF record");
+      }
+    }
+  }
+
   /**
    * Reads all physical rows so attributes stay aligned with the shapefile's geometry records.
    *
@@ -166,8 +216,15 @@ public final class DbfFiles {
         model.setDecimalCount(column, (byte) field.getDecimalCount());
       }
       SimpleDateFormat dates = new SimpleDateFormat("yyyyMMdd", Locale.ROOT);
+      int physicalRecord = 0;
       while (reader.hasNextRecord()) {
-        Object[] record = reader.nextRecord();
+        physicalRecord++;
+        Object[] record;
+        try {
+          record = reader.nextRecord();
+        } catch (DBFException failure) {
+          throw numericReadFailure(file, reader, physicalRecord, failure);
+        }
         if (record == null) {
           continue;
         }

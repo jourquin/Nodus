@@ -44,6 +44,7 @@ import edu.uclouvain.core.nodus.database.MySqlStorageEngines;
 import edu.uclouvain.core.nodus.database.ProjectFilesTools;
 import edu.uclouvain.core.nodus.database.ShapeIntegrityTester;
 import edu.uclouvain.core.nodus.database.dbf.ImportDBF;
+import edu.uclouvain.core.nodus.database.dbf.LayerAttributeException;
 import edu.uclouvain.core.nodus.project.ProjectCleanupRegistry;
 import edu.uclouvain.core.nodus.project.ProjectLayerIds;
 import edu.uclouvain.core.nodus.project.ProjectLayerOperations;
@@ -1520,12 +1521,16 @@ public class NodusProject implements ShapeConstants {
 
   /** Displays a loading failure; package visibility permits headless workflow tests. */
   void reportProjectOpenError(Throwable cause) {
-    cause.printStackTrace();
+    if (!(cause instanceof LayerAttributeException)) {
+      cause.printStackTrace();
+    }
+    showProjectOpenErrorDialog(cause.getMessage() == null ? cause.toString() : cause.getMessage());
+  }
+
+  /** Presents the error on the opening worker's EDT completion path. */
+  void showProjectOpenErrorDialog(String message) {
     JOptionPane.showMessageDialog(
-        nodusMapPanel,
-        cause.getMessage() == null ? cause.toString() : cause.getMessage(),
-        NodusC.APPNAME,
-        JOptionPane.ERROR_MESSAGE);
+        nodusMapPanel, message, NodusC.APPNAME, JOptionPane.ERROR_MESSAGE);
   }
 
   /** Imports additional DBF tables one by one without blocking the EDT. */

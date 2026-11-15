@@ -587,3 +587,6 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Add a "Recent Projects" menu in the File bar
 - Fix the order of recent SQL queries in the SQL console and present the history in a popup menu
 
+## v9.1 - BuildXXXXXXXX
+- Fix a bug that caused a stack trace when null numeric values are stored in DBF files.
+

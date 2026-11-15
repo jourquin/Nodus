@@ -370,6 +370,46 @@ public class NodusProjectOpenWorkflowTest {
   }
 
   @Test
+  void aMissingOptionalNumericAttributeReportsItsLocationAndReleasesTheProjectForRetry()
+      throws Exception {
+    try (Fixture fixture = new Fixture(false)) {
+      DBFField[] fields = java.util.Arrays.copyOf(ProjectFilesFixture.fields(true, false), 5);
+      fields[4] = new DBFField("MODE", 'N', 2, 0);
+      Object[] first = java.util.Arrays.copyOf(ProjectFilesFixture.row(true, false, 1, "valid"), 5);
+      Object[] second =
+          java.util.Arrays.copyOf(ProjectFilesFixture.row(true, false, 2, "missing mode"), 5);
+      first[4] = 2;
+      second[4] = null;
+      ProjectFilesFixture.writeDbf(
+          directory, "nodes", fields, StandardCharsets.UTF_8, List.of(first, second));
+      byte[] original = Files.readAllBytes(directory.resolve("nodes.dbf"));
+      fixture.startOpen();
+      assertTrue(fixture.panel.finished.await(10, TimeUnit.SECONDS));
+      assertEquals(1, fixture.project.errors.size());
+      Throwable error = fixture.project.errors.get(0);
+      assertTrue(error instanceof edu.uclouvain.core.nodus.database.dbf.LayerAttributeException);
+      assertTrue(error.getMessage().contains("nodes.dbf"), error.getMessage());
+      assertTrue(error.getMessage().contains("MODE"), error.getMessage());
+      assertTrue(
+          error.getMessage().contains("Record: 2")
+              || error.getMessage().contains("Enregistrement : 2"),
+          error.getMessage());
+      assertTrue(fixture.project.failedConnection.isClosed());
+      assertFalse(fixture.project.isOpen());
+      assertFalse(fixture.panel.busy);
+      assertNull(fixture.project.getNodeLayers());
+      assertDefaultMap(fixture.panel);
+      assertLockReleased();
+      org.junit.jupiter.api.Assertions.assertArrayEquals(
+          original, Files.readAllBytes(directory.resolve("nodes.dbf")));
+      ProjectFilesFixture.writeLayer(directory, "nodes", true, 1, 2);
+      fixture.project.errors.clear();
+      fixture.open();
+      assertTrue(fixture.project.isOpen());
+    }
+  }
+
+  @Test
   void failedBackgroundLayerLoadAlsoClosesThePartiallyOpenedProject() throws Exception {
     try (Fixture fixture = new Fixture(false)) {
       ProjectFilesFixture.writeDbf(
