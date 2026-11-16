@@ -588,5 +588,8 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Fix the order of recent SQL queries in the SQL console and present the history in a popup menu
 
 ## v9.1 - BuildXXXXXXXX
-- Fix a bug that caused a stack trace when null numeric values are stored in DBF files.
+- Fix a bug that caused a stack trace when null numeric values are stored in DBF files
+- Improved log of lost paths
+- Th project preferences dialog no longer displays cost functions that do not exist anymore
+
 
