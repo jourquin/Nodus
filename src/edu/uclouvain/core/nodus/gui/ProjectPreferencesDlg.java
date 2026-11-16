@@ -89,9 +89,6 @@ public class ProjectPreferencesDlg extends EscapeDialog {
   private JLabel costLabel = new JLabel();
 
   /** . */
-  private File[] costsFilesNames = null;
-
-  /** . */
   private JTextField descriptionTextField = new JTextField();
 
   /** . */
@@ -782,7 +779,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
       odTableName = odTablesCombo.getSelectedItem().toString().trim();
     }
 
-    final String costFileName = costFilesCombo.getSelectedItem().toString().trim();
+    final String costFileName = valueOf(costFilesCombo.getSelectedItem()).trim();
     final String excTable = excTextField.getText().trim();
     final String vNetTablePrefix = virtNetTextField.getText().trim();
     final String pathTablePrefix = pathTextField.getText().trim();
@@ -959,39 +956,36 @@ public class ProjectPreferencesDlg extends EscapeDialog {
       }
     }
     
-    // Fill cost functions combo
-    if (costsFilesNames == null) {
-      File dir = new File(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
-      FileFilter fileFilter = WildcardFileFilter.builder().setWildcards("*.costs").get();
-      File[] costsFilesNames = dir.listFiles(fileFilter);
-      if (costsFilesNames == null) {
-        return;
-      }
-
-      List<String> items = new LinkedList<>();
+    // Refresh the available files, including after a scenario change.
+    File dir = new File(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
+    FileFilter fileFilter = WildcardFileFilter.builder().setWildcards("*.costs").get();
+    File[] costsFilesNames = dir.listFiles(file -> file.isFile() && fileFilter.accept(file));
+    List<String> items = new LinkedList<>();
+    if (costsFilesNames != null) {
       for (File costsFilesName : costsFilesNames) {
         items.add(costsFilesName.getName());
       }
-      Collections.sort(items);
-
-      Iterator<String> it = items.iterator();
-      while (it.hasNext()) {
-        costFilesCombo.addItem(it.next());
-      }
+    }
+    Collections.sort(items);
+    costFilesCombo.removeAllItems();
+    for (String item : items) {
+      costFilesCombo.addItem(item);
     }
 
-    // Cost functions file name
+    // Use saved defaults only while the corresponding file is still available.
+    // Adding the first item already selects it, including when it is the only file.
     String defaultValue =
         nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.TYPE_COSTS;
-    if (costFilesCombo.getModel().getSize() == 0) {
-      costFilesCombo.addItem(defaultValue);
-    }
-
     stringValue = nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS + scenarioSuffix);
-    if (stringValue == null) {
+    if (!items.contains(stringValue)) {
       stringValue = nodusProject.getLocalProperty(NodusC.PROP_COST_FUNCTIONS, defaultValue);
     }
-    costFilesCombo.setSelectedItem(stringValue);
+    if (!items.contains(stringValue)) {
+      stringValue = defaultValue;
+    }
+    if (items.contains(stringValue)) {
+      costFilesCombo.setSelectedItem(stringValue);
+    }
 
     saveAllVirtualLinksCheckBox.setSelected(
         nodusProject.getLocalProperty(NodusC.PROP_SAVE_ALL_VN, false));

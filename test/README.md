@@ -161,6 +161,25 @@ for the workflow mechanism.
 
 [ant-ci]: https://docs.github.com/en/actions/tutorials/build-and-test-code/java-with-ant
 
+## Lost-path reports
+
+When **Log lost paths** is selected, the console lists each unreachable origin/destination
+pair and commodity group once per assignment. It also prints the path to a UTF-8 SQL cleanup
+script saved in the project directory. The script contains the corresponding `DELETE`
+statements; it is not executed automatically. As with the earlier console statements, each
+deletion matches the group, origin and destination across all OD classes and departure times.
+
+Scripts use names such as `mini_scenario1_AllOrNothingAssignment_lost_paths_<unique>.sql`.
+Each script's comments record the assignment start time,
+scenario description, OD table/filter, cost file, routing settings and completion status.
+Repeated runs retain earlier scripts. Failed or canceled assignments retain the pairs already
+identified, while disabled logging and runs without lost paths create no script. A write failure
+shows a warning without invalidating assignment results.
+
+`AssignmentLostPathsIntegrationTest` exercises all nine assignment methods on H2/HSQLDB,
+executes the generated SQL against isolated test data, and checks deduplication, metadata,
+cancellation, retries, disabled logging and file-write failures.
+
 ## Assignment computing-time HTML reports
 
 Set `NodusC.displayComputingTimes = true` before starting an assignment to save its performance

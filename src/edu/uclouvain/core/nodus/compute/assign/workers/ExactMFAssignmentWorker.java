@@ -668,22 +668,8 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
       if (foundPaths.get(key) == null) {
         ODCell lostPath = potentialLostPaths.get(key);
 
-        System.out.println(
-            "delete from "
-                + assignmentParameters.getODMatrix()
-                + " where "
-                + NodusC.DBF_GROUP
-                + "="
-                + lostPath.getGroup()
-                + " and "
-                + NodusC.DBF_ORIGIN
-                + "="
-                + lostPath.getOriginNodeId()
-                + " and "
-                + NodusC.DBF_DESTINATION
-                + "="
-                + lostPath.getDestinationNodeId()
-                + ";");
+        assignment.logLostPath(
+            lostPath.getGroup(), lostPath.getOriginNodeId(), lostPath.getDestinationNodeId());
       }
     }
 

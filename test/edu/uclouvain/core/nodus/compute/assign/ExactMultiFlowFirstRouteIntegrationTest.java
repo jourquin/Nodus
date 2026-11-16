@@ -36,6 +36,7 @@ import edu.uclouvain.core.nodus.compute.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.modalsplit.Proportional;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -207,10 +208,23 @@ class ExactMultiFlowFirstRouteIntegrationTest {
                       List<String> lost =
                           output
                               .lines()
-                              .filter(line -> line.startsWith("delete from "))
+                              .filter(line -> line.startsWith("No path: "))
                               .sorted()
                               .collect(Collectors.toList());
                       assertEquals(6, lost.size());
+                      assertFalse(output.contains("delete from "));
+                      Path script =
+                          Path.of(
+                              output.lines()
+                                  .filter(line -> line.startsWith("Lost-path SQL script: "))
+                                  .findFirst()
+                                  .orElseThrow()
+                                  .substring("Lost-path SQL script: ".length()));
+                      assertEquals(
+                          6,
+                          Files.readString(script).lines()
+                              .filter(line -> line.startsWith("delete from "))
+                              .count());
                       assertEquals(
                           900, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 0.005);
                       assertEquals(1080, project.number("SELECT SUM(qty) FROM mini_od"), 0.005);

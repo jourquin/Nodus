@@ -105,6 +105,8 @@ public abstract class Assignment implements Runnable {
   /** Used to open a console to log lost paths. */
   boolean isFirstLostPath = true;
 
+  private AssignmentLostPaths lostPaths;
+
   /** The project this assignment refers to. */
   NodusProject nodusProject;
 
@@ -218,6 +220,53 @@ public abstract class Assignment implements Runnable {
     if (isFirstLostPath) {
       isFirstLostPath = false;
       new NodusConsole(nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTPATH));
+    }
+  }
+
+  /**
+   * Logs an unreachable OD pair and retains its SQL cleanup statement for this assignment.
+   *
+   * @param group commodity group
+   * @param origin original demand origin
+   * @param destination demand destination
+   */
+  public synchronized void logLostPath(int group, int origin, int destination) {
+    if (assignmentParameters.isLogLostPaths()) {
+      if (lostPaths == null) {
+        lostPaths = new AssignmentLostPaths(assignmentParameters, assignmentMethodName());
+      }
+      lostPaths.record(group, origin, destination);
+    }
+  }
+
+  private String assignmentMethodName() {
+    Class<?> method = getClass();
+    while (method.isAnonymousClass()) {
+      method = method.getSuperclass();
+    }
+    return method.getSimpleName();
+  }
+
+  private void saveLostPathsScript(boolean completed) {
+    if (lostPaths == null) {
+      return;
+    }
+    try {
+      Path script = lostPaths.save(completed);
+      if (script != null) {
+        System.out.println("Lost-path SQL script: " + script);
+      }
+    } catch (Exception failure) {
+      nodusProject
+          .getNodusMapPanel()
+          .showAssignmentMessage(
+              i18n.get(
+                      Assignment.class,
+                      "Lost_paths_script_failed",
+                      "Could not save the lost-path SQL script:")
+                  + "\n"
+                  + failure.getMessage(),
+              JOptionPane.WARNING_MESSAGE);
     }
   }
 
@@ -391,6 +440,11 @@ public abstract class Assignment implements Runnable {
     nodusMapPanel.getAssignmentMenuItem().setEnabled(false);
     completion = null;
     lastRelativeVolumeGap = Double.NaN;
+    isFirstLostPath = true;
+    lostPaths =
+        assignmentParameters.isLogLostPaths()
+            ? new AssignmentLostPaths(assignmentParameters, assignmentMethodName())
+            : null;
 
     // Update the scenario combo of the main window
     nodusMapPanel.updateScenarioComboBox(true);
@@ -483,6 +537,7 @@ public abstract class Assignment implements Runnable {
         waitForAssignmentWorkers();
         completion = null;
       }
+      saveLostPathsScript(success);
       assignmentWorkers = null;
       if (!success) {
         discardPathWriter();

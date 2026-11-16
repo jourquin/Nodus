@@ -21,7 +21,6 @@
 
 package edu.uclouvain.core.nodus.compute.assign.workers;
 
-import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.compute.assign.Assignment;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerPhase;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
@@ -161,22 +160,8 @@ public class MSAAssignmentWorker extends AssignmentWorker {
 
         if (predecessor == 0) {
           if (assignmentParameters.isLogLostPaths()) {
-            System.out.println(
-                "delete from "
-                    + assignmentParameters.getODMatrix()
-                    + " where "
-                    + NodusC.DBF_GROUP
-                    + "="
-                    + currentGroup
-                    + " and "
-                    + NodusC.DBF_ORIGIN
-                    + "="
-                    + virtualNet.getVirtualNodeLists()[nodeIndex].getRealNodeId()
-                    + " and "
-                    + NodusC.DBF_DESTINATION
-                    + "="
-                    + virtualNet.getVirtualNodeLists()[destinationNodeIndex].getRealNodeId()
-                    + ";");
+            assignment.logLostPath(
+                demand.getGroup(), demand.getOriginNodeId(), demand.getDestinationNodeId());
           }
           isPathFound = false;
 
