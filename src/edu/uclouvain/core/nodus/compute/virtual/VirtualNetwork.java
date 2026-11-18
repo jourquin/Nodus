@@ -643,6 +643,11 @@ public class VirtualNetwork {
    */
   public boolean volumesToVehicles(VehiclesParser vehiclesParser, int timeSlice) {
     try (OutsideScope timing = computingTimes.outside(OutsidePhase.VEHICLES)) {
+      nodusMapPanel.setText(
+          i18n.get(
+              VirtualNetwork.class,
+              "Converting_volumes_to_vehicles",
+              "Converting volumes to vehicles..."));
       return convertVolumesToVehicles(vehiclesParser, timeSlice);
     }
   }

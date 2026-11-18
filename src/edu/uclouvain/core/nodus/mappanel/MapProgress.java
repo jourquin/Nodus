@@ -115,11 +115,14 @@ public final class MapProgress {
    *     work whose total is unknown.
    */
   public synchronized void startProgress(int finishedValue) {
+    // Replacing the current phase still owns only one busy reference.
+    if (taskLength == 0) {
+      panel.setBusy(true);
+    }
     taskLength = Math.max(1, finishedValue);
     indeterminateProgress = finishedValue <= 0;
     currentTask = 0;
     canceled = false;
-    panel.setBusy(true);
 
     ProgressEvent evt =
         new ProgressEvent(panel.getMapBean(), ProgressEvent.START, "", taskLength, 0);
@@ -131,13 +134,17 @@ public final class MapProgress {
    * implemented on the MapBean.
    */
   public synchronized void stopProgress() {
+    final boolean progressRunning = taskLength > 0;
     ProgressEvent evt = new ProgressEvent(panel.getMapBean(), ProgressEvent.DONE, "", 0, 0);
     indeterminateProgress = false;
     displayProgress(evt, false);
     panel.resetText();
     taskLength = 0;
     currentTask = 0;
-    panel.setBusy(false);
+    // Cleanup may stop an already finished phase. Do not release another operation's cursor.
+    if (progressRunning) {
+      panel.setBusy(false);
+    }
   }
 
   /**
@@ -164,7 +171,6 @@ public final class MapProgress {
               JOptionPane.YES_NO_OPTION)
           == JOptionPane.YES_OPTION) {
 
-        busyDepth = 1;
         panel.stopProgress();
         panel.setText(i18n.get(NodusMapPanel.class, "Task_aborted", "Task aborted"));
 

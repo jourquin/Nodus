@@ -56,12 +56,7 @@ import javax.swing.text.DefaultEditorKit;
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 
-/*
- * TODO project pred can propose a non existent cost function file
- * TOTO Lost paths messages are not clear : separate the list of problematic OD pairs 
- * from the SQL statement
- *
- */
+
 /**
  * Main class that creates a new NodusMapPanel, but also initializes the application with a
  * previously saved LookAndFeel and runs a startup nodus.groovy script if it exists.

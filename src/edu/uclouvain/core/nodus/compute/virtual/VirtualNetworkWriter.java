@@ -241,6 +241,14 @@ public class VirtualNetworkWriter {
     boolean progressStarted = false;
     Savepoint savepoint = null;
     try {
+      // Table creation and statement preparation can take time before the first row is written.
+      String progressMessage =
+          i18n.get(
+              VirtualNetworkWriter.class, "Saving_virtual_network", "Saving virtual network");
+      nodusMapPanel.startProgress(virtualNet.getNbVirtualLinks());
+      progressStarted = true;
+      nodusMapPanel.setText(progressMessage);
+
       // Fill it
       jdbcConnection = nodusProject.getMainJDBCConnection();
       if (jdbcConnection == null) {
@@ -272,12 +280,6 @@ public class VirtualNetworkWriter {
       }
       sqlStmt += "?,?,?)";
       try (PreparedStatement prepStmt = jdbcConnection.prepareStatement(sqlStmt)) {
-        nodusMapPanel.startProgress(virtualNet.getNbVirtualLinks());
-        progressStarted = true;
-        String progressMessage =
-            i18n.get(
-                VirtualNetworkWriter.class, "Saving_virtual_network", "Saving virtual network");
-
         int batchSize = 0;
 
         VirtualNodeList[] vnl = virtualNet.getVirtualNodeLists();

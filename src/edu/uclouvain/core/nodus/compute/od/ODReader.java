@@ -437,8 +437,6 @@ public class ODReader {
 
       try (Statement stmt = jdbcConnection.createStatement();
           ResultSet rs = stmt.executeQuery(sqlStmt)) {
-        nodusMapPanel.setBusy(false);
-
         nodusMapPanel.startProgress(nbRecords);
         progressStarted = true;
 

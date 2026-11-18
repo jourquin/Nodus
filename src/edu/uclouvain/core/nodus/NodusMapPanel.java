@@ -2515,7 +2515,12 @@ public class NodusMapPanel extends MapPanel implements ShapeConstants {
    * @param msg The message to display.
    */
   public void setText(String msg) {
-    infoDelegator.setLabel("  " + msg);
+    // Keep explicit messages ordered with progress events queued by background computations.
+    if (javax.swing.SwingUtilities.isEventDispatchThread()) {
+      infoDelegator.setLabel("  " + msg);
+    } else {
+      javax.swing.SwingUtilities.invokeLater(() -> infoDelegator.setLabel("  " + msg));
+    }
   }
 
   /** Sets the title of the main frame, which contains the db name and the project name. */

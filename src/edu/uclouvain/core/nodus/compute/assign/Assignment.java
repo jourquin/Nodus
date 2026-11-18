@@ -453,6 +453,8 @@ public abstract class Assignment implements Runnable {
     AssignmentOutputTables outputs = null;
     AssignmentComputingTimes computingTimes = assignmentParameters.getComputingTimes();
     computingTimes.startAssignment();
+    // The assignment owns the cursor across individual progress phases and finalization.
+    nodusMapPanel.setBusy(true);
     try {
       outputs = new AssignmentOutputTables(assignmentParameters, true);
       assignmentParameters.setOutputTables(outputs);
@@ -470,6 +472,9 @@ public abstract class Assignment implements Runnable {
           success = assign();
         } finally {
           computingTimes.beginFinalization();
+          nodusMapPanel.startProgress(0);
+          nodusMapPanel.setText(
+              i18n.get(Assignment.class, "Finalizing_assignment", "Finalizing assignment..."));
           if (!success) {
             cancelAssignmentWorkers();
             waitForAssignmentWorkers();
@@ -483,6 +488,8 @@ public abstract class Assignment implements Runnable {
           success = closePathWriter();
         }
         if (success) {
+          nodusMapPanel.setText(
+              i18n.get(Assignment.class, "Publishing_results", "Publishing assignment results..."));
           outputs.publish();
         }
         computationCompleted = success;
@@ -549,6 +556,7 @@ public abstract class Assignment implements Runnable {
       pathWriter = null;
       nodusMapPanel.stopProgress();
       nodusMapPanel.resetText();
+      nodusMapPanel.setBusy(false);
 
       // Release the computation gate after cleanup, including a pending shutdown after OOM.
       nodusMapPanel.getAssignmentMenuItem().setEnabled(true);
