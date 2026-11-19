@@ -48,13 +48,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
-import org.apache.parquet.ParquetReadOptions;
 import org.apache.parquet.column.page.PageReadStore;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.simple.convert.GroupRecordConverter;
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.io.ColumnIOFactory;
-import org.apache.parquet.io.LocalInputFile;
 import org.apache.parquet.io.MessageColumnIO;
 import org.apache.parquet.io.RecordReader;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
@@ -125,10 +123,7 @@ public final class ImportParquet {
           project,
           tableName,
           (connection, staged) -> {
-            ParquetReadOptions options =
-                new org.apache.parquet.NodusReadOptions(new ParquetCodecs());
-            try (ParquetFileReader reader =
-                ParquetFileReader.open(new LocalInputFile(source), options)) {
+            try (ParquetFileReader reader = ParquetFiles.openReader(source)) {
               MessageType schema = reader.getFileMetaData().getSchema();
               List<Column> columns = columns(schema);
               load(

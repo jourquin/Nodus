@@ -1,0 +1,6 @@
+# Synthetic project for demonstrating OD extraction, not calibrated assignments.
+network.nodes=centroidsl2 centroidsl3
+network.links=roads
+centroidsl2.prettyName=Sample NUTS2 centroids
+centroidsl3.prettyName=Sample NUTS3 centroids
+roads.prettyName=Sample roads

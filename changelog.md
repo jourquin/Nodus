@@ -592,5 +592,4 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Fix a bug that caused a stack trace when null numeric values are stored in DBF files
 - Improved log of lost paths
 - The project preferences dialog no longer displays cost functions that do not exist anymore
-
-
+- Add a self-contained Groovy extractor for catalogued Parquet OD masters

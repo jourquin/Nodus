@@ -36,6 +36,21 @@ if (project.isOpen()) {
 }
 ```
 
+## Extracting master OD matrices
+
+[ExtractMasterOD.groovy](ExtractMasterOD.groovy) contains the full OD extractor,
+including its helper class. No OD-specific Java API or companion JAR is needed.
+It selects NUTS2/NUTS3 and NST/R groups or main chapters from catalogued Parquet
+masters, then stages one assignment table per mode in the open project. Generic
+Parquet reading and database replacement remain in Nodus core; all OD schemas
+and commodity rules are in the script.
+
+The [tiny sample](master-od-sample/README.md) includes an eight-row Parquet master,
+catalogue and miniature project. The script defaults to the open project directory
+and ends with `new ExtractMasterOD(nodusMapPanel);`. Set `masterDirectory` only
+when the masters are elsewhere. See the [script and dataset contract](ODMatrixExtractor.md)
+for settings, missing quantities, centroid checks, reports and cancellation.
+
 ## Connecting Python and R
 
 Follow the [Python and R bridge guide](Python_and_R_bridges.md) to enable a bridge
