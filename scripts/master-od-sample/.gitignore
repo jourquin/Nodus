@@ -1,9 +1,0 @@
-# Local files produced when opening this miniature project in Nodus.
-*.mv.db
-*.h2.db
-*.trace.db
-*.lck
-*.log
-*.script
-*.properties
-ODExtractionReports/

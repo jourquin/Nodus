@@ -1250,33 +1250,8 @@ standard Apache reader with local-file input to verify every exported value with
 Hadoop filesystem authentication (including on Java 25 and 27). Hadoop development JARs
 in `devtools/parquet/` remain on the parent test/compile classpath only.
 
-## Master OD extraction
+## Generic projected Parquet reading
 
-`ODMatrixExtractorTest` uses synthetic Parquet masters and isolated H2/HSQLDB projects.
-It checks all geography/commodity combinations by cell, filtering and chapter zero,
-missing/partial/source-absent demand and proxy reports, strict policy, centroid identity,
-invalid options/schema/order/parent mapping, source changes and hashes, staged recovery,
-cooperative cancellation, concurrent-call refusal and reporting failures. It also runs the
-actual Groovy example with default JSON reports. A child JVM uses installed libraries
-only and confirms Hadoop and DuckDB are absent. No research data or live project is used.
-See [the script guide](../scripts/ODMatrixExtractor.md) for the data and execution contracts.
-
-The shipped `scripts/master-od-sample` assets are checked at all four resolutions using
-its real Parquet file and centroid DBFs. The Groovy example is exercised both with typed
-class defaults and automation overrides, including in the installed-libraries-only JVM.
-The sample regeneration source is `test/fixtures/master-od-sample/generate.py`.
-
-The map-panel entry point also checks directory discovery from a copied project
-whose path contains spaces and Unicode, explicit source overrides, a missing
-project-directory property, and absence of an open project.
-
-`SampleSqlPortabilityTest` executes the shipped portable `sample_rows.sql` in
-isolated H2 and HSQLDB databases and checks every value, type-compatible boolean
-and NULL against the existing Parquet sample.
-
-The OD implementation is compiled from `scripts/ExtractMasterOD.groovy` by the
-test-only `MasterODScriptHarness`; no OD extractor is present in application
-classes. Tests cover independent script compilations sharing the panel execution
-flag and the native Groovy console interruption transform, including cleanup
-when interruption is injected immediately before the caller waits for its worker.
-`ParquetFilesTest` separately checks the schema-neutral projected reader.
+`ParquetFilesTest` checks requested column order, exact large integers, Unicode,
+NULL values, empty files, invalid projections and safe reader closure. These tests
+use generic synthetic tables and do not depend on external OD datasets or scripts.
