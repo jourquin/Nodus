@@ -594,3 +594,4 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - The project preferences dialog no longer displays cost functions that do not exist anymore
 - Add a generic projected Parquet reader usable from Groovy without Hadoop runtime dependencies
 - Continue Fast and Exact multi-flow assignments past OD cells with no feasible route 
+- Load the SQL console table list without scanning indexes for exact statistics

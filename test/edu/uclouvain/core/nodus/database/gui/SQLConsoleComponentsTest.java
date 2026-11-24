@@ -29,8 +29,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.database.DatabaseFixture;
 import edu.uclouvain.core.nodus.swing.GridSwing;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.nio.file.Path;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -114,6 +118,45 @@ class SQLConsoleComponentsTest {
           .forEach(node -> indexColumns.add(node.getUserObject()));
       assertTrue(indexColumns.contains("ID"));
       assertTrue(indexColumns.contains("LABEL"));
+    }
+  }
+
+  @Test
+  void catalogueSkipsExactIndexStatisticsAndKeepsTablesOnIndexMetadataFailure() throws Exception {
+    try (DatabaseFixture database = new DatabaseFixture(directory)) {
+      database.execute("CREATE TABLE FIRST_TABLE (ID INTEGER)");
+      database.execute("CREATE TABLE LAST_TABLE (ID INTEGER)");
+      database.execute("CREATE INDEX LAST_TABLE_ID ON LAST_TABLE(ID)");
+      DatabaseMetaData actual = database.connection.getMetaData();
+      DatabaseMetaData observed =
+          (DatabaseMetaData)
+              Proxy.newProxyInstance(
+                  getClass().getClassLoader(),
+                  new Class<?>[] {DatabaseMetaData.class},
+                  (proxy, method, args) -> {
+                    if ("getIndexInfo".equals(method.getName())) {
+                      assertEquals(
+                          Boolean.TRUE, args[4], "The console only needs index definitions");
+                      if ("FIRST_TABLE".equals(args[2])) {
+                        throw new SQLException("Index metadata is unavailable", "HY000");
+                      }
+                    }
+                    try {
+                      return method.invoke(actual, args);
+                    } catch (InvocationTargetException e) {
+                      throw e.getCause();
+                    }
+                  });
+      DefaultMutableTreeNode root = SQLConsoleMetadata.build(database.connection, observed);
+      List<Object> values = new ArrayList<>();
+      Collections.list(root.depthFirstEnumeration())
+          .stream()
+          .map(DefaultMutableTreeNode.class::cast)
+          .forEach(node -> values.add(node.getUserObject()));
+      assertTrue(values.contains("FIRST_TABLE"));
+      assertTrue(values.contains("Index metadata is unavailable"));
+      assertTrue(values.contains("LAST_TABLE"));
+      assertTrue(values.contains("LAST_TABLE_ID"));
     }
   }
 

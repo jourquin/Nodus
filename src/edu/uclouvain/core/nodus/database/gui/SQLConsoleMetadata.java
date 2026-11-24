@@ -104,7 +104,9 @@ final class SQLConsoleMetadata {
         DefaultMutableTreeNode indexesNode =
             makeDetachedNode(i18n.get(SQLConsole.class, "Indices", "Indices"), tableNode);
 
-        try (ResultSet ind = metaData.getIndexInfo(catalog, schema, name, false, false)) {
+        // The tree shows index definitions. Exact cardinality and page counts can scan large
+        // indexes and are unused here.
+        try (ResultSet ind = metaData.getIndexInfo(catalog, schema, name, false, true)) {
           String oldiname = null;
           DefaultMutableTreeNode indexNode = null;
 
@@ -123,6 +125,9 @@ final class SQLConsoleMetadata {
 
             makeDetachedNode(ind.getString(9), indexNode);
           }
+        } catch (SQLException se) {
+          indexesNode.removeAllChildren();
+          addMetadataError(indexesNode, se);
         }
       }
 
@@ -157,15 +162,20 @@ final class SQLConsoleMetadata {
               metaData.getDatabaseProductVersion()),
           propertiesNode);
     } catch (SQLException se) {
-      DefaultMutableTreeNode propertiesNode =
-          makeDetachedNode(
-              i18n.get(SQLConsole.class, "Error_getting_metadata", "Error getting metadata") + ":",
-              rebuiltRoot);
-      makeDetachedNode(se.getMessage(), propertiesNode);
-      makeDetachedNode(se.getSQLState(), propertiesNode);
+      addMetadataError(rebuiltRoot, se);
     }
 
     return rebuiltRoot;
+  }
+
+  /** Shows a JDBC metadata failure next to the part of the tree that could not be loaded. */
+  private static void addMetadataError(DefaultMutableTreeNode parent, SQLException error) {
+    DefaultMutableTreeNode errorNode =
+        makeDetachedNode(
+            i18n.get(SQLConsole.class, "Error_getting_metadata", "Error getting metadata") + ":",
+            parent);
+    makeDetachedNode(error.getMessage(), errorNode);
+    makeDetachedNode(error.getSQLState(), errorNode);
   }
 
   /** Builds a detached tree node hierarchy that can safely be prepared off the EDT. */
