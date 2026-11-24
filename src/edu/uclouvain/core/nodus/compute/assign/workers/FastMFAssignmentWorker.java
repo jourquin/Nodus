@@ -70,15 +70,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
   private ODCell demand;
 
-  /**
-   * Two hash tables. The first will contain the OD pairs between which at least one path was found,
-   * the second the pairs between which, during an iteration, no path was found. All the pairs which
-   * are in the second and not in the first hash table will be considered as "lost paths"
-   */
-  HashMap<String, ODCell> foundPaths = new HashMap<>();
-
-  HashMap<String, ODCell> potentialLostPaths = new HashMap<>();
-
   ModalSplitMethod modalSplitMethod;
 
   /** Array that wall contain the weights of the paths at the successive iterations. */
@@ -262,11 +253,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
           // As before, final-iteration marks survive until the next cost increase.
         } // end of iteration for current mode/means combination
 
-        // Log lost paths if needed
-        if (assignmentParameters.isLogLostPaths()) {
-          logLostPaths();
-        }
-
         // Compute the fraction of the demand to be assigned to each alternative path
         // for this O-D line
         int currentPath = 0;
@@ -276,7 +262,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
 
           workerTimes.startPhase(WorkerPhase.MODAL_SPLITTING);
           try {
-            if (!modalSplit(demand, currentPath)) {
+            if (!splitDemand(modalSplitMethod, demand, getPaths(currentPath).values())) {
               return false;
             }
           } finally {
@@ -444,27 +430,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     return hm;
   }
 
-  /** Log the OD pairs between which no paths could be found. */
-  private void logLostPaths() {
-    /* Go through all the potential lost paths and look if they could be reached
-     * by another mode/means
-     */
-    Iterator<String> it = potentialLostPaths.keySet().iterator();
-    while (it.hasNext()) {
-      // Get key
-      String key = it.next();
-      if (foundPaths.get(key) == null) {
-        ODCell lostPath = potentialLostPaths.get(key);
-
-        assignment.logLostPath(
-            lostPath.getGroup(), lostPath.getOriginNodeId(), lostPath.getDestinationNodeId());
-      }
-    }
-
-    potentialLostPaths.clear();
-    foundPaths.clear();
-  }
-
   /**
    * Read all the paths associated to the demand from a given node. Returns a vector with the costs
    * of all the paths from this node.
@@ -477,7 +442,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     byte[] groups = virtualNet.getGroups();
     int indexInODRow = 0;
     Path[] paths = new Path[nbOD];
-    String key = null;
 
     int mode = -1;
 
@@ -515,10 +479,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
       byte unloadingMode = 0;
       byte unloadingMeans = 0;
 
-      if (assignmentParameters.isLogLostPaths()) {
-        key = demand.getOriginNodeId() + "-" + demand.getDestinationNodeId();
-      }
-
       int intermodalModeKey = 1;
       PathODCell pathODCell = new PathODCell(iteration, indexInODRow, demand.getQuantity());
       List<Integer> linkIds = new ArrayList<>();
@@ -527,13 +487,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         int predecessor = pi[currentNode];
 
         if (predecessor == 0) {
-
-          if (assignmentParameters.isLogLostPaths()) {
-            if (potentialLostPaths.get(key) == null) {
-              potentialLostPaths.put(key, demand);
-            }
-          }
-
           paths[indexInODRow].isValid = false;
           isPathFound = false;
 
@@ -642,13 +595,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
       indexInODRow++;
 
       if (isPathFound) {
-        // Keep track of found path for logging
-        if (assignmentParameters.isLogLostPaths()) {
-          if (foundPaths.get(key) == null) {
-            foundPaths.put(key, demand);
-          }
-        }
-
         // Save the header of this detailed path if needed
         if (pathBuffer.isSavePaths()) {
           // The quantity assigned to this path will be computed later
@@ -668,27 +614,6 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
     }
 
     return paths;
-  }
-
-  /**
-   * Compute the market marketShare of each mode/path.
-   *
-   * @param currentPath : the path to handle in the result set
-   * @param msp = the parameters used for the modal split model
-   * @return True on success
-   */
-  private boolean modalSplit(ODCell odCell, int currentPath) {
-
-    try {
-      // Retrieve all the valid routes
-      List<PathsForMode> list = new ArrayList<PathsForMode>(getPaths(currentPath).values());
-      return modalSplitMethod.split(odCell, list);
-    } catch (Error e) {
-      e.printStackTrace();
-
-      System.out.println("wrong API");
-      return false;
-    }
   }
 
   private boolean updateProgressBar(int nodeIndex) {

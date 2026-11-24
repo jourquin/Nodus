@@ -78,15 +78,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
   private BinaryHeapDijkstra firstRouteSearch;
 
-  /**
-   * Two hash tables. The first will contain the OD pairs between which at least one path was found,
-   * the second the pairs between which, during an iteration, no path was found. All the pairs which
-   * are in the second and not in the first hash table will be considered as "lost paths"
-   */
-  HashMap<String, ODCell> foundPaths = new HashMap<>();
-
-  HashMap<String, ODCell> potentialLostPaths = new HashMap<>();
-
   ModalSplitMethod modalSplitMethod;
 
   /** Array that will contain the weights of the paths for the successive iterations. */
@@ -327,16 +318,11 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
       edgeUpdates.clearPathMarks();
     } // Next mode/means
 
-    // Log lost paths if needed
-    if (assignmentParameters.isLogLostPaths()) {
-      logLostPaths();
-    }
-
     // Compute the fraction of the demand to be assigned to each alternative path
     // for this O-D cell
     workerTimes.startPhase(WorkerPhase.MODAL_SPLITTING);
     try {
-      if (!modalSplit(demand)) {
+      if (!splitDemand(modalSplitMethod, demand, getPaths().values())) {
         return false;
       }
     } finally {
@@ -655,28 +641,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     return hm;
   }
 
-  /** Log the OD pairs between which no paths could be found. */
-  private void logLostPaths() {
-    /*
-     * Go through all the potential lost paths and look if they could be reached by another
-     * mode/means.
-     */
-    Iterator<String> it = potentialLostPaths.keySet().iterator();
-    while (it.hasNext()) {
-      // Get key
-      String key = it.next();
-      if (foundPaths.get(key) == null) {
-        ODCell lostPath = potentialLostPaths.get(key);
-
-        assignment.logLostPath(
-            lostPath.getGroup(), lostPath.getOriginNodeId(), lostPath.getDestinationNodeId());
-      }
-    }
-
-    potentialLostPaths.clear();
-    foundPaths.clear();
-  }
-
   /** Retrieves the path associated to an OD cell. Returns a Path object. node. */
   private Path markPaths(
       byte groupIndex,
@@ -686,7 +650,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
       ODCell demand,
       LinkedList<MFPathHeader> pathHeaders) {
     VirtualNodeList[] virtualNodeList = virtualNet.getVirtualNodeLists();
-    String key = null;
 
     int currentPathIndex = 0;
     if (pathBuffer.isSavePaths()) {
@@ -711,10 +674,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
 
     int intermodalModeKey = 1;
 
-    if (assignmentParameters.isLogLostPaths()) {
-      key = demand.getOriginNodeId() + "-" + demand.getDestinationNodeId();
-    }
-
     int mode = -1;
     int beginNode = virtualNodeList[nodeIndex].getLoadingVirtualNodeId();
     Path path = new Path();
@@ -724,12 +683,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
       int predecessor = pi[currentNode];
 
       if (predecessor == 0) {
-
-        if (assignmentParameters.isLogLostPaths()) {
-          if (potentialLostPaths.get(key) == null) {
-            potentialLostPaths.put(key, demand);
-          }
-        }
         path.isValid = false;
         isPathFound = false;
 
@@ -827,12 +780,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     // Save the header of this detailed path if needed
     if (isPathFound) {
       pathIdentity.record(path, linkIds);
-      // Keep track of found path for logging
-      if (assignmentParameters.isLogLostPaths()) {
-        if (foundPaths.get(key) == null) {
-          foundPaths.put(key, demand);
-        }
-      }
 
       if (pathBuffer.isSavePaths()) {
         // The quantity will be computed later
@@ -851,12 +798,6 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
     }
 
     return path;
-  }
-
-  /** Computes the market marketShare of each mode/path. */
-  private boolean modalSplit(ODCell odCell) {
-    List<PathsForMode> list = new ArrayList<PathsForMode>(getPaths().values());
-    return modalSplitMethod.split(odCell, list);
   }
 
   private boolean updateProgressBar(int nodeIndex) {

@@ -124,20 +124,19 @@ public abstract class ModalSplitMethod implements Cloneable {
     this.assignmentParameters = assignmentParameters;
   }
 
-  /**
-   * Dispose resources.
-   */
+  /** Dispose resources. */
   public void dispose() {
     assignmentParameters = null;
     nodusProject = null;
   }
 
   /**
-   * Runs the modal split method algorithm. This is called by the the multiflow assignment workers.
-   * Therefore, this method must be thread safe.
+   * Runs the modal split method for an OD cell with at least one feasible route. Multi-flow
+   * assignment workers handle cells with no feasible routes before calling this method. The
+   * implementation must be thread-safe.
    *
    * @param odCell The OD cell for which the modal split has to be performed.
-   * @param pathsLists A list that contains the lists of routes for each mode.
+   * @param pathsLists Nonempty list of feasible modes and their routes.
    * @return True on success.
    */
   public abstract boolean split(ODCell odCell, List<PathsForMode> pathsLists);

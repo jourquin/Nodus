@@ -32,11 +32,16 @@ import edu.uclouvain.core.nodus.compute.assign.AssignmentComputingTimes.WorkerTi
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.AdjacencyNode;
 import edu.uclouvain.core.nodus.compute.assign.shortestpath.CompactShortestPathGraph;
+import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
+import edu.uclouvain.core.nodus.compute.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriterBuffer;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetwork;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -143,6 +148,29 @@ public abstract class AssignmentWorker extends Thread {
    */
   public void setErrorMessage(String msg) {
     assignment.setErrorMessage(msg);
+  }
+
+  /** Splits demand only when at least one route survived admission. */
+  final boolean splitDemand(
+      ModalSplitMethod method, ODCell demand, Collection<PathsForMode> alternatives) {
+    if (alternatives.isEmpty()) {
+      assignment.logUnassignedDemand(demand);
+      return true;
+    }
+    if (method.split(demand, new ArrayList<>(alternatives))) {
+      return true;
+    }
+    setErrorMessage(
+        MessageFormat.format(
+            i18n.get(
+                AssignmentWorker.class,
+                "Modal_split_failed",
+                "Modal choice method {0} failed for group {1}, OD {2} to {3}."),
+            method.getName(),
+            Integer.toString(demand.getGroup()),
+            Integer.toString(demand.getOriginNodeId()),
+            Integer.toString(demand.getDestinationNodeId())));
+    return false;
   }
 
   /**

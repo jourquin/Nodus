@@ -34,6 +34,7 @@ import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.modalsplit.MultinomialLogit;
 import edu.uclouvain.core.nodus.compute.modalsplit.MultinomialProbit;
 import edu.uclouvain.core.nodus.compute.modalsplit.Proportional;
+import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.compute.virtual.AssignmentOutputTables;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
@@ -232,11 +233,27 @@ public abstract class Assignment implements Runnable {
    */
   public synchronized void logLostPath(int group, int origin, int destination) {
     if (assignmentParameters.isLogLostPaths()) {
-      if (lostPaths == null) {
-        lostPaths = new AssignmentLostPaths(assignmentParameters, assignmentMethodName());
-      }
-      lostPaths.record(group, origin, destination);
+      lostPathsReport().record(group, origin, destination);
     }
+  }
+
+  /**
+   * Records an OD cell that could not be assigned by multi-flow routing. Each group/class worker
+   * visits the cell once, after all mode and route alternatives have been evaluated.
+   *
+   * @param demand OD cell without a feasible route
+   */
+  public synchronized void logUnassignedDemand(ODCell demand) {
+    if (assignmentParameters.isLogLostPaths()) {
+      lostPathsReport().recordUnassignedDemand(demand);
+    }
+  }
+
+  private AssignmentLostPaths lostPathsReport() {
+    if (lostPaths == null) {
+      lostPaths = new AssignmentLostPaths(assignmentParameters, assignmentMethodName());
+    }
+    return lostPaths;
   }
 
   private String assignmentMethodName() {

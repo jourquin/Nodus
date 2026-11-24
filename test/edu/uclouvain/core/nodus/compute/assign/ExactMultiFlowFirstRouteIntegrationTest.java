@@ -175,16 +175,6 @@ class ExactMultiFlowFirstRouteIntegrationTest {
                             + "(2,1,2,200),(2,3,2,20),(2,1,4,40),(2,3,4,400),(2,1,3,60)");
                     AssignmentParameters parameters = parameters(project, 2);
                     parameters.setLogLostPaths(true);
-                    // Permit unroutable cells as a modal-choice cost collector does, so both
-                    // algorithms
-                    // can complete and expose every ordinary lost-path record for comparison.
-                    ModalSplitMethod split =
-                        new Proportional(project) {
-                          @Override
-                          public boolean split(ODCell demand, List<PathsForMode> modes) {
-                            return modes.isEmpty() || super.split(demand, modes);
-                          }
-                        };
                     List<List<String>> expected = null;
                     List<String> lostPaths = null;
                     for (ExactMFAlgorithm algorithm :
@@ -194,11 +184,6 @@ class ExactMultiFlowFirstRouteIntegrationTest {
                       NodusC.exactMFAlgorithm = algorithm;
                       ExactMFAssignment assignment =
                           new ExactMFAssignment(parameters) {
-                            @Override
-                            public ModalSplitMethod getModalSplitMethod() {
-                              return split;
-                            }
-
                             @Override
                             void displayConsoleIfNeeded() {
                               /* Capture lost-path text without opening Swing. */
@@ -215,14 +200,16 @@ class ExactMultiFlowFirstRouteIntegrationTest {
                       assertFalse(output.contains("delete from "));
                       Path script =
                           Path.of(
-                              output.lines()
+                              output
+                                  .lines()
                                   .filter(line -> line.startsWith("Lost-path SQL script: "))
                                   .findFirst()
                                   .orElseThrow()
                                   .substring("Lost-path SQL script: ".length()));
                       assertEquals(
                           6,
-                          Files.readString(script).lines()
+                          Files.readString(script)
+                              .lines()
                               .filter(line -> line.startsWith("delete from "))
                               .count());
                       assertEquals(

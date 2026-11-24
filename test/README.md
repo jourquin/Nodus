@@ -176,9 +176,16 @@ Repeated runs retain earlier scripts. Failed or canceled assignments retain the 
 identified, while disabled logging and runs without lost paths create no script. A write failure
 shows a warning without invalidating assignment results.
 
+Fast and Exact multi-flow leave OD cells with no feasible route unassigned and
+continue routing the other cells. When logging is enabled, their cleanup scripts
+include the count and quantity of unassigned OD records. The quantity uses the
+units of the selected OD table. The count covers individual records, while the
+cleanup statements are grouped by commodity, origin and destination.
+
 `AssignmentLostPathsIntegrationTest` exercises all nine assignment methods on H2/HSQLDB,
 executes the generated SQL against isolated test data, and checks deduplication, metadata,
-cancellation, retries, disabled logging and file-write failures.
+cancellation, retries, disabled logging and file-write failures. The multi-flow cases
+use the built-in Proportional, MNL and MNP methods.
 
 ## Assignment computing-time HTML reports
 

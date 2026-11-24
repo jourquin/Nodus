@@ -6,6 +6,7 @@
 package edu.uclouvain.core.nodus.compute.assign;
 
 import edu.uclouvain.core.nodus.NodusC;
+import edu.uclouvain.core.nodus.compute.od.ODCell;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -23,6 +24,8 @@ final class AssignmentLostPaths {
   private final String filePrefix;
   private final String table;
   private final StringBuilder header = new StringBuilder();
+  private long unassignedRecords;
+  private double unassignedQuantity;
 
   AssignmentLostPaths(AssignmentParameters parameters, String method) {
     String project = parameters.getNodusProject().getLocalProperty(NodusC.PROP_PROJECT_DOTNAME);
@@ -95,6 +98,13 @@ final class AssignmentLostPaths {
     }
   }
 
+  /** Counts OD records separately from the cleanup keys, which can span several classes. */
+  synchronized void recordUnassignedDemand(ODCell demand) {
+    unassignedRecords++;
+    unassignedQuantity += demand.getQuantity();
+    record(demand.getGroup(), demand.getOriginNodeId(), demand.getDestinationNodeId());
+  }
+
   /** Saves only runs with lost paths, preserving scripts from earlier assignment attempts. */
   synchronized Path save(boolean completed) throws IOException {
     if (statements.isEmpty()) {
@@ -107,7 +117,12 @@ final class AssignmentLostPaths {
         writer.write(header.toString());
         writer.write(
             "-- Assignment status: " + (completed ? "completed" : "failed/cancelled") + "\n");
-        writer.write("-- Problematic pairs: " + statements.size() + "\n\n");
+        writer.write("-- Problematic pairs: " + statements.size() + "\n");
+        if (unassignedRecords > 0) {
+          writer.write("-- Unassigned OD records: " + unassignedRecords + "\n");
+          writer.write("-- Unassigned quantity (OD units): " + unassignedQuantity + "\n");
+        }
+        writer.newLine();
         for (String statement : statements) {
           writer.write(statement);
           writer.newLine();

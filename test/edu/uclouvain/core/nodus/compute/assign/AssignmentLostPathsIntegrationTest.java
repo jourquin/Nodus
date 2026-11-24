@@ -8,6 +8,7 @@ package edu.uclouvain.core.nodus.compute.assign;
 import static edu.uclouvain.core.nodus.compute.assign.ComputingTimesTestSupport.capture;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
@@ -16,6 +17,7 @@ import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.modalsplit.PathsForMode;
 import edu.uclouvain.core.nodus.compute.modalsplit.Proportional;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
+import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -29,6 +31,7 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.parallel.Resources;
+import org.opentest4j.AssertionFailedError;
 
 /** Real workers report pairs while the coordinator saves a separate, executable SQL artifact. */
 @Tag("integration")
@@ -44,62 +47,78 @@ class AssignmentLostPathsIntegrationTest {
     for (boolean hsql : new boolean[] {false, true}) {
       for (int method = 0; method <= 8; method++) {
         final int selectedMethod = method;
-        tests.add(
-            dynamicTest(
-                "method=" + method + "/HSQLDB=" + hsql,
-                () -> {
-                  try (AssignmentTestProject project = disconnectedProject(hsql)) {
-                    AssignmentParameters parameters = parameters(project, selectedMethod);
-                    Assignment assignment = assignment(parameters, selectedMethod);
-                    String output = capture(() -> project.run(assignment, 2));
-                    assertEquals(
-                        List.of(
-                            "No path: origin=1, destination=4, group=1",
-                            "No path: origin=3, destination=2, group=2"),
-                        output
-                            .lines()
-                            .filter(line -> line.startsWith("No path: "))
-                            .sorted()
-                            .collect(Collectors.toList()));
-                    assertFalse(output.contains("delete from "));
-                    assertEquals(4, project.number("SELECT COUNT(*) FROM mini_od"));
-                    Path script = script(output);
-                    assertEquals(directory.toAbsolutePath(), script.getParent());
-                    String sql = Files.readString(script);
-                    assertTrue(sql.contains("-- Scenario: 1\n"));
-                    assertTrue(
-                        sql.contains("-- Description: Test assignment café\n-- continued\n"));
-                    assertTrue(
-                        sql.contains(
-                            "-- Assignment method: "
-                                + assignment.getClass().getSuperclass().getSimpleName()
-                                + "\n"));
-                    assertTrue(sql.contains("-- OD table: mini_od\n"));
-                    assertTrue(sql.contains("-- OD filter: qty > 0\n"));
-                    assertTrue(sql.contains("-- Assignment started: "));
-                    assertTrue(sql.contains("-- Assignment status: completed\n"));
-                    assertTrue(sql.contains("-- Threads: 4\n"));
-                    List<String> statements =
-                        sql.lines()
-                            .filter(line -> !line.startsWith("--"))
-                            .filter(line -> !line.isBlank())
-                            .collect(Collectors.toList());
-                    assertEquals(
-                        List.of(
-                            "delete from mini_od where grp=1 and org=1 and dst=4;",
-                            "delete from mini_od where grp=2 and org=3 and dst=2;"),
-                        statements);
-                    for (String statement : statements) {
-                      project.execute(statement);
-                    }
-                    assertEquals(
-                        List.of(List.of("1", "1", "2"), List.of("2", "3", "4")),
-                        project.rows("SELECT grp,org,dst FROM mini_od ORDER BY grp"));
-                  }
-                }));
+        List<String> models =
+            isMultiFlow(method) ? List.of("Proportional", "MNL", "MNP") : List.of("Proportional");
+        for (String model : models) {
+          tests.add(
+              dynamicTest(
+                  "method=" + method + "/" + model + "/HSQLDB=" + hsql,
+                  () -> verifyLostPaths(hsql, selectedMethod, model)));
+        }
       }
     }
     return tests;
+  }
+
+  private static boolean isMultiFlow(int method) {
+    return method == Assignment.FAST_MULTI_FLOW || method == Assignment.EXACT_MULTI_FLOW;
+  }
+
+  private void verifyLostPaths(boolean hsql, int method, String modalChoice) throws Exception {
+    try (AssignmentTestProject project = disconnectedProject(hsql)) {
+      AssignmentParameters parameters = parameters(project, method);
+      parameters.setModalSplitMethodName(modalChoice);
+      Assignment assignment = assignment(parameters, method);
+      int defaultsWarnings = "Proportional".equals(modalChoice) ? 0 : 1;
+      String output = capture(() -> project.run(assignment, 2, defaultsWarnings));
+      assertEquals(300, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 0.001);
+      assertEquals(
+          List.of(
+              "No path: origin=1, destination=4, group=1",
+              "No path: origin=3, destination=2, group=2"),
+          output
+              .lines()
+              .filter(line -> line.startsWith("No path: "))
+              .sorted()
+              .collect(Collectors.toList()));
+      assertFalse(output.contains("delete from "));
+      assertEquals(4, project.number("SELECT COUNT(*) FROM mini_od"));
+      Path script = script(output);
+      assertEquals(directory.toAbsolutePath(), script.getParent());
+      String sql = Files.readString(script);
+      assertTrue(sql.contains("-- Scenario: 1\n"));
+      assertTrue(sql.contains("-- Description: Test assignment café\n-- continued\n"));
+      assertTrue(
+          sql.contains(
+              "-- Assignment method: "
+                  + assignment.getClass().getSuperclass().getSimpleName()
+                  + "\n"));
+      assertTrue(sql.contains("-- OD table: mini_od\n"));
+      assertTrue(sql.contains("-- OD filter: qty > 0\n"));
+      assertTrue(sql.contains("-- Assignment started: "));
+      assertTrue(sql.contains("-- Assignment status: completed\n"));
+      assertTrue(sql.contains("-- Threads: 4\n"));
+      if (isMultiFlow(method)) {
+        assertTrue(sql.contains("-- Unassigned OD records: 2\n"));
+        assertTrue(sql.contains("-- Unassigned quantity (OD units): 60.0\n"));
+      }
+      List<String> statements =
+          sql.lines()
+              .filter(line -> !line.startsWith("--"))
+              .filter(line -> !line.isBlank())
+              .collect(Collectors.toList());
+      assertEquals(
+          List.of(
+              "delete from mini_od where grp=1 and org=1 and dst=4;",
+              "delete from mini_od where grp=2 and org=3 and dst=2;"),
+          statements);
+      for (String statement : statements) {
+        project.execute(statement);
+      }
+      assertEquals(
+          List.of(List.of("1", "1", "2"), List.of("2", "3", "4")),
+          project.rows("SELECT grp,org,dst FROM mini_od ORDER BY grp"));
+    }
   }
 
   @Test
@@ -160,6 +179,68 @@ class AssignmentLostPathsIntegrationTest {
     }
   }
 
+  @Test
+  void multiFlowContinuesWithLoggingDisabled() throws Exception {
+    for (int method : new int[] {Assignment.FAST_MULTI_FLOW, Assignment.EXACT_MULTI_FLOW}) {
+      try (AssignmentTestProject project = disconnectedProject(false)) {
+        AssignmentParameters parameters = parameters(project, method);
+        parameters.setModalSplitMethodName("MNL");
+        parameters.setLogLostPaths(false);
+        String output = capture(() -> project.run(assignment(parameters, method), 2, 1));
+        assertFalse(output.contains("No path:"));
+        assertFalse(output.contains("Lost-path SQL script:"));
+        assertEquals(300, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 0.001);
+      }
+    }
+  }
+
+  @Test
+  void multiFlowCountsUnassignedRecordsSeparatelyFromCleanupKeys() throws Exception {
+    for (int method : new int[] {Assignment.FAST_MULTI_FLOW, Assignment.EXACT_MULTI_FLOW}) {
+      try (AssignmentTestProject project = disconnectedProject(false)) {
+        project.execute("ALTER TABLE mini_od ADD class INTEGER DEFAULT 0");
+        project.execute("INSERT INTO mini_od (grp, org, dst, qty, class) VALUES (1,1,4,5,1)");
+        AssignmentParameters parameters = parameters(project, method);
+        parameters.setModalSplitMethodName("Proportional");
+        parameters.setWhereStmt("(org=1 AND dst=4) OR (org=3 AND dst=2)");
+        String output = capture(() -> project.run(assignment(parameters, method), 2));
+        assertEquals(0, project.number("SELECT COUNT(*) FROM mini_paths1_header"));
+        String sql = Files.readString(script(output));
+        assertTrue(sql.contains("-- Problematic pairs: 2\n"));
+        assertTrue(sql.contains("-- Unassigned OD records: 3\n"));
+        assertTrue(sql.contains("-- Unassigned quantity (OD units): 65.0\n"));
+      }
+    }
+  }
+
+  @Test
+  void modalChoiceFailureOnFeasibleRoutesRemainsAnAssignmentError() throws Exception {
+    try (AssignmentTestProject project = disconnectedProject(false)) {
+      AssignmentParameters parameters = parameters(project, Assignment.FAST_MULTI_FLOW);
+      parameters.setLogLostPaths(false);
+      ModalSplitMethod rejectingMethod =
+          new Proportional(project) {
+            @Override
+            public boolean split(ODCell demand, List<PathsForMode> modes) {
+              assertFalse(modes.isEmpty());
+              return false;
+            }
+          };
+      FastMFAssignment assignment =
+          new FastMFAssignment(parameters) {
+            @Override
+            public ModalSplitMethod getModalSplitMethod() {
+              return rejectingMethod;
+            }
+          };
+      project.panel.prepareRun(2);
+      AssertionFailedError failure = assertThrows(AssertionFailedError.class, assignment::run);
+      assertTrue(
+          failure.getMessage().contains("Modal choice method Proportional failed for group"));
+      assertFalse(JDBCUtils.tableExists("mini_paths1_header"));
+    }
+  }
+
   private AssignmentTestProject disconnectedProject(boolean hsql) throws Exception {
     AssignmentTestProject project =
         new AssignmentTestProject(
@@ -190,13 +271,6 @@ class AssignmentLostPathsIntegrationTest {
   }
 
   private Assignment assignment(AssignmentParameters parameters, int method) {
-    ModalSplitMethod split =
-        new Proportional(parameters.getNodusProject()) {
-          @Override
-          public boolean split(ODCell demand, List<PathsForMode> modes) {
-            return modes.isEmpty() || super.split(demand, modes);
-          }
-        };
     switch (method) {
       case Assignment.ALL_OR_NOTHING:
         return new AllOrNothingAssignment(parameters) {
@@ -227,21 +301,11 @@ class AssignmentLostPathsIntegrationTest {
         return new FastMFAssignment(parameters) {
           @Override
           void displayConsoleIfNeeded() {}
-
-          @Override
-          public ModalSplitMethod getModalSplitMethod() {
-            return split;
-          }
         };
       case Assignment.EXACT_MULTI_FLOW:
         return new ExactMFAssignment(parameters) {
           @Override
           void displayConsoleIfNeeded() {}
-
-          @Override
-          public ModalSplitMethod getModalSplitMethod() {
-            return split;
-          }
         };
       case Assignment.AON_TIME_DEPENDENT:
         return new StaticAoNTimeDependentAssignment(parameters) {
