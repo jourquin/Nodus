@@ -104,6 +104,8 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.UIManager;
+import org.h2.engine.ConnectionInfo;
+import org.h2.message.DbException;
 
 /**
  * A Nodus project file is a properties file with a .nodus extension. <br>
@@ -376,13 +378,12 @@ public class NodusProject implements ShapeConstants {
     if (!readyToClose) {
       return;
     }
-    int dbEngine = monitorMainConnection ? JDBCUtils.DB_MYSQL : JDBCUtils.getDbEngine();
     try {
       if (jdbcConnectionLost) {
-        closeProjectResourcesThen(() -> continueProjectClose(dbEngine));
+        closeProjectResourcesThen(this::continueProjectClose);
       } else {
         runProjectLifecycleScriptAsync(
-            false, true, () -> closeProjectResourcesThen(() -> continueProjectClose(dbEngine)));
+            false, true, () -> closeProjectResourcesThen(this::continueProjectClose));
       }
     } catch (RuntimeException | Error failure) {
       if (restartIntegrityTester && isOpen) {
@@ -417,7 +418,7 @@ public class NodusProject implements ShapeConstants {
   }
 
   /** Continues the close workflow after saving and the optional project Groovy hook. */
-  private void continueProjectClose(int dbEngine) {
+  private void continueProjectClose() {
     boolean projectClosed = false;
     boolean closeDeferred = false;
     try {
@@ -459,7 +460,8 @@ public class NodusProject implements ShapeConstants {
         }
       }
       if (nodeLayers != null && linkLayers != null) {
-        boolean compactDatabase = shouldCompactDatabase(dbEngine);
+        boolean compactDatabase =
+            willAskForCompactOnClose() && confirmDatabaseCompaction() == JOptionPane.YES_OPTION;
 
         Connection connection = jdbcConnection;
 
@@ -478,7 +480,7 @@ public class NodusProject implements ShapeConstants {
 
           runProjectCloseTask(
               "Nodus-Database-Compactor",
-              JDBCUtils::shutdownCompact,
+              () -> compactDatabase(connection),
               () -> {
                 boolean asyncProjectClosed = false;
                 try {
@@ -592,37 +594,58 @@ public class NodusProject implements ShapeConstants {
    * @return true if the compact database prompt will be displayed on close
    */
   public boolean willAskForCompactOnClose() {
-    return isOpen() && canCompactDatabaseOnClose(JDBCUtils.getDbEngine());
+    return supportsDatabaseCompaction() && getLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, true);
   }
 
-  /** Returns true when close() should compact the embedded DB before finishing. */
-  private boolean shouldCompactDatabase(int dbEngine) {
-    if (!canCompactDatabaseOnClose(dbEngine)) {
-      return false;
-    }
-
-    int answer =
-        JOptionPane.showConfirmDialog(
-            nodusMapPanel.getMainFrame(),
-            i18n.get(NodusProject.class, "AskForCompact", "Compact database?"),
-            NodusC.APPNAME,
-            JOptionPane.YES_NO_OPTION);
-
-    return answer == JOptionPane.YES_OPTION;
+  /** Presents the database compaction confirmation on the EDT. */
+  int confirmDatabaseCompaction() {
+    return JOptionPane.showConfirmDialog(
+        nodusMapPanel.getMainFrame(),
+        i18n.get(NodusProject.class, "AskForCompact", "Compact database?"),
+        NodusC.APPNAME,
+        JOptionPane.YES_NO_OPTION);
   }
 
-  /** Returns true when the project close workflow can offer embedded DB compaction. */
-  private boolean canCompactDatabaseOnClose(int dbEngine) {
-    if (databaseServer == null
-        || (dbEngine != JDBCUtils.DB_HSQLDB && dbEngine != JDBCUtils.DB_H2)) {
+  /**
+   * Determines whether this project can run a compacting shutdown on its database.
+   *
+   * @return true for a writable H2 or HSQLDB file opened directly or through a Nodus-owned server
+   */
+  public boolean supportsDatabaseCompaction() {
+    Connection connection = jdbcConnection;
+    if (!isOpen() || connection == null || jdbcConnectionLost) {
       return false;
     }
 
-    if (!Boolean.parseBoolean(getLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, "true"))) {
+    try {
+      if (databaseServer == null && !isDirectDatabaseFile(getLocalProperty(NodusC.PROP_JDBC_URL))) {
+        return false;
+      }
+      return !connection.isClosed() && !connection.isReadOnly();
+    } catch (SQLException | DbException e) {
       return false;
     }
+  }
 
-    return true;
+  /** Matches direct file connections that this process can shut down. */
+  private static boolean isDirectDatabaseFile(String url) {
+    if (url == null) {
+      return false;
+    }
+    if (url.startsWith("jdbc:h2:")) {
+      ConnectionInfo info = new ConnectionInfo(url, null, null, null);
+      return info.isPersistent() && !info.isRemote() && !info.getProperty("AUTO_SERVER", false);
+    }
+    return url.startsWith("jdbc:hsqldb:file:");
+  }
+
+  /** Runs the confirmed shutdown on the project's connection. */
+  private static void compactDatabase(Connection connection) {
+    try (Statement statement = connection.createStatement()) {
+      statement.execute("SHUTDOWN COMPACT");
+    } catch (SQLException e) {
+      throw new IllegalStateException(e.getMessage(), e);
+    }
   }
 
   /** Saves the last-modified timestamps of node and link DBF files in the project properties. */

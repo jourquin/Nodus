@@ -149,13 +149,12 @@ over TCP. TCP clients can create tables and modify data according to their datab
 privileges, but cannot create additional databases. H2's binding is configured at
 application startup because H2 caches this setting.
 
-An explicit `jdbc.url` selects an independently managed database. Nodus passes the
-configured URL, driver, username, and password to JDBC without changing the hostname
-or URL options. It neither starts nor stops that server and does not offer server
-shutdown or compaction when the project closes. This applies to local and remote MariaDB,
-MySQL, PostgreSQL, and other JDBC databases, including separately managed HSQLDB
-and H2 instances. For a Nodus-managed built-in server, omit `jdbc.url` and
-use the port properties above instead.
+Nodus passes an explicit `jdbc.url`, driver, username, and password to JDBC as
+configured. The **Compact DB when closing** project preference offers compaction
+for writable H2 and HSQLDB files opened directly or through a Nodus-managed server.
+Nodus asks for confirmation before starting compaction. Independently managed
+servers and H2 connections using `AUTO_SERVER` retain their own shutdown policies.
+To use a Nodus-managed server, omit `jdbc.url` and use the port properties above.
 
 ### MySQL/MariaDB storage engines
 

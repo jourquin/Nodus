@@ -79,6 +79,7 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
@@ -648,6 +649,11 @@ public class NodusProjectOpenWorkflowTest {
 
     OpeningProject(Panel panel) {
       super(panel);
+    }
+
+    @Override
+    int confirmDatabaseCompaction() {
+      return JOptionPane.NO_OPTION;
     }
 
     @Override

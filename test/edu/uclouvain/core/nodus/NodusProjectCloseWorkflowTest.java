@@ -23,6 +23,7 @@ package edu.uclouvain.core.nodus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.bbn.openmap.LayerHandler;
@@ -41,6 +42,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -136,6 +140,138 @@ class NodusProjectCloseWorkflowTest {
     checkAbortedClose(JOptionPane.YES_OPTION, true);
   }
 
+  @Test
+  void confirmedH2CompactionPreservesData() throws Exception {
+    checkConfirmedCompaction("jdbc:h2:file:");
+  }
+
+  @Test
+  void confirmedH2CompactionAcceptsImplicitFileUrl() throws Exception {
+    checkConfirmedCompaction("jdbc:h2:");
+  }
+
+  @Test
+  void confirmedHsqldbCompactionPreservesData() throws Exception {
+    checkConfirmedCompaction("jdbc:hsqldb:file:");
+  }
+
+  private void checkConfirmedCompaction(String prefix) throws Exception {
+    String url = prefix + directory.resolve("direct");
+    try (Connection observer = DriverManager.getConnection(url);
+        Statement seed = observer.createStatement();
+        Fixture fixture = new Fixture(url + ";IFEXISTS=TRUE")) {
+      seed.executeUpdate("CREATE TABLE retained (id INT)");
+      try (Statement write = fixture.connection.createStatement()) {
+        write.executeUpdate("INSERT INTO retained VALUES (42)");
+      }
+      fixture.project.compactAnswer = JOptionPane.YES_OPTION;
+      assertTrue(fixture.project.supportsDatabaseCompaction());
+      assertTrue(fixture.project.willAskForCompactOnClose());
+
+      fixture.closeProject();
+      assertEquals(1, fixture.project.compactPrompts);
+      assertThrows(
+          SQLException.class,
+          () -> seed.executeQuery("SELECT id FROM retained"),
+          "SHUTDOWN COMPACT must close other connections");
+      assertFalse(fixture.project.isOpen());
+    }
+    try (Connection reopened = DriverManager.getConnection(url + ";IFEXISTS=TRUE");
+        Statement query = reopened.createStatement()) {
+      try (ResultSet rows = query.executeQuery("SELECT id FROM retained")) {
+        assertTrue(rows.next());
+        assertEquals(42, rows.getInt(1));
+      }
+      query.execute("SHUTDOWN");
+    }
+  }
+
+  @Test
+  void decliningH2CompactionClosesProjectOnly() throws Exception {
+    checkDeclinedCompaction("jdbc:h2:file:");
+  }
+
+  @Test
+  void decliningHsqldbCompactionClosesProjectOnly() throws Exception {
+    checkDeclinedCompaction("jdbc:hsqldb:file:");
+  }
+
+  private void checkDeclinedCompaction(String prefix) throws Exception {
+    String url = prefix + directory.resolve("direct");
+    try (Connection observer = DriverManager.getConnection(url);
+        Statement query = observer.createStatement();
+        Fixture fixture = new Fixture(url)) {
+      fixture.project.compactAnswer = JOptionPane.NO_OPTION;
+      assertTrue(fixture.project.willAskForCompactOnClose());
+      fixture.closeProject();
+      assertEquals(1, fixture.project.compactPrompts);
+      try (ResultSet rows = query.executeQuery("VALUES (1)")) {
+        assertTrue(rows.next());
+      }
+      assertFalse(fixture.project.isOpen());
+      query.execute("SHUTDOWN");
+    }
+  }
+
+  @Test
+  void uncheckedPreferenceSuppressesPromptForDirectFile() throws Exception {
+    String url = "jdbc:h2:file:" + directory.resolve("direct");
+    try (Connection observer = DriverManager.getConnection(url);
+        Fixture fixture = new Fixture(url)) {
+      fixture.project.setLocalProperty(NodusC.PROP_SHUTDOWN_COMPACT, false);
+      assertTrue(fixture.project.supportsDatabaseCompaction());
+      assertFalse(fixture.project.willAskForCompactOnClose());
+      fixture.closeProject();
+      assertEquals(0, fixture.project.compactPrompts);
+      assertTrue(observer.isValid(1));
+    }
+  }
+
+  @Test
+  void readOnlyH2FileDoesNotOfferCompaction() throws Exception {
+    checkReadOnlyFile("jdbc:h2:file:", "ACCESS_MODE_DATA=r");
+  }
+
+  @Test
+  void readOnlyHsqldbFileDoesNotOfferCompaction() throws Exception {
+    checkReadOnlyFile("jdbc:hsqldb:file:", "readonly=true;shutdown=true");
+  }
+
+  private void checkReadOnlyFile(String prefix, String readOnlySetting) throws Exception {
+    String url = prefix + directory.resolve("read_only");
+    try (Connection seed = DriverManager.getConnection(url);
+        Statement statement = seed.createStatement()) {
+      statement.executeUpdate("CREATE TABLE retained (id INT)");
+      statement.execute("SHUTDOWN");
+    }
+    try (Fixture fixture = new Fixture(url + ";" + readOnlySetting + ";IFEXISTS=TRUE")) {
+      assertFalse(fixture.project.supportsDatabaseCompaction());
+      assertFalse(fixture.project.willAskForCompactOnClose());
+      fixture.closeProject();
+      assertEquals(0, fixture.project.compactPrompts);
+    }
+  }
+
+  @Test
+  void sharedAndInMemoryUrlsDoNotOfferCompaction() throws Exception {
+    try (Fixture fixture = new Fixture()) {
+      // Exercise the configured URL check without opening any listeners or shared databases.
+      for (String url :
+          List.of(
+              "jdbc:h2:mem:fixture",
+              "jdbc:h2:tcp://localhost:9092/fixture",
+              "jdbc:h2:ssl://localhost:9092/fixture",
+              "jdbc:h2:file:./fixture;AUTO_SERVER=TRUE",
+              "jdbc:hsqldb:hsql://localhost:9001/fixture")) {
+        fixture.project.setLocalProperty(NodusC.PROP_JDBC_URL, url);
+        assertFalse(fixture.project.supportsDatabaseCompaction(), url);
+        assertFalse(fixture.project.willAskForCompactOnClose(), url);
+      }
+      fixture.closeProject();
+      assertEquals(0, fixture.project.compactPrompts);
+    }
+  }
+
   private void checkAbortedClose(int answer, boolean failSave) throws Exception {
     try (Fixture fixture = new Fixture()) {
       fixture.project.dirty = true;
@@ -185,8 +321,7 @@ class NodusProjectCloseWorkflowTest {
     final AtomicInteger opened = new AtomicInteger();
     final AtomicInteger disposed = new AtomicInteger();
     final Panel panel = new Panel();
-    final Connection connection =
-        DriverManager.getConnection("jdbc:h2:mem:close_" + UUID.randomUUID());
+    final Connection connection;
     final ClosingProject project = new ClosingProject(panel, this);
     final NodusProject next;
     volatile boolean callbacksOnEdt = true;
@@ -196,11 +331,17 @@ class NodusProjectCloseWorkflowTest {
     boolean failSave;
 
     Fixture() throws Exception {
+      this("jdbc:h2:mem:close_" + UUID.randomUUID());
+    }
+
+    Fixture(String url) throws Exception {
+      connection = DriverManager.getConnection(url);
       assertTrue(JDBCUtils.setConnection(connection));
       connection.setAutoCommit(false);
       final Properties properties = new Properties();
       properties.setProperty(NodusC.PROP_PROJECT_DOTPATH, directory + File.separator);
       properties.setProperty(NodusC.PROP_PROJECT_DOTNAME, "first");
+      properties.setProperty(NodusC.PROP_JDBC_URL, url);
       next =
           new NodusProject(null) {
             @Override
@@ -267,18 +408,22 @@ class NodusProjectCloseWorkflowTest {
       assertTrue(ProjectLocker.createLock(project));
     }
 
-    @Override
-    public void close() throws Exception {
+    void closeProject() throws Exception {
       hookRelease.countDown();
       cleanupRelease.countDown();
+      if (project.isOpen()) {
+        project.dirty = false;
+        final CountDownLatch closed = new CountDownLatch(1);
+        SwingUtilities.invokeAndWait(() -> project.close(closed::countDown));
+        assertTrue(closed.await(5, TimeUnit.SECONDS), "Close worker must finish before teardown");
+      }
+      SwingUtilities.invokeAndWait(() -> {});
+    }
+
+    @Override
+    public void close() throws Exception {
       try {
-        if (project.isOpen()) {
-          project.dirty = false;
-          final CountDownLatch closed = new CountDownLatch(1);
-          SwingUtilities.invokeAndWait(() -> project.close(closed::countDown));
-          assertTrue(closed.await(5, TimeUnit.SECONDS), "Close worker must finish before teardown");
-        }
-        SwingUtilities.invokeAndWait(() -> {});
+        closeProject();
       } finally {
         ProjectLocker.releaseLock();
         JDBCUtils.setConnection(null);
@@ -292,6 +437,8 @@ class NodusProjectCloseWorkflowTest {
     final Fixture fixture;
     boolean dirty;
     int answer;
+    int compactAnswer = JOptionPane.NO_OPTION;
+    int compactPrompts;
 
     ClosingProject(Panel panel, Fixture fixture) {
       super(panel);
@@ -306,6 +453,13 @@ class NodusProjectCloseWorkflowTest {
     @Override
     protected int confirmLayerSaveOnClose() {
       return answer;
+    }
+
+    @Override
+    int confirmDatabaseCompaction() {
+      assertTrue(SwingUtilities.isEventDispatchThread());
+      compactPrompts++;
+      return compactAnswer;
     }
 
     @Override

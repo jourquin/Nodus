@@ -478,10 +478,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     gbcCompactCheckBox.gridx = 0;
     gbcCompactCheckBox.gridy = 13;
     mainPanel.add(compactCheckBox, gbcCompactCheckBox);
-    if (JDBCUtils.getDbEngine() != JDBCUtils.DB_HSQLDB
-        && JDBCUtils.getDbEngine() != JDBCUtils.DB_H2) {
-      compactCheckBox.setEnabled(false);
-    }
+    compactCheckBox.setEnabled(nodusProject.supportsDatabaseCompaction());
 
     mainPanel.add(cancelButton, cancelButtonConstraints);
     mainPanel.add(okButton, okButtonConstraints);

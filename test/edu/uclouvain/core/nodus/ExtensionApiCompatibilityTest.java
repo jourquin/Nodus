@@ -66,6 +66,10 @@ class ExtensionApiCompatibilityTest {
         current.remove("public int edu.uclouvain.core.nodus.NodusMapPanel.getSqlBatchSize()"));
     assertTrue(
         current.remove("public int edu.uclouvain.core.nodus.NodusProject.getSqlBatchSize()"));
+    // Project preferences and the close workflow share this additive eligibility check.
+    assertTrue(
+        current.remove(
+            "public boolean edu.uclouvain.core.nodus.NodusProject.supportsDatabaseCompaction()"));
     assertEquals(Files.readAllLines(FIXTURES.resolve("api.txt")), current);
   }
 
