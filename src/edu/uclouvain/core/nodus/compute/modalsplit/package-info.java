@@ -63,9 +63,10 @@
  * mode/means, retains the cheapest admissible modal costs and fits each commodity group. Scratch
  * tables are removed on close; routing does not publish scenario result tables. Only after all
  * groups succeed are coefficients and optional OD/group pivots written to the named database table.
- * The source file supplies transport costs and receives the {@code @paramTable} pointer. The
- * estimation report is written as {@code <cost-file-stem>_params.html} in the project directory.
- * Existing tables require confirmation before replacement. Older cost files with embedded
+ * The source file supplies transport costs. The output receives the {@code @paramTable} pointer in
+ * a separate copy when a destination is entered, or in the source file when the field is blank.
+ * The parameter table and HTML report are named after the output file. Existing destination files
+ * and parameter tables require confirmation before replacement. Older cost files with embedded
  * coefficients remain readable when they have no table pointer.
  *
  * <p>{@link edu.uclouvain.core.nodus.compute.modalsplit.ModalChoiceEstimationDlg} owns the Swing

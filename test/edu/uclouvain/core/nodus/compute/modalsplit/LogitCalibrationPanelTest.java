@@ -22,13 +22,19 @@
 package edu.uclouvain.core.nodus.compute.modalsplit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.bbn.openmap.Environment;
 import java.awt.Component;
 import java.awt.Container;
 import java.util.List;
 import java.util.Map;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JSpinner;
 import javax.swing.JTable;
 import javax.swing.SwingUtilities;
@@ -36,6 +42,75 @@ import org.junit.jupiter.api.Test;
 
 /** Checks draft validation and model-specific controls independently of assignment settings. */
 class LogitCalibrationPanelTest {
+  @Test
+  void separateSelectorUpdatesOnlyTheSelectedModeAndLeavesTheGridAsText() throws Exception {
+    SwingUtilities.invokeAndWait(
+        () -> {
+          LogitCalibrationPanel panel =
+              new LogitCalibrationPanel(List.of("road", "rail"), LogitCalibrationSettings.NONE);
+          JTable table = find(panel, JTable.class);
+          JComboBox<?> selector = find(panel, JComboBox.class);
+          assertFalse(SwingUtilities.isDescendingFrom(selector, table));
+          assertEquals(0, table.getSelectedRow());
+          assertEquals("", table.getValueAt(0, 1));
+          assertFalse(table.editCellAt(0, 1));
+          JLabel empty =
+              assertInstanceOf(
+                  JLabel.class,
+                  table.prepareRenderer(table.getCellRenderer(0, 1), 0, 1));
+          assertEquals(
+              Environment.getI18n().get(LogitCalibrationPanel.class, "NoTable", "No OD table"),
+              empty.getText());
+          assertThrows(IllegalArgumentException.class, panel::getTableMapping);
+          JLabel placeholder =
+              assertInstanceOf(
+                  JLabel.class,
+                  selector
+                      .getRenderer()
+                      .getListCellRendererComponent(new JList<>(), null, -1, false, false));
+          assertEquals(
+              Environment.getI18n()
+                  .get(LogitCalibrationPanel.class, "ChooseTable", "Choose an OD table…"),
+              placeholder.getText());
+          selector.setSelectedItem("road");
+          assertEquals(Map.of(1, "road"), panel.getTableMapping());
+          JLabel selected =
+              assertInstanceOf(
+                  JLabel.class, table.prepareRenderer(table.getCellRenderer(0, 1), 0, 1));
+          assertEquals("road", selected.getText());
+          assertFalse(table.isEditing());
+
+          table.setRowSelectionInterval(1, 1);
+          assertEquals("", selector.getSelectedItem());
+          assertEquals(Map.of(1, "road"), panel.getTableMapping());
+          selector.setSelectedItem("rail");
+          assertEquals(Map.of(1, "road", 2, "rail"), panel.getSettings().getTables());
+          selector.setSelectedItem("");
+          assertEquals(Map.of(1, "road"), panel.getTableMapping());
+          table.clearSelection();
+          assertFalse(selector.isEnabled());
+        });
+  }
+
+  @Test
+  void switchingModesPreservesANameMissingFromTheChoicesUntilItIsCleared() throws Exception {
+    SwingUtilities.invokeAndWait(
+        () -> {
+          LogitCalibrationPanel panel =
+              new LogitCalibrationPanel(List.of("road"), Map.of(1, "road", 2, "old_rail"));
+          JTable table = find(panel, JTable.class);
+          JComboBox<?> selector = find(panel, JComboBox.class);
+          table.setRowSelectionInterval(1, 1);
+          assertEquals("old_rail", selector.getSelectedItem());
+          table.setRowSelectionInterval(0, 0);
+          assertEquals("road", selector.getSelectedItem());
+          assertEquals(Map.of(1, "road", 2, "old_rail"), panel.getTableMapping());
+          table.setRowSelectionInterval(1, 1);
+          selector.setSelectedItem("");
+          assertEquals(Map.of(1, "road"), panel.getTableMapping());
+        });
+  }
+
   @Test
   void resultComparisonReusesMappingsWithoutRequiringAReferenceMode() throws Exception {
     SwingUtilities.invokeAndWait(

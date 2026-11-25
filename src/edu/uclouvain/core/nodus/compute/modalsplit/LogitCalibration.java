@@ -78,8 +78,8 @@ import java.util.function.BooleanSupplier;
  * <p>Each commodity group is fitted separately, pooling its OD classes while retaining their
  * class-specific route costs. The dialog stores successful estimates in a database parameter table,
  * writes an HTML report named {@code <cost-file-stem>_params.html}, and adds only
- * {@code @paramTable} to the selected cost file. The earlier cost-file overloads remain available
- * for existing scripted callers. Successful saving also refreshes the caller's in-memory cost
+ * {@code @paramTable} to the output cost file. The earlier cost-file overloads remain available for
+ * existing scripted callers. A successful in-place save also refreshes the caller's in-memory cost
  * properties. The caller's assignment OD selection, scenario and routing controls remain unchanged.
  * Exclusions apply only to estimation and never filter a subsequent assignment's demand.
  *
@@ -194,6 +194,8 @@ public final class LogitCalibration implements AutoCloseable {
     }
     settings.validate();
     target.checkUnchanged();
+    final java.nio.file.Path htmlFile =
+        reportPath(outputTable == null ? target.source : target.file);
     final byte[] original = target.original;
     Properties sourceCosts = new Properties();
     sourceCosts.load(new ByteArrayInputStream(original));
@@ -230,10 +232,14 @@ public final class LogitCalibration implements AutoCloseable {
     if (observations.isEmpty()) {
       if (outputTable != null) {
         writeReport(
-            method
-                + " calibration: no usable OD observations remain. No coefficients were saved.\n"
-                + skippedSummary
-                + skippedDetails);
+            htmlFile,
+            ModalEstimationReport.document(
+                "<h2>No usable observations</h2><p>No coefficients were saved.</p>",
+                method
+                    + " calibration: no usable OD observations remain."
+                    + " No coefficients were saved.\n"
+                    + skippedSummary
+                    + skippedDetails));
       }
       return false;
     }
@@ -339,7 +345,7 @@ public final class LogitCalibration implements AutoCloseable {
                   outputTable,
                   fitted,
                   target,
-                  reportPath(),
+                  htmlFile,
                   report,
                   () ->
                       !Thread.currentThread().isInterrupted()
@@ -352,11 +358,12 @@ public final class LogitCalibration implements AutoCloseable {
           if (merge != null) {
             merge.complete();
           }
-          parameters.getCostFunctions().clear();
-          parameters.getCostFunctions().putAll(saved);
+          if (!target.isCopy()) {
+            parameters.getCostFunctions().clear();
+            parameters.getCostFunctions().putAll(saved);
+          }
         }
       } else {
-        java.nio.file.Path htmlFile = reportPath();
         byte[] previousHtml = Files.exists(htmlFile) ? Files.readAllBytes(htmlFile) : null;
         String html = ModalEstimationReport.document(htmlLayers, report.toString());
         Properties saved;
@@ -430,18 +437,37 @@ public final class LogitCalibration implements AutoCloseable {
       String mergedMatrix,
       boolean overwrite)
       throws Exception {
+    java.nio.file.Path source = parameters.getCostFunctionsPath();
+    return estimateToTable(
+        exact,
+        table,
+        pivots,
+        maxAbs,
+        mergedMatrix,
+        overwrite,
+        LogitCostFile.target(source, source));
+  }
+
+  /** Saves table-backed estimates using the source and the confirmed output snapshot. */
+  boolean estimateToTable(
+      boolean exact,
+      String table,
+      boolean pivots,
+      double maxAbs,
+      String mergedMatrix,
+      boolean overwrite,
+      LogitCostFile.Target target)
+      throws Exception {
     outputTable = ModalParameterTable.validateName(table);
     mergedTable = ModalMatrixMerge.validateName(mergedMatrix, settings.getTables().values(), table);
     overwriteMergedTable = overwrite;
     estimatePivots = pivots;
     pivotMaxAbs = ModalParameterTable.validatePivotMaxAbs(maxAbs);
-    java.nio.file.Path report = reportPath();
+    java.nio.file.Path report = reportPath(target.file);
     if (Files.exists(report) && (!Files.isRegularFile(report) || !Files.isWritable(report))) {
       throw new java.io.IOException("Cannot replace estimation report: " + report);
     }
-    return estimate(
-        exact,
-        LogitCostFile.target(parameters.getCostFunctionsPath(), parameters.getCostFunctionsPath()));
+    return estimate(exact, target);
   }
 
   /**
@@ -810,22 +836,12 @@ public final class LogitCalibration implements AutoCloseable {
     return result;
   }
 
-  private java.nio.file.Path reportPath() {
-    return reportPath(parameters.getCostFunctionsPath());
-  }
-
-  static java.nio.file.Path reportPath(java.nio.file.Path sourceCostFile) {
-    java.nio.file.Path costFile = sourceCostFile.toAbsolutePath();
+  static java.nio.file.Path reportPath(java.nio.file.Path outputCostFile) {
+    java.nio.file.Path costFile = outputCostFile.toAbsolutePath();
     String name = costFile.getFileName().toString();
     String stem =
         name.endsWith(".costs") ? name.substring(0, name.length() - ".costs".length()) : name;
     return costFile.resolveSibling(stem + "_params.html");
-  }
-
-  private void writeReport(String contents) throws Exception {
-    // An empty calibration's outcome must remain visible even when workflow detail is hidden.
-    writeReport(reportPath(), ModalEstimationReport.document(
-        "<h2>No usable observations</h2><p>No coefficients were saved.</p>", contents));
   }
 
   private static void writeReport(java.nio.file.Path destination, String contents)

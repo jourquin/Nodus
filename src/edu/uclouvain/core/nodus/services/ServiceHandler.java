@@ -250,14 +250,7 @@ public class ServiceHandler {
     linkLayer = nodusProject.getLinkLayers();
     nodeLayer = nodusProject.getNodeLayers();
 
-    // Prepare table names
-    String defValue =
-        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_SERVICES;
-    String name = nodusProject.getLocalProperty(NodusC.PROP_SERVICES_TABLE_PREFIX, defValue);
-
-    servicesHeaderTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_HEADER);
-    servicesLinksTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_SERVICES_LINKS);
-    serviceStopsTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_SERVICES_STOPS);
+    refreshTableNames();
 
     // Load the stored services
     loadService();
@@ -266,6 +259,16 @@ public class ServiceHandler {
     if (withGUI) {
       serviceEditorDlg = new ServicesDlg(this);
     }
+  }
+
+  /** Updates storage names after a project prefix change while retaining the service draft. */
+  public void refreshTableNames() {
+    String defaultName =
+        nodusProject.getLocalProperty(NodusC.PROP_PROJECT_DOTNAME) + NodusC.SUFFIX_SERVICES;
+    String name = nodusProject.getLocalProperty(NodusC.PROP_SERVICES_TABLE_PREFIX, defaultName);
+    servicesHeaderTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_HEADER);
+    servicesLinksTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_SERVICES_LINKS);
+    serviceStopsTableName = JDBCUtils.getCompliantIdentifier(name + NodusC.SUFFIX_SERVICES_STOPS);
   }
 
   /**

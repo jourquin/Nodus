@@ -200,6 +200,11 @@ public class AssignmentTestProject extends NodusProject implements AutoCloseable
     panel.progressHandler = handler;
   }
 
+  /** Prepares the worker barrier for a standalone computation. */
+  public void prepareRun(int threads) {
+    panel.prepareRun(threads);
+  }
+
   /** Reads the original reference case outputs in a reproducible order. */
   public List<List<String>> snapshot() throws Exception {
     List<List<String>> result =

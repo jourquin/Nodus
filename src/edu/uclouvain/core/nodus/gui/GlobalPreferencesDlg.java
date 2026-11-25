@@ -137,7 +137,7 @@ public class GlobalPreferencesDlg extends EscapeDialog {
    * @param nodusMapPanel The Nodus map panel.
    */
   public GlobalPreferencesDlg(NodusMapPanel nodusMapPanel) {
-    setTitle(i18n.get(GlobalPreferencesDlg.class, "Global_preferences", "Global preferences"));
+    setTitle(i18n.get(GlobalPreferencesDlg.class, "Global_preferences", "Nodus preferences"));
     this.nodusMapPanel = nodusMapPanel;
 
     getContentPane().setLayout(new BorderLayout());

@@ -596,3 +596,5 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Continue Fast and Exact multi-flow assignments past OD cells with no feasible route 
 - Load the SQL console table list without scanning indexes for exact statistics
 - Offer confirmed compaction when closing a project that opens a writable H2 or HSQLDB file directly
+- Add a destination cost file and a dedicated observed OD table selector to modal choice estimation
+- Preview and confirm table renames when table names change in Project preferences

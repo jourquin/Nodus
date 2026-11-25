@@ -27,8 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
 import edu.uclouvain.core.nodus.compute.assign.AssignmentParameters;
+import edu.uclouvain.core.nodus.compute.assign.AssignmentTestProject;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,9 +45,60 @@ import java.util.Properties;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 class ModalParameterTableTest {
   @TempDir Path directory;
+
+  @Test
+  @ResourceLock("JDBCUtils")
+  void standaloneEstimationSavesAReusableCalibratedCopy() throws Exception {
+    String original =
+        "# Master transport costs\nld.1,1=0\nul.1,1=0\ntr.1,1=0\nmv.1,1=BASECOST\n"
+            + "ld.2,1=0\nul.2,1=0\ntr.2,1=0\nmv.2,1=BASECOST\n";
+    Path source = directory.resolve("master.costs");
+    Files.writeString(source, original);
+    for (boolean hsql : new boolean[] {false, true}) {
+      try (AssignmentTestProject project =
+          new AssignmentTestProject(
+              directory,
+              6,
+              new double[][] {
+                {11, 1, 2, 1, 0}, {12, 1, 2, 1, 0},
+                {13, 3, 4, 1, 0}, {14, 3, 4, 2, 0},
+                {15, 5, 6, 1, 0}, {16, 5, 6, 4, 0}
+              },
+              hsql)) {
+        for (int row : new int[] {1, 3, 5}) {
+          project.getLinkLayers()[0].getModel().setValueAt(2.0, row, NodusC.DBF_IDX_MODE);
+        }
+        project.execute("CREATE TABLE road (grp INT,org INT,dst INT,qty DOUBLE)");
+        project.execute("CREATE TABLE rail (grp INT,org INT,dst INT,qty DOUBLE)");
+        project.execute("INSERT INTO road VALUES (0,1,2,20), (0,3,4,80), (0,5,6,320)");
+        project.execute("INSERT INTO rail VALUES (0,1,2,30), (0,3,4,30), (0,5,6,30)");
+        AssignmentParameters parameters = project.parameters(1);
+        parameters.setModalSplitMethodName("MNL");
+        parameters.setCostFunctions(source.getFileName().toString());
+        Path output = directory.resolve("calibrated.costs");
+        LogitCostFile.Target target = LogitCostFile.target(source, output);
+        assertEquals(hsql, target.requiresConfirmation());
+        String table = ModalParameterTable.nameForCostFile(output.getFileName().toString());
+        project.prepareRun(1);
+        try (LogitCalibration estimation =
+            new LogitCalibration(
+                parameters, new LogitCalibrationSettings(1, Map.of(1, "road", 2, "rail")))) {
+          assertTrue(estimation.estimateToTable(false, table, false, 8, "", false, target));
+        }
+        assertEquals(original, Files.readString(source));
+        assertEquals(original + "@paramTable=calibrated_params\n", Files.readString(output));
+        assertNull(parameters.getCostFunctions().getProperty("@paramTable"));
+        assertTrue(Files.exists(directory.resolve("calibrated_params.html")));
+        assertFalse(Files.exists(directory.resolve("master_params.html")));
+        assertEquals(
+            "MNL", ModalParameterTable.methodForCostFile(project.getMainJDBCConnection(), output));
+      }
+    }
+  }
 
   @Test
   void costFileStemDeterminesTheParameterTableName() {
@@ -482,6 +535,38 @@ class ModalParameterTableTest {
         assertTrue(parameter.next());
         assertEquals("MNL", parameter.getString(1));
       }
+    }
+  }
+
+  @Test
+  void cancellationAfterCopyInstallationRemovesTheNewFile() throws Exception {
+    try (Connection connection =
+        DriverManager.getConnection("jdbc:h2:mem:" + UUID.randomUUID(), "sa", "")) {
+      Properties old = new Properties();
+      old.setProperty(ModalParameterTable.METHOD, "MNL");
+      ModalParameterTable.save(connection, "calibrated_params", old);
+      Path source = directory.resolve("master.costs");
+      Path output = directory.resolve("calibrated.costs");
+      Path reportFile = directory.resolve("calibrated_params.html");
+      Files.writeString(source, "mv.1,1=BASECOST\n");
+      LogitCostFile.Target target = LogitCostFile.target(source, output);
+      Properties replacement = new Properties();
+      replacement.setProperty(ModalParameterTable.METHOD, "MNP");
+      int[] checks = {0};
+      assertThrows(
+          java.util.concurrent.CancellationException.class,
+          () ->
+              LogitCalibration.saveTableOutputs(
+                  connection,
+                  "calibrated_params",
+                  replacement,
+                  target,
+                  reportFile,
+                  new StringBuilder("# new report\n"),
+                  () -> ++checks[0] == 1));
+      assertEquals("mv.1,1=BASECOST\n", Files.readString(source));
+      assertFalse(Files.exists(output));
+      assertFalse(Files.exists(reportFile));
     }
   }
 

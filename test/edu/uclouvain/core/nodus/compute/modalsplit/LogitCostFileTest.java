@@ -168,6 +168,50 @@ class LogitCostFileTest {
   }
 
   @Test
+  void tableBackedCopyPreservesSourceAndReplacesOnlyThePointer() throws Exception {
+    Path source = directory.resolve("uncalibrated.costs");
+    for (String end : new String[] {"\n", "\r\n", "\r"}) {
+      String body =
+          String.join(
+                  end,
+                  "# Coût de transport",
+                  "mv.1,1 = LENGTH * \\",
+                  "    UNITCOST",
+                  "UNITCOST = 3",
+                  "# BEGIN NODUS ESTIMATED MNL",
+                  "log(cost).1.0 = -2",
+                  "# END NODUS ESTIMATED MNL")
+              + end;
+      String master = body + "@paramTable = old_" + "\\" + end + "    params" + end;
+      Files.writeString(source, master, StandardCharsets.ISO_8859_1);
+      Path output = directory.resolve("calibrated.costs");
+      Properties saved =
+          LogitCostFile.saveParameterTable(
+              LogitCostFile.target(source, output), "calibrated_params");
+      assertEquals("calibrated_params", saved.getProperty("@paramTable"));
+      assertEquals("LENGTH * UNITCOST", saved.getProperty("mv.1,1"));
+      assertEquals(master, Files.readString(source, StandardCharsets.ISO_8859_1));
+      assertEquals(
+          body + "@paramTable=calibrated_params" + end,
+          Files.readString(output, StandardCharsets.ISO_8859_1));
+    }
+  }
+
+  @Test
+  void tableBackedCopyRejectsADestinationCreatedAfterSelection() throws Exception {
+    Path source = directory.resolve("master.costs");
+    Files.writeString(source, "mv.1,1 = 3\n");
+    Path output = directory.resolve("calibrated.costs");
+    LogitCostFile.Target target = LogitCostFile.target(source, output);
+    Files.writeString(output, "# Another run created this file\n");
+    assertThrows(
+        java.io.IOException.class,
+        () -> LogitCostFile.saveParameterTable(target, "calibrated_params"));
+    assertEquals("# Another run created this file\n", Files.readString(output));
+    assertEquals("mv.1,1 = 3\n", Files.readString(source));
+  }
+
+  @Test
   void saveAsDoesNotOverwriteANewOrEditedDestinationAfterSelection() throws Exception {
     Path source = directory.resolve("uncalibrated.costs");
     Files.writeString(source, "mv.1,1 = 3\n");

@@ -36,6 +36,9 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -62,10 +65,11 @@ import javax.swing.SwingWorker;
  * changes its OD selection or publishes scenario results.
  *
  * <p>Estimation uses the selected source cost file without numbered scenario overrides. A database
- * table named after the cost file receives behavioral parameters and optional bounded OD/group
- * pivots. A single {@code @paramTable} key is written to the selected cost file, and diagnostics
- * are saved as {@code <cost-file-stem>_params.html} in the project directory. An existing table
- * requires confirmation. An optional merged OD table sums the selected modal matrices by commodity
+ * table named after the output cost file receives behavioral parameters and optional bounded
+ * OD/group pivots. The output is either a copy with the {@code @paramTable} pointer or, if the
+ * destination field is blank, an update to the source file. Diagnostics are saved as {@code
+ * <output-stem>_params.html} in the project directory. Replacing an existing destination file or
+ * table requires confirmation. An optional merged OD table sums the modal matrices by commodity
  * group, origin and destination for later selection in Assignment; replacing its contents also
  * offers cancel, overwrite or skip when the destination already exists. The isolated routing pass
  * always performs one search per mode/means without cost markup. Legacy scenario, iteration and
@@ -97,8 +101,10 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
   private final NodusProject project;
   /** Model selector whose index maps to the stable identifiers in {@link #METHODS}. */
   private final JComboBox<String> method = new JComboBox<>();
-  /** Existing project cost file supplying transport costs and receiving the table reference. */
+  /** Existing project file supplying transport costs. */
   private final JComboBox<String> costFile = new JComboBox<>();
+  /** Optional name for a calibrated copy in the project folder. */
+  private final JTextField destinationCosts = new JTextField(24);
   /** Optional destination for summed modal demand, for later selection in Assignment. */
   private final JTextField mergedMatrix = new JTextField(24);
   /** Fast or exact multi-flow algorithm used to compute modal route costs. */
@@ -208,11 +214,9 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     tooltip(
         costFile,
         "costFile",
-        "<html>Choose the existing file supplying transport costs and receiving @paramTable."
-            + "<br>Its name without .costs plus _params names the parameter table."
-            + "<br>Base and commodity/class definitions apply;"
-            + " numbered scenario"
-            + " overrides are ignored.</html>");
+        "<html>Choose the existing file supplying transport costs."
+            + "<br>Base and commodity/class definitions apply."
+            + " Numbered scenario overrides are ignored.</html>");
     tooltip(
         routing,
         "routing",
@@ -231,6 +235,17 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     JPanel controls = new JPanel(new GridLayout(0, 2, 12, 8));
     addControl(controls, text("Method", "Modal-choice method:"), method);
     addControl(controls, text("Costs", "Source cost functions:"), costFile);
+    destinationCosts.setText(project.getLocalProperty(PREFIX + "destinationCosts", ""));
+    tooltip(
+        destinationCosts,
+        "destinationCosts",
+        "<html>Enter a file name to save a calibrated copy in the project folder."
+            + "<br>The destination name also names the parameter table and report."
+            + "<br>Leave blank to update the source cost file.</html>");
+    addControl(
+        controls,
+        text("DestinationCosts", "Destination cost functions (optional):"),
+        destinationCosts);
     mergedMatrix.setText(project.getLocalProperty(PREFIX + "mergedMatrix", ""));
     tooltip(
         mergedMatrix,
@@ -341,6 +356,38 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     return new JSpinner(new SpinnerNumberModel(saved, min, max, step));
   }
 
+  /** Resolves a project-local destination and snapshots it before any overwrite prompt. */
+  private LogitCostFile.Target outputTarget(Path source) throws IOException {
+    String name = destinationCosts.getText().strip();
+    if (name.isEmpty()) {
+      return LogitCostFile.target(source, source);
+    }
+    if (!name.endsWith(NodusC.TYPE_COSTS)) {
+      name += NodusC.TYPE_COSTS;
+    }
+    try {
+      ModalParameterTable.nameForCostFile(name);
+    } catch (IllegalArgumentException failure) {
+      throw new IllegalArgumentException(
+          text(
+              "InvalidDestinationCosts",
+              "Enter a file name with up to 57 characters before .costs. Use letters A–Z,"
+                  + " digits, spaces, underscores, hyphens, ampersands or parentheses."));
+    }
+    Path output = source.resolveSibling(name);
+    if (source.getFileName().toString().equalsIgnoreCase(name)
+        || (Files.exists(output) && Files.isSameFile(source, output))) {
+      throw new IllegalArgumentException(
+          text(
+              "SameDestinationCosts", "Choose a destination different from the source cost file."));
+    }
+    if (Files.isSymbolicLink(output)) {
+      throw new IllegalArgumentException(
+          text("LinkedDestinationCosts", "Choose a regular file for the destination."));
+    }
+    return LogitCostFile.target(source, output);
+  }
+
   /**
    * Commits the draft, persists valid preferences and starts one background estimation.
    *
@@ -358,6 +405,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     final boolean openReport = displayReport.isSelected();
     final String table;
     final String selectedCostFile;
+    final LogitCostFile.Target target;
     final double maxAbs;
     final String mergedTable;
     try {
@@ -373,7 +421,8 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
       parameters.setModalSplitMethodName(selectedMethod());
       selectedCostFile = costFile.getSelectedItem().toString();
       parameters.setCostFunctions(selectedCostFile);
-      table = ModalParameterTable.nameForCostFile(selectedCostFile);
+      target = outputTarget(parameters.getCostFunctionsPath());
+      table = ModalParameterTable.nameForCostFile(target.file.getFileName().toString());
       mergedTable =
           ModalMatrixMerge.validateName(
               mergedMatrix.getText(), settings.getTables().values(), table);
@@ -385,6 +434,18 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
       return;
     }
     if (!mapPanel.getAssignmentMenuItem().isEnabled()) {
+      return;
+    }
+    if (target.requiresConfirmation()
+        && JOptionPane.showConfirmDialog(
+                this,
+                text("OverwriteCostFile", "The destination cost file already exists. Replace it?")
+                    + "\n"
+                    + target.file.getFileName(),
+                getTitle(),
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE)
+            != JOptionPane.YES_OPTION) {
       return;
     }
     boolean tableExists;
@@ -442,6 +503,8 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
     project.setLocalProperty(PREFIX + "mergedMatrix", mergedTable);
     project.setLocalProperty(PREFIX + "method", selectedMethod());
     project.setLocalProperty(PREFIX + "costFile", selectedCostFile);
+    project.setLocalProperty(
+        PREFIX + "destinationCosts", target.isCopy() ? target.file.getFileName().toString() : "");
     project.setLocalProperty(PREFIX + "exact", exact);
     project.setLocalProperty(PREFIX + "detour", detour.getValue().toString());
     project.setLocalProperty(PREFIX + "threads", threads.getValue().toString());
@@ -457,7 +520,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
         try (LogitCalibration calibration = new LogitCalibration(parameters, settings)) {
           calibration.setConditional(conditionalFit);
           return calibration.estimateToTable(
-              exact, table, pivots, maxAbs, mergeOutput, overwriteMerge);
+              exact, table, pivots, maxAbs, mergeOutput, overwriteMerge, target);
         }
       }
 
@@ -469,8 +532,7 @@ public final class ModalChoiceEstimationDlg extends EscapeDialog {
           if (get()) {
             mapPanel.getSoundPlayer().play(SoundPlayer.SOUND_OK);
             if (openReport) {
-              new HelpBrowser().launchBrowser(
-                  LogitCalibration.reportPath(parameters.getCostFunctionsPath()).toUri());
+              new HelpBrowser().launchBrowser(LogitCalibration.reportPath(target.file).toUri());
             }
           } else {
             mapPanel.getSoundPlayer().play(SoundPlayer.SOUND_FAILURE);

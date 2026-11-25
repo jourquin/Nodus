@@ -25,6 +25,7 @@ import com.bbn.openmap.Environment;
 import com.bbn.openmap.util.I18n;
 import edu.uclouvain.core.nodus.NodusC;
 import edu.uclouvain.core.nodus.NodusProject;
+import edu.uclouvain.core.nodus.ProjectTableNames;
 import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import edu.uclouvain.core.nodus.swing.EscapeDialog;
@@ -40,10 +41,12 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FileFilter;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -51,7 +54,9 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
@@ -389,7 +394,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     highlightedAreaCheckBoxConstraint.gridy = 11;
     mainPanelGridBagLayout.columnWeights = new double[] {0.0, 1.0, 0.0, 0.0, 0.0};
     mainPanel.setLayout(mainPanelGridBagLayout);
-    setTitle(i18n.get(ProjectPreferencesDlg.class, "Project_properties", "Project properties"));
+    setTitle(i18n.get(ProjectPreferencesDlg.class, "Project_preferences", "Project preferences"));
     setModal(true);
 
     cancelButton.setText(i18n.get(ProjectPreferencesDlg.class, "Cancel", "Cancel"));
@@ -535,7 +540,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
             0));
 
     excLabel.setText(
-        i18n.get(ProjectPreferencesDlg.class, "Exclusions_table", "Exclusions table:"));
+        i18n.get(ProjectPreferencesDlg.class, "Exclusions_table", "Node rules table:"));
     excTextField.setHorizontalAlignment(SwingConstants.LEFT);
     mainPanel.add(
         excTextField,
@@ -770,6 +775,9 @@ public class ProjectPreferencesDlg extends EscapeDialog {
    * @param e ActionEvent
    */
   private void okButton_actionPerformed(ActionEvent e) {
+    if (!confirmAndApplyTableNames()) {
+      return;
+    }
 
     String odTableName = "";
     if (odTablesCombo.getSelectedItem() != null) {
@@ -777,10 +785,6 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     }
 
     final String costFileName = valueOf(costFilesCombo.getSelectedItem()).trim();
-    final String excTable = excTextField.getText().trim();
-    final String vNetTablePrefix = virtNetTextField.getText().trim();
-    final String pathTablePrefix = pathTextField.getText().trim();
-    final String serviceTablePrefix = servicesTextField.getText().trim();
 
     // Save into project properties
     nodusProject.setLocalProperty(
@@ -810,22 +814,6 @@ public class ProjectPreferencesDlg extends EscapeDialog {
       nodusProject.setLocalProperty(NodusC.PROP_COST_FUNCTIONS + scenarioSuffix, costFileName);
     }
 
-    if (excTable.length() > 0) {
-      nodusProject.setLocalProperty(NodusC.PROP_EXC_TABLE, excTable);
-    }
-
-    if (vNetTablePrefix.length() > 0) {
-      nodusProject.setLocalProperty(NodusC.PROP_VNET_TABLE, vNetTablePrefix);
-    }
-
-    if (pathTablePrefix.length() > 0) {
-      nodusProject.setLocalProperty(NodusC.PROP_PATH_TABLE_PREFIX, pathTablePrefix);
-    }
-
-    if (serviceTablePrefix.length() > 0) {
-      nodusProject.setLocalProperty(NodusC.PROP_SERVICES_TABLE_PREFIX, serviceTablePrefix);
-    }
-
     // Update the displayed boundaries layer if needed
     if (oldAddPoliticalBoundaries != boundariesCheckbox.isSelected()) {
       nodusProject
@@ -844,6 +832,78 @@ public class ProjectPreferencesDlg extends EscapeDialog {
     nodusProject.getNodusMapPanel().updateScenarioComboBox(false);
 
     setVisible(false);
+  }
+
+  /** Confirms the exact table renames before applying any of the dialog's edits. */
+  private boolean confirmAndApplyTableNames() {
+    try {
+      ProjectTableNames.Plan plan =
+          ProjectTableNames.inspect(
+              nodusProject,
+              Map.of(
+                  NodusC.PROP_EXC_TABLE, excTextField.getText(),
+                  NodusC.PROP_VNET_TABLE, virtNetTextField.getText(),
+                  NodusC.PROP_PATH_TABLE_PREFIX, pathTextField.getText(),
+                  NodusC.PROP_SERVICES_TABLE_PREFIX, servicesTextField.getText()));
+      if (!plan.hasChanges()) {
+        return true;
+      }
+      String prompt =
+          i18n.get(
+              ProjectPreferencesDlg.class,
+              "Confirm_table_names",
+              "Apply these table name settings?");
+      Object details =
+          i18n.get(
+              ProjectPreferencesDlg.class,
+              "No_table_renames",
+              "No existing tables will be renamed.");
+      if (!plan.getRenames().isEmpty()) {
+        JTextArea preview = new JTextArea(Math.min(plan.getRenames().size(), 10), 55);
+        plan.getRenames()
+            .forEach((oldName, newName) -> preview.append(oldName + " → " + newName + "\n"));
+        preview.setEditable(false);
+        preview.setCaretPosition(0);
+        details = new JScrollPane(preview);
+      }
+      if (JOptionPane.showConfirmDialog(
+              this,
+              new Object[] {prompt, details},
+              getTitle(),
+              JOptionPane.YES_NO_OPTION,
+              JOptionPane.WARNING_MESSAGE)
+          != JOptionPane.YES_OPTION) {
+        return false;
+      }
+      if (!nodusProject.getNodusMapPanel().getAssignmentMenuItem().isEnabled()
+          || nodusProject.getNodusMapPanel().isBusy()) {
+        throw new SQLException(
+            i18n.get(
+                ProjectPreferencesDlg.class,
+                "Table_names_busy",
+                "Wait for the current computation to finish before changing table names."));
+      }
+      Cursor previous = getCursor();
+      setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+      try {
+        plan.apply();
+      } finally {
+        setCursor(previous);
+      }
+      return true;
+    } catch (SQLException | RuntimeException failure) {
+      JOptionPane.showMessageDialog(
+          this,
+          i18n.get(
+                  ProjectPreferencesDlg.class,
+                  "Table_names_failed",
+                  "Could not apply the table name changes.")
+              + "\n"
+              + failure.getLocalizedMessage(),
+          getTitle(),
+          JOptionPane.ERROR_MESSAGE);
+      return false;
+    }
   }
 
   @Override
@@ -871,7 +931,7 @@ public class ProjectPreferencesDlg extends EscapeDialog {
         JOptionPane.showOptionDialog(
             this,
             i18n.get(ProjectPreferencesDlg.class, "Discard_changes_question", "Discard changes?"),
-            i18n.get(ProjectPreferencesDlg.class, "Project_properties", "Project properties"),
+            getTitle(),
             JOptionPane.YES_NO_OPTION,
             JOptionPane.WARNING_MESSAGE,
             null,

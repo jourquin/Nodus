@@ -81,6 +81,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.Timer;
@@ -2592,6 +2593,33 @@ public class NodusProject implements ShapeConstants {
       new PropertiesFileSave().save(Path.of(projectResourceFileNameAndPath), projectProperties);
     } catch (IOException e) {
       throw new UncheckedIOException("Could not save " + projectResourceFileNameAndPath, e);
+    }
+  }
+
+  /** Persists renamed database tables in the project file before updating the running project. */
+  void saveTableNamePreferences(Map<String, String> names) {
+    Map<String, String> previous = new HashMap<>();
+    names.forEach(
+        (key, value) -> {
+          previous.put(key, projectProperties.getProperty(key));
+          projectProperties.setProperty(key, value);
+        });
+    try {
+      saveProperties();
+    } catch (RuntimeException failure) {
+      previous.forEach(
+          (key, value) -> {
+            if (value == null) {
+              projectProperties.remove(key);
+            } else {
+              projectProperties.setProperty(key, value);
+            }
+          });
+      throw failure;
+    }
+    names.forEach(this::setLocalProperty);
+    if (serviceHandler != null && names.containsKey(NodusC.PROP_SERVICES_TABLE_PREFIX)) {
+      serviceHandler.refreshTableNames();
     }
   }
 

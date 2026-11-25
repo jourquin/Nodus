@@ -39,8 +39,11 @@ import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ListCellRenderer;
+import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeListener;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
 /**
@@ -48,9 +51,10 @@ import javax.swing.table.DefaultTableModel;
  *
  * <p>Each row maps a Nodus mode ID to an observed OD table. Empty table selections are ignored;
  * selected rows must have unique mode IDs. The tables supply quantities by group, origin,
- * destination and optional OD class. Estimation requires at least two modes; comparisons can use
- * one mode and hide the reference control. Logit and probit fix the reference intercept at zero;
- * proportional choice fixes its cost factor at one.
+ * destination and optional OD class. Select a row and use the OD table selector below the grid.
+ * Estimation requires at least two modes. Comparisons can use one mode and hide the reference
+ * control. Logit and probit fix the reference intercept at zero. Proportional choice fixes its
+ * reference cost factor at one.
  *
  * <p>The estimator computes costs for the union of these observations. An unavailable mode with
  * zero observed flow is valid. Positive flow on an unavailable mode excludes the entire OD record
@@ -95,7 +99,14 @@ public final class LogitCalibrationPanel extends JPanel {
     super(new BorderLayout(0, 8));
     model =
         new DefaultTableModel(
-            new Object[] {text("Mode", "Mode ID"), text("Observed", "Observed OD table")}, 0);
+            new Object[] {text("Mode", "Mode ID"), text("Observed", "Observed OD table")}, 0) {
+          private static final long serialVersionUID = 1L;
+
+          @Override
+          public boolean isCellEditable(int row, int column) {
+            return column == 0;
+          }
+        };
     if (settings.getTables().isEmpty()) {
       for (int mode = 1; mode <= 3; mode++) {
         model.addRow(new Object[] {mode, ""});
@@ -104,6 +115,8 @@ public final class LogitCalibrationPanel extends JPanel {
       settings.getTables().forEach((mode, name) -> model.addRow(new Object[] {mode, name}));
     }
     table = new JTable(model);
+    table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+    table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
     table.setPreferredScrollableViewportSize(new Dimension(490, 140));
     table.setToolTipText(
         text(
@@ -119,14 +132,6 @@ public final class LogitCalibrationPanel extends JPanel {
             "tooltip.mode",
             "Enter the network's numeric mode ID; each mode may appear only once."));
     table.getColumnModel().getColumn(0).setCellEditor(new DefaultCellEditor(modeEditor));
-    JComboBox<String> choices = new JComboBox<>();
-    choices.setToolTipText(
-        text(
-            "tooltip.observed",
-            "Choose this mode's observed OD quantities; a blank selection leaves the row unused."));
-    choices.addItem("");
-    tables.forEach(choices::addItem);
-    table.getColumnModel().getColumn(1).setCellEditor(new DefaultCellEditor(choices));
     reference.setValue(settings.getReferenceMode());
     referenceLabel.setLabelFor(reference);
     JButton add = new JButton(text("Add", "Add mode"));
@@ -138,11 +143,22 @@ public final class LogitCalibrationPanel extends JPanel {
             "tooltip.remove",
             "Remove the selected mapping from this calibration; "
                 + "the OD table itself is not deleted."));
-    add.addActionListener(event -> model.addRow(new Object[] {"", ""}));
+    add.addActionListener(
+        event -> {
+          model.addRow(new Object[] {"", ""});
+          int row = table.getRowCount() - 1;
+          table.setRowSelectionInterval(row, row);
+          table.scrollRectToVisible(table.getCellRect(row, 0, true));
+        });
     remove.addActionListener(
         event -> {
-          if (table.getSelectedRow() >= 0) {
-            model.removeRow(table.getSelectedRow());
+          int row = table.getSelectedRow();
+          if (row >= 0) {
+            model.removeRow(table.convertRowIndexToModel(row));
+            if (table.getRowCount() > 0) {
+              int nextRow = Math.min(row, table.getRowCount() - 1);
+              table.setRowSelectionInterval(nextRow, nextRow);
+            }
           }
         });
     JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -153,8 +169,81 @@ public final class LogitCalibrationPanel extends JPanel {
     actions.add(reference);
     add(new JLabel(text("Scope", "Observed modal matrices:")), BorderLayout.NORTH);
     add(new JScrollPane(table), BorderLayout.CENTER);
-    add(actions, BorderLayout.SOUTH);
+    JPanel controls = new JPanel(new BorderLayout(0, 8));
+    controls.add(createTableSelector(tables), BorderLayout.NORTH);
+    controls.add(actions, BorderLayout.SOUTH);
+    add(controls, BorderLayout.SOUTH);
+    table.setRowSelectionInterval(0, 0);
     setMethod(method);
+  }
+
+  /** Binds a standard Swing combo box below the grid to the currently selected mode. */
+  private JPanel createTableSelector(List<String> tables) {
+    String noTable = text("NoTable", "No OD table");
+    table.getColumnModel().getColumn(1).setCellRenderer(
+        new DefaultTableCellRenderer() {
+          private static final long serialVersionUID = 1L;
+
+          @Override
+          protected void setValue(Object value) {
+            super.setValue(value == null || "".equals(value) ? noTable : value);
+          }
+        });
+
+    JComboBox<String> choices = new JComboBox<>();
+    choices.addItem("");
+    tables.forEach(choices::addItem);
+    choices.setToolTipText(
+        text(
+            "tooltip.observed",
+            "Select a mode above, then choose its OD table. Select No OD table to clear it."));
+    String placeholder =
+        tables.isEmpty()
+            ? text("NoTables", "No OD tables available")
+            : text("ChooseTable", "Choose an OD table…");
+    labelEmptySelection(choices, placeholder, noTable);
+    choices.setPrototypeDisplayValue(placeholder);
+    table.getSelectionModel().addListSelectionListener(
+        event -> {
+          if (event.getValueIsAdjusting()) {
+            return;
+          }
+          int row = table.getSelectedRow();
+          Object value = row < 0 ? "" : model.getValueAt(table.convertRowIndexToModel(row), 1);
+          // The combo model can display a saved name that is no longer in the list.
+          choices.getModel().setSelectedItem(value);
+          choices.setEnabled(row >= 0 && (!tables.isEmpty() || !"".equals(value)));
+        });
+    choices.addActionListener(
+        event -> {
+          int row = table.getSelectedRow();
+          if (row >= 0 && choices.getSelectedIndex() >= 0) {
+            int modelRow = table.convertRowIndexToModel(row);
+            Object value = choices.getSelectedItem();
+            if (!value.equals(model.getValueAt(modelRow, 1))) {
+              model.setValueAt(value, modelRow, 1);
+            }
+          }
+        });
+    JLabel label = new JLabel(text("TableForMode", "OD table for selected mode:"));
+    label.setLabelFor(choices);
+    label.setToolTipText(choices.getToolTipText());
+    JPanel selector = new JPanel(new BorderLayout(8, 0));
+    selector.add(label, BorderLayout.WEST);
+    selector.add(choices, BorderLayout.CENTER);
+    return selector;
+  }
+
+  /** Adds text for the empty selection while keeping the look and feel's list-cell painting. */
+  private static void labelEmptySelection(
+      JComboBox<String> combo, String placeholder, String noTable) {
+    ListCellRenderer<? super String> nativeRenderer = combo.getRenderer();
+    combo.setRenderer(
+        (list, value, index, selected, focused) -> {
+          String label =
+              value == null || value.isEmpty() ? (index < 0 ? placeholder : noTable) : value;
+          return nativeRenderer.getListCellRendererComponent(list, label, index, selected, focused);
+        });
   }
 
   /**

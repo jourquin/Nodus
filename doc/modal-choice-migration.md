@@ -48,12 +48,15 @@ cost-file parameter keys. No model needs re-estimation solely because
 of the package move.
 
 Estimation is a separate operation under **Project > Modal choice estimation**.
-It reads the selected cost file for route costs and fits only the selected embedded method
-using the mapped observed modal OD tables. Each run saves one parameter table named after the
-selected cost file: `NodusEstimated.costs` gives `NodusEstimated_params`.
-The table has `param_key`, `param_value` and `param_type` columns. 
-The cost file receives a single `@paramTable=<table>` property. The estimation report is saved beside it as
-`<cost-file-stem>_params.html`, for example `NodusEstimated_params.html`. The standalone HTML report
+Select a mode row and use **OD table for selected mode** below the grid to choose its observed
+matrix. Then select the source file for route costs. Enter a file name in **Destination cost
+functions (optional)** to save a calibrated copy in the project folder. Nodus adds `.costs` if
+omitted and asks before replacing an existing destination file. Leaving the field blank updates
+the source file.
+
+The output file receives a single `@paramTable=<table>` property. For example, `NodusEstimated.costs`
+uses the `NodusEstimated_params` table and produces `NodusEstimated_params.html` in the project folder.
+The table has `param_key`, `param_value` and `param_type` columns. The standalone HTML report
 contains per-group likelihoods, OD row counts, total quantity, iteration counts, AIC,
 baseline rho-square measures, parameter estimates, standard errors and asymptotic
 t-statistics. A correlation-of-coefficients table lists conventional covariance and

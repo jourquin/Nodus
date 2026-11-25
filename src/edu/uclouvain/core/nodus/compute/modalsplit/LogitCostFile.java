@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
@@ -78,7 +79,12 @@ final class LogitCostFile {
 
     /** Returns true only when saving over a different existing file needs user confirmation. */
     boolean requiresConfirmation() {
-      return !source.equals(file) && previous != null;
+      return isCopy() && previous != null;
+    }
+
+    /** Returns true when the source and output have different paths. */
+    boolean isCopy() {
+      return !source.equals(file);
     }
 
     /** Refuses changed, removed or newly created destinations after selection/confirmation. */
@@ -89,7 +95,7 @@ final class LogitCostFile {
       }
       boolean unchanged =
           previous == null
-              ? Files.notExists(file)
+              ? Files.notExists(file, LinkOption.NOFOLLOW_LINKS)
               : Files.isRegularFile(file) && Arrays.equals(previous, Files.readAllBytes(file));
       if (!unchanged) {
         throw new IOException(
@@ -118,7 +124,7 @@ final class LogitCostFile {
       throw new IOException("Cannot write output cost functions file: " + file);
     }
     byte[] original = Files.readAllBytes(source);
-    if (Files.notExists(file)) {
+    if (Files.notExists(file, LinkOption.NOFOLLOW_LINKS)) {
       return new Target(source, file, original, null);
     }
     if (!Files.isRegularFile(file) || !Files.isReadable(file) || !Files.isWritable(file)) {
@@ -307,17 +313,18 @@ final class LogitCostFile {
         || key.matches("mnl\\.reference\\.\\d+");
   }
 
-  /** Replaces old embedded estimates with the single database-table reference. */
+  /** Writes a single table pointer, carrying source content forward in a separate copy. */
   static Properties saveParameterTable(Target target, String table) throws IOException {
     ModalParameterTable.validateName(table);
     target.checkUnchanged();
     String source = new String(target.original, StandardCharsets.ISO_8859_1);
     StringBuilder preserved = new StringBuilder();
     StringBuilder logical = new StringBuilder();
+    boolean copy = target.isCopy();
     boolean generated = false;
-    for (String line : source.split("(?<=\n)", -1)) {
+    for (String line : source.split("(?<=\n)|(?<=\r)(?!\n)")) {
       String trimmed = line.strip();
-      if (trimmed.startsWith("# BEGIN NODUS ESTIMATED ")) {
+      if (!copy && logical.length() == 0 && trimmed.startsWith("# BEGIN NODUS ESTIMATED ")) {
         generated = true;
       }
       if (generated) {
@@ -332,20 +339,35 @@ final class LogitCostFile {
       for (int i = content.length() - 1; i >= 0 && content.charAt(i) == '\\'; i--) {
         slashes++;
       }
-      if (slashes % 2 == 1 && !trimmed.startsWith("#") && !trimmed.startsWith("!")) {
+      boolean comment =
+          logical.length() == line.length() && (trimmed.startsWith("#") || trimmed.startsWith("!"));
+      if (slashes % 2 == 1 && !comment) {
         continue;
       }
-      preserveNonModalParameter(preserved, logical.toString());
+      preserveParameterLine(preserved, logical.toString(), copy);
       logical.setLength(0);
     }
     if (generated) {
       throw new IOException("Unterminated generated modal estimation section");
     }
+    int completeLength = preserved.length();
     if (logical.length() > 0) {
-      preserveNonModalParameter(preserved, logical.toString());
+      preserveParameterLine(preserved, logical.toString(), copy);
     }
-    String newline = source.contains("\r\n") ? "\r\n" : "\n";
-    if (preserved.length() > 0 && preserved.charAt(preserved.length() - 1) != '\n') {
+    boolean continuedAtEnd = preserved.length() > completeLength;
+    String newline = "\n";
+    if (source.contains("\r\n")) {
+      newline = "\r\n";
+    } else if (!source.contains("\n") && source.contains("\r")) {
+      newline = "\r";
+    }
+    if (preserved.length() > 0) {
+      char last = preserved.charAt(preserved.length() - 1);
+      if (last != '\n' && last != '\r') {
+        preserved.append(newline);
+      }
+    }
+    if (continuedAtEnd) {
       preserved.append(newline);
     }
     preserved.append(ModalParameterTable.POINTER).append('=').append(table).append(newline);
@@ -354,17 +376,27 @@ final class LogitCostFile {
     try {
       Files.write(temporary, replacement);
       try {
-        Files.setPosixFilePermissions(
-            temporary, Files.getPosixFilePermissions(target.file));
+        Path permissions = target.previous == null ? target.source : target.file;
+        Files.setPosixFilePermissions(temporary, Files.getPosixFilePermissions(permissions));
       } catch (UnsupportedOperationException ignored) {
         // Filesystems without POSIX permissions retain their defaults.
       }
       target.checkUnchanged();
+      if (copy && Files.isSymbolicLink(target.file)) {
+        throw new IOException("Output cost file is a symbolic link: " + target.file);
+      }
       if (Thread.currentThread().isInterrupted()) {
         throw new java.util.concurrent.CancellationException("Modal estimation canceled");
       }
-      Files.move(temporary, target.file, StandardCopyOption.ATOMIC_MOVE,
-          StandardCopyOption.REPLACE_EXISTING);
+      if (target.previous == null) {
+        Files.move(temporary, target.file);
+      } else {
+        Files.move(
+            temporary,
+            target.file,
+            StandardCopyOption.ATOMIC_MOVE,
+            StandardCopyOption.REPLACE_EXISTING);
+      }
     } finally {
       Files.deleteIfExists(temporary);
     }
@@ -373,15 +405,20 @@ final class LogitCostFile {
     return result;
   }
 
-  private static void preserveNonModalParameter(StringBuilder output, String block)
+  private static void preserveParameterLine(StringBuilder output, String block, boolean copy)
       throws IOException {
     Properties parsed = new Properties();
     parsed.load(new StringReader(block));
-    if (parsed.stringPropertyNames().stream().noneMatch(key ->
-        key.equals(ModalParameterTable.POINTER)
-            || isCoefficient(key, "MNL")
-            || isCoefficient(key, "MNP")
-            || isCoefficient(key, "Proportional"))) {
+    if (!parsed.containsKey(ModalParameterTable.POINTER)
+        && (copy
+            || parsed
+                .stringPropertyNames()
+                .stream()
+                .noneMatch(
+                    key ->
+                        isCoefficient(key, "MNL")
+                            || isCoefficient(key, "MNP")
+                            || isCoefficient(key, "Proportional")))) {
       output.append(block);
     }
   }
