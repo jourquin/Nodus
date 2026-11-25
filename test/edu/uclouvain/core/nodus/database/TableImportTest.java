@@ -56,6 +56,20 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 class TableImportTest {
   @TempDir Path directory;
 
+  @Test
+  void nullableSqlNullDefaultAllowsReplacementWhileATextDefaultIsProtected() throws Exception {
+    for (boolean hsql : List.of(false, true)) {
+      try (DatabaseFixture fixture = new DatabaseFixture(directory, hsql)) {
+        fixture.execute("CREATE TABLE default_null (id INTEGER DEFAULT NULL)");
+        fixture.execute("CREATE TABLE default_text (id VARCHAR(12) DEFAULT 'NULL')");
+        TableDefinitionGuard.check(fixture.connection, "default_null");
+        assertThrows(
+            java.sql.SQLException.class,
+            () -> TableDefinitionGuard.check(fixture.connection, "default_text"));
+      }
+    }
+  }
+
   @TestFactory
   List<DynamicTest> invalidInputPreservesOriginalAndEarlierTransaction() {
     List<DynamicTest> tests = new ArrayList<>();

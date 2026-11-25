@@ -57,8 +57,12 @@ final class TableDefinitionGuard {
         catalog = columns.getString("TABLE_CAT");
         schema = columns.getString("TABLE_SCHEM");
         name = columns.getString("TABLE_NAME");
+        // Some drivers report an implicit nullable default as the SQL literal NULL.
+        String defaultValue = columns.getString("COLUMN_DEF");
+        boolean customDefault =
+            defaultValue != null && !"NULL".equalsIgnoreCase(defaultValue.strip());
         if (columns.getInt("NULLABLE") == DatabaseMetaData.columnNoNulls
-            || columns.getString("COLUMN_DEF") != null
+            || customDefault
             || "YES".equalsIgnoreCase(columns.getString("IS_AUTOINCREMENT"))
             || "YES".equalsIgnoreCase(columns.getString("IS_GENERATEDCOLUMN"))) {
           throw protectedTable(table, "column constraints, defaults or generated values");

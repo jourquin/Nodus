@@ -61,11 +61,16 @@ final class ModalMatrixMerge {
 
   /** Finds the exact identifier in the active schema, including case-preserving table names. */
   private static String existing(Connection connection, String name) throws SQLException {
+    String catalog = connection.getCatalog();
+    String schema = connection.getSchema();
     try (ResultSet tables =
-        connection
-            .getMetaData()
-            .getTables(connection.getCatalog(), connection.getSchema(), "%", null)) {
+        connection.getMetaData().getTables(catalog, schema, "%", null)) {
       while (tables.next()) {
+        // JDBC treats the schema as a pattern, including underscores and percent signs.
+        if ((catalog != null && !catalog.equals(tables.getString("TABLE_CAT")))
+            || (schema != null && !schema.equals(tables.getString("TABLE_SCHEM")))) {
+          continue;
+        }
         if (name.equalsIgnoreCase(tables.getString("TABLE_NAME"))) {
           String type = tables.getString("TABLE_TYPE");
           if (!"TABLE".equals(type) && !"BASE TABLE".equals(type)) {

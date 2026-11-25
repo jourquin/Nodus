@@ -52,6 +52,22 @@ class ModalMatrixMergeTest {
   }
 
   @Test
+  void metadataIgnoresTablesInSchemasThatOnlyMatchThePattern() throws Exception {
+    try (Connection connection = database("jdbc:h2:mem:");
+        Statement statement = connection.createStatement()) {
+      statement.executeUpdate("CREATE SCHEMA OD_DATA");
+      statement.executeUpdate("CREATE SCHEMA ODXDATA");
+      statement.executeUpdate(
+          "CREATE TABLE ODXDATA.TOTAL (grp INTEGER,org INTEGER,dst INTEGER,qty DOUBLE)");
+      connection.setSchema("OD_DATA");
+      assertFalse(ModalMatrixMerge.exists(connection, "total"));
+      statement.executeUpdate(
+          "CREATE TABLE OD_DATA.TOTAL (grp INTEGER,org INTEGER,dst INTEGER,qty DOUBLE)");
+      assertTrue(ModalMatrixMerge.exists(connection, "total"));
+    }
+  }
+
+  @Test
   void mergeSumsDuplicateAndUnmatchedCellsAcrossClassesAndKeepsSources() throws Exception {
     for (String jdbc : List.of("jdbc:h2:mem:", "jdbc:hsqldb:mem:")) {
       try (Connection connection = database(jdbc)) {

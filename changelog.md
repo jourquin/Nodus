@@ -598,3 +598,4 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Offer confirmed compaction when closing a project that opens a writable H2 or HSQLDB file directly
 - Add a destination cost file and a dedicated observed OD table selector to modal choice estimation
 - Preview and confirm table renames when table names change in Project preferences
+- Fix script reruns after dynamic method lookup in the native Groovy console

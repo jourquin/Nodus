@@ -24,7 +24,10 @@ package edu.uclouvain.core.nodus.mappanel;
 import edu.uclouvain.core.nodus.NodusMapPanel;
 import edu.uclouvain.core.nodus.swing.ScriptEditorWindowSupport;
 import edu.uclouvain.core.nodus.utils.NodusGroovyShell;
+import groovy.console.ui.HistoryRecord;
 import groovy.lang.Binding;
+import groovy.lang.Tuple;
+import groovy.lang.Tuple2;
 import java.awt.Frame;
 import java.awt.Window;
 import java.awt.event.FocusAdapter;
@@ -42,6 +45,7 @@ import javax.swing.JFrame;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import org.codehaus.groovy.control.CompilerConfiguration;
+import org.codehaus.groovy.runtime.InvokerHelper;
 
 /** Manages the optional native Groovy console and its Nodus script naming convention. */
 public final class NativeGroovyConsole {
@@ -171,6 +175,24 @@ public final class NativeGroovyConsole {
     public void newScript(ClassLoader parent, Binding binding) {
       super.newScript(parent, binding);
       setShell(new NodusGroovyShell(parent, binding, getConfig()));
+    }
+
+    /**
+     * Handles the native console's dynamic lookup of its private execution method on reruns.
+     *
+     * <p>Groovy's source runner still chooses how to execute the text. Its type is private to
+     * the upstream console, so call its public {@code run} method via Groovy.
+     *
+     * @param selected whether the user requested only the selected text
+     * @param sourceType Groovy's selected source runner
+     * @param record the editor text and selection captured for this run
+     * @return the script result and elapsed milliseconds
+     */
+    public Tuple2<Object, Long> doRun(boolean selected, Object sourceType, HistoryRecord record) {
+      String source = record.getTextToRun(selected);
+      long start = System.currentTimeMillis();
+      Object result = InvokerHelper.invokeMethod(sourceType, "run", new Object[] {source});
+      return Tuple.tuple(result, System.currentTimeMillis() - start);
     }
 
     @Override

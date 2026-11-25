@@ -29,18 +29,108 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import edu.uclouvain.core.nodus.mappanel.NativeGroovyConsole;
 import groovy.console.ui.Console;
+import groovy.console.ui.HistoryRecord;
+import groovy.console.ui.SystemOutputInterceptor;
 import groovy.lang.Binding;
+import groovy.lang.Closure;
+import groovy.lang.Tuple2;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.File;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.swing.AbstractAction;
+import javax.swing.JLabel;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
+import org.codehaus.groovy.runtime.InvokerHelper;
 import org.junit.jupiter.api.Test;
 
 class NativeGroovyConsoleTest {
+  @Test
+  void dynamicRunLookupExecutesGroovysOwnSourceRunner() throws Exception {
+    Console console = NativeGroovyConsole.createConsole();
+    console.setScriptFile(new File("Tool.groovy"));
+    console.setVariable("count", 0);
+    // Exercise the lookup used when the closure dispatches against Nodus's subclass.
+    var constructor =
+        Class.forName(Console.class.getName() + "$GroovySourceType")
+            .getDeclaredConstructor(Console.class);
+    constructor.setAccessible(true);
+    Object sourceType = constructor.newInstance(console);
+    HistoryRecord record = new HistoryRecord();
+    String script = "class Tool {}\ncount += 1";
+    record.setAllText(script + "\ncount += 10");
+    record.setSelectionStart(0);
+    record.setSelectionEnd(script.length());
+
+    var selected =
+        (Tuple2<?, ?>)
+            InvokerHelper.invokeMethod(console, "doRun", new Object[] {true, sourceType, record});
+    assertEquals(1, selected.getV1());
+    var whole =
+        (Tuple2<?, ?>)
+            InvokerHelper.invokeMethod(console, "doRun", new Object[] {false, sourceType, record});
+    assertEquals(12, whole.getV1());
+  }
+
+  @Test
+  void runActionExecutesTheSameNamedScriptRepeatedlyInOneConsole() throws Exception {
+    Console console = NativeGroovyConsole.createConsole();
+    SwingUtilities.invokeAndWait(
+        () -> {
+          AbstractAction action =
+              new AbstractAction() {
+                private static final long serialVersionUID = 1L;
+
+                @Override
+                public void actionPerformed(ActionEvent event) {}
+              };
+          console.setStatusLabel(new JLabel());
+          console.setPrevHistoryAction(action);
+          console.setNextHistoryAction(action);
+          console.setInterruptAction(action);
+          console.setSaveOnRun(false);
+          console.setInputArea(new JTextPane());
+          console.setOutputArea(new JTextPane());
+          console.setShowScriptInOutput(false);
+          console.setVisualizeScriptResults(false);
+          console.setSystemOutInterceptor(
+              new SystemOutputInterceptor(
+                  new Closure<Boolean>(console) {
+                    private static final long serialVersionUID = 1L;
+
+                    public Boolean doCall(Object id, String output) {
+                      return true;
+                    }
+                  }));
+          console.setScriptFile(new File("Tool.groovy"));
+          console.getInputArea().setText("class Tool {}\ncount += 1");
+          console.setVariable("count", 0);
+        });
+    for (int run = 1; run <= 4; run++) {
+      AtomicReference<Thread> worker = new AtomicReference<>();
+      SwingUtilities.invokeAndWait(
+          () -> {
+            console.runScript();
+            worker.set(console.getRunThread());
+          });
+      Thread thread = worker.get();
+      if (thread != null) {
+        thread.join(5000);
+        assertFalse(thread.isAlive(), "Groovy console run did not finish");
+      }
+      SwingUtilities.invokeAndWait(() -> {});
+      assertEquals(run, console.getHistory().size());
+      HistoryRecord record = (HistoryRecord) console.getHistory().get(run - 1);
+      assertNull(record.getException(), "Run " + run + " failed");
+      assertEquals(run, record.getResult());
+    }
+  }
+
   @Test
   void matchingClassAndFileNamesWorkBeforeAndAfterNativeShellReset() {
     Console console = NativeGroovyConsole.createConsole();
