@@ -103,6 +103,7 @@ class NativeGroovyConsoleTest {
                   new Closure<Boolean>(console) {
                     private static final long serialVersionUID = 1L;
 
+                    @SuppressWarnings("unused") // Invoked dynamically through Closure.call(...).
                     public Boolean doCall(Object id, String output) {
                       return true;
                     }
