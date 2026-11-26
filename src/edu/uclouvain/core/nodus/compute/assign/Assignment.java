@@ -226,7 +226,7 @@ public abstract class Assignment implements Runnable {
   }
 
   /**
-   * Logs an unreachable OD pair and retains its SQL cleanup statement for this assignment.
+   * Records an unreachable OD pair for the loss statistics and SQL cleanup script.
    *
    * @param group commodity group
    * @param origin original demand origin

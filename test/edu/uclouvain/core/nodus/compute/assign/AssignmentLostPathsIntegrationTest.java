@@ -34,7 +34,7 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.parallel.Resources;
 import org.opentest4j.AssertionFailedError;
 
-/** Real workers report pairs while the coordinator saves a separate, executable SQL artifact. */
+/** Verifies console statistics and executable SQL from real assignment workers. */
 @Tag("integration")
 @ResourceLock("JDBCUtils")
 @ResourceLock(Resources.SYSTEM_OUT)
@@ -43,7 +43,7 @@ class AssignmentLostPathsIntegrationTest {
   @TempDir Path directory;
 
   @TestFactory
-  List<DynamicTest> everyAssignmentReportsPairsAndSavesCleanupSqlOnBothDatabases() {
+  List<DynamicTest> everyAssignmentReportsStatisticsAndSavesCleanupSqlOnBothDatabases() {
     List<DynamicTest> tests = new ArrayList<>();
     for (boolean hsql : new boolean[] {false, true}) {
       for (int method = 0; method <= 8; method++) {
@@ -73,15 +73,7 @@ class AssignmentLostPathsIntegrationTest {
       int defaultsWarnings = "Proportional".equals(modalChoice) ? 0 : 1;
       String output = capture(() -> project.run(assignment, 2, defaultsWarnings));
       assertEquals(300, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 0.001);
-      assertEquals(
-          List.of(
-              "No path: origin=1, destination=4, group=1",
-              "No path: origin=3, destination=2, group=2"),
-          output
-              .lines()
-              .filter(line -> line.startsWith("No path: "))
-              .sorted()
-              .collect(Collectors.toList()));
+      assertFalse(output.contains("No path:"), output);
       assertFalse(output.contains("delete from "));
       assertEquals(4, project.number("SELECT COUNT(*) FROM mini_od"));
       Path script = script(output);
@@ -160,7 +152,7 @@ class AssignmentLostPathsIntegrationTest {
       project.properties.setProperty(NodusC.PROP_PROJECT_DOTPATH, blocked + java.io.File.separator);
       AssignmentParameters parameters = parameters(project, Assignment.ALL_OR_NOTHING);
       String output = capture(() -> project.run(assignment(parameters, 0), 2, 1));
-      assertEquals(2, output.lines().filter(line -> line.startsWith("No path: ")).count());
+      assertFalse(output.contains("No path:"), output);
       assertFalse(output.contains("Lost-path SQL script:"));
       assertTrue(output.contains("Unassigned quantity (OD units): " + quantity(60) + "\n"));
       assertEquals("Keep this file", Files.readString(blocked));

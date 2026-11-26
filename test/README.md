@@ -163,11 +163,10 @@ for the workflow mechanism.
 
 ## Lost-path reports
 
-When **Log lost paths** is selected, the console lists each unreachable origin/destination
-pair and commodity group once per assignment. It also prints the path to a UTF-8 SQL cleanup
-script saved in the project directory. The script contains the corresponding `DELETE`
-statements; it is not executed automatically. As with the earlier console statements, each
-deletion matches the group, origin and destination across all OD classes and departure times.
+When **Log lost paths** is selected, the console reports aggregate lost-path statistics and
+prints the location of any SQL cleanup script saved in the project directory. The UTF-8 script
+contains one `DELETE` statement per affected group, origin and destination. Each deletion applies
+across all OD classes and departure times. Run the script manually to remove those records.
 
 Scripts use names such as `mini_scenario1_AllOrNothingAssignment_lost_paths_<unique>.sql`.
 Each script's comments record the assignment start time,

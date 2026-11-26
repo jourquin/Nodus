@@ -121,8 +121,6 @@ final class AssignmentLostPaths {
             + ";";
     if (statements.add(statement)) {
       affectedPairs.add(((long) origin << 32) | Integer.toUnsignedLong(destination));
-      System.out.println(
-          "No path: origin=" + origin + ", destination=" + destination + ", group=" + group);
     }
   }
 

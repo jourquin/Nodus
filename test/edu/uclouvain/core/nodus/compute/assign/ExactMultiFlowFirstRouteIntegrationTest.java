@@ -176,7 +176,7 @@ class ExactMultiFlowFirstRouteIntegrationTest {
                     AssignmentParameters parameters = parameters(project, 2);
                     parameters.setLogLostPaths(true);
                     List<List<String>> expected = null;
-                    List<String> lostPaths = null;
+                    List<String> cleanupStatements = null;
                     for (ExactMFAlgorithm algorithm :
                         new ExactMFAlgorithm[] {
                           ExactMFAlgorithm.IMPROVED_ASTAR, ExactMFAlgorithm.DESTINATION_ASTAR
@@ -190,13 +190,8 @@ class ExactMultiFlowFirstRouteIntegrationTest {
                             }
                           };
                       String output = capture(() -> project.run(assignment, 2));
-                      List<String> lost =
-                          output
-                              .lines()
-                              .filter(line -> line.startsWith("No path: "))
-                              .sorted()
-                              .collect(Collectors.toList());
-                      assertEquals(6, lost.size());
+                      assertFalse(output.contains("No path:"), output);
+                      assertTrue(output.contains("OD/group cleanup keys: 6\n"), output);
                       assertFalse(output.contains("delete from "));
                       Path script =
                           Path.of(
@@ -206,21 +201,21 @@ class ExactMultiFlowFirstRouteIntegrationTest {
                                   .findFirst()
                                   .orElseThrow()
                                   .substring("Lost-path SQL script: ".length()));
-                      assertEquals(
-                          6,
+                      List<String> statements =
                           Files.readString(script)
                               .lines()
                               .filter(line -> line.startsWith("delete from "))
-                              .count());
+                              .collect(Collectors.toList());
+                      assertEquals(6, statements.size());
                       assertEquals(
                           900, project.number("SELECT SUM(qty) FROM mini_paths1_header"), 0.005);
                       assertEquals(1080, project.number("SELECT SUM(qty) FROM mini_od"), 0.005);
                       if (expected == null) {
                         expected = project.snapshot();
-                        lostPaths = lost;
+                        cleanupStatements = statements;
                       } else {
                         assertEquals(expected, project.snapshot());
-                        assertEquals(lostPaths, lost);
+                        assertEquals(cleanupStatements, statements);
                         String report = ComputingTimesTestSupport.report(parameters);
                         assertEquals(6, count(report, "Completed reachability prepasses"));
                         assertEquals(10, count(report, "Required origins checked"));
