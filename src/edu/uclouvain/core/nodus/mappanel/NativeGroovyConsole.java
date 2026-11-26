@@ -188,6 +188,7 @@ public final class NativeGroovyConsole {
      * @param record the editor text and selection captured for this run
      * @return the script result and elapsed milliseconds
      */
+    @SuppressWarnings("unused") // Invoked dynamically by Groovy's console execution closure.
     public Tuple2<Object, Long> doRun(boolean selected, Object sourceType, HistoryRecord record) {
       String source = record.getTextToRun(selected);
       long start = System.currentTimeMillis();
