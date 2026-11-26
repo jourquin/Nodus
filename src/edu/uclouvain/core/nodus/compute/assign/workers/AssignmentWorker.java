@@ -150,6 +150,14 @@ public abstract class AssignmentWorker extends Thread {
     assignment.setErrorMessage(msg);
   }
 
+  /** Builds the routing graph and records the mode scope when loss logging is enabled. */
+  final void generateAdjacencyList() {
+    graph = virtualNet.generateAdjacencyList(groupIndex);
+    if (assignmentParameters.isLogLostPaths()) {
+      assignment.logRoutingModes(virtualNet.getAvailableModeMeans(groupIndex));
+    }
+  }
+
   /** Splits demand only when at least one route survived admission. */
   final boolean splitDemand(
       ModalSplitMethod method, ODCell demand, Collection<PathsForMode> alternatives) {

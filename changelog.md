@@ -599,3 +599,7 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 - Add a destination cost file and a dedicated observed OD table selector to modal choice estimation
 - Preview and confirm table renames when table names change in Project preferences
 - Fix script reruns after dynamic method lookup in the native Groovy console
+
+## v9.1 - BuildXXXXXXXX
+- Add "lost paths" statistics in console and generated SQL script
+

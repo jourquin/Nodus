@@ -26,7 +26,6 @@ import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorkerParameters;
 import edu.uclouvain.core.nodus.compute.assign.workers.IncrementalAssignmentWorker;
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
-import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
@@ -81,8 +80,7 @@ public class IncrementalAssignment extends Assignment {
     }
 
     // Read the O-D matrixes
-    ODReader odr = new ODReader(assignmentParameters);
-    if (!odr.loadDemand(virtualNet)) {
+    if (!loadDemand()) {
       return false;
     }
 

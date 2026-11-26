@@ -20,6 +20,7 @@ import edu.uclouvain.core.nodus.compute.od.ODCell;
 import edu.uclouvain.core.nodus.database.JDBCUtils;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -98,10 +99,14 @@ class AssignmentLostPathsIntegrationTest {
       assertTrue(sql.contains("-- Assignment started: "));
       assertTrue(sql.contains("-- Assignment status: completed\n"));
       assertTrue(sql.contains("-- Threads: 4\n"));
-      if (isMultiFlow(method)) {
-        assertTrue(sql.contains("-- Unassigned OD records: 2\n"));
-        assertTrue(sql.contains("-- Unassigned quantity (OD units): 60.0\n"));
-      }
+      assertStatistics(output, sql, "Mode: 1");
+      assertStatistics(output, sql, "Affected directed OD pairs: 2");
+      assertStatistics(output, sql, "OD/group cleanup keys: 2");
+      assertStatistics(output, sql, "Loaded OD records: 4");
+      assertStatistics(output, sql, "Loaded quantity (OD units): " + quantity(360));
+      assertStatistics(output, sql, "Unassigned OD records: 2");
+      assertStatistics(output, sql, "Unassigned quantity (OD units): " + quantity(60));
+      assertStatistics(output, sql, "Share of loaded quantity: " + percent(60.0 / 360));
       List<String> statements =
           sql.lines()
               .filter(line -> !line.startsWith("--"))
@@ -139,6 +144,7 @@ class AssignmentLostPathsIntegrationTest {
       Path first = script(capture(() -> project.runCancelled(cancelled, 2)));
       String original = Files.readString(first);
       assertTrue(original.contains("-- Assignment status: failed/cancelled\n"));
+      assertTrue(original.contains("-- Partial results from a failed or cancelled assignment.\n"));
       Path second = script(capture(() -> project.run(assignment(parameters, 0), 2)));
       assertFalse(first.equals(second));
       assertEquals(original, Files.readString(first));
@@ -156,6 +162,7 @@ class AssignmentLostPathsIntegrationTest {
       String output = capture(() -> project.run(assignment(parameters, 0), 2, 1));
       assertEquals(2, output.lines().filter(line -> line.startsWith("No path: ")).count());
       assertFalse(output.contains("Lost-path SQL script:"));
+      assertTrue(output.contains("Unassigned quantity (OD units): " + quantity(60) + "\n"));
       assertEquals("Keep this file", Files.readString(blocked));
       assertEquals(300, project.number("SELECT SUM(qty) FROM mini_paths1_header"));
       assertEquals(4, project.number("SELECT COUNT(*) FROM mini_od"));
@@ -167,12 +174,16 @@ class AssignmentLostPathsIntegrationTest {
     try (AssignmentTestProject project = disconnectedProject(false)) {
       AssignmentParameters parameters = parameters(project, Assignment.ALL_OR_NOTHING);
       parameters.setLogLostPaths(false);
-      assertFalse(capture(() -> project.run(assignment(parameters, 0), 2)).contains("No path:"));
+      String disabled = capture(() -> project.run(assignment(parameters, 0), 2));
+      assertFalse(disabled.contains("No path:"));
+      assertFalse(disabled.contains("Lost-path statistics"));
       project.execute("DELETE FROM mini_od WHERE (org=1 AND dst=4) OR (org=3 AND dst=2)");
       parameters.setLogLostPaths(true);
       String output = capture(() -> project.run(assignment(parameters, 0), 2));
       assertFalse(output.contains("No path:"));
       assertFalse(output.contains("Lost-path SQL script:"));
+      assertTrue(output.contains("Affected directed OD pairs: 0\n"));
+      assertTrue(output.contains("Share of loaded quantity: " + percent(0) + "\n"));
       try (var files = Files.list(directory)) {
         assertFalse(files.anyMatch(file -> file.toString().endsWith(".sql")));
       }
@@ -206,11 +217,68 @@ class AssignmentLostPathsIntegrationTest {
         String output = capture(() -> project.run(assignment(parameters, method), 2));
         assertEquals(0, project.number("SELECT COUNT(*) FROM mini_paths1_header"));
         String sql = Files.readString(script(output));
-        assertTrue(sql.contains("-- Problematic pairs: 2\n"));
-        assertTrue(sql.contains("-- Unassigned OD records: 3\n"));
-        assertTrue(sql.contains("-- Unassigned quantity (OD units): 65.0\n"));
+        assertStatistics(output, sql, "Affected directed OD pairs: 2");
+        assertStatistics(output, sql, "OD/group cleanup keys: 2");
+        assertStatistics(output, sql, "Loaded OD records: 3");
+        assertStatistics(output, sql, "Unassigned OD records: 3");
+        assertStatistics(output, sql, "Unassigned quantity (OD units): " + quantity(65));
+        assertStatistics(output, sql, "Share of loaded quantity: " + percent(1));
       }
     }
+  }
+
+  @Test
+  void iterativeAssignmentCountsFilteredRowsOnceAcrossGroupsAndPasses() throws Exception {
+    try (AssignmentTestProject project = disconnectedProject(false)) {
+      project.execute(
+          "INSERT INTO mini_od VALUES (2,1,4,5),(1,1,1,1000),(1,1,99,2000),(1,1,2,9999)");
+      AssignmentParameters parameters = parameters(project, Assignment.INCREMENTAL);
+      parameters.setWhereStmt("qty < 5000");
+      String output = capture(() -> project.run(assignment(parameters, Assignment.INCREMENTAL), 2));
+      String sql = Files.readString(script(output));
+      assertStatistics(output, sql, "Affected directed OD pairs: 2");
+      assertStatistics(output, sql, "OD/group cleanup keys: 3");
+      assertStatistics(output, sql, "Loaded OD records: 5");
+      assertStatistics(output, sql, "Loaded quantity (OD units): " + quantity(365));
+      assertStatistics(output, sql, "Unassigned OD records: 3");
+      assertStatistics(output, sql, "Unassigned quantity (OD units): " + quantity(65));
+      assertStatistics(output, sql, "Share of loaded quantity: " + percent(65.0 / 365));
+    }
+  }
+
+  @Test
+  void mixedModeAssignmentReportsCombinedLosses() throws Exception {
+    try (AssignmentTestProject project = disconnectedProject(false)) {
+      AssignmentParameters parameters = parameters(project, Assignment.ALL_OR_NOTHING);
+      // Supply an additional modal alternative while retaining the disconnected fixture.
+      project.links.getModel().setValueAt(2.0, 1, NodusC.DBF_IDX_MODE);
+      for (String variable : List.of("ld", "ul", "tr", "mv", "AVGLOAD", "PCU")) {
+        parameters.getCostFunctions().setProperty(
+            variable + ".2,1", parameters.getCostFunctions().getProperty(variable + ".1,1"));
+      }
+      String output =
+          capture(() -> project.run(assignment(parameters, Assignment.ALL_OR_NOTHING), 2));
+      String sql = Files.readString(script(output));
+      assertStatistics(output, sql, "Modes (combined): 1, 2");
+      assertStatistics(output, sql, "Share of loaded quantity: " + percent(60.0 / 360));
+    }
+  }
+
+  private static void assertStatistics(String output, String sql, String statistic) {
+    assertTrue(output.contains(statistic + "\n"), output);
+    assertTrue(sql.contains("-- " + statistic + "\n"), sql);
+  }
+
+  private static String quantity(double value) {
+    NumberFormat format = NumberFormat.getNumberInstance();
+    format.setMinimumFractionDigits(1);
+    return format.format(value);
+  }
+
+  private static String percent(double share) {
+    NumberFormat format = NumberFormat.getPercentInstance();
+    format.setMaximumFractionDigits(4);
+    return format.format(share);
   }
 
   @Test

@@ -31,7 +31,6 @@ import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
 import edu.uclouvain.core.nodus.compute.modalsplit.ModalSplitMethod;
 import edu.uclouvain.core.nodus.compute.modalsplit.MultinomialLogit;
 import edu.uclouvain.core.nodus.compute.modalsplit.Proportional;
-import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
 import edu.uclouvain.core.nodus.utils.WorkQueue;
@@ -92,8 +91,7 @@ public class FastMFAssignment extends Assignment {
     }
 
     // Read the O-D matrixes
-    ODReader odr = new ODReader(assignmentParameters);
-    if (!odr.loadDemand(virtualNet)) {
+    if (!loadDemand()) {
       return false;
     }
 

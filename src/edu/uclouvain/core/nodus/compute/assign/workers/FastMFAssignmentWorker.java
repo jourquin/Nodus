@@ -100,7 +100,7 @@ public class FastMFAssignmentWorker extends AssignmentWorker {
         WorkerPhase.MODAL_SPLITTING,
         WorkerPhase.VOLUME_DISTRIBUTION);
     // Initialize
-    graph = virtualNet.generateAdjacencyList(groupIndex);
+    generateAdjacencyList();
     CompactShortestPathGraph compactGraph = createCompactGraph();
     edgeUpdates = new MultiFlowEdgeUpdates(graph, compactGraph);
     if (workerTimes.isEnabled()) {

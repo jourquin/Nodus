@@ -59,7 +59,7 @@ public class AllOrNothingAssignmentWorker extends AssignmentWorker {
     workerTimes.includePhases(WorkerPhase.DIJKSTRA, WorkerPhase.RECONSTRUCTION_LOADING);
 
     // Initialize the adjacency list for current group
-    graph = virtualNet.generateAdjacencyList(groupIndex);
+    generateAdjacencyList();
     shortestPath = new BinaryHeapDijkstra(graph, virtualNet, createCompactGraph());
 
     // Scan all the nodes
@@ -156,8 +156,7 @@ public class AllOrNothingAssignmentWorker extends AssignmentWorker {
 
         if (predecessor == 0) {
           if (assignmentParameters.isLogLostPaths()) {
-            assignment.logLostPath(
-                demand.getGroup(), demand.getOriginNodeId(), demand.getDestinationNodeId());
+            assignment.logUnassignedDemand(demand);
           }
           isPathFound = false;
 

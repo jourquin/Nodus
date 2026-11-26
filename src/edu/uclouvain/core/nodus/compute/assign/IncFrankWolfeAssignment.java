@@ -29,7 +29,6 @@ import edu.uclouvain.core.nodus.compute.assign.workers.AssignmentWorkerParameter
 import edu.uclouvain.core.nodus.compute.assign.workers.FrankWolfeAssignmentWorker;
 import edu.uclouvain.core.nodus.compute.assign.workers.IncrementalAssignmentWorker;
 import edu.uclouvain.core.nodus.compute.costs.VehiclesParser;
-import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.rules.NodeRulesReader;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualNetworkWriter;
@@ -93,8 +92,7 @@ public class IncFrankWolfeAssignment extends Assignment {
     }
 
     // Read the O-D matrixes
-    ODReader odr = new ODReader(assignmentParameters);
-    if (!odr.loadDemand(virtualNet)) {
+    if (!loadDemand()) {
       return false;
     }
     virtualNet.initializeEquilibriumClasses();

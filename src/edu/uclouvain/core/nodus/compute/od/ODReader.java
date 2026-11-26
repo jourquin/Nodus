@@ -234,6 +234,8 @@ public class ODReader {
 
   private double totalQuantity = 0;
 
+  private long loadedRecords;
+
   private String whereStmt;
 
   private final AssignmentComputingTimes computingTimes;
@@ -381,6 +383,15 @@ public class ODReader {
   }
 
   /**
+   * Returns the number of OD records loaded into the virtual network after filtering.
+   *
+   * @return the number of loaded OD records
+   */
+  public long getLoadedRecords() {
+    return loadedRecords;
+  }
+
+  /**
    * Loads the demand into the virtual network.
    *
    * @param vnet The virtual network
@@ -399,6 +410,7 @@ public class ODReader {
     }
 
     totalQuantity = 0;
+    loadedRecords = 0;
 
     nodusMapPanel.setText(
         i18n.get(ODReader.class, "Querying", "Querying OD table. Please wait..."));
@@ -587,6 +599,7 @@ public class ODReader {
             }
             vnl[orgIndex].addDemand(odCell);
             totalQuantity += quantity;
+            loadedRecords++;
           }
         }
       }

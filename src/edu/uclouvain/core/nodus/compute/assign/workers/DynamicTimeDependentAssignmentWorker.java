@@ -79,7 +79,7 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
         WorkerPhase.DIJKSTRA, WorkerPhase.RECONSTRUCTION_LOADING, WorkerPhase.DEMAND_RELOCATION);
 
     // Initialize the adjacency list for current group
-    graph = virtualNet.generateAdjacencyList(groupIndex);
+    generateAdjacencyList();
     shortestPath = new BinaryHeapDijkstra(graph, virtualNet, createCompactGraph());
 
     // List of OD pairs that will be relocated after the assignment of this time slice
@@ -249,8 +249,7 @@ public class DynamicTimeDependentAssignmentWorker extends AssignmentWorker {
         int predecessor = pi[currentNode];
         if (predecessor == 0) {
           if (assignmentParameters.isLogLostPaths()) {
-            assignment.logLostPath(
-                demand.getGroup(), demand.getOriginNodeId(), demand.getDestinationNodeId());
+            assignment.logUnassignedDemand(demand);
           }
           isPathFound = false;
 

@@ -35,6 +35,7 @@ import edu.uclouvain.core.nodus.compute.modalsplit.MultinomialLogit;
 import edu.uclouvain.core.nodus.compute.modalsplit.MultinomialProbit;
 import edu.uclouvain.core.nodus.compute.modalsplit.Proportional;
 import edu.uclouvain.core.nodus.compute.od.ODCell;
+import edu.uclouvain.core.nodus.compute.od.ODReader;
 import edu.uclouvain.core.nodus.compute.virtual.AssignmentOutputTables;
 import edu.uclouvain.core.nodus.compute.virtual.PathWriter;
 import edu.uclouvain.core.nodus.compute.virtual.VirtualLink;
@@ -233,23 +234,46 @@ public abstract class Assignment implements Runnable {
    */
   public synchronized void logLostPath(int group, int origin, int destination) {
     if (assignmentParameters.isLogLostPaths()) {
-      lostPathsReport().record(group, origin, destination);
+      lostPathsReport().recordWithoutQuantity(group, origin, destination);
     }
   }
 
   /**
-   * Records an OD cell that could not be assigned by multi-flow routing. Each group/class worker
-   * visits the cell once, after all mode and route alternatives have been evaluated.
+   * Records a loaded OD cell for which routing found no path. A cell may be reported repeatedly
+   * during an iterative assignment, but it contributes once to the loss totals.
    *
    * @param demand OD cell without a feasible route
    */
-  public synchronized void logUnassignedDemand(ODCell demand) {
+  public void logUnassignedDemand(ODCell demand) {
     if (assignmentParameters.isLogLostPaths()) {
       lostPathsReport().recordUnassignedDemand(demand);
     }
   }
 
-  private AssignmentLostPaths lostPathsReport() {
+  /**
+   * Records the modes represented in a worker's routing graph.
+   *
+   * @param modeMeans encoded mode-means combinations available for the job
+   */
+  public void logRoutingModes(int[] modeMeans) {
+    if (assignmentParameters.isLogLostPaths()) {
+      lostPathsReport().recordModes(modeMeans);
+    }
+  }
+
+  /** Loads the filtered demand and retains the denominator used by the lost-path report. */
+  protected final boolean loadDemand() {
+    ODReader reader = new ODReader(assignmentParameters);
+    if (!reader.loadDemand(virtualNet)) {
+      return false;
+    }
+    if (assignmentParameters.isLogLostPaths()) {
+      lostPathsReport().setLoadedDemand(reader.getLoadedRecords(), reader.getTotalQuantity());
+    }
+    return true;
+  }
+
+  private synchronized AssignmentLostPaths lostPathsReport() {
     if (lostPaths == null) {
       lostPaths = new AssignmentLostPaths(assignmentParameters, assignmentMethodName());
     }
@@ -268,8 +292,12 @@ public abstract class Assignment implements Runnable {
     if (lostPaths == null) {
       return;
     }
+    String statistics = lostPaths.statistics(completed);
+    if (!statistics.isEmpty()) {
+      System.out.print(statistics);
+    }
     try {
-      Path script = lostPaths.save(completed);
+      Path script = lostPaths.save(completed, statistics);
       if (script != null) {
         System.out.println("Lost-path SQL script: " + script);
       }

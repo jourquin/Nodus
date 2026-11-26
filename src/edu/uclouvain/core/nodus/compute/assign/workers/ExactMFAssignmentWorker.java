@@ -123,7 +123,7 @@ public class ExactMFAssignmentWorker extends AssignmentWorker {
         WorkerPhase.VOLUME_DISTRIBUTION);
 
     // Initialize the adjacency list for current group
-    graph = virtualNet.generateAdjacencyList(groupIndex);
+    generateAdjacencyList();
     CompactShortestPathGraph compactGraph = createCompactGraph();
     edgeUpdates = new MultiFlowEdgeUpdates(graph, compactGraph);
     NodusC.ExactMFAlgorithm algorithm = NodusC.exactMFAlgorithm;
