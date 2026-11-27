@@ -602,4 +602,5 @@ are 9001 for HSQLDB, 9092 for H2 and 1527 for Derby.
 
 ## v9.1 - BuildXXXXXXXX
 - Add "lost paths" statistics in console and generated SQL script
+- Add a .parquet reader plugin
 
